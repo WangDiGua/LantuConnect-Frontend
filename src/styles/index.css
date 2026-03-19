@@ -1,0 +1,122 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=JetBrains+Mono:wght@300;400;500;600&family=Outfit:wght@300;400;500;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&family=Anton&display=swap');
+@import "tailwindcss";
+@plugin "daisyui";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-space: "Space Grotesk", sans-serif;
+  --font-serif: "Playfair Display", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-outfit: "Outfit", sans-serif;
+  --font-garamond: "Cormorant Garamond", serif;
+  --font-anton: "Anton", sans-serif;
+}
+
+/* 与 docs/UI_STYLE_GUIDE.md 一致：控件 12px / 容器 16px，统一 DaisyUI 与手写 Tailwind */
+@layer base {
+  :root {
+    --radius-field: 0.75rem;
+    --radius-box: 1rem;
+    --radius-selector: 0.75rem;
+  }
+}
+
+/*
+ * Subtle focus（§3）：弱化 DaisyUI 默认的 2px 深色 outline（易呈「粗黑双边」）
+ * DaisyUI 5 在 .input/.select/.textarea 的 :focus-within 使用 outline:2px solid var(--input-color)，
+ * 且将 --input-color 设为 base-content，故用无 layer 规则覆盖，保证全站输入/下拉/按钮一致。
+ */
+@layer utilities {
+  .btn:focus-visible {
+    outline-width: 1px !important;
+    outline-style: solid !important;
+    outline-offset: 1px !important;
+    outline-color: rgb(59 130 246 / 0.4) !important;
+  }
+  .join .btn:focus-visible {
+    outline-offset: 0 !important;
+  }
+}
+
+/* 非 error：聚焦外圈改为 1px 浅蓝，去掉 Daisy 2px 深色 outline（与边框叠成「粗黑双边」） */
+.input:not(.input-error):focus,
+.input:not(.input-error):focus-within,
+.select:not(.select-error):focus,
+.select:not(.select-error):focus-within,
+.textarea:not(.textarea-error):focus,
+.textarea:not(.textarea-error):focus-within {
+  outline-width: 1px !important;
+  outline-style: solid !important;
+  outline-offset: 1px !important;
+  outline-color: rgb(59 130 246 / 0.38) !important;
+}
+
+/* 默认 bordered 输入：聚焦时边框不要拉满 base-content（仅无颜色变体时） */
+.input:not(.input-error):not(.input-primary):not(.input-secondary):not(.input-accent):not(.input-info):not(.input-success):not(.input-warning):not(.input-neutral):focus,
+.input:not(.input-error):not(.input-primary):not(.input-secondary):not(.input-accent):not(.input-info):not(.input-success):not(.input-warning):not(.input-neutral):focus-within,
+.select:not(.select-error):not(.select-primary):not(.select-secondary):not(.select-accent):not(.select-info):not(.select-success):not(.select-warning):not(.select-neutral):focus,
+.select:not(.select-error):not(.select-primary):not(.select-secondary):not(.select-accent):not(.select-info):not(.select-success):not(.select-warning):not(.select-neutral):focus-within,
+.textarea:not(.textarea-error):not(.textarea-primary):not(.textarea-secondary):not(.textarea-accent):not(.textarea-info):not(.textarea-success):not(.textarea-warning):not(.textarea-neutral):focus,
+.textarea:not(.textarea-error):not(.textarea-primary):not(.textarea-secondary):not(.textarea-accent):not(.textarea-info):not(.textarea-success):not(.textarea-warning):not(.textarea-neutral):focus-within {
+  --input-color: color-mix(in oklab, var(--color-primary) 40%, var(--color-base-300) 60%) !important;
+  box-shadow:
+    0 1px color-mix(in oklab, var(--input-color) calc(var(--depth) * 10%), #0000) inset,
+    0 -1px oklch(100% 0 0 / calc(var(--depth) * 0.1)) inset !important;
+}
+
+/* 线框按钮聚焦：避免沿用 base-content 的深色 outline */
+.btn-outline:focus-visible,
+.btn-ghost:focus-visible {
+  outline-color: rgb(59 130 246 / 0.38) !important;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 10px;
+}
+
+*:hover::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.3);
+}
+
+.dark *:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.5) !important;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+*:hover {
+  scrollbar-color: rgba(156, 163, 175, 0.3) transparent;
+}
+
+@keyframes glow {
+  0% { box-shadow: 0 0 5px rgba(59, 130, 246, 0.2); }
+  50% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.4); }
+  100% { box-shadow: 0 0 5px rgba(59, 130, 246, 0.2); }
+}
+
+.animate-glow {
+  animation: glow 2s ease-in-out infinite;
+}

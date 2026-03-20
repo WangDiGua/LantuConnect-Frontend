@@ -98,7 +98,7 @@ export function getFirstSubItemForSidebar(sidebarId: string): { subItem?: string
       return { subItem: USER_SETTINGS_GROUPS[0].items[0].id };
     case 'agent-management':
       return { agentSubItem: AGENT_MANAGEMENT_GROUPS[0].items[0].id };
-    case 'AI 助手':
+    case 'ai-assistant':
     case 'docs-tutorial':
       return { subItem: ROUTE_ROOT_SUB };
     default:

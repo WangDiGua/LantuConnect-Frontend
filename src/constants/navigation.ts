@@ -105,8 +105,8 @@ export const USER_SIDEBAR_ITEMS = [
   { id: 'publish-connect', icon: Share2, label: '发布与连接' },
   { id: 'my-data', icon: FileBarChart, label: '数据与评测' },
   { id: 'usage-billing', icon: CreditCard, label: '用量与账单' },
-  { id: 'personal-settings', icon: UserCircle, label: '账户与偏好' },
-  { id: 'docs-tutorials', icon: BookOpen, label: '文档与教程' },
+  { id: 'user-settings', icon: UserCircle, label: '账户与偏好' },
+  { id: 'docs-tutorial', icon: BookOpen, label: '文档与教程' },
 ];
 
 export const SIDEBAR_ITEMS = ADMIN_SIDEBAR_ITEMS;
@@ -554,7 +554,7 @@ export function getNavSubGroups(sidebarId: string, isAdminRole: boolean) {
       return USER_DATA_GROUPS;
     case 'usage-billing':
       return USER_USAGE_GROUPS;
-    case 'personal-settings':
+    case 'user-settings':
       return USER_SETTINGS_GROUPS;
     default:
       return [];

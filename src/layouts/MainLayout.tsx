@@ -165,10 +165,12 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
     const sbEn = params.sidebar;
     const tbEn = params.sub;
     if (r == null || sbEn === undefined || tbEn === undefined) return;
+    
     if (!isValidConsolePath(r, sbEn, tbEn)) {
       navigate(defaultConsolePath(r), { replace: true });
       return;
     }
+    
     // 将英文路由转换为中文标签
     const sb = toChineseLabel(sbEn, r === 'admin');
     const tb = toChineseLabel(tbEn, r === 'admin');

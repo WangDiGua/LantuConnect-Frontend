@@ -25,6 +25,16 @@ export function parseConsoleRole(param: string | undefined): ConsoleRole | null 
  * 验证控制台路径（接受英文路由，转换为中文后验证）
  */
 export function isValidConsolePath(role: ConsoleRole, sidebarEn: string, thirdEn: string): boolean {
+  // 处理特殊路由 __root__
+  if (thirdEn === ROUTE_ROOT_SUB) {
+    const sidebar = toChineseLabel(sidebarEn, role === 'admin');
+    const sidebars = role === 'admin' ? ADMIN_SIDEBAR_ITEMS : USER_SIDEBAR_ITEMS;
+    if (!sidebars.some((s) => s.id === sidebar)) return false;
+    const groups = getNavSubGroups(sidebar, role === 'admin');
+    // 如果没有子菜单，则 __root__ 是有效的
+    return groups.length === 0;
+  }
+  
   // 将英文路由转换为中文
   const sidebar = toChineseLabel(sidebarEn, role === 'admin');
   const third = toChineseLabel(thirdEn, role === 'admin');
@@ -33,7 +43,7 @@ export function isValidConsolePath(role: ConsoleRole, sidebarEn: string, thirdEn
   if (!sidebars.some((s) => s.id === sidebar)) return false;
   const groups = getNavSubGroups(sidebar, role === 'admin');
   const flat = groups.flatMap((g) => g.items.map((i) => i.id));
-  if (flat.length === 0) return third === ROUTE_ROOT_SUB || thirdEn === ROUTE_ROOT_SUB;
+  if (flat.length === 0) return third === ROUTE_ROOT_SUB;
   return flat.includes(third);
 }
 

@@ -17,7 +17,8 @@ export const ADMIN_ROUTE_MAPPING: Record<string, string> = {
   '数据管理': 'data-management',
   '系统日志': 'system-log',
   
-  // Sub-routes
+  // Sub-routes (系统概览的子路由)
+  // 注意：'系统概览' 作为子路由也映射到 'overview'，与sidebar共享
   '资源监控': 'resource-monitoring',
   '使用统计': 'usage-statistics',
   '健康检查': 'health-check',

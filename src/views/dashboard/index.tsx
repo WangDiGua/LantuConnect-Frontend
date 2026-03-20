@@ -1,2 +1,2 @@
-// Placeholder for views/dashboard
-export {};
+export { Overview } from './Overview';
+export { QuickAccess } from './QuickAccess';

@@ -11,7 +11,26 @@
     <title>兰智通 LantuConnect</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Pre-React splash: removed once React mounts -->
+      <div id="pre-splash" style="position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#f8fafc,#fff,#eef2ff80)">
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none" style="margin-bottom:16px">
+          <rect width="48" height="48" rx="14" fill="url(#_s)"/>
+          <circle cx="19" cy="20" r="5" fill="#fff" fill-opacity=".85"/>
+          <circle cx="29" cy="28" r="5" fill="#fff" fill-opacity=".65"/>
+          <line x1="22" y1="23" x2="26" y2="25" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".7"/>
+          <defs><linearGradient id="_s" x1="0" y1="0" x2="48" y2="48"><stop stop-color="#4F46E5"/><stop offset=".5" stop-color="#6366F1"/><stop offset="1" stop-color="#818CF8"/></linearGradient></defs>
+        </svg>
+        <div style="font-size:18px;font-weight:700;letter-spacing:-0.02em;background:linear-gradient(90deg,#4F46E5,#2563EB,#7C3AED);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px">LantuConnect</div>
+        <div style="font-size:11px;color:#94a3b8;margin-bottom:28px">企业级 AI 智能体平台</div>
+        <div style="display:flex;gap:6px">
+          <div style="width:6px;height:6px;border-radius:50%;background:#6366f1b3;animation:_b 1.2s ease-in-out infinite"></div>
+          <div style="width:6px;height:6px;border-radius:50%;background:#6366f1b3;animation:_b 1.2s ease-in-out .15s infinite"></div>
+          <div style="width:6px;height:6px;border-radius:50%;background:#6366f1b3;animation:_b 1.2s ease-in-out .3s infinite"></div>
+        </div>
+        <style>@keyframes _b{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}</style>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

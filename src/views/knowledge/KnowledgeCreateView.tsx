@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { Theme, FontSize, ThemeColor } from '../../types';
 import { THEME_COLOR_CLASSES } from '../../constants/theme';
 import type { KnowledgeItem } from './types';
 import { nativeSelectClass } from '../../utils/formFieldClasses';
+import { useCreateKB } from '../../hooks/queries/useKnowledge';
+import { createKBSchema } from '../../schemas/knowledge.schema';
 
 interface Props {
   theme: Theme;
@@ -21,19 +23,43 @@ export const KnowledgeCreateView: React.FC<Props> = ({ theme, fontSize, themeCol
   const [vectorModel, setVectorModel] = useState('text-embedding-3-large');
   const [cluster, setCluster] = useState('default-cluster');
   const [hosted, setHosted] = useState('平台托管');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const createMut = useCreateKB();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
-    const id = `kb_${Date.now().toString(36)}`;
-    onSubmit({
-      id,
+
+    const result = createKBSchema.safeParse({
       name: name.trim(),
-      description: description.trim() || '—',
-      fileCount: 0,
-      hosted,
-      vectorModel,
-      cluster,
+      description: description.trim() || undefined,
+      type: 'document' as const,
+      embeddingModel: vectorModel,
+    });
+
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      result.error.issues.forEach((err) => { fieldErrors[String(err.path[0])] = err.message; });
+      setErrors(fieldErrors);
+      return;
+    }
+    setErrors({});
+
+    createMut.mutate(result.data, {
+      onSuccess: (kb) => {
+        onSubmit({
+          id: kb.id,
+          name: kb.name,
+          description: kb.description,
+          fileCount: 0,
+          hosted,
+          vectorModel,
+          cluster,
+        });
+      },
+      onError: (err) => {
+        setErrors({ submit: err instanceof Error ? err.message : '创建失败' });
+      },
     });
   };
 
@@ -68,13 +94,13 @@ export const KnowledgeCreateView: React.FC<Props> = ({ theme, fontSize, themeCol
                     <span className="label-text font-bold">知识库名称</span>
                   </label>
                   <input
-                    className="input input-bordered w-full"
+                    className={`input input-bordered w-full ${errors.name ? 'input-error' : ''}`}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="例如：教务政策知识库"
                     maxLength={80}
-                    required
                   />
+                  {errors.name && <label className="label py-0"><span className="label-text-alt text-error">{errors.name}</span></label>}
                 </div>
                 <div className="form-control w-full gap-1 lg:col-span-2">
                   <label className="label py-0">
@@ -92,7 +118,7 @@ export const KnowledgeCreateView: React.FC<Props> = ({ theme, fontSize, themeCol
                     <span className="label-text font-bold">向量模型</span>
                   </label>
                   <select
-                    className={nativeSelectClass(theme)}
+                    className={`${nativeSelectClass(theme)} ${errors.embeddingModel ? 'border-error' : ''}`}
                     value={vectorModel}
                     onChange={(e) => setVectorModel(e.target.value)}
                   >
@@ -100,6 +126,7 @@ export const KnowledgeCreateView: React.FC<Props> = ({ theme, fontSize, themeCol
                     <option value="text-embedding-ada-002">text-embedding-ada-002</option>
                     <option value="bge-large-zh">bge-large-zh</option>
                   </select>
+                  {errors.embeddingModel && <label className="label py-0"><span className="label-text-alt text-error">{errors.embeddingModel}</span></label>}
                 </div>
                 <div className="form-control w-full gap-1">
                   <label className="label py-0">
@@ -127,11 +154,16 @@ export const KnowledgeCreateView: React.FC<Props> = ({ theme, fontSize, themeCol
                 </div>
               </div>
 
+              {errors.submit && (
+                <div className="mt-4 text-sm text-error">{errors.submit}</div>
+              )}
+
               <div className="flex flex-wrap justify-end gap-2 mt-10 pt-6 border-t border-dashed border-slate-200/80 dark:border-white/10">
                 <button type="button" onClick={onBack} className="btn btn-ghost">
                   取消
                 </button>
-                <button type="submit" className={`btn text-white border-0 ${tc.bg} shadow-lg ${tc.shadow}`}>
+                <button type="submit" disabled={createMut.isPending} className={`btn text-white border-0 ${tc.bg} shadow-lg ${tc.shadow}`}>
+                  {createMut.isPending && <Loader2 size={16} className="animate-spin mr-1" />}
                   创建
                 </button>
               </div>

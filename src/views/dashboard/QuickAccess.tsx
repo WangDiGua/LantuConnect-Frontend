@@ -16,7 +16,6 @@ import {
   Plus
 } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
-import { THEME_COLOR_CLASSES } from '../../constants/theme';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 
 interface QuickAccessProps {

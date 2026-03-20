@@ -11,6 +11,8 @@
 
 | 日期 | 内容摘要 |
 |------|----------|
+| 2026-03-20 | **路由**：控制台路径 `/c/{admin 或 user}/{sidebar}/{sub}`（`encodeURIComponent`），无子菜单项第三段为 `__root__`（`routeRoot.ts`）；`react-router-dom` + `useLayoutEffect` 与侧栏点击 `navigate` 同步；入口 `/` 见 `ConsoleHomeRedirect`。 **数据可视化**：业务统计统一 **ECharts**（按需注册 chart 类型），壳组件 `EChartCard` + 主题工具 `echartsTheme.ts`；概览 `OverviewAnalyticsGrid`、监控 `MonitoringOverviewCharts`、管理员总览 `AdminConsoleCharts`。 **开源组件**：要闻轮播使用 **Swiper**（`HeroCarousel`）。 **DaisyUI**：公告区使用 `card` / `card-body` / `card-title` 等与 `data-theme` 联动。 **复用**：图表与轮播独立目录 `components/charts`、`components/ui`，避免页面内重复 option 大块（可再抽 `buildXxxOption`）。 |
+| 2026-03-20 | **应用型侧栏目录**：一级项为「主按钮 + 独立展开箭头」（箭头可收起当前模块子树）；子项行统一 **`rounded-xl`**，分组标题置于 **`rounded-lg`** 浅底轨道内；当前模块下提供 **子项筛选框**（`toolbarSearchInputClass` + 左侧 Search 图标）；选中态以 **背景 + 字重 + 左侧主题色边线** 为主，去掉子项横向位移动效；管理员侧栏各子页补全 **Mock 可操作流程**（`views/adminApp/*`、`SystemConfigExtraPages`、`OrgStructurePage`、监控扩展页）。§6 补充「应用目录」约定。 |
 | 2026-03-19 | **下拉框**：全站原生 select 统一使用 `nativeSelectClass(theme)`；`formFieldClasses` 增加 `appearance-none` + 自定义箭头（`.lantu-select`）；AgentCreate 内两处 Daisy select 改为规范样式；MainLayout 根节点增加 `data-theme` 以支持深色箭头；§1 增加「下拉框统一规范」 |
 | 2026-03-19 | 概览「平台能力」：**素色卡片**（白/ `#1C1C1E` 底、细边框），左图标右文案，中性灰图标底；轮播 `group/carousel` 箭头悬停/focus-within 显示，圆点常驻 |
 | 2026-03-19 | 概览轮播：**左右箭头**仅在卡片 `group-hover` 时显示；**底部圆点指示器**始终可见；工具广场：`MainLayout` 次级侧栏 `TOOL_SQUARE_GROUPS` + `ToolMarketModule`（工具发现 / 我的工具 / 上架 MCP / 创建 MCP）；Agent 观测：`AgentMonitoringPage`、`AgentTracePage`；`views/agent/ToolMarket.tsx` 改为对 `ToolMarketDiscover` 的别名导出 |
@@ -31,7 +33,7 @@
 
 | 键名 | 工具模块 | 内容 |
 |------|----------|------|
-| `lantu-main-nav` | `navigationState.ts` | 侧栏、子菜单、Agent 列表/详情视图状态 |
+| `lantu-main-nav` | `navigationState.ts` | 侧栏、子菜单、Agent 列表/详情视图状态（与 URL 同步后仍写入，便于 `/` 重定向恢复） |
 | `lantu-appearance` | `appearanceState.ts` | 浅色/深色、主题色、字号、字体、转场动画 |
 
 ---
@@ -112,9 +114,48 @@
 
 - **同一业务闭环**（如 Agent：列表 → 创建 → 详情 → 行内测试）只占 **一个** 子菜单入口（如「Agent列表」），通过页面内状态切换，不拆成多个侧栏项。
 
+### 6.1 应用型侧栏目录（Studio / 控制台）
+
+适用于 **用户工作台** 与 **管理员平台** 等多子项树形菜单：
+
+| 元素 | 约定 |
+|------|------|
+| 一级项 | `rounded-xl` 整行；**左侧**为导航主按钮（切换模块并默认展开子树），**右侧**为独立 **Chevron**（在当前已选模块上可 **收起/展开** 子树，避免误跳页）。 |
+| 分组标题 | 使用 **`rounded-lg`** 的浅底轨道（`bg-slate-200/40` / `bg-white/5`）承载小字 `uppercase` 分组名，与子项行视觉分层。 |
+| 子项行 | 一律 **`rounded-xl`** + `py-2`；**禁止**粗 `ring` 表示选中；选中态用 **背景块 + 字重**，深色下可加 **`border-l-2` + 主题色**。 |
+| 子项检索 | 仅在 **当前激活的一级模块** 展开区内显示筛选框；占位符如「筛选子项…」；无匹配时展示「无匹配项」文案。 |
+| 动效 | **不要**对侧栏行使用横向 `translate` 悬停；可用背景透明度/色块变化即可。 |
+
 ---
 
-## 7. 修改清单（给开发者）
+## 7. 路由与地址栏（控制台）
+
+- **路径格式**：`/c/:role/:sidebar/:sub`，其中 `role` 为 `admin` 或 `user`；`sidebar` / `sub` 为 **URL 编码**后的侧栏 id（与 `navigation.ts` 中 `id` 一致）。
+- **占位**：无子菜单的一级项（如 `AI 助手`、`文档教程`）第三段固定为 **`__root__`**（常量 `ROUTE_ROOT_SUB`）。
+- **Agent**：侧栏为「我的 Agent」时，第三段为 **Agent 子菜单 id**（如 `agent-workspace`）。
+- **实现**：`constants/consoleRoutes.ts`（`buildConsolePath` / `decodeConsolePath` / `isValidConsolePath`）；`getNavSubGroups` 在 `navigation.ts` 供布局与校验复用。
+- **部署**：SPA 需服务端 **history fallback** 到 `index.html`（Vite preview 已支持；生产环境按 Nginx / CDN 配置）。
+
+---
+
+## 8. 数据图表（ECharts）
+
+- **封装**：`components/charts/EChartCard.tsx` 负责 `init` / `ResizeObserver` / `dispose`，页面只传 `option` 与 `theme`。
+- **主题**：文字、轴线、分割线等与浅色/深色对齐，见 `echartsTheme.ts`（`chartColors`、`baseAxis`、`baseTooltip` 等）。
+- **按需注册**：在 `EChartCard` 内 `echarts.use` 仅注册用到的图表类型（`LineChart`、`BarChart`、`PieChart`、`RadarChart`、`FunnelChart` 等），避免整包 `import echarts`。
+- **版式**：多图页使用 **响应式栅格**（如 `grid-cols-1 lg:grid-cols-2`），单图最小高度建议 **≥ 220px**，标题用 `title.textStyle` 与 §1 字号档协调。
+
+---
+
+## 9. 开源与 DaisyUI 使用原则
+
+- **轮播**：优先 **Swiper**（已实现 `HeroCarousel`）；自定义动画轮播仅在没有交互需求时使用。
+- **DaisyUI**：列表/卡片容器优先 `card`、`btn`、`badge` 等语义类，再通过 Tailwind 覆盖圆角（与 §1 一致：`rounded-2xl` 卡片、`rounded-xl` 按钮）。
+- **复用**：同类可视化抽 **一个壳组件 + 多个 option 工厂**；跨页重复区块（如图表栅格）单独文件，禁止在业务页复制大段 JSX。
+
+---
+
+## 10. 修改清单（给开发者）
 
 新增页面或组件时自检：
 
@@ -125,7 +166,8 @@
 5. 表格/列表是否具备 **横向滚动或省略+title**，列是否有 **min-width**？  
 6. 主内容区外边距是否 **收紧**（§5），避免背景色留白过大？  
 7. 是否与 DaisyUI 主题变量冲突？若冲突以本文 + `index.css` 为准。  
-8. **用户管理**（侧栏）：子项「用户管理 / 角色管理 / API Key 管理 / Token 管理」由 `UserManagementModule` 分发至 `src/views/userMgmt/*`，布局沿用 §5 主区灰底 + 内层 `rounded-2xl` 大卡片与表格斑马行（非 `table-zebra`）；演示数据见 `src/constants/userMgmt.ts`。
+8. **用户管理**（侧栏）：子项「用户管理 / 角色管理 / API Key 管理 / Token 管理」由 `UserManagementModule` 分发至 `src/views/userMgmt/*`，布局沿用 §5 主区灰底 + 内层 `rounded-2xl` 大卡片与表格斑马行（非 `table-zebra`）；演示数据见 `src/constants/userMgmt.ts`。  
+9. 新增统计类页面时，是否已复用 **`EChartCard` + `echartsTheme`**？路由变更是否 **`buildConsolePath` + `navigate`**？
 
 ---
 

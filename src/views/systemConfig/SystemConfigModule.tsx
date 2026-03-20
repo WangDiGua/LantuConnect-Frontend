@@ -4,6 +4,13 @@ import { PlaceholderView } from '../common/PlaceholderView';
 import { ModelConfigPage } from './ModelConfigPage';
 import { RateLimitPage } from './RateLimitPage';
 import { AuditLogPage } from './AuditLogPage';
+import {
+  SystemParamsPage,
+  SecuritySettingsPage,
+  NetworkConfigPage,
+  SystemQuotaPage,
+  AccessControlPage,
+} from './SystemConfigExtraPages';
 
 export interface SystemConfigModuleProps {
   activeSubItem: string;
@@ -47,6 +54,16 @@ export const SystemConfigModule: React.FC<SystemConfigModuleProps> = ({
           breadcrumbSegments={['系统配置', '审计日志']}
         />
       );
+    case '系统参数':
+      return <SystemParamsPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
+    case '安全设置':
+      return <SecuritySettingsPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
+    case '网络配置':
+      return <NetworkConfigPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
+    case '配额管理':
+      return <SystemQuotaPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
+    case '访问控制':
+      return <AccessControlPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
     default:
       return <PlaceholderView title={activeSubItem} theme={theme} fontSize={fontSize} />;
   }

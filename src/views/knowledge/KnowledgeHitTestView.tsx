@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Send, Sparkles } from 'lucide-react';
+import { ArrowLeft, Send, Sparkles, Loader2 } from 'lucide-react';
 import { Theme, FontSize, ThemeColor } from '../../types';
 import { THEME_COLOR_CLASSES } from '../../constants/theme';
+import { useHitTest } from '../../hooks/queries/useKnowledge';
 
 interface Props {
   theme: Theme;
@@ -15,14 +16,12 @@ export const KnowledgeHitTestView: React.FC<Props> = ({ theme, fontSize, themeCo
   const tc = THEME_COLOR_CLASSES[themeColor];
   const [query, setQuery] = useState('');
   const [kbId, setKbId] = useState('');
-  const [results, setResults] = useState<{ text: string; score: number }[] | null>(null);
+
+  const hitTestMut = useHitTest();
 
   const runTest = () => {
     if (!query.trim()) return;
-    setResults([
-      { text: '（模拟）与「' + query.slice(0, 20) + '」相关的政策条款摘要…', score: 0.92 },
-      { text: '（模拟）另一段检索到的文档片段，用于验证展示样式。', score: 0.78 },
-    ]);
+    hitTestMut.mutate({ kbId: kbId.trim() || 'default', query: query.trim(), topK: 5 });
   };
 
   return (
@@ -83,9 +82,10 @@ export const KnowledgeHitTestView: React.FC<Props> = ({ theme, fontSize, themeCo
                 <button
                   type="button"
                   onClick={runTest}
-                  className={`btn w-full sm:w-auto text-white border-0 gap-2 ${tc.bg} shadow-lg ${tc.shadow}`}
+                  disabled={hitTestMut.isPending || !query.trim()}
+                  className={`btn w-full sm:w-auto text-white border-0 gap-2 ${tc.bg} shadow-lg ${tc.shadow} disabled:opacity-60`}
                 >
-                  <Send size={18} />
+                  {hitTestMut.isPending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
                   执行检索
                 </button>
               </div>
@@ -99,32 +99,39 @@ export const KnowledgeHitTestView: React.FC<Props> = ({ theme, fontSize, themeCo
                   <Sparkles size={18} className={tc.text} />
                   检索结果
                 </div>
-                {!results ? (
+                {hitTestMut.isError ? (
+                  <p className="text-sm text-error">
+                    检索失败：{hitTestMut.error instanceof Error ? hitTestMut.error.message : '未知错误'}
+                  </p>
+                ) : !hitTestMut.data ? (
                   <p className={`text-sm ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                    填写查询后点击「执行检索」，结果将展示在此区域（当前为演示数据）。
+                    填写查询后点击「执行检索」，结果将展示在此区域。
+                  </p>
+                ) : hitTestMut.data.length === 0 ? (
+                  <p className={`text-sm ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                    未找到匹配结果，尝试调整查询文本。
                   </p>
                 ) : (
-                  <>
-                    <p className={`text-xs mb-3 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>演示数据</p>
-                    <ul className="space-y-3">
-                      {results.map((r, i) => (
-                        <li
-                          key={i}
-                          className={`p-4 rounded-xl text-sm leading-relaxed ${
-                            isDark ? 'bg-white/5' : 'bg-white border border-slate-200/80'
-                          }`}
-                        >
-                          <div className="flex justify-between gap-2 mb-2">
-                            <span className="text-xs font-mono text-slate-400">chunk #{i + 1}</span>
-                            <span className={`text-xs font-bold tabular-nums ${tc.text}`}>
-                              {(r.score * 100).toFixed(0)}% 相关
-                            </span>
-                          </div>
-                          {r.text}
-                        </li>
-                      ))}
-                    </ul>
-                  </>
+                  <ul className="space-y-3">
+                    {hitTestMut.data.map((r, i) => (
+                      <li
+                        key={r.chunkId || i}
+                        className={`p-4 rounded-xl text-sm leading-relaxed ${
+                          isDark ? 'bg-white/5' : 'bg-white border border-slate-200/80'
+                        }`}
+                      >
+                        <div className="flex justify-between gap-2 mb-2">
+                          <span className="text-xs font-mono text-slate-400">
+                            {r.documentName || `chunk #${i + 1}`}
+                          </span>
+                          <span className={`text-xs font-bold tabular-nums ${tc.text}`}>
+                            {(r.score * 100).toFixed(0)}% 相关
+                          </span>
+                        </div>
+                        {r.content}
+                      </li>
+                    ))}
+                  </ul>
                 )}
               </div>
             </div>

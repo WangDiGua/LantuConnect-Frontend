@@ -1,2 +1,1 @@
-// Placeholder for views/login
-export {};
+export { LoginPage } from './LoginPage';

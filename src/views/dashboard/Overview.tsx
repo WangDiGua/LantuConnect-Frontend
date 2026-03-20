@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React from 'react';
+import { motion } from 'framer-motion';
 import {
   Bot,
   Zap,
@@ -12,22 +12,21 @@ import {
   Settings,
   User,
   ChevronRight,
-  ChevronLeft,
   MessageSquare,
   Megaphone,
   Calendar,
 } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
+import { HeroCarousel, type HeroSlide } from '../../components/ui/HeroCarousel';
+import { OverviewAnalyticsGrid } from '../../components/charts/OverviewAnalyticsGrid';
 
 interface OverviewProps {
   theme: Theme;
   fontSize: FontSize;
 }
 
-const CAROUSEL_INTERVAL_MS = 6500;
-
-const slides = [
+const slides: HeroSlide[] = [
   {
     kicker: '工作台',
     title: '本学期办事大厅服务时间调整',
@@ -36,8 +35,6 @@ const slides = [
     darkMesh: 'from-[#141418] via-[#1C1C1E] to-blue-950/40',
     kickerLight: 'text-slate-600',
     kickerDark: 'text-slate-400',
-    barLight: 'bg-slate-700',
-    barDark: 'bg-slate-300',
   },
   {
     kicker: '数据服务',
@@ -47,8 +44,6 @@ const slides = [
     darkMesh: 'from-blue-950/50 via-[#1C1C1E] to-indigo-950/35',
     kickerLight: 'text-blue-700',
     kickerDark: 'text-blue-300',
-    barLight: 'bg-blue-600',
-    barDark: 'bg-blue-400',
   },
   {
     kicker: '运维',
@@ -58,8 +53,6 @@ const slides = [
     darkMesh: 'from-amber-950/30 via-[#1C1C1E] to-orange-950/25',
     kickerLight: 'text-amber-800',
     kickerDark: 'text-amber-200',
-    barLight: 'bg-amber-500',
-    barDark: 'bg-amber-400',
   },
 ];
 
@@ -76,18 +69,6 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
   const { hasSecondarySidebar } = useLayoutChrome();
   const outerPad = hasSecondarySidebar ? 'px-2 sm:px-3 lg:px-4' : 'px-1.5 sm:px-2 lg:px-3';
   const maxW = hasSecondarySidebar ? 'max-w-7xl mx-auto' : 'w-full max-w-none';
-
-  const [slide, setSlide] = useState(0);
-  const n = slides.length;
-
-  const go = useCallback((dir: -1 | 1) => {
-    setSlide((i) => (i + dir + n) % n);
-  }, [n]);
-
-  useEffect(() => {
-    const t = window.setInterval(() => setSlide((i) => (i + 1) % n), CAROUSEL_INTERVAL_MS);
-    return () => window.clearInterval(t);
-  }, [n]);
 
   /** 平台能力：与公告区一致的素色卡片 + 中性图标底，避免整卡渐变 */
   const modules = [
@@ -139,172 +120,17 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
       <div className={`${maxW} w-full space-y-8`}>
         {/* 轮播 + 公告 */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
-          <div
-            className={`group/carousel lg:col-span-2 rounded-2xl border overflow-hidden shadow-none flex flex-col relative ${
-              isDark ? 'border-white/10' : 'border-slate-200/80'
-            }`}
-          >
-            <div className="relative min-h-[260px] sm:min-h-[300px] flex flex-col">
-              <AnimatePresence initial={false} mode="wait">
-                <motion.div
-                  key={slide}
-                  initial={{ opacity: 0, x: 28 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
-                  className={`absolute inset-0 flex flex-col bg-gradient-to-br ${
-                    isDark ? slides[slide].darkMesh : slides[slide].lightMesh
-                  }`}
-                >
-                  <div
-                    className="pointer-events-none absolute inset-0 opacity-[0.35] dark:opacity-[0.2]"
-                    style={{
-                      backgroundImage: isDark
-                        ? 'radial-gradient(ellipse 80% 60% at 90% 20%, rgba(255,255,255,0.06), transparent 55%)'
-                        : 'radial-gradient(ellipse 70% 50% at 100% 0%, rgba(59,130,246,0.12), transparent 50%)',
-                    }}
-                  />
-                  <div className="relative z-10 flex-1 flex flex-col justify-center px-6 sm:px-10 py-10 sm:py-12">
-                    <div className="grid sm:grid-cols-[1fr_auto] gap-6 items-center">
-                      <div className="min-w-0 space-y-3 sm:space-y-4">
-                        <p
-                          className={`text-[11px] font-bold uppercase tracking-[0.2em] ${
-                            isDark ? slides[slide].kickerDark : slides[slide].kickerLight
-                          }`}
-                        >
-                          {slides[slide].kicker}
-                        </p>
-                        <h2
-                          className={`text-2xl sm:text-3xl font-bold tracking-tight leading-snug ${
-                            isDark ? 'text-white' : 'text-slate-900'
-                          }`}
-                        >
-                          {slides[slide].title}
-                        </h2>
-                        <p
-                          className={`text-sm sm:text-[15px] leading-relaxed max-w-xl ${
-                            isDark ? 'text-slate-400' : 'text-slate-600'
-                          }`}
-                        >
-                          {slides[slide].body}
-                        </p>
-                      </div>
-                      <div
-                        className={`hidden sm:flex items-center justify-center tabular-nums select-none text-[5.5rem] sm:text-[6.5rem] font-black leading-none ${
-                          isDark ? 'text-white/[0.07]' : 'text-slate-900/[0.06]'
-                        }`}
-                        aria-hidden
-                      >
-                        {String(slide + 1).padStart(2, '0')}
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              </AnimatePresence>
+          <HeroCarousel theme={theme} slides={slides} className="lg:col-span-2" />
 
-              {/* 圆圈加载进度：弱化显示，随当前页重置 */}
-              <div
-                className="absolute right-2.5 top-2.5 z-20 w-7 h-7 rounded-full flex items-center justify-center opacity-40 hover:opacity-60 transition-opacity"
-                aria-hidden
-              >
-                <svg className="w-full h-full -rotate-90" viewBox="0 0 28 28" aria-hidden>
-                  <circle
-                    cx="14"
-                    cy="14"
-                    r="11.5"
-                    fill="none"
-                    stroke={isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)'}
-                    strokeWidth="1.5"
-                  />
-                  <motion.circle
-                    key={slide}
-                    cx="14"
-                    cy="14"
-                    r="11.5"
-                    fill="none"
-                    stroke={isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.25)'}
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeDasharray={72.3}
-                    initial={{ strokeDashoffset: 72.3 }}
-                    animate={{ strokeDashoffset: 0 }}
-                    transition={{ duration: CAROUSEL_INTERVAL_MS / 1000, ease: 'linear' }}
-                  />
-                </svg>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => go(-1)}
-                className={`absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center border transition-all duration-300 opacity-0 pointer-events-none group-hover/carousel:opacity-100 group-hover/carousel:pointer-events-auto group-focus-within/carousel:opacity-100 group-focus-within/carousel:pointer-events-auto ${
-                  isDark
-                    ? 'border-white/10 bg-black/30 text-white hover:bg-white/10 backdrop-blur-sm'
-                    : 'border-slate-200/90 bg-white/80 text-slate-700 hover:bg-white shadow-sm backdrop-blur-sm'
-                }`}
-                aria-label="上一条"
-              >
-                <ChevronLeft size={20} strokeWidth={2} />
-              </button>
-              <button
-                type="button"
-                onClick={() => go(1)}
-                className={`absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center border transition-all duration-300 opacity-0 pointer-events-none group-hover/carousel:opacity-100 group-hover/carousel:pointer-events-auto group-focus-within/carousel:opacity-100 group-focus-within/carousel:pointer-events-auto ${
-                  isDark
-                    ? 'border-white/10 bg-black/30 text-white hover:bg-white/10 backdrop-blur-sm'
-                    : 'border-slate-200/90 bg-white/80 text-slate-700 hover:bg-white shadow-sm backdrop-blur-sm'
-                }`}
-                aria-label="下一条"
-              >
-                <ChevronRight size={20} strokeWidth={2} />
-              </button>
-            </div>
-
-            <div
-              className={`relative z-10 flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-t ${
-                isDark ? 'border-white/10 bg-black/20' : 'border-slate-200/90 bg-white/60'
-              } backdrop-blur-md`}
-            >
-              <span className={`text-[11px] font-medium ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
-                兰智通 · 工作台要闻
-                <span className="mx-2 opacity-40">·</span>
-                <span className="tabular-nums">
-                  {slide + 1} / {n}
-                </span>
-              </span>
-              <div className="flex items-center gap-2">
-                {slides.map((_, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => setSlide(i)}
-                    className={`h-2 rounded-full transition-all duration-300 ${
-                      i === slide
-                        ? isDark
-                          ? 'w-8 bg-white/90'
-                          : 'w-8 bg-slate-800'
-                        : isDark
-                          ? 'w-2 bg-white/25 hover:bg-white/40'
-                          : 'w-2 bg-slate-300 hover:bg-slate-400'
-                    }`}
-                    aria-label={`第 ${i + 1} 条`}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <aside
-            className={`rounded-2xl border shadow-none flex flex-col min-h-0 ${
-              isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200/80'
-            }`}
-          >
+          <aside className="card card-border bg-base-100 border-base-200 shadow-none rounded-2xl flex flex-col min-h-0">
+            <div className="card-body p-0 flex flex-col min-h-0">
             <div
               className={`flex items-center gap-2 px-4 py-3 border-b shrink-0 ${
-                isDark ? 'border-white/10' : 'border-slate-200'
+                isDark ? 'border-white/10' : 'border-base-200'
               }`}
             >
               <Megaphone size={16} className={isDark ? 'text-slate-400' : 'text-slate-500'} />
-              <h2 className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>通知公告</h2>
+              <h2 className={`card-title text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>通知公告</h2>
             </div>
             <ul className="flex-1 overflow-y-auto custom-scrollbar divide-y divide-dashed max-h-[280px] lg:max-h-none">
               {announcements.map((a) => (
@@ -335,8 +161,11 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
                 </li>
               ))}
             </ul>
+            </div>
           </aside>
         </div>
+
+        <OverviewAnalyticsGrid theme={theme} />
 
         {/* 平台能力：素色卡片 + 左图右文，对齐通知公告/常用入口气质 */}
         <section className="space-y-5">

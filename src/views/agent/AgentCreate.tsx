@@ -14,6 +14,9 @@ import {
 } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { nativeSelectClass } from '../../utils/formFieldClasses';
+import { useCreateAgent } from '../../hooks/queries/useAgent';
+import { createAgentSchema } from '../../schemas/agent.schema';
+import { z } from 'zod';
 
 interface AgentCreateProps {
   theme: Theme;
@@ -23,6 +26,22 @@ interface AgentCreateProps {
 }
 
 type Step = 'BASIC_INFO' | 'TYPE_SELECT' | 'TYPE_CONFIG' | 'SUBMITTING';
+
+const FORM_TYPE_TO_DTO: Record<string, 'chat' | 'task' | 'workflow' | 'custom'> = {
+  REST_API: 'chat',
+  MCP: 'task',
+  OPENAPI: 'workflow',
+  WEBHOOK: 'custom',
+};
+
+const basicInfoSchema = z.object({
+  name: z.string().min(1, '请输入 Agent 名称').max(50, '名称不能超过 50 个字符'),
+  description: z.string().min(1, '请输入 Agent 描述'),
+});
+
+const configSchema = z.object({
+  url: z.string().min(1, '请输入接口地址').url('接口地址必须以 http:// 或 https:// 开头'),
+});
 
 export const AgentCreate: React.FC<AgentCreateProps> = ({ theme, fontSize, onBack, onSuccess }) => {
   const isDark = theme === 'dark';
@@ -39,41 +58,54 @@ export const AgentCreate: React.FC<AgentCreateProps> = ({ theme, fontSize, onBac
     }
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const createMut = useCreateAgent();
 
   const validateBasicInfo = () => {
-    const newErrors: Record<string, string> = {};
-    if (!formData.name.trim()) newErrors.name = '请输入 Agent 名称';
-    if (formData.name.length > 50) newErrors.name = '名称不能超过 50 个字符';
-    if (!formData.description.trim()) newErrors.description = '请输入 Agent 描述';
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    const result = basicInfoSchema.safeParse({ name: formData.name, description: formData.description });
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      result.error.issues.forEach((e) => { fieldErrors[String(e.path[0])] = e.message; });
+      setErrors(fieldErrors);
+      return false;
+    }
+    setErrors({});
+    return true;
   };
 
   const validateConfig = () => {
-    const newErrors: Record<string, string> = {};
-    if (!formData.config.url.trim()) newErrors.url = '请输入接口地址';
-    if (!formData.config.url.startsWith('http')) newErrors.url = '接口地址必须以 http:// 或 https:// 开头';
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    const result = configSchema.safeParse({ url: formData.config.url });
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      result.error.issues.forEach((e) => { fieldErrors[String(e.path[0])] = e.message; });
+      setErrors(fieldErrors);
+      return false;
+    }
+    setErrors({});
+    return true;
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!validateConfig()) return;
     
-    setIsSubmitting(true);
     setCurrentStep('SUBMITTING');
-    
-    // Mock API call
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      // Simulate success
-      onSuccess('new-agent-id-123');
-    } catch (err) {
-      setIsSubmitting(false);
-      setCurrentStep('TYPE_CONFIG');
-      setErrors({ submit: '创建失败，请检查网络连接后重试。' });
-    }
+
+    createMut.mutate(
+      {
+        name: formData.name,
+        description: formData.description,
+        type: FORM_TYPE_TO_DTO[formData.type] ?? 'custom',
+        modelId: 'default',
+        systemPrompt: `Endpoint: ${formData.config.url}`,
+      },
+      {
+        onSuccess: (agent) => onSuccess(agent.id),
+        onError: (err) => {
+          setCurrentStep('TYPE_CONFIG');
+          setErrors({ submit: err instanceof Error ? err.message : '创建失败，请检查网络连接后重试。' });
+        },
+      }
+    );
   };
 
   const renderStepIndicator = () => {
@@ -146,7 +178,7 @@ export const AgentCreate: React.FC<AgentCreateProps> = ({ theme, fontSize, onBac
           placeholder="描述该 Agent 的功能、用途及核心逻辑..."
           value={formData.description}
           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-        ></textarea>
+        />
         {errors.description && <label className="label"><span className="label-text-alt text-error">{errors.description}</span></label>}
       </div>
 
@@ -298,7 +330,7 @@ export const AgentCreate: React.FC<AgentCreateProps> = ({ theme, fontSize, onBac
           <ArrowLeft size={18} />
           上一步
         </button>
-        <button type="button" onClick={handleSubmit} className="btn btn-primary px-10 shadow-lg shadow-blue-500/20">
+        <button type="button" onClick={handleSubmit} disabled={createMut.isPending} className="btn btn-primary px-10 shadow-lg shadow-blue-500/20">
           提交创建
         </button>
       </div>
@@ -317,7 +349,6 @@ export const AgentCreate: React.FC<AgentCreateProps> = ({ theme, fontSize, onBac
     <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${
       isDark ? 'bg-[#000000]' : 'bg-[#F2F2F7]'
     }`}>
-      {/* Header：与 Agent 列表一致的扁平顶栏 */}
       <div className={`shrink-0 z-20 border-b px-4 sm:px-6 py-4 flex items-center gap-4 ${
         isDark ? 'border-white/10 bg-[#000000]' : 'border-slate-200/80 bg-[#F2F2F7]'
       }`}>

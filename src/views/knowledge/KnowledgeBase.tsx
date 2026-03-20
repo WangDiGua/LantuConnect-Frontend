@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Theme, FontSize, ThemeColor } from '../../types';
 import type { KnowledgeItem, KnowledgeSubView } from './types';
 import { KnowledgeBaseList } from './KnowledgeBaseList';
@@ -6,6 +6,9 @@ import { KnowledgeCreateView } from './KnowledgeCreateView';
 import { KnowledgeBatchView } from './KnowledgeBatchView';
 import { KnowledgeDeveloperView } from './KnowledgeDeveloperView';
 import { KnowledgeHitTestView } from './KnowledgeHitTestView';
+import { useKnowledgeBases, useDeleteKB } from '../../hooks/queries/useKnowledge';
+import { ContentLoader } from '../../components/common/ContentLoader';
+import { PageError } from '../../components/common/PageError';
 
 export interface KnowledgeBaseProps {
   theme: Theme;
@@ -20,13 +23,27 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
   themeColor,
   showMessage,
 }) => {
-  const [items, setItems] = useState<KnowledgeItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [subView, setSubView] = useState<KnowledgeSubView>('list');
 
+  const { data, isLoading, isError, error, refetch } = useKnowledgeBases();
+  const deleteMut = useDeleteKB();
+
+  const items: KnowledgeItem[] = useMemo(() => {
+    const list = data?.list ?? [];
+    return list.map((kb) => ({
+      id: kb.id,
+      name: kb.name,
+      description: kb.description,
+      fileCount: kb.documentCount,
+      hosted: kb.status === 'ready' ? '平台托管' : kb.status,
+      vectorModel: kb.embeddingModel,
+      cluster: 'default',
+    }));
+  }, [data]);
+
   const handleCreateSubmit = useCallback(
-    (row: KnowledgeItem) => {
-      setItems((prev) => [...prev, row]);
+    () => {
       setSubView('list');
       showMessage('知识库创建成功', 'success');
     },
@@ -35,12 +52,21 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
 
   const handleBatchDelete = useCallback(
     (ids: string[]) => {
-      setItems((prev) => prev.filter((i) => !ids.includes(i.id)));
-      showMessage(`已删除 ${ids.length} 个知识库`, 'success');
-      setSubView('list');
+      Promise.all(ids.map((id) => deleteMut.mutateAsync(id))).then(() => {
+        showMessage(`已删除 ${ids.length} 个知识库`, 'success');
+        setSubView('list');
+      });
     },
-    [showMessage]
+    [showMessage, deleteMut]
   );
+
+  if (isError && subView === 'list') {
+    return (
+      <div className={`flex-1 flex flex-col min-h-0 ${theme === 'dark' ? 'bg-[#000000]' : 'bg-[#F2F2F7]'}`}>
+        <PageError error={error instanceof Error ? error : null} onRetry={() => refetch()} />
+      </div>
+    );
+  }
 
   switch (subView) {
     case 'create':
@@ -50,7 +76,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
           fontSize={fontSize}
           themeColor={themeColor}
           onBack={() => setSubView('list')}
-          onSubmit={handleCreateSubmit}
+          onSubmit={() => handleCreateSubmit()}
         />
       );
     case 'batch':
@@ -83,19 +109,21 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
       );
     default:
       return (
-        <KnowledgeBaseList
-          theme={theme}
-          fontSize={fontSize}
-          themeColor={themeColor}
-          items={items}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          onCreate={() => setSubView('create')}
-          onBatch={() => setSubView('batch')}
-          onDeveloper={() => setSubView('developer')}
-          onHitTest={() => setSubView('hitTest')}
-          onRowMenu={() => showMessage('更多操作（详情/编辑）待接入后端', 'info')}
-        />
+        <ContentLoader loading={isLoading}>
+          <KnowledgeBaseList
+            theme={theme}
+            fontSize={fontSize}
+            themeColor={themeColor}
+            items={items}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            onCreate={() => setSubView('create')}
+            onBatch={() => setSubView('batch')}
+            onDeveloper={() => setSubView('developer')}
+            onHitTest={() => setSubView('hitTest')}
+            onRowMenu={() => showMessage('更多操作（详情/编辑）待接入后端', 'info')}
+          />
+        </ContentLoader>
       );
   }
 };

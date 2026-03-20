@@ -5,6 +5,7 @@ import { UserListPage } from './UserListPage';
 import { RoleListPage } from './RoleListPage';
 import { ApiKeyListPage } from './ApiKeyListPage';
 import { TokenListPage } from './TokenListPage';
+import { OrgStructurePage } from './OrgStructurePage';
 
 export interface UserManagementModuleProps {
   activeSubItem: string;
@@ -43,6 +44,8 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({
           breadcrumbSegments={['用户管理', 'Token 管理']}
         />
       );
+    case '组织架构':
+      return <OrgStructurePage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
     default:
       return <PlaceholderView title={activeSubItem} theme={theme} fontSize={fontSize} />;
   }

@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { Theme, FontSize, ThemeColor } from '../../types';
 import { THEME_COLOR_CLASSES } from '../../constants/theme';
 import type { DatabaseItem } from './types';
 import { nativeSelectClass } from '../../utils/formFieldClasses';
+import { useCreateDatabase } from '../../hooks/queries/useDatabase';
+import { createDatabaseSchema } from '../../schemas/database.schema';
 
 interface Props {
   theme: Theme;
@@ -18,20 +20,52 @@ export const DatabaseCreateView: React.FC<Props> = ({ theme, fontSize, themeColo
   const tc = THEME_COLOR_CLASSES[themeColor];
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [creationMethod, setCreationMethod] = useState('控制台创建');
+  const [dbType, setDbType] = useState<'postgresql' | 'mysql' | 'sqlite' | 'mongodb' | 'redis'>('postgresql');
+  const [host, setHost] = useState('localhost');
+  const [port, setPort] = useState('5432');
+  const [database, setDatabase] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const createMut = useCreateDatabase();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
-    const now = new Date().toISOString().slice(0, 16).replace('T', ' ');
-    const id = `db_${Date.now().toString(36)}`;
-    onSubmit({
-      id,
+
+    const result = createDatabaseSchema.safeParse({
       name: name.trim(),
-      description: description.trim() || '—',
-      creationMethod,
-      createdAt: now,
-      updatedAt: now,
+      type: dbType,
+      host: host.trim(),
+      port: Number(port),
+      database: database.trim(),
+      username: username.trim(),
+      password,
+    });
+
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      result.error.issues.forEach((err) => { fieldErrors[String(err.path[0])] = err.message; });
+      setErrors(fieldErrors);
+      return;
+    }
+    setErrors({});
+
+    createMut.mutate(result.data, {
+      onSuccess: (db) => {
+        const now = new Date().toISOString().slice(0, 16).replace('T', ' ');
+        onSubmit({
+          id: db.id,
+          name: db.name,
+          description: description.trim() || '—',
+          creationMethod: '控制台创建',
+          createdAt: now,
+          updatedAt: now,
+        });
+      },
+      onError: (err) => {
+        setErrors({ submit: err instanceof Error ? err.message : '创建失败' });
+      },
     });
   };
 
@@ -66,13 +100,13 @@ export const DatabaseCreateView: React.FC<Props> = ({ theme, fontSize, themeColo
                     <span className="label-text font-bold">数据库名称</span>
                   </label>
                   <input
-                    className="input input-bordered w-full"
+                    className={`input input-bordered w-full ${errors.name ? 'input-error' : ''}`}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="例如：教务业务库"
                     maxLength={80}
-                    required
                   />
+                  {errors.name && <label className="label py-0"><span className="label-text-alt text-error">{errors.name}</span></label>}
                 </div>
                 <div className="form-control w-full gap-1 lg:col-span-2">
                   <label className="label py-0">
@@ -87,25 +121,89 @@ export const DatabaseCreateView: React.FC<Props> = ({ theme, fontSize, themeColo
                 </div>
                 <div className="form-control w-full gap-1">
                   <label className="label py-0">
-                    <span className="label-text font-bold">创建方式</span>
+                    <span className="label-text font-bold">数据库类型</span>
                   </label>
                   <select
                     className={nativeSelectClass(theme)}
-                    value={creationMethod}
-                    onChange={(e) => setCreationMethod(e.target.value)}
+                    value={dbType}
+                    onChange={(e) => setDbType(e.target.value as typeof dbType)}
                   >
-                    <option value="控制台创建">控制台创建</option>
-                    <option value="API 导入">API 导入</option>
-                    <option value="模板克隆">模板克隆</option>
+                    <option value="postgresql">PostgreSQL</option>
+                    <option value="mysql">MySQL</option>
+                    <option value="sqlite">SQLite</option>
+                    <option value="mongodb">MongoDB</option>
+                    <option value="redis">Redis</option>
                   </select>
                 </div>
+                <div className="form-control w-full gap-1">
+                  <label className="label py-0">
+                    <span className="label-text font-bold">主机</span>
+                  </label>
+                  <input
+                    className={`input input-bordered w-full ${errors.host ? 'input-error' : ''}`}
+                    value={host}
+                    onChange={(e) => setHost(e.target.value)}
+                  />
+                  {errors.host && <label className="label py-0"><span className="label-text-alt text-error">{errors.host}</span></label>}
+                </div>
+                <div className="form-control w-full gap-1">
+                  <label className="label py-0">
+                    <span className="label-text font-bold">端口</span>
+                  </label>
+                  <input
+                    className={`input input-bordered w-full ${errors.port ? 'input-error' : ''}`}
+                    type="number"
+                    value={port}
+                    onChange={(e) => setPort(e.target.value)}
+                  />
+                  {errors.port && <label className="label py-0"><span className="label-text-alt text-error">{errors.port}</span></label>}
+                </div>
+                <div className="form-control w-full gap-1">
+                  <label className="label py-0">
+                    <span className="label-text font-bold">数据库名</span>
+                  </label>
+                  <input
+                    className={`input input-bordered w-full ${errors.database ? 'input-error' : ''}`}
+                    value={database}
+                    onChange={(e) => setDatabase(e.target.value)}
+                  />
+                  {errors.database && <label className="label py-0"><span className="label-text-alt text-error">{errors.database}</span></label>}
+                </div>
+                <div className="form-control w-full gap-1">
+                  <label className="label py-0">
+                    <span className="label-text font-bold">用户名</span>
+                  </label>
+                  <input
+                    className={`input input-bordered w-full ${errors.username ? 'input-error' : ''}`}
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                  />
+                  {errors.username && <label className="label py-0"><span className="label-text-alt text-error">{errors.username}</span></label>}
+                </div>
+                <div className="form-control w-full gap-1">
+                  <label className="label py-0">
+                    <span className="label-text font-bold">密码</span>
+                  </label>
+                  <input
+                    className={`input input-bordered w-full ${errors.password ? 'input-error' : ''}`}
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                  {errors.password && <label className="label py-0"><span className="label-text-alt text-error">{errors.password}</span></label>}
+                </div>
               </div>
+
+              {errors.submit && (
+                <div className="mt-4 text-sm text-error">{errors.submit}</div>
+              )}
 
               <div className="flex flex-wrap justify-end gap-2 mt-10 pt-6 border-t border-dashed border-slate-200/80 dark:border-white/10">
                 <button type="button" onClick={onBack} className="btn btn-ghost">
                   取消
                 </button>
-                <button type="submit" className={`btn text-white border-0 ${tc.bg} shadow-lg ${tc.shadow}`}>
+                <button type="submit" disabled={createMut.isPending} className={`btn text-white border-0 ${tc.bg} shadow-lg ${tc.shadow}`}>
+                  {createMut.isPending && <Loader2 size={16} className="animate-spin mr-1" />}
                   创建
                 </button>
               </div>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowLeft, Trash2 } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import type { KnowledgeItem } from './types';
+import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 
 interface Props {
   theme: Theme;
@@ -20,6 +21,7 @@ export const KnowledgeBatchView: React.FC<Props> = ({
 }) => {
   const isDark = theme === 'dark';
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const toggle = (id: string) => {
     setSelected((prev) => {
@@ -39,6 +41,7 @@ export const KnowledgeBatchView: React.FC<Props> = ({
     if (selected.size === 0) return;
     onDeleteSelected([...selected]);
     setSelected(new Set());
+    setConfirmOpen(false);
   };
 
   return (
@@ -66,7 +69,7 @@ export const KnowledgeBatchView: React.FC<Props> = ({
             </div>
             <button
               type="button"
-              onClick={handleDelete}
+              onClick={() => setConfirmOpen(true)}
               disabled={selected.size === 0}
               className="btn btn-error btn-outline btn-sm gap-1 shrink-0"
             >
@@ -126,6 +129,16 @@ export const KnowledgeBatchView: React.FC<Props> = ({
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="批量删除知识库"
+        message={`确定要删除选中的 ${selected.size} 个知识库吗？此操作不可撤销。`}
+        confirmText="删除"
+        variant="danger"
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmOpen(false)}
+      />
     </div>
   );
 };

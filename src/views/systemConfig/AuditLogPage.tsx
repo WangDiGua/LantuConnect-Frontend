@@ -1,10 +1,15 @@
 import React, { useMemo, useState } from 'react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
-import { AUDIT_ACTION_OPTIONS, MOCK_AUDIT_LOGS } from '../../constants/systemConfig';
 import { nativeSelectClass } from '../../utils/formFieldClasses';
 import { TOOLBAR_ROW, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
 import { Search, Download, History } from 'lucide-react';
+import { useSysAuditLogs } from '../../hooks/queries/useSystemConfig';
+import { ContentLoader } from '../../components/common/ContentLoader';
+import { PageError } from '../../components/common/PageError';
+import { EmptyState } from '../../components/common/EmptyState';
+import { Pagination } from '../../components/common/Pagination';
+import type { AuditLogEntry } from '../../types/dto/system-config';
 
 interface AuditLogPageProps {
   theme: Theme;
@@ -13,6 +18,10 @@ interface AuditLogPageProps {
   breadcrumbSegments: string[];
 }
 
+const PAGE_SIZE = 20;
+
+const ACTION_OPTIONS = ['全部', 'CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'EXPORT', 'DEPLOY'];
+
 export const AuditLogPage: React.FC<AuditLogPageProps> = ({
   theme,
   fontSize,
@@ -20,16 +29,24 @@ export const AuditLogPage: React.FC<AuditLogPageProps> = ({
   breadcrumbSegments,
 }) => {
   const isDark = theme === 'dark';
-  const [logs] = useState(() => [...MOCK_AUDIT_LOGS]);
   const [search, setSearch] = useState('');
   const [actionFilter, setActionFilter] = useState('全部');
   const [onlyFail, setOnlyFail] = useState(false);
+  const [page, setPage] = useState(1);
+
+  const { data, isLoading, isError, error, refetch } = useSysAuditLogs({
+    page,
+    pageSize: PAGE_SIZE,
+    ...(actionFilter !== '全部' ? { action: actionFilter } : {}),
+  });
+
+  const logs: AuditLogEntry[] = data?.list ?? [];
+  const total = data?.total ?? 0;
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return logs.filter((row) => {
-      if (onlyFail && row.success) return false;
-      if (actionFilter !== '全部' && row.action !== actionFilter) return false;
+      if (onlyFail && row.result !== 'failure') return false;
       if (!q) return true;
       return (
         row.operator.toLowerCase().includes(q) ||
@@ -38,13 +55,13 @@ export const AuditLogPage: React.FC<AuditLogPageProps> = ({
         row.ip.toLowerCase().includes(q)
       );
     });
-  }, [logs, search, actionFilter, onlyFail]);
+  }, [logs, search, onlyFail]);
 
   const exportCsv = () => {
-    const header = ['time', 'operator', 'action', 'resource', 'ip', 'success'];
+    const header = ['time', 'operator', 'action', 'resource', 'ip', 'result'];
     const lines = [header.join(',')].concat(
       filtered.map((r) =>
-        [r.time, r.operator, r.action, r.resource, r.ip, r.success ? 'ok' : 'fail']
+        [r.time, r.operator, r.action, r.resource, r.ip, r.result]
           .map((c) => `"${String(c).replace(/"/g, '""')}"`)
           .join(',')
       )
@@ -56,10 +73,18 @@ export const AuditLogPage: React.FC<AuditLogPageProps> = ({
     a.download = `audit-${Date.now()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    showMessage('已导出当前筛选结果（演示）', 'success');
+    showMessage('已导出当前筛选结果', 'success');
   };
 
   const sel = nativeSelectClass(theme);
+
+  if (isError) {
+    return (
+      <MgmtPageShell theme={theme} fontSize={fontSize} breadcrumbSegments={breadcrumbSegments} titleIcon={History}>
+        <PageError error={error instanceof Error ? error : null} onRetry={() => refetch()} />
+      </MgmtPageShell>
+    );
+  }
 
   return (
     <MgmtPageShell
@@ -67,7 +92,7 @@ export const AuditLogPage: React.FC<AuditLogPageProps> = ({
       fontSize={fontSize}
       breadcrumbSegments={breadcrumbSegments}
       titleIcon={History}
-      description="检索关键操作记录，支持按动作筛选与导出（演示数据）"
+      description="检索关键操作记录，支持按动作筛选与导出"
       toolbar={
         <div className={TOOLBAR_ROW}>
           <div className="relative flex-1 min-w-0 sm:max-w-md">
@@ -86,13 +111,11 @@ export const AuditLogPage: React.FC<AuditLogPageProps> = ({
           <select
             className={`${sel} w-full sm:w-[10rem] shrink-0`}
             value={actionFilter}
-            onChange={(e) => setActionFilter(e.target.value)}
+            onChange={(e) => { setActionFilter(e.target.value); setPage(1); }}
             aria-label="动作类型"
           >
-            {AUDIT_ACTION_OPTIONS.map((a) => (
-              <option key={a} value={a}>
-                {a}
-              </option>
+            {ACTION_OPTIONS.map((a) => (
+              <option key={a} value={a}>{a}</option>
             ))}
           </select>
           <label className="flex items-center gap-2 cursor-pointer shrink-0 min-h-[2.5rem]">
@@ -119,71 +142,71 @@ export const AuditLogPage: React.FC<AuditLogPageProps> = ({
         </div>
       }
     >
-      <div className="min-w-0 px-4 sm:px-6 pb-6 pt-1">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm min-w-[900px]">
-            <thead>
-              <tr
-                className={`border-b ${
-                  isDark ? 'border-white/10 bg-[#2C2C2E]/80' : 'border-slate-200 bg-slate-50'
-                }`}
-              >
-                <th className={`px-4 py-3 font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>时间</th>
-                <th className={`px-4 py-3 font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>操作者</th>
-                <th className={`px-4 py-3 font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>动作</th>
-                <th className={`px-4 py-3 font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>资源</th>
-                <th className={`px-4 py-3 font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>IP</th>
-                <th className={`px-4 py-3 font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>结果</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((r, i) => (
-                <tr
-                  key={r.id}
-                  className={`border-b transition-colors ${
-                    isDark
-                      ? `border-white/5 ${i % 2 === 0 ? 'bg-[#1C1C1E]' : 'bg-[#2C2C2E]/40'} hover:bg-white/5`
-                      : `border-slate-100 ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50/80'} hover:bg-slate-100/80`
-                  }`}
-                >
-                  <td className={`px-4 py-3 whitespace-nowrap text-xs font-mono ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                    {r.time}
-                  </td>
-                  <td className={`px-4 py-3 max-w-[180px] truncate ${isDark ? 'text-slate-200' : 'text-slate-800'}`} title={r.operator}>
-                    {r.operator}
-                  </td>
-                  <td className={`px-4 py-3 font-mono text-xs ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>{r.action}</td>
-                  <td
-                    className={`px-4 py-3 max-w-[200px] truncate font-mono text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}
-                    title={r.resource}
-                  >
-                    {r.resource}
-                  </td>
-                  <td className={`px-4 py-3 font-mono text-xs ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>{r.ip}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
-                        r.success
-                          ? isDark
-                            ? 'bg-emerald-500/20 text-emerald-300'
-                            : 'bg-emerald-100 text-emerald-800'
-                          : isDark
-                            ? 'bg-red-500/20 text-red-300'
-                            : 'bg-red-100 text-red-800'
+      <ContentLoader loading={isLoading}>
+        <div className="min-w-0 px-4 sm:px-6 pb-2 pt-1">
+          {filtered.length === 0 ? (
+            <EmptyState title="无匹配日志" description="调整搜索条件或筛选器" />
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm min-w-[900px]">
+                <thead>
+                  <tr className={`border-b ${isDark ? 'border-white/10 bg-[#2C2C2E]/80' : 'border-slate-200 bg-slate-50'}`}>
+                    <th className={`px-4 py-3 font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>时间</th>
+                    <th className={`px-4 py-3 font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>操作者</th>
+                    <th className={`px-4 py-3 font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>动作</th>
+                    <th className={`px-4 py-3 font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>资源</th>
+                    <th className={`px-4 py-3 font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>IP</th>
+                    <th className={`px-4 py-3 font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>结果</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((r, i) => (
+                    <tr
+                      key={r.id}
+                      className={`border-b transition-colors ${
+                        isDark
+                          ? `border-white/5 ${i % 2 === 0 ? 'bg-[#1C1C1E]' : 'bg-[#2C2C2E]/40'} hover:bg-white/5`
+                          : `border-slate-100 ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50/80'} hover:bg-slate-100/80`
                       }`}
                     >
-                      {r.success ? '成功' : '失败'}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                      <td className={`px-4 py-3 whitespace-nowrap text-xs font-mono ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                        {r.time || r.createdAt}
+                      </td>
+                      <td className={`px-4 py-3 max-w-[180px] truncate ${isDark ? 'text-slate-200' : 'text-slate-800'}`} title={r.operator || r.username}>
+                        {r.operator || r.username}
+                      </td>
+                      <td className={`px-4 py-3 font-mono text-xs ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>{r.action}</td>
+                      <td
+                        className={`px-4 py-3 max-w-[200px] truncate font-mono text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}
+                        title={r.resource}
+                      >
+                        {r.resource}
+                      </td>
+                      <td className={`px-4 py-3 font-mono text-xs ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>{r.ip}</td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
+                            r.result === 'success'
+                              ? isDark ? 'bg-emerald-500/20 text-emerald-300' : 'bg-emerald-100 text-emerald-800'
+                              : isDark ? 'bg-red-500/20 text-red-300' : 'bg-red-100 text-red-800'
+                          }`}
+                        >
+                          {r.result === 'success' ? '成功' : '失败'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
-        {filtered.length === 0 ? (
-          <p className={`text-center py-12 text-sm ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>无匹配日志</p>
-        ) : null}
-      </div>
+        {total > 0 && (
+          <div className="px-4 sm:px-6">
+            <Pagination page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} />
+          </div>
+        )}
+      </ContentLoader>
     </MgmtPageShell>
   );
 };

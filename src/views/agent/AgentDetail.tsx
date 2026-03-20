@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   ArrowLeft, 
   Settings, 
@@ -15,6 +15,10 @@ import {
   Code2
 } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
+import { useAgent, useDeleteAgent } from '../../hooks/queries/useAgent';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
+import { PageError } from '../../components/common/PageError';
+import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 
 interface AgentDetailProps {
   agentId: string;
@@ -25,50 +29,42 @@ interface AgentDetailProps {
 
 export const AgentDetail: React.FC<AgentDetailProps> = ({ agentId, theme, fontSize, onBack }) => {
   const isDark = theme === 'dark';
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: agent, isLoading, isError, error, refetch } = useAgent(agentId);
+  const deleteMut = useDeleteAgent();
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
-  // Mock loading effect
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (agentId === 'error') {
-        setError('无法加载 Agent 详情，请稍后重试。');
-      } else {
-        setLoading(false);
-      }
-    }, 800);
-    return () => clearTimeout(timer);
-  }, [agentId]);
+  const handleDelete = () => {
+    deleteMut.mutate(agentId, {
+      onSuccess: () => { setDeleteOpen(false); onBack(); },
+    });
+  };
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className={`flex-1 flex flex-col items-center justify-center ${isDark ? 'bg-[#000000]' : 'bg-[#F2F2F7]'}`}>
-        <span className="loading loading-spinner loading-lg text-primary"></span>
-        <p className="mt-4 text-slate-500 animate-pulse">正在加载 Agent 详情...</p>
+      <div className={`flex-1 flex flex-col min-h-0 ${isDark ? 'bg-[#000000]' : 'bg-[#F2F2F7]'}`}>
+        <PageSkeleton type="detail" />
       </div>
     );
   }
 
-  if (error) {
+  if (isError || !agent) {
     return (
-      <div className={`flex-1 flex flex-col items-center justify-center p-6 text-center ${isDark ? 'bg-[#000000]' : 'bg-[#F2F2F7]'}`}>
-        <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-4">
-          <AlertCircle size={32} />
-        </div>
-        <h3 className="text-xl font-bold mb-2">加载失败</h3>
-        <p className="text-slate-500 mb-6 max-w-md">{error}</p>
-        <button type="button" onClick={onBack} className="btn btn-primary shadow-lg shadow-blue-500/20">
-          返回列表页
-        </button>
+      <div className={`flex-1 flex flex-col min-h-0 ${isDark ? 'bg-[#000000]' : 'bg-[#F2F2F7]'}`}>
+        <PageError error={error instanceof Error ? error : new Error('加载失败')} onRetry={() => refetch()} />
       </div>
     );
   }
+
+  const formatCallCount = (n: number) => {
+    if (n >= 10000) return (n / 10000).toFixed(2) + '万';
+    return n.toLocaleString();
+  };
 
   return (
     <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${
       isDark ? 'bg-[#000000]' : 'bg-[#F2F2F7]'
     }`}>
-      {/* Header：扁平顶栏，与创建页一致 */}
+      {/* Header */}
       <div className={`shrink-0 z-20 border-b px-4 sm:px-6 py-4 flex items-center justify-between ${
         isDark ? 'border-white/10 bg-[#000000]' : 'border-slate-200/80 bg-[#F2F2F7]'
       }`}>
@@ -78,12 +74,20 @@ export const AgentDetail: React.FC<AgentDetailProps> = ({ agentId, theme, fontSi
           </button>
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-2xl text-white shadow-none border border-blue-500/30 shrink-0">
-              🎓
+              {agent.avatar || '🤖'}
             </div>
             <div>
-              <h2 className="text-xl font-bold">学生办事助手</h2>
+              <h2 className="text-xl font-bold">{agent.name}</h2>
               <div className="flex items-center gap-2 mt-0.5">
-                <div className="badge badge-success badge-sm font-bold text-[10px]">已发布</div>
+                <div className={`badge badge-sm font-bold text-[10px] ${
+                  agent.status === 'published' ? 'badge-success' :
+                  agent.status === 'draft' ? 'badge-ghost' :
+                  agent.status === 'error' ? 'badge-error' : 'badge-warning'
+                }`}>
+                  {agent.status === 'published' ? '已发布' :
+                   agent.status === 'draft' ? '草稿' :
+                   agent.status === 'error' ? '异常' : '已归档'}
+                </div>
                 <span className="text-xs text-slate-500">ID: {agentId}</span>
               </div>
             </div>
@@ -98,7 +102,7 @@ export const AgentDetail: React.FC<AgentDetailProps> = ({ agentId, theme, fontSi
             <Edit2 size={16} />
             <span>编辑</span>
           </button>
-          <button type="button" className="btn btn-error btn-sm btn-outline gap-2">
+          <button type="button" onClick={() => setDeleteOpen(true)} className="btn btn-error btn-sm btn-outline gap-2">
             <Trash2 size={16} />
             <span>删除</span>
           </button>
@@ -108,7 +112,6 @@ export const AgentDetail: React.FC<AgentDetailProps> = ({ agentId, theme, fontSi
       <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-2 sm:px-3 lg:px-4 py-2 sm:py-3 grid grid-cols-1 lg:grid-cols-3 gap-6 content-start">
         {/* Left Column: Info & Config */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Basic Info */}
           <div className={`card border rounded-2xl shadow-none ${isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200/80'}`}>
             <div className="card-body p-6">
               <h3 className="card-title text-sm font-bold mb-4 flex items-center gap-2">
@@ -118,24 +121,22 @@ export const AgentDetail: React.FC<AgentDetailProps> = ({ agentId, theme, fontSi
               <div className="grid grid-cols-2 gap-6">
                 <div>
                   <label className="text-xs text-slate-500 block mb-1">Agent 名称</label>
-                  <p className="font-medium">学生办事助手</p>
+                  <p className="font-medium">{agent.name}</p>
                 </div>
                 <div>
-                  <label className="text-xs text-slate-500 block mb-1">运行角色</label>
-                  <p className="font-medium">工具型</p>
+                  <label className="text-xs text-slate-500 block mb-1">类型</label>
+                  <p className="font-medium">{agent.type}</p>
                 </div>
                 <div className="col-span-2">
                   <label className="text-xs text-slate-500 block mb-1">Agent 描述</label>
                   <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-                    提供学生日常事务咨询与办理引导，包括请假、成绩查询、奖学金申请等教务与生活服务。
-                    通过对接教务系统 API，实现实时数据查询与自动化流程处理。
+                    {agent.description}
                   </p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Configuration */}
           <div className={`card border rounded-2xl shadow-none ${isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200/80'}`}>
             <div className="card-body p-6">
               <h3 className="card-title text-sm font-bold mb-4 flex items-center gap-2">
@@ -149,25 +150,26 @@ export const AgentDetail: React.FC<AgentDetailProps> = ({ agentId, theme, fontSi
                       <Zap size={18} />
                     </div>
                     <div>
-                      <p className="text-sm font-bold">REST API 接口</p>
-                      <p className="text-xs text-slate-500">https://api.school.edu/v1/student/services</p>
+                      <p className="text-sm font-bold">模型</p>
+                      <p className="text-xs text-slate-500">{agent.modelName || agent.modelId}</p>
                     </div>
                   </div>
-                  <div className="badge badge-outline badge-sm">GET</div>
                 </div>
 
-                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-inherit">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 rounded-xl">
-                      <ShieldCheck size={18} />
+                {agent.systemPrompt && (
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-inherit">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 rounded-xl">
+                        <ShieldCheck size={18} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold">系统提示词</p>
+                        <p className="text-xs text-slate-500 line-clamp-2">{agent.systemPrompt}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-bold">身份验证</p>
-                      <p className="text-xs text-slate-500">Bearer Token (已加密)</p>
-                    </div>
+                    <CheckCircle2 size={18} className="text-emerald-500" />
                   </div>
-                  <CheckCircle2 size={18} className="text-emerald-500" />
-                </div>
+                )}
 
                 <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-inherit">
                   <div className="flex items-center gap-3">
@@ -175,8 +177,10 @@ export const AgentDetail: React.FC<AgentDetailProps> = ({ agentId, theme, fontSi
                       <Code2 size={18} />
                     </div>
                     <div>
-                      <p className="text-sm font-bold">超时设置</p>
-                      <p className="text-xs text-slate-500">连接超时: 5s | 响应超时: 30s</p>
+                      <p className="text-sm font-bold">参数</p>
+                      <p className="text-xs text-slate-500">
+                        温度: {agent.temperature ?? 0.7} | Top-P: {agent.topP ?? 1.0} | 最大 Token: {agent.maxTokens ?? '—'}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -187,7 +191,6 @@ export const AgentDetail: React.FC<AgentDetailProps> = ({ agentId, theme, fontSi
 
         {/* Right Column: Stats & Meta */}
         <div className="space-y-6">
-          {/* Stats Card */}
           <div className={`card border rounded-2xl shadow-none ${isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200/80'}`}>
             <div className="card-body p-6">
               <h3 className="card-title text-sm font-bold mb-4 flex items-center gap-2">
@@ -198,24 +201,22 @@ export const AgentDetail: React.FC<AgentDetailProps> = ({ agentId, theme, fontSi
                 <div className="stats stats-vertical w-full bg-transparent shadow-none">
                   <div className="stat px-0 py-2">
                     <div className="stat-title text-xs">累计调用量</div>
-                    <div className="stat-value text-2xl text-blue-600">1.25万</div>
-                    <div className="stat-desc">较上周 +12%</div>
+                    <div className="stat-value text-2xl text-blue-600">{formatCallCount(agent.callCount)}</div>
                   </div>
                   <div className="stat px-0 py-2">
                     <div className="stat-title text-xs">平均成功率</div>
-                    <div className="stat-value text-2xl text-emerald-500">98.5%</div>
-                    <progress className="progress progress-success w-full mt-2" value="98.5" max="100"></progress>
+                    <div className="stat-value text-2xl text-emerald-500">{agent.successRate}%</div>
+                    <progress className="progress progress-success w-full mt-2" value={agent.successRate} max="100" />
                   </div>
                   <div className="stat px-0 py-2">
                     <div className="stat-title text-xs">平均响应时间</div>
-                    <div className="stat-value text-2xl text-orange-500">245ms</div>
+                    <div className="stat-value text-2xl text-orange-500">{agent.avgLatencyMs}ms</div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Meta Info */}
           <div className={`card border rounded-2xl shadow-none ${isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200/80'}`}>
             <div className="card-body p-6">
               <h3 className="card-title text-sm font-bold mb-4 flex items-center gap-2">
@@ -225,21 +226,34 @@ export const AgentDetail: React.FC<AgentDetailProps> = ({ agentId, theme, fontSi
               <div className="space-y-3">
                 <div className="flex justify-between text-xs">
                   <span className="text-slate-500">创建时间</span>
-                  <span className="font-mono">2024-03-15 10:30</span>
+                  <span className="font-mono">{agent.createdAt}</span>
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-slate-500">最后更新</span>
-                  <span className="font-mono">2024-03-18 14:20</span>
+                  <span className="font-mono">{agent.updatedAt}</span>
                 </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-slate-500">最后调用</span>
-                  <span className="font-mono">5分钟前</span>
-                </div>
+                {agent.publishedAt && (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-slate-500">发布时间</span>
+                    <span className="font-mono">{agent.publishedAt}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={deleteOpen}
+        title="删除 Agent"
+        message={`确定要删除「${agent.name}」吗？此操作不可撤销。`}
+        confirmText="删除"
+        variant="danger"
+        loading={deleteMut.isPending}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteOpen(false)}
+      />
     </div>
   );
 };

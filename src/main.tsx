@@ -9,8 +9,18 @@ import { readAppearanceState } from './utils/appearanceState';
 const appearance = readAppearanceState();
 document.documentElement.style.fontSize = getRootFontSizePx(appearance.fontSize);
 
-createRoot(document.getElementById('root')!).render(
+const root = document.getElementById('root')!;
+createRoot(root).render(
   <StrictMode>
     <App />
   </StrictMode>,
 );
+
+requestAnimationFrame(() => {
+  const splash = document.getElementById('pre-splash');
+  if (splash) {
+    splash.style.transition = 'opacity 0.3s ease-out';
+    splash.style.opacity = '0';
+    setTimeout(() => splash.remove(), 300);
+  }
+});

@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
+import { Routes, Route, Navigate, useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Bot,
@@ -15,12 +16,18 @@ import {
   LogOut,
   Palette,
   Bell,
+  Shield,
+  UserCog,
+  Search,
 } from 'lucide-react';
 import { Theme, ThemeColor, FontSize, FontFamily, AnimationStyle } from '../types';
 import { FONT_FAMILY_CLASSES, THEME_COLOR_CLASSES, getRootFontSizePx } from '../constants/theme';
 import { LayoutChromeProvider } from '../context/LayoutChromeContext';
+import { UserRoleProvider, useUserRole } from '../context/UserRoleContext';
 import { 
-  SIDEBAR_ITEMS, 
+  SIDEBAR_ITEMS,
+  ADMIN_SIDEBAR_ITEMS,
+  USER_SIDEBAR_ITEMS,
   DASHBOARD_GROUPS, 
   AGENT_MANAGEMENT_GROUPS,
   AGENT_WORKSPACE_SUBITEM_ID,
@@ -29,6 +36,28 @@ import {
   USER_MANAGEMENT_GROUPS, 
   MODEL_SERVICE_GROUPS,
   TOOL_SQUARE_GROUPS,
+  // 管理员菜单组
+  ADMIN_OVERVIEW_GROUPS,
+  ADMIN_SYSTEM_CONFIG_GROUPS,
+  ADMIN_USER_MANAGEMENT_GROUPS,
+  ADMIN_MODEL_SERVICE_GROUPS,
+  ADMIN_TOOL_MANAGEMENT_GROUPS,
+  ADMIN_MONITORING_GROUPS,
+  ADMIN_DATA_MANAGEMENT_GROUPS,
+  ADMIN_SYSTEM_LOG_GROUPS,
+  ADMIN_OPS_SECURITY_GROUPS,
+  ADMIN_INTEGRATION_GROUPS,
+  USER_WORKSPACE_GROUPS,
+  USER_AGENT_MANAGEMENT_GROUPS,
+  USER_ASSETS_GROUPS,
+  USER_MODEL_SERVICE_GROUPS,
+  USER_TOOL_SQUARE_GROUPS,
+  USER_DATA_GROUPS,
+  USER_SETTINGS_GROUPS,
+  USER_WORKFLOW_GROUPS,
+  USER_PUBLISH_GROUPS,
+  USER_USAGE_GROUPS,
+  getNavSubGroups,
 } from '../constants/navigation';
 import { SidebarItem, SidebarGroup } from '../components/layout/Sidebar';
 import { AppearanceMenu } from '../components/business/AppearanceMenu';
@@ -59,21 +88,62 @@ import {
   writePersistedNavState,
 } from '../utils/navigationState';
 import { readAppearanceState, writeAppearanceState } from '../utils/appearanceState';
+import { toolbarSearchInputClass } from '../utils/toolbarFieldClasses';
 import { KnowledgeBase } from '../views/knowledge/KnowledgeBase';
 import { Database } from '../views/database/Database';
+import { RecentProjectsPage } from '../views/userApp/RecentProjectsPage';
+import { WorkflowUserModule } from '../views/userApp/WorkflowUserModule';
+import { PublishConnectUserModule } from '../views/userApp/PublishConnectUserModule';
+import { UsageBillingUserModule } from '../views/userApp/UsageBillingUserModule';
+import { DataEvalUserModule } from '../views/userApp/DataEvalUserModule';
+import { ModelServiceUserModule } from '../views/userApp/ModelServiceUserModule';
+import { AssetsExtrasUserModule } from '../views/userApp/AssetsExtrasUserModule';
+import { AgentExtrasUserModule } from '../views/userApp/AgentExtrasUserModule';
+import { UserSettingsExtrasModule } from '../views/userApp/UserSettingsExtrasModule';
+import { AdminOverviewModule } from '../views/adminApp/AdminOverviewModule';
+import { AdminModelServiceModule } from '../views/adminApp/AdminModelServiceModule';
+import { AdminToolManagementModule } from '../views/adminApp/AdminToolManagementModule';
+import { AdminOpsSecurityModule } from '../views/adminApp/AdminOpsSecurityModule';
+import { AdminIntegrationModule } from '../views/adminApp/AdminIntegrationModule';
+import { AdminDataManagementModule } from '../views/adminApp/AdminDataManagementModule';
+import { AdminSystemLogModule } from '../views/adminApp/AdminSystemLogModule';
+import { ConsoleHomeRedirect } from '../router/ConsoleHomeRedirect';
+import {
+  buildConsolePath,
+  defaultConsolePath,
+  isValidConsolePath,
+  parseConsoleRole,
+  type ConsoleRole,
+} from '../constants/consoleRoutes';
+import { ROUTE_ROOT_SUB } from '../constants/routeRoot';
 
 export const MainLayout: React.FC = () => {
   const [theme, setTheme] = useState<Theme>(() => readAppearanceState().theme);
-  
+
   return (
     <MessageProvider theme={theme}>
-      <MainLayoutContent theme={theme} setTheme={setTheme} />
+      <UserRoleProvider initialRole="admin">
+        <Routes>
+          <Route path="/" element={<ConsoleHomeRedirect />} />
+          <Route path="/c/:role/:sidebar/:sub" element={<MainLayoutContent theme={theme} setTheme={setTheme} />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </UserRoleProvider>
     </MessageProvider>
   );
 };
 
 const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }> = ({ theme, setTheme }) => {
+  const params = useParams<{ role: string; sidebar: string; sub: string }>();
+  const navigate = useNavigate();
   const { showMessage } = useMessage();
+  const { isAdmin: ctxAdmin, role, setRole } = useUserRole();
+  const routeRoleResolved = parseConsoleRole(params.role);
+  const layoutIsAdmin = routeRoleResolved !== null ? routeRoleResolved === 'admin' : ctxAdmin;
+
+  const getConsoleRole = useCallback((): ConsoleRole => {
+    return routeRoleResolved ?? (ctxAdmin ? 'admin' : 'user');
+  }, [routeRoleResolved, ctxAdmin]);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   const [persistedNav] = useState(() => readPersistedNavState());
@@ -84,6 +154,29 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
   const [activeAgentView, setActiveAgentView] = useState<'list' | 'detail' | 'create'>(persistedNav.activeAgentView);
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(persistedNav.selectedAgentId);
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
+  /** 当前主菜单下子项快速过滤（应用型目录检索） */
+  const [sidebarNavFilter, setSidebarNavFilter] = useState('');
+
+  useLayoutEffect(() => {
+    const r = parseConsoleRole(params.role);
+    const sb = params.sidebar;
+    const tb = params.sub;
+    if (r == null || sb === undefined || tb === undefined) return;
+    if (!isValidConsolePath(r, sb, tb)) {
+      navigate(defaultConsolePath(r), { replace: true });
+      return;
+    }
+    const want = r === 'admin' ? 'admin' : 'user';
+    if (role !== want) setRole(want);
+    setActiveSidebar(sb);
+    if (sb === '我的 Agent') {
+      setActiveAgentSubItem(tb);
+    } else {
+      setActiveSubItem(tb);
+    }
+    const g = getNavSubGroups(sb, r === 'admin');
+    setExpandedGroups(g.length > 0 ? [sb] : []);
+  }, [params.role, params.sidebar, params.sub, navigate, setRole, role]);
   const [isLoggedIn, setIsLoggedIn] = useState(true);
   const [themeColor, setThemeColor] = useState<ThemeColor>(() => readAppearanceState().themeColor);
   const [fontSize, setFontSize] = useState<FontSize>(() => readAppearanceState().fontSize);
@@ -105,6 +198,10 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
   }, [activeSidebar, activeSubItem, activeAgentSubItem, activeAgentView, selectedAgentId]);
 
   useEffect(() => {
+    setSidebarNavFilter('');
+  }, [activeSidebar]);
+
+  useEffect(() => {
     writeAppearanceState({
       theme,
       themeColor,
@@ -119,11 +216,13 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
     document.documentElement.style.fontSize = getRootFontSizePx(fontSize);
   }, [fontSize]);
 
-  const hasSecondarySidebar = useMemo(
-    () =>
-      ['Agent 管理', '监控中心', '系统配置', '用户管理', '模型服务', '工具广场'].includes(activeSidebar),
-    [activeSidebar]
-  );
+  // 树形结构后，不再需要次级侧栏
+  const hasSecondarySidebar = false;
+
+  // 根据用户角色获取菜单项
+  const sidebarItems = useMemo(() => {
+    return layoutIsAdmin ? ADMIN_SIDEBAR_ITEMS : USER_SIDEBAR_ITEMS;
+  }, [layoutIsAdmin]);
 
   useEffect(() => {
     if (!showUserMenu && !showMessagePanel) return;
@@ -180,10 +279,18 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
   };
 
   const toggleGroup = (id: string) => {
-    setExpandedGroups(prev => 
-      prev.includes(id) ? prev.filter(g => g !== id) : [...prev, id]
-    );
+    setExpandedGroups((prev) => {
+      // 如果点击的是已展开的目录，则收起；否则收起其他目录，展开当前目录
+      if (prev.includes(id)) {
+        return prev.filter((g) => g !== id);
+      } else {
+        // 只保留当前目录展开，收起其他所有目录
+        return [id];
+      }
+    });
   };
+
+  const getSubGroupsForSidebar = (sidebarId: string) => getNavSubGroups(sidebarId, layoutIsAdmin);
 
   const getAnimationVariants = () => {
     switch (animationStyle) {
@@ -227,24 +334,23 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
   };
 
   const handleSidebarClick = (id: string) => {
-    setActiveSidebar(id);
     setActiveAgentView('list');
     setSelectedAgentId(null);
     const first = getFirstSubItemForSidebar(id);
-    if (first.agentSubItem) setActiveAgentSubItem(first.agentSubItem);
-    if (first.subItem) setActiveSubItem(first.subItem);
+    const third = first.agentSubItem ?? first.subItem ?? ROUTE_ROOT_SUB;
+    navigate(buildConsolePath(getConsoleRole(), id, third));
   };
 
   const handleSubItemClick = (id: string) => {
-    setActiveSubItem(id);
     setActiveAgentView('list');
     setSelectedAgentId(null);
+    navigate(buildConsolePath(getConsoleRole(), activeSidebar, id));
   };
 
   const handleAgentSubItemClick = (id: string) => {
-    setActiveAgentSubItem(id);
     setActiveAgentView('list');
     setSelectedAgentId(null);
+    navigate(buildConsolePath(getConsoleRole(), '我的 Agent', id));
   };
 
   const renderSidebarContent = () => {
@@ -253,13 +359,47 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
     let setActive = handleSubItemClick;
     let prefix = '';
 
-    if (activeSidebar === '概览' || activeSidebar === '快捷入口') { groups = []; }
-    else if (activeSidebar === 'Agent 管理') { groups = AGENT_MANAGEMENT_GROUPS; activeItem = activeAgentSubItem; setActive = handleAgentSubItemClick; prefix = 'agent-'; }
-    else if (activeSidebar === '监控中心') { groups = MONITORING_GROUPS; prefix = 'mon-'; }
-    else if (activeSidebar === '系统配置') { groups = SYSTEM_CONFIG_GROUPS; prefix = 'sys-'; }
-    else if (activeSidebar === '用户管理') { groups = USER_MANAGEMENT_GROUPS; prefix = 'user-'; }
-    else if (activeSidebar === '模型服务') { groups = MODEL_SERVICE_GROUPS; prefix = 'model-'; }
-    else if (activeSidebar === '工具广场') { groups = TOOL_SQUARE_GROUPS; prefix = 'tool-'; }
+    if (layoutIsAdmin) {
+      if (activeSidebar === '系统概览') { groups = ADMIN_OVERVIEW_GROUPS; prefix = 'admin-overview-'; }
+      else if (activeSidebar === '系统配置') { groups = ADMIN_SYSTEM_CONFIG_GROUPS; prefix = 'admin-sys-'; }
+      else if (activeSidebar === '用户管理') { groups = ADMIN_USER_MANAGEMENT_GROUPS; prefix = 'admin-user-'; }
+      else if (activeSidebar === '模型服务管理') { groups = ADMIN_MODEL_SERVICE_GROUPS; prefix = 'admin-model-'; }
+      else if (activeSidebar === '工具管理') { groups = ADMIN_TOOL_MANAGEMENT_GROUPS; prefix = 'admin-tool-'; }
+      else if (activeSidebar === '运营与安全') { groups = ADMIN_OPS_SECURITY_GROUPS; prefix = 'admin-ops-'; }
+      else if (activeSidebar === '集成与中台') { groups = ADMIN_INTEGRATION_GROUPS; prefix = 'admin-integ-'; }
+      else if (activeSidebar === '监控中心') { groups = ADMIN_MONITORING_GROUPS; prefix = 'admin-mon-'; }
+      else if (activeSidebar === '数据管理') { groups = ADMIN_DATA_MANAGEMENT_GROUPS; prefix = 'admin-data-'; }
+      else if (activeSidebar === '系统日志') { groups = ADMIN_SYSTEM_LOG_GROUPS; prefix = 'admin-log-'; }
+    } else {
+      if (activeSidebar === '工作台') { groups = USER_WORKSPACE_GROUPS; prefix = 'user-workspace-'; }
+      else if (activeSidebar === '我的 Agent') { groups = USER_AGENT_MANAGEMENT_GROUPS; activeItem = activeAgentSubItem; setActive = handleAgentSubItemClick; prefix = 'user-agent-'; }
+      else if (activeSidebar === '工作流') { groups = USER_WORKFLOW_GROUPS; prefix = 'user-flow-'; }
+      else if (activeSidebar === '我的资产') { groups = USER_ASSETS_GROUPS; prefix = 'user-assets-'; }
+      else if (activeSidebar === '模型服务') { groups = USER_MODEL_SERVICE_GROUPS; prefix = 'user-model-'; }
+      else if (activeSidebar === '工具广场') { groups = USER_TOOL_SQUARE_GROUPS; prefix = 'user-tool-'; }
+      else if (activeSidebar === '发布与连接') { groups = USER_PUBLISH_GROUPS; prefix = 'user-pub-'; }
+      else if (activeSidebar === '我的数据') { groups = USER_DATA_GROUPS; prefix = 'user-data-'; }
+      else if (activeSidebar === '用量账单') { groups = USER_USAGE_GROUPS; prefix = 'user-usage-'; }
+      else if (activeSidebar === '个人设置') { groups = USER_SETTINGS_GROUPS; prefix = 'user-settings-'; }
+    }
+
+    // 兼容旧版本菜单
+    if (groups.length === 0) {
+      if (activeSidebar === '概览' || activeSidebar === '快捷入口' || activeSidebar === 'AI 助手' || activeSidebar === '文档教程') { 
+        groups = []; 
+      }
+      else if (activeSidebar === 'Agent 管理') { 
+        groups = AGENT_MANAGEMENT_GROUPS; 
+        activeItem = activeAgentSubItem; 
+        setActive = handleAgentSubItemClick; 
+        prefix = 'agent-'; 
+      }
+      else if (activeSidebar === '监控中心') { groups = MONITORING_GROUPS; prefix = 'mon-'; }
+      else if (activeSidebar === '系统配置') { groups = SYSTEM_CONFIG_GROUPS; prefix = 'sys-'; }
+      else if (activeSidebar === '用户管理') { groups = USER_MANAGEMENT_GROUPS; prefix = 'user-'; }
+      else if (activeSidebar === '模型服务') { groups = MODEL_SERVICE_GROUPS; prefix = 'model-'; }
+      else if (activeSidebar === '工具广场') { groups = TOOL_SQUARE_GROUPS; prefix = 'tool-'; }
+    }
 
     if (groups.length === 0) return null;
 
@@ -269,9 +409,11 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
           <div key={group.title} className="mb-3">
             {/* 分组标题：小号、浅色、仅作分类，不折叠 */}
             <div className="w-full flex items-center px-3 pt-0.5 pb-1">
-              <span className={`font-medium uppercase tracking-wider transition-all ${
-                theme === 'light' ? 'text-slate-400' : 'text-slate-500'
-              } ${fontSize === 'small' ? 'text-[0.5625rem]' : fontSize === 'medium' ? 'text-[0.625rem]' : 'text-xs'}`}>
+              <span
+                className={`font-medium uppercase tracking-wider transition-all ${
+                  theme === 'light' ? 'text-slate-400' : 'text-slate-500'
+                } ${fontSize === 'small' ? 'text-[0.5625rem]' : fontSize === 'medium' ? 'text-[0.625rem]' : 'text-xs'}`}
+              >
                 {group.title}
               </span>
             </div>
@@ -288,9 +430,13 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
                     className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all text-left ${
                       fontSize === 'small' ? 'text-xs' : fontSize === 'medium' ? 'text-sm' : 'text-base'
                     } ${
-                      activeItem === item.id 
-                        ? theme === 'light' ? 'bg-white shadow-sm text-blue-600 font-semibold' : 'bg-white/10 text-white font-semibold'
-                        : theme === 'light' ? 'text-slate-700 hover:bg-slate-200/40 font-medium' : 'text-slate-300 hover:bg-white/5 font-medium'
+                      activeItem === item.id
+                        ? theme === 'light'
+                          ? 'bg-white shadow-sm text-blue-600 font-semibold'
+                          : 'bg-white/10 text-white font-semibold'
+                        : theme === 'light'
+                          ? 'text-slate-700 hover:bg-slate-200/40 font-medium'
+                          : 'text-slate-300 hover:bg-white/5 font-medium'
                     }`}
                   >
                     <item.icon size={14} strokeWidth={activeItem === item.id ? 2.5 : 2} className="shrink-0" />
@@ -307,6 +453,45 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
 
   const renderMainContent = () => {
     let currentTitle = activeSidebar;
+    // 管理员菜单
+    if (layoutIsAdmin) {
+      if (
+        [
+          '系统概览',
+          '系统配置',
+          '用户管理',
+          '模型服务管理',
+          '工具管理',
+          '运营与安全',
+          '集成与中台',
+          '监控中心',
+          '数据管理',
+          '系统日志',
+        ].includes(activeSidebar)
+      ) {
+        currentTitle = activeSubItem || activeSidebar;
+      }
+    } else {
+      if (
+        [
+          '工作台',
+          '工作流',
+          '我的资产',
+          '模型服务',
+          '工具广场',
+          '发布与连接',
+          '我的数据',
+          '用量账单',
+          '个人设置',
+        ].includes(activeSidebar)
+      ) {
+        currentTitle = activeSubItem || activeSidebar;
+      }
+      if (activeSidebar === '我的 Agent') {
+        currentTitle = activeAgentSubItem || activeSidebar;
+      }
+    }
+    // 兼容旧版本
     if (activeSidebar === '模型服务' || activeSidebar === '仪表盘' || activeSidebar === '监控中心' || activeSidebar === '系统配置' || activeSidebar === '用户管理' || activeSidebar === '工具广场') {
       currentTitle = activeSubItem;
     }
@@ -315,6 +500,330 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
     }
     
     const content = (() => {
+      // ==================== 管理员菜单内容 ====================
+      if (layoutIsAdmin) {
+        if (activeSidebar === '系统概览') {
+          if (activeSubItem === '系统概览') {
+            return <Overview theme={theme} fontSize={fontSize} />;
+          }
+          return (
+            <AdminOverviewModule
+              activeSubItem={activeSubItem}
+              theme={theme}
+              fontSize={fontSize}
+              showMessage={showMessage}
+            />
+          );
+        }
+
+        if (activeSidebar === '运营与安全') {
+          return (
+            <AdminOpsSecurityModule
+              activeSubItem={activeSubItem}
+              theme={theme}
+              fontSize={fontSize}
+              showMessage={showMessage}
+            />
+          );
+        }
+
+        if (activeSidebar === '集成与中台') {
+          return (
+            <AdminIntegrationModule
+              activeSubItem={activeSubItem}
+              theme={theme}
+              fontSize={fontSize}
+              showMessage={showMessage}
+            />
+          );
+        }
+
+        if (activeSidebar === '系统配置') {
+          return <SystemConfigModule activeSubItem={activeSubItem} theme={theme} fontSize={fontSize} showMessage={showMessage} />;
+        }
+
+        if (activeSidebar === '用户管理') {
+          return <UserManagementModule activeSubItem={activeSubItem} theme={theme} fontSize={fontSize} showMessage={showMessage} />;
+        }
+
+        if (activeSidebar === '模型服务管理') {
+          return (
+            <AdminModelServiceModule
+              activeSubItem={activeSubItem}
+              theme={theme}
+              fontSize={fontSize}
+              showMessage={showMessage}
+            />
+          );
+        }
+
+        if (activeSidebar === '工具管理') {
+          return (
+            <AdminToolManagementModule
+              activeSubItem={activeSubItem}
+              theme={theme}
+              fontSize={fontSize}
+              showMessage={showMessage}
+            />
+          );
+        }
+
+        if (activeSidebar === '监控中心') {
+          return <MonitoringModule activeSubItem={activeSubItem} theme={theme} fontSize={fontSize} showMessage={showMessage} />;
+        }
+
+        if (activeSidebar === '数据管理') {
+          return (
+            <AdminDataManagementModule
+              activeSubItem={activeSubItem}
+              theme={theme}
+              fontSize={fontSize}
+              showMessage={showMessage}
+            />
+          );
+        }
+
+        if (activeSidebar === '系统日志') {
+          return (
+            <AdminSystemLogModule
+              activeSubItem={activeSubItem}
+              theme={theme}
+              fontSize={fontSize}
+              showMessage={showMessage}
+            />
+          );
+        }
+      }
+
+      // ==================== 普通用户菜单内容 ====================
+      if (!layoutIsAdmin) {
+        if (activeSidebar === '工作台') {
+          if (activeSubItem === '概览') {
+            return <Overview theme={theme} fontSize={fontSize} />;
+          }
+          if (activeSubItem === '快捷入口') {
+            return <QuickAccess theme={theme} fontSize={fontSize} />;
+          }
+          if (activeSubItem === '最近项目') {
+            return (
+              <RecentProjectsPage theme={theme} fontSize={fontSize} showMessage={showMessage} />
+            );
+          }
+          return <PlaceholderView title={activeSubItem || '工作台'} theme={theme} fontSize={fontSize} />;
+        }
+
+        if (activeSidebar === '工作流') {
+          return (
+            <WorkflowUserModule
+              activeSubItem={activeSubItem}
+              theme={theme}
+              fontSize={fontSize}
+              showMessage={showMessage}
+            />
+          );
+        }
+
+        if (activeSidebar === '发布与连接') {
+          return (
+            <PublishConnectUserModule
+              activeSubItem={activeSubItem}
+              theme={theme}
+              fontSize={fontSize}
+              themeColor={themeColor}
+              showMessage={showMessage}
+            />
+          );
+        }
+
+        if (activeSidebar === '用量账单') {
+          return (
+            <UsageBillingUserModule
+              activeSubItem={activeSubItem}
+              theme={theme}
+              fontSize={fontSize}
+              showMessage={showMessage}
+            />
+          );
+        }
+
+        if (activeSidebar === 'AI 助手') {
+          return <AIAssistant theme={theme} fontSize={fontSize} />;
+        }
+
+        if (activeSidebar === '我的 Agent') {
+          if (activeAgentSubItem === AGENT_WORKSPACE_SUBITEM_ID) {
+            if (activeAgentView === 'detail' && selectedAgentId) {
+              return (
+                <AgentDetail 
+                  agentId={selectedAgentId} 
+                  theme={theme} 
+                  fontSize={fontSize} 
+                  onBack={() => setActiveAgentView('list')} 
+                />
+              );
+            }
+            if (activeAgentView === 'create') {
+              return (
+                <AgentCreate 
+                  theme={theme} 
+                  fontSize={fontSize} 
+                  onBack={() => setActiveAgentView('list')}
+                  onSuccess={(id) => {
+                    setSelectedAgentId(id);
+                    setActiveAgentView('detail');
+                    showMessage('Agent 创建成功！', 'success');
+                  }}
+                />
+              );
+            }
+            return (
+              <AgentList 
+                theme={theme} 
+                fontSize={fontSize} 
+                onViewDetail={(id) => {
+                  setSelectedAgentId(id);
+                  setActiveAgentView('detail');
+                }}
+                onCreateAgent={() => setActiveAgentView('create')}
+              />
+            );
+          }
+          if (activeAgentSubItem === 'Agent 市场') {
+            return (
+              <AgentMarket
+                theme={theme}
+                fontSize={fontSize}
+                themeColor={themeColor}
+                showMessage={showMessage}
+              />
+            );
+          }
+          if (activeAgentSubItem === 'Agent监控') {
+            return <AgentMonitoringPage theme={theme} fontSize={fontSize} />;
+          }
+          if (activeAgentSubItem === 'Trace追踪') {
+            return <AgentTracePage theme={theme} fontSize={fontSize} />;
+          }
+          if (
+            activeAgentSubItem === '对话流编排' ||
+            activeAgentSubItem === '版本与发布' ||
+            activeAgentSubItem === '我的应用' ||
+            activeAgentSubItem === '调试会话'
+          ) {
+            return (
+              <AgentExtrasUserModule
+                activeAgentSubItem={activeAgentSubItem}
+                theme={theme}
+                fontSize={fontSize}
+                showMessage={showMessage}
+                agentId={selectedAgentId}
+              />
+            );
+          }
+          return <PlaceholderView title={activeAgentSubItem || '我的 Agent'} theme={theme} fontSize={fontSize} />;
+        }
+
+        if (activeSidebar === '我的资产') {
+          if (activeSubItem === '知识库') {
+            return (
+              <KnowledgeBase
+                theme={theme}
+                fontSize={fontSize}
+                themeColor={themeColor}
+                showMessage={showMessage}
+              />
+            );
+          }
+          if (activeSubItem === '数据库') {
+            return (
+              <Database
+                theme={theme}
+                fontSize={fontSize}
+                themeColor={themeColor}
+                showMessage={showMessage}
+              />
+            );
+          }
+          return (
+            <AssetsExtrasUserModule
+              activeSubItem={activeSubItem}
+              theme={theme}
+              fontSize={fontSize}
+              showMessage={showMessage}
+            />
+          );
+        }
+
+        if (activeSidebar === '模型服务') {
+          return (
+            <ModelServiceUserModule
+              activeSubItem={activeSubItem}
+              theme={theme}
+              fontSize={fontSize}
+              showMessage={showMessage}
+            />
+          );
+        }
+
+        if (activeSidebar === '工具广场') {
+          return (
+            <ToolMarketModule
+              activeSubItem={activeSubItem}
+              theme={theme}
+              fontSize={fontSize}
+              showMessage={showMessage}
+            />
+          );
+        }
+
+        if (activeSidebar === '我的数据') {
+          return (
+            <DataEvalUserModule
+              activeSubItem={activeSubItem}
+              theme={theme}
+              fontSize={fontSize}
+              showMessage={showMessage}
+            />
+          );
+        }
+
+        if (activeSidebar === '个人设置') {
+          if (activeSubItem === '个人资料') {
+            return <UserProfile theme={theme} fontSize={fontSize} />;
+          }
+          if (activeSubItem === '偏好设置') {
+            return (
+              <UserSettingsPage
+                theme={theme}
+                fontSize={fontSize}
+                themeColor={themeColor}
+                showMessage={showMessage}
+                onOpenAppearance={() => {
+                  setShowUserMenu(true);
+                  setShowAppearanceMenu(true);
+                }}
+              />
+            );
+          }
+          if (activeSubItem === '工作空间' || activeSubItem === 'API Key' || activeSubItem === '使用统计') {
+            return (
+              <UserSettingsExtrasModule
+                activeSubItem={activeSubItem}
+                theme={theme}
+                fontSize={fontSize}
+                showMessage={showMessage}
+              />
+            );
+          }
+          return <PlaceholderView title={activeSubItem || '个人设置'} theme={theme} fontSize={fontSize} />;
+        }
+
+        if (activeSidebar === '文档教程') {
+          return <DocsTutorialPage theme={theme} fontSize={fontSize} />;
+        }
+      }
+
+      // ==================== 兼容旧版本菜单 ====================
       if (activeSidebar === '概览') {
         return <Overview theme={theme} fontSize={fontSize} />;
       }
@@ -530,33 +1039,184 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
     >
       
       {/* Sidebar - iPadOS/macOS Style */}
-      <aside className={`flex-shrink-0 w-60 hidden lg:flex flex-col border-r transition-all duration-300 ${
-        theme === 'light' ? 'bg-[#F2F2F7] border-slate-200' : 'bg-[#0A0A0A] border-white/10'
-      }`}>
+      <aside
+        className={`flex-shrink-0 w-60 hidden lg:flex flex-col border-r transition-all duration-300 ${
+          theme === 'light' ? 'bg-[#F2F2F7] border-slate-200' : 'bg-[#0A0A0A] border-white/10'
+        }`}
+      >
         <div className="h-14 flex items-center justify-center px-4 w-full">
           <button
             type="button"
-            onClick={() => handleSidebarClick('概览')}
+            onClick={() => handleSidebarClick(layoutIsAdmin ? '系统概览' : '工作台')}
             className="flex items-center justify-center min-w-0 w-full rounded-xl hover:opacity-90 active:opacity-80 transition-opacity"
-            title="返回概览"
+            title={layoutIsAdmin ? '返回系统概览' : '返回工作台'}
           >
             <Logo fontSize={fontSize} />
           </button>
         </div>
         
-        <div className="flex-1 overflow-y-auto pt-2 custom-scrollbar">
-          {SIDEBAR_ITEMS.map((item) => (
-            <SidebarItem
-              key={item.id}
-              icon={item.icon}
-              label={item.label}
-              active={activeSidebar === item.id}
-              onClick={() => handleSidebarClick(item.id)}
-              theme={theme}
-              themeColor={themeColor}
-              fontSize={fontSize}
-            />
-          ))}
+        <div className="flex-1 overflow-y-auto pt-1 pb-2 custom-scrollbar">
+          {sidebarItems.map((item) => {
+            const subGroups = getSubGroupsForSidebar(item.id);
+            const hasSubItems = subGroups.length > 0;
+            const isExpanded = expandedGroups.includes(item.id);
+            const isActive = activeSidebar === item.id;
+            const fq = sidebarNavFilter.trim().toLowerCase();
+            const filteredSubGroups =
+              !fq || item.id !== activeSidebar
+                ? subGroups
+                : subGroups
+                    .map((g) => ({
+                      ...g,
+                      items: g.items.filter(
+                        (si: { id: string; label: string }) =>
+                          si.label.toLowerCase().includes(fq) || si.id.toLowerCase().includes(fq)
+                      ),
+                    }))
+                    .filter((g) => g.items.length > 0);
+            const accentBorder = THEME_COLOR_CLASSES[themeColor].border.replace('border-', 'border-l-2 border-');
+
+            return (
+              <div key={item.id} className="mb-1">
+                <div
+                  className={`flex items-stretch rounded-xl mx-2 my-0.5 overflow-hidden ${
+                    isActive
+                      ? `${THEME_COLOR_CLASSES[themeColor].bg} text-white shadow-sm`
+                      : theme === 'light'
+                        ? 'text-slate-600 hover:bg-slate-200/50'
+                        : 'text-slate-400 hover:bg-white/10'
+                  }`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => handleSidebarClick(item.id)}
+                    className="flex flex-1 min-w-0 items-center gap-3 px-3 py-2.5 text-left transition-colors rounded-xl"
+                  >
+                    <item.icon size={16} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
+                    <span
+                      className={`flex-1 font-medium truncate ${
+                        fontSize === 'small' ? 'text-xs' : fontSize === 'medium' ? 'text-sm' : 'text-base'
+                      }`}
+                    >
+                      {item.label}
+                    </span>
+                  </button>
+                  {hasSubItems && (
+                    <button
+                      type="button"
+                      aria-expanded={isExpanded}
+                      aria-label={isExpanded ? '收起子菜单' : '展开子菜单'}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (activeSidebar === item.id) {
+                          toggleGroup(item.id);
+                        } else {
+                          handleSidebarClick(item.id);
+                        }
+                      }}
+                      className={`shrink-0 px-2 flex items-center justify-center rounded-xl transition-colors ${
+                        isActive ? 'hover:bg-white/10' : theme === 'light' ? 'hover:bg-slate-200/60' : 'hover:bg-white/10'
+                      }`}
+                    >
+                      <ChevronDown
+                        size={14}
+                        className={`shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                      />
+                    </button>
+                  )}
+                </div>
+
+                {hasSubItems && isExpanded && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2, ease: 'easeInOut' }}
+                    className="overflow-hidden"
+                  >
+                    <div className="pl-3 pr-2 pt-1 pb-2 space-y-1">
+                      {item.id === activeSidebar && (
+                        <div className="relative px-1 mb-2">
+                          <Search
+                            size={14}
+                            className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${
+                              theme === 'light' ? 'text-slate-400' : 'text-slate-500'
+                            }`}
+                            aria-hidden
+                          />
+                          <input
+                            type="search"
+                            value={sidebarNavFilter}
+                            onChange={(e) => setSidebarNavFilter(e.target.value)}
+                            placeholder="筛选子项…"
+                            className={`${toolbarSearchInputClass(theme)} !py-2 !text-xs !min-h-0 !pl-8`}
+                            aria-label="筛选当前菜单子项"
+                          />
+                        </div>
+                      )}
+                      {filteredSubGroups.length === 0 ? (
+                        <p className={`px-2 py-2 text-xs ${theme === 'light' ? 'text-slate-400' : 'text-slate-500'}`}>
+                          无匹配项
+                        </p>
+                      ) : (
+                        filteredSubGroups.map((group) => (
+                          <div key={group.title} className="mb-1">
+                            <div
+                              className={`mx-1 px-2 py-1 rounded-lg ${theme === 'light' ? 'bg-slate-200/40' : 'bg-white/5'}`}
+                            >
+                              <span
+                                className={`text-[10px] font-semibold uppercase tracking-wider ${
+                                  theme === 'light' ? 'text-slate-500' : 'text-slate-500'
+                                }`}
+                              >
+                                {group.title}
+                              </span>
+                            </div>
+                            <div className="mt-1 space-y-0.5">
+                              {group.items.map((subItem: { id: string; label: string; icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }> }) => {
+                                const isSubActive =
+                                  (item.id === '我的 Agent' && activeAgentSubItem === subItem.id) ||
+                                  (item.id !== '我的 Agent' && activeSubItem === subItem.id);
+                                const handleSubClick = () => {
+                                  if (item.id === '我的 Agent') {
+                                    handleAgentSubItemClick(subItem.id);
+                                  } else {
+                                    handleSubItemClick(subItem.id);
+                                  }
+                                };
+                                const SubIcon = subItem.icon;
+                                return (
+                                  <button
+                                    key={subItem.id}
+                                    type="button"
+                                    onClick={handleSubClick}
+                                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors text-left ${
+                                      fontSize === 'small' ? 'text-xs' : 'text-sm'
+                                    } ${
+                                      isSubActive
+                                        ? theme === 'light'
+                                          ? `bg-white shadow-none font-semibold ${THEME_COLOR_CLASSES[themeColor].text} border border-slate-200/80`
+                                          : `bg-white/10 font-semibold text-white border-l-2 ${accentBorder}`
+                                        : theme === 'light'
+                                          ? 'text-slate-600 hover:bg-slate-200/50 font-medium border border-transparent'
+                                          : 'text-slate-300 hover:bg-white/5 font-medium border border-transparent'
+                                    }`}
+                                  >
+                                    <SubIcon size={14} strokeWidth={isSubActive ? 2.5 : 2} className="shrink-0 opacity-80" />
+                                    <span className="truncate">{subItem.label}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         <div
@@ -643,7 +1303,14 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
 
                   <button 
                     type="button"
-                    onClick={() => { setActiveSidebar('个人设置'); setShowUserMenu(false); setShowAppearanceMenu(false); }}
+                    onClick={() => {
+                      if (layoutIsAdmin) setRole('user');
+                      const first = getFirstSubItemForSidebar('个人设置');
+                      const sub = first.subItem ?? ROUTE_ROOT_SUB;
+                      navigate(buildConsolePath('user', '个人设置', sub));
+                      setShowUserMenu(false);
+                      setShowAppearanceMenu(false);
+                    }}
                     className={`flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] transition-all ${
                       activeSidebar === '个人设置'
                         ? `${THEME_COLOR_CLASSES[themeColor].bg} text-white shadow-sm`
@@ -652,6 +1319,43 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
                   >
                     <Settings size={16} />
                     <span>设置</span>
+                  </button>
+
+                  <div className={`h-px my-1 ${theme === 'light' ? 'bg-slate-100' : 'bg-white/5'}`} />
+
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      const newRole = role === 'admin' ? 'user' : 'admin';
+                      setRole(newRole);
+                      const next: ConsoleRole = newRole === 'admin' ? 'admin' : 'user';
+                      navigate(defaultConsolePath(next));
+                      setShowUserMenu(false);
+                      setShowAppearanceMenu(false);
+                      showMessage(`已切换到${newRole === 'admin' ? '管理员' : '普通用户'}视图`, 'success');
+                    }}
+                    className={`flex items-center justify-between gap-3 px-3 py-2 rounded-xl text-[13px] transition-all ${
+                      theme === 'light' ? 'text-slate-600 hover:bg-slate-100' : 'text-slate-400 hover:bg-white/5'
+                    }`}
+                    title="切换角色视图（开发调试用）"
+                  >
+                    <span className="flex items-center gap-3 min-w-0">
+                      {role === 'admin' ? (
+                        <Shield size={16} className="shrink-0" />
+                      ) : (
+                        <UserCog size={16} className="shrink-0" />
+                      )}
+                      <span className="truncate">
+                        {role === 'admin' ? '管理员视图' : '用户视图'}
+                      </span>
+                    </span>
+                    <span className={`text-[11px] px-2 py-0.5 rounded-md shrink-0 ${
+                      role === 'admin' 
+                        ? (theme === 'light' ? 'bg-blue-100 text-blue-700' : 'bg-blue-500/20 text-blue-400')
+                        : (theme === 'light' ? 'bg-purple-100 text-purple-700' : 'bg-purple-500/20 text-purple-400')
+                    }`}>
+                      {role === 'admin' ? '管理员' : '用户'}
+                    </span>
                   </button>
 
                   <div className={`h-px my-1 ${theme === 'light' ? 'bg-slate-100' : 'bg-white/5'}`} />
@@ -711,7 +1415,16 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-[13px] font-medium truncate">User Name</div>
-                <div className="text-[11px] text-slate-500 truncate">Free Plan</div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-slate-500 truncate">Free Plan</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                    role === 'admin' 
+                      ? (theme === 'light' ? 'bg-blue-100 text-blue-700' : 'bg-blue-500/20 text-blue-400')
+                      : (theme === 'light' ? 'bg-purple-100 text-purple-700' : 'bg-purple-500/20 text-purple-400')
+                  }`}>
+                    {role === 'admin' ? '管理员' : '用户'}
+                  </span>
+                </div>
               </div>
             </div>
             <button
@@ -740,29 +1453,33 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
       </aside>
 
       {/* Mobile/Narrow Sidebar - Icon only */}
-      <aside className={`flex-shrink-0 w-16 flex lg:hidden flex-col border-r transition-all duration-300 ${
-        theme === 'light' ? 'bg-[#F2F2F7] border-slate-200' : 'bg-[#0A0A0A] border-white/10'
-      }`}>
+      <aside
+        className={`flex-shrink-0 w-16 flex lg:hidden flex-col border-r transition-all duration-300 ${
+          theme === 'light' ? 'bg-[#F2F2F7] border-slate-200' : 'bg-[#0A0A0A] border-white/10'
+        }`}
+      >
         <div className="h-14 flex items-center justify-center w-full">
           <button
             type="button"
-            onClick={() => handleSidebarClick('概览')}
+            onClick={() => handleSidebarClick(layoutIsAdmin ? '系统概览' : '工作台')}
             className="rounded-xl hover:opacity-90 active:opacity-80 transition-opacity"
-            title="返回概览"
+            title={layoutIsAdmin ? '系统概览' : '工作台'}
           >
             <Logo compact />
           </button>
         </div>
         <div className="flex-1 overflow-y-auto pt-2 flex flex-col items-center gap-2">
-          {SIDEBAR_ITEMS.map((item) => (
+          {sidebarItems.map((item) => (
             <button
               key={item.id}
               type="button"
               onClick={() => handleSidebarClick(item.id)}
               className={`p-3 rounded-xl transition-all ${
-                activeSidebar === item.id 
-                  ? `${THEME_COLOR_CLASSES[themeColor].bg} text-white shadow-md` 
-                  : theme === 'light' ? 'text-slate-500 hover:bg-slate-200' : 'text-slate-400 hover:bg-white/10'
+                activeSidebar === item.id
+                  ? `${THEME_COLOR_CLASSES[themeColor].bg} text-white shadow-md`
+                  : theme === 'light'
+                    ? 'text-slate-500 hover:bg-slate-200'
+                    : 'text-slate-400 hover:bg-white/10'
               }`}
               title={item.label}
             >
@@ -780,33 +1497,26 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
         </div>
       </aside>
 
-      {/* Secondary Sidebar - Content Specific */}
-      {renderSidebarContent() && (
-        <aside className={`flex-shrink-0 w-48 sm:w-52 flex flex-col border-r transition-all duration-300 ${
-          theme === 'light' ? 'bg-[#F2F2F7] border-slate-200' : 'bg-[#0F0F0F] border-white/5'
-        }`}>
-          <div className="h-14 flex items-center px-4 border-b border-transparent min-w-0">
-            <nav className="flex flex-wrap items-center gap-x-0.5 text-xs sm:text-sm font-medium min-w-0" aria-label="子导航位置">
-              <span className={theme === 'light' ? 'text-slate-500' : 'text-slate-500'}>兰智通</span>
-              <ChevronRight size={14} className="shrink-0 text-slate-400 opacity-70" aria-hidden />
-              <span className={`font-bold truncate ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>
-                {activeSidebar}
-              </span>
-            </nav>
-          </div>
-          <div className="flex-1 overflow-y-auto py-3 custom-scrollbar">
-            {renderSidebarContent()}
-          </div>
-        </aside>
-      )}
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 relative">
-        {/* Chat/Main View：AI 助手时整块主区与输入区背景一致，避免底部白条 */}
-        <main className={`flex-1 flex flex-col relative min-h-0 ${
-          activeSidebar === 'AI 助手' ? (theme === 'light' ? 'bg-[#F2F2F7]' : 'bg-[#000000]') : ''
-        }`}>
-          {renderMainContent()}
+        <main
+          className={`flex-1 flex flex-col relative min-h-0 ${
+            activeSidebar === 'AI 助手' ? (theme === 'light' ? 'bg-[#F2F2F7]' : 'bg-[#000000]') : ''
+          }`}
+        >
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`${activeSidebar}__${activeSubItem}__${activeAgentView}__${selectedAgentId ?? ''}`}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18, ease: 'easeOut' }}
+              className="flex-1 flex flex-col min-h-0"
+            >
+              {renderMainContent()}
+            </motion.div>
+          </AnimatePresence>
 
           {/* Input Area - iOS Messages Style */}
           {activeSidebar === 'AI 助手' && (

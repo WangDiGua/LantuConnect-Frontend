@@ -1,8 +1,12 @@
 import React from 'react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
-import { MOCK_KPIS } from '../../constants/monitoring';
-import { Activity, ArrowUpRight, LineChart, Search, Shield } from 'lucide-react';
+import { Activity, ArrowUpRight, Search, Shield } from 'lucide-react';
+import { MonitoringOverviewCharts } from '../../components/charts/MonitoringOverviewCharts';
+import { useMonitoringKpis } from '../../hooks/queries/useMonitoring';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
+import { PageError } from '../../components/common/PageError';
+import { EmptyState } from '../../components/common/EmptyState';
 
 interface MonitoringOverviewPageProps {
   theme: Theme;
@@ -11,7 +15,65 @@ interface MonitoringOverviewPageProps {
 
 export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ theme, fontSize }) => {
   const isDark = theme === 'dark';
-  const bars = [40, 65, 45, 80, 55, 90, 70, 85, 60, 95, 75, 88];
+  const kpisQ = useMonitoringKpis();
+
+  if (kpisQ.isLoading) {
+    return (
+      <MgmtPageShell
+        theme={theme}
+        fontSize={fontSize}
+        breadcrumbSegments={['监控中心', '监控概览']}
+        titleIcon={Activity}
+        description="调用量、成功率与延迟趋势汇总；可下钻至调用日志与告警。"
+      >
+        <div className="min-w-0 px-4 sm:px-6 pb-6 pt-1">
+          <PageSkeleton type="cards" />
+        </div>
+      </MgmtPageShell>
+    );
+  }
+
+  if (kpisQ.isError) {
+    return (
+      <MgmtPageShell
+        theme={theme}
+        fontSize={fontSize}
+        breadcrumbSegments={['监控中心', '监控概览']}
+        titleIcon={Activity}
+        description="调用量、成功率与延迟趋势汇总；可下钻至调用日志与告警。"
+      >
+        <PageError error={kpisQ.error as Error} onRetry={() => kpisQ.refetch()} />
+      </MgmtPageShell>
+    );
+  }
+
+  const kpis = kpisQ.data ?? [];
+
+  if (kpis.length === 0) {
+    return (
+      <MgmtPageShell
+        theme={theme}
+        fontSize={fontSize}
+        breadcrumbSegments={['监控中心', '监控概览']}
+        titleIcon={Activity}
+        description="调用量、成功率与延迟趋势汇总；可下钻至调用日志与告警。"
+      >
+        <EmptyState
+          title="暂无监控数据"
+          description="KPI 指标为空，请检查监控采集服务是否已启用。"
+          action={
+            <button
+              type="button"
+              onClick={() => kpisQ.refetch()}
+              className="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700"
+            >
+              重新加载
+            </button>
+          }
+        />
+      </MgmtPageShell>
+    );
+  }
 
   return (
     <MgmtPageShell
@@ -19,11 +81,11 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ 
       fontSize={fontSize}
       breadcrumbSegments={['监控中心', '监控概览']}
       titleIcon={Activity}
-      description="调用量、成功率与延迟趋势汇总（演示数据）；可下钻至调用日志与告警。"
+      description="调用量、成功率与延迟趋势汇总；可下钻至调用日志与告警。"
     >
       <div className="min-w-0 px-4 sm:px-6 pb-6 pt-1 space-y-6">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          {MOCK_KPIS.map((k) => (
+          {kpis.map((k) => (
             <div
               key={k.id}
               className={`rounded-2xl border p-4 shadow-none ${
@@ -40,28 +102,7 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ 
           ))}
         </div>
 
-        <div
-          className={`rounded-2xl border p-4 sm:p-5 shadow-none ${
-            isDark ? 'bg-[#2C2C2E]/30 border-white/10' : 'bg-white border-slate-200/80'
-          }`}
-        >
-          <div className="flex items-center justify-between mb-4">
-            <h3 className={`text-sm font-bold flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-              <LineChart size={18} className="text-slate-400" />
-              近 12 小时调用量（相对）
-            </h3>
-          </div>
-          <div className="flex items-end gap-1 sm:gap-1.5 h-32 px-1">
-            {bars.map((h, i) => (
-              <div
-                key={i}
-                className="flex-1 min-w-0 rounded-t-lg bg-blue-500/80 dark:bg-blue-400/50"
-                style={{ height: `${h}%` }}
-                title={`时段 ${i + 1}`}
-              />
-            ))}
-          </div>
-        </div>
+        <MonitoringOverviewCharts theme={theme} />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <a
@@ -106,7 +147,7 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ 
 
         <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
           <Activity size={12} className="inline mr-1 opacity-70" />
-          数据为前端模拟；生产环境请接入 Prometheus / ELK / 云监控等数据源。
+          KPI 来自监控服务；图表为示意数据，生产环境可接入 Prometheus / ELK / 云监控。
         </p>
       </div>
     </MgmtPageShell>

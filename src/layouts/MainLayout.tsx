@@ -117,7 +117,7 @@ import {
   type ConsoleRole,
 } from '../constants/consoleRoutes';
 import { ROUTE_ROOT_SUB } from '../constants/routeRoot';
-import { SplashScreen } from '../components/common/SplashScreen';
+import { ContentLoader } from '../components/common/ContentLoader';
 
 export const MainLayout: React.FC = () => {
   const [theme, setTheme] = useState<Theme>(() => readAppearanceState().theme);
@@ -453,54 +453,54 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
     );
   };
 
-  const renderMainContent = () => {
-    let currentTitle = activeSidebar;
-    // 管理员菜单
-    if (layoutIsAdmin) {
-      if (
-        [
-          '系统概览',
-          '系统配置',
-          '用户管理',
-          '模型服务管理',
-          '工具管理',
-          '运营与安全',
-          '集成与中台',
-          '监控中心',
-          '数据管理',
-          '系统日志',
-        ].includes(activeSidebar)
-      ) {
-        currentTitle = activeSubItem || activeSidebar;
+  // 使用 useMemo 优化内容 key，只包含真正影响内容的状态
+  const contentKey = useMemo(() => {
+    // 只包含真正影响内容的状态
+    const parts: string[] = [activeSidebar];
+    if (activeSidebar === '我的 Agent' || activeSidebar === 'Agent 管理') {
+      parts.push(activeAgentSubItem || '');
+      if (activeAgentSubItem === AGENT_WORKSPACE_SUBITEM_ID) {
+        parts.push(activeAgentView);
+        if (selectedAgentId) parts.push(selectedAgentId);
       }
     } else {
-      if (
-        [
-          '工作台',
-          '工作流',
-          '我的资产',
-          '模型服务',
-          '工具广场',
-          '发布与连接',
-          '我的数据',
-          '用量账单',
-          '个人设置',
-        ].includes(activeSidebar)
-      ) {
-        currentTitle = activeSubItem || activeSidebar;
-      }
-      if (activeSidebar === '我的 Agent') {
-        currentTitle = activeAgentSubItem || activeSidebar;
-      }
+      parts.push(activeSubItem || '');
     }
-    // 兼容旧版本
-    if (activeSidebar === '模型服务' || activeSidebar === '仪表盘' || activeSidebar === '监控中心' || activeSidebar === '系统配置' || activeSidebar === '用户管理' || activeSidebar === '工具广场') {
-      currentTitle = activeSubItem;
-    }
-    if (activeSidebar === 'Agent 管理') {
-      currentTitle = activeAgentSubItem;
-    }
-    
+    return parts.filter(Boolean).join('|');
+  }, [activeSidebar, activeSubItem, activeAgentSubItem, activeAgentView, selectedAgentId]);
+
+  // 提取内容渲染逻辑为独立组件，使用 React.memo 优化
+  const MainContent = React.memo<{
+    activeSidebar: string;
+    activeSubItem: string;
+    activeAgentSubItem: string;
+    activeAgentView: 'list' | 'detail' | 'create';
+    selectedAgentId: string | null;
+    layoutIsAdmin: boolean;
+    theme: Theme;
+    themeColor: ThemeColor;
+    fontSize: FontSize;
+    showMessage: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void;
+    setActiveAgentView: (view: 'list' | 'detail' | 'create') => void;
+    setSelectedAgentId: (id: string | null) => void;
+    setShowUserMenu: (show: boolean) => void;
+    setShowAppearanceMenu: (show: boolean) => void;
+  }>(({
+    activeSidebar,
+    activeSubItem,
+    activeAgentSubItem,
+    activeAgentView,
+    selectedAgentId,
+    layoutIsAdmin,
+    theme,
+    themeColor,
+    fontSize,
+    showMessage,
+    setActiveAgentView,
+    setSelectedAgentId,
+    setShowUserMenu,
+    setShowAppearanceMenu,
+  }) => {
     const content = (() => {
       // ==================== 管理员菜单内容 ====================
       if (layoutIsAdmin) {
@@ -984,27 +984,30 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
         );
       }
 
-      return <PlaceholderView title={currentTitle} theme={theme} fontSize={fontSize} />;
+      return <PlaceholderView title={activeSidebar} theme={theme} fontSize={fontSize} />;
     })();
 
     return (
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={`${activeSidebar}-${activeSubItem}-${activeAgentSubItem}-${activeAgentView}-${selectedAgentId ?? 'none'}`}
-          variants={getAnimationVariants()}
-          initial="initial"
-          animate="animate"
-          exit="exit"
-          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-          className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden"
-        >
-          <Suspense fallback={<SplashScreen />}>
-            {content}
-          </Suspense>
-        </motion.div>
-      </AnimatePresence>
+      <Suspense fallback={<ContentLoader theme={theme} />}>
+        {content}
+      </Suspense>
     );
-  };
+  }, (prevProps, nextProps) => {
+    // 自定义比较函数，只在真正影响内容的状态变化时重新渲染
+    return (
+      prevProps.activeSidebar === nextProps.activeSidebar &&
+      prevProps.activeSubItem === nextProps.activeSubItem &&
+      prevProps.activeAgentSubItem === nextProps.activeAgentSubItem &&
+      prevProps.activeAgentView === nextProps.activeAgentView &&
+      prevProps.selectedAgentId === nextProps.selectedAgentId &&
+      prevProps.layoutIsAdmin === nextProps.layoutIsAdmin &&
+      prevProps.theme === nextProps.theme &&
+      prevProps.themeColor === nextProps.themeColor &&
+      prevProps.fontSize === nextProps.fontSize
+    );
+  });
+
+  MainContent.displayName = 'MainContent';
 
   if (!isLoggedIn) {
     return (
@@ -1055,7 +1058,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
             className="flex items-center justify-center min-w-0 w-full rounded-xl hover:opacity-90 active:opacity-80 transition-opacity"
             title={layoutIsAdmin ? '返回系统概览' : '返回工作台'}
           >
-            <Logo fontSize={fontSize} />
+            <Logo fontSize={fontSize} theme={theme} />
           </button>
         </div>
         
@@ -1469,7 +1472,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
             className="rounded-xl hover:opacity-90 active:opacity-80 transition-opacity"
             title={layoutIsAdmin ? '系统概览' : '工作台'}
           >
-            <Logo compact />
+            <Logo compact theme={theme} />
           </button>
         </div>
         <div className="flex-1 overflow-y-auto pt-2 flex flex-col items-center gap-2">
@@ -1511,14 +1514,31 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
         >
           <AnimatePresence mode="wait">
             <motion.div
-              key={`${activeSidebar}__${activeSubItem}__${activeAgentView}__${selectedAgentId ?? ''}`}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.18, ease: 'easeOut' }}
-              className="flex-1 flex flex-col min-h-0"
+              key={contentKey}
+              variants={getAnimationVariants()}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+              className="flex-1 flex flex-col min-w-0 min-h-[600px] overflow-hidden"
+              style={{ willChange: 'opacity, transform' }}
             >
-              {renderMainContent()}
+              <MainContent
+                activeSidebar={activeSidebar}
+                activeSubItem={activeSubItem}
+                activeAgentSubItem={activeAgentSubItem}
+                activeAgentView={activeAgentView}
+                selectedAgentId={selectedAgentId}
+                layoutIsAdmin={layoutIsAdmin}
+                theme={theme}
+                themeColor={themeColor}
+                fontSize={fontSize}
+                showMessage={showMessage}
+                setActiveAgentView={setActiveAgentView}
+                setSelectedAgentId={setSelectedAgentId}
+                setShowUserMenu={setShowUserMenu}
+                setShowAppearanceMenu={setShowAppearanceMenu}
+              />
             </motion.div>
           </AnimatePresence>
 

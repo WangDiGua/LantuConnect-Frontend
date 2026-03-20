@@ -93,7 +93,7 @@ export const LoginPage: React.FC = () => {
         {/* Logo and title */}
         <div className="flex flex-col items-center mb-8">
           <div className="mb-3 p-3 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 shadow-2xl">
-            <Logo fontSize="large" />
+            <Logo fontSize="large" theme="dark" />
           </div>
           <p className="text-sm text-indigo-200/60 font-medium tracking-wide">
             企业级 AI 智能体平台

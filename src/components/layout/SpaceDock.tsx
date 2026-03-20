@@ -45,7 +45,7 @@ export const SpaceDock: React.FC<SpaceDockProps> = ({
         className="mb-3 rounded-xl focus:outline-none"
         title="首页"
       >
-        <Logo compact />
+        <Logo compact theme={theme} />
       </motion.button>
 
       {/* Divider */}

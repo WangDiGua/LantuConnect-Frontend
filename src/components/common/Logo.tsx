@@ -1,25 +1,78 @@
 import React from 'react';
-import { ThemeColor, FontSize } from '../../types';
+import { ThemeColor, FontSize, Theme } from '../../types';
 
 interface LogoProps {
   themeColor?: ThemeColor;
   fontSize?: FontSize;
   compact?: boolean;
+  theme?: Theme;
 }
 
-const LOGO_TEXT_CLASSES: Record<FontSize, string> = {
-  small: 'text-[15px]',
-  medium: 'text-[17px]',
-  large: 'text-[20px]',
+/**
+ * LantuConnect 横版字标 (Wordmark)
+ * 适用于导航栏、官网头部等场景
+ */
+export const LantuConnectWordmark: React.FC<{ className?: string; theme?: Theme }> = ({ 
+  className = 'w-full max-w-md',
+  theme = 'light'
+}) => {
+  const isDark = theme === 'dark';
+  const lantuColor = isDark ? '#F1F5F9' : '#0F172A';
+  const connectColor = isDark ? '#60A5FA' : '#2563EB';
+  const sparkColor = isDark ? '#7DD3FC' : '#38BDF8';
+  
+  return (
+    <svg viewBox="0 0 380 100" className={className} xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        {/* 利用遮罩在字体上"剪"出闪电/连接形状 */}
+        <mask id="zap-mask">
+          <rect width="100%" height="100%" fill="white" />
+          {/* 负空间：一枚闪电箭头 */}
+          <path d="M 160 25 L 140 60 L 152 60 L 145 85 L 175 45 L 160 45 Z" fill="black" />
+        </mask>
+      </defs>
+      
+      <g mask="url(#zap-mask)">
+        {/* 极致粗体，紧凑排版 */}
+        <text 
+          x="10" 
+          y="70" 
+          fontFamily="system-ui, -apple-system, sans-serif" 
+          fontSize="56" 
+          fontWeight="900" 
+          fill={lantuColor}
+          letterSpacing="-2.5"
+        >
+          Lantu
+        </text>
+        {/* Connect 字母紧紧贴靠 */}
+        <text 
+          x="162" 
+          y="70" 
+          fontFamily="system-ui, -apple-system, sans-serif" 
+          fontSize="56" 
+          fontWeight="900" 
+          fill={connectColor}
+          letterSpacing="-2.5"
+        >
+          Connect
+        </text>
+      </g>
+      
+      {/* 负形内部点缀亮色电火花核心 */}
+      <path 
+        d="M 160 25 L 140 60 L 152 60 L 145 85 L 175 45 L 160 45 Z" 
+        fill={sparkColor}
+        transform="scale(0.3) translate(350, 110)" 
+      />
+    </svg>
+  );
 };
 
-const ICON_SIZES: Record<FontSize, number> = {
-  small: 24,
-  medium: 28,
-  large: 32,
-};
-
-const LogoIcon: React.FC<{ size?: number }> = ({ size = 28 }) => (
+/**
+ * 紧凑版Logo（用于侧边栏等小空间）
+ */
+const CompactLogo: React.FC<{ size?: number }> = ({ size = 28 }) => (
   <svg
     width={size}
     height={size}
@@ -28,23 +81,12 @@ const LogoIcon: React.FC<{ size?: number }> = ({ size = 28 }) => (
     className="shrink-0"
   >
     <rect width="48" height="48" rx="13" fill="url(#logo-bg)" />
-    {/* Two connected nodes representing "Connect" */}
-    <circle cx="18" cy="19" r="5.5" fill="white" fillOpacity="0.92" />
-    <circle cx="30" cy="29" r="5.5" fill="white" fillOpacity="0.75" />
-    {/* Connection line */}
-    <line
-      x1="22.5"
-      y1="22.5"
-      x2="26"
-      y2="25.5"
-      stroke="white"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      opacity="0.8"
+    {/* 闪电图标 */}
+    <path
+      d="M 24 12 L 18 28 L 22 28 L 20 36 L 28 20 L 24 20 Z"
+      fill="white"
+      fillOpacity="0.92"
     />
-    {/* Spark accents */}
-    <circle cx="33" cy="16" r="2" fill="white" fillOpacity="0.35" />
-    <circle cx="15" cy="33" r="1.5" fill="white" fillOpacity="0.25" />
     <defs>
       <linearGradient id="logo-bg" x1="0" y1="0" x2="48" y2="48">
         <stop stopColor="#4F46E5" />
@@ -58,24 +100,28 @@ const LogoIcon: React.FC<{ size?: number }> = ({ size = 28 }) => (
 export const Logo: React.FC<LogoProps> = ({
   fontSize = 'medium',
   compact = false,
+  theme = 'light',
 }) => {
-  const textClass = compact ? 'text-sm' : LOGO_TEXT_CLASSES[fontSize];
-  const iconSize = compact ? 22 : ICON_SIZES[fontSize];
+  const iconSize = compact ? 22 : 28;
+
+  if (compact) {
+    return (
+      <span
+        className="inline-flex items-center justify-center select-none"
+        title="LantuConnect"
+      >
+        <CompactLogo size={iconSize} />
+      </span>
+    );
+  }
 
   return (
     <span
       className="inline-flex items-center gap-2 select-none"
       title="LantuConnect"
     >
-      <LogoIcon size={iconSize} />
-      <span className={`font-bold tracking-tight truncate leading-tight ${textClass}`}>
-        <span className="bg-gradient-to-r from-indigo-600 via-blue-600 to-violet-600 bg-clip-text text-transparent">
-          Lantu
-        </span>
-        <span className="bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
-          Connect
-        </span>
-      </span>
+      <CompactLogo size={iconSize} />
+      <LantuConnectWordmark className="h-6 w-auto" theme={theme} />
     </span>
   );
 };

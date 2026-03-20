@@ -5,6 +5,8 @@ import { MOCK_API_KEYS, MgmtApiKey } from '../../constants/userMgmt';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { TOOLBAR_ROW, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
 import { Search, Plus, Copy, Check, Ban, Zap } from 'lucide-react';
+import { ConfirmDialog } from '../../components/common/ConfirmDialog';
+import { Pagination } from '../../components/common/Pagination';
 
 interface ApiKeyListPageProps {
   theme: Theme;
@@ -12,6 +14,8 @@ interface ApiKeyListPageProps {
   showMessage: (msg: string, type?: 'success' | 'error' | 'info') => void;
   breadcrumbSegments: string[];
 }
+
+const PAGE_SIZE = 20;
 
 function randomSuffix(len: number) {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -33,6 +37,8 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({
   const [newName, setNewName] = useState('');
   const [revealedOnce, setRevealedOnce] = useState<{ full: string; prefix: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [page, setPage] = useState(1);
+  const [revokeTarget, setRevokeTarget] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -42,6 +48,11 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({
     });
   }, [keys, search]);
 
+  const paginated = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, page]);
+
   const closeReveal = useCallback(() => {
     setRevealedOnce(null);
     setNewName('');
@@ -49,7 +60,7 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({
     setCreateOpen(false);
   }, []);
 
-  const createKey = () => {
+  const createKey = useCallback(() => {
     if (!newName.trim()) {
       showMessage('请填写密钥名称', 'error');
       return;
@@ -72,9 +83,9 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({
     setRevealedOnce({ full, prefix });
     setCopied(false);
     showMessage('密钥已生成，请立即复制保存', 'success');
-  };
+  }, [newName, showMessage]);
 
-  const copyFull = async () => {
+  const copyFull = useCallback(async () => {
     if (!revealedOnce) return;
     try {
       await navigator.clipboard.writeText(revealedOnce.full);
@@ -83,13 +94,15 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({
     } catch {
       showMessage('复制失败，请手动选择复制', 'error');
     }
-  };
+  }, [revealedOnce, showMessage]);
 
-  const revokeKey = (id: string) => {
-    if (!confirm('撤销后该 Key 将不可用，确定继续？')) return;
-    setKeys((prev) => prev.map((k) => (k.id === id ? { ...k, status: 'revoked' as const } : k)));
+  const handleRevoke = useCallback(() => {
+    if (!revokeTarget) return;
+    setKeys((prev) => prev.map((k) => (k.id === revokeTarget ? { ...k, status: 'revoked' as const } : k)));
     showMessage('API Key 已撤销', 'info');
-  };
+    setRevokeTarget(null);
+    setPage(1);
+  }, [revokeTarget, showMessage]);
 
   const inputCls = nativeInputClass(theme);
 
@@ -255,7 +268,7 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({
               </tr>
             </thead>
             <tbody>
-              {filtered.map((k, i) => (
+              {paginated.map((k, i) => (
                 <tr
                   key={k.id}
                   className={`border-b transition-colors ${
@@ -292,7 +305,7 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({
                     {k.status === 'active' ? (
                       <button
                         type="button"
-                        onClick={() => revokeKey(k.id)}
+                        onClick={() => setRevokeTarget(k.id)}
                         className={`inline-flex items-center gap-1 px-2 py-1 rounded-xl text-xs font-medium ${
                           isDark ? 'text-amber-400 hover:bg-white/10' : 'text-amber-700 hover:bg-amber-50'
                         }`}
@@ -314,7 +327,19 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({
             暂无 API Key
           </p>
         ) : null}
+        {filtered.length > 0 && (
+          <Pagination page={page} pageSize={PAGE_SIZE} total={filtered.length} onChange={setPage} />
+        )}
       </div>
+      <ConfirmDialog
+        open={!!revokeTarget}
+        title="撤销 API Key"
+        message="撤销后该 Key 将不可用，确定继续？"
+        confirmText="撤销"
+        variant="warning"
+        onConfirm={handleRevoke}
+        onCancel={() => setRevokeTarget(null)}
+      />
     </MgmtPageShell>
   );
 };

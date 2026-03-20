@@ -34,6 +34,7 @@ import {
 } from './navigation';
 
 import { ROUTE_ROOT_SUB } from './routeRoot';
+import { encryptStorage, decryptStorage } from '../lib/security';
 
 // ---------------------------------------------------------------------------
 // Interfaces
@@ -249,8 +250,7 @@ interface SpaceMemory {
 
 export function readSpaceMemory(): SpaceMemory {
   try {
-    const raw = localStorage.getItem(SPACE_MEMORY_KEY);
-    return raw ? (JSON.parse(raw) as SpaceMemory) : {};
+    return decryptStorage<SpaceMemory>(SPACE_MEMORY_KEY) || {};
   } catch {
     return {};
   }
@@ -259,10 +259,7 @@ export function readSpaceMemory(): SpaceMemory {
 export function writeSpaceMemory(role: 'admin' | 'user', spaceId: string): void {
   try {
     const prev = readSpaceMemory();
-    localStorage.setItem(
-      SPACE_MEMORY_KEY,
-      JSON.stringify({ ...prev, [role]: spaceId }),
-    );
+    encryptStorage(SPACE_MEMORY_KEY, { ...prev, [role]: spaceId });
   } catch {
     // silent
   }

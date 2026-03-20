@@ -1,9 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Play, Plus, Copy, Trash2, Clock, Download, Upload, Loader2 } from 'lucide-react';
+import { Play, Plus, Copy, Trash2, Clock, Download, Upload, Loader2, History, TrendingUp } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Theme, FontSize } from '../../types';
 import { UserAppShell, cardClass, inputClass, btnPrimaryClass, btnGhostClass } from './UserAppShell';
+import { WorkflowEditor, WorkflowNode } from '../../components/workflow/WorkflowEditor';
+import { ProgressBar } from '../../components/common/ProgressBar';
+import type { Edge } from '@xyflow/react';
 import {
   useWorkflowList,
   useWorkflowRuns,
@@ -60,6 +64,9 @@ export const WorkflowUserModule: React.FC<WorkflowUserModuleProps> = ({
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [scheduleToggleId, setScheduleToggleId] = useState<string | null>(null);
   const [executingWfId, setExecutingWfId] = useState<string | null>(null);
+  const [executionProgress, setExecutionProgress] = useState<number>(0);
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [executionHistory, setExecutionHistory] = useState<WorkflowRun[]>([]);
 
   const listQuery = useWorkflowList({ page: 1, pageSize: 100 });
   const runsQuery = useWorkflowRuns({ page: 1, pageSize: 100 });
@@ -154,13 +161,32 @@ export const WorkflowUserModule: React.FC<WorkflowUserModuleProps> = ({
       return;
     }
     setExecutingWfId(id);
+    setIsExecuting(true);
+    setExecutionProgress(0);
+    
+    // 模拟执行进度
+    const progressInterval = setInterval(() => {
+      setExecutionProgress((prev) => {
+        if (prev >= 100) {
+          clearInterval(progressInterval);
+          return 100;
+        }
+        return prev + 10;
+      });
+    }, 300);
+
     try {
       await executeWorkflow.mutateAsync(id);
       showMessage('已触发运行', 'success');
+      // 刷新运行记录
+      runsQuery.refetch();
     } catch (e) {
       showMessage(errMessage(e), 'error');
     } finally {
+      clearInterval(progressInterval);
       setExecutingWfId(null);
+      setIsExecuting(false);
+      setExecutionProgress(0);
     }
   };
 
@@ -348,8 +374,39 @@ export const WorkflowUserModule: React.FC<WorkflowUserModuleProps> = ({
   }
 
   if (activeSubItem === '画布编排') {
+    // 将步骤转换为节点
+    const workflowNodes: WorkflowNode[] = wf
+      ? wf.steps.map((step, i) => ({
+          id: `node-${i}`,
+          type: i === 0 ? 'start' : i === wf.steps.length - 1 ? 'end' : 'process',
+          position: { x: i * 200, y: 100 },
+          data: { label: step, type: i === 0 ? 'start' : i === wf.steps.length - 1 ? 'end' : 'process' },
+        }))
+      : [];
+    
+    const workflowEdges: Edge[] = workflowNodes
+      .slice(0, -1)
+      .map((node, i) => ({
+        id: `edge-${i}`,
+        source: node.id,
+        target: workflowNodes[i + 1].id,
+      }));
+
+    const handleSaveWorkflow = (nodes: WorkflowNode[], edges: Edge[]) => {
+      const steps = nodes.map((n) => n.data.label);
+      if (wf) {
+        updateWorkflow.mutate(
+          { id: wf.id, data: { steps } },
+          {
+            onSuccess: () => showMessage('工作流已保存', 'success'),
+            onError: (e) => showMessage(errMessage(e), 'error'),
+          }
+        );
+      }
+    };
+
     return (
-      <UserAppShell theme={theme} fontSize={fontSize} title="画布编排" subtitle="演示：以步骤列表模拟节点编排">
+      <UserAppShell theme={theme} fontSize={fontSize} title="画布编排" subtitle="可视化工作流编辑器，支持拖拽节点和连线">
         {listQuery.isLoading && <PageSkeleton type="detail" />}
         {!listQuery.isLoading && listQuery.isError && (
           <PageError error={toError(listQuery.error)} onRetry={() => listQuery.refetch()} />
@@ -376,33 +433,32 @@ export const WorkflowUserModule: React.FC<WorkflowUserModuleProps> = ({
               </select>
             </div>
             {wf && (
-              <div className={cardClass(theme)}>
-                <div className="p-4 border-b border-inherit flex justify-between items-center">
-                  <span className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>节点链</span>
-                  <button
-                    type="button"
-                    disabled={updateWorkflow.isPending}
-                    className={`${btnPrimaryClass} inline-flex items-center gap-2 disabled:opacity-60`}
-                    onClick={() => addStep()}
-                  >
-                    {updateWorkflow.isPending ? <Loader2 size={16} className="animate-spin" /> : null}
-                    {updateWorkflow.isPending ? '保存中…' : '添加节点'}
-                  </button>
-                </div>
-                <ol className="p-4 space-y-2">
-                  {wf.steps.map((s, i) => (
-                    <li
-                      key={`${s}-${i}`}
-                      className={`flex items-center gap-3 p-3 rounded-xl ${
-                        theme === 'light' ? 'bg-slate-50' : 'bg-white/5'
-                      }`}
-                    >
-                      <span className="text-xs font-mono text-slate-500 w-6">{i + 1}</span>
-                      <span className={theme === 'dark' ? 'text-white' : 'text-slate-800'}>{s}</span>
-                    </li>
-                  ))}
-                </ol>
+              <div className={`${cardClass(theme)} overflow-hidden`} style={{ height: '600px' }}>
+                <WorkflowEditor
+                  theme={theme}
+                  workflowId={wf.id}
+                  initialNodes={workflowNodes}
+                  initialEdges={workflowEdges}
+                  onSave={handleSaveWorkflow}
+                  onExecute={() => runWorkflowById(wf.id)}
+                />
               </div>
+            )}
+            {/* 执行进度 */}
+            {isExecuting && executingWfId === wf?.id && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`mt-4 ${cardClass(theme)} p-4`}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <Loader2 size={16} className="animate-spin text-blue-600" />
+                  <span className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+                    正在执行工作流...
+                  </span>
+                </div>
+                <ProgressBar value={executionProgress} theme={theme} showLabel={true} />
+              </motion.div>
             )}
           </>
         )}
@@ -423,34 +479,117 @@ export const WorkflowUserModule: React.FC<WorkflowUserModuleProps> = ({
           </div>
         )}
         {!runsQuery.isLoading && !runsQuery.isError && runsList.length > 0 && (
-          <div className={`${cardClass(theme)} overflow-hidden`}>
-            <table className="w-full text-sm">
-              <thead className={theme === 'light' ? 'bg-slate-50' : 'bg-white/5'}>
-                <tr>
-                  <th className="text-left p-3">工作流</th>
-                  <th className="text-left p-3">状态</th>
-                  <th className="text-left p-3">开始时间</th>
-                  <th className="text-left p-3">耗时</th>
-                  <th className="p-3" />
-                </tr>
-              </thead>
-              <tbody>
-                {runsList.map((r) => (
-                  <tr key={r.id} className={`border-t ${theme === 'light' ? 'border-slate-100' : 'border-white/10'}`}>
-                    <td className="p-3">{r.workflowName}</td>
-                    <td className="p-3">{r.status}</td>
-                    <td className="p-3 font-mono text-xs">{r.startedAt}</td>
-                    <td className="p-3">{r.durationMs} ms</td>
-                    <td className="p-3">
-                      <button type="button" className={btnGhostClass(theme)} onClick={() => setRunDetail(r)}>
-                        详情
-                      </button>
-                    </td>
+          <>
+            {/* 时间线视图 */}
+            <div className={`${cardClass(theme)} mb-4`}>
+              <div className="p-4 border-b border-inherit flex items-center gap-2">
+                <History size={18} className={theme === 'dark' ? 'text-slate-400' : 'text-slate-600'} />
+                <span className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+                  执行历史时间线
+                </span>
+              </div>
+              <div className="p-4">
+                <div className="relative">
+                  {/* 时间线 */}
+                  <div
+                    className={`absolute left-4 top-0 bottom-0 w-0.5 ${
+                      theme === 'light' ? 'bg-slate-200' : 'bg-white/10'
+                    }`}
+                  />
+                  {/* 时间线项目 */}
+                  <div className="space-y-4">
+                    {runsList.slice(0, 10).map((r, index) => {
+                      const isSuccess = r.status === 'success';
+                      const isError = r.status === 'failed' || r.status === 'timeout';
+                      return (
+                        <motion.div
+                          key={r.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          className="relative flex items-start gap-4 pl-8"
+                        >
+                          {/* 时间线节点 */}
+                          <div
+                            className={`absolute left-0 top-1 w-8 h-8 rounded-full flex items-center justify-center border-2 ${
+                              isSuccess
+                                ? 'bg-emerald-500 border-emerald-600'
+                                : isError
+                                  ? 'bg-red-500 border-red-600'
+                                  : 'bg-blue-500 border-blue-600'
+                            }`}
+                          >
+                            <div className="w-2 h-2 rounded-full bg-white" />
+                          </div>
+                          {/* 内容 */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+                                {r.workflowName}
+                              </span>
+                              <span
+                                className={`text-xs px-2 py-0.5 rounded-lg ${
+                                  isSuccess
+                                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400'
+                                    : isError
+                                      ? 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400'
+                                      : 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400'
+                                }`}
+                              >
+                                {r.status}
+                              </span>
+                            </div>
+                            <div className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
+                              <span className="font-mono">{r.startedAt}</span>
+                              <span className="mx-2">·</span>
+                              <span>{r.durationMs} ms</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setRunDetail(r)}
+                              className={`mt-2 text-xs ${btnGhostClass(theme)}`}
+                            >
+                              查看详情
+                            </button>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 表格视图 */}
+            <div className={`${cardClass(theme)} overflow-hidden`}>
+              <table className="w-full text-sm">
+                <thead className={theme === 'light' ? 'bg-slate-50' : 'bg-white/5'}>
+                  <tr>
+                    <th className="text-left p-3">工作流</th>
+                    <th className="text-left p-3">状态</th>
+                    <th className="text-left p-3">开始时间</th>
+                    <th className="text-left p-3">耗时</th>
+                    <th className="p-3" />
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {runsList.map((r) => (
+                    <tr key={r.id} className={`border-t ${theme === 'light' ? 'border-slate-100' : 'border-white/10'}`}>
+                      <td className="p-3">{r.workflowName}</td>
+                      <td className="p-3">{r.status}</td>
+                      <td className="p-3 font-mono text-xs">{r.startedAt}</td>
+                      <td className="p-3">{r.durationMs} ms</td>
+                      <td className="p-3">
+                        <button type="button" className={btnGhostClass(theme)} onClick={() => setRunDetail(r)}>
+                          详情
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
         {runDetail && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50">

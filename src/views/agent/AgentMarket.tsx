@@ -7,7 +7,12 @@ import {
   TrendingUp,
   Package,
   ChevronRight,
+  MessageSquare,
+  BarChart3,
+  Rocket,
+  GitBranch,
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { Theme, FontSize, ThemeColor } from '../../types';
 import { THEME_COLOR_CLASSES } from '../../constants/theme';
 import {
@@ -64,6 +69,25 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({
 
   const addAgent = (name: string) => {
     showMessage(`已添加「${name}」到工作区（演示）`, 'success');
+  };
+
+  const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
+  const [showReviews, setShowReviews] = useState(false);
+  const [showStats, setShowStats] = useState(false);
+  const [showVersions, setShowVersions] = useState(false);
+
+  // 模拟评论数据
+  const mockReviews = [
+    { id: '1', user: '用户A', rating: 5, comment: '非常好用，推荐！', date: '2026-03-15' },
+    { id: '2', user: '用户B', rating: 4, comment: '功能完善，但响应稍慢', date: '2026-03-14' },
+  ];
+
+  // 模拟统计数据
+  const mockStats = {
+    installs: 1234,
+    activeUsers: 567,
+    avgRating: 4.5,
+    totalRuns: 8901,
   };
 
   return (
@@ -264,6 +288,28 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({
                             <button
                               type="button"
                               className="btn btn-ghost btn-sm h-8 min-h-0 text-xs"
+                              onClick={() => {
+                                setSelectedAgent(a.id);
+                                setShowReviews(true);
+                              }}
+                            >
+                              <MessageSquare size={14} />
+                              评论
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-sm h-8 min-h-0 text-xs"
+                              onClick={() => {
+                                setSelectedAgent(a.id);
+                                setShowStats(true);
+                              }}
+                            >
+                              <BarChart3 size={14} />
+                              统计
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-sm h-8 min-h-0 text-xs"
                               onClick={() => showMessage(`「${a.name}」详情页（演示）`, 'info')}
                             >
                               详情
@@ -274,8 +320,8 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({
                               className={`btn btn-sm h-8 min-h-0 text-xs text-white border-0 gap-1 ${tc.bg}`}
                               onClick={() => addAgent(a.name)}
                             >
-                              <Download size={14} />
-                              添加
+                              <Rocket size={14} />
+                              一键部署
                             </button>
                           </div>
                         </div>
@@ -376,6 +422,120 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({
             </section>
           </div>
         </div>
+
+        {/* 评论弹窗 */}
+        {showReviews && selectedAgent && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50"
+            onClick={() => setShowReviews(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              className={`w-full max-w-lg rounded-2xl border p-6 ${
+                isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200'
+              }`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>评分与评论</h3>
+                <button
+                  type="button"
+                  onClick={() => setShowReviews(false)}
+                  className="btn btn-ghost btn-sm btn-circle"
+                >
+                  ×
+                </button>
+              </div>
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {mockReviews.map((review) => (
+                  <div
+                    key={review.id}
+                    className={`p-3 rounded-xl border ${
+                      isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="flex">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star
+                            key={i}
+                            size={14}
+                            className={i < review.rating ? 'text-amber-500 fill-amber-500' : 'text-slate-300'}
+                          />
+                        ))}
+                      </div>
+                      <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                        {review.user} · {review.date}
+                      </span>
+                    </div>
+                    <p className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{review.comment}</p>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* 统计弹窗 */}
+        {showStats && selectedAgent && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50"
+            onClick={() => setShowStats(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              className={`w-full max-w-md rounded-2xl border p-6 ${
+                isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200'
+              }`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>使用统计</h3>
+                <button
+                  type="button"
+                  onClick={() => setShowStats(false)}
+                  className="btn btn-ghost btn-sm btn-circle"
+                >
+                  ×
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className={`p-4 rounded-xl ${isDark ? 'bg-white/5' : 'bg-slate-50'}`}>
+                  <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>安装次数</p>
+                  <p className={`text-2xl font-bold mt-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                    {mockStats.installs}
+                  </p>
+                </div>
+                <div className={`p-4 rounded-xl ${isDark ? 'bg-white/5' : 'bg-slate-50'}`}>
+                  <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>活跃用户</p>
+                  <p className={`text-2xl font-bold mt-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                    {mockStats.activeUsers}
+                  </p>
+                </div>
+                <div className={`p-4 rounded-xl ${isDark ? 'bg-white/5' : 'bg-slate-50'}`}>
+                  <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>平均评分</p>
+                  <p className={`text-2xl font-bold mt-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                    {mockStats.avgRating}
+                  </p>
+                </div>
+                <div className={`p-4 rounded-xl ${isDark ? 'bg-white/5' : 'bg-slate-50'}`}>
+                  <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>总运行次数</p>
+                  <p className={`text-2xl font-bold mt-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                    {mockStats.totalRuns}
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import type { AnimationStyle, FontFamily, FontSize, Theme, ThemeColor } from '../types';
+import { encryptStorage, decryptStorage } from '../lib/security';
 
 export const APPEARANCE_STORAGE_KEY = 'lantu-appearance';
 
@@ -30,9 +31,8 @@ function pick<T extends string>(val: unknown, allowed: readonly T[], fallback: T
 
 export function readAppearanceState(): PersistedAppearance {
   try {
-    const raw = localStorage.getItem(APPEARANCE_STORAGE_KEY);
-    if (!raw) return { ...APPEARANCE_DEFAULTS };
-    const p = JSON.parse(raw) as Partial<PersistedAppearance>;
+    const p = decryptStorage<Partial<PersistedAppearance>>(APPEARANCE_STORAGE_KEY);
+    if (!p) return { ...APPEARANCE_DEFAULTS };
     return {
       theme: pick(p.theme, THEMES, APPEARANCE_DEFAULTS.theme),
       themeColor: pick(p.themeColor, THEME_COLORS, APPEARANCE_DEFAULTS.themeColor),
@@ -49,7 +49,7 @@ export function readAppearanceState(): PersistedAppearance {
 export function writeAppearanceState(next: Partial<PersistedAppearance>): void {
   try {
     const prev = readAppearanceState();
-    localStorage.setItem(APPEARANCE_STORAGE_KEY, JSON.stringify({ ...prev, ...next }));
+    encryptStorage(APPEARANCE_STORAGE_KEY, { ...prev, ...next });
   } catch {
     /* ignore quota */
   }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback, Suspense, lazy } from 'react';
 import { Routes, Route, Navigate, useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -62,23 +62,42 @@ import {
 import { SidebarItem, SidebarGroup } from '../components/layout/Sidebar';
 import { AppearanceMenu } from '../components/business/AppearanceMenu';
 import { MessagePanel, INITIAL_MESSAGE_UNREAD_COUNT } from '../components/business/MessagePanel';
-import { AIAssistant } from '../views/agent/AIAssistant';
-import { ToolMarketModule } from '../views/tools/ToolMarketModule';
-import { AgentMonitoringPage } from '../views/agent/AgentMonitoringPage';
-import { AgentTracePage } from '../views/agent/AgentTracePage';
-import { Overview } from '../views/dashboard/Overview';
-import { QuickAccess } from '../views/dashboard/QuickAccess';
-import { AgentList } from '../views/agent/AgentList';
-import { AgentDetail } from '../views/agent/AgentDetail';
-import { AgentCreate } from '../views/agent/AgentCreate';
-import { AgentMarket } from '../views/agent/AgentMarket';
-import { UserProfile } from '../views/user/UserProfile';
-import { UserSettingsPage } from '../views/user/UserSettingsPage';
-import { DocsTutorialPage } from '../views/docs/DocsTutorialPage';
-import { PlaceholderView } from '../views/common/PlaceholderView';
-import { UserManagementModule } from '../views/userMgmt/UserManagementModule';
-import { SystemConfigModule } from '../views/systemConfig/SystemConfigModule';
-import { MonitoringModule } from '../views/monitoring/MonitoringModule';
+// 懒加载大型组件以优化初始加载性能
+const AIAssistant = lazy(() => import('../views/agent/AIAssistant').then(m => ({ default: m.AIAssistant })));
+const ToolMarketModule = lazy(() => import('../views/tools/ToolMarketModule').then(m => ({ default: m.ToolMarketModule })));
+const AgentMonitoringPage = lazy(() => import('../views/agent/AgentMonitoringPage').then(m => ({ default: m.AgentMonitoringPage })));
+const AgentTracePage = lazy(() => import('../views/agent/AgentTracePage').then(m => ({ default: m.AgentTracePage })));
+const Overview = lazy(() => import('../views/dashboard/Overview').then(m => ({ default: m.Overview })));
+const QuickAccess = lazy(() => import('../views/dashboard/QuickAccess').then(m => ({ default: m.QuickAccess })));
+const AgentList = lazy(() => import('../views/agent/AgentList').then(m => ({ default: m.AgentList })));
+const AgentDetail = lazy(() => import('../views/agent/AgentDetail').then(m => ({ default: m.AgentDetail })));
+const AgentCreate = lazy(() => import('../views/agent/AgentCreate').then(m => ({ default: m.AgentCreate })));
+const AgentMarket = lazy(() => import('../views/agent/AgentMarket').then(m => ({ default: m.AgentMarket })));
+const UserProfile = lazy(() => import('../views/user/UserProfile').then(m => ({ default: m.UserProfile })));
+const UserSettingsPage = lazy(() => import('../views/user/UserSettingsPage').then(m => ({ default: m.UserSettingsPage })));
+const DocsTutorialPage = lazy(() => import('../views/docs/DocsTutorialPage').then(m => ({ default: m.DocsTutorialPage })));
+const PlaceholderView = lazy(() => import('../views/common/PlaceholderView').then(m => ({ default: m.PlaceholderView })));
+const UserManagementModule = lazy(() => import('../views/userMgmt/UserManagementModule').then(m => ({ default: m.UserManagementModule })));
+const SystemConfigModule = lazy(() => import('../views/systemConfig/SystemConfigModule').then(m => ({ default: m.SystemConfigModule })));
+const MonitoringModule = lazy(() => import('../views/monitoring/MonitoringModule').then(m => ({ default: m.MonitoringModule })));
+const KnowledgeBase = lazy(() => import('../views/knowledge/KnowledgeBase').then(m => ({ default: m.KnowledgeBase })));
+const Database = lazy(() => import('../views/database/Database').then(m => ({ default: m.Database })));
+const RecentProjectsPage = lazy(() => import('../views/userApp/RecentProjectsPage').then(m => ({ default: m.RecentProjectsPage })));
+const WorkflowUserModule = lazy(() => import('../views/userApp/WorkflowUserModule').then(m => ({ default: m.WorkflowUserModule })));
+const PublishConnectUserModule = lazy(() => import('../views/userApp/PublishConnectUserModule').then(m => ({ default: m.PublishConnectUserModule })));
+const UsageBillingUserModule = lazy(() => import('../views/userApp/UsageBillingUserModule').then(m => ({ default: m.UsageBillingUserModule })));
+const DataEvalUserModule = lazy(() => import('../views/userApp/DataEvalUserModule').then(m => ({ default: m.DataEvalUserModule })));
+const ModelServiceUserModule = lazy(() => import('../views/userApp/ModelServiceUserModule').then(m => ({ default: m.ModelServiceUserModule })));
+const AssetsExtrasUserModule = lazy(() => import('../views/userApp/AssetsExtrasUserModule').then(m => ({ default: m.AssetsExtrasUserModule })));
+const AgentExtrasUserModule = lazy(() => import('../views/userApp/AgentExtrasUserModule').then(m => ({ default: m.AgentExtrasUserModule })));
+const UserSettingsExtrasModule = lazy(() => import('../views/userApp/UserSettingsExtrasModule').then(m => ({ default: m.UserSettingsExtrasModule })));
+const AdminOverviewModule = lazy(() => import('../views/adminApp/AdminOverviewModule').then(m => ({ default: m.AdminOverviewModule })));
+const AdminModelServiceModule = lazy(() => import('../views/adminApp/AdminModelServiceModule').then(m => ({ default: m.AdminModelServiceModule })));
+const AdminToolManagementModule = lazy(() => import('../views/adminApp/AdminToolManagementModule').then(m => ({ default: m.AdminToolManagementModule })));
+const AdminOpsSecurityModule = lazy(() => import('../views/adminApp/AdminOpsSecurityModule').then(m => ({ default: m.AdminOpsSecurityModule })));
+const AdminIntegrationModule = lazy(() => import('../views/adminApp/AdminIntegrationModule').then(m => ({ default: m.AdminIntegrationModule })));
+const AdminDataManagementModule = lazy(() => import('../views/adminApp/AdminDataManagementModule').then(m => ({ default: m.AdminDataManagementModule })));
+const AdminSystemLogModule = lazy(() => import('../views/adminApp/AdminSystemLogModule').then(m => ({ default: m.AdminSystemLogModule })));
 
 import { Logo } from '../components/common/Logo';
 import { MessageProvider, useMessage } from '../components/common/Message';
@@ -89,24 +108,6 @@ import {
 } from '../utils/navigationState';
 import { readAppearanceState, writeAppearanceState } from '../utils/appearanceState';
 import { toolbarSearchInputClass } from '../utils/toolbarFieldClasses';
-import { KnowledgeBase } from '../views/knowledge/KnowledgeBase';
-import { Database } from '../views/database/Database';
-import { RecentProjectsPage } from '../views/userApp/RecentProjectsPage';
-import { WorkflowUserModule } from '../views/userApp/WorkflowUserModule';
-import { PublishConnectUserModule } from '../views/userApp/PublishConnectUserModule';
-import { UsageBillingUserModule } from '../views/userApp/UsageBillingUserModule';
-import { DataEvalUserModule } from '../views/userApp/DataEvalUserModule';
-import { ModelServiceUserModule } from '../views/userApp/ModelServiceUserModule';
-import { AssetsExtrasUserModule } from '../views/userApp/AssetsExtrasUserModule';
-import { AgentExtrasUserModule } from '../views/userApp/AgentExtrasUserModule';
-import { UserSettingsExtrasModule } from '../views/userApp/UserSettingsExtrasModule';
-import { AdminOverviewModule } from '../views/adminApp/AdminOverviewModule';
-import { AdminModelServiceModule } from '../views/adminApp/AdminModelServiceModule';
-import { AdminToolManagementModule } from '../views/adminApp/AdminToolManagementModule';
-import { AdminOpsSecurityModule } from '../views/adminApp/AdminOpsSecurityModule';
-import { AdminIntegrationModule } from '../views/adminApp/AdminIntegrationModule';
-import { AdminDataManagementModule } from '../views/adminApp/AdminDataManagementModule';
-import { AdminSystemLogModule } from '../views/adminApp/AdminSystemLogModule';
 import { ConsoleHomeRedirect } from '../router/ConsoleHomeRedirect';
 import {
   buildConsolePath,
@@ -116,6 +117,7 @@ import {
   type ConsoleRole,
 } from '../constants/consoleRoutes';
 import { ROUTE_ROOT_SUB } from '../constants/routeRoot';
+import { SplashScreen } from '../components/common/SplashScreen';
 
 export const MainLayout: React.FC = () => {
   const [theme, setTheme] = useState<Theme>(() => readAppearanceState().theme);
@@ -996,7 +998,9 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
           transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
           className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden"
         >
-          {content}
+          <Suspense fallback={<SplashScreen />}>
+            {content}
+          </Suspense>
         </motion.div>
       </AnimatePresence>
     );

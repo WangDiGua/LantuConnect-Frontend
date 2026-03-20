@@ -6,7 +6,7 @@ import type { ErrorLog, OperationLog } from '../../types/dto/admin';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { PageError } from '../../components/common/PageError';
 import { EmptyState } from '../../components/common/EmptyState';
-import { Pagination } from '../../components/common/Pagination';
+import { DataTable, SearchInput, Pagination, type Column } from '../../components/common';
 
 interface Props {
   activeSubItem: string;
@@ -35,15 +35,19 @@ const OpLogsTab: React.FC<TabProps> = ({ theme, fontSize, showMessage }) => {
     return list.filter((r) => `${r.operator}${r.action}${r.target}`.toLowerCase().includes(s));
   }, [data?.list, q]);
 
-  const wrap = `overflow-x-auto rounded-2xl border ${theme === 'light' ? 'border-slate-200/80' : 'border-white/10'}`;
-
   if (isLoading) return <PageSkeleton type="table" rows={6} />;
   if (isError) return <PageError error={error instanceof Error ? error : null} onRetry={() => refetch()} />;
 
   return (
     <UserAppShell theme={theme} fontSize={fontSize} title="操作日志" subtitle="平台管理行为留痕">
       <div className="flex flex-wrap gap-2 mb-4">
-        <input className={`${inputClass(theme)} max-w-xs`} placeholder="筛选…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <SearchInput
+          value={q}
+          onChange={setQ}
+          placeholder="筛选…"
+          theme={theme}
+          className="max-w-xs"
+        />
         <button type="button" className={btnGhostClass(theme)} onClick={() => showMessage('已导出 JSONL（Mock）', 'success')}>
           导出
         </button>
@@ -51,36 +55,42 @@ const OpLogsTab: React.FC<TabProps> = ({ theme, fontSize, showMessage }) => {
       {!rows.length ? (
         <EmptyState title="暂无操作日志" description="当前页无匹配记录" />
       ) : (
-        <div className={wrap}>
-          <table className="min-w-[720px] w-full text-sm">
-            <thead className={theme === 'light' ? 'bg-slate-50' : 'bg-white/5'}>
-              <tr>
-                {['时间', '操作者', '动作', '对象'].map((h) => (
-                  <th key={h} className="text-left p-3 whitespace-nowrap font-medium">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r, i) => (
-                <tr
-                  key={r.id}
-                  className={i % 2 === 0 ? (theme === 'light' ? 'bg-white' : 'bg-transparent') : theme === 'light' ? 'bg-slate-50/80' : 'bg-white/5'}
-                >
-                  <td className="p-3 whitespace-nowrap text-slate-500">{r.time}</td>
-                  <td className="p-3 min-w-[120px]">{r.operator}</td>
-                  <td className="p-3">{r.action}</td>
-                  <td className="p-3 font-mono text-xs">{r.target}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable<OperationLog>
+          columns={[
+            {
+              key: 'time',
+              label: '时间',
+              render: (value) => <span className="whitespace-nowrap text-slate-500">{value}</span>,
+            },
+            {
+              key: 'operator',
+              label: '操作者',
+              render: (value) => <span className="min-w-[120px]">{value}</span>,
+            },
+            {
+              key: 'action',
+              label: '动作',
+            },
+            {
+              key: 'target',
+              label: '对象',
+              render: (value) => <span className="font-mono text-xs">{value}</span>,
+            },
+          ]}
+          data={rows}
+          theme={theme}
+          pagination={
+            data && data.total > 0
+              ? {
+                  currentPage: data.page,
+                  totalPages: Math.ceil(data.total / data.pageSize),
+                  onPageChange: setPage,
+                  pageSize: data.pageSize,
+                }
+              : undefined
+          }
+        />
       )}
-      {data && data.total > 0 ? (
-        <Pagination page={data.page} pageSize={data.pageSize} total={data.total} onChange={setPage} />
-      ) : null}
     </UserAppShell>
   );
 };
@@ -91,7 +101,6 @@ const ErrLogsTab: React.FC<TabProps> = ({ theme, fontSize, showMessage }) => {
   const [page, setPage] = useState(1);
   const [q, setQ] = useState('');
   const { data, isLoading, isError, error, refetch } = useAdminErrLogs({ page, pageSize: PAGE_SIZE });
-  const wrap = `overflow-x-auto rounded-2xl border ${theme === 'light' ? 'border-slate-200/80' : 'border-white/10'}`;
 
   const rows = useMemo(() => {
     const list = data?.list ?? [];
@@ -106,7 +115,13 @@ const ErrLogsTab: React.FC<TabProps> = ({ theme, fontSize, showMessage }) => {
   return (
     <UserAppShell theme={theme} fontSize={fontSize} title="错误日志" subtitle="服务异常与告警关联">
       <div className="flex flex-wrap gap-2 mb-4">
-        <input className={`${inputClass(theme)} max-w-xs`} placeholder="筛选服务/级别/详情…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <SearchInput
+          value={q}
+          onChange={setQ}
+          placeholder="筛选服务/级别/详情…"
+          theme={theme}
+          className="max-w-xs"
+        />
         <button type="button" className={btnGhostClass(theme)} onClick={() => showMessage('已导出错误日志（Mock）', 'success')}>
           导出
         </button>
@@ -114,38 +129,47 @@ const ErrLogsTab: React.FC<TabProps> = ({ theme, fontSize, showMessage }) => {
       {!rows.length ? (
         <EmptyState title="暂无错误日志" description="当前页无匹配记录" />
       ) : (
-        <div className={wrap}>
-          <table className="min-w-[640px] w-full text-sm">
-            <thead className={theme === 'light' ? 'bg-slate-50' : 'bg-white/5'}>
-              <tr>
-                {['时间', '服务', '级别', '信息'].map((h) => (
-                  <th key={h} className="text-left p-3 whitespace-nowrap font-medium">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r, i) => (
-                <tr
-                  key={r.id}
-                  className={i % 2 === 0 ? (theme === 'light' ? 'bg-white' : 'bg-transparent') : theme === 'light' ? 'bg-slate-50/80' : 'bg-white/5'}
-                >
-                  <td className="p-3 whitespace-nowrap text-slate-500">{r.time}</td>
-                  <td className="p-3">{r.operator || '—'}</td>
-                  <td className="p-3 whitespace-nowrap">{errLevel(r)}</td>
-                  <td className="p-3 min-w-[200px]" title={r.detail ?? r.target}>
-                    {r.detail ?? r.target}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable<ErrorLog>
+          columns={[
+            {
+              key: 'time',
+              label: '时间',
+              render: (value) => <span className="whitespace-nowrap text-slate-500">{value}</span>,
+            },
+            {
+              key: 'operator',
+              label: '服务',
+              render: (value) => <span>{value || '—'}</span>,
+            },
+            {
+              key: 'level',
+              label: '级别',
+              render: (value, row) => <span className="whitespace-nowrap">{errLevel(row)}</span>,
+            },
+            {
+              key: 'detail',
+              label: '信息',
+              render: (value, row) => (
+                <span className="min-w-[200px]" title={String(row.detail ?? row.target)}>
+                  {row.detail ?? row.target}
+                </span>
+              ),
+            },
+          ]}
+          data={rows}
+          theme={theme}
+          pagination={
+            data && data.total > 0
+              ? {
+                  currentPage: data.page,
+                  totalPages: Math.ceil(data.total / data.pageSize),
+                  onPageChange: setPage,
+                  pageSize: data.pageSize,
+                }
+              : undefined
+          }
+        />
       )}
-      {data && data.total > 0 ? (
-        <Pagination page={data.page} pageSize={data.pageSize} total={data.total} onChange={setPage} />
-      ) : null}
       <button type="button" className={`${btnPrimaryClass} mt-4`} onClick={() => showMessage('已创建 Jira 工单（Mock）', 'info')}>
         批量建工单
       </button>

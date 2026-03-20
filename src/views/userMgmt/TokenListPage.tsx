@@ -5,6 +5,8 @@ import { MOCK_TOKENS, MgmtToken } from '../../constants/userMgmt';
 import { nativeSelectClass } from '../../utils/formFieldClasses';
 import { TOOLBAR_ROW, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
 import { Search, Ban, Shield } from 'lucide-react';
+import { ConfirmDialog } from '../../components/common/ConfirmDialog';
+import { Pagination } from '../../components/common/Pagination';
 
 interface TokenListPageProps {
   theme: Theme;
@@ -12,6 +14,8 @@ interface TokenListPageProps {
   showMessage: (msg: string, type?: 'success' | 'error' | 'info') => void;
   breadcrumbSegments: string[];
 }
+
+const PAGE_SIZE = 20;
 
 export const TokenListPage: React.FC<TokenListPageProps> = ({
   theme,
@@ -23,6 +27,8 @@ export const TokenListPage: React.FC<TokenListPageProps> = ({
   const [tokens, setTokens] = useState<MgmtToken[]>(() => [...MOCK_TOKENS]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | MgmtToken['status']>('all');
+  const [page, setPage] = useState(1);
+  const [revokeTarget, setRevokeTarget] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -36,17 +42,25 @@ export const TokenListPage: React.FC<TokenListPageProps> = ({
     });
   }, [tokens, search, statusFilter]);
 
-  const revoke = (id: string) => {
-    const t = tokens.find((x) => x.id === id);
+  const paginated = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, page]);
+
+  const handleRevoke = () => {
+    if (!revokeTarget) return;
+    const t = tokens.find((x) => x.id === revokeTarget);
     if (t?.status !== 'valid') {
       showMessage('该 Token 已失效或撤销', 'info');
+      setRevokeTarget(null);
       return;
     }
-    if (!confirm('确定撤销该 Token？客户端需重新登录或刷新令牌。')) return;
     setTokens((prev) =>
-      prev.map((x) => (x.id === id ? { ...x, status: 'revoked' as const } : x))
+      prev.map((x) => (x.id === revokeTarget ? { ...x, status: 'revoked' as const } : x))
     );
     showMessage('Token 已撤销', 'success');
+    setRevokeTarget(null);
+    setPage(1);
   };
 
   const statusLabel = (s: MgmtToken['status']) => {
@@ -127,7 +141,7 @@ export const TokenListPage: React.FC<TokenListPageProps> = ({
               </tr>
             </thead>
             <tbody>
-              {filtered.map((t, i) => (
+              {paginated.map((t, i) => (
                 <tr
                   key={t.id}
                   className={`border-b transition-colors ${
@@ -171,7 +185,7 @@ export const TokenListPage: React.FC<TokenListPageProps> = ({
                     {t.status === 'valid' ? (
                       <button
                         type="button"
-                        onClick={() => revoke(t.id)}
+                        onClick={() => setRevokeTarget(t.id)}
                         className={`inline-flex items-center gap-1 px-2 py-1 rounded-xl text-xs font-medium ${
                           isDark ? 'text-amber-400 hover:bg-white/10' : 'text-amber-700 hover:bg-amber-50'
                         }`}
@@ -193,7 +207,19 @@ export const TokenListPage: React.FC<TokenListPageProps> = ({
             暂无 Token
           </p>
         ) : null}
+        {filtered.length > 0 && (
+          <Pagination page={page} pageSize={PAGE_SIZE} total={filtered.length} onChange={setPage} />
+        )}
       </div>
+      <ConfirmDialog
+        open={!!revokeTarget}
+        title="撤销 Token"
+        message="确定撤销该 Token？客户端需重新登录或刷新令牌。"
+        confirmText="撤销"
+        variant="warning"
+        onConfirm={handleRevoke}
+        onCancel={() => setRevokeTarget(null)}
+      />
     </MgmtPageShell>
   );
 };

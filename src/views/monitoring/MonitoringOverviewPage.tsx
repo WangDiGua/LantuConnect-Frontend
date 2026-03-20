@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
-import { Activity, ArrowUpRight, Search, Shield } from 'lucide-react';
+import { Activity, ArrowUpRight, Search, Shield, RefreshCw, TrendingUp, AlertTriangle } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { MonitoringOverviewCharts } from '../../components/charts/MonitoringOverviewCharts';
 import { useMonitoringKpis } from '../../hooks/queries/useMonitoring';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
@@ -15,7 +16,23 @@ interface MonitoringOverviewPageProps {
 
 export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ theme, fontSize }) => {
   const isDark = theme === 'dark';
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
   const kpisQ = useMonitoringKpis();
+
+  // 自动刷新
+  useEffect(() => {
+    if (autoRefresh) {
+      const interval = setInterval(() => {
+        kpisQ.refetch();
+      }, 5000); // 每5秒刷新
+      setRefreshInterval(interval);
+      return () => clearInterval(interval);
+    } else if (refreshInterval) {
+      clearInterval(refreshInterval);
+      setRefreshInterval(null);
+    }
+  }, [autoRefresh, kpisQ]);
 
   if (kpisQ.isLoading) {
     return (
@@ -84,6 +101,30 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ 
       description="调用量、成功率与延迟趋势汇总；可下钻至调用日志与告警。"
     >
       <div className="min-w-0 px-4 sm:px-6 pb-6 pt-1 space-y-6">
+        {/* 工具栏 */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => kpisQ.refetch()}
+              className={`p-2 rounded-xl transition-colors ${
+                isDark ? 'bg-white/10 hover:bg-white/15' : 'bg-slate-100 hover:bg-slate-200'
+              }`}
+            >
+              <RefreshCw size={18} className={isDark ? 'text-slate-300' : 'text-slate-700'} />
+            </button>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={autoRefresh}
+                onChange={(e) => setAutoRefresh(e.target.checked)}
+                className="checkbox checkbox-sm"
+              />
+              <span className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>自动刷新</span>
+            </label>
+          </div>
+        </div>
+
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {kpis.map((k) => (
             <div

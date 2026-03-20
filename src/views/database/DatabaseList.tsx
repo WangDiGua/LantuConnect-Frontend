@@ -1,8 +1,10 @@
-import React, { useMemo } from 'react';
-import { Search, Plus, Database as DatabaseIcon, Filter, MoreHorizontal } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Plus, Database as DatabaseIcon, MoreHorizontal, Edit, Trash2 } from 'lucide-react';
 import { Theme, FontSize, ThemeColor } from '../../types';
 import { THEME_COLOR_CLASSES } from '../../constants/theme';
 import type { DatabaseItem } from './types';
+import { ConfirmDialog } from '../../components/common/ConfirmDialog';
+import { DataTable, SearchInput, type Column, type RowAction } from '../../components/common';
 
 interface Props {
   theme: Theme;
@@ -12,8 +14,12 @@ interface Props {
   searchQuery: string;
   onSearchChange: (q: string) => void;
   onCreate: () => void;
+  onEdit?: (id: string) => void;
+  onDelete?: (id: string) => void;
   onRowMenu?: (id: string) => void;
 }
+
+const PAGE_SIZE = 20;
 
 export const DatabaseList: React.FC<Props> = ({
   theme,
@@ -23,10 +29,14 @@ export const DatabaseList: React.FC<Props> = ({
   searchQuery,
   onSearchChange,
   onCreate,
+  onEdit,
+  onDelete,
   onRowMenu,
 }) => {
   const isDark = theme === 'dark';
   const tc = THEME_COLOR_CLASSES[themeColor];
+  const [page, setPage] = useState(1);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -38,6 +48,11 @@ export const DatabaseList: React.FC<Props> = ({
         i.id.toLowerCase().includes(q)
     );
   }, [items, searchQuery]);
+
+  const paginated = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, page]);
 
   return (
     <div
@@ -75,14 +90,13 @@ export const DatabaseList: React.FC<Props> = ({
               isDark ? 'border-white/10 bg-[#1C1C1E]/50' : 'border-slate-200 bg-slate-50/50'
             }`}
           >
-            <div className="flex-1 min-w-[min(100%,280px)] relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10" />
-              <input
-                type="text"
-                placeholder="请输入数据库名称或描述"
+            <div className="flex-1 min-w-[min(100%,280px)]">
+              <SearchInput
                 value={searchQuery}
-                onChange={(e) => onSearchChange(e.target.value)}
-                className="input input-bordered input-sm w-full pl-9 h-9 text-xs"
+                onChange={onSearchChange}
+                placeholder="请输入数据库名称或描述"
+                theme={theme}
+                className="h-9"
               />
             </div>
             <button
@@ -130,71 +144,116 @@ export const DatabaseList: React.FC<Props> = ({
               </div>
             ) : (
               <div className="flex-1 min-h-0 overflow-x-auto overflow-y-auto custom-scrollbar">
-                <table className="table w-full min-w-[960px] text-[13px]">
-                  <thead className={isDark ? 'bg-[#1C1C1E]' : 'bg-slate-50'}>
-                    <tr>
-                      <th className="whitespace-nowrap min-w-[200px]">数据库名称/ID</th>
-                      <th className="min-w-[220px]">描述</th>
-                      <th className="whitespace-nowrap min-w-[120px]">
-                        <span className="inline-flex items-center gap-1">
-                          创建方式
-                          <Filter size={12} className="opacity-50" />
-                        </span>
-                      </th>
-                      <th className="whitespace-nowrap min-w-[140px]">更新时间</th>
-                      <th className="whitespace-nowrap min-w-[140px]">创建时间</th>
-                      <th className="text-right whitespace-nowrap min-w-[88px]">操作</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map((row, index) => (
-                      <tr
-                        key={row.id}
-                        className={
-                          isDark
-                            ? index % 2 === 1
-                              ? 'bg-white/5'
-                              : ''
-                            : index % 2 === 1
-                              ? 'bg-slate-50/80'
-                              : ''
-                        }
-                      >
-                        <td>
+                <DataTable<DatabaseItem>
+                  columns={[
+                    {
+                      key: 'name',
+                      label: '数据库名称/ID',
+                      minWidth: '200px',
+                      render: (_, row) => (
+                        <>
                           <div className="font-semibold truncate" title={row.name}>
                             {row.name}
                           </div>
                           <div className="text-[11px] text-slate-400 font-mono truncate" title={row.id}>
                             {row.id}
                           </div>
-                        </td>
-                        <td>
-                          <div className="text-slate-500 line-clamp-2" title={row.description}>
-                            {row.description}
-                          </div>
-                        </td>
-                        <td className="whitespace-nowrap">{row.creationMethod}</td>
-                        <td className="whitespace-nowrap font-mono text-[11px] text-slate-400">{row.updatedAt}</td>
-                        <td className="whitespace-nowrap font-mono text-[11px] text-slate-400">{row.createdAt}</td>
-                        <td className="text-right">
-                          <button
-                            type="button"
-                            className="btn btn-ghost btn-xs btn-square"
-                            onClick={() => onRowMenu?.(row.id)}
-                            title="更多"
-                          >
-                            <MoreHorizontal size={16} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        </>
+                      ),
+                    },
+                    {
+                      key: 'description',
+                      label: '描述',
+                      minWidth: '220px',
+                      render: (value) => (
+                        <div className="text-slate-500 line-clamp-2" title={String(value)}>
+                          {value}
+                        </div>
+                      ),
+                    },
+                    {
+                      key: 'creationMethod',
+                      label: '创建方式',
+                      minWidth: '120px',
+                    },
+                    {
+                      key: 'updatedAt',
+                      label: '更新时间',
+                      minWidth: '140px',
+                      render: (value) => <span className="font-mono text-[11px] text-slate-400">{value}</span>,
+                    },
+                    {
+                      key: 'createdAt',
+                      label: '创建时间',
+                      minWidth: '140px',
+                      render: (value) => <span className="font-mono text-[11px] text-slate-400">{value}</span>,
+                    },
+                  ]}
+                  data={paginated}
+                  theme={theme}
+                  rowActions={[
+                    ...(onEdit
+                      ? [
+                          {
+                            label: '编辑',
+                            onClick: (row) => onEdit(row.id),
+                            icon: <Edit size={14} />,
+                          },
+                        ]
+                      : []),
+                    ...(onDelete
+                      ? [
+                          {
+                            label: '删除',
+                            onClick: (row) => setDeleteTarget(row.id),
+                            icon: <Trash2 size={14} />,
+                            variant: 'danger' as const,
+                          },
+                        ]
+                      : []),
+                    ...(onRowMenu
+                      ? [
+                          {
+                            label: '更多',
+                            onClick: (row) => onRowMenu(row.id),
+                            icon: <MoreHorizontal size={16} />,
+                          },
+                        ]
+                      : []),
+                  ]}
+                  pagination={
+                    filtered.length > 0
+                      ? {
+                          currentPage: page,
+                          totalPages: Math.ceil(filtered.length / PAGE_SIZE),
+                          onPageChange: setPage,
+                          pageSize: PAGE_SIZE,
+                        }
+                      : undefined
+                  }
+                />
               </div>
             )}
           </div>
         </div>
       </div>
+      {onDelete && (
+        <ConfirmDialog
+          open={!!deleteTarget}
+          title="删除数据库"
+          message={`确定要删除数据库「${deleteTarget ? items.find(i => i.id === deleteTarget)?.name : ''}」吗？此操作不可撤销。`}
+          confirmText="删除"
+          variant="danger"
+          onConfirm={() => {
+            if (deleteTarget && onDelete) {
+              onDelete(deleteTarget);
+              setDeleteTarget(null);
+              setPage(1);
+            }
+          }}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
     </div>
   );
 };

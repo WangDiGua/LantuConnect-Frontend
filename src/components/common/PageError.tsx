@@ -1,7 +1,7 @@
 import React from 'react';
 import { AlertCircle, RotateCw } from 'lucide-react';
 
-interface PageErrorProps {
+export interface PageErrorProps {
   error: Error | null;
   onRetry: () => void;
 }

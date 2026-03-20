@@ -1,6 +1,7 @@
 export interface DatabaseInstance {
   id: string;
   name: string;
+  description?: string;
   type: 'postgresql' | 'mysql' | 'sqlite' | 'mongodb' | 'redis';
   host: string;
   port: number;

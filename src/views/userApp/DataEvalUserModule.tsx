@@ -7,6 +7,7 @@ import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { PageError } from '../../components/common/PageError';
 import { EmptyState } from '../../components/common/EmptyState';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
+import { DataTable, type Column } from '../../components/common';
 import {
   useConversationList,
   useDeleteConversation,
@@ -476,28 +477,36 @@ export const DataEvalUserModule: React.FC<DataEvalUserModuleProps> = ({
             <EmptyState title="暂无评测" description="创建任务后将在此展示结果" />
           )}
           {evalsQuery.isSuccess && evals.length > 0 && (
-            <table className="w-full text-sm">
-              <thead className={theme === 'light' ? 'bg-slate-50' : 'bg-white/5'}>
-                <tr>
-                  <th className="text-left p-3">任务</th>
-                  <th className="text-left p-3">模型 A</th>
-                  <th className="text-left p-3">模型 B</th>
-                  <th className="text-right p-3">Score A</th>
-                  <th className="text-right p-3">Score B</th>
-                </tr>
-              </thead>
-              <tbody>
-                {evals.map((e) => (
-                  <tr key={e.id} className={`border-t ${theme === 'light' ? 'border-slate-100' : 'border-white/10'}`}>
-                    <td className="p-3">{e.name}</td>
-                    <td className="p-3">{e.modelA}</td>
-                    <td className="p-3">{e.modelB}</td>
-                    <td className="p-3 text-right">{e.scoreA.toFixed(2)}</td>
-                    <td className="p-3 text-right">{e.scoreB.toFixed(2)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <DataTable
+              columns={[
+                {
+                  key: 'name',
+                  label: '任务',
+                },
+                {
+                  key: 'modelA',
+                  label: '模型 A',
+                },
+                {
+                  key: 'modelB',
+                  label: '模型 B',
+                },
+                {
+                  key: 'scoreA',
+                  label: 'Score A',
+                  align: 'right',
+                  render: (value) => <span>{(value as number).toFixed(2)}</span>,
+                },
+                {
+                  key: 'scoreB',
+                  label: 'Score B',
+                  align: 'right',
+                  render: (value) => <span>{(value as number).toFixed(2)}</span>,
+                },
+              ]}
+              data={evals}
+              theme={theme}
+            />
           )}
         </div>
       </UserAppShell>

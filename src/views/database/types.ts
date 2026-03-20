@@ -7,4 +7,4 @@ export interface DatabaseItem {
   createdAt: string;
 }
 
-export type DatabaseSubView = 'list' | 'create';
+export type DatabaseSubView = 'list' | 'create' | 'edit' | 'detail';

@@ -3,7 +3,7 @@ import { Theme, FontSize, ThemeColor } from '../../types';
 import type { DatabaseItem, DatabaseSubView } from './types';
 import { DatabaseList } from './DatabaseList';
 import { DatabaseCreateView } from './DatabaseCreateView';
-import { useDatabases } from '../../hooks/queries/useDatabase';
+import { useDatabases, useDeleteDatabase, useDatabaseDetail } from '../../hooks/queries/useDatabase';
 import { ContentLoader } from '../../components/common/ContentLoader';
 import { PageError } from '../../components/common/PageError';
 
@@ -17,8 +17,11 @@ export interface DatabaseProps {
 export const Database: React.FC<DatabaseProps> = ({ theme, fontSize, themeColor, showMessage }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [subView, setSubView] = useState<DatabaseSubView>('list');
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const { data, isLoading, isError, error, refetch } = useDatabases();
+  const deleteMut = useDeleteDatabase();
+  const { data: detailData } = useDatabaseDetail(editingId || '');
 
   const items: DatabaseItem[] = useMemo(() => {
     const list = data?.list ?? [];
@@ -38,6 +41,28 @@ export const Database: React.FC<DatabaseProps> = ({ theme, fontSize, themeColor,
       showMessage('数据库创建成功', 'success');
     },
     [showMessage]
+  );
+
+  const handleEdit = useCallback(
+    (id: string) => {
+      setEditingId(id);
+      setSubView('edit');
+    },
+    []
+  );
+
+  const handleDelete = useCallback(
+    (id: string) => {
+      deleteMut.mutate(id, {
+        onSuccess: () => {
+          showMessage('数据库删除成功', 'success');
+        },
+        onError: (err) => {
+          showMessage(err instanceof Error ? err.message : '删除失败', 'error');
+        },
+      });
+    },
+    [deleteMut, showMessage]
   );
 
   if (isError && subView === 'list') {
@@ -60,6 +85,26 @@ export const Database: React.FC<DatabaseProps> = ({ theme, fontSize, themeColor,
     );
   }
 
+  if (subView === 'edit' && editingId && detailData) {
+    return (
+      <DatabaseCreateView
+        theme={theme}
+        fontSize={fontSize}
+        themeColor={themeColor}
+        onBack={() => {
+          setSubView('list');
+          setEditingId(null);
+        }}
+        onSubmit={() => {
+          setSubView('list');
+          setEditingId(null);
+          showMessage('数据库更新成功', 'success');
+        }}
+        initialData={detailData}
+      />
+    );
+  }
+
   return (
     <ContentLoader loading={isLoading}>
       <DatabaseList
@@ -70,7 +115,8 @@ export const Database: React.FC<DatabaseProps> = ({ theme, fontSize, themeColor,
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         onCreate={() => setSubView('create')}
-        onRowMenu={() => showMessage('详情 / 编辑 / 删除 待接入后端', 'info')}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
       />
     </ContentLoader>
   );

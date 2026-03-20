@@ -1,15 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { UploadCloud, FileText } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { MOCK_PUBLISH_LIST, PublishApplication } from '../../constants/tools';
 import { nativeInputClass, nativeSelectClass } from '../../utils/formFieldClasses';
+import { Pagination } from '../../components/common/Pagination';
 
 interface PublishMcpServerPageProps {
   theme: Theme;
   fontSize: FontSize;
   showMessage: (msg: string, type?: 'success' | 'error' | 'info') => void;
 }
+
+const PAGE_SIZE = 20;
 
 const statusStyle = (s: PublishApplication['status'], isDark: boolean) => {
   switch (s) {
@@ -34,6 +37,7 @@ export const PublishMcpServerPage: React.FC<PublishMcpServerPageProps> = ({
   const [name, setName] = useState('');
   const [transport, setTransport] = useState('stdio');
   const [readme, setReadme] = useState('');
+  const [page, setPage] = useState(1);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,6 +61,11 @@ export const PublishMcpServerPage: React.FC<PublishMcpServerPageProps> = ({
     setReadme('');
     showMessage('上架申请已提交，等待审核（演示）', 'success');
   };
+
+  const paginated = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return list.slice(start, start + PAGE_SIZE);
+  }, [list, page]);
 
   return (
     <MgmtPageShell
@@ -131,7 +140,7 @@ export const PublishMcpServerPage: React.FC<PublishMcpServerPageProps> = ({
                 </tr>
               </thead>
               <tbody>
-                {list.map((p) => (
+                {paginated.map((p) => (
                   <tr key={p.id} className={`border-b ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
                     <td className="py-3 font-medium">{p.serverName}</td>
                     <td className="py-3 font-mono text-xs">{p.transport}</td>
@@ -149,6 +158,9 @@ export const PublishMcpServerPage: React.FC<PublishMcpServerPageProps> = ({
               </tbody>
             </table>
           </div>
+          {list.length > 0 && (
+            <Pagination page={page} pageSize={PAGE_SIZE} total={list.length} onChange={setPage} />
+          )}
         </div>
       </div>
     </MgmtPageShell>

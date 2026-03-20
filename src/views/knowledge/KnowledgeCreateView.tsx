@@ -6,6 +6,7 @@ import type { KnowledgeItem } from './types';
 import { nativeSelectClass } from '../../utils/formFieldClasses';
 import { useCreateKB } from '../../hooks/queries/useKnowledge';
 import { createKBSchema } from '../../schemas/knowledge.schema';
+import { DocumentUploader } from '../../components/knowledge/DocumentUploader';
 
 interface Props {
   theme: Theme;
@@ -151,6 +152,22 @@ export const KnowledgeCreateView: React.FC<Props> = ({ theme, fontSize, themeCol
                     <option value="自有存储">自有存储</option>
                     <option value="混合">混合</option>
                   </select>
+                </div>
+
+                {/* 文档上传 */}
+                <div className="form-control w-full gap-1 lg:col-span-2 mt-4">
+                  <label className="label py-0">
+                    <span className="label-text font-bold">上传文档</span>
+                    <span className="label-text-alt text-slate-400">支持批量上传</span>
+                  </label>
+                  <DocumentUploader
+                    theme={theme}
+                    themeColor={themeColor}
+                    multiple={true}
+                    onUploadComplete={(files) => {
+                      console.log('Uploaded files:', files);
+                    }}
+                  />
                 </div>
               </div>
 

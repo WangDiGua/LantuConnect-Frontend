@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-interface PaginationProps {
+export interface PaginationProps {
   page: number;
   pageSize: number;
   total: number;

@@ -5,6 +5,7 @@ import { useBillingOverview, useBillingDetails, useInvoices, useQuotas, usePlans
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { PageError } from '../../components/common/PageError';
 import { EmptyState } from '../../components/common/EmptyState';
+import { DataTable, type Column } from '../../components/common';
 
 interface UsageBillingUserModuleProps {
   activeSubItem: string;
@@ -148,30 +149,39 @@ function BillingDetailsPanel({ theme, fontSize }: Pick<UsageBillingUserModulePro
 
   return (
     <UserAppShell theme={theme} fontSize={fontSize} title="调用明细" subtitle="按日汇总">
-      <div className={`${cardClass(theme)} overflow-x-auto`}>
+      <div className={cardClass(theme)}>
         {rows.length === 0 ? (
           <EmptyState title="暂无明细" description="尚未产生调用记录" />
         ) : (
-          <table className="w-full text-sm min-w-[640px]">
-            <thead className={theme === 'light' ? 'bg-slate-50' : 'bg-white/5'}>
-              <tr>
-                <th className="text-left p-3">日期</th>
-                <th className="text-right p-3">API 调用</th>
-                <th className="text-right p-3">Tokens</th>
-                <th className="text-right p-3">费用（元）</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.date} className={`border-t ${theme === 'light' ? 'border-slate-100' : 'border-white/10'}`}>
-                  <td className="p-3 font-mono text-xs">{r.date}</td>
-                  <td className="p-3 text-right">{r.apiCalls.toLocaleString()}</td>
-                  <td className="p-3 text-right">{r.tokensUsed.toLocaleString()}</td>
-                  <td className="p-3 text-right">{r.cost.toFixed(2)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <DataTable
+            columns={[
+              {
+                key: 'date',
+                label: '日期',
+                render: (value) => <span className="font-mono text-xs">{value}</span>,
+              },
+              {
+                key: 'apiCalls',
+                label: 'API 调用',
+                align: 'right',
+                render: (value) => <span>{(value as number).toLocaleString()}</span>,
+              },
+              {
+                key: 'tokensUsed',
+                label: 'Tokens',
+                align: 'right',
+                render: (value) => <span>{(value as number).toLocaleString()}</span>,
+              },
+              {
+                key: 'cost',
+                label: '费用（元）',
+                align: 'right',
+                render: (value) => <span>{(value as number).toFixed(2)}</span>,
+              },
+            ]}
+            data={rows}
+            theme={theme}
+          />
         )}
       </div>
     </UserAppShell>

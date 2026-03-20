@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { Theme, FontSize, ThemeColor } from '../../types';
 import { THEME_COLOR_CLASSES } from '../../constants/theme';
 import type { DatabaseItem } from './types';
 import { nativeSelectClass } from '../../utils/formFieldClasses';
-import { useCreateDatabase } from '../../hooks/queries/useDatabase';
+import { useCreateDatabase, useUpdateDatabase } from '../../hooks/queries/useDatabase';
 import { createDatabaseSchema } from '../../schemas/database.schema';
+import type { DatabaseInstance } from '../../types/dto/database';
 
 interface Props {
   theme: Theme;
@@ -13,11 +14,13 @@ interface Props {
   themeColor: ThemeColor;
   onBack: () => void;
   onSubmit: (item: DatabaseItem) => void;
+  initialData?: DatabaseInstance;
 }
 
-export const DatabaseCreateView: React.FC<Props> = ({ theme, fontSize, themeColor, onBack, onSubmit }) => {
+export const DatabaseCreateView: React.FC<Props> = ({ theme, fontSize, themeColor, onBack, onSubmit, initialData }) => {
   const isDark = theme === 'dark';
   const tc = THEME_COLOR_CLASSES[themeColor];
+  const isEdit = !!initialData;
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [dbType, setDbType] = useState<'postgresql' | 'mysql' | 'sqlite' | 'mongodb' | 'redis'>('postgresql');
@@ -29,6 +32,20 @@ export const DatabaseCreateView: React.FC<Props> = ({ theme, fontSize, themeColo
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const createMut = useCreateDatabase();
+  const updateMut = useUpdateDatabase();
+
+  useEffect(() => {
+    if (initialData) {
+      setName(initialData.name || '');
+      setDescription(initialData.description || '');
+      setDbType(initialData.type || 'postgresql');
+      setHost(initialData.host || 'localhost');
+      setPort(String(initialData.port || '5432'));
+      setDatabase(initialData.database || '');
+      setUsername(initialData.username || '');
+      setPassword(''); // 编辑时不显示密码
+    }
+  }, [initialData]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,22 +68,44 @@ export const DatabaseCreateView: React.FC<Props> = ({ theme, fontSize, themeColo
     }
     setErrors({});
 
-    createMut.mutate(result.data, {
-      onSuccess: (db) => {
-        const now = new Date().toISOString().slice(0, 16).replace('T', ' ');
-        onSubmit({
-          id: db.id,
-          name: db.name,
-          description: description.trim() || '—',
-          creationMethod: '控制台创建',
-          createdAt: now,
-          updatedAt: now,
-        });
-      },
-      onError: (err) => {
-        setErrors({ submit: err instanceof Error ? err.message : '创建失败' });
-      },
-    });
+    if (isEdit && initialData) {
+      updateMut.mutate(
+        { id: initialData.id, data: result.data },
+        {
+          onSuccess: (db) => {
+            const now = new Date().toISOString().slice(0, 16).replace('T', ' ');
+            onSubmit({
+              id: db.id,
+              name: db.name,
+              description: description.trim() || '—',
+              creationMethod: '控制台创建',
+              createdAt: initialData.createdAt || now,
+              updatedAt: now,
+            });
+          },
+          onError: (err) => {
+            setErrors({ submit: err instanceof Error ? err.message : '更新失败' });
+          },
+        }
+      );
+    } else {
+      createMut.mutate(result.data, {
+        onSuccess: (db) => {
+          const now = new Date().toISOString().slice(0, 16).replace('T', ' ');
+          onSubmit({
+            id: db.id,
+            name: db.name,
+            description: description.trim() || '—',
+            creationMethod: '控制台创建',
+            createdAt: now,
+            updatedAt: now,
+          });
+        },
+        onError: (err) => {
+          setErrors({ submit: err instanceof Error ? err.message : '创建失败' });
+        },
+      });
+    }
   };
 
   return (
@@ -89,7 +128,9 @@ export const DatabaseCreateView: React.FC<Props> = ({ theme, fontSize, themeColo
             <button type="button" onClick={onBack} className="btn btn-ghost btn-sm btn-circle shrink-0">
               <ArrowLeft size={20} />
             </button>
-            <h1 className={`text-lg font-bold truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>创建数据库</h1>
+            <h1 className={`text-lg font-bold truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
+              {isEdit ? '编辑数据库' : '创建数据库'}
+            </h1>
           </div>
 
           <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
@@ -189,8 +230,10 @@ export const DatabaseCreateView: React.FC<Props> = ({ theme, fontSize, themeColo
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    placeholder={isEdit ? '留空则不修改密码' : ''}
                   />
                   {errors.password && <label className="label py-0"><span className="label-text-alt text-error">{errors.password}</span></label>}
+                  {isEdit && <label className="label py-0"><span className="label-text-alt text-slate-500">留空则不修改密码</span></label>}
                 </div>
               </div>
 
@@ -202,9 +245,13 @@ export const DatabaseCreateView: React.FC<Props> = ({ theme, fontSize, themeColo
                 <button type="button" onClick={onBack} className="btn btn-ghost">
                   取消
                 </button>
-                <button type="submit" disabled={createMut.isPending} className={`btn text-white border-0 ${tc.bg} shadow-lg ${tc.shadow}`}>
-                  {createMut.isPending && <Loader2 size={16} className="animate-spin mr-1" />}
-                  创建
+                <button
+                  type="submit"
+                  disabled={createMut.isPending || updateMut.isPending}
+                  className={`btn text-white border-0 ${tc.bg} shadow-lg ${tc.shadow}`}
+                >
+                  {(createMut.isPending || updateMut.isPending) && <Loader2 size={16} className="animate-spin mr-1" />}
+                  {isEdit ? '更新' : '创建'}
                 </button>
               </div>
             </form>

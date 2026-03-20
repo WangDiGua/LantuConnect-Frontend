@@ -1,17 +1,17 @@
 import React, { useMemo, useState } from 'react';
 import {
-  Search,
   PanelLeft,
   Folder,
-  Filter,
   MoreHorizontal,
   Plus,
   Library,
   BookOpen,
+  Search,
 } from 'lucide-react';
 import { Theme, FontSize, ThemeColor } from '../../types';
 import { THEME_COLOR_CLASSES } from '../../constants/theme';
 import type { KnowledgeItem } from './types';
+import { DataTable, SearchInput, type Column, type RowAction } from '../../components/common';
 
 interface KnowledgeBaseListProps {
   theme: Theme;
@@ -26,6 +26,8 @@ interface KnowledgeBaseListProps {
   onHitTest: () => void;
   onRowMenu?: (id: string) => void;
 }
+
+const PAGE_SIZE = 20;
 
 export const KnowledgeBaseList: React.FC<KnowledgeBaseListProps> = ({
   theme,
@@ -43,6 +45,7 @@ export const KnowledgeBaseList: React.FC<KnowledgeBaseListProps> = ({
   const isDark = theme === 'dark';
   const tc = THEME_COLOR_CLASSES[themeColor];
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [page, setPage] = useState(1);
 
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -54,6 +57,11 @@ export const KnowledgeBaseList: React.FC<KnowledgeBaseListProps> = ({
         i.id.toLowerCase().includes(q)
     );
   }, [items, searchQuery]);
+
+  const paginated = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, page]);
 
   return (
     <div
@@ -104,14 +112,13 @@ export const KnowledgeBaseList: React.FC<KnowledgeBaseListProps> = ({
         >
           <PanelLeft size={18} />
         </button>
-        <div className="flex-1 min-w-[min(100%,220px)] relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10" />
-          <input
-            type="text"
-            placeholder="请输入知识库名称或描述"
+        <div className="flex-1 min-w-[min(100%,220px)]">
+          <SearchInput
             value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="input input-bordered input-sm w-full pl-9 h-9 text-xs"
+            onChange={onSearchChange}
+            placeholder="请输入知识库名称或描述"
+            theme={theme}
+            className="h-9"
           />
         </div>
         <div className="flex flex-wrap items-center gap-2 shrink-0">
@@ -202,68 +209,81 @@ export const KnowledgeBaseList: React.FC<KnowledgeBaseListProps> = ({
             </div>
           ) : (
             <div className="flex-1 min-h-0 overflow-auto custom-scrollbar">
-              <table className="table w-full min-w-[1100px] text-[13px]">
-                <thead className={isDark ? 'bg-[#1C1C1E]' : 'bg-slate-50'}>
-                  <tr>
-                    <th className="whitespace-nowrap min-w-[180px]">知识库名称/ID</th>
-                    <th className="min-w-[200px]">描述</th>
-                    <th className="whitespace-nowrap text-right min-w-[88px]">文件数量</th>
-                    <th className="whitespace-nowrap min-w-[120px]">
-                      <span className="inline-flex items-center gap-1">
-                        托管资源
-                        <Filter size={12} className="opacity-50" />
-                      </span>
-                    </th>
-                    <th className="whitespace-nowrap min-w-[120px]">向量模型</th>
-                    <th className="whitespace-nowrap min-w-[140px]">集群/实例名称</th>
-                    <th className="text-right whitespace-nowrap min-w-[100px]">操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((row, index) => (
-                    <tr
-                      key={row.id}
-                      className={
-                        isDark
-                          ? index % 2 === 1
-                            ? 'bg-white/5'
-                            : ''
-                          : index % 2 === 1
-                            ? 'bg-slate-50/80'
-                            : ''
-                      }
-                    >
-                      <td>
+              <DataTable<KnowledgeItem>
+                columns={[
+                  {
+                    key: 'name',
+                    label: '知识库名称/ID',
+                    minWidth: '180px',
+                    render: (_, row) => (
+                      <>
                         <div className="font-semibold truncate" title={row.name}>
                           {row.name}
                         </div>
                         <div className="text-[11px] text-slate-400 font-mono truncate" title={row.id}>
                           {row.id}
                         </div>
-                      </td>
-                      <td>
-                        <div className="text-slate-500 line-clamp-2" title={row.description}>
-                          {row.description}
-                        </div>
-                      </td>
-                      <td className="text-right font-mono tabular-nums">{row.fileCount}</td>
-                      <td className="whitespace-nowrap">{row.hosted}</td>
-                      <td className="whitespace-nowrap">{row.vectorModel}</td>
-                      <td className="whitespace-nowrap font-mono text-xs">{row.cluster}</td>
-                      <td className="text-right">
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-xs btn-square"
-                          onClick={() => onRowMenu?.(row.id)}
-                          title="更多"
-                        >
-                          <MoreHorizontal size={16} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </>
+                    ),
+                  },
+                  {
+                    key: 'description',
+                    label: '描述',
+                    minWidth: '200px',
+                    render: (value) => (
+                      <div className="text-slate-500 line-clamp-2" title={String(value)}>
+                        {value}
+                      </div>
+                    ),
+                  },
+                  {
+                    key: 'fileCount',
+                    label: '文件数量',
+                    align: 'right',
+                    minWidth: '88px',
+                    render: (value) => <span className="font-mono tabular-nums">{value}</span>,
+                  },
+                  {
+                    key: 'hosted',
+                    label: '托管资源',
+                    minWidth: '120px',
+                  },
+                  {
+                    key: 'vectorModel',
+                    label: '向量模型',
+                    minWidth: '120px',
+                  },
+                  {
+                    key: 'cluster',
+                    label: '集群/实例名称',
+                    minWidth: '140px',
+                    render: (value) => <span className="font-mono text-xs">{value}</span>,
+                  },
+                ]}
+                data={paginated}
+                theme={theme}
+                rowActions={
+                  onRowMenu
+                    ? [
+                        {
+                          label: '更多',
+                          onClick: (row) => onRowMenu(row.id),
+                          icon: <MoreHorizontal size={16} />,
+                        },
+                      ]
+                    : undefined
+                }
+                pagination={
+                  filtered.length > 0
+                    ? {
+                        currentPage: page,
+                        totalPages: Math.ceil(filtered.length / PAGE_SIZE),
+                        onPageChange: setPage,
+                        pageSize: PAGE_SIZE,
+                      }
+                    : undefined
+                }
+              />
             </div>
           )}
         </div>

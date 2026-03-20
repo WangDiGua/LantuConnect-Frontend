@@ -1,24 +1,33 @@
 import React, { useMemo, useState } from 'react';
-import { LineChart, Search, Activity, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { LineChart, Activity, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { AGENT_MONITOR_KPIS, MOCK_AGENT_LATENCY } from '../../constants/agentObservability';
-import { TOOLBAR_ROW, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
+import { TOOLBAR_ROW } from '../../utils/toolbarFieldClasses';
+import { DataTable, SearchInput, type Column } from '../../components/common';
 
 interface AgentMonitoringPageProps {
   theme: Theme;
   fontSize: FontSize;
 }
 
+const PAGE_SIZE = 20;
+
 export const AgentMonitoringPage: React.FC<AgentMonitoringPageProps> = ({ theme, fontSize }) => {
   const isDark = theme === 'dark';
   const [q, setQ] = useState('');
+  const [page, setPage] = useState(1);
 
-  const rows = useMemo(() => {
+  const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
     if (!t) return MOCK_AGENT_LATENCY;
     return MOCK_AGENT_LATENCY.filter((r) => r.agentName.toLowerCase().includes(t));
   }, [q]);
+
+  const rows = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, page]);
 
   const maxP99 = Math.max(...MOCK_AGENT_LATENCY.map((r) => r.p99), 1);
 
@@ -31,17 +40,12 @@ export const AgentMonitoringPage: React.FC<AgentMonitoringPageProps> = ({ theme,
       description="各 Agent 调用 QPS、延迟分位与错误概况（演示数据，可对接真实观测后端）"
       toolbar={
         <div className={TOOLBAR_ROW}>
-          <div className="relative flex-1 min-w-0 sm:max-w-md">
-            <Search
-              className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${isDark ? 'text-slate-500' : 'text-slate-400'}`}
-              size={16}
-            />
-            <input
-              type="search"
-              placeholder="按 Agent 名称筛选…"
+          <div className="flex-1 min-w-0 sm:max-w-md">
+            <SearchInput
               value={q}
-              onChange={(e) => setQ(e.target.value)}
-              className={toolbarSearchInputClass(theme)}
+              onChange={setQ}
+              placeholder="按 Agent 名称筛选…"
+              theme={theme}
             />
           </div>
         </div>
@@ -81,7 +85,7 @@ export const AgentMonitoringPage: React.FC<AgentMonitoringPageProps> = ({ theme,
             <h3 className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>P99 延迟对比（示意）</h3>
           </div>
           <div className="space-y-3">
-            {MOCK_AGENT_LATENCY.map((r) => (
+            {filtered.slice(0, 5).map((r) => (
               <div key={r.agentName} className="flex items-center gap-3">
                 <span className={`text-xs w-32 sm:w-40 truncate shrink-0 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                   {r.agentName}
@@ -98,35 +102,51 @@ export const AgentMonitoringPage: React.FC<AgentMonitoringPageProps> = ({ theme,
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[640px]">
-            <thead className={isDark ? 'text-slate-400' : 'text-slate-500'}>
-              <tr className={`border-b ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
-                <th className="py-2.5 text-left font-semibold">Agent</th>
-                <th className="py-2.5 text-right font-semibold">P50</th>
-                <th className="py-2.5 text-right font-semibold">P99</th>
-                <th className="py-2.5 text-right font-semibold">QPS</th>
-                <th className="py-2.5 text-right font-semibold">错误数(1h)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r, idx) => (
-                <tr
-                  key={r.agentName}
-                  className={`border-b ${isDark ? 'border-white/5' : 'border-slate-100'} ${
-                    isDark ? (idx % 2 === 1 ? 'bg-white/5' : '') : idx % 2 === 1 ? 'bg-slate-50/80' : ''
-                  }`}
-                >
-                  <td className="py-3 font-medium">{r.agentName}</td>
-                  <td className="py-3 text-right tabular-nums">{r.p50}</td>
-                  <td className="py-3 text-right tabular-nums">{r.p99}</td>
-                  <td className="py-3 text-right tabular-nums">{r.qps}</td>
-                  <td className="py-3 text-right tabular-nums">{r.errors}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          columns={[
+            {
+              key: 'agentName',
+              label: 'Agent',
+              render: (value) => <span className="font-medium">{value}</span>,
+            },
+            {
+              key: 'p50',
+              label: 'P50',
+              align: 'right',
+              render: (value) => <span className="tabular-nums">{value}</span>,
+            },
+            {
+              key: 'p99',
+              label: 'P99',
+              align: 'right',
+              render: (value) => <span className="tabular-nums">{value}</span>,
+            },
+            {
+              key: 'qps',
+              label: 'QPS',
+              align: 'right',
+              render: (value) => <span className="tabular-nums">{value}</span>,
+            },
+            {
+              key: 'errors',
+              label: '错误数(1h)',
+              align: 'right',
+              render: (value) => <span className="tabular-nums">{value}</span>,
+            },
+          ]}
+          data={rows}
+          theme={theme}
+          pagination={
+            filtered.length > 0
+              ? {
+                  currentPage: page,
+                  totalPages: Math.ceil(filtered.length / PAGE_SIZE),
+                  onPageChange: setPage,
+                  pageSize: PAGE_SIZE,
+                }
+              : undefined
+          }
+        />
       </div>
     </MgmtPageShell>
   );

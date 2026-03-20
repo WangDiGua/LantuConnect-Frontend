@@ -2,7 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 
-interface ConfirmDialogProps {
+export interface ConfirmDialogProps {
   open: boolean;
   title: string;
   message: string;

@@ -121,7 +121,10 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
             onBatch={() => setSubView('batch')}
             onDeveloper={() => setSubView('developer')}
             onHitTest={() => setSubView('hitTest')}
-            onRowMenu={() => showMessage('更多操作（详情/编辑）待接入后端', 'info')}
+            onRowMenu={(id) => {
+              // 编辑功能：可以在这里打开编辑对话框或导航到编辑页面
+              showMessage(`编辑知识库 ${id}（功能待完善）`, 'info');
+            }}
           />
         </ContentLoader>
       );

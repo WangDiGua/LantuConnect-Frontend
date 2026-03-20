@@ -4,8 +4,10 @@ import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from './MgmtPageShell';
 import { MOCK_USERS, MgmtUser, MOCK_ROLES } from '../../constants/userMgmt';
 import { nativeInputClass, nativeSelectClass } from '../../utils/formFieldClasses';
-import { TOOLBAR_ROW, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
-import { Search, Plus, ArrowLeft, Save, Trash2, Users } from 'lucide-react';
+import { TOOLBAR_ROW } from '../../utils/toolbarFieldClasses';
+import { Plus, ArrowLeft, Save, Trash2, Users } from 'lucide-react';
+import { ConfirmDialog } from '../../components/common/ConfirmDialog';
+import { DataTable, SearchInput, FilterSelect, type Column, type RowAction } from '../../components/common';
 
 interface UserListPageProps {
   theme: Theme;
@@ -26,6 +28,8 @@ const emptyForm = (): Pick<MgmtUser, 'username' | 'email' | 'roleId' | 'roleName
 
 const innerTransition = { duration: 0.26, ease: [0.22, 1, 0.36, 1] as const };
 
+const PAGE_SIZE = 20;
+
 export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, breadcrumbBase }) => {
   const isDark = theme === 'dark';
   const [users, setUsers] = useState<MgmtUser[]>(() => [...MOCK_USERS]);
@@ -34,6 +38,8 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'disabled'>('all');
   const [form, setForm] = useState(() => emptyForm());
+  const [page, setPage] = useState(1);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   const roleById = (roleId: string) => MOCK_ROLES.find((r) => r.id === roleId);
   const inputCls = nativeInputClass(theme);
@@ -51,6 +57,11 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
       );
     });
   }, [users, search, statusFilter]);
+
+  const paginated = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, page]);
 
   const openCreate = () => {
     setForm(emptyForm());
@@ -108,21 +119,18 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
     setEditingId(null);
   };
 
-  const deleteUser = (id: string) => {
-    if (!confirm('确定删除该用户？')) return;
-    setUsers((prev) => prev.filter((u) => u.id !== id));
-    if (editingId === id) {
+  const handleDelete = () => {
+    if (!deleteTarget) return;
+    setUsers((prev) => prev.filter((u) => u.id !== deleteTarget));
+    if (editingId === deleteTarget) {
       setMode('list');
       setEditingId(null);
     }
+    setDeleteTarget(null);
+    setPage(1);
   };
 
   const labelCls = `block text-xs font-medium mb-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`;
-  const searchCls = `w-full pl-9 pr-3 py-2 rounded-xl border text-sm outline-none focus:ring-1 focus:ring-blue-500/30 ${
-    isDark
-      ? 'bg-[#2C2C2E] border-white/10 text-white placeholder:text-slate-500'
-      : 'bg-white border-slate-200 text-slate-900 placeholder:text-slate-400'
-  }`;
 
   const description =
     mode === 'list'
@@ -137,28 +145,25 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
   const toolbar =
     mode === 'list' ? (
       <div className={TOOLBAR_ROW}>
-        <div className="relative flex-1 min-w-0 sm:max-w-md">
-          <Search
-            className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${isDark ? 'text-slate-500' : 'text-slate-400'}`}
-            size={16}
-          />
-          <input
-            type="search"
-            placeholder="搜索用户名、邮箱或角色…"
+        <div className="flex-1 min-w-0 sm:max-w-md">
+          <SearchInput
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className={searchCls}
+            onChange={setSearch}
+            placeholder="搜索用户名、邮箱或角色…"
+            theme={theme}
           />
         </div>
-        <select
+        <FilterSelect
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-          className={`${selectCls} w-full sm:w-[8.5rem] shrink-0`}
-        >
-          <option value="all">全部状态</option>
-          <option value="active">仅启用</option>
-          <option value="disabled">仅停用</option>
-        </select>
+          onChange={(value) => setStatusFilter(value as typeof statusFilter)}
+          options={[
+            { value: 'all', label: '全部状态' },
+            { value: 'active', label: '仅启用' },
+            { value: 'disabled', label: '仅停用' },
+          ]}
+          theme={theme}
+          className="w-full sm:w-[8.5rem] shrink-0"
+        />
         <button
           type="button"
           onClick={openCreate}
@@ -217,98 +222,76 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
               transition={innerTransition}
               className="w-full px-4 sm:px-6 pb-6 pt-1 min-w-0"
             >
-              <div className="overflow-x-auto min-w-0">
-                <table className="w-full text-left text-sm min-w-[720px]">
-                  <thead>
-                    <tr
-                      className={`border-b ${
-                        isDark ? 'border-white/10 bg-[#2C2C2E]/80' : 'border-slate-200 bg-slate-50'
-                      }`}
-                    >
-                      <th className={`px-4 py-3 font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
-                        用户名
-                      </th>
-                      <th className={`px-4 py-3 font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
-                        邮箱
-                      </th>
-                      <th className={`px-4 py-3 font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
-                        角色
-                      </th>
-                      <th className={`px-4 py-3 font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
-                        状态
-                      </th>
-                      <th className={`px-4 py-3 font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
-                        最近登录
-                      </th>
-                      <th
-                        className={`px-4 py-3 font-semibold text-right ${isDark ? 'text-slate-200' : 'text-slate-700'}`}
-                      >
-                        操作
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map((u, i) => (
-                      <tr
-                        key={u.id}
-                        className={`border-b transition-colors ${
-                          isDark
-                            ? `border-white/5 ${i % 2 === 0 ? 'bg-[#1C1C1E]' : 'bg-[#2C2C2E]/40'} hover:bg-white/5`
-                            : `border-slate-100 ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50/80'} hover:bg-slate-100/80`
-                        }`}
-                      >
-                        <td className={`px-4 py-3 font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                          {u.username}
-                        </td>
-                        <td className={`px-4 py-3 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{u.email}</td>
-                        <td className={`px-4 py-3 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{u.roleName}</td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
-                              u.status === 'active'
-                                ? isDark
-                                  ? 'bg-emerald-500/20 text-emerald-300'
-                                  : 'bg-emerald-100 text-emerald-800'
-                                : isDark
-                                  ? 'bg-slate-600/40 text-slate-300'
-                                  : 'bg-slate-200 text-slate-700'
-                            }`}
-                          >
-                            {u.status === 'active' ? '启用' : '停用'}
-                          </span>
-                        </td>
-                        <td className={`px-4 py-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{u.lastLogin}</td>
-                        <td className="px-4 py-3 text-right">
-                          <div className="inline-flex items-center gap-1">
-                            <button
-                              type="button"
-                              onClick={() => openEdit(u)}
-                              className={`px-2 py-1 rounded-xl text-xs font-medium ${
-                                isDark ? 'text-blue-400 hover:bg-white/10' : 'text-blue-600 hover:bg-blue-50'
-                              }`}
-                            >
-                              编辑
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => deleteUser(u.id)}
-                              className={`p-1 rounded-xl ${isDark ? 'text-red-400 hover:bg-white/10' : 'text-red-600 hover:bg-red-50'}`}
-                              title="删除"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
               {filtered.length === 0 ? (
                 <p className={`text-center py-12 text-sm ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
                   暂无匹配用户
                 </p>
-              ) : null}
+              ) : (
+                <DataTable<MgmtUser>
+                  columns={[
+                    {
+                      key: 'username',
+                      label: '用户名',
+                      render: (value) => <span className="font-medium">{value}</span>,
+                    },
+                    {
+                      key: 'email',
+                      label: '邮箱',
+                    },
+                    {
+                      key: 'roleName',
+                      label: '角色',
+                    },
+                    {
+                      key: 'status',
+                      label: '状态',
+                      render: (value) => (
+                        <span
+                          className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
+                            value === 'active'
+                              ? isDark
+                                ? 'bg-emerald-500/20 text-emerald-300'
+                                : 'bg-emerald-100 text-emerald-800'
+                              : isDark
+                                ? 'bg-slate-600/40 text-slate-300'
+                                : 'bg-slate-200 text-slate-700'
+                          }`}
+                        >
+                          {value === 'active' ? '启用' : '停用'}
+                        </span>
+                      ),
+                    },
+                    {
+                      key: 'lastLogin',
+                      label: '最近登录',
+                    },
+                  ]}
+                  data={paginated}
+                  theme={theme}
+                  rowActions={[
+                    {
+                      label: '编辑',
+                      onClick: (row) => openEdit(row),
+                    },
+                    {
+                      label: '删除',
+                      onClick: (row) => setDeleteTarget(row.id),
+                      icon: <Trash2 size={16} />,
+                      variant: 'danger',
+                    },
+                  ]}
+                  pagination={
+                    filtered.length > 0
+                      ? {
+                          currentPage: page,
+                          totalPages: Math.ceil(filtered.length / PAGE_SIZE),
+                          onPageChange: setPage,
+                          pageSize: PAGE_SIZE,
+                        }
+                      : undefined
+                  }
+                />
+              )}
             </motion.div>
           ) : (
             <motion.div
@@ -380,6 +363,15 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
           )}
         </AnimatePresence>
       </div>
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="删除用户"
+        message="确定删除该用户？"
+        confirmText="删除"
+        variant="danger"
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </MgmtPageShell>
   );
 };

@@ -6,6 +6,8 @@ import { MOCK_ROLES, MgmtRole, PERMISSION_PRESETS } from '../../constants/userMg
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { TOOLBAR_ROW, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
 import { Search, Plus, ArrowLeft, Save, Trash2, Fingerprint } from 'lucide-react';
+import { ConfirmDialog } from '../../components/common/ConfirmDialog';
+import { Pagination } from '../../components/common/Pagination';
 
 interface RoleListPageProps {
   theme: Theme;
@@ -36,6 +38,7 @@ const emptyForm = () => ({
 });
 
 const innerTransition = { duration: 0.26, ease: [0.22, 1, 0.36, 1] as const };
+const PAGE_SIZE = 20;
 
 export const RoleListPage: React.FC<RoleListPageProps> = ({ theme, fontSize, breadcrumbBase }) => {
   const isDark = theme === 'dark';
@@ -44,6 +47,8 @@ export const RoleListPage: React.FC<RoleListPageProps> = ({ theme, fontSize, bre
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [form, setForm] = useState(emptyForm);
+  const [page, setPage] = useState(1);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   const inputCls = nativeInputClass(theme);
 
@@ -58,6 +63,11 @@ export const RoleListPage: React.FC<RoleListPageProps> = ({ theme, fontSize, bre
       );
     });
   }, [roles, search]);
+
+  const paginated = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, page]);
 
   const openCreate = () => {
     setForm(emptyForm());
@@ -120,13 +130,15 @@ export const RoleListPage: React.FC<RoleListPageProps> = ({ theme, fontSize, bre
     setEditingId(null);
   };
 
-  const deleteRole = (id: string) => {
-    if (!confirm('确定删除该角色？已分配用户的角色需先调整。')) return;
-    setRoles((prev) => prev.filter((r) => r.id !== id));
-    if (editingId === id) {
+  const handleDelete = () => {
+    if (!deleteTarget) return;
+    setRoles((prev) => prev.filter((r) => r.id !== deleteTarget));
+    if (editingId === deleteTarget) {
       setMode('list');
       setEditingId(null);
     }
+    setDeleteTarget(null);
+    setPage(1);
   };
 
   const labelCls = `block text-xs font-medium mb-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`;
@@ -246,7 +258,7 @@ export const RoleListPage: React.FC<RoleListPageProps> = ({ theme, fontSize, bre
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.map((r, i) => (
+                    {paginated.map((r, i) => (
                       <tr
                         key={r.id}
                         className={`border-b transition-colors ${
@@ -283,7 +295,7 @@ export const RoleListPage: React.FC<RoleListPageProps> = ({ theme, fontSize, bre
                             </button>
                             <button
                               type="button"
-                              onClick={() => deleteRole(r.id)}
+                              onClick={() => setDeleteTarget(r.id)}
                               className={`p-1 rounded-xl ${isDark ? 'text-red-400 hover:bg-white/10' : 'text-red-600 hover:bg-red-50'}`}
                               title="删除"
                             >
@@ -301,6 +313,9 @@ export const RoleListPage: React.FC<RoleListPageProps> = ({ theme, fontSize, bre
                   暂无匹配角色
                 </p>
               ) : null}
+              {filtered.length > 0 && (
+                <Pagination page={page} pageSize={PAGE_SIZE} total={filtered.length} onChange={setPage} />
+              )}
             </motion.div>
           ) : (
             <motion.div
@@ -373,6 +388,15 @@ export const RoleListPage: React.FC<RoleListPageProps> = ({ theme, fontSize, bre
           )}
         </AnimatePresence>
       </div>
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="删除角色"
+        message="确定删除该角色？已分配用户的角色需先调整。"
+        confirmText="删除"
+        variant="danger"
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </MgmtPageShell>
   );
 };

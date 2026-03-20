@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, 
@@ -10,22 +10,78 @@ import {
   Webhook, 
   Settings, 
   AlertCircle,
-  Info
+  Info,
+  Eye,
+  Sparkles,
+  Rocket,
+  MessageSquare
 } from 'lucide-react';
-import { Theme, FontSize } from '../../types';
+import { Theme, FontSize, ThemeColor } from '../../types';
 import { nativeSelectClass } from '../../utils/formFieldClasses';
 import { useCreateAgent } from '../../hooks/queries/useAgent';
 import { createAgentSchema } from '../../schemas/agent.schema';
 import { z } from 'zod';
+import { ProgressBar } from '../../components/common/ProgressBar';
+import { THEME_COLOR_CLASSES } from '../../constants/theme';
 
 interface AgentCreateProps {
   theme: Theme;
   fontSize: FontSize;
+  themeColor?: ThemeColor;
   onBack: () => void;
   onSuccess: (agentId: string) => void;
 }
 
-type Step = 'BASIC_INFO' | 'TYPE_SELECT' | 'TYPE_CONFIG' | 'SUBMITTING';
+type Step = 'TEMPLATE_SELECT' | 'BASIC_INFO' | 'TYPE_SELECT' | 'TYPE_CONFIG' | 'SUBMITTING';
+
+interface AgentTemplate {
+  id: string;
+  name: string;
+  description: string;
+  icon: React.ElementType;
+  category: string;
+  preset: {
+    type: string;
+    config: {
+      method: string;
+      authType: string;
+      timeout: number;
+    };
+  };
+}
+
+const AGENT_TEMPLATES: AgentTemplate[] = [
+  {
+    id: 'chatbot',
+    name: '对话助手',
+    description: '适用于日常咨询与问答场景',
+    icon: MessageSquare,
+    category: '对话',
+    preset: { type: 'REST_API', config: { method: 'POST', authType: 'NONE', timeout: 30 } },
+  },
+  {
+    id: 'api_proxy',
+    name: 'API 代理',
+    description: '快速接入第三方 API 服务',
+    icon: Zap,
+    category: '集成',
+    preset: { type: 'REST_API', config: { method: 'GET', authType: 'BEARER', timeout: 30 } },
+  },
+  {
+    id: 'webhook',
+    name: 'Webhook 接收',
+    description: '接收外部事件推送',
+    icon: Webhook,
+    category: '集成',
+    preset: { type: 'WEBHOOK', config: { method: 'POST', authType: 'API_KEY', timeout: 60 } },
+  },
+];
+
+const QUICK_PRESETS = [
+  { label: '快速配置', config: { method: 'GET', authType: 'NONE', timeout: 30 } },
+  { label: '安全配置', config: { method: 'POST', authType: 'BEARER', timeout: 60 } },
+  { label: '高性能', config: { method: 'GET', authType: 'API_KEY', timeout: 10 } },
+];
 
 const FORM_TYPE_TO_DTO: Record<string, 'chat' | 'task' | 'workflow' | 'custom'> = {
   REST_API: 'chat',
@@ -43,9 +99,12 @@ const configSchema = z.object({
   url: z.string().min(1, '请输入接口地址').url('接口地址必须以 http:// 或 https:// 开头'),
 });
 
-export const AgentCreate: React.FC<AgentCreateProps> = ({ theme, fontSize, onBack, onSuccess }) => {
+export const AgentCreate: React.FC<AgentCreateProps> = ({ theme, fontSize, themeColor = 'blue', onBack, onSuccess }) => {
   const isDark = theme === 'dark';
-  const [currentStep, setCurrentStep] = useState<Step>('BASIC_INFO');
+  const tc = THEME_COLOR_CLASSES[themeColor];
+  const [currentStep, setCurrentStep] = useState<Step>('TEMPLATE_SELECT');
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -60,6 +119,25 @@ export const AgentCreate: React.FC<AgentCreateProps> = ({ theme, fontSize, onBac
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const createMut = useCreateAgent();
+
+  // 应用模板
+  const applyTemplate = (template: AgentTemplate) => {
+    setSelectedTemplate(template.id);
+    setFormData({
+      ...formData,
+      type: template.preset.type,
+      config: { ...formData.config, ...template.preset.config },
+    });
+    setCurrentStep('BASIC_INFO');
+  };
+
+  // 应用快速配置
+  const applyQuickPreset = (preset: typeof QUICK_PRESETS[0]) => {
+    setFormData({
+      ...formData,
+      config: { ...formData.config, ...preset.config },
+    });
+  };
 
   const validateBasicInfo = () => {
     const result = basicInfoSchema.safeParse({ name: formData.name, description: formData.description });
@@ -110,42 +188,158 @@ export const AgentCreate: React.FC<AgentCreateProps> = ({ theme, fontSize, onBac
 
   const renderStepIndicator = () => {
     const steps = [
+      { id: 'TEMPLATE_SELECT', label: '选择模板', optional: true },
       { id: 'BASIC_INFO', label: '基本信息' },
       { id: 'TYPE_SELECT', label: '类型选择' },
       { id: 'TYPE_CONFIG', label: '配置详情' }
     ];
 
+    const currentStepIndex = steps.findIndex(s => s.id === currentStep);
+    const progress = currentStep === 'SUBMITTING' ? 100 : ((currentStepIndex + 1) / steps.length) * 100;
+
     return (
-      <div className="flex items-center justify-center gap-4 mb-10">
-        {steps.map((step, index) => {
-          const isActive = currentStep === step.id || (currentStep === 'SUBMITTING' && index === 2);
-          const isCompleted = steps.findIndex(s => s.id === currentStep) > index || currentStep === 'SUBMITTING';
-          
-          return (
-            <React.Fragment key={step.id}>
-              <div className="flex flex-col items-center gap-2">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
-                  isCompleted ? 'bg-emerald-500 text-white' : 
-                  isActive ? 'bg-blue-600 text-white ring-1 ring-blue-400/50' : 
-                  'bg-slate-200 dark:bg-white/10 text-slate-500'
-                }`}>
-                  {isCompleted ? <Check size={20} /> : <span>{index + 1}</span>}
+      <div className="mb-8">
+        <div className="flex items-center justify-center gap-4 mb-4">
+          {steps.map((step, index) => {
+            const stepIndex = steps.findIndex(s => s.id === currentStep);
+            const isActive = currentStep === step.id || (currentStep === 'SUBMITTING' && index === steps.length - 1);
+            const isCompleted = stepIndex > index || currentStep === 'SUBMITTING';
+            const isSkipped = step.optional && selectedTemplate && index === 0;
+            
+            return (
+              <React.Fragment key={step.id}>
+                <div className="flex flex-col items-center gap-2">
+                  <motion.div 
+                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
+                      isCompleted ? 'bg-emerald-500 text-white' : 
+                      isActive ? `${tc.bg} text-white ring-2 ${tc.ring}` : 
+                      isSkipped ? 'bg-slate-300 dark:bg-white/20 text-slate-500' :
+                      'bg-slate-200 dark:bg-white/10 text-slate-500'
+                    }`}
+                    whileHover={!isActive && !isCompleted ? { scale: 1.1 } : {}}
+                  >
+                    {isCompleted ? <Check size={20} /> : isSkipped ? <Check size={20} className="opacity-50" /> : <span>{index + 1}</span>}
+                  </motion.div>
+                  <span className={`text-xs font-bold text-center max-w-[80px] ${isActive || isCompleted ? tc.text : 'text-slate-400'}`}>
+                    {step.label}
+                  </span>
                 </div>
-                <span className={`text-xs font-bold ${isActive || isCompleted ? 'text-blue-600' : 'text-slate-400'}`}>
-                  {step.label}
-                </span>
-              </div>
-              {index < steps.length - 1 && (
-                <div className={`w-16 h-0.5 rounded-full transition-all duration-300 ${
-                  isCompleted ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-white/10'
-                }`} />
-              )}
-            </React.Fragment>
-          );
-        })}
+                {index < steps.length - 1 && (
+                  <motion.div 
+                    className={`w-16 h-0.5 rounded-full transition-all duration-300 ${
+                      isCompleted ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-white/10'
+                    }`}
+                    initial={{ scaleX: 0 }}
+                    animate={{ scaleX: isCompleted ? 1 : 0.3 }}
+                  />
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
+        <ProgressBar value={progress} theme={theme} themeColor={themeColor} showLabel={false} height="sm" />
       </div>
     );
   };
+
+  // 实时预览
+  const renderPreview = () => {
+    if (!showPreview) return null;
+    
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className={`mt-6 p-4 rounded-xl border ${
+          isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'
+        }`}
+      >
+        <div className="flex items-center gap-2 mb-3">
+          <Eye size={16} className={tc.text} />
+          <span className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>实时预览</span>
+        </div>
+        <div className="space-y-2 text-xs">
+          <div className="flex justify-between">
+            <span className={isDark ? 'text-slate-400' : 'text-slate-600'}>名称：</span>
+            <span className={isDark ? 'text-white' : 'text-slate-900'}>{formData.name || '未填写'}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className={isDark ? 'text-slate-400' : 'text-slate-600'}>类型：</span>
+            <span className={isDark ? 'text-white' : 'text-slate-900'}>{formData.type}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className={isDark ? 'text-slate-400' : 'text-slate-600'}>方法：</span>
+            <span className={isDark ? 'text-white' : 'text-slate-900'}>{formData.config.method}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className={isDark ? 'text-slate-400' : 'text-slate-600'}>认证：</span>
+            <span className={isDark ? 'text-white' : 'text-slate-900'}>{formData.config.authType}</span>
+          </div>
+        </div>
+      </motion.div>
+    );
+  };
+
+  // 模板选择
+  const renderTemplateSelect = () => (
+    <motion.div 
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      className="space-y-6"
+    >
+      <div className="text-center mb-6">
+        <h3 className={`text-lg font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>选择创建方式</h3>
+        <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+          从模板快速开始，或选择空白创建
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+        {AGENT_TEMPLATES.map((template) => (
+          <motion.div
+            key={template.id}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => applyTemplate(template)}
+            className={`p-4 rounded-2xl border cursor-pointer transition-colors shadow-none ${
+              selectedTemplate === template.id
+                ? `border-${themeColor}-600 bg-${themeColor}-50 dark:bg-${themeColor}-500/10`
+                : isDark
+                  ? 'border-white/10 bg-[#1C1C1E]/30 hover:border-white/20'
+                  : 'border-slate-200/80 bg-white hover:border-slate-300'
+            }`}
+          >
+            <div className="flex items-center gap-3 mb-2">
+              <div className={`p-2 rounded-xl ${selectedTemplate === template.id ? tc.bg + ' text-white' : 'bg-slate-100 dark:bg-white/10 text-slate-500'}`}>
+                <template.icon size={20} />
+              </div>
+              <div className="flex-1">
+                <span className="font-bold">{template.name}</span>
+                <span className={`ml-2 text-xs px-2 py-0.5 rounded-lg ${
+                  isDark ? 'bg-white/10 text-slate-400' : 'bg-slate-100 text-slate-600'
+                }`}>
+                  {template.category}
+                </span>
+              </div>
+            </div>
+            <p className="text-xs text-slate-500 leading-relaxed">{template.description}</p>
+          </motion.div>
+        ))}
+      </div>
+
+      <div className="flex justify-end pt-4">
+        <button 
+          type="button"
+          onClick={() => setCurrentStep('BASIC_INFO')}
+          className="btn btn-primary px-8 gap-2 shadow-lg shadow-blue-500/20"
+        >
+          跳过模板，直接创建
+          <ArrowRight size={18} />
+        </button>
+      </div>
+    </motion.div>
+  );
 
   const renderBasicInfo = () => (
     <motion.div 
@@ -182,7 +376,17 @@ export const AgentCreate: React.FC<AgentCreateProps> = ({ theme, fontSize, onBac
         {errors.description && <label className="label"><span className="label-text-alt text-error">{errors.description}</span></label>}
       </div>
 
-      <div className="flex justify-end pt-4">
+      {renderPreview()}
+
+      <div className="flex justify-between pt-4">
+        <button 
+          type="button"
+          onClick={() => setShowPreview(!showPreview)}
+          className={`btn btn-ghost gap-2 ${showPreview ? tc.text : ''}`}
+        >
+          <Eye size={16} />
+          {showPreview ? '隐藏预览' : '实时预览'}
+        </button>
         <button 
           type="button"
           onClick={() => validateBasicInfo() && setCurrentStep('TYPE_SELECT')}
@@ -263,6 +467,30 @@ export const AgentCreate: React.FC<AgentCreateProps> = ({ theme, fontSize, onBac
         <span className="text-xs">您正在为 <strong>{formData.type}</strong> 类型配置接口详情。</span>
       </div>
 
+      {/* 快速配置选项 */}
+      <div className={`p-4 rounded-xl border ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
+        <div className="flex items-center gap-2 mb-3">
+          <Sparkles size={16} className={tc.text} />
+          <span className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>快速配置</span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {QUICK_PRESETS.map((preset) => (
+            <button
+              key={preset.label}
+              type="button"
+              onClick={() => applyQuickPreset(preset)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${
+                isDark
+                  ? 'bg-white/10 text-slate-300 hover:bg-white/15'
+                  : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+              }`}
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="form-control w-full">
         <label className="label">
           <span className="label-text font-bold">接口地址 (URL)</span>
@@ -318,6 +546,8 @@ export const AgentCreate: React.FC<AgentCreateProps> = ({ theme, fontSize, onBac
         </div>
       </div>
 
+      {renderPreview()}
+
       {errors.submit && (
         <div className="alert alert-error py-2">
           <AlertCircle size={16} />
@@ -326,10 +556,20 @@ export const AgentCreate: React.FC<AgentCreateProps> = ({ theme, fontSize, onBac
       )}
 
       <div className="flex justify-between pt-4">
-        <button type="button" onClick={() => setCurrentStep('TYPE_SELECT')} className="btn btn-ghost gap-2">
-          <ArrowLeft size={18} />
-          上一步
-        </button>
+        <div className="flex gap-2">
+          <button 
+            type="button" 
+            onClick={() => setShowPreview(!showPreview)}
+            className={`btn btn-ghost gap-2 ${showPreview ? tc.text : ''}`}
+          >
+            <Eye size={16} />
+            {showPreview ? '隐藏预览' : '实时预览'}
+          </button>
+          <button type="button" onClick={() => setCurrentStep('TYPE_SELECT')} className="btn btn-ghost gap-2">
+            <ArrowLeft size={18} />
+            上一步
+          </button>
+        </div>
         <button type="button" onClick={handleSubmit} disabled={createMut.isPending} className="btn btn-primary px-10 shadow-lg shadow-blue-500/20">
           提交创建
         </button>
@@ -367,6 +607,7 @@ export const AgentCreate: React.FC<AgentCreateProps> = ({ theme, fontSize, onBac
           }`}>
             <div className="p-6 sm:p-8">
               <AnimatePresence mode="wait">
+                {currentStep === 'TEMPLATE_SELECT' && renderTemplateSelect()}
                 {currentStep === 'BASIC_INFO' && renderBasicInfo()}
                 {currentStep === 'TYPE_SELECT' && renderTypeSelect()}
                 {currentStep === 'TYPE_CONFIG' && renderTypeConfig()}

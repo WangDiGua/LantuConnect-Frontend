@@ -1,14 +1,15 @@
 import React, { useMemo, useState } from 'react';
-import { Search, Power, RefreshCw, Package } from 'lucide-react';
+import { Power, RefreshCw, Package } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
-import { TOOLBAR_ROW, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
-import { nativeSelectClass } from '../../utils/formFieldClasses';
+import { TOOLBAR_ROW } from '../../utils/toolbarFieldClasses';
 import { useMyTools, useDeleteMcpServer } from '../../hooks/queries/useTool';
 import { ContentLoader } from '../../components/common/ContentLoader';
 import { PageError } from '../../components/common/PageError';
 import { EmptyState } from '../../components/common/EmptyState';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
+import { useUpdateMcpServer } from '../../hooks/queries/useTool';
+import { DataTable, SearchInput, FilterSelect, type Column, type RowAction } from '../../components/common';
 import type { McpServer } from '../../types/dto/tool';
 
 interface MyToolsPageProps {
@@ -17,14 +18,18 @@ interface MyToolsPageProps {
   showMessage: (msg: string, type?: 'success' | 'error' | 'info') => void;
 }
 
+const PAGE_SIZE = 20;
+
 export const MyToolsPage: React.FC<MyToolsPageProps> = ({ theme, fontSize, showMessage }) => {
   const isDark = theme === 'dark';
   const [q, setQ] = useState('');
   const [status, setStatus] = useState<string>('all');
   const [deleteTarget, setDeleteTarget] = useState<McpServer | null>(null);
+  const [page, setPage] = useState(1);
 
   const { data: servers, isLoading, isError, error, refetch } = useMyTools();
   const deleteMut = useDeleteMcpServer();
+  const updateMut = useUpdateMcpServer();
 
   const filtered = useMemo(() => {
     const list = servers ?? [];
@@ -38,6 +43,11 @@ export const MyToolsPage: React.FC<MyToolsPageProps> = ({ theme, fontSize, showM
       return r.name.toLowerCase().includes(t) || r.transportType.toLowerCase().includes(t);
     });
   }, [servers, q, status]);
+
+  const paginated = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, page]);
 
   const statusLabel = (s: McpServer['status']) =>
     s === 'running' ? '运行中' : s === 'error' ? '异常' : '已停用';
@@ -73,29 +83,26 @@ export const MyToolsPage: React.FC<MyToolsPageProps> = ({ theme, fontSize, showM
       description="已接入或订阅的工具与 MCP 服务；支持启停与检索"
       toolbar={
         <div className={TOOLBAR_ROW}>
-          <div className="relative flex-1 min-w-0 sm:max-w-md">
-            <Search
-              className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${isDark ? 'text-slate-500' : 'text-slate-400'}`}
-              size={16}
-            />
-            <input
-              type="search"
-              placeholder="搜索名称或类型…"
+          <div className="flex-1 min-w-0 sm:max-w-md">
+            <SearchInput
               value={q}
-              onChange={(e) => setQ(e.target.value)}
-              className={toolbarSearchInputClass(theme)}
+              onChange={setQ}
+              placeholder="搜索名称或类型…"
+              theme={theme}
             />
           </div>
-          <select
+          <FilterSelect
             value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            className={`${nativeSelectClass(theme)} w-full sm:w-[8.5rem] shrink-0`}
-          >
-            <option value="all">全部状态</option>
-            <option value="运行中">运行中</option>
-            <option value="已停用">已停用</option>
-            <option value="异常">异常</option>
-          </select>
+            onChange={setStatus}
+            options={[
+              { value: 'all', label: '全部状态' },
+              { value: '运行中', label: '运行中' },
+              { value: '已停用', label: '已停用' },
+              { value: '异常', label: '异常' },
+            ]}
+            theme={theme}
+            className="w-full sm:w-[8.5rem] shrink-0"
+          />
           <button
             type="button"
             onClick={() => refetch()}
@@ -110,56 +117,72 @@ export const MyToolsPage: React.FC<MyToolsPageProps> = ({ theme, fontSize, showM
       }
     >
       <ContentLoader loading={isLoading}>
-        <div className="min-w-0 px-4 sm:px-6 pb-6 pt-1 overflow-x-auto">
+        <div className="min-w-0 px-4 sm:px-6 pb-6 pt-1">
           {filtered.length === 0 ? (
             <EmptyState title="无匹配工具" description="调整筛选条件或添加新工具" />
           ) : (
-            <table className="w-full text-left text-sm min-w-[720px]">
-              <thead className={isDark ? 'text-slate-400' : 'text-slate-500'}>
-                <tr className={`border-b ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
-                  <th className="py-3 pr-4 font-semibold">名称</th>
-                  <th className="py-3 pr-4 font-semibold">传输</th>
-                  <th className="py-3 pr-4 font-semibold">状态</th>
-                  <th className="py-3 pr-4 font-semibold">版本</th>
-                  <th className="py-3 pr-4 font-semibold">工具数</th>
-                  <th className="py-3 pr-4 font-semibold">更新时间</th>
-                  <th className="py-3 text-right font-semibold">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((r, idx) => (
-                  <tr
-                    key={r.id}
-                    className={`border-b ${isDark ? 'border-white/5' : 'border-slate-100'} ${
-                      isDark ? (idx % 2 === 1 ? 'bg-white/5' : '') : idx % 2 === 1 ? 'bg-slate-50/80' : ''
-                    }`}
-                  >
-                    <td className="py-3 pr-4 font-medium">{r.name}</td>
-                    <td className="py-3 pr-4 font-mono text-xs">{r.transportType}</td>
-                    <td className="py-3 pr-4">
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg ${statusCls(r.status)}`}>
-                        {statusLabel(r.status)}
-                      </span>
-                    </td>
-                    <td className="py-3 pr-4 font-mono text-xs">{r.version}</td>
-                    <td className="py-3 pr-4 tabular-nums">{r.tools.length}</td>
-                    <td className="py-3 pr-4 text-slate-500">{r.updatedAt}</td>
-                    <td className="py-3 text-right">
-                      <button
-                        type="button"
-                        onClick={() => setDeleteTarget(r)}
-                        className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium text-red-500 ${
-                          isDark ? 'hover:bg-white/10' : 'hover:bg-red-50'
-                        }`}
-                      >
-                        <Power size={14} />
-                        删除
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <DataTable<McpServer>
+              columns={[
+                {
+                  key: 'name',
+                  label: '名称',
+                  render: (value) => <span className="font-medium">{value}</span>,
+                },
+                {
+                  key: 'transportType',
+                  label: '传输',
+                  render: (value) => <span className="font-mono text-xs">{value}</span>,
+                },
+                {
+                  key: 'status',
+                  label: '状态',
+                  render: (value, row) => (
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg ${statusCls(row.status)}`}>
+                      {statusLabel(row.status)}
+                    </span>
+                  ),
+                },
+                {
+                  key: 'version',
+                  label: '版本',
+                  render: (value) => <span className="font-mono text-xs">{value}</span>,
+                },
+                {
+                  key: 'tools',
+                  label: '工具数',
+                  render: (value) => <span className="tabular-nums">{(value as any[]).length}</span>,
+                },
+                {
+                  key: 'updatedAt',
+                  label: '更新时间',
+                  render: (value) => <span className="text-slate-500">{value}</span>,
+                },
+              ]}
+              data={paginated}
+              theme={theme}
+              rowActions={[
+                {
+                  label: '编辑',
+                  onClick: (row) => showMessage(`编辑工具 ${row.name}（功能待完善）`, 'info'),
+                },
+                {
+                  label: '删除',
+                  onClick: (row) => setDeleteTarget(row),
+                  icon: <Power size={14} />,
+                  variant: 'danger',
+                },
+              ]}
+              pagination={
+                filtered.length > 0
+                  ? {
+                      currentPage: page,
+                      totalPages: Math.ceil(filtered.length / PAGE_SIZE),
+                      onPageChange: setPage,
+                      pageSize: PAGE_SIZE,
+                    }
+                  : undefined
+              }
+            />
           )}
         </div>
       </ContentLoader>

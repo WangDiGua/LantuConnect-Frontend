@@ -28,6 +28,7 @@ import {
   USER_USAGE_GROUPS,
 } from '../constants/navigation';
 import { ROUTE_ROOT_SUB } from '../constants/routeRoot';
+import { encryptStorage, decryptStorage } from '../lib/security';
 
 export const NAV_STORAGE_KEY = 'lantu-main-nav';
 
@@ -162,9 +163,8 @@ function isValidSubItemForSidebar(sidebarId: string, id: string): boolean {
 
 export function readPersistedNavState(): PersistedNavState {
   try {
-    const raw = localStorage.getItem(NAV_STORAGE_KEY);
-    if (!raw) return { ...DEFAULTS };
-    const p = JSON.parse(raw) as Partial<PersistedNavState>;
+    const p = decryptStorage<Partial<PersistedNavState>>(NAV_STORAGE_KEY);
+    if (!p) return { ...DEFAULTS };
     const activeSidebar = typeof p.activeSidebar === 'string' ? p.activeSidebar : DEFAULTS.activeSidebar;
     let activeSubItem = typeof p.activeSubItem === 'string' ? p.activeSubItem : DEFAULTS.activeSubItem;
     let activeAgentSubItem =
@@ -238,7 +238,7 @@ export function readPersistedNavState(): PersistedNavState {
 
 export function writePersistedNavState(state: PersistedNavState): void {
   try {
-    localStorage.setItem(NAV_STORAGE_KEY, JSON.stringify(state));
+    encryptStorage(NAV_STORAGE_KEY, state);
   } catch {
     /* ignore quota */
   }

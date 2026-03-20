@@ -13,6 +13,7 @@ import {
   Info
 } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
+import { nativeSelectClass } from '../../utils/formFieldClasses';
 
 interface AgentCreateProps {
   theme: Theme;
@@ -235,8 +236,8 @@ export const AgentCreate: React.FC<AgentCreateProps> = ({ theme, fontSize, onBac
           <span className="label-text font-bold">接口地址 (URL)</span>
         </label>
         <div className="join w-full">
-          <select 
-            className="select select-bordered join-item w-32 rounded-xl"
+          <select
+            className={`${nativeSelectClass(theme)} join-item w-32 shrink-0 rounded-l-xl rounded-r-none border-r-0`}
             value={formData.config.method}
             onChange={(e) => setFormData({ ...formData, config: { ...formData.config, method: e.target.value } })}
           >
@@ -245,10 +246,10 @@ export const AgentCreate: React.FC<AgentCreateProps> = ({ theme, fontSize, onBac
             <option>PUT</option>
             <option>DELETE</option>
           </select>
-          <input 
-            type="text" 
-            placeholder="https://api.example.com/v1/..." 
-            className={`input input-bordered join-item flex-1 ${errors.url ? 'input-error' : ''}`}
+          <input
+            type="text"
+            placeholder="https://api.example.com/v1/..."
+            className={`input input-bordered join-item flex-1 rounded-l-none rounded-r-xl ${errors.url ? 'input-error' : ''}`}
             value={formData.config.url}
             onChange={(e) => setFormData({ ...formData, config: { ...formData.config, url: e.target.value } })}
           />
@@ -261,8 +262,8 @@ export const AgentCreate: React.FC<AgentCreateProps> = ({ theme, fontSize, onBac
           <label className="label">
             <span className="label-text font-bold">身份验证</span>
           </label>
-          <select 
-            className="select select-bordered w-full rounded-xl"
+          <select
+            className={nativeSelectClass(theme)}
             value={formData.config.authType}
             onChange={(e) => setFormData({ ...formData, config: { ...formData.config, authType: e.target.value } })}
           >

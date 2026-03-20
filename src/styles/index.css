@@ -70,6 +70,14 @@
   outline-color: rgb(59 130 246 / 0.38) !important;
 }
 
+/* 原生 select 统一样式：自定义下拉箭头（与 §1 控件规范一致，替代浏览器默认三角） */
+.lantu-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+}
+[data-theme="dark"] .lantu-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 5px;

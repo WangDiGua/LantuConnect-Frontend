@@ -11,7 +11,8 @@
 
 | 日期 | 内容摘要 |
 |------|----------|
-| 2026-03-19 | 概览「平台能力」改为对称 **渐变卡片**（去单侧粗边框）；轮播区使用 `group/carousel`，箭头 **悬停或 focus-within** 显示，底部 **圆点条常驻** |
+| 2026-03-19 | **下拉框**：全站原生 select 统一使用 `nativeSelectClass(theme)`；`formFieldClasses` 增加 `appearance-none` + 自定义箭头（`.lantu-select`）；AgentCreate 内两处 Daisy select 改为规范样式；MainLayout 根节点增加 `data-theme` 以支持深色箭头；§1 增加「下拉框统一规范」 |
+| 2026-03-19 | 概览「平台能力」：**素色卡片**（白/ `#1C1C1E` 底、细边框），左图标右文案，中性灰图标底；轮播 `group/carousel` 箭头悬停/focus-within 显示，圆点常驻 |
 | 2026-03-19 | 概览轮播：**左右箭头**仅在卡片 `group-hover` 时显示；**底部圆点指示器**始终可见；工具广场：`MainLayout` 次级侧栏 `TOOL_SQUARE_GROUPS` + `ToolMarketModule`（工具发现 / 我的工具 / 上架 MCP / 创建 MCP）；Agent 观测：`AgentMonitoringPage`、`AgentTracePage`；`views/agent/ToolMarket.tsx` 改为对 `ToolMarketDiscover` 的别名导出 |
 | 2026-03-19 | `main.tsx` 首屏前同步 `document.documentElement` 字号，消除 rem 与外观设置导致的「字先大后小」；`MgmtPageShell` 增加 `titleIcon` 统一子页标题图标；侧栏品牌区 Logo 水平垂直居中；新增 `DocsTutorialPage`、`UserSettingsPage`；概览轮播改为渐变底、序号、左右切换与顶栏进度条 |
 | 2026-03-19 | 概览页：轮播要闻 + 通知公告 + 弱化渐变营销感；无次级侧栏时概览/快捷/个人中心主区 `w-full max-w-none` 占满原次级栏宽度；`Logo` 图形换新（连接弧 + 节点）；`AgentList` / `AgentMarket` / 知识库·数据库创建页下拉统一 `nativeSelectClass`；限流 / API Key / Token 列表工具栏 `TOOLBAR_ROW` + `toolbarSearchInputClass` |
@@ -60,6 +61,12 @@
 - `--radius-selector: 0.75rem`（12px）→ 与字段一致  
 
 手写 Tailwind 时：**控件 = `rounded-xl`，卡片 = `rounded-2xl`**，与上述变量语义一致。
+
+### 下拉框（select）统一规范
+
+- **全站原生 `<select>`** 须使用 **`nativeSelectClass(theme)`**（`src/utils/formFieldClasses.ts`），保证圆角 `rounded-xl`、边框、深浅主题背景/文字一致。
+- 该工具类已包含 **`appearance-none`** 与右侧自定义箭头；箭头图标由 **`index.css` 内 `.lantu-select`** 提供（浅色 stroke 灰、深色 stroke 亮灰），避免浏览器默认三角样式。
+- 与 `join` 组合时：左侧 select 使用 `rounded-l-xl rounded-r-none border-r-0`，右侧 input 使用 `rounded-l-none rounded-r-xl`。
 
 ---
 

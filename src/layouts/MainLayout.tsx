@@ -522,9 +522,12 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
 
   return (
     <LayoutChromeProvider value={{ hasSecondarySidebar }}>
-    <div className={`flex h-screen overflow-hidden transition-all duration-500 ${FONT_FAMILY_CLASSES[fontFamily]} ${
-      theme === 'light' ? 'bg-white text-black' : 'bg-[#000000] text-white'
-    }`}>
+    <div
+      data-theme={theme === 'dark' ? 'dark' : 'light'}
+      className={`flex h-screen overflow-hidden transition-all duration-500 ${FONT_FAMILY_CLASSES[fontFamily]} ${
+        theme === 'light' ? 'bg-white text-black' : 'bg-[#000000] text-white'
+      }`}
+    >
       
       {/* Sidebar - iPadOS/macOS Style */}
       <aside className={`flex-shrink-0 w-60 hidden lg:flex flex-col border-r transition-all duration-300 ${

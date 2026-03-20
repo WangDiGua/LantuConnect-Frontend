@@ -89,64 +89,39 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
     return () => window.clearInterval(t);
   }, [n]);
 
-  /** 平台能力：对称渐变卡片（每卡独立色带，避免单侧强调线造成不对称） */
+  /** 平台能力：与公告区一致的素色卡片 + 中性图标底，避免整卡渐变 */
   const modules = [
     {
       title: '对话助手',
       desc: '日常咨询与任务引导，按需接入工具与知识片段。',
       icon: MessageSquare,
-      light:
-        'bg-gradient-to-br from-sky-100/90 via-white to-blue-50/80 border-sky-200/60',
-      dark: 'bg-gradient-to-br from-sky-500/12 via-[#1C1C1E] to-blue-950/35 border-white/[0.08]',
-      iconRingLight: 'bg-white/90 text-sky-600 ring-1 ring-sky-200/70',
-      iconRingDark: 'bg-white/10 text-sky-200 ring-1 ring-white/10',
     },
     {
       title: 'Agent 管理',
       desc: '列表、创建与测试；知识库、数据库等资产在同一模块维护。',
       icon: Bot,
-      light: 'bg-gradient-to-br from-violet-100/85 via-white to-fuchsia-50/70 border-violet-200/55',
-      dark: 'bg-gradient-to-br from-violet-500/12 via-[#1C1C1E] to-fuchsia-950/30 border-white/[0.08]',
-      iconRingLight: 'bg-white/90 text-violet-600 ring-1 ring-violet-200/70',
-      iconRingDark: 'bg-white/10 text-violet-200 ring-1 ring-white/10',
     },
     {
       title: '模型服务',
       desc: '在线体验、接入配置与精调相关流程入口。',
       icon: Cpu,
-      light: 'bg-gradient-to-br from-cyan-100/80 via-white to-emerald-50/75 border-cyan-200/50',
-      dark: 'bg-gradient-to-br from-cyan-500/10 via-[#1C1C1E] to-emerald-950/28 border-white/[0.08]',
-      iconRingLight: 'bg-white/90 text-cyan-700 ring-1 ring-cyan-200/65',
-      iconRingDark: 'bg-white/10 text-cyan-200 ring-1 ring-white/10',
     },
     {
       title: '监控中心',
       desc: '调用记录、告警与运行概览，便于值班与复盘。',
       icon: Activity,
-      light: 'bg-gradient-to-br from-amber-100/85 via-white to-orange-50/70 border-amber-200/55',
-      dark: 'bg-gradient-to-br from-amber-500/11 via-[#1C1C1E] to-orange-950/28 border-white/[0.08]',
-      iconRingLight: 'bg-white/90 text-amber-700 ring-1 ring-amber-200/65',
-      iconRingDark: 'bg-white/10 text-amber-200 ring-1 ring-white/10',
     },
     {
       title: '用户管理',
       desc: '账号、角色、API Key 与令牌管理。',
       icon: User,
-      light: 'bg-gradient-to-br from-rose-100/80 via-white to-pink-50/75 border-rose-200/50',
-      dark: 'bg-gradient-to-br from-rose-500/10 via-[#1C1C1E] to-pink-950/26 border-white/[0.08]',
-      iconRingLight: 'bg-white/90 text-rose-600 ring-1 ring-rose-200/60',
-      iconRingDark: 'bg-white/10 text-rose-200 ring-1 ring-white/10',
     },
     {
       title: '系统配置',
       desc: '模型接入、限流与审计日志等运维配置。',
       icon: Settings,
-      light: 'bg-gradient-to-br from-slate-200/70 via-white to-slate-100/90 border-slate-300/60',
-      dark: 'bg-gradient-to-br from-slate-500/15 via-[#1C1C1E] to-slate-900/40 border-white/[0.08]',
-      iconRingLight: 'bg-white/90 text-slate-700 ring-1 ring-slate-300/70',
-      iconRingDark: 'bg-white/10 text-slate-200 ring-1 ring-white/10',
     },
-  ] as const;
+  ];
 
   const shortcuts = [
     { label: '快捷入口', icon: Zap, hint: '收藏与常用能力' },
@@ -363,46 +338,42 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
           </aside>
         </div>
 
-        {/* 平台能力：对称渐变卡片网格 */}
+        {/* 平台能力：素色卡片 + 左图右文，对齐通知公告/常用入口气质 */}
         <section className="space-y-5">
           <h2
             className={`text-sm font-bold tracking-tight flex items-center gap-2 ${
               isDark ? 'text-white' : 'text-slate-900'
             }`}
           >
-            <span className="w-1 h-4 rounded-full bg-gradient-to-b from-blue-500 to-indigo-500 shrink-0" aria-hidden />
+            <span className="w-1 h-4 rounded-full bg-slate-400 dark:bg-slate-500 shrink-0" aria-hidden />
             平台能力
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {modules.map((m) => (
               <motion.div
                 key={m.title}
-                whileHover={{ y: -2 }}
-                transition={{ duration: 0.2 }}
-                className={`relative rounded-2xl border overflow-hidden shadow-none transition-shadow duration-200 ${
-                  isDark ? m.dark : m.light
-                } ${isDark ? 'hover:shadow-lg hover:shadow-black/25' : 'hover:shadow-md hover:shadow-slate-300/50'}`}
+                whileHover={{ y: -1 }}
+                transition={{ duration: 0.18 }}
+                className={`rounded-2xl border shadow-none transition-colors duration-200 ${
+                  isDark
+                    ? 'bg-[#1C1C1E] border-white/10 hover:border-white/[0.14] hover:bg-[#222226]'
+                    : 'bg-white border-slate-200/80 hover:border-slate-300'
+                }`}
               >
-                <div
-                  className="pointer-events-none absolute inset-0 opacity-40 dark:opacity-25"
-                  style={{
-                    backgroundImage: isDark
-                      ? 'radial-gradient(ellipse 90% 70% at 100% 0%, rgba(255,255,255,0.08), transparent 55%)'
-                      : 'radial-gradient(ellipse 85% 65% at 100% 0%, rgba(255,255,255,0.85), transparent 50%)',
-                  }}
-                />
-                <div className="relative z-10 p-5 sm:p-5">
+                <div className="flex gap-4 p-4 sm:p-5 items-start">
                   <div
-                    className={`inline-flex w-11 h-11 rounded-xl items-center justify-center mb-3.5 ${
-                      isDark ? m.iconRingDark : m.iconRingLight
+                    className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ${
+                      isDark ? 'bg-white/[0.06] text-slate-400' : 'bg-slate-100 text-slate-600'
                     }`}
                   >
                     <m.icon size={20} strokeWidth={2} />
                   </div>
-                  <h3 className={`text-base font-bold mb-1.5 ${isDark ? 'text-white' : 'text-slate-900'}`}>{m.title}</h3>
-                  <p className={`text-[12px] leading-relaxed ${isDark ? 'text-slate-300/90' : 'text-slate-700/85'}`}>
-                    {m.desc}
-                  </p>
+                  <div className="min-w-0 flex-1 pt-0.5">
+                    <h3 className={`text-[15px] font-bold leading-snug mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                      {m.title}
+                    </h3>
+                    <p className={`text-[12px] leading-relaxed ${isDark ? 'text-slate-500' : 'text-slate-600'}`}>{m.desc}</p>
+                  </div>
                 </div>
               </motion.div>
             ))}

@@ -31,7 +31,7 @@ export const MonitoringModule: React.FC<MonitoringModuleProps> = ({
       return <AlertMgmtPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
     case '性能分析':
       return <PerformanceAnalysisPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
-    case '资源监控':
+    case 'resource-monitoring':
       return <InfraResourceMonitorPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
     case '全链路 Trace':
       return <PlatformTracePage theme={theme} fontSize={fontSize} showMessage={showMessage} />;

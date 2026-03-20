@@ -56,7 +56,7 @@ export const AgentExtrasUserModule: React.FC<AgentExtrasUserModuleProps> = ({
 
   const selectedFlow = flows.find((f) => f.id === selectedFlowId) ?? flows[0];
 
-  if (activeAgentSubItem === '对话流编排') {
+  if (activeAgentSubItem === 'conversation-flow') {
     return (
       <UserAppShell theme={theme} fontSize={fontSize} title="对话流编排" subtitle="选择流程、追加节点并保存（Mock）">
         <div className="grid lg:grid-cols-3 gap-4">
@@ -169,7 +169,7 @@ export const AgentExtrasUserModule: React.FC<AgentExtrasUserModuleProps> = ({
     );
   }
 
-  if (activeAgentSubItem === '版本与发布') {
+  if (activeAgentSubItem === 'version-publish') {
     if (!agentId) {
       return (
         <UserAppShell theme={theme} fontSize={fontSize} title="版本与发布" subtitle="创建版本、发布到生产">

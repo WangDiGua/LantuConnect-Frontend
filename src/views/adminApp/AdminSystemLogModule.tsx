@@ -216,7 +216,7 @@ export const AdminSystemLogModule: React.FC<Props> = ({ activeSubItem, theme, fo
   if (activeSubItem === '错误日志') {
     return <ErrLogsTab theme={theme} fontSize={fontSize} showMessage={showMessage} />;
   }
-  if (activeSubItem === '审计日志') {
+  if (activeSubItem === 'audit-log') {
     return <AuditLogsTab theme={theme} fontSize={fontSize} showMessage={showMessage} />;
   }
 

@@ -27,7 +27,7 @@ export const SystemConfigModule: React.FC<SystemConfigModuleProps> = ({
   showMessage,
 }) => {
   switch (activeSubItem) {
-    case '模型配置':
+    case 'model-config':
       return (
         <ModelConfigPage
           theme={theme}
@@ -36,7 +36,7 @@ export const SystemConfigModule: React.FC<SystemConfigModuleProps> = ({
           breadcrumbSegments={['系统配置', '模型配置']}
         />
       );
-    case '限流策略':
+    case 'rate-limit':
       return (
         <RateLimitPage
           theme={theme}
@@ -45,7 +45,7 @@ export const SystemConfigModule: React.FC<SystemConfigModuleProps> = ({
           breadcrumbSegments={['系统配置', '限流策略']}
         />
       );
-    case '审计日志':
+    case 'audit-log':
       return (
         <AuditLogPage
           theme={theme}
@@ -54,15 +54,15 @@ export const SystemConfigModule: React.FC<SystemConfigModuleProps> = ({
           breadcrumbSegments={['系统配置', '审计日志']}
         />
       );
-    case '系统参数':
+    case 'system-params':
       return <SystemParamsPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
-    case '安全设置':
+    case 'security-settings':
       return <SecuritySettingsPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
-    case '网络配置':
+    case 'network-config':
       return <NetworkConfigPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
-    case '配额管理':
+    case 'quota-management':
       return <SystemQuotaPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
-    case '访问控制':
+    case 'access-control':
       return <AccessControlPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
     default:
       return <PlaceholderView title={activeSubItem} theme={theme} fontSize={fontSize} />;

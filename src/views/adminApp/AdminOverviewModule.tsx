@@ -23,7 +23,7 @@ export const AdminOverviewModule: React.FC<Props> = ({ activeSubItem, theme, fon
   const statsQ = useAdminStats();
   const healthQ = useAdminHealth();
 
-  if (activeSubItem === '资源监控') {
+  if (activeSubItem === 'resource-monitoring') {
     if (resourcesQ.isPending) {
       return (
         <UserAppShell theme={theme} fontSize={fontSize} title="资源监控" subtitle="集群与存储占用">
@@ -82,7 +82,7 @@ export const AdminOverviewModule: React.FC<Props> = ({ activeSubItem, theme, fon
     );
   }
 
-  if (activeSubItem === '使用统计') {
+  if (activeSubItem === 'usage-statistics') {
     if (statsQ.isPending) {
       return (
         <UserAppShell theme={theme} fontSize={fontSize} title="使用统计" subtitle="租户与调用聚合">
@@ -151,7 +151,7 @@ export const AdminOverviewModule: React.FC<Props> = ({ activeSubItem, theme, fon
     );
   }
 
-  if (activeSubItem === '健康检查') {
+  if (activeSubItem === 'health-check') {
     if (healthQ.isPending) {
       return (
         <UserAppShell theme={theme} fontSize={fontSize} title="健康检查" subtitle="核心服务探活">

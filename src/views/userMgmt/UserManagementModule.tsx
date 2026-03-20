@@ -22,11 +22,11 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({
   showMessage,
 }) => {
   switch (activeSubItem) {
-    case '用户管理':
+    case 'user-management':
       return <UserListPage theme={theme} fontSize={fontSize} breadcrumbBase={['用户管理']} />;
-    case '角色管理':
+    case 'role-management':
       return <RoleListPage theme={theme} fontSize={fontSize} breadcrumbBase={['用户管理', '角色管理']} />;
-    case 'API Key 管理':
+    case 'api-key-management':
       return (
         <ApiKeyListPage
           theme={theme}
@@ -35,7 +35,7 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({
           breadcrumbSegments={['用户管理', 'API Key 管理']}
         />
       );
-    case 'Token 管理':
+    case 'token-management':
       return (
         <TokenListPage
           theme={theme}
@@ -44,7 +44,7 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({
           breadcrumbSegments={['用户管理', 'Token 管理']}
         />
       );
-    case '组织架构':
+    case 'org-structure':
       return <OrgStructurePage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
     default:
       return <PlaceholderView title={activeSubItem} theme={theme} fontSize={fontSize} />;

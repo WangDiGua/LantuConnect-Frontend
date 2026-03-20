@@ -137,7 +137,7 @@ export const UserSettingsExtrasModule: React.FC<UserSettingsExtrasModuleProps> =
     );
   }
 
-  if (activeSubItem === 'API Key') {
+  if (activeSubItem === 'api-key') {
     if (keysQ.isLoading) {
       return (
         <UserAppShell theme={theme} fontSize={fontSize} title="API Key" subtitle="创建、复制与吊销">
@@ -250,7 +250,7 @@ export const UserSettingsExtrasModule: React.FC<UserSettingsExtrasModuleProps> =
     );
   }
 
-  if (activeSubItem === '使用统计') {
+  if (activeSubItem === 'usage-statistics') {
     if (statsQ.isLoading) {
       return (
         <UserAppShell theme={theme} fontSize={fontSize} title="使用统计" subtitle="调用量与资源概览">

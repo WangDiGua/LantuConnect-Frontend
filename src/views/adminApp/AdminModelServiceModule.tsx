@@ -51,7 +51,7 @@ export const AdminModelServiceModule: React.FC<Props> = ({ activeSubItem, theme,
   const endpointList = endpointsQ.data ?? [];
   const tableWrap = `overflow-x-auto rounded-2xl border ${theme === 'light' ? 'border-slate-200/80' : 'border-white/10'}`;
 
-  if (activeSubItem === '模型接入') {
+  if (activeSubItem === 'model-integration') {
     if (endpointsQ.isPending) {
       return (
         <UserAppShell theme={theme} fontSize={fontSize} title="模型接入" subtitle="登记上游推理地址">
@@ -216,7 +216,7 @@ export const AdminModelServiceModule: React.FC<Props> = ({ activeSubItem, theme,
     );
   }
 
-  if (activeSubItem === '模型配置') {
+  if (activeSubItem === 'model-config') {
     return (
       <UserAppShell theme={theme} fontSize={fontSize} title="模型配置（平台）" subtitle="与租户侧配置互补：此处管全局路由与默认模型">
         <div className={`${cardClass(theme)} p-4 max-w-xl space-y-3`}>
@@ -235,7 +235,7 @@ export const AdminModelServiceModule: React.FC<Props> = ({ activeSubItem, theme,
     );
   }
 
-  if (activeSubItem === '模型测试') {
+  if (activeSubItem === 'model-test') {
     if (endpointsQ.isPending) {
       return (
         <UserAppShell theme={theme} fontSize={fontSize} title="模型测试" subtitle="联调任意已接入端点">
@@ -287,7 +287,7 @@ export const AdminModelServiceModule: React.FC<Props> = ({ activeSubItem, theme,
     );
   }
 
-  if (activeSubItem === '推理路由') {
+  if (activeSubItem === 'inference-routing') {
     return (
       <UserAppShell theme={theme} fontSize={fontSize} title="推理路由" subtitle="权重分流与灰度（Mock）">
         <button
@@ -331,7 +331,7 @@ export const AdminModelServiceModule: React.FC<Props> = ({ activeSubItem, theme,
     );
   }
 
-  if (activeSubItem === '模型监控') {
+  if (activeSubItem === 'model-monitoring') {
     if (endpointsQ.isPending) {
       return (
         <UserAppShell theme={theme} fontSize={fontSize} title="模型监控" subtitle="错误率与延迟分位（Mock）">
@@ -365,7 +365,7 @@ export const AdminModelServiceModule: React.FC<Props> = ({ activeSubItem, theme,
     );
   }
 
-  if (activeSubItem === '配额管理') {
+  if (activeSubItem === 'quota-management') {
     return (
       <UserAppShell theme={theme} fontSize={fontSize} title="配额管理（算力）" subtitle="按工作空间限制 Token / 调用（Mock）">
         <div className={tableWrap}>
@@ -399,7 +399,7 @@ export const AdminModelServiceModule: React.FC<Props> = ({ activeSubItem, theme,
     );
   }
 
-  if (activeSubItem === '成本统计') {
+  if (activeSubItem === 'cost-statistics') {
     return (
       <UserAppShell theme={theme} fontSize={fontSize} title="成本统计" subtitle="按模型与租户汇总（Mock）">
         <div className={`${cardClass(theme)} p-4 mb-4`}>
@@ -413,7 +413,7 @@ export const AdminModelServiceModule: React.FC<Props> = ({ activeSubItem, theme,
     );
   }
 
-  if (activeSubItem === 'GPU 资源池') {
+  if (activeSubItem === 'gpu-pool') {
     return (
       <UserAppShell theme={theme} fontSize={fontSize} title="GPU 资源池" subtitle="节点占用与任务绑定（Mock）">
         <div className="space-y-3">

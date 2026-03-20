@@ -31,7 +31,7 @@ export const AdminToolManagementModule: React.FC<Props> = ({ activeSubItem, them
   const reviewsQ = useAdminToolReviews();
   const updateReviewMut = useUpdateToolReview();
 
-  if (activeSubItem === '工具审核') {
+  if (activeSubItem === 'tool-review') {
     if (reviewsQ.isPending) {
       return (
         <UserAppShell theme={theme} fontSize={fontSize} title="工具审核" subtitle="上架前安全与合规检查">
@@ -129,7 +129,7 @@ export const AdminToolManagementModule: React.FC<Props> = ({ activeSubItem, them
     );
   }
 
-  if (activeSubItem === 'MCP Server 审核') {
+  if (activeSubItem === 'mcp-review') {
     return (
       <UserAppShell theme={theme} fontSize={fontSize} title="MCP 审核" subtitle="Server 清单与版本核验">
         <div className={cardClass(theme)}>
@@ -152,7 +152,7 @@ export const AdminToolManagementModule: React.FC<Props> = ({ activeSubItem, them
     );
   }
 
-  if (activeSubItem === '插件签名') {
+  if (activeSubItem === 'plugin-signature') {
     return (
       <UserAppShell theme={theme} fontSize={fontSize} title="插件签名" subtitle="上传构建产物校验签名链（Mock）">
         <div className={`${cardClass(theme)} p-4 max-w-xl space-y-3`}>

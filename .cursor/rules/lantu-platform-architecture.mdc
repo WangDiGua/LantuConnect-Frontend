@@ -1,0 +1,81 @@
+---
+description: LantuConnect 统一智能接入平台的架构设计、核心概念和开发约定
+alwaysApply: true
+---
+
+# LantuConnect 统一智能接入平台
+
+## 平台定位
+
+LantuConnect（兰智通）是面向高校的**统一智能能力接入平台**，定位为**注册网关型**。
+核心职责：注册、发现、路由、鉴权、监控。Agent/Skill 本身在外部系统中运行。
+
+## 三类能力提供方
+
+- **internal（公司产品）**：低代码平台、工作流生产工具、代码 Agent、页面型智能应用
+- **partner（第三方校园服务商）**：给学校提供服务的合作公司
+- **cloud（云智能能力）**：阿里云百炼、火山引擎等在线 AI 服务商
+
+## 技术栈
+
+- 前端：React + TypeScript + Vite + TailwindCSS + Zustand + React Query
+- 后端：Java / Spring Boot
+- 数据库：MySQL 8.x（库名 `robot_factory_cloud`）
+- 接入协议：REST / MCP / OpenAPI / Webhook / SSE / 容器化
+
+## 核心数据库表
+
+主表 `genie_external_agent`：统一 Agent/Tool 注册表，通过 `mode` 区分类型：
+- `TOOL`：工具/技能，被 LLM 直接调用
+- `SUBAGENT`：子 Agent，有独立推理能力
+- `PAGE_APP`：页面型应用，通过 iframe/微前端嵌入
+
+通过 `agent_type` 区分接入协议：`mcp` / `http_api` / `builtin`
+
+权限表 `genie_agent_permission`：基于权限组控制 Agent 可见性，scope 分 `global/corp/client`
+
+## 关键设计决策
+
+1. **不单独管理 Skill 表**：Skill/Tool 统一在 `genie_external_agent` 中管理，`mode=TOOL` 即为技能
+2. **MCP Server 层级管理**：通过 `parent_id` 字段实现 MCP Server → Tool 的父子关系，Server 存连接配置，子 Tool 继承
+3. **两种调度模式并存**：
+   - API 直调：业务系统通过 `agent_code` 精准调用，适合后端集成
+   - LLM 智能路由：主 Agent 根据用户意图自动选择 Tool，适合对话场景
+4. **智能应用 = PAGE_APP 类型 Agent**：独立前端应用在平台注册后通过 iframe 嵌入，或由平台页面模板+后端 Agent 组合而成
+
+## source_type 枚举
+
+| 值 | 含义 |
+|---|---|
+| `platform_builtin` | 平台内置能力（知识库搜索、任务调度） |
+| `lowcode` | 公司低代码平台产出的 Agent |
+| `workflow` | 公司工作流引擎编排的 Agent |
+| `code_agent` | 公司自研代码 Agent |
+| `page_app` | 页面型智能应用 |
+| `mcp_cloud` | 云 MCP 服务（阿里云、火山引擎） |
+| `http_partner` | 第三方校园服务商 REST API |
+
+## 扩展表（规划中）
+
+- `genie_provider`：服务提供商管理（internal/partner/cloud）
+- `genie_category`：Agent 分类体系（树形结构）
+- `genie_agent_metrics`：运行指标（从主表拆出）
+- `genie_health_config`：健康检查配置
+- `genie_circuit_breaker`：熔断降级配置
+- `genie_agent_version`：版本管理
+- `genie_agent_tag`：标签系统
+- `genie_access_quota`：调用配额/限流
+
+## 前端路由约定
+
+控制台路径格式：`/c/{admin|user}/{sidebar}/{sub}`
+- Admin 视角管理全局 Agent 注册、提供商、监控、权限
+- User 视角使用 Agent、创建工具、查看用量
+
+## 开发约定
+
+- API 服务层在 `src/api/services/` 下按领域拆分
+- DTO 类型定义在 `src/types/dto/` 下
+- Mock 数据在 `src/lib/mock/handlers/` 下
+- 状态管理使用 Zustand（`src/stores/`）+ React Context（`src/context/`）
+- 导航配置在 `src/constants/navigation.ts`，中英文路由映射在 `src/constants/routeMapping.ts`

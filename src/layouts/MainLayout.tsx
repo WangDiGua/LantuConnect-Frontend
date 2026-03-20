@@ -116,6 +116,7 @@ import {
   parseConsoleRole,
   type ConsoleRole,
 } from '../constants/consoleRoutes';
+import { toChineseLabel } from '../constants/routeMapping';
 import { ROUTE_ROOT_SUB } from '../constants/routeRoot';
 import { ContentLoader } from '../components/common/ContentLoader';
 
@@ -161,13 +162,17 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
 
   useLayoutEffect(() => {
     const r = parseConsoleRole(params.role);
-    const sb = params.sidebar;
-    const tb = params.sub;
-    if (r == null || sb === undefined || tb === undefined) return;
-    if (!isValidConsolePath(r, sb, tb)) {
+    const sbEn = params.sidebar;
+    const tbEn = params.sub;
+    if (r == null || sbEn === undefined || tbEn === undefined) return;
+    if (!isValidConsolePath(r, sbEn, tbEn)) {
       navigate(defaultConsolePath(r), { replace: true });
       return;
     }
+    // 将英文路由转换为中文标签
+    const sb = toChineseLabel(sbEn, r === 'admin');
+    const tb = toChineseLabel(tbEn, r === 'admin');
+    
     const want = r === 'admin' ? 'admin' : 'user';
     if (role !== want) setRole(want);
     setActiveSidebar(sb);

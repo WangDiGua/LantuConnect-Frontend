@@ -102,26 +102,38 @@ export const Logo: React.FC<LogoProps> = ({
   compact = false,
   theme = 'light',
 }) => {
-  const iconSize = compact ? 22 : 28;
+  const isDark = theme === 'dark';
+  const lantuColor = isDark ? '#F1F5F9' : '#0F172A';
+  const connectColor = isDark ? '#60A5FA' : '#2563EB';
+  
+  // 根据fontSize和compact调整文字大小
+  const textSizeClass = compact 
+    ? 'text-lg' 
+    : fontSize === 'small' 
+      ? 'text-xl' 
+      : fontSize === 'large' 
+        ? 'text-3xl' 
+        : 'text-2xl';
 
   if (compact) {
     return (
       <span
-        className="inline-flex items-center justify-center select-none"
+        className={`inline-flex items-center select-none font-bold tracking-tight ${textSizeClass}`}
         title="LantuConnect"
       >
-        <CompactLogo size={iconSize} />
+        <span style={{ color: lantuColor }}>Lantu</span>
+        <span style={{ color: connectColor }} className="ml-0.5">Connect</span>
       </span>
     );
   }
 
   return (
     <span
-      className="inline-flex items-center gap-2 select-none"
+      className={`inline-flex items-center gap-1 select-none font-bold tracking-tight ${textSizeClass}`}
       title="LantuConnect"
     >
-      <CompactLogo size={iconSize} />
-      <LantuConnectWordmark className="h-6 w-auto" theme={theme} />
+      <span style={{ color: lantuColor }}>Lantu</span>
+      <span style={{ color: connectColor }}>Connect</span>
     </span>
   );
 };

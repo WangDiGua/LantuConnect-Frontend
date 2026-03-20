@@ -116,7 +116,6 @@ import {
   parseConsoleRole,
   type ConsoleRole,
 } from '../constants/consoleRoutes';
-import { toChineseLabel } from '../constants/routeMapping';
 import { ROUTE_ROOT_SUB } from '../constants/routeRoot';
 import { ContentLoader } from '../components/common/ContentLoader';
 
@@ -162,29 +161,25 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
 
   useLayoutEffect(() => {
     const r = parseConsoleRole(params.role);
-    const sbEn = params.sidebar;
-    const tbEn = params.sub;
-    if (r == null || sbEn === undefined || tbEn === undefined) return;
+    const sidebar = params.sidebar;
+    const sub = params.sub;
+    if (r == null || sidebar === undefined || sub === undefined) return;
     
-    if (!isValidConsolePath(r, sbEn, tbEn)) {
+    if (!isValidConsolePath(r, sidebar, sub)) {
       navigate(defaultConsolePath(r), { replace: true });
       return;
     }
     
-    // 将英文路由转换为中文标签
-    const sb = toChineseLabel(sbEn, r === 'admin');
-    const tb = toChineseLabel(tbEn, r === 'admin');
-    
     const want = r === 'admin' ? 'admin' : 'user';
     if (role !== want) setRole(want);
-    setActiveSidebar(sb);
-    if (sb === '我的 Agent') {
-      setActiveAgentSubItem(tb);
+    setActiveSidebar(sidebar);
+    if (sidebar === 'my-agent') {
+      setActiveAgentSubItem(sub);
     } else {
-      setActiveSubItem(tb);
+      setActiveSubItem(sub);
     }
-    const g = getNavSubGroups(sb, r === 'admin');
-    setExpandedGroups(g.length > 0 ? [sb] : []);
+    const g = getNavSubGroups(sidebar, r === 'admin');
+    setExpandedGroups(g.length > 0 ? [sidebar] : []);
   }, [params.role, params.sidebar, params.sub, navigate, setRole, role]);
   const [isLoggedIn, setIsLoggedIn] = useState(true);
   const [themeColor, setThemeColor] = useState<ThemeColor>(() => readAppearanceState().themeColor);
@@ -359,7 +354,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
   const handleAgentSubItemClick = (id: string) => {
     setActiveAgentView('list');
     setSelectedAgentId(null);
-    navigate(buildConsolePath(getConsoleRole(), '我的 Agent', id));
+    navigate(buildConsolePath(getConsoleRole(), 'my-agent', id));
   };
 
   const renderSidebarContent = () => {
@@ -369,45 +364,45 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
     let prefix = '';
 
     if (layoutIsAdmin) {
-      if (activeSidebar === '系统概览') { groups = ADMIN_OVERVIEW_GROUPS; prefix = 'admin-overview-'; }
-      else if (activeSidebar === '系统配置') { groups = ADMIN_SYSTEM_CONFIG_GROUPS; prefix = 'admin-sys-'; }
-      else if (activeSidebar === '用户管理') { groups = ADMIN_USER_MANAGEMENT_GROUPS; prefix = 'admin-user-'; }
-      else if (activeSidebar === '模型服务管理') { groups = ADMIN_MODEL_SERVICE_GROUPS; prefix = 'admin-model-'; }
-      else if (activeSidebar === '工具管理') { groups = ADMIN_TOOL_MANAGEMENT_GROUPS; prefix = 'admin-tool-'; }
-      else if (activeSidebar === '运营与安全') { groups = ADMIN_OPS_SECURITY_GROUPS; prefix = 'admin-ops-'; }
-      else if (activeSidebar === '集成与中台') { groups = ADMIN_INTEGRATION_GROUPS; prefix = 'admin-integ-'; }
-      else if (activeSidebar === '监控中心') { groups = ADMIN_MONITORING_GROUPS; prefix = 'admin-mon-'; }
-      else if (activeSidebar === '数据管理') { groups = ADMIN_DATA_MANAGEMENT_GROUPS; prefix = 'admin-data-'; }
-      else if (activeSidebar === '系统日志') { groups = ADMIN_SYSTEM_LOG_GROUPS; prefix = 'admin-log-'; }
+      if (activeSidebar === 'overview') { groups = ADMIN_OVERVIEW_GROUPS; prefix = 'admin-overview-'; }
+      else if (activeSidebar === 'system-config') { groups = ADMIN_SYSTEM_CONFIG_GROUPS; prefix = 'admin-sys-'; }
+      else if (activeSidebar === 'user-management') { groups = ADMIN_USER_MANAGEMENT_GROUPS; prefix = 'admin-user-'; }
+      else if (activeSidebar === 'model-service') { groups = ADMIN_MODEL_SERVICE_GROUPS; prefix = 'admin-model-'; }
+      else if (activeSidebar === 'tool-management') { groups = ADMIN_TOOL_MANAGEMENT_GROUPS; prefix = 'admin-tool-'; }
+      else if (activeSidebar === 'ops-security') { groups = ADMIN_OPS_SECURITY_GROUPS; prefix = 'admin-ops-'; }
+      else if (activeSidebar === 'integration') { groups = ADMIN_INTEGRATION_GROUPS; prefix = 'admin-integ-'; }
+      else if (activeSidebar === 'monitoring') { groups = ADMIN_MONITORING_GROUPS; prefix = 'admin-mon-'; }
+      else if (activeSidebar === 'data-management') { groups = ADMIN_DATA_MANAGEMENT_GROUPS; prefix = 'admin-data-'; }
+      else if (activeSidebar === 'system-log') { groups = ADMIN_SYSTEM_LOG_GROUPS; prefix = 'admin-log-'; }
     } else {
-      if (activeSidebar === '工作台') { groups = USER_WORKSPACE_GROUPS; prefix = 'user-workspace-'; }
-      else if (activeSidebar === '我的 Agent') { groups = USER_AGENT_MANAGEMENT_GROUPS; activeItem = activeAgentSubItem; setActive = handleAgentSubItemClick; prefix = 'user-agent-'; }
-      else if (activeSidebar === '工作流') { groups = USER_WORKFLOW_GROUPS; prefix = 'user-flow-'; }
-      else if (activeSidebar === '我的资产') { groups = USER_ASSETS_GROUPS; prefix = 'user-assets-'; }
-      else if (activeSidebar === '模型服务') { groups = USER_MODEL_SERVICE_GROUPS; prefix = 'user-model-'; }
-      else if (activeSidebar === '工具广场') { groups = USER_TOOL_SQUARE_GROUPS; prefix = 'user-tool-'; }
-      else if (activeSidebar === '发布与连接') { groups = USER_PUBLISH_GROUPS; prefix = 'user-pub-'; }
-      else if (activeSidebar === '我的数据') { groups = USER_DATA_GROUPS; prefix = 'user-data-'; }
-      else if (activeSidebar === '用量账单') { groups = USER_USAGE_GROUPS; prefix = 'user-usage-'; }
-      else if (activeSidebar === '个人设置') { groups = USER_SETTINGS_GROUPS; prefix = 'user-settings-'; }
+      if (activeSidebar === 'workspace') { groups = USER_WORKSPACE_GROUPS; prefix = 'user-workspace-'; }
+      else if (activeSidebar === 'my-agent') { groups = USER_AGENT_MANAGEMENT_GROUPS; activeItem = activeAgentSubItem; setActive = handleAgentSubItemClick; prefix = 'user-agent-'; }
+      else if (activeSidebar === 'workflow') { groups = USER_WORKFLOW_GROUPS; prefix = 'user-flow-'; }
+      else if (activeSidebar === 'my-assets') { groups = USER_ASSETS_GROUPS; prefix = 'user-assets-'; }
+      else if (activeSidebar === 'model-service') { groups = USER_MODEL_SERVICE_GROUPS; prefix = 'user-model-'; }
+      else if (activeSidebar === 'tool-square') { groups = USER_TOOL_SQUARE_GROUPS; prefix = 'user-tool-'; }
+      else if (activeSidebar === 'publish-connect') { groups = USER_PUBLISH_GROUPS; prefix = 'user-pub-'; }
+      else if (activeSidebar === 'my-data') { groups = USER_DATA_GROUPS; prefix = 'user-data-'; }
+      else if (activeSidebar === 'usage-billing') { groups = USER_USAGE_GROUPS; prefix = 'user-usage-'; }
+      else if (activeSidebar === 'user-settings') { groups = USER_SETTINGS_GROUPS; prefix = 'user-settings-'; }
     }
 
     // 兼容旧版本菜单
     if (groups.length === 0) {
-      if (activeSidebar === '概览' || activeSidebar === '快捷入口' || activeSidebar === 'AI 助手' || activeSidebar === '文档教程') { 
+      if (activeSidebar === 'overview' || activeSidebar === 'quick-access' || activeSidebar === 'ai-assistant' || activeSidebar === 'docs-tutorial') { 
         groups = []; 
       }
-      else if (activeSidebar === 'Agent 管理') { 
+      else if (activeSidebar === 'agent-management') { 
         groups = AGENT_MANAGEMENT_GROUPS; 
         activeItem = activeAgentSubItem; 
         setActive = handleAgentSubItemClick; 
         prefix = 'agent-'; 
       }
-      else if (activeSidebar === '监控中心') { groups = MONITORING_GROUPS; prefix = 'mon-'; }
-      else if (activeSidebar === '系统配置') { groups = SYSTEM_CONFIG_GROUPS; prefix = 'sys-'; }
-      else if (activeSidebar === '用户管理') { groups = USER_MANAGEMENT_GROUPS; prefix = 'user-'; }
-      else if (activeSidebar === '模型服务') { groups = MODEL_SERVICE_GROUPS; prefix = 'model-'; }
-      else if (activeSidebar === '工具广场') { groups = TOOL_SQUARE_GROUPS; prefix = 'tool-'; }
+      else if (activeSidebar === 'monitoring') { groups = MONITORING_GROUPS; prefix = 'mon-'; }
+      else if (activeSidebar === 'system-config') { groups = SYSTEM_CONFIG_GROUPS; prefix = 'sys-'; }
+      else if (activeSidebar === 'user-management') { groups = USER_MANAGEMENT_GROUPS; prefix = 'user-'; }
+      else if (activeSidebar === 'model-service') { groups = MODEL_SERVICE_GROUPS; prefix = 'model-'; }
+      else if (activeSidebar === 'tool-square') { groups = TOOL_SQUARE_GROUPS; prefix = 'tool-'; }
     }
 
     if (groups.length === 0) return null;
@@ -464,7 +459,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
   const contentKey = useMemo(() => {
     // 只包含真正影响内容的状态
     const parts: string[] = [activeSidebar];
-    if (activeSidebar === '我的 Agent' || activeSidebar === 'Agent 管理') {
+    if (activeSidebar === 'my-agent' || activeSidebar === 'agent-management') {
       parts.push(activeAgentSubItem || '');
       if (activeAgentSubItem === AGENT_WORKSPACE_SUBITEM_ID) {
         parts.push(activeAgentView);
@@ -511,8 +506,8 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
     const content = (() => {
       // ==================== 管理员菜单内容 ====================
       if (layoutIsAdmin) {
-        if (activeSidebar === '系统概览') {
-          if (activeSubItem === '系统概览') {
+        if (activeSidebar === 'overview') {
+          if (activeSubItem === 'overview') {
             return <Overview theme={theme} fontSize={fontSize} />;
           }
           return (
@@ -525,7 +520,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
           );
         }
 
-        if (activeSidebar === '运营与安全') {
+        if (activeSidebar === 'ops-security') {
           return (
             <AdminOpsSecurityModule
               activeSubItem={activeSubItem}
@@ -536,7 +531,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
           );
         }
 
-        if (activeSidebar === '集成与中台') {
+        if (activeSidebar === 'integration') {
           return (
             <AdminIntegrationModule
               activeSubItem={activeSubItem}
@@ -547,15 +542,15 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
           );
         }
 
-        if (activeSidebar === '系统配置') {
+        if (activeSidebar === 'system-config') {
           return <SystemConfigModule activeSubItem={activeSubItem} theme={theme} fontSize={fontSize} showMessage={showMessage} />;
         }
 
-        if (activeSidebar === '用户管理') {
+        if (activeSidebar === 'user-management') {
           return <UserManagementModule activeSubItem={activeSubItem} theme={theme} fontSize={fontSize} showMessage={showMessage} />;
         }
 
-        if (activeSidebar === '模型服务管理') {
+        if (activeSidebar === 'model-service') {
           return (
             <AdminModelServiceModule
               activeSubItem={activeSubItem}
@@ -566,7 +561,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
           );
         }
 
-        if (activeSidebar === '工具管理') {
+        if (activeSidebar === 'tool-management') {
           return (
             <AdminToolManagementModule
               activeSubItem={activeSubItem}
@@ -577,11 +572,11 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
           );
         }
 
-        if (activeSidebar === '监控中心') {
+        if (activeSidebar === 'monitoring') {
           return <MonitoringModule activeSubItem={activeSubItem} theme={theme} fontSize={fontSize} showMessage={showMessage} />;
         }
 
-        if (activeSidebar === '数据管理') {
+        if (activeSidebar === 'data-management') {
           return (
             <AdminDataManagementModule
               activeSubItem={activeSubItem}
@@ -592,7 +587,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
           );
         }
 
-        if (activeSidebar === '系统日志') {
+        if (activeSidebar === 'system-log') {
           return (
             <AdminSystemLogModule
               activeSubItem={activeSubItem}
@@ -606,22 +601,22 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
 
       // ==================== 普通用户菜单内容 ====================
       if (!layoutIsAdmin) {
-        if (activeSidebar === '工作台') {
-          if (activeSubItem === '概览') {
+        if (activeSidebar === 'workspace') {
+          if (activeSubItem === 'overview') {
             return <Overview theme={theme} fontSize={fontSize} />;
           }
-          if (activeSubItem === '快捷入口') {
+          if (activeSubItem === 'quick-access') {
             return <QuickAccess theme={theme} fontSize={fontSize} />;
           }
-          if (activeSubItem === '最近项目') {
+          if (activeSubItem === 'recent-projects') {
             return (
               <RecentProjectsPage theme={theme} fontSize={fontSize} showMessage={showMessage} />
             );
           }
-          return <PlaceholderView title={activeSubItem || '工作台'} theme={theme} fontSize={fontSize} />;
+          return <PlaceholderView title={activeSubItem || 'workspace'} theme={theme} fontSize={fontSize} />;
         }
 
-        if (activeSidebar === '工作流') {
+        if (activeSidebar === 'workflow') {
           return (
             <WorkflowUserModule
               activeSubItem={activeSubItem}
@@ -632,7 +627,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
           );
         }
 
-        if (activeSidebar === '发布与连接') {
+        if (activeSidebar === 'publish-connect') {
           return (
             <PublishConnectUserModule
               activeSubItem={activeSubItem}
@@ -644,7 +639,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
           );
         }
 
-        if (activeSidebar === '用量账单') {
+        if (activeSidebar === 'usage-billing') {
           return (
             <UsageBillingUserModule
               activeSubItem={activeSubItem}
@@ -655,11 +650,11 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
           );
         }
 
-        if (activeSidebar === 'AI 助手') {
+        if (activeSidebar === 'ai-assistant') {
           return <AIAssistant theme={theme} fontSize={fontSize} />;
         }
 
-        if (activeSidebar === '我的 Agent') {
+        if (activeSidebar === 'my-agent') {
           if (activeAgentSubItem === AGENT_WORKSPACE_SUBITEM_ID) {
             if (activeAgentView === 'detail' && selectedAgentId) {
               return (
@@ -697,7 +692,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
               />
             );
           }
-          if (activeAgentSubItem === 'Agent 市场') {
+          if (activeAgentSubItem === 'agent-marketplace') {
             return (
               <AgentMarket
                 theme={theme}
@@ -707,17 +702,17 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
               />
             );
           }
-          if (activeAgentSubItem === 'Agent监控') {
+          if (activeAgentSubItem === 'agent-monitoring') {
             return <AgentMonitoringPage theme={theme} fontSize={fontSize} />;
           }
-          if (activeAgentSubItem === 'Trace追踪') {
+          if (activeAgentSubItem === 'trace-tracking') {
             return <AgentTracePage theme={theme} fontSize={fontSize} />;
           }
           if (
-            activeAgentSubItem === '对话流编排' ||
-            activeAgentSubItem === '版本与发布' ||
-            activeAgentSubItem === '我的应用' ||
-            activeAgentSubItem === '调试会话'
+            activeAgentSubItem === 'conversation-flow' ||
+            activeAgentSubItem === 'version-publish' ||
+            activeAgentSubItem === 'my-apps' ||
+            activeAgentSubItem === 'debug-session'
           ) {
             return (
               <AgentExtrasUserModule
@@ -729,11 +724,11 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
               />
             );
           }
-          return <PlaceholderView title={activeAgentSubItem || '我的 Agent'} theme={theme} fontSize={fontSize} />;
+          return <PlaceholderView title={activeAgentSubItem || 'my-agent'} theme={theme} fontSize={fontSize} />;
         }
 
-        if (activeSidebar === '我的资产') {
-          if (activeSubItem === '知识库') {
+        if (activeSidebar === 'my-assets') {
+          if (activeSubItem === 'knowledge-base') {
             return (
               <KnowledgeBase
                 theme={theme}
@@ -743,7 +738,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
               />
             );
           }
-          if (activeSubItem === '数据库') {
+          if (activeSubItem === 'database') {
             return (
               <Database
                 theme={theme}
@@ -763,7 +758,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
           );
         }
 
-        if (activeSidebar === '模型服务') {
+        if (activeSidebar === 'model-service') {
           return (
             <ModelServiceUserModule
               activeSubItem={activeSubItem}
@@ -774,7 +769,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
           );
         }
 
-        if (activeSidebar === '工具广场') {
+        if (activeSidebar === 'tool-square') {
           return (
             <ToolMarketModule
               activeSubItem={activeSubItem}
@@ -785,7 +780,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
           );
         }
 
-        if (activeSidebar === '我的数据') {
+        if (activeSidebar === 'my-data') {
           return (
             <DataEvalUserModule
               activeSubItem={activeSubItem}
@@ -796,11 +791,11 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
           );
         }
 
-        if (activeSidebar === '个人设置') {
-          if (activeSubItem === '个人资料') {
+        if (activeSidebar === 'user-settings') {
+          if (activeSubItem === 'profile') {
             return <UserProfile theme={theme} fontSize={fontSize} />;
           }
-          if (activeSubItem === '偏好设置') {
+          if (activeSubItem === 'preferences') {
             return (
               <UserSettingsPage
                 theme={theme}
@@ -814,7 +809,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
               />
             );
           }
-          if (activeSubItem === '工作空间' || activeSubItem === 'API Key' || activeSubItem === '使用统计') {
+          if (activeSubItem === 'workspace-settings' || activeSubItem === 'API Key' || activeSubItem === 'usage-statistics') {
             return (
               <UserSettingsExtrasModule
                 activeSubItem={activeSubItem}
@@ -824,28 +819,28 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
               />
             );
           }
-          return <PlaceholderView title={activeSubItem || '个人设置'} theme={theme} fontSize={fontSize} />;
+          return <PlaceholderView title={activeSubItem || 'user-settings'} theme={theme} fontSize={fontSize} />;
         }
 
-        if (activeSidebar === '文档教程') {
+        if (activeSidebar === 'docs-tutorial') {
           return <DocsTutorialPage theme={theme} fontSize={fontSize} />;
         }
       }
 
       // ==================== 兼容旧版本菜单 ====================
-      if (activeSidebar === '概览') {
+      if (activeSidebar === 'overview') {
         return <Overview theme={theme} fontSize={fontSize} />;
       }
 
-      if (activeSidebar === '快捷入口') {
+      if (activeSidebar === 'quick-access') {
         return <QuickAccess theme={theme} fontSize={fontSize} />;
       }
 
-      if (activeSidebar === 'AI 助手') {
+      if (activeSidebar === 'ai-assistant') {
         return <AIAssistant theme={theme} fontSize={fontSize} />;
       }
 
-      if (activeSidebar === 'Agent 管理' && activeAgentSubItem === AGENT_WORKSPACE_SUBITEM_ID) {
+      if (activeSidebar === 'agent-management' && activeAgentSubItem === AGENT_WORKSPACE_SUBITEM_ID) {
         if (activeAgentView === 'detail' && selectedAgentId) {
           return (
             <AgentDetail 
@@ -883,7 +878,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
         );
       }
 
-      if (activeSidebar === 'Agent 管理' && activeAgentSubItem === 'Agent 市场') {
+      if (activeSidebar === 'agent-management' && activeAgentSubItem === 'agent-marketplace') {
         return (
           <AgentMarket
             theme={theme}
@@ -894,7 +889,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
         );
       }
 
-      if (activeSidebar === 'Agent 管理' && activeAgentSubItem === '知识库') {
+      if (activeSidebar === 'agent-management' && activeAgentSubItem === 'knowledge-base') {
         return (
           <KnowledgeBase
             theme={theme}
@@ -905,7 +900,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
         );
       }
 
-      if (activeSidebar === 'Agent 管理' && activeAgentSubItem === '数据库') {
+      if (activeSidebar === 'agent-management' && activeAgentSubItem === 'database') {
         return (
           <Database
             theme={theme}
@@ -916,15 +911,15 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
         );
       }
 
-      if (activeSidebar === 'Agent 管理' && activeAgentSubItem === 'Agent监控') {
+      if (activeSidebar === 'agent-management' && activeAgentSubItem === 'agent-monitoring') {
         return <AgentMonitoringPage theme={theme} fontSize={fontSize} />;
       }
 
-      if (activeSidebar === 'Agent 管理' && activeAgentSubItem === 'Trace追踪') {
+      if (activeSidebar === 'agent-management' && activeAgentSubItem === 'trace-tracking') {
         return <AgentTracePage theme={theme} fontSize={fontSize} />;
       }
 
-      if (activeSidebar === '工具广场') {
+      if (activeSidebar === 'tool-square') {
         return (
           <ToolMarketModule
             activeSubItem={activeSubItem}
@@ -935,11 +930,11 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
         );
       }
 
-      if (activeSidebar === '个人中心') {
+      if (activeSidebar === 'user-profile') {
         return <UserProfile theme={theme} fontSize={fontSize} />;
       }
 
-      if (activeSidebar === '个人设置') {
+      if (activeSidebar === 'user-settings') {
         return (
           <UserSettingsPage
             theme={theme}
@@ -954,11 +949,11 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
         );
       }
 
-      if (activeSidebar === '文档教程') {
+      if (activeSidebar === 'docs-tutorial') {
         return <DocsTutorialPage theme={theme} fontSize={fontSize} />;
       }
 
-      if (activeSidebar === '用户管理') {
+      if (activeSidebar === 'user-management') {
         return (
           <UserManagementModule
             activeSubItem={activeSubItem}
@@ -969,7 +964,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
         );
       }
 
-      if (activeSidebar === '系统配置') {
+      if (activeSidebar === 'system-config') {
         return (
           <SystemConfigModule
             activeSubItem={activeSubItem}
@@ -980,7 +975,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
         );
       }
 
-      if (activeSidebar === '监控中心') {
+      if (activeSidebar === 'monitoring') {
         return (
           <MonitoringModule
             activeSubItem={activeSubItem}
@@ -1061,7 +1056,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
         <div className="h-14 flex items-center justify-center px-4 w-full">
           <button
             type="button"
-            onClick={() => handleSidebarClick(layoutIsAdmin ? '系统概览' : '工作台')}
+            onClick={() => handleSidebarClick(layoutIsAdmin ? 'overview' : 'workspace')}
             className="flex items-center justify-center min-w-0 w-full rounded-xl hover:opacity-90 active:opacity-80 transition-opacity"
             title={layoutIsAdmin ? '返回系统概览' : '返回工作台'}
           >
@@ -1189,10 +1184,10 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
                             <div className="mt-1 space-y-0.5">
                               {group.items.map((subItem: { id: string; label: string; icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }> }) => {
                                 const isSubActive =
-                                  (item.id === '我的 Agent' && activeAgentSubItem === subItem.id) ||
-                                  (item.id !== '我的 Agent' && activeSubItem === subItem.id);
+                                  (item.id === 'my-agent' && activeAgentSubItem === subItem.id) ||
+                                  (item.id !== 'my-agent' && activeSubItem === subItem.id);
                                 const handleSubClick = () => {
-                                  if (item.id === '我的 Agent') {
+                                  if (item.id === 'my-agent') {
                                     handleAgentSubItemClick(subItem.id);
                                   } else {
                                     handleSubItemClick(subItem.id);
@@ -1252,9 +1247,9 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
                 <div className="flex flex-col gap-1">
                   <button 
                     type="button"
-                    onClick={() => { handleSidebarClick('个人中心'); setShowUserMenu(false); setShowAppearanceMenu(false); }}
+                    onClick={() => { handleSidebarClick('user-profile'); setShowUserMenu(false); setShowAppearanceMenu(false); }}
                     className={`flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] transition-all ${
-                      activeSidebar === '个人中心'
+                      activeSidebar === 'user-profile'
                         ? `${THEME_COLOR_CLASSES[themeColor].bg} text-white shadow-sm`
                         : theme === 'light' ? 'text-slate-600 hover:bg-slate-100' : 'text-slate-400 hover:bg-white/5'
                     }`}
@@ -1319,14 +1314,14 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
                     type="button"
                     onClick={() => {
                       if (layoutIsAdmin) setRole('user');
-                      const first = getFirstSubItemForSidebar('个人设置');
+                      const first = getFirstSubItemForSidebar('user-settings');
                       const sub = first.subItem ?? ROUTE_ROOT_SUB;
-                      navigate(buildConsolePath('user', '个人设置', sub));
+                      navigate(buildConsolePath('user', 'user-settings', sub));
                       setShowUserMenu(false);
                       setShowAppearanceMenu(false);
                     }}
                     className={`flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] transition-all ${
-                      activeSidebar === '个人设置'
+                      activeSidebar === 'user-settings'
                         ? `${THEME_COLOR_CLASSES[themeColor].bg} text-white shadow-sm`
                         : theme === 'light' ? 'text-slate-600 hover:bg-slate-100' : 'text-slate-400 hover:bg-white/5'
                     }`}
@@ -1475,7 +1470,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
         <div className="h-14 flex items-center justify-center w-full">
           <button
             type="button"
-            onClick={() => handleSidebarClick(layoutIsAdmin ? '系统概览' : '工作台')}
+            onClick={() => handleSidebarClick(layoutIsAdmin ? 'overview' : 'workspace')}
             className="rounded-xl hover:opacity-90 active:opacity-80 transition-opacity"
             title={layoutIsAdmin ? '系统概览' : '工作台'}
           >
@@ -1503,7 +1498,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
         </div>
         <div className="p-4 border-t border-transparent flex justify-center">
           <button 
-            onClick={() => setActiveSidebar('个人中心')}
+            onClick={() => setActiveSidebar('user-profile')}
             className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white text-[10px] font-bold shadow-sm"
           >
             W
@@ -1516,7 +1511,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
       <div className="flex-1 flex flex-col min-w-0 relative">
         <main
           className={`flex-1 flex flex-col relative min-h-0 ${
-            activeSidebar === 'AI 助手' ? (theme === 'light' ? 'bg-[#F2F2F7]' : 'bg-[#000000]') : ''
+            activeSidebar === 'ai-assistant' ? (theme === 'light' ? 'bg-[#F2F2F7]' : 'bg-[#000000]') : ''
           }`}
         >
           <AnimatePresence mode="wait">
@@ -1550,7 +1545,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
           </AnimatePresence>
 
           {/* Input Area - iOS Messages Style */}
-          {activeSidebar === 'AI 助手' && (
+          {activeSidebar === 'ai-assistant' && (
             <div className="p-4 sm:p-6 max-w-4xl w-full mx-auto">
               <div className={`relative flex flex-col rounded-2xl border transition-all focus-within:ring-1 focus-within:ring-offset-0 ${THEME_COLOR_CLASSES[themeColor].ring} ${
                 theme === 'light' 

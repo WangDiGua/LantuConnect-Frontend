@@ -43,8 +43,8 @@ export interface PersistedNavState {
 }
 
 const DEFAULTS: PersistedNavState = {
-  activeSidebar: '系统概览',
-  activeSubItem: '系统概览',
+  activeSidebar: 'overview',
+  activeSubItem: 'overview',
   activeAgentSubItem: AGENT_WORKSPACE_SUBITEM_ID,
   activeAgentView: 'list',
   selectedAgentId: null,
@@ -56,50 +56,50 @@ function flatItemIds(groups: { items: { id: string }[] }[]): string[] {
 
 export function getFirstSubItemForSidebar(sidebarId: string): { subItem?: string; agentSubItem?: string } {
   switch (sidebarId) {
-    case '系统概览':
+    case 'overview':
       return { subItem: ADMIN_OVERVIEW_GROUPS[0].items[0].id };
-    case '系统配置':
+    case 'system-config':
       return { subItem: ADMIN_SYSTEM_CONFIG_GROUPS[0].items[0].id };
-    case '用户管理':
+    case 'user-management':
       return { subItem: ADMIN_USER_MANAGEMENT_GROUPS[0].items[0].id };
-    case '模型服务管理':
+    case 'model-service':
       return { subItem: ADMIN_MODEL_SERVICE_GROUPS[0].items[0].id };
-    case '工具管理':
+    case 'tool-management':
       return { subItem: ADMIN_TOOL_MANAGEMENT_GROUPS[0].items[0].id };
-    case '运营与安全':
+    case 'ops-security':
       return { subItem: ADMIN_OPS_SECURITY_GROUPS[0].items[0].id };
-    case '集成与中台':
+    case 'integration':
       return { subItem: ADMIN_INTEGRATION_GROUPS[0].items[0].id };
-    case '监控中心':
+    case 'monitoring':
       return { subItem: ADMIN_MONITORING_GROUPS[0].items[0].id };
-    case '数据管理':
+    case 'data-management':
       return { subItem: ADMIN_DATA_MANAGEMENT_GROUPS[0].items[0].id };
-    case '系统日志':
+    case 'system-log':
       return { subItem: ADMIN_SYSTEM_LOG_GROUPS[0].items[0].id };
-    case '工作台':
+    case 'workspace':
       return { subItem: USER_WORKSPACE_GROUPS[0].items[0].id };
-    case '我的 Agent':
+    case 'my-agent':
       return { agentSubItem: USER_AGENT_MANAGEMENT_GROUPS[0].items[0].id };
-    case '工作流':
+    case 'workflow':
       return { subItem: USER_WORKFLOW_GROUPS[0].items[0].id };
-    case '我的资产':
+    case 'my-assets':
       return { subItem: USER_ASSETS_GROUPS[0].items[0].id };
-    case '模型服务':
+    case 'model-service':
       return { subItem: USER_MODEL_SERVICE_GROUPS[0].items[0].id };
-    case '工具广场':
+    case 'tool-square':
       return { subItem: USER_TOOL_SQUARE_GROUPS[0].items[0].id };
-    case '发布与连接':
+    case 'publish-connect':
       return { subItem: USER_PUBLISH_GROUPS[0].items[0].id };
-    case '我的数据':
+    case 'my-data':
       return { subItem: USER_DATA_GROUPS[0].items[0].id };
-    case '用量账单':
+    case 'usage-billing':
       return { subItem: USER_USAGE_GROUPS[0].items[0].id };
-    case '个人设置':
+    case 'user-settings':
       return { subItem: USER_SETTINGS_GROUPS[0].items[0].id };
-    case 'Agent 管理':
+    case 'agent-management':
       return { agentSubItem: AGENT_MANAGEMENT_GROUPS[0].items[0].id };
     case 'AI 助手':
-    case '文档教程':
+    case 'docs-tutorial':
       return { subItem: ROUTE_ROOT_SUB };
     default:
       return {};
@@ -107,7 +107,7 @@ export function getFirstSubItemForSidebar(sidebarId: string): { subItem?: string
 }
 
 function isValidAgentSubItem(id: string, sidebarId: string): boolean {
-  if (sidebarId === '我的 Agent' || sidebarId === 'Agent 管理') {
+  if (sidebarId === 'my-agent' || sidebarId === 'agent-management') {
     return (
       flatItemIds(USER_AGENT_MANAGEMENT_GROUPS).includes(id) ||
       flatItemIds(AGENT_MANAGEMENT_GROUPS).includes(id)
@@ -118,43 +118,43 @@ function isValidAgentSubItem(id: string, sidebarId: string): boolean {
 
 function isValidSubItemForSidebar(sidebarId: string, id: string): boolean {
   switch (sidebarId) {
-    case '系统概览':
+    case 'overview':
       return flatItemIds(ADMIN_OVERVIEW_GROUPS).includes(id);
-    case '系统配置':
+    case 'system-config':
       return flatItemIds(ADMIN_SYSTEM_CONFIG_GROUPS).includes(id);
-    case '用户管理':
+    case 'user-management':
       return flatItemIds(ADMIN_USER_MANAGEMENT_GROUPS).includes(id);
-    case '模型服务管理':
+    case 'model-service':
       return flatItemIds(ADMIN_MODEL_SERVICE_GROUPS).includes(id);
-    case '工具管理':
+    case 'tool-management':
       return flatItemIds(ADMIN_TOOL_MANAGEMENT_GROUPS).includes(id);
-    case '运营与安全':
+    case 'ops-security':
       return flatItemIds(ADMIN_OPS_SECURITY_GROUPS).includes(id);
-    case '集成与中台':
+    case 'integration':
       return flatItemIds(ADMIN_INTEGRATION_GROUPS).includes(id);
-    case '监控中心':
+    case 'monitoring':
       return flatItemIds(ADMIN_MONITORING_GROUPS).includes(id) || flatItemIds(MONITORING_GROUPS).includes(id);
-    case '数据管理':
+    case 'data-management':
       return flatItemIds(ADMIN_DATA_MANAGEMENT_GROUPS).includes(id);
-    case '系统日志':
+    case 'system-log':
       return flatItemIds(ADMIN_SYSTEM_LOG_GROUPS).includes(id);
-    case '工作台':
+    case 'workspace':
       return flatItemIds(USER_WORKSPACE_GROUPS).includes(id);
-    case '我的资产':
+    case 'my-assets':
       return flatItemIds(USER_ASSETS_GROUPS).includes(id);
-    case '工作流':
+    case 'workflow':
       return flatItemIds(USER_WORKFLOW_GROUPS).includes(id);
-    case '模型服务':
+    case 'model-service':
       return flatItemIds(USER_MODEL_SERVICE_GROUPS).includes(id) || flatItemIds(MODEL_SERVICE_GROUPS).includes(id);
-    case '工具广场':
+    case 'tool-square':
       return flatItemIds(USER_TOOL_SQUARE_GROUPS).includes(id) || flatItemIds(TOOL_SQUARE_GROUPS).includes(id);
-    case '发布与连接':
+    case 'publish-connect':
       return flatItemIds(USER_PUBLISH_GROUPS).includes(id);
-    case '我的数据':
+    case 'my-data':
       return flatItemIds(USER_DATA_GROUPS).includes(id);
-    case '用量账单':
+    case 'usage-billing':
       return flatItemIds(USER_USAGE_GROUPS).includes(id);
-    case '个人设置':
+    case 'user-settings':
       return flatItemIds(USER_SETTINGS_GROUPS).includes(id);
     default:
       return false;
@@ -173,7 +173,7 @@ export function readPersistedNavState(): PersistedNavState {
       p.activeAgentView === 'detail' || p.activeAgentView === 'create' ? p.activeAgentView : 'list';
     const selectedAgentId = typeof p.selectedAgentId === 'string' ? p.selectedAgentId : null;
 
-    if (activeSidebar === 'Agent 管理' || activeSidebar === '我的 Agent') {
+    if (activeSidebar === 'agent-management' || activeSidebar === 'my-agent') {
       const legacyWorkspace = ['Agent 列表', 'Agent 创建', 'Agent 详情', 'Agent 测试'];
       if (legacyWorkspace.includes(activeAgentSubItem)) {
         activeAgentSubItem = AGENT_WORKSPACE_SUBITEM_ID;
@@ -185,30 +185,30 @@ export function readPersistedNavState(): PersistedNavState {
     }
 
     const sidebarWithSubItems = [
-      '系统概览',
-      '系统配置',
-      '用户管理',
-      '模型服务管理',
-      '工具管理',
-      '运营与安全',
-      '集成与中台',
-      '监控中心',
-      '数据管理',
-      '系统日志',
-      '工作台',
-      '工作流',
-      '我的资产',
-      '模型服务',
-      '工具广场',
-      '发布与连接',
-      '我的数据',
-      '用量账单',
-      '个人设置',
-      '监控中心',
-      '系统配置',
-      '用户管理',
-      '模型服务',
-      '工具广场',
+      'overview',
+      'system-config',
+      'user-management',
+      'model-service',
+      'tool-management',
+      'ops-security',
+      'integration',
+      'monitoring',
+      'data-management',
+      'system-log',
+      'workspace',
+      'workflow',
+      'my-assets',
+      'model-service',
+      'tool-square',
+      'publish-connect',
+      'my-data',
+      'usage-billing',
+      'user-settings',
+      'monitoring',
+      'system-config',
+      'user-management',
+      'model-service',
+      'tool-square',
     ];
 
     if (sidebarWithSubItems.includes(activeSidebar)) {

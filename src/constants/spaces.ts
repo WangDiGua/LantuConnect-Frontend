@@ -7,6 +7,7 @@ import {
   Database,
   Wrench,
   AppWindow,
+  Rocket,
 } from 'lucide-react';
 
 import {
@@ -20,6 +21,7 @@ import {
   ADMIN_MONITORING_GROUPS,
   ADMIN_SYSTEM_CONFIG_GROUPS,
   USER_WORKSPACE_GROUPS,
+  USER_MY_PUBLISH_GROUPS,
   USER_MY_SPACE_GROUPS,
   USER_SETTINGS_GROUPS,
 } from './navigation';
@@ -178,6 +180,16 @@ export const USER_SPACES: Space[] = [
       ...standalone('skill-market', '技能市场', Wrench),
       ...standalone('app-market', '应用广场', AppWindow),
       ...standalone('dataset-market', '数据集', Database),
+    ],
+  },
+  {
+    id: 'user-publish',
+    label: '我的发布',
+    icon: Rocket,
+    accentFrom: '#F97316',
+    accentTo: '#EF4444',
+    sections: [
+      ...fromGroups('my-publish', USER_MY_PUBLISH_GROUPS as NavGroup[]),
     ],
   },
   {

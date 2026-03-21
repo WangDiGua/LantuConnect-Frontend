@@ -8,10 +8,10 @@ import {
   SystemParamsPage,
   SecuritySettingsPage,
   NetworkConfigPage,
-  SystemQuotaPage,
   AccessControlPage,
 } from './SystemConfigExtraPages';
 import { CategoryManagement } from './CategoryManagement';
+import { QuotaManagementPage } from './QuotaManagementPage';
 
 export interface SystemConfigModuleProps {
   activeSubItem: string;
@@ -62,7 +62,7 @@ export const SystemConfigModule: React.FC<SystemConfigModuleProps> = ({
     case 'network-config':
       return <NetworkConfigPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
     case 'quota-management':
-      return <SystemQuotaPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
+      return <QuotaManagementPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
     case 'access-control':
       return <AccessControlPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
     case 'category-management':

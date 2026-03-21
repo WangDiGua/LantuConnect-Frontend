@@ -44,6 +44,7 @@ import {
   Tag,
   Heart,
   Cpu,
+  CheckCircle2,
 } from 'lucide-react';
 
 // ==================== 管理员菜单（接入平台管理视角）====================
@@ -68,6 +69,7 @@ export const USER_SIDEBAR_ITEMS = [
   { id: 'skill-market', icon: Wrench, label: '技能市场' },
   { id: 'app-market', icon: AppWindow, label: '应用广场' },
   { id: 'dataset-market', icon: Database, label: '数据集' },
+  { id: 'my-publish', icon: Rocket, label: '我的发布' },
   { id: 'my-space', icon: UserCircle, label: '我的空间' },
   { id: 'user-settings', icon: Settings, label: '个人设置' },
 ];
@@ -94,6 +96,7 @@ export const ADMIN_AGENT_MANAGEMENT_GROUPS = [
     items: [
       { id: 'agent-list', icon: Bot, label: 'Agent 列表' },
       { id: 'agent-create', icon: Sparkles, label: '注册 Agent' },
+      { id: 'agent-audit', icon: CheckCircle2, label: '审核队列' },
     ],
   },
   {
@@ -111,6 +114,7 @@ export const ADMIN_SKILL_MANAGEMENT_GROUPS = [
     items: [
       { id: 'skill-list', icon: Wrench, label: 'Skill 列表' },
       { id: 'skill-create', icon: Puzzle, label: '注册 Skill' },
+      { id: 'skill-audit', icon: CheckCircle2, label: '审核队列' },
       { id: 'mcp-server-list', icon: Server, label: 'MCP Server' },
     ],
   },
@@ -179,6 +183,13 @@ export const ADMIN_MONITORING_GROUPS = [
       { id: 'alert-rules', icon: Bell, label: '告警规则' },
     ],
   },
+  {
+    title: '治理',
+    items: [
+      { id: 'health-config', icon: ShieldCheck, label: '健康检查' },
+      { id: 'circuit-breaker', icon: AlertTriangle, label: '熔断降级' },
+    ],
+  },
 ];
 
 export const ADMIN_SYSTEM_CONFIG_GROUPS = [
@@ -193,6 +204,7 @@ export const ADMIN_SYSTEM_CONFIG_GROUPS = [
   {
     title: '策略',
     items: [
+      { id: 'quota-management', icon: CreditCard, label: '配额管理' },
       { id: 'rate-limit-policy', icon: Sliders, label: '限流策略' },
       { id: 'access-control', icon: Lock, label: '访问控制' },
     ],
@@ -225,6 +237,18 @@ export const USER_MY_SPACE_GROUPS = [
       { id: 'usage-records', icon: History, label: '使用记录' },
       { id: 'my-favorites', icon: Heart, label: '我的收藏' },
       { id: 'usage-stats', icon: BarChart3, label: '用量统计' },
+    ],
+  },
+];
+
+export const USER_MY_PUBLISH_GROUPS = [
+  {
+    title: '我的提交',
+    items: [
+      { id: 'my-agents', icon: Bot, label: '我的 Agent' },
+      { id: 'my-skills', icon: Wrench, label: '我的 Skill' },
+      { id: 'submit-agent', icon: Sparkles, label: '提交 Agent' },
+      { id: 'submit-skill', icon: Puzzle, label: '提交 Skill' },
     ],
   },
 ];
@@ -269,6 +293,8 @@ export function getNavSubGroups(sidebarId: string, isAdminRole: boolean) {
   switch (sidebarId) {
     case 'workspace':
       return USER_WORKSPACE_GROUPS;
+    case 'my-publish':
+      return USER_MY_PUBLISH_GROUPS;
     case 'my-space':
       return USER_MY_SPACE_GROUPS;
     case 'user-settings':

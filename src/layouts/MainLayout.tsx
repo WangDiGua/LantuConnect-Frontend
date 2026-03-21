@@ -30,6 +30,7 @@ import {
   ADMIN_MONITORING_GROUPS,
   ADMIN_SYSTEM_CONFIG_GROUPS,
   USER_WORKSPACE_GROUPS,
+  USER_MY_PUBLISH_GROUPS,
   USER_MY_SPACE_GROUPS,
   USER_SETTINGS_GROUPS,
   getNavSubGroups,
@@ -49,10 +50,12 @@ const AgentCreate = lazy(() => import('../views/agent/AgentCreate').then(m => ({
 const AgentMarket = lazy(() => import('../views/agent/AgentMarket').then(m => ({ default: m.AgentMarket })));
 const AgentMonitoringPage = lazy(() => import('../views/agent/AgentMonitoringPage').then(m => ({ default: m.AgentMonitoringPage })));
 const AgentTracePage = lazy(() => import('../views/agent/AgentTracePage').then(m => ({ default: m.AgentTracePage })));
+const AgentAuditList = lazy(() => import('../views/agent/AgentAuditList').then(m => ({ default: m.AgentAuditList })));
 // Skill
 const SkillList = lazy(() => import('../views/skill/SkillList').then(m => ({ default: m.SkillList })));
 const SkillCreate = lazy(() => import('../views/skill/SkillCreate').then(m => ({ default: m.SkillCreate })));
 const SkillMarket = lazy(() => import('../views/skill/SkillMarket').then(m => ({ default: m.SkillMarket })));
+const SkillAuditList = lazy(() => import('../views/skill/SkillAuditList').then(m => ({ default: m.SkillAuditList })));
 // 智能应用
 const AppList = lazy(() => import('../views/apps/AppList').then(m => ({ default: m.AppList })));
 const AppCreate = lazy(() => import('../views/apps/AppCreate').then(m => ({ default: m.AppCreate })));
@@ -68,6 +71,11 @@ const ProviderCreate = lazy(() => import('../views/provider/ProviderCreate').the
 const UserManagementModule = lazy(() => import('../views/userMgmt/UserManagementModule').then(m => ({ default: m.UserManagementModule })));
 const SystemConfigModule = lazy(() => import('../views/systemConfig/SystemConfigModule').then(m => ({ default: m.SystemConfigModule })));
 const MonitoringModule = lazy(() => import('../views/monitoring/MonitoringModule').then(m => ({ default: m.MonitoringModule })));
+// 用户发布
+const MyAgentList = lazy(() => import('../views/publish/MyAgentList').then(m => ({ default: m.MyAgentList })));
+const MySkillList = lazy(() => import('../views/publish/MySkillList').then(m => ({ default: m.MySkillList })));
+const SubmitAgent = lazy(() => import('../views/publish/SubmitAgent').then(m => ({ default: m.SubmitAgent })));
+const SubmitSkill = lazy(() => import('../views/publish/SubmitSkill').then(m => ({ default: m.SubmitSkill })));
 // 用户设置
 const UserProfile = lazy(() => import('../views/user/UserProfile').then(m => ({ default: m.UserProfile })));
 const UserSettingsPage = lazy(() => import('../views/user/UserSettingsPage').then(m => ({ default: m.UserSettingsPage })));
@@ -348,6 +356,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
       else if (activeSidebar === 'system-config') { groups = ADMIN_SYSTEM_CONFIG_GROUPS; prefix = 'admin-sys-'; }
     } else {
       if (activeSidebar === 'workspace') { groups = USER_WORKSPACE_GROUPS; prefix = 'user-workspace-'; }
+      else if (activeSidebar === 'my-publish') { groups = USER_MY_PUBLISH_GROUPS; prefix = 'user-publish-'; }
       else if (activeSidebar === 'my-space') { groups = USER_MY_SPACE_GROUPS; prefix = 'user-space-'; }
       else if (activeSidebar === 'user-settings') { groups = USER_SETTINGS_GROUPS; prefix = 'user-settings-'; }
     }
@@ -489,6 +498,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
               />
             );
           }
+          if (activeSubItem === 'agent-audit') return <AgentAuditList theme={theme} fontSize={fontSize} showMessage={showMessage} />;
           if (activeSubItem === 'agent-monitoring') return <AgentMonitoringPage theme={theme} fontSize={fontSize} />;
           if (activeSubItem === 'agent-trace') return <AgentTracePage theme={theme} fontSize={fontSize} />;
           return <PlaceholderView title={activeSubItem || 'agent-management'} theme={theme} fontSize={fontSize} />;
@@ -497,6 +507,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
         if (activeSidebar === 'skill-management') {
           if (activeSubItem === 'skill-list') return <SkillList theme={theme} fontSize={fontSize} />;
           if (activeSubItem === 'skill-create') return <SkillCreate theme={theme} fontSize={fontSize} onBack={() => setActiveSubItem('skill-list')} />;
+          if (activeSubItem === 'skill-audit') return <SkillAuditList theme={theme} fontSize={fontSize} showMessage={showMessage} />;
           if (activeSubItem === 'mcp-server-list') return <PlaceholderView title="MCP Server 管理" theme={theme} fontSize={fontSize} />;
           return <PlaceholderView title={activeSubItem || 'skill-management'} theme={theme} fontSize={fontSize} />;
         }
@@ -554,6 +565,14 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
 
         if (activeSidebar === 'dataset-market') {
           return <DatasetMarket theme={theme} fontSize={fontSize} />;
+        }
+
+        if (activeSidebar === 'my-publish') {
+          if (activeSubItem === 'my-agents') return <MyAgentList theme={theme} fontSize={fontSize} />;
+          if (activeSubItem === 'my-skills') return <MySkillList theme={theme} fontSize={fontSize} />;
+          if (activeSubItem === 'submit-agent') return <SubmitAgent theme={theme} fontSize={fontSize} />;
+          if (activeSubItem === 'submit-skill') return <SubmitSkill theme={theme} fontSize={fontSize} />;
+          return <PlaceholderView title={activeSubItem || '我的发布'} theme={theme} fontSize={fontSize} />;
         }
 
         if (activeSidebar === 'my-space') {

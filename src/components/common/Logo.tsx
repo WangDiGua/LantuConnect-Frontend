@@ -14,8 +14,8 @@ export const Logo: React.FC<LogoProps> = ({
   theme = 'light',
 }) => {
   const isDark = theme === 'dark';
-  const lantuColor = isDark ? '#F1F5F9' : '#0F172A';
-  const connectColor = isDark ? '#60A5FA' : '#2563EB';
+  const lantuColor = isDark ? '#e2e8f0' : '#1e293b';
+  const connectColor = isDark ? '#818cf8' : '#4f46e5';
 
   const textSizeClass = compact
     ? 'text-base'

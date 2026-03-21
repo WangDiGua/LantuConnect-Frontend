@@ -86,6 +86,9 @@ import {
 } from '../constants/consoleRoutes';
 import { ContentLoader } from '../components/common/ContentLoader';
 import { PageSkeleton } from '../components/common/PageSkeleton';
+import { glassSidebar, pageBg } from '../utils/uiClasses';
+
+const springTransition = { type: 'spring' as const, stiffness: 300, damping: 30 };
 
 export const MainLayout: React.FC = () => {
   const [theme, setTheme] = useState<Theme>(() => readAppearanceState().theme);
@@ -109,6 +112,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
   const navigate = useNavigate();
   const { showMessage } = useMessage();
   const { isAdmin: ctxAdmin, role, setRole } = useUserRole();
+  const isDark = theme === 'dark';
 
   const route = parseRoute(location.pathname);
   const consoleRole: ConsoleRole = route?.role ?? (ctxAdmin ? 'admin' : 'user');
@@ -132,31 +136,26 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
   const [showMessagePanel, setShowMessagePanel] = useState(false);
   const [messageUnreadCount, setMessageUnreadCount] = useState(INITIAL_MESSAGE_UNREAD_COUNT);
 
-  // Redirect to default path if page is invalid
   useEffect(() => {
     if (!route || !findSidebarForPage(route.role, route.page)) {
       navigate(defaultPath(consoleRole), { replace: true });
     }
   }, [route, consoleRole, navigate]);
 
-  // Sync UserRoleContext with URL role
   useEffect(() => {
     const wantRole = consoleRole === 'admin' ? 'admin' : 'user';
     if (role !== wantRole) setRole(wantRole);
   }, [consoleRole, role, setRole]);
 
-  // Expand sidebar group for current section
   useEffect(() => {
     const groups = getNavSubGroups(activeSidebar, layoutIsAdmin);
     setExpandedGroups(groups.length > 0 ? [activeSidebar] : []);
   }, [activeSidebar, layoutIsAdmin]);
 
-  // Persist current path
   useEffect(() => {
     writePersistedNavState({ lastPath: location.pathname });
   }, [location.pathname]);
 
-  // Reset filter on sidebar change
   useEffect(() => {
     setSidebarNavFilter('');
   }, [activeSidebar]);
@@ -383,7 +382,6 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
         }
       }
 
-      // User pages
       switch (p) {
         case 'workspace':
           return <UserWorkspaceOverview theme={t} fontSize={fs} />;
@@ -466,18 +464,17 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
     <LayoutChromeProvider value={{ hasSecondarySidebar }}>
     <div
       data-theme={theme === 'dark' ? 'dark' : 'light'}
-      className={`flex h-screen overflow-hidden transition-all duration-500 ${FONT_FAMILY_CLASSES[fontFamily]} ${
-        theme === 'light' ? 'bg-white text-black' : 'bg-[#000000] text-white'
-      }`}
+      className={`flex h-screen overflow-hidden transition-all duration-500 ${FONT_FAMILY_CLASSES[fontFamily]} ${pageBg(theme)}`}
     >
       
-      {/* Sidebar - iPadOS/macOS Style */}
+      {/* ─── Sidebar — Glassmorphism ─── */}
       <aside
-        className={`flex-shrink-0 w-60 hidden lg:flex flex-col border-r transition-all duration-300 ${
-          theme === 'light' ? 'bg-[#F2F2F7] border-slate-200' : 'bg-[#0A0A0A] border-white/10'
-        }`}
+        className={`flex-shrink-0 w-60 hidden lg:flex flex-col transition-all duration-300 ${glassSidebar(theme)}`}
       >
-        <div className="h-14 flex items-center justify-center px-4 w-full">
+        {/* Logo */}
+        <div className={`h-14 flex items-center justify-center px-4 w-full border-b ${
+          isDark ? 'border-white/[0.06]' : 'border-slate-200/50'
+        }`}>
           <button
             type="button"
             onClick={() => handleSidebarClick(layoutIsAdmin ? 'overview' : 'workspace')}
@@ -488,7 +485,8 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
           </button>
         </div>
         
-        <div className="flex-1 overflow-y-auto pt-1 pb-2 custom-scrollbar">
+        {/* Nav items */}
+        <div className="flex-1 overflow-y-auto pt-2 pb-2 custom-scrollbar">
           {sidebarItems.map((item) => {
             const subGroups = getSubGroupsForSidebar(item.id);
             const hasSubItems = subGroups.length > 0;
@@ -507,30 +505,27 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
                       ),
                     }))
                     .filter((g) => g.items.length > 0);
-            const accentBorder = THEME_COLOR_CLASSES[themeColor].border.replace('border-', 'border-l-2 border-');
 
             return (
-              <div key={item.id} className="mb-1">
+              <div key={item.id} className="mb-0.5">
                 <div
-                  className={`flex items-stretch rounded-xl mx-2 my-0.5 overflow-hidden ${
+                  className={`flex items-stretch rounded-xl mx-2 my-0.5 overflow-hidden transition-all duration-200 ${
                     isActive
-                      ? `${THEME_COLOR_CLASSES[themeColor].bg} text-white shadow-sm`
-                      : theme === 'light'
-                        ? 'text-slate-600 hover:bg-slate-200/50'
-                        : 'text-slate-400 hover:bg-white/10'
+                      ? isDark
+                        ? 'bg-indigo-500/15 text-indigo-400'
+                        : 'bg-indigo-500/10 text-indigo-600'
+                      : isDark
+                        ? 'text-slate-400 hover:bg-white/[0.05]'
+                        : 'text-slate-600 hover:bg-slate-900/[0.04]'
                   }`}
                 >
                   <button
                     type="button"
                     onClick={() => handleSidebarClick(item.id)}
-                    className="flex flex-1 min-w-0 items-center gap-3 px-3 py-2.5 text-left transition-colors rounded-xl"
+                    className="flex flex-1 min-w-0 items-center gap-3 px-3 py-2 text-left transition-colors rounded-xl"
                   >
-                    <item.icon size={16} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
-                    <span
-                      className={`flex-1 font-medium truncate ${
-                        fontSize === 'small' ? 'text-xs' : fontSize === 'medium' ? 'text-sm' : 'text-base'
-                      }`}
-                    >
+                    <item.icon size={16} strokeWidth={isActive ? 2.5 : 1.8} className="shrink-0" />
+                    <span className="flex-1 font-medium text-[13px] truncate">
                       {item.label}
                     </span>
                   </button>
@@ -548,12 +543,14 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
                         }
                       }}
                       className={`shrink-0 px-2 flex items-center justify-center rounded-xl transition-colors ${
-                        isActive ? 'hover:bg-white/10' : theme === 'light' ? 'hover:bg-slate-200/60' : 'hover:bg-white/10'
+                        isDark ? 'hover:bg-white/[0.06]' : 'hover:bg-slate-900/[0.04]'
                       }`}
                     >
                       <ChevronDown
                         size={14}
-                        className={`shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                        className={`shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''} ${
+                          isDark ? 'text-slate-500' : 'text-slate-400'
+                        }`}
                       />
                     </button>
                   )}
@@ -566,6 +563,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
                     }`}
                   >
                     <div className="overflow-hidden pl-3 pr-2 pt-1 pb-2 space-y-1">
+                      {/* Search filter */}
                       <div
                         className={`relative px-1 transition-all duration-150 ${
                           item.id === activeSidebar
@@ -576,7 +574,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
                         <Search
                           size={14}
                           className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${
-                            theme === 'light' ? 'text-slate-400' : 'text-slate-500'
+                            isDark ? 'text-slate-500' : 'text-slate-400'
                           }`}
                           aria-hidden
                         />
@@ -590,24 +588,23 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
                         />
                       </div>
                       {filteredSubGroups.length === 0 ? (
-                        <p className={`px-2 py-2 text-xs ${theme === 'light' ? 'text-slate-400' : 'text-slate-500'}`}>
+                        <p className={`px-2 py-2 text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
                           无匹配项
                         </p>
                       ) : (
                         filteredSubGroups.map((group) => (
                           <div key={group.title} className="mb-1">
-                            <div
-                              className={`mx-1 px-2 py-1 rounded-lg ${theme === 'light' ? 'bg-slate-200/40' : 'bg-white/5'}`}
-                            >
+                            {/* Group title — small muted uppercase */}
+                            <div className="mx-1 px-2 py-1.5">
                               <span
-                                className={`text-[10px] font-semibold uppercase tracking-wider ${
-                                  theme === 'light' ? 'text-slate-500' : 'text-slate-500'
+                                className={`text-[10px] font-semibold uppercase tracking-widest ${
+                                  isDark ? 'text-slate-500' : 'text-slate-400'
                                 }`}
                               >
                                 {group.title}
                               </span>
                             </div>
-                            <div className="mt-1 space-y-0.5">
+                            <div className="mt-0.5 space-y-0.5">
                               {group.items.map((subItem: { id: string; label: string; icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }> }) => {
                                 const isSubActive = activeSubItem === subItem.id;
                                 const SubIcon = subItem.icon;
@@ -616,19 +613,17 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
                                     key={subItem.id}
                                     type="button"
                                     onClick={() => handleSubItemClick(subItem.id)}
-                                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors text-left ${
-                                      fontSize === 'small' ? 'text-xs' : 'text-sm'
-                                    } ${
+                                    className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl transition-all text-left text-[13px] ${
                                       isSubActive
-                                        ? theme === 'light'
-                                          ? `bg-white shadow-none font-semibold ${THEME_COLOR_CLASSES[themeColor].text} border border-slate-200/80`
-                                          : `bg-white/10 font-semibold text-white border-l-2 ${accentBorder}`
-                                        : theme === 'light'
-                                          ? 'text-slate-600 hover:bg-slate-200/50 font-medium border border-transparent'
-                                          : 'text-slate-300 hover:bg-white/5 font-medium border border-transparent'
+                                        ? isDark
+                                          ? 'bg-indigo-500/15 text-indigo-400 font-semibold'
+                                          : 'bg-indigo-500/10 text-indigo-600 font-semibold'
+                                        : isDark
+                                          ? 'text-slate-400 hover:bg-white/[0.05] font-medium'
+                                          : 'text-slate-600 hover:bg-slate-900/[0.04] font-medium'
                                     }`}
                                   >
-                                    <SubIcon size={14} strokeWidth={isSubActive ? 2.5 : 2} className="shrink-0 opacity-80" />
+                                    <SubIcon size={14} strokeWidth={isSubActive ? 2.5 : 1.8} className="shrink-0 opacity-80" />
                                     <span className="truncate">{subItem.label}</span>
                                   </button>
                                 );
@@ -645,23 +640,28 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
           })}
         </div>
 
+        {/* ─── User area — bottom ─── */}
         <div
           ref={userMenuRef}
-          className={`p-4 border-t transition-colors relative ${
-            theme === 'light' ? 'border-slate-200' : 'border-white/10'
+          className={`p-3 border-t transition-colors relative ${
+            isDark ? 'border-white/[0.06]' : 'border-slate-200/50'
           }`}
         >
+          {/* User popup menu — glassmorphism */}
           <AnimatePresence>
             {showUserMenu && (
               <motion.div 
-                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                initial={{ opacity: 0, y: 8, scale: 0.97 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                className={`absolute bottom-full left-4 right-4 mb-2 p-2 rounded-2xl border shadow-2xl z-50 ${
-                  theme === 'light' ? 'bg-white border-slate-200' : 'bg-[#1C1C1E] border-white/10'
+                exit={{ opacity: 0, y: 8, scale: 0.97 }}
+                transition={springTransition}
+                className={`absolute bottom-full left-3 right-3 mb-2 p-2 rounded-2xl border shadow-2xl z-50 ${
+                  isDark
+                    ? 'bg-[#1a1f2e]/80 backdrop-blur-2xl border-white/[0.08]'
+                    : 'bg-white/80 backdrop-blur-2xl border-slate-200/60 shadow-[0_8px_40px_rgba(0,0,0,0.08)]'
                 }`}
               >
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-0.5">
                   <button 
                     type="button"
                     onClick={() => {
@@ -670,10 +670,14 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
                       setShowUserMenu(false);
                       setShowAppearanceMenu(false);
                     }}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] transition-all ${
+                    className={`flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium transition-all ${
                       page === 'profile'
-                        ? `${THEME_COLOR_CLASSES[themeColor].bg} text-white shadow-sm`
-                        : theme === 'light' ? 'text-slate-600 hover:bg-slate-100' : 'text-slate-400 hover:bg-white/5'
+                        ? isDark
+                          ? 'bg-indigo-500/15 text-indigo-400'
+                          : 'bg-indigo-500/10 text-indigo-600'
+                        : isDark
+                          ? 'text-slate-300 hover:bg-white/[0.06]'
+                          : 'text-slate-600 hover:bg-indigo-500/[0.05]'
                     }`}
                   >
                     <User size={16} />
@@ -684,8 +688,8 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
                     <button 
                       type="button"
                       onClick={() => setShowAppearanceMenu((v) => !v)}
-                      className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-[13px] transition-all ${
-                        theme === 'light' ? 'text-slate-600 hover:bg-slate-100' : 'text-slate-400 hover:bg-white/5'
+                      className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-[13px] font-medium transition-all ${
+                        isDark ? 'text-slate-300 hover:bg-white/[0.06]' : 'text-slate-600 hover:bg-indigo-500/[0.05]'
                       }`}
                     >
                       <span className="flex items-center gap-3 min-w-0">
@@ -694,7 +698,9 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
                       </span>
                       <ChevronDown
                         size={14}
-                        className={`shrink-0 text-slate-400 transition-transform duration-200 ${showAppearanceMenu ? 'rotate-180' : ''}`}
+                        className={`shrink-0 transition-transform duration-200 ${showAppearanceMenu ? 'rotate-180' : ''} ${
+                          isDark ? 'text-slate-500' : 'text-slate-400'
+                        }`}
                       />
                     </button>
 
@@ -706,7 +712,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
                       <div className="overflow-hidden">
                         <div
                           className={`mt-1 pt-2 border-t max-h-[min(70vh,420px)] overflow-y-auto custom-scrollbar ${
-                            theme === 'light' ? 'border-slate-100' : 'border-white/10'
+                            isDark ? 'border-white/[0.06]' : 'border-slate-200/40'
                           }`}
                         >
                           <AppearanceMenu
@@ -736,18 +742,23 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
                       setShowUserMenu(false);
                       setShowAppearanceMenu(false);
                     }}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] transition-all ${
+                    className={`flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium transition-all ${
                       activeSidebar === 'user-settings'
-                        ? `${THEME_COLOR_CLASSES[themeColor].bg} text-white shadow-sm`
-                        : theme === 'light' ? 'text-slate-600 hover:bg-slate-100' : 'text-slate-400 hover:bg-white/5'
+                        ? isDark
+                          ? 'bg-indigo-500/15 text-indigo-400'
+                          : 'bg-indigo-500/10 text-indigo-600'
+                        : isDark
+                          ? 'text-slate-300 hover:bg-white/[0.06]'
+                          : 'text-slate-600 hover:bg-indigo-500/[0.05]'
                     }`}
                   >
                     <Settings size={16} />
                     <span>设置</span>
                   </button>
 
-                  <div className={`h-px my-1 ${theme === 'light' ? 'bg-slate-100' : 'bg-white/5'}`} />
+                  <div className={`h-px my-1 ${isDark ? 'bg-white/[0.06]' : 'bg-slate-200/60'}`} />
 
+                  {/* Role switch */}
                   <button 
                     type="button"
                     onClick={() => {
@@ -759,8 +770,8 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
                       setShowAppearanceMenu(false);
                       showMessage(`已切换到${newRole === 'admin' ? '管理员' : '普通用户'}视图`, 'success');
                     }}
-                    className={`flex items-center justify-between gap-3 px-3 py-2 rounded-xl text-[13px] transition-all ${
-                      theme === 'light' ? 'text-slate-600 hover:bg-slate-100' : 'text-slate-400 hover:bg-white/5'
+                    className={`flex items-center justify-between gap-3 px-3 py-2 rounded-xl text-[13px] font-medium transition-all ${
+                      isDark ? 'text-slate-300 hover:bg-white/[0.06]' : 'text-slate-600 hover:bg-indigo-500/[0.05]'
                     }`}
                     title="切换角色视图（开发调试用）"
                   >
@@ -774,16 +785,16 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
                         {role === 'admin' ? '管理员视图' : '用户视图'}
                       </span>
                     </span>
-                    <span className={`text-[11px] px-2 py-0.5 rounded-md shrink-0 ${
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0 ${
                       role === 'admin' 
-                        ? (theme === 'light' ? 'bg-blue-100 text-blue-700' : 'bg-blue-500/20 text-blue-400')
-                        : (theme === 'light' ? 'bg-purple-100 text-purple-700' : 'bg-purple-500/20 text-purple-400')
+                        ? isDark ? 'bg-indigo-500/15 text-indigo-400' : 'bg-indigo-500/10 text-indigo-600'
+                        : isDark ? 'bg-purple-500/15 text-purple-400' : 'bg-purple-500/10 text-purple-600'
                     }`}>
                       {role === 'admin' ? '管理员' : '用户'}
                     </span>
                   </button>
 
-                  <div className={`h-px my-1 ${theme === 'light' ? 'bg-slate-100' : 'bg-white/5'}`} />
+                  <div className={`h-px my-1 ${isDark ? 'bg-white/[0.06]' : 'bg-slate-200/60'}`} />
 
                   <button 
                     type="button"
@@ -791,7 +802,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
                       storeLogout();
                       navigate('/login', { replace: true });
                     }}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] transition-all text-red-500 hover:bg-red-500/10`}
+                    className="flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium transition-all text-red-500 hover:bg-red-500/10"
                   >
                     <LogOut size={16} />
                     <span>退出登录</span>
@@ -811,6 +822,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
             )}
           </AnimatePresence>
 
+          {/* User avatar row */}
           <div className="flex items-center gap-2">
             <div
               role="button"
@@ -834,21 +846,23 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
                   });
                 }
               }}
-              className={`flex flex-1 items-center gap-3 px-3 py-2 rounded-xl cursor-pointer transition-all min-w-0 ${
-                theme === 'light' ? 'hover:bg-slate-200/50' : 'hover:bg-white/5'
+              className={`flex flex-1 items-center gap-3 px-2.5 py-2 rounded-xl cursor-pointer transition-all min-w-0 ${
+                isDark ? 'hover:bg-white/[0.05]' : 'hover:bg-slate-900/[0.04]'
               }`}
             >
               <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white text-xs font-bold shadow-sm shrink-0">
                 W
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-[13px] font-medium truncate">User Name</div>
+                <div className={`text-[13px] font-medium truncate ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
+                  User Name
+                </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] text-slate-500 truncate">Free Plan</span>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                  <span className={`text-[11px] truncate ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Free Plan</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
                     role === 'admin' 
-                      ? (theme === 'light' ? 'bg-blue-100 text-blue-700' : 'bg-blue-500/20 text-blue-400')
-                      : (theme === 'light' ? 'bg-purple-100 text-purple-700' : 'bg-purple-500/20 text-purple-400')
+                      ? isDark ? 'bg-indigo-500/15 text-indigo-400' : 'bg-indigo-500/10 text-indigo-600'
+                      : isDark ? 'bg-purple-500/15 text-purple-400' : 'bg-purple-500/10 text-purple-600'
                   }`}>
                     {role === 'admin' ? '管理员' : '用户'}
                   </span>
@@ -864,12 +878,12 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
                 setShowAppearanceMenu(false);
               }}
               className={`relative p-2 rounded-xl transition-colors shrink-0 ${
-                theme === 'light' ? 'hover:bg-slate-200/50 text-slate-600' : 'hover:bg-white/10 text-slate-400'
-              } ${showMessagePanel ? (theme === 'light' ? 'bg-slate-200/50' : 'bg-white/10') : ''}`}
+                isDark ? 'hover:bg-white/[0.08] text-slate-400' : 'hover:bg-slate-900/[0.06] text-slate-500'
+              } ${showMessagePanel ? (isDark ? 'bg-white/[0.08]' : 'bg-slate-900/[0.06]') : ''}`}
               aria-label="消息中心"
               title="消息中心"
             >
-              <Bell size={20} strokeWidth={2} />
+              <Bell size={20} strokeWidth={1.8} />
               {messageUnreadCount > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 min-w-[1.25rem] h-5 px-1 flex items-center justify-center rounded-full bg-red-500 text-white text-[11px] font-bold">
                   {messageUnreadCount > 99 ? '99+' : messageUnreadCount}
@@ -880,13 +894,13 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
         </div>
       </aside>
 
-      {/* Mobile/Narrow Sidebar - Icon only */}
+      {/* ─── Mobile Sidebar — Icon only, glassmorphism ─── */}
       <aside
-        className={`flex-shrink-0 w-16 flex lg:hidden flex-col border-r transition-all duration-300 ${
-          theme === 'light' ? 'bg-[#F2F2F7] border-slate-200' : 'bg-[#0A0A0A] border-white/10'
-        }`}
+        className={`flex-shrink-0 w-16 flex lg:hidden flex-col transition-all duration-300 ${glassSidebar(theme)}`}
       >
-        <div className="h-14 flex items-center justify-center w-full">
+        <div className={`h-14 flex items-center justify-center w-full border-b ${
+          isDark ? 'border-white/[0.06]' : 'border-slate-200/50'
+        }`}>
           <button
             type="button"
             onClick={() => handleSidebarClick(layoutIsAdmin ? 'overview' : 'workspace')}
@@ -896,26 +910,28 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
             <Logo compact theme={theme} />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto pt-2 flex flex-col items-center gap-2">
+        <div className="flex-1 overflow-y-auto pt-2 flex flex-col items-center gap-1.5">
           {sidebarItems.map((item) => (
             <button
               key={item.id}
               type="button"
               onClick={() => handleSidebarClick(item.id)}
-              className={`p-3 rounded-xl transition-all ${
+              className={`p-2.5 rounded-xl transition-all ${
                 activeSidebar === item.id
-                  ? `${THEME_COLOR_CLASSES[themeColor].bg} text-white shadow-md`
-                  : theme === 'light'
-                    ? 'text-slate-500 hover:bg-slate-200'
-                    : 'text-slate-400 hover:bg-white/10'
+                  ? isDark
+                    ? 'bg-indigo-500/15 text-indigo-400'
+                    : 'bg-indigo-500/10 text-indigo-600'
+                  : isDark
+                    ? 'text-slate-400 hover:bg-white/[0.05]'
+                    : 'text-slate-500 hover:bg-slate-900/[0.04]'
               }`}
               title={item.label}
             >
-              <item.icon size={20} />
+              <item.icon size={20} strokeWidth={activeSidebar === item.id ? 2.5 : 1.8} />
             </button>
           ))}
         </div>
-        <div className="p-4 border-t border-transparent flex justify-center">
+        <div className="p-3 border-t border-transparent flex justify-center">
           <button 
             onClick={() => navigate(buildPath('user', 'profile'))}
             className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white text-[10px] font-bold shadow-sm"
@@ -926,11 +942,9 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
       </aside>
 
 
-      {/* Main Content Area */}
+      {/* ─── Main Content Area ─── */}
       <div className="flex-1 flex flex-col min-w-0 relative">
-        <main
-          className="flex-1 flex flex-col relative min-h-0"
-        >
+        <main className="flex-1 flex flex-col relative min-h-0">
           <AnimatePresence mode="wait">
             <motion.div
               key={contentKey}
@@ -938,7 +952,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
               initial="initial"
               animate="animate"
               exit="exit"
-              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+              transition={springTransition}
               className="flex-1 flex flex-col min-w-0 overflow-y-auto"
               style={{ willChange: 'opacity, transform' }}
             >
@@ -956,7 +970,6 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
               />
             </motion.div>
           </AnimatePresence>
-
         </main>
       </div>
     </div>

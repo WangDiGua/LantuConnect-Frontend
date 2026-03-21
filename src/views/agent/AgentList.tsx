@@ -24,6 +24,8 @@ import type {
   AgentType as DtoAgentType,
   AgentListQuery,
 } from '../../types/dto/agent';
+import { agentService } from '../../api/services/agent.service';
+import { AgentCreate } from './AgentCreate';
 
 interface AgentListProps {
   theme: Theme;
@@ -75,6 +77,8 @@ export const AgentList: React.FC<AgentListProps> = ({
   const [sourceFilter, setSourceFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'edit'>('list');
+  const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -105,6 +109,16 @@ export const AgentList: React.FC<AgentListProps> = ({
     deleteMut.mutate(deleteTarget.id, { onSuccess: () => setDeleteTarget(null) });
   };
 
+  const handleEdit = async (agent: Agent) => {
+    try {
+      const full = await agentService.getById(agent.id);
+      setEditingAgent(full);
+    } catch {
+      setEditingAgent(agent);
+    }
+    setViewMode('edit');
+  };
+
   const resetFilters = () => {
     setKeyword('');
     setDebouncedKw('');
@@ -113,6 +127,18 @@ export const AgentList: React.FC<AgentListProps> = ({
     setTypeFilter('');
     setPage(1);
   };
+
+  if (viewMode === 'edit' && editingAgent) {
+    return (
+      <AgentCreate
+        theme={theme}
+        fontSize={_fontSize}
+        onBack={() => { setViewMode('list'); setEditingAgent(null); refetch(); }}
+        onSuccess={() => { setViewMode('list'); setEditingAgent(null); refetch(); }}
+        editAgent={editingAgent}
+      />
+    );
+  }
 
   if (isError) {
     return (
@@ -407,7 +433,7 @@ export const AgentList: React.FC<AgentListProps> = ({
                               </button>
                               <button
                                 type="button"
-                                onClick={() => alert('编辑功能开发中')}
+                                onClick={() => handleEdit(agent)}
                                 className={`p-1.5 rounded-lg transition-colors ${
                                   isDark
                                     ? 'text-slate-400 hover:bg-white/5'

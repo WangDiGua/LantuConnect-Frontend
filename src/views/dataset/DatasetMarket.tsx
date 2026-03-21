@@ -9,7 +9,9 @@ import {
   Video,
   Layers,
   HardDrive,
+  X,
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { Theme, FontSize, ThemeColor } from '../../types';
 import type { Dataset, DatasetSourceType, DatasetDataType } from '../../types/dto/dataset';
 import { datasetService } from '../../api/services/dataset.service';
@@ -81,6 +83,7 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, the
   const [loading, setLoading] = useState(true);
   const [keyword, setKeyword] = useState('');
   const [sourceFilter, setSourceFilter] = useState<DatasetSourceType | ''>('');
+  const [detailDataset, setDetailDataset] = useState<Dataset | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -248,7 +251,7 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, the
                   <div className={`flex items-center justify-end pt-3 border-t ${dark ? 'border-white/5' : 'border-slate-100'}`}>
                     <button
                       type="button"
-                      onClick={() => showMessage?.('详情页面开发中', 'info')}
+                      onClick={() => setDetailDataset(ds)}
                       className="btn btn-primary btn-xs rounded-xl shadow-none"
                     >
                       查看详情
@@ -260,6 +263,113 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, the
           </div>
         )}
       </div>
+
+      {/* 数据集详情弹窗 */}
+      <AnimatePresence>
+        {detailDataset && (() => {
+          const ds = detailDataset;
+          const srcBadge = SOURCE_BADGE[ds.sourceType];
+          const dtBadge = DATA_TYPE_BADGE[ds.dataType];
+          return (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50"
+              onClick={() => setDetailDataset(null)}
+            >
+              <motion.div
+                initial={{ scale: 0.95, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.95, y: 20 }}
+                className={`w-full max-w-xl max-h-[85vh] rounded-2xl border flex flex-col ${
+                  dark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200'
+                }`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className={`shrink-0 px-6 py-4 border-b flex items-center justify-between ${
+                  dark ? 'border-white/10' : 'border-slate-200'
+                }`}>
+                  <h3 className={`text-lg font-bold truncate ${dark ? 'text-white' : 'text-slate-900'}`}>
+                    {ds.displayName}
+                  </h3>
+                  <button type="button" onClick={() => setDetailDataset(null)} className="btn btn-ghost btn-sm btn-circle shrink-0">
+                    <X size={18} />
+                  </button>
+                </div>
+                <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-5 space-y-4">
+                  <p className={`text-sm leading-relaxed ${dark ? 'text-slate-300' : 'text-slate-700'}`}>
+                    {ds.description || '暂无描述'}
+                  </p>
+
+                  <div className="flex flex-wrap gap-1.5">
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${srcBadge.cls}`}>
+                      {srcBadge.label}
+                    </span>
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${dtBadge.cls}`}>
+                      {dtBadge.label}
+                    </span>
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${
+                      dark ? 'text-slate-300 bg-white/5' : 'text-slate-600 bg-slate-100'
+                    }`}>
+                      {ds.format.toUpperCase()}
+                    </span>
+                  </div>
+
+                  <div className={`grid grid-cols-2 gap-3 rounded-xl border p-4 ${
+                    dark ? 'border-white/5 bg-white/[0.02]' : 'border-slate-100 bg-slate-50/50'
+                  }`}>
+                    <div>
+                      <div className={`text-[11px] font-medium ${dark ? 'text-slate-500' : 'text-slate-400'}`}>记录数</div>
+                      <div className={`text-base font-bold ${dark ? 'text-white' : 'text-slate-900'}`}>{formatCount(ds.recordCount)}</div>
+                    </div>
+                    <div>
+                      <div className={`text-[11px] font-medium ${dark ? 'text-slate-500' : 'text-slate-400'}`}>文件大小</div>
+                      <div className={`text-base font-bold ${dark ? 'text-white' : 'text-slate-900'}`}>{formatFileSize(ds.fileSize)}</div>
+                    </div>
+                  </div>
+
+                  {ds.tags.length > 0 && (
+                    <div>
+                      <div className={`text-xs font-semibold mb-2 ${dark ? 'text-slate-400' : 'text-slate-600'}`}>标签</div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {ds.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                              dark ? 'bg-white/5 text-slate-300' : 'bg-slate-100 text-slate-600'
+                            }`}
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className={`shrink-0 px-6 py-4 border-t flex justify-end gap-2 ${
+                  dark ? 'border-white/10' : 'border-slate-200'
+                }`}>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setDetailDataset(null)}
+                  >
+                    关闭
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={() => { showMessage?.('申请已提交，等待审批', 'success'); setDetailDataset(null); }}
+                  >
+                    申请使用
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          );
+        })()}
+      </AnimatePresence>
     </div>
   );
 };

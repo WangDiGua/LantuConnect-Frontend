@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
-import { Download, FileText, Copy, Check, ExternalLink } from 'lucide-react';
+import { Download, FileText, Copy, Check, ExternalLink, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { Theme, FontSize } from '../../types';
+import { buildPath } from '../../constants/consoleRoutes';
 
 interface SdkInfo {
   id: string;
@@ -108,6 +111,8 @@ export interface SdkDownloadPageProps {
 
 export const SdkDownloadPage: React.FC<SdkDownloadPageProps> = ({ theme, fontSize }) => {
   const isDark = theme === 'dark';
+  const navigate = useNavigate();
+  const [downloadSdk, setDownloadSdk] = useState<SdkInfo | null>(null);
 
   return (
     <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${isDark ? 'bg-[#000000]' : 'bg-[#F2F2F7]'}`}>
@@ -177,10 +182,10 @@ export const SdkDownloadPage: React.FC<SdkDownloadPageProps> = ({ theme, fontSiz
               </div>
 
               {/* Buttons */}
-              <div className="flex items-center gap-2 mt-4 pt-3 border-t border-dashed ${isDark ? 'border-white/10' : 'border-slate-200'}">
+              <div className={`flex items-center gap-2 mt-4 pt-3 border-t border-dashed ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                 <button
                   type="button"
-                  onClick={() => alert(`下载 ${sdk.name} v${sdk.version}（演示）`)}
+                  onClick={() => setDownloadSdk(sdk)}
                   className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors"
                 >
                   <Download size={14} />
@@ -188,7 +193,7 @@ export const SdkDownloadPage: React.FC<SdkDownloadPageProps> = ({ theme, fontSiz
                 </button>
                 <button
                   type="button"
-                  onClick={() => alert(`打开 ${sdk.name} 文档（演示）`)}
+                  onClick={() => navigate(buildPath('admin', 'api-docs'))}
                   className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-colors ${
                     isDark ? 'bg-white/10 text-slate-300 hover:bg-white/15' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                   }`}
@@ -218,6 +223,56 @@ export const SdkDownloadPage: React.FC<SdkDownloadPageProps> = ({ theme, fontSiz
           </div>
         </div>
       </div>
+
+      {/* SDK 下载弹窗 */}
+      <AnimatePresence>
+        {downloadSdk && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50"
+            onClick={() => setDownloadSdk(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className={`w-full max-w-md rounded-2xl border p-6 ${
+                isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200'
+              }`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className={`text-base font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                  {downloadSdk.name} v{downloadSdk.version}
+                </h3>
+                <button type="button" onClick={() => setDownloadSdk(null)} className="btn btn-ghost btn-sm btn-circle">
+                  <X size={18} />
+                </button>
+              </div>
+              <p className={`text-sm mb-4 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                SDK 包尚未发布，请通过包管理器安装：
+              </p>
+              <div className="relative">
+                <pre className={`text-xs font-mono p-4 rounded-xl overflow-x-auto ${
+                  isDark ? 'bg-black/40 text-slate-300' : 'bg-slate-900 text-slate-300'
+                }`}>
+                  {downloadSdk.installCmd}
+                </pre>
+                <div className="absolute top-2 right-2">
+                  <CopyBtn text={downloadSdk.installCmd} isDark={isDark} />
+                </div>
+              </div>
+              <div className="flex justify-end mt-4">
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setDownloadSdk(null)}>
+                  关闭
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

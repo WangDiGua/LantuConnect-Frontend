@@ -17,9 +17,9 @@ import {
   MessageSquare
 } from 'lucide-react';
 import { Theme, FontSize, ThemeColor } from '../../types';
-import type { AgentType } from '../../types/dto/agent';
+import type { Agent, AgentType } from '../../types/dto/agent';
 import { nativeSelectClass } from '../../utils/formFieldClasses';
-import { useCreateAgent } from '../../hooks/queries/useAgent';
+import { useCreateAgent, useUpdateAgent } from '../../hooks/queries/useAgent';
 import { z } from 'zod';
 import { ProgressBar } from '../../components/common/ProgressBar';
 import { THEME_COLOR_CLASSES } from '../../constants/theme';
@@ -30,6 +30,7 @@ interface AgentCreateProps {
   themeColor?: ThemeColor;
   onBack: () => void;
   onSuccess: (agentId: string) => void;
+  editAgent?: Agent;
 }
 
 type Step = 'TEMPLATE_SELECT' | 'BASIC_INFO' | 'TYPE_SELECT' | 'TYPE_CONFIG' | 'SUBMITTING';
@@ -90,6 +91,12 @@ const FORM_TYPE_TO_AGENT_TYPE: Record<string, AgentType> = {
   WEBHOOK: 'http_api',
 };
 
+const AGENT_TYPE_TO_FORM_TYPE: Record<string, string> = {
+  http_api: 'REST_API',
+  mcp: 'MCP',
+  builtin: 'REST_API',
+};
+
 const basicInfoSchema = z.object({
   name: z.string().min(1, '请输入 Agent 名称').max(50, '名称不能超过 50 个字符'),
   description: z.string().min(1, '请输入 Agent 描述'),
@@ -99,26 +106,39 @@ const configSchema = z.object({
   url: z.string().min(1, '请输入接口地址').url('接口地址必须以 http:// 或 https:// 开头'),
 });
 
-export const AgentCreate: React.FC<AgentCreateProps> = ({ theme, fontSize, themeColor = 'blue', onBack, onSuccess }) => {
+export const AgentCreate: React.FC<AgentCreateProps> = ({ theme, fontSize, themeColor = 'blue', onBack, onSuccess, editAgent }) => {
   const isDark = theme === 'dark';
   const tc = THEME_COLOR_CLASSES[themeColor];
-  const [currentStep, setCurrentStep] = useState<Step>('TEMPLATE_SELECT');
+  const isEditMode = !!editAgent;
+  const [currentStep, setCurrentStep] = useState<Step>(isEditMode ? 'BASIC_INFO' : 'TEMPLATE_SELECT');
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    type: 'REST_API',
-    config: {
-      url: '',
-      method: 'GET',
-      authType: 'NONE',
-      timeout: 30,
+  const [formData, setFormData] = useState(() => {
+    if (editAgent) {
+      const spec = editAgent.specJson || {};
+      return {
+        name: editAgent.displayName,
+        description: editAgent.description,
+        type: AGENT_TYPE_TO_FORM_TYPE[editAgent.agentType] || 'REST_API',
+        config: {
+          url: String(spec.url || ''),
+          method: String(spec.method || 'GET'),
+          authType: String(spec.authType || 'NONE'),
+          timeout: Number(spec.timeout) || 30,
+        },
+      };
     }
+    return {
+      name: '',
+      description: '',
+      type: 'REST_API',
+      config: { url: '', method: 'GET', authType: 'NONE', timeout: 30 },
+    };
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const createMut = useCreateAgent();
+  const updateMut = useUpdateAgent();
 
   // 应用模板
   const applyTemplate = (template: AgentTemplate) => {
@@ -168,29 +188,36 @@ export const AgentCreate: React.FC<AgentCreateProps> = ({ theme, fontSize, theme
     
     setCurrentStep('SUBMITTING');
 
-    createMut.mutate(
-      {
-        agentName: formData.name,
-        displayName: formData.name,
-        description: formData.description,
-        agentType: FORM_TYPE_TO_AGENT_TYPE[formData.type] ?? 'http_api',
-        sourceType: 'internal',
-        specJson: {
-          url: formData.config.url,
-          method: formData.config.method,
-          authType: formData.config.authType,
-          timeout: formData.config.timeout,
-        },
-        systemPrompt: `Endpoint: ${formData.config.url}`,
+    const payload = {
+      agentName: formData.name,
+      displayName: formData.name,
+      description: formData.description,
+      agentType: FORM_TYPE_TO_AGENT_TYPE[formData.type] ?? 'http_api',
+      sourceType: 'internal' as const,
+      specJson: {
+        url: formData.config.url,
+        method: formData.config.method,
+        authType: formData.config.authType,
+        timeout: formData.config.timeout,
       },
-      {
+      systemPrompt: `Endpoint: ${formData.config.url}`,
+    };
+    const onMutError = (err: Error) => {
+      setCurrentStep('TYPE_CONFIG');
+      setErrors({ submit: err instanceof Error ? err.message : (isEditMode ? '保存失败，请检查网络连接后重试。' : '创建失败，请检查网络连接后重试。') });
+    };
+
+    if (isEditMode && editAgent) {
+      updateMut.mutate(
+        { id: editAgent.id, data: payload },
+        { onSuccess: (agent) => onSuccess(String(agent.id)), onError: onMutError }
+      );
+    } else {
+      createMut.mutate(payload, {
         onSuccess: (agent) => onSuccess(String(agent.id)),
-        onError: (err) => {
-          setCurrentStep('TYPE_CONFIG');
-          setErrors({ submit: err instanceof Error ? err.message : '创建失败，请检查网络连接后重试。' });
-        },
-      }
-    );
+        onError: onMutError,
+      });
+    }
   };
 
   const renderStepIndicator = () => {
@@ -577,8 +604,8 @@ export const AgentCreate: React.FC<AgentCreateProps> = ({ theme, fontSize, theme
             上一步
           </button>
         </div>
-        <button type="button" onClick={handleSubmit} disabled={createMut.isPending} className="btn btn-primary px-10 shadow-lg shadow-blue-500/20">
-          提交创建
+        <button type="button" onClick={handleSubmit} disabled={createMut.isPending || updateMut.isPending} className="btn btn-primary px-10 shadow-lg shadow-blue-500/20">
+          {isEditMode ? '保存修改' : '提交创建'}
         </button>
       </div>
     </motion.div>
@@ -587,8 +614,8 @@ export const AgentCreate: React.FC<AgentCreateProps> = ({ theme, fontSize, theme
   const renderSubmitting = () => (
     <div className="flex flex-col items-center justify-center py-10 text-center">
       <span className="loading loading-spinner loading-lg text-primary mb-6"></span>
-      <h3 className="text-xl font-bold mb-2">正在创建 Agent</h3>
-      <p className="text-slate-500">请稍候，系统正在为您配置运行环境...</p>
+      <h3 className="text-xl font-bold mb-2">{isEditMode ? '正在保存修改' : '正在创建 Agent'}</h3>
+      <p className="text-slate-500">{isEditMode ? '请稍候，正在保存您的修改...' : '请稍候，系统正在为您配置运行环境...'}</p>
     </div>
   );
 
@@ -602,7 +629,7 @@ export const AgentCreate: React.FC<AgentCreateProps> = ({ theme, fontSize, theme
         <button type="button" onClick={onBack} className="btn btn-ghost btn-sm btn-circle">
           <ArrowLeft size={20} />
         </button>
-        <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>创建新 Agent</h2>
+        <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{isEditMode ? '编辑 Agent' : '创建新 Agent'}</h2>
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-2 sm:px-3 lg:px-4 py-2 sm:py-3">

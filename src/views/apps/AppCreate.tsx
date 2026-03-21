@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, AlertCircle, Loader2 } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
-import type { SmartAppCreatePayload, EmbedType } from '../../types/dto/smart-app';
+import type { SmartApp, SmartAppCreatePayload, EmbedType } from '../../types/dto/smart-app';
 import type { SourceType } from '../../types/dto/agent';
 import { smartAppService } from '../../api/services/smart-app.service';
 import { nativeInputClass, nativeSelectClass } from '../../utils/formFieldClasses';
@@ -12,21 +12,37 @@ interface AppCreateProps {
   onBack?: () => void;
   onSuccess?: (id: string) => void;
   showMessage?: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void;
+  editApp?: SmartApp;
 }
 
-export const AppCreate: React.FC<AppCreateProps> = ({ theme, onBack, onSuccess, showMessage }) => {
+export const AppCreate: React.FC<AppCreateProps> = ({ theme, onBack, onSuccess, showMessage, editApp }) => {
   const isDark = theme === 'dark';
+  const isEditMode = !!editApp;
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [formData, setFormData] = useState<SmartAppCreatePayload>({
-    appName: '',
-    displayName: '',
-    description: '',
-    appUrl: '',
-    embedType: 'iframe',
-    sourceType: 'internal',
-    icon: '',
-    isPublic: false,
+  const [formData, setFormData] = useState<SmartAppCreatePayload>(() => {
+    if (editApp) {
+      return {
+        appName: editApp.appName,
+        displayName: editApp.displayName,
+        description: editApp.description,
+        appUrl: editApp.appUrl,
+        embedType: editApp.embedType,
+        sourceType: editApp.sourceType as SourceType,
+        icon: editApp.icon ?? '',
+        isPublic: editApp.isPublic,
+      };
+    }
+    return {
+      appName: '',
+      displayName: '',
+      description: '',
+      appUrl: '',
+      embedType: 'iframe',
+      sourceType: 'internal',
+      icon: '',
+      isPublic: false,
+    };
   });
 
   const validate = (): boolean => {
@@ -43,16 +59,20 @@ export const AppCreate: React.FC<AppCreateProps> = ({ theme, onBack, onSuccess, 
     if (!validate()) return;
     setSubmitting(true);
     try {
-      const app = await smartAppService.create({
-        ...formData,
-        icon: formData.icon || undefined,
-      });
-      showMessage?.('应用注册成功', 'success');
-      onSuccess?.(String(app.id));
+      const payload = { ...formData, icon: formData.icon || undefined };
+      if (isEditMode && editApp) {
+        await smartAppService.update(editApp.id, payload);
+        showMessage?.('应用保存成功', 'success');
+        onSuccess?.(String(editApp.id));
+      } else {
+        const app = await smartAppService.create(payload);
+        showMessage?.('应用注册成功', 'success');
+        onSuccess?.(String(app.id));
+      }
       onBack?.();
     } catch (err) {
-      setErrors({ submit: err instanceof Error ? err.message : '创建失败，请重试' });
-      showMessage?.('应用注册失败', 'error');
+      setErrors({ submit: err instanceof Error ? err.message : (isEditMode ? '保存失败，请重试' : '创建失败，请重试') });
+      showMessage?.(isEditMode ? '应用保存失败' : '应用注册失败', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -71,7 +91,7 @@ export const AppCreate: React.FC<AppCreateProps> = ({ theme, onBack, onSuccess, 
         <button type="button" onClick={onBack} className="btn btn-ghost btn-sm btn-circle">
           <ArrowLeft size={20} />
         </button>
-        <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>注册智能应用</h2>
+        <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{isEditMode ? '编辑智能应用' : '注册智能应用'}</h2>
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-2 sm:px-3 lg:px-4 py-2 sm:py-3">
@@ -210,7 +230,7 @@ export const AppCreate: React.FC<AppCreateProps> = ({ theme, onBack, onSuccess, 
                   className="btn btn-primary rounded-xl px-8 shadow-lg shadow-blue-500/20"
                 >
                   {submitting && <Loader2 size={16} className="animate-spin mr-2" />}
-                  提交注册
+                  {isEditMode ? '保存修改' : '提交注册'}
                 </button>
               </div>
             </div>

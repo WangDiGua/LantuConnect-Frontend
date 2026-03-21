@@ -1,5 +1,5 @@
 import React, { useEffect, Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { AuthGuard } from './router/guards/AuthGuard';
@@ -37,7 +37,7 @@ function AuthBinder() {
       getRefreshToken: () => tokenStorage.get(env.VITE_REFRESH_TOKEN_KEY) || refreshToken,
       onLogout: () => {
         logout();
-        window.location.href = '/login';
+        window.location.hash = '#/login';
       },
       onRefreshSuccess: (newToken, newRefresh) => {
         setTokens(newToken, newRefresh);
@@ -52,7 +52,7 @@ const App: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <ErrorBoundary>
-        <BrowserRouter>
+        <HashRouter>
           <AuthBinder />
           <Suspense fallback={<SplashScreen />}>
             <Routes>
@@ -74,7 +74,7 @@ const App: React.FC = () => {
               />
             </Routes>
           </Suspense>
-        </BrowserRouter>
+        </HashRouter>
       </ErrorBoundary>
       <EnvBadge />
       {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}

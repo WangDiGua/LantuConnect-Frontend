@@ -99,7 +99,32 @@ export const PerformanceAnalysisPage: React.FC<Props> = ({ theme, fontSize, show
         <button
           type="button"
           className="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700"
-          onClick={() => showMessage('已生成分析快照（导出任务已排队）', 'success')}
+          onClick={() => {
+            const date = new Date().toISOString().slice(0, 10);
+            const snapshot = {
+              exportTime: new Date().toISOString(),
+              service: svc,
+              metrics: rows.map((r) => ({
+                timestamp: r.timestamp,
+                cpu: r.cpu,
+                memory: r.memory,
+                latencyP50: r.latencyP50,
+                latencyP99: r.latencyP99,
+                throughput: r.throughput,
+              })),
+            };
+            const json = JSON.stringify(snapshot, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `perf-snapshot-${date}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showMessage('分析快照已导出', 'success');
+          }}
         >
           导出分析快照
         </button>

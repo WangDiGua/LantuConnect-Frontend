@@ -112,6 +112,18 @@ export interface DataReportsPageProps {
   fontSize: FontSize;
 }
 
+function triggerDownload(content: string, filename: string, mime: string) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 export const DataReportsPage: React.FC<DataReportsPageProps> = ({ theme, fontSize }) => {
   const isDark = theme === 'dark';
   const [timeRange, setTimeRange] = useState<TimeRange>('7d');
@@ -355,7 +367,22 @@ export const DataReportsPage: React.FC<DataReportsPageProps> = ({ theme, fontSiz
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => alert('导出 CSV 功能开发中（演示）')}
+                onClick={() => {
+                  const date = new Date().toISOString().slice(0, 10);
+                  const rows = [
+                    ['指标', '数值', '趋势(%)'],
+                    ['总调用次数', String(kpi.totalCalls), String(kpi.callsTrend)],
+                    ['平均成功率(%)', String(kpi.avgSuccessRate), String(kpi.successTrend)],
+                    ['平均响应时间(ms)', String(kpi.avgLatency), String(kpi.latencyTrend)],
+                    ['活跃用户数', String(kpi.activeUsers), String(kpi.usersTrend)],
+                    ['新注册Agent', String(kpi.newAgents), String(kpi.agentsTrend)],
+                    [],
+                    ['Agent名称', '调用次数', '成功率(%)'],
+                    ...TOP_AGENTS.map((a) => [a.name, String(a.callCount), String(a.successRate)]),
+                  ];
+                  const csv = '\uFEFF' + rows.map((r) => r.join(',')).join('\n');
+                  triggerDownload(csv, `report-${date}.csv`, 'text/csv;charset=utf-8');
+                }}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-colors ${
                   isDark ? 'bg-white/10 text-slate-300 hover:bg-white/15' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
@@ -365,8 +392,24 @@ export const DataReportsPage: React.FC<DataReportsPageProps> = ({ theme, fontSiz
               </button>
               <button
                 type="button"
-                onClick={() => alert('导出 PDF 功能开发中（演示）')}
+                onClick={() => {
+                  const date = new Date().toISOString().slice(0, 10);
+                  const rows = [
+                    ['指标', '数值', '趋势(%)'],
+                    ['总调用次数', String(kpi.totalCalls), String(kpi.callsTrend)],
+                    ['平均成功率(%)', String(kpi.avgSuccessRate), String(kpi.successTrend)],
+                    ['平均响应时间(ms)', String(kpi.avgLatency), String(kpi.latencyTrend)],
+                    ['活跃用户数', String(kpi.activeUsers), String(kpi.usersTrend)],
+                    ['新注册Agent', String(kpi.newAgents), String(kpi.agentsTrend)],
+                    [],
+                    ['Agent名称', '调用次数', '成功率(%)'],
+                    ...TOP_AGENTS.map((a) => [a.name, String(a.callCount), String(a.successRate)]),
+                  ];
+                  const csv = '\uFEFF' + rows.map((r) => r.join(',')).join('\n');
+                  triggerDownload(csv, `report-${date}.csv`, 'text/csv;charset=utf-8');
+                }}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+                title="PDF 导出需要安装 jsPDF，当前使用 CSV 替代"
               >
                 <Download size={14} />
                 导出 PDF

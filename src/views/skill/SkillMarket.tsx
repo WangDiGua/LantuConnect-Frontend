@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Search, Zap, Clock, Activity, X, Star, ThumbsUp, MessageSquare } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Search, Zap, Clock, Activity, X, Star, ThumbsUp, MessageSquare, Play, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Theme, FontSize, ThemeColor } from '../../types';
 import type { Skill } from '../../types/dto/skill';
@@ -85,6 +85,38 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, theme
   const [skillReviews, setSkillReviews] = useState<SkillReview[]>(MOCK_SKILL_REVIEWS);
   const [myRating, setMyRating] = useState(0);
   const [myComment, setMyComment] = useState('');
+
+  const [useSkill, setUseSkill] = useState<Skill | null>(null);
+  const [useParams, setUseParams] = useState<Record<string, string>>({});
+  const [useLoading, setUseLoading] = useState(false);
+  const [useResult, setUseResult] = useState<string | null>(null);
+
+  const getParamFields = useCallback((skill: Skill): { key: string; type: string; required: boolean }[] => {
+    const schema = skill.parametersSchema as { properties?: Record<string, { type: string }>; required?: string[] } | null;
+    if (!schema?.properties) return [{ key: 'input', type: 'string', required: true }];
+    return Object.entries(schema.properties).map(([key, val]) => ({
+      key,
+      type: val.type || 'string',
+      required: schema.required?.includes(key) ?? false,
+    }));
+  }, []);
+
+  const handleOpenUse = useCallback((skill: Skill) => {
+    setUseSkill(skill);
+    setUseParams({});
+    setUseResult(null);
+    setUseLoading(false);
+  }, []);
+
+  const handleExecute = useCallback(() => {
+    setUseLoading(true);
+    setUseResult(null);
+    const latency = 200 + Math.floor(Math.random() * 1800);
+    setTimeout(() => {
+      setUseLoading(false);
+      setUseResult(`调用成功，耗时 ${latency}ms`);
+    }, 1000 + Math.random() * 1000);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -222,7 +254,7 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, theme
                     </div>
                     <button
                       type="button"
-                      onClick={() => showMessage?.('使用功能开发中', 'info')}
+                      onClick={(e) => { e.stopPropagation(); handleOpenUse(skill); }}
                       className="btn btn-primary btn-xs rounded-xl shadow-none"
                     >
                       使用
@@ -406,6 +438,104 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, theme
                     </div>
                   </div>
                 </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 使用面板 */}
+      <AnimatePresence>
+        {useSkill && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[210] flex items-center justify-center p-4 bg-black/50"
+            onClick={() => setUseSkill(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className={`w-full max-w-lg max-h-[80vh] rounded-2xl border flex flex-col ${
+                dark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200'
+              }`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className={`shrink-0 px-6 py-4 border-b flex items-center justify-between ${
+                dark ? 'border-white/10' : 'border-slate-200'
+              }`}>
+                <div className="min-w-0">
+                  <h3 className={`text-base font-bold truncate ${dark ? 'text-white' : 'text-slate-900'}`}>
+                    使用面板 — {useSkill.displayName}
+                  </h3>
+                  <p className={`text-xs mt-0.5 ${dark ? 'text-slate-500' : 'text-slate-400'}`}>
+                    {useSkill.description || '暂无描述'}
+                  </p>
+                </div>
+                <button type="button" onClick={() => setUseSkill(null)} className="btn btn-ghost btn-sm btn-circle shrink-0">
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-5 space-y-4">
+                {getParamFields(useSkill).map((f) => (
+                  <div key={f.key}>
+                    <label className={`text-xs font-semibold block mb-1.5 ${dark ? 'text-slate-300' : 'text-slate-700'}`}>
+                      {f.key}
+                      {f.required && <span className="text-red-500 ml-0.5">*</span>}
+                      <span className={`ml-2 font-normal ${dark ? 'text-slate-500' : 'text-slate-400'}`}>({f.type})</span>
+                    </label>
+                    {f.type === 'array' || f.type === 'object' ? (
+                      <textarea
+                        rows={3}
+                        placeholder={`输入 ${f.type} 类型的 JSON…`}
+                        value={useParams[f.key] || ''}
+                        onChange={(e) => setUseParams((p) => ({ ...p, [f.key]: e.target.value }))}
+                        className={`w-full px-3 py-2 rounded-xl border text-sm resize-none ${
+                          dark ? 'bg-white/5 border-white/10 text-white placeholder:text-slate-600' : 'bg-white border-slate-200 text-slate-900 placeholder:text-slate-400'
+                        }`}
+                      />
+                    ) : (
+                      <input
+                        type="text"
+                        placeholder={`输入 ${f.key}…`}
+                        value={useParams[f.key] || ''}
+                        onChange={(e) => setUseParams((p) => ({ ...p, [f.key]: e.target.value }))}
+                        className={`w-full px-3 py-2 rounded-xl border text-sm ${
+                          dark ? 'bg-white/5 border-white/10 text-white placeholder:text-slate-600' : 'bg-white border-slate-200 text-slate-900 placeholder:text-slate-400'
+                        }`}
+                      />
+                    )}
+                  </div>
+                ))}
+
+                {useResult && (
+                  <div className={`rounded-xl p-4 text-sm font-medium ${
+                    dark ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  }`}>
+                    {useResult}
+                  </div>
+                )}
+              </div>
+              <div className={`shrink-0 px-6 py-4 border-t flex justify-end gap-2 ${
+                dark ? 'border-white/10' : 'border-slate-200'
+              }`}>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setUseSkill(null)}
+                >
+                  关闭
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm gap-1.5"
+                  disabled={useLoading}
+                  onClick={handleExecute}
+                >
+                  {useLoading ? <><Loader2 size={14} className="animate-spin" /> 调用中…</> : <><Play size={14} /> 调用</>}
+                </button>
               </div>
             </motion.div>
           </motion.div>

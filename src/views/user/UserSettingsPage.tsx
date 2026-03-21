@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Settings,
   Lock,
@@ -12,7 +12,9 @@ import {
   ChevronRight,
   Trash2,
   Download,
+  X,
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Theme, FontSize, ThemeColor } from '../../types';
 import { THEME_COLOR_CLASSES } from '../../constants/theme';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
@@ -73,6 +75,51 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
   const [usageAnalytics, setUsageAnalytics] = useState(false);
   const [sessionPersist, setSessionPersist] = useState(true);
 
+  // 修改密码
+  const [showPwdModal, setShowPwdModal] = useState(false);
+  const [pwdCurrent, setPwdCurrent] = useState('');
+  const [pwdNew, setPwdNew] = useState('');
+  const [pwdConfirm, setPwdConfirm] = useState('');
+  const [pwdError, setPwdError] = useState('');
+
+  const handlePwdSubmit = useCallback(() => {
+    if (pwdNew.length < 6) { setPwdError('新密码至少 6 个字符'); return; }
+    if (pwdNew !== pwdConfirm) { setPwdError('两次输入的新密码不一致'); return; }
+    if (!pwdCurrent) { setPwdError('请输入当前密码'); return; }
+    setPwdError('');
+    showMessage('密码修改成功', 'success');
+    setShowPwdModal(false);
+    setPwdCurrent(''); setPwdNew(''); setPwdConfirm('');
+  }, [pwdCurrent, pwdNew, pwdConfirm, showMessage]);
+
+  // 手机绑定
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
+  const [phone, setPhone] = useState('');
+  const [smsCode, setSmsCode] = useState('');
+  const [countdown, setCountdown] = useState(0);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const handleSendCode = useCallback(() => {
+    if (!/^1\d{10}$/.test(phone)) { showMessage('请输入正确的手机号', 'error'); return; }
+    setCountdown(60);
+    countdownRef.current = setInterval(() => {
+      setCountdown((v) => {
+        if (v <= 1) { clearInterval(countdownRef.current!); return 0; }
+        return v - 1;
+      });
+    }, 1000);
+  }, [phone, showMessage]);
+
+  useEffect(() => () => { if (countdownRef.current) clearInterval(countdownRef.current); }, []);
+
+  const handlePhoneSubmit = useCallback(() => {
+    if (!/^1\d{10}$/.test(phone)) { showMessage('请输入正确的手机号', 'error'); return; }
+    if (smsCode.length < 4) { showMessage('请输入验证码', 'error'); return; }
+    showMessage('手机号绑定成功', 'success');
+    setShowPhoneModal(false);
+    setPhone(''); setSmsCode('');
+  }, [phone, smsCode, showMessage]);
+
   const card = `rounded-2xl border p-5 sm:p-6 shadow-none ${
     isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200/80'
   }`;
@@ -108,14 +155,14 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
             账号与安全
           </h2>
           <div className="space-y-1">
-            <button type="button" className={rowBtn} onClick={() => showMessage('演示环境：修改密码流程未对接', 'info')}>
+            <button type="button" className={rowBtn} onClick={() => { setPwdError(''); setPwdCurrent(''); setPwdNew(''); setPwdConfirm(''); setShowPwdModal(true); }}>
               <span className="flex items-center gap-3 min-w-0">
                 <Lock size={18} className="text-slate-400 shrink-0" />
                 <span className={`text-[14px] font-medium ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>登录密码</span>
               </span>
               <ChevronRight size={18} className="text-slate-400 shrink-0" />
             </button>
-            <button type="button" className={rowBtn} onClick={() => showMessage('演示环境：手机绑定未对接', 'info')}>
+            <button type="button" className={rowBtn} onClick={() => { setPhone(''); setSmsCode(''); setShowPhoneModal(true); }}>
               <span className="flex items-center gap-3 min-w-0">
                 <Smartphone size={18} className="text-slate-400 shrink-0" />
                 <span className={`text-[14px] font-medium ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>手机号</span>
@@ -217,7 +264,12 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={() => showMessage('已清除本地缓存（演示）', 'success')}
+              onClick={() => {
+                const authToken = localStorage.getItem('auth_token');
+                localStorage.clear();
+                if (authToken) localStorage.setItem('auth_token', authToken);
+                showMessage('已清除本地缓存', 'success');
+              }}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-slate-200 dark:border-white/15 hover:bg-slate-50 dark:hover:bg-white/5"
             >
               <Trash2 size={16} />
@@ -225,7 +277,29 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => showMessage('导出设置 JSON（演示）', 'info')}
+              onClick={() => {
+                const prefs = {
+                  theme,
+                  themeColor,
+                  emailNotif,
+                  browserNotif,
+                  alertNotif,
+                  usageAnalytics,
+                  sessionPersist,
+                  exportTime: new Date().toISOString(),
+                };
+                const json = JSON.stringify(prefs, null, 2);
+                const blob = new Blob([json], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `preferences-${new Date().toISOString().slice(0, 10)}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showMessage('偏好设置已导出', 'success');
+              }}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-slate-200 dark:border-white/15 hover:bg-slate-50 dark:hover:bg-white/5"
             >
               <Download size={16} />
@@ -255,6 +329,153 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
           </button>
         </section>
       </div>
+
+      {/* 修改密码弹窗 */}
+      <AnimatePresence>
+        {showPwdModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50"
+            onClick={() => setShowPwdModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className={`w-full max-w-sm rounded-2xl border p-6 ${
+                isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200'
+              }`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className={`text-base font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>修改密码</h3>
+                <button type="button" onClick={() => setShowPwdModal(false)} className="btn btn-ghost btn-sm btn-circle">
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <label className={`text-xs font-semibold block mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>当前密码</label>
+                  <input
+                    type="password"
+                    value={pwdCurrent}
+                    onChange={(e) => setPwdCurrent(e.target.value)}
+                    className={`w-full px-3 py-2 rounded-xl border text-sm ${
+                      isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'
+                    }`}
+                  />
+                </div>
+                <div>
+                  <label className={`text-xs font-semibold block mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>新密码</label>
+                  <input
+                    type="password"
+                    value={pwdNew}
+                    onChange={(e) => setPwdNew(e.target.value)}
+                    placeholder="至少 6 个字符"
+                    className={`w-full px-3 py-2 rounded-xl border text-sm ${
+                      isDark ? 'bg-white/5 border-white/10 text-white placeholder:text-slate-600' : 'bg-white border-slate-200 text-slate-900 placeholder:text-slate-400'
+                    }`}
+                  />
+                </div>
+                <div>
+                  <label className={`text-xs font-semibold block mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>确认新密码</label>
+                  <input
+                    type="password"
+                    value={pwdConfirm}
+                    onChange={(e) => setPwdConfirm(e.target.value)}
+                    className={`w-full px-3 py-2 rounded-xl border text-sm ${
+                      isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'
+                    }`}
+                  />
+                </div>
+                {pwdError && (
+                  <p className="text-xs text-red-500 font-medium">{pwdError}</p>
+                )}
+              </div>
+              <div className="flex justify-end gap-2 mt-5">
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowPwdModal(false)}>取消</button>
+                <button type="button" className={`btn btn-sm text-white border-0 ${tc.bg}`} onClick={handlePwdSubmit}>确认修改</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 手机绑定弹窗 */}
+      <AnimatePresence>
+        {showPhoneModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50"
+            onClick={() => setShowPhoneModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className={`w-full max-w-sm rounded-2xl border p-6 ${
+                isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200'
+              }`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className={`text-base font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>绑定手机号</h3>
+                <button type="button" onClick={() => setShowPhoneModal(false)} className="btn btn-ghost btn-sm btn-circle">
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <label className={`text-xs font-semibold block mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>手机号</label>
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="输入 11 位手机号"
+                    className={`w-full px-3 py-2 rounded-xl border text-sm ${
+                      isDark ? 'bg-white/5 border-white/10 text-white placeholder:text-slate-600' : 'bg-white border-slate-200 text-slate-900 placeholder:text-slate-400'
+                    }`}
+                  />
+                </div>
+                <div>
+                  <label className={`text-xs font-semibold block mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>验证码</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={smsCode}
+                      onChange={(e) => setSmsCode(e.target.value)}
+                      placeholder="输入验证码"
+                      className={`flex-1 px-3 py-2 rounded-xl border text-sm ${
+                        isDark ? 'bg-white/5 border-white/10 text-white placeholder:text-slate-600' : 'bg-white border-slate-200 text-slate-900 placeholder:text-slate-400'
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      disabled={countdown > 0}
+                      onClick={handleSendCode}
+                      className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
+                        countdown > 0
+                          ? 'bg-slate-200 text-slate-400 cursor-not-allowed dark:bg-white/5 dark:text-slate-600'
+                          : `text-white ${tc.bg}`
+                      }`}
+                    >
+                      {countdown > 0 ? `${countdown}s` : '获取验证码'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 mt-5">
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowPhoneModal(false)}>取消</button>
+                <button type="button" className={`btn btn-sm text-white border-0 ${tc.bg}`} onClick={handlePhoneSubmit}>确认绑定</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

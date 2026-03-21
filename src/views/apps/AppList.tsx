@@ -54,8 +54,9 @@ function truncateUrl(url: string, max = 35): string {
 export const AppList: React.FC<Props> = ({ theme, fontSize, showMessage }) => {
   const isDark = theme === 'dark';
 
-  const [viewMode, setViewMode] = useState<'list' | 'detail' | 'create'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'detail' | 'create' | 'edit'>('list');
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
+  const [editingApp, setEditingApp] = useState<SmartApp | null>(null);
 
   const [apps, setApps] = useState<SmartApp[]>([]);
   const [loading, setLoading] = useState(true);
@@ -116,6 +117,7 @@ export const AppList: React.FC<Props> = ({ theme, fontSize, showMessage }) => {
   const handleBackToList = () => {
     setViewMode('list');
     setSelectedAppId(null);
+    setEditingApp(null);
   };
 
   const resetFilters = () => {
@@ -134,6 +136,19 @@ export const AppList: React.FC<Props> = ({ theme, fontSize, showMessage }) => {
         showMessage={showMessage}
         onBack={handleBackToList}
         onSuccess={() => handleBackToList()}
+      />
+    );
+  }
+
+  if (viewMode === 'edit' && editingApp) {
+    return (
+      <AppCreate
+        theme={theme}
+        fontSize={fontSize}
+        showMessage={showMessage}
+        onBack={handleBackToList}
+        onSuccess={() => handleBackToList()}
+        editApp={editingApp}
       />
     );
   }
@@ -310,7 +325,15 @@ export const AppList: React.FC<Props> = ({ theme, fontSize, showMessage }) => {
                               </button>
                               <button
                                 type="button"
-                                onClick={() => alert('编辑功能开发中')}
+                                onClick={async () => {
+                                  try {
+                                    const full = await smartAppService.getById(app.id);
+                                    setEditingApp(full);
+                                  } catch {
+                                    setEditingApp(app);
+                                  }
+                                  setViewMode('edit');
+                                }}
                                 className={`p-1.5 rounded-lg transition-colors ${isDark ? 'text-slate-400 hover:bg-white/5' : 'text-slate-500 hover:bg-slate-100'}`}
                                 title="编辑"
                               >

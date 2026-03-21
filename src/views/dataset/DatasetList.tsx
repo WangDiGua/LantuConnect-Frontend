@@ -66,8 +66,9 @@ function formatCount(n: number): string {
 export const DatasetList: React.FC<Props> = ({ theme, fontSize, showMessage }) => {
   const isDark = theme === 'dark';
 
-  const [viewMode, setViewMode] = useState<'list' | 'detail' | 'create'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'detail' | 'create' | 'edit'>('list');
   const [selectedDatasetId, setSelectedDatasetId] = useState<string | null>(null);
+  const [editingDataset, setEditingDataset] = useState<Dataset | null>(null);
 
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [loading, setLoading] = useState(true);
@@ -130,6 +131,7 @@ export const DatasetList: React.FC<Props> = ({ theme, fontSize, showMessage }) =
   const handleBackToList = () => {
     setViewMode('list');
     setSelectedDatasetId(null);
+    setEditingDataset(null);
   };
 
   const resetFilters = () => {
@@ -149,6 +151,19 @@ export const DatasetList: React.FC<Props> = ({ theme, fontSize, showMessage }) =
         showMessage={showMessage}
         onBack={handleBackToList}
         onSuccess={() => handleBackToList()}
+      />
+    );
+  }
+
+  if (viewMode === 'edit' && editingDataset) {
+    return (
+      <DatasetCreate
+        theme={theme}
+        fontSize={fontSize}
+        showMessage={showMessage}
+        onBack={handleBackToList}
+        onSuccess={() => handleBackToList()}
+        editDataset={editingDataset}
       />
     );
   }
@@ -349,7 +364,15 @@ export const DatasetList: React.FC<Props> = ({ theme, fontSize, showMessage }) =
                               </button>
                               <button
                                 type="button"
-                                onClick={() => alert('编辑功能开发中')}
+                                onClick={async () => {
+                                  try {
+                                    const full = await datasetService.getById(ds.id);
+                                    setEditingDataset(full);
+                                  } catch {
+                                    setEditingDataset(ds);
+                                  }
+                                  setViewMode('edit');
+                                }}
                                 className={`p-1.5 rounded-lg transition-colors ${isDark ? 'text-slate-400 hover:bg-white/5' : 'text-slate-500 hover:bg-slate-100'}`}
                                 title="编辑"
                               >

@@ -28,7 +28,6 @@ import {
   USER_SETTINGS_GROUPS,
 } from './navigation';
 
-import { ROUTE_ROOT_SUB } from './routeRoot';
 import { encryptStorage, decryptStorage } from '../lib/security';
 
 // ---------------------------------------------------------------------------
@@ -99,7 +98,7 @@ function standalone(
           label,
           icon,
           sidebarId,
-          subItemId: ROUTE_ROOT_SUB,
+          subItemId: sidebarId,
         },
       ],
     },

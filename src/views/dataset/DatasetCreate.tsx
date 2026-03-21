@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, AlertCircle, Loader2 } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
-import type { DatasetCreatePayload, DatasetSourceType, DatasetDataType } from '../../types/dto/dataset';
+import type { Dataset, DatasetCreatePayload, DatasetSourceType, DatasetDataType } from '../../types/dto/dataset';
 import { datasetService } from '../../api/services/dataset.service';
 import { nativeInputClass, nativeSelectClass } from '../../utils/formFieldClasses';
 
@@ -11,25 +11,43 @@ interface DatasetCreateProps {
   onBack?: () => void;
   onSuccess?: (id: string) => void;
   showMessage?: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void;
+  editDataset?: Dataset;
 }
 
-export const DatasetCreate: React.FC<DatasetCreateProps> = ({ theme, onBack, onSuccess, showMessage }) => {
+export const DatasetCreate: React.FC<DatasetCreateProps> = ({ theme, onBack, onSuccess, showMessage, editDataset }) => {
   const isDark = theme === 'dark';
+  const isEditMode = !!editDataset;
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [formData, setFormData] = useState<DatasetCreatePayload>({
-    datasetName: '',
-    displayName: '',
-    description: '',
-    sourceType: 'department',
-    dataType: 'document',
-    format: '',
-    recordCount: 0,
-    fileSize: 0,
-    tags: [],
-    isPublic: false,
+  const [formData, setFormData] = useState<DatasetCreatePayload>(() => {
+    if (editDataset) {
+      return {
+        datasetName: editDataset.datasetName,
+        displayName: editDataset.displayName,
+        description: editDataset.description,
+        sourceType: editDataset.sourceType,
+        dataType: editDataset.dataType,
+        format: editDataset.format,
+        recordCount: editDataset.recordCount,
+        fileSize: editDataset.fileSize,
+        tags: editDataset.tags,
+        isPublic: editDataset.isPublic,
+      };
+    }
+    return {
+      datasetName: '',
+      displayName: '',
+      description: '',
+      sourceType: 'department',
+      dataType: 'document',
+      format: '',
+      recordCount: 0,
+      fileSize: 0,
+      tags: [],
+      isPublic: false,
+    };
   });
-  const [tagsInput, setTagsInput] = useState('');
+  const [tagsInput, setTagsInput] = useState(editDataset?.tags?.join(', ') ?? '');
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
@@ -44,13 +62,20 @@ export const DatasetCreate: React.FC<DatasetCreateProps> = ({ theme, onBack, onS
     setSubmitting(true);
     try {
       const tags = tagsInput.split(/[,，]/).map(s => s.trim()).filter(Boolean);
-      const ds = await datasetService.create({ ...formData, tags });
-      showMessage?.('数据集注册成功', 'success');
-      onSuccess?.(String(ds.id));
+      const payload = { ...formData, tags };
+      if (isEditMode && editDataset) {
+        await datasetService.update(editDataset.id, payload);
+        showMessage?.('数据集保存成功', 'success');
+        onSuccess?.(String(editDataset.id));
+      } else {
+        const ds = await datasetService.create(payload);
+        showMessage?.('数据集注册成功', 'success');
+        onSuccess?.(String(ds.id));
+      }
       onBack?.();
     } catch (err) {
-      setErrors({ submit: err instanceof Error ? err.message : '创建失败，请重试' });
-      showMessage?.('数据集注册失败', 'error');
+      setErrors({ submit: err instanceof Error ? err.message : (isEditMode ? '保存失败，请重试' : '创建失败，请重试') });
+      showMessage?.(isEditMode ? '数据集保存失败' : '数据集注册失败', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -69,7 +94,7 @@ export const DatasetCreate: React.FC<DatasetCreateProps> = ({ theme, onBack, onS
         <button type="button" onClick={onBack} className="btn btn-ghost btn-sm btn-circle">
           <ArrowLeft size={20} />
         </button>
-        <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>注册数据集</h2>
+        <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{isEditMode ? '编辑数据集' : '注册数据集'}</h2>
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-2 sm:px-3 lg:px-4 py-2 sm:py-3">
@@ -240,7 +265,7 @@ export const DatasetCreate: React.FC<DatasetCreateProps> = ({ theme, onBack, onS
                   className="btn btn-primary rounded-xl px-8 shadow-lg shadow-blue-500/20"
                 >
                   {submitting && <Loader2 size={16} className="animate-spin mr-2" />}
-                  提交注册
+                  {isEditMode ? '保存修改' : '提交注册'}
                 </button>
               </div>
             </div>

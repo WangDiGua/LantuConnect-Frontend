@@ -1,16 +1,15 @@
 /**
  * Centralized route definitions for the application.
  *
- * Console path pattern: /c/:role/:sidebar/:sub
+ * Hash-based routing pattern: /#/:role/:page[/:id]
  *   - role: "admin" | "user"
- *   - sidebar: main nav item (URL-encoded Chinese)
- *   - sub: sub-item or "__root__" for items without children
+ *   - page: flat page identifier (e.g. "dashboard", "agent-list")
+ *   - id: optional entity ID for detail pages
  *
  * Auth flow:
- *   /login        -> GuestGuard (redirects to / if authenticated)
- *   /c/*          -> AuthGuard  (redirects to /login if not authenticated)
- *   /             -> ConsoleHomeRedirect (redirects to default console path)
- *   *             -> NotFoundPage
+ *   /#/login      -> GuestGuard (redirects to / if authenticated)
+ *   /#/*          -> AuthGuard  (redirects to /login if not authenticated)
+ *   /#/           -> ConsoleHomeRedirect (redirects to default path)
  */
 
 export { AuthGuard } from './guards/AuthGuard';

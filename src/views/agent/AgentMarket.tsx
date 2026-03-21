@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   Search,
   Star,
@@ -26,6 +26,8 @@ import {
 } from '../../constants/agentMarket';
 import { nativeSelectClass } from '../../utils/formFieldClasses';
 import { AgentReviews } from './AgentReviews';
+import { useNavigate } from 'react-router-dom';
+import { buildPath } from '../../constants/consoleRoutes';
 
 export interface AgentMarketProps {
   theme: Theme;
@@ -69,8 +71,20 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({
     return rows;
   }, [category, query, sort]);
 
-  const addAgent = (name: string) => {
-    showMessage(`已添加「${name}」到工作区（演示）`, 'success');
+  const navigate = useNavigate();
+
+  const WS_KEY = 'lantu_workspace_agents';
+  const [workspaceAgents, setWorkspaceAgents] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem(WS_KEY) || '[]'); } catch { return []; }
+  });
+  useEffect(() => { localStorage.setItem(WS_KEY, JSON.stringify(workspaceAgents)); }, [workspaceAgents]);
+  const isInWorkspace = (id: string) => workspaceAgents.includes(id);
+
+  const [confirmAgent, setConfirmAgent] = useState<AgentMarketCard | null>(null);
+  const addToWorkspace = (agent: AgentMarketCard) => {
+    if (isInWorkspace(agent.id)) return;
+    setWorkspaceAgents((prev) => [...prev, agent.id]);
+    showMessage(`已将「${agent.name}」添加到工作区`, 'success');
   };
 
   const [detailAgent, setDetailAgent] = useState<(AgentMarketCard & { _source?: 'featured' | 'list' }) | null>(null);
@@ -99,7 +113,7 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({
             <button
               type="button"
               className="btn btn-outline btn-sm h-9 min-h-0 gap-1"
-              onClick={() => showMessage('「我的收藏」待对接账号体系', 'info')}
+              onClick={() => navigate(buildPath('user', 'my-favorites'))}
             >
               <Heart size={14} />
               我的收藏
@@ -107,7 +121,7 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({
             <button
               type="button"
               className={`btn btn-sm h-9 min-h-0 text-white border-0 gap-1 ${tc.bg} shadow-lg ${tc.shadow}`}
-              onClick={() => showMessage('「提交上架」将跳转运营审核流程（演示）', 'info')}
+              onClick={() => navigate(buildPath('user', 'submit-agent'))}
             >
               提交上架
             </button>
@@ -280,11 +294,14 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({
                             </button>
                             <button
                               type="button"
-                              className={`btn btn-sm h-8 min-h-0 text-xs text-white border-0 gap-1 ${tc.bg}`}
-                              onClick={() => addAgent(a.name)}
+                              className={`btn btn-sm h-8 min-h-0 text-xs border-0 gap-1 ${
+                                isInWorkspace(a.id) ? 'bg-slate-400 text-white cursor-not-allowed' : `text-white ${tc.bg}`
+                              }`}
+                              disabled={isInWorkspace(a.id)}
+                              onClick={() => !isInWorkspace(a.id) && setConfirmAgent(a)}
                             >
                               <Rocket size={14} />
-                              一键部署
+                              {isInWorkspace(a.id) ? '已添加' : '一键部署'}
                             </button>
                           </div>
                         </div>
@@ -372,10 +389,13 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({
                           </span>
                           <button
                             type="button"
-                            className={`btn btn-sm h-8 min-h-0 text-xs text-white border-0 ${tc.bg}`}
-                            onClick={() => addAgent(a.name)}
+                            className={`btn btn-sm h-8 min-h-0 text-xs border-0 ${
+                              isInWorkspace(a.id) ? 'bg-slate-400 text-white cursor-not-allowed' : `text-white ${tc.bg}`
+                            }`}
+                            disabled={isInWorkspace(a.id)}
+                            onClick={(e) => { e.stopPropagation(); if (!isInWorkspace(a.id)) setConfirmAgent(a); }}
                           >
-                            添加
+                            {isInWorkspace(a.id) ? '已添加' : '添加'}
                           </button>
                         </div>
                       </article>
@@ -433,11 +453,14 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({
                   <div className="flex items-center gap-2 shrink-0">
                     <button
                       type="button"
-                      className={`btn btn-sm h-9 min-h-0 text-xs text-white border-0 gap-1 ${tc.bg}`}
-                      onClick={(e) => { e.stopPropagation(); addAgent(detailAgent.name); }}
+                      className={`btn btn-sm h-9 min-h-0 text-xs border-0 gap-1 ${
+                        isInWorkspace(detailAgent.id) ? 'bg-slate-400 text-white cursor-not-allowed' : `text-white ${tc.bg}`
+                      }`}
+                      disabled={isInWorkspace(detailAgent.id)}
+                      onClick={(e) => { e.stopPropagation(); if (!isInWorkspace(detailAgent.id)) setConfirmAgent(detailAgent); }}
                     >
                       <Rocket size={14} />
-                      一键部署
+                      {isInWorkspace(detailAgent.id) ? '已添加' : '一键部署'}
                     </button>
                     <button type="button" onClick={() => setDetailAgent(null)} className="btn btn-ghost btn-sm btn-circle">
                       <X size={18} />
@@ -472,6 +495,52 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({
                     </h4>
                     <AgentReviews agentId={Number(detailAgent.id)} theme={theme} fontSize={fontSize} />
                   </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* 确认添加弹窗 */}
+        <AnimatePresence>
+          {confirmAgent && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/50"
+              onClick={() => setConfirmAgent(null)}
+            >
+              <motion.div
+                initial={{ scale: 0.95, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.95, y: 20 }}
+                className={`w-full max-w-sm rounded-2xl border p-6 ${
+                  isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200'
+                }`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h3 className={`text-base font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                  确认添加
+                </h3>
+                <p className={`text-sm mb-6 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                  确认将「{confirmAgent.name}」添加到工作区？
+                </p>
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setConfirmAgent(null)}
+                  >
+                    取消
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn btn-sm text-white border-0 ${tc.bg}`}
+                    onClick={() => { addToWorkspace(confirmAgent); setConfirmAgent(null); }}
+                  >
+                    确认添加
+                  </button>
                 </div>
               </motion.div>
             </motion.div>

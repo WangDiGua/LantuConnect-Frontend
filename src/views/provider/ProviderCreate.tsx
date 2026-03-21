@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
-import type { AuthType, ProviderType } from '../../types/dto/provider';
+import type { Provider, AuthType, ProviderType } from '../../types/dto/provider';
 import { providerService } from '../../api/services/provider.service';
 import { nativeInputClass, nativeSelectClass } from '../../utils/formFieldClasses';
 
@@ -11,6 +11,7 @@ interface Props {
   onBack: () => void;
   onSuccess?: (id: string) => void;
   showMessage?: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void;
+  editProvider?: Provider;
 }
 
 const PROVIDER_TYPE_OPTIONS: { value: ProviderType; label: string }[] = [
@@ -26,25 +27,46 @@ const AUTH_TYPE_OPTIONS: { value: AuthType; label: string }[] = [
   { value: 'basic', label: 'Basic Auth' },
 ];
 
-export const ProviderCreate: React.FC<Props> = ({ theme, onBack, onSuccess, showMessage }) => {
+export const ProviderCreate: React.FC<Props> = ({ theme, onBack, onSuccess, showMessage, editProvider }) => {
   const dark = theme === 'dark';
+  const isEditMode = !!editProvider;
 
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [form, setForm] = useState({
-    providerCode: '',
-    providerName: '',
-    providerType: 'internal' as ProviderType,
-    description: '',
-    authType: 'none' as AuthType,
-    authConfig: {
-      api_key: '',
-      client_id: '',
-      client_secret: '',
-      username: '',
-      password: '',
-    },
-    baseUrl: '',
+  const [form, setForm] = useState(() => {
+    if (editProvider) {
+      const ac = (editProvider.authConfig ?? {}) as Record<string, string>;
+      return {
+        providerCode: editProvider.providerCode,
+        providerName: editProvider.providerName,
+        providerType: editProvider.providerType,
+        description: editProvider.description ?? '',
+        authType: editProvider.authType,
+        authConfig: {
+          api_key: ac.api_key ?? '',
+          client_id: ac.client_id ?? '',
+          client_secret: ac.client_secret ?? '',
+          username: ac.username ?? '',
+          password: ac.password ?? '',
+        },
+        baseUrl: editProvider.baseUrl ?? '',
+      };
+    }
+    return {
+      providerCode: '',
+      providerName: '',
+      providerType: 'internal' as ProviderType,
+      description: '',
+      authType: 'none' as AuthType,
+      authConfig: {
+        api_key: '',
+        client_id: '',
+        client_secret: '',
+        username: '',
+        password: '',
+      },
+      baseUrl: '',
+    };
   });
 
   const setField = <K extends keyof typeof form>(key: K, val: (typeof form)[K]) =>
@@ -85,7 +107,7 @@ export const ProviderCreate: React.FC<Props> = ({ theme, onBack, onSuccess, show
       else if (form.authType === 'basic')
         authConfig = { username: form.authConfig.username, password: form.authConfig.password };
 
-      const result = await providerService.create({
+      const payload = {
         providerCode: form.providerCode.trim(),
         providerName: form.providerName.trim(),
         providerType: form.providerType,
@@ -93,12 +115,20 @@ export const ProviderCreate: React.FC<Props> = ({ theme, onBack, onSuccess, show
         authType: form.authType,
         authConfig,
         baseUrl: form.baseUrl.trim() || undefined,
-      });
-      showMessage?.('创建成功', 'success');
-      onSuccess?.(String(result.id));
+      };
+
+      if (isEditMode && editProvider) {
+        await providerService.update(editProvider.id, payload);
+        showMessage?.('保存成功', 'success');
+        onSuccess?.(String(editProvider.id));
+      } else {
+        const result = await providerService.create(payload);
+        showMessage?.('创建成功', 'success');
+        onSuccess?.(String(result.id));
+      }
       onBack();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : '创建失败';
+      const msg = err instanceof Error ? err.message : (isEditMode ? '保存失败' : '创建失败');
       setErrors({ submit: msg });
       showMessage?.(msg, 'error');
     } finally {
@@ -120,7 +150,7 @@ export const ProviderCreate: React.FC<Props> = ({ theme, onBack, onSuccess, show
         <button type="button" onClick={onBack} className="btn btn-ghost btn-sm btn-circle">
           <ArrowLeft size={20} />
         </button>
-        <h2 className={`text-lg font-bold ${dark ? 'text-white' : 'text-slate-900'}`}>添加 Provider</h2>
+        <h2 className={`text-lg font-bold ${dark ? 'text-white' : 'text-slate-900'}`}>{isEditMode ? '编辑 Provider' : '添加 Provider'}</h2>
       </div>
 
       {/* Form body */}
@@ -296,7 +326,7 @@ export const ProviderCreate: React.FC<Props> = ({ theme, onBack, onSuccess, show
                   disabled={submitting}
                   className="btn btn-primary rounded-xl px-8 shadow-lg shadow-blue-500/20"
                 >
-                  {submitting ? <span className="loading loading-spinner loading-sm" /> : '提交创建'}
+                  {submitting ? <span className="loading loading-spinner loading-sm" /> : (isEditMode ? '保存修改' : '提交创建')}
                 </button>
               </div>
             </div>

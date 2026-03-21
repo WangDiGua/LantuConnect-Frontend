@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { X } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { Provider, ProviderType, ProviderStatus } from '../../types/dto/provider';
 import { providerService } from '../../api/services/provider.service';
@@ -11,7 +12,7 @@ interface Props {
   showMessage?: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void;
 }
 
-type ViewMode = 'list' | 'create';
+type ViewMode = 'list' | 'create' | 'edit';
 
 const STATUS_MAP: Record<ProviderStatus, { label: string; cls: string }> = {
   active: { label: '运行中', cls: 'text-emerald-600 bg-emerald-500/10' },
@@ -48,6 +49,8 @@ export const ProviderList: React.FC<Props> = ({ theme, fontSize, showMessage }) 
   const [keyword, setKeyword] = useState('');
   const [typeFilter, setTypeFilter] = useState<ProviderType | ''>('');
   const [statusFilter, setStatusFilter] = useState<ProviderStatus | ''>('');
+  const [editingProvider, setEditingProvider] = useState<Provider | null>(null);
+  const [viewProvider, setViewProvider] = useState<Provider | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -82,25 +85,17 @@ export const ProviderList: React.FC<Props> = ({ theme, fontSize, showMessage }) 
   };
 
   const handleView = (pv: Provider) => {
-    const authLabel = AUTH_MAP[pv.authType] ?? pv.authType;
-    const typeLabel = TYPE_MAP[pv.providerType]?.label ?? pv.providerType;
-    const statusLabel = STATUS_MAP[pv.status]?.label ?? pv.status;
-    alert(
-      `Provider 详情\n\n` +
-      `编码: ${pv.providerCode}\n` +
-      `名称: ${pv.providerName}\n` +
-      `类型: ${typeLabel}\n` +
-      `认证: ${authLabel}\n` +
-      `地址: ${pv.baseUrl || '—'}\n` +
-      `状态: ${statusLabel}\n` +
-      `描述: ${pv.description || '—'}\n` +
-      `关联 Agent: ${pv.agentCount}  |  关联 Skill: ${pv.skillCount}\n` +
-      `创建时间: ${pv.createTime}`
-    );
+    setViewProvider(pv);
   };
 
-  const handleEdit = () => {
-    showMessage?.('编辑功能开发中', 'info');
+  const handleEdit = async (pv: Provider) => {
+    try {
+      const full = await providerService.getById(pv.id);
+      setEditingProvider(full);
+    } catch {
+      setEditingProvider(pv);
+    }
+    setViewMode('edit');
   };
 
   if (viewMode === 'create') {
@@ -110,6 +105,18 @@ export const ProviderList: React.FC<Props> = ({ theme, fontSize, showMessage }) 
         fontSize={fontSize}
         onBack={() => { setViewMode('list'); fetchData(); }}
         showMessage={showMessage}
+      />
+    );
+  }
+
+  if (viewMode === 'edit' && editingProvider) {
+    return (
+      <ProviderCreate
+        theme={theme}
+        fontSize={fontSize}
+        onBack={() => { setViewMode('list'); setEditingProvider(null); fetchData(); }}
+        showMessage={showMessage}
+        editProvider={editingProvider}
       />
     );
   }
@@ -224,7 +231,7 @@ export const ProviderList: React.FC<Props> = ({ theme, fontSize, showMessage }) 
                           <button
                             type="button"
                             className="btn btn-ghost btn-xs rounded-xl"
-                            onClick={handleEdit}
+                            onClick={() => handleEdit(pv)}
                           >
                             编辑
                           </button>
@@ -273,6 +280,51 @@ export const ProviderList: React.FC<Props> = ({ theme, fontSize, showMessage }) 
           </div>
         )}
       </div>
+
+      {viewProvider && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setViewProvider(null)}>
+          <div
+            className={`w-full max-w-lg mx-4 rounded-2xl border shadow-xl ${dark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200'}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={`flex items-center justify-between px-6 py-4 border-b ${dark ? 'border-white/10' : 'border-slate-200'}`}>
+              <h3 className={`text-lg font-bold ${dark ? 'text-white' : 'text-slate-900'}`}>Provider 详情</h3>
+              <button type="button" onClick={() => setViewProvider(null)} className="btn btn-ghost btn-sm btn-circle">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="px-6 py-5 space-y-4 max-h-[60vh] overflow-y-auto">
+              {[
+                { label: '提供商名称', value: viewProvider.providerName },
+                { label: '提供商编码', value: viewProvider.providerCode },
+                { label: '类型', value: TYPE_MAP[viewProvider.providerType]?.label ?? viewProvider.providerType, badge: TYPE_MAP[viewProvider.providerType]?.cls },
+                { label: '描述', value: viewProvider.description || '—' },
+                { label: '认证方式', value: AUTH_MAP[viewProvider.authType] ?? viewProvider.authType },
+                { label: '服务地址', value: viewProvider.baseUrl || '—' },
+                { label: '状态', value: STATUS_MAP[viewProvider.status]?.label ?? viewProvider.status, badge: STATUS_MAP[viewProvider.status]?.cls },
+                { label: '关联 Agent', value: String(viewProvider.agentCount) },
+                { label: '关联 Skill', value: String(viewProvider.skillCount) },
+                { label: '创建时间', value: viewProvider.createTime },
+                { label: '更新时间', value: viewProvider.updateTime },
+              ].map((row) => (
+                <div key={row.label} className="flex items-start gap-4">
+                  <span className={`text-sm font-medium w-24 shrink-0 ${dark ? 'text-slate-400' : 'text-slate-500'}`}>{row.label}</span>
+                  {row.badge ? (
+                    <span className={`inline-flex items-center px-2 py-0.5 text-xs font-semibold rounded-lg ${row.badge}`}>{row.value}</span>
+                  ) : (
+                    <span className={`text-sm break-all ${dark ? 'text-slate-200' : 'text-slate-700'}`}>{row.value}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className={`px-6 py-4 border-t flex justify-end ${dark ? 'border-white/10' : 'border-slate-200'}`}>
+              <button type="button" onClick={() => setViewProvider(null)} className="btn btn-ghost btn-sm rounded-xl">
+                关闭
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

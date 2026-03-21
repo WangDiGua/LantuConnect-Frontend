@@ -1,28 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Wrench, Eye, Pencil, Undo2, ArrowRight, X } from 'lucide-react';
+import { Wrench, Eye, Undo2, ArrowRight, X, Loader2 } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { AgentStatus } from '../../types/dto/agent';
 import { statusBadgeClass, statusLabel, pageBg } from '../../utils/uiClasses';
 import type { DomainStatus } from '../../utils/uiClasses';
 import { Modal } from '../../components/common/Modal';
-import { btnPrimary, btnSecondary } from '../../utils/uiClasses';
-import { nativeInputClass } from '../../utils/formFieldClasses';
+import { userActivityService } from '../../api/services/user-activity.service';
+import type { MyPublishItem } from '../../types/dto/user-activity';
 
 interface Props {
   theme: Theme;
   fontSize: FontSize;
-}
-
-interface MySkill {
-  id: number;
-  displayName: string;
-  description: string;
-  agentType: 'mcp' | 'http_api' | 'builtin';
-  status: AgentStatus;
-  submitTime: string;
-  reviewComment: string | null;
-  specUrl?: string;
 }
 
 const STATUS_CONFIG: Record<AgentStatus, { label: string; bg: string; text: string; darkBg: string; darkText: string }> = {
@@ -36,52 +25,36 @@ const STATUS_CONFIG: Record<AgentStatus, { label: string; bg: string; text: stri
 
 const STATUS_FLOW: AgentStatus[] = ['draft', 'pending_review', 'testing', 'published'];
 
-const INITIAL_SKILLS: MySkill[] = [
-  { id: 1, displayName: '天气查询', description: '实时查询指定城市天气', agentType: 'http_api', status: 'published', submitTime: '2026-03-08 10:20', reviewComment: null, specUrl: 'https://api.example.com/weather' },
-  { id: 2, displayName: '文档摘要生成', description: '对上传文档进行自动摘要', agentType: 'mcp', status: 'pending_review', submitTime: '2026-03-19 14:50', reviewComment: null, specUrl: 'https://api.example.com/summarize' },
-  { id: 3, displayName: '邮件发送工具', description: '发送格式化通知邮件', agentType: 'http_api', status: 'draft', submitTime: '2026-03-21 09:00', reviewComment: null, specUrl: '' },
-  { id: 4, displayName: '成绩导出工具', description: '将成绩数据导出为 Excel', agentType: 'http_api', status: 'rejected', submitTime: '2026-03-14 16:30', reviewComment: '缺少参数 Schema 定义，需补充输入输出格式说明', specUrl: 'https://api.example.com/export' },
-];
-
 export const MySkillList: React.FC<Props> = ({ theme, fontSize }) => {
   const isDark = theme === 'dark';
-  const [skills, setSkills] = useState<MySkill[]>(INITIAL_SKILLS);
-  const [withdrawTarget, setWithdrawTarget] = useState<MySkill | null>(null);
-  const [viewTarget, setViewTarget] = useState<MySkill | null>(null);
-  const [editTarget, setEditTarget] = useState<MySkill | null>(null);
-  const [editForm, setEditForm] = useState({ displayName: '', description: '', agentType: 'http_api' as MySkill['agentType'], specUrl: '' });
+  const [skills, setSkills] = useState<MyPublishItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [withdrawTarget, setWithdrawTarget] = useState<MyPublishItem | null>(null);
+  const [viewTarget, setViewTarget] = useState<MyPublishItem | null>(null);
 
-  const inputCls = nativeInputClass(theme);
-  const labelCls = `block text-xs font-medium mb-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`;
+  const fetchData = useCallback(() => {
+    setLoading(true);
+    userActivityService.getMySkills()
+      .then(data => setSkills(data))
+      .catch(err => console.error(err))
+      .finally(() => setLoading(false));
+  }, []);
 
-  const handleWithdraw = (skill: MySkill) => {
-    setSkills(prev => prev.map(s => s.id === skill.id ? { ...s, status: 'draft' as AgentStatus } : s));
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const handleWithdraw = (skill: MyPublishItem) => {
+    setSkills(prev => prev.map(s => s.id === skill.id ? { ...s, status: 'draft' as MyPublishItem['status'] } : s));
     setWithdrawTarget(null);
   };
 
-  const openEdit = (skill: MySkill) => {
-    setEditForm({ displayName: skill.displayName, description: skill.description, agentType: skill.agentType, specUrl: skill.specUrl ?? '' });
-    setEditTarget(skill);
-  };
-
-  const saveEdit = () => {
-    if (!editTarget || !editForm.displayName.trim()) return;
-    setSkills(prev => prev.map(s =>
-      s.id === editTarget.id
-        ? { ...s, displayName: editForm.displayName.trim(), description: editForm.description.trim(), agentType: editForm.agentType, specUrl: editForm.specUrl }
-        : s
-    ));
-    setEditTarget(null);
-  };
-
-  const StatusBadge: React.FC<{ status: AgentStatus }> = ({ status }) => (
+  const StatusBadge: React.FC<{ status: string }> = ({ status }) => (
     <span className={statusBadgeClass(status as DomainStatus, theme)}>
       {statusLabel(status as DomainStatus)}
     </span>
   );
 
-  const StatusFlow: React.FC<{ current: AgentStatus }> = ({ current }) => {
-    const currentIdx = STATUS_FLOW.indexOf(current);
+  const StatusFlow: React.FC<{ current: string }> = ({ current }) => {
+    const currentIdx = STATUS_FLOW.indexOf(current as AgentStatus);
     return (
       <div className="flex items-center gap-1">
         {STATUS_FLOW.map((s, i) => {
@@ -127,67 +100,57 @@ export const MySkillList: React.FC<Props> = ({ theme, fontSize }) => {
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4 sm:px-6 py-4">
-        <div className="space-y-3">
-          {skills.map((skill) => (
-            <motion.div
-              key={skill.id}
-              layout
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`rounded-2xl border p-4 sm:p-5 transition-colors ${isDark ? 'bg-[#1C1C1E] border-white/10 hover:border-white/20' : 'bg-white border-slate-200/80 hover:border-slate-300'}`}
-            >
-              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className={`font-bold truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>{skill.displayName}</h3>
-                    <StatusBadge status={skill.status} />
-                    <span className={`text-xs px-2 py-0.5 rounded-md ${isDark ? 'bg-white/5 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
-                      {skill.agentType}
-                    </span>
-                  </div>
-                  <p className={`text-sm mb-3 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{skill.description}</p>
-                  <StatusFlow current={skill.status} />
-                  <div className="flex items-center gap-4 mt-2">
-                    <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>提交时间: {skill.submitTime}</span>
-                  </div>
-                  {skill.status === 'rejected' && skill.reviewComment && (
-                    <div className={`mt-3 p-3 rounded-xl text-xs ${isDark ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-red-50 text-red-600 border border-red-200'}`}>
-                      <span className="font-semibold">驳回原因：</span>{skill.reviewComment}
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <Loader2 size={32} className={`animate-spin ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
+            <p className={`mt-3 text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>加载中…</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {skills.map((skill) => (
+              <motion.div
+                key={skill.id}
+                layout
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`rounded-2xl border p-4 sm:p-5 transition-colors ${isDark ? 'bg-[#1C1C1E] border-white/10 hover:border-white/20' : 'bg-white border-slate-200/80 hover:border-slate-300'}`}
+              >
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className={`font-bold truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>{skill.displayName}</h3>
+                      <StatusBadge status={skill.status} />
                     </div>
-                  )}
-                </div>
+                    <p className={`text-sm mb-3 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{skill.description}</p>
+                    <StatusFlow current={skill.status} />
+                    <div className="flex items-center gap-4 mt-2">
+                      <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>创建时间: {skill.createTime}</span>
+                    </div>
+                  </div>
 
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    onClick={() => setViewTarget(skill)}
-                    className={`p-2 rounded-xl transition-colors ${isDark ? 'hover:bg-white/10 text-slate-400' : 'hover:bg-slate-100 text-slate-500'}`}
-                    title="查看"
-                  >
-                    <Eye size={16} />
-                  </button>
-                  {(skill.status === 'draft' || skill.status === 'rejected') && (
+                  <div className="flex items-center gap-2 shrink-0">
                     <button
-                      onClick={() => openEdit(skill)}
+                      onClick={() => setViewTarget(skill)}
                       className={`p-2 rounded-xl transition-colors ${isDark ? 'hover:bg-white/10 text-slate-400' : 'hover:bg-slate-100 text-slate-500'}`}
-                      title="编辑"
+                      title="查看"
                     >
-                      <Pencil size={16} />
+                      <Eye size={16} />
                     </button>
-                  )}
-                  {skill.status === 'pending_review' && (
-                    <button
-                      onClick={() => setWithdrawTarget(skill)}
-                      className={`p-2 rounded-xl transition-colors ${isDark ? 'hover:bg-amber-500/20 text-amber-400' : 'hover:bg-amber-50 text-amber-600'}`}
-                      title="撤回"
-                    >
-                      <Undo2 size={16} />
-                    </button>
-                  )}
+                    {skill.status === 'pending_review' && (
+                      <button
+                        onClick={() => setWithdrawTarget(skill)}
+                        className={`p-2 rounded-xl transition-colors ${isDark ? 'hover:bg-amber-500/20 text-amber-400' : 'hover:bg-amber-50 text-amber-600'}`}
+                        title="撤回"
+                      >
+                        <Undo2 size={16} />
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* 撤回确认弹窗 */}
@@ -245,73 +208,24 @@ export const MySkillList: React.FC<Props> = ({ theme, fontSize }) => {
                 <p className={`text-sm font-semibold mt-0.5 ${isDark ? 'text-white' : 'text-slate-900'}`}>{viewTarget.displayName}</p>
               </div>
               <div>
-                <span className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>类型</span>
-                <p className={`text-sm mt-0.5 ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{viewTarget.agentType}</p>
-              </div>
-              <div>
                 <span className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>状态</span>
                 <div className="mt-1"><StatusBadge status={viewTarget.status} /></div>
               </div>
               <div>
-                <span className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>提交时间</span>
-                <p className={`text-sm mt-0.5 ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{viewTarget.submitTime}</p>
+                <span className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>调用次数</span>
+                <p className={`text-sm mt-0.5 ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{viewTarget.callCount}</p>
+              </div>
+              <div>
+                <span className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>创建时间</span>
+                <p className={`text-sm mt-0.5 ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{viewTarget.createTime}</p>
               </div>
             </div>
             <div>
               <span className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>描述</span>
               <p className={`text-sm mt-0.5 ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{viewTarget.description}</p>
             </div>
-            {viewTarget.specUrl && (
-              <div>
-                <span className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>接口地址</span>
-                <p className={`text-sm mt-0.5 font-mono ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{viewTarget.specUrl}</p>
-              </div>
-            )}
-            {viewTarget.reviewComment && (
-              <div className={`p-3 rounded-xl text-xs ${isDark ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-red-50 text-red-600 border border-red-200'}`}>
-                <span className="font-semibold">驳回原因：</span>{viewTarget.reviewComment}
-              </div>
-            )}
           </div>
         )}
-      </Modal>
-
-      {/* 编辑弹窗 */}
-      <Modal
-        open={!!editTarget}
-        onClose={() => setEditTarget(null)}
-        title="编辑 Skill"
-        theme={theme}
-        size="lg"
-        footer={
-          <>
-            <button className={btnSecondary(theme)} onClick={() => setEditTarget(null)}>取消</button>
-            <button className={btnPrimary} onClick={saveEdit}>保存</button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-          <div>
-            <label className={labelCls}>显示名称</label>
-            <input className={inputCls} value={editForm.displayName} onChange={e => setEditForm(f => ({ ...f, displayName: e.target.value }))} />
-          </div>
-          <div>
-            <label className={labelCls}>描述</label>
-            <textarea className={`${inputCls} min-h-[5rem]`} rows={3} value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} />
-          </div>
-          <div>
-            <label className={labelCls}>Skill 类型</label>
-            <select className={inputCls} value={editForm.agentType} onChange={e => setEditForm(f => ({ ...f, agentType: e.target.value as MySkill['agentType'] }))}>
-              <option value="http_api">http_api</option>
-              <option value="mcp">mcp</option>
-              <option value="builtin">builtin</option>
-            </select>
-          </div>
-          <div>
-            <label className={labelCls}>接口地址 (specJson.url)</label>
-            <input className={inputCls} value={editForm.specUrl} onChange={e => setEditForm(f => ({ ...f, specUrl: e.target.value }))} placeholder="https://..." />
-          </div>
-        </div>
       </Modal>
     </div>
   );

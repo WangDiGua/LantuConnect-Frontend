@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, XCircle, Eye, X, Bot, Clock, User } from 'lucide-react';
+import { CheckCircle2, XCircle, Eye, X, Bot, Clock, User, Loader2 } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { AgentStatus, AgentType, SourceType } from '../../types/dto/agent';
 import { statusBadgeClass, statusLabel, pageBg, btnSecondary } from '../../utils/uiClasses';
 import type { DomainStatus } from '../../utils/uiClasses';
+import { auditService } from '../../api/services/audit.service';
+import type { AuditItem } from '../../types/dto/audit';
 
 interface Props {
   theme: Theme;
@@ -12,47 +14,55 @@ interface Props {
   showMessage?: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void;
 }
 
-interface AuditAgent {
-  id: number;
-  displayName: string;
-  description: string;
-  agentType: AgentType;
-  sourceType: SourceType;
-  status: AgentStatus;
-  submitter: string;
-  submitterDept: string;
-  submitTime: string;
-  specUrl: string;
-}
-
-const INITIAL_QUEUE: AuditAgent[] = [
-  { id: 101, displayName: '图书检索 Agent', description: '接入图书馆检索 API，支持书名、ISBN 查询', agentType: 'http_api', sourceType: 'internal', status: 'pending_review', submitter: '张三 (2021001)', submitterDept: '计算机学院', submitTime: '2026-03-18 09:15', specUrl: 'https://lib.example.edu/api/v1/search' },
-  { id: 102, displayName: '实验室预约助手', description: '查询并预约实验室空闲时间段', agentType: 'mcp', sourceType: 'internal', status: 'pending_review', submitter: '李四 (2021002)', submitterDept: '电子工程学院', submitTime: '2026-03-19 11:30', specUrl: 'https://lab.example.edu/mcp' },
-  { id: 103, displayName: '宿舍报修 Bot', description: '提交宿舍维修工单并跟踪进度', agentType: 'http_api', sourceType: 'internal', status: 'pending_review', submitter: '王五 (2022015)', submitterDept: '后勤管理处', submitTime: '2026-03-20 14:00', specUrl: 'https://repair.example.edu/api/submit' },
-  { id: 104, displayName: '校历查询工具', description: '查询学期校历、假期安排', agentType: 'http_api', sourceType: 'internal', status: 'pending_review', submitter: '赵六 (T10023)', submitterDept: '教务处', submitTime: '2026-03-20 16:45', specUrl: 'https://calendar.example.edu/api/v1' },
-];
-
 export const AgentAuditList: React.FC<Props> = ({ theme, fontSize, showMessage }) => {
   const isDark = theme === 'dark';
-  const [queue, setQueue] = useState<AuditAgent[]>(INITIAL_QUEUE);
-  const [approveTarget, setApproveTarget] = useState<AuditAgent | null>(null);
-  const [rejectTarget, setRejectTarget] = useState<AuditAgent | null>(null);
+  const [queue, setQueue] = useState<AuditItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [approveTarget, setApproveTarget] = useState<AuditItem | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<AuditItem | null>(null);
   const [rejectReason, setRejectReason] = useState('');
-  const [detailTarget, setDetailTarget] = useState<AuditAgent | null>(null);
+  const [detailTarget, setDetailTarget] = useState<AuditItem | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending_review'>('pending_review');
 
-  const handleApprove = (agent: AuditAgent) => {
-    setQueue(prev => prev.map(a => a.id === agent.id ? { ...a, status: 'testing' as AgentStatus } : a));
-    setApproveTarget(null);
-    showMessage?.(`「${agent.displayName}」已通过审核，进入测试阶段`, 'success');
+  const fetchData = useCallback(() => {
+    setLoading(true);
+    auditService.listPendingAgents()
+      .then(res => setQueue(res.list))
+      .catch(err => {
+        console.error(err);
+        showMessage?.('加载审核列表失败', 'error');
+      })
+      .finally(() => setLoading(false));
+  }, [showMessage]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const handleApprove = (agent: AuditItem) => {
+    auditService.approve(agent.id, 'agent')
+      .then(() => {
+        setApproveTarget(null);
+        showMessage?.(`「${agent.displayName}」已通过审核，进入测试阶段`, 'success');
+        fetchData();
+      })
+      .catch(err => {
+        console.error(err);
+        showMessage?.('审核操作失败', 'error');
+      });
   };
 
-  const handleReject = (agent: AuditAgent) => {
+  const handleReject = (agent: AuditItem) => {
     if (!rejectReason.trim()) return;
-    setQueue(prev => prev.map(a => a.id === agent.id ? { ...a, status: 'rejected' as AgentStatus } : a));
-    setRejectTarget(null);
-    setRejectReason('');
-    showMessage?.(`「${agent.displayName}」已驳回`, 'info');
+    auditService.reject(agent.id, 'agent', rejectReason.trim())
+      .then(() => {
+        setRejectTarget(null);
+        setRejectReason('');
+        showMessage?.(`「${agent.displayName}」已驳回`, 'info');
+        fetchData();
+      })
+      .catch(err => {
+        console.error(err);
+        showMessage?.('驳回操作失败', 'error');
+      });
   };
 
   const filteredQueue = filterStatus === 'all' ? queue : queue.filter(a => a.status === filterStatus);
@@ -96,7 +106,12 @@ export const AgentAuditList: React.FC<Props> = ({ theme, fontSize, showMessage }
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4 sm:px-6 py-4">
-        {filteredQueue.length === 0 ? (
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <Loader2 size={32} className={`animate-spin ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
+            <p className={`mt-3 text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>加载中…</p>
+          </div>
+        ) : filteredQueue.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20">
             <CheckCircle2 size={48} className={isDark ? 'text-slate-600' : 'text-slate-300'} />
             <p className={`mt-4 text-sm font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>暂无待审核项目</p>
@@ -126,7 +141,7 @@ export const AgentAuditList: React.FC<Props> = ({ theme, fontSize, showMessage }
                     <p className={`text-sm mb-3 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{agent.description}</p>
                     <div className="flex items-center gap-4 flex-wrap">
                       <span className={`text-xs flex items-center gap-1.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                        <User size={12} /> {agent.submitter} · {agent.submitterDept}
+                        <User size={12} /> {agent.submitter}
                       </span>
                       <span className={`text-xs flex items-center gap-1.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
                         <Clock size={12} /> {agent.submitTime}
@@ -251,8 +266,8 @@ export const AgentAuditList: React.FC<Props> = ({ theme, fontSize, showMessage }
                   { label: '描述', value: detailTarget.description },
                   { label: '协议类型', value: detailTarget.agentType },
                   { label: '来源类型', value: detailTarget.sourceType },
-                  { label: '接口地址', value: detailTarget.specUrl },
-                  { label: '提交人', value: `${detailTarget.submitter} · ${detailTarget.submitterDept}` },
+                  { label: 'Agent 标识', value: detailTarget.agentName },
+                  { label: '提交人', value: detailTarget.submitter },
                   { label: '提交时间', value: detailTarget.submitTime },
                 ].map(item => (
                   <div key={item.label} className="flex items-start justify-between px-4 py-3 gap-4">

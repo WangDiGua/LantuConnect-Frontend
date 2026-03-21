@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   GitBranch,
   Plus,
@@ -10,9 +10,13 @@ import {
   X,
   ChevronDown,
   ArrowRight,
+  Loader2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Theme, FontSize } from '../../types';
+import type { Agent, AgentVersion } from '../../types/dto/agent';
+import { agentService } from '../../api/services/agent.service';
+import { versionService } from '../../api/services/version.service';
 
 interface Props {
   theme: Theme;
@@ -20,50 +24,6 @@ interface Props {
 }
 
 type VersionStatus = 'draft' | 'testing' | 'released' | 'rollback';
-
-interface AgentVersion {
-  id: string;
-  version: string;
-  status: VersionStatus;
-  changelog: string;
-  timestamp: string;
-  snapshotNote?: string;
-}
-
-interface MockAgent {
-  id: string;
-  name: string;
-  displayName: string;
-}
-
-const MOCK_AGENTS: MockAgent[] = [
-  { id: '1', name: 'campus-qa', displayName: '校园问答助手' },
-  { id: '2', name: 'doc-generator', displayName: '文档生成 Agent' },
-  { id: '3', name: 'data-analyzer', displayName: '数据分析引擎' },
-  { id: '4', name: 'course-advisor', displayName: '选课推荐助手' },
-];
-
-const MOCK_VERSIONS: Record<string, AgentVersion[]> = {
-  '1': [
-    { id: 'v1', version: 'v2.1.0', status: 'released', changelog: '新增多轮对话能力，支持上下文记忆；优化校园活动查询的准确率，接入最新学期数据。', timestamp: '2026-03-18 14:30' },
-    { id: 'v2', version: 'v2.0.0', status: 'released', changelog: '架构升级为 MCP 协议，全面支持流式输出；新增校园地图导航功能。', timestamp: '2026-03-10 09:15' },
-    { id: 'v3', version: 'v1.2.0', status: 'rollback', changelog: '尝试接入新的 LLM 后端，因延迟过高已回滚。', timestamp: '2026-03-05 16:20' },
-    { id: 'v4', version: 'v1.1.0', status: 'released', changelog: '修复课程查询返回空结果的问题；优化响应速度 30%。', timestamp: '2026-02-20 11:00' },
-    { id: 'v5', version: 'v1.0.0', status: 'released', changelog: '初始版本发布，支持基础校园信息查询、课程安排、教室占用等功能。', timestamp: '2026-02-01 08:00' },
-  ],
-  '2': [
-    { id: 'v1', version: 'v1.1.0', status: 'testing', changelog: '新增 PDF 导出支持；改进表格生成样式。', timestamp: '2026-03-19 10:00' },
-    { id: 'v2', version: 'v1.0.0', status: 'released', changelog: '初始版本：支持 Markdown、Word 格式文档自动生成。', timestamp: '2026-03-01 12:00' },
-  ],
-  '3': [
-    { id: 'v1', version: 'v3.0.0-beta', status: 'draft', changelog: '重构数据处理流水线，支持更大数据量分析。', timestamp: '2026-03-20 09:00' },
-    { id: 'v2', version: 'v2.0.0', status: 'released', changelog: '支持可视化图表输出；新增异常检测模块。', timestamp: '2026-03-12 15:30' },
-    { id: 'v3', version: 'v1.0.0', status: 'released', changelog: '初始版本：基础 CSV/JSON 数据分析能力。', timestamp: '2026-02-15 08:00' },
-  ],
-  '4': [
-    { id: 'v1', version: 'v1.0.0', status: 'released', changelog: '初始版本：基于学生画像的智能选课推荐。', timestamp: '2026-03-08 10:00' },
-  ],
-};
 
 const STATUS_CONFIG: Record<VersionStatus, { label: string; color: string; bgLight: string; bgDark: string }> = {
   draft: { label: '草稿', color: 'text-slate-600', bgLight: 'bg-slate-100', bgDark: 'bg-slate-700/40' },
@@ -74,49 +34,68 @@ const STATUS_CONFIG: Record<VersionStatus, { label: string; color: string; bgLig
 
 export const AgentVersionPage: React.FC<Props> = ({ theme, fontSize }) => {
   const isDark = theme === 'dark';
-  const [selectedAgentId, setSelectedAgentId] = useState<string>('');
-  const [versions, setVersions] = useState<Record<string, AgentVersion[]>>(MOCK_VERSIONS);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [agentsLoading, setAgentsLoading] = useState(true);
+  const [selectedAgentId, setSelectedAgentId] = useState<number | ''>('');
+  const [versions, setVersions] = useState<AgentVersion[]>([]);
+  const [versionsLoading, setVersionsLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newVersion, setNewVersion] = useState('');
   const [newChangelog, setNewChangelog] = useState('');
   const [compareMode, setCompareMode] = useState(false);
-  const [compareA, setCompareA] = useState<string>('');
-  const [compareB, setCompareB] = useState<string>('');
+  const [compareA, setCompareA] = useState<number | ''>('');
+  const [compareB, setCompareB] = useState<number | ''>('');
 
-  const currentVersions = useMemo(() => {
-    if (!selectedAgentId) return [];
-    return versions[selectedAgentId] || [];
-  }, [selectedAgentId, versions]);
+  useEffect(() => {
+    agentService.list({ pageSize: 100 })
+      .then(res => setAgents(res.list))
+      .catch(err => console.error(err))
+      .finally(() => setAgentsLoading(false));
+  }, []);
 
-  const selectedAgent = MOCK_AGENTS.find((a) => a.id === selectedAgentId);
+  const fetchVersions = useCallback((agentId: number) => {
+    setVersionsLoading(true);
+    versionService.list(agentId)
+      .then(data => setVersions(data))
+      .catch(err => console.error(err))
+      .finally(() => setVersionsLoading(false));
+  }, []);
+
+  useEffect(() => {
+    if (selectedAgentId) {
+      fetchVersions(selectedAgentId as number);
+    } else {
+      setVersions([]);
+    }
+  }, [selectedAgentId, fetchVersions]);
+
+  const selectedAgent = agents.find((a) => a.id === selectedAgentId);
 
   const handleCreateVersion = () => {
     if (!selectedAgentId || !newVersion.trim()) return;
-    const newV: AgentVersion = {
-      id: `v-new-${Date.now()}`,
+    versionService.create(selectedAgentId as number, {
       version: newVersion.startsWith('v') ? newVersion : `v${newVersion}`,
-      status: 'draft',
       changelog: newChangelog || '(无变更说明)',
-      timestamp: new Date().toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/\//g, '-'),
-      snapshotNote: '自动快照已保存',
-    };
-    setVersions((prev) => ({
-      ...prev,
-      [selectedAgentId]: [newV, ...(prev[selectedAgentId] || [])],
-    }));
-    setNewVersion('');
-    setNewChangelog('');
-    setShowCreateModal(false);
+    })
+      .then(() => {
+        setNewVersion('');
+        setNewChangelog('');
+        setShowCreateModal(false);
+        fetchVersions(selectedAgentId as number);
+      })
+      .catch(err => console.error(err));
   };
 
-  const handleStatusChange = (versionId: string, newStatus: VersionStatus) => {
-    if (!selectedAgentId) return;
-    setVersions((prev) => ({
-      ...prev,
-      [selectedAgentId]: (prev[selectedAgentId] || []).map((v) =>
-        v.id === versionId ? { ...v, status: newStatus } : v
-      ),
-    }));
+  const handlePublish = (versionId: number) => {
+    versionService.publish(versionId)
+      .then(() => fetchVersions(selectedAgentId as number))
+      .catch(err => console.error(err));
+  };
+
+  const handleRollback = (versionId: number) => {
+    versionService.rollback(versionId)
+      .then(() => fetchVersions(selectedAgentId as number))
+      .catch(err => console.error(err));
   };
 
   const cardCls = `rounded-2xl border shadow-none ${isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200/80'}`;
@@ -124,8 +103,8 @@ export const AgentVersionPage: React.FC<Props> = ({ theme, fontSize }) => {
   const textSecondary = isDark ? 'text-slate-400' : 'text-slate-600';
   const textMuted = isDark ? 'text-slate-500' : 'text-slate-400';
 
-  const versionAData = currentVersions.find((v) => v.id === compareA);
-  const versionBData = currentVersions.find((v) => v.id === compareB);
+  const versionAData = versions.find((v) => v.id === compareA);
+  const versionBData = versions.find((v) => v.id === compareB);
 
   return (
     <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${isDark ? 'bg-[#000000]' : 'bg-[#F2F2F7]'}`}>
@@ -147,7 +126,7 @@ export const AgentVersionPage: React.FC<Props> = ({ theme, fontSize }) => {
               <select
                 value={selectedAgentId}
                 onChange={(e) => {
-                  setSelectedAgentId(e.target.value);
+                  setSelectedAgentId(e.target.value ? Number(e.target.value) : '');
                   setCompareMode(false);
                   setCompareA('');
                   setCompareB('');
@@ -158,8 +137,8 @@ export const AgentVersionPage: React.FC<Props> = ({ theme, fontSize }) => {
                     : 'bg-white border-slate-200 text-slate-900'
                 } ${fontSize === 'small' ? 'text-xs' : 'text-sm'}`}
               >
-                <option value="">选择 Agent…</option>
-                {MOCK_AGENTS.map((a) => (
+                <option value="">{agentsLoading ? '加载中…' : '选择 Agent…'}</option>
+                {agents.map((a) => (
                   <option key={a.id} value={a.id}>{a.displayName}</option>
                 ))}
               </select>
@@ -196,6 +175,11 @@ export const AgentVersionPage: React.FC<Props> = ({ theme, fontSize }) => {
             <p className={`text-lg font-medium ${textSecondary}`}>请先选择一个 Agent</p>
             <p className={`text-sm mt-1 ${textMuted}`}>选择后可查看和管理其版本历史</p>
           </div>
+        ) : versionsLoading ? (
+          <div className={`${cardCls} p-12 text-center`}>
+            <Loader2 size={32} className={`mx-auto mb-3 animate-spin ${textMuted}`} />
+            <p className={`text-sm ${textMuted}`}>加载版本列表…</p>
+          </div>
         ) : (
           <div className="space-y-6">
             {/* Agent info bar */}
@@ -206,13 +190,13 @@ export const AgentVersionPage: React.FC<Props> = ({ theme, fontSize }) => {
                 </div>
                 <div>
                   <p className={`font-bold ${textPrimary}`}>{selectedAgent?.displayName}</p>
-                  <p className={`text-xs font-mono ${textMuted}`}>{selectedAgent?.name}</p>
+                  <p className={`text-xs font-mono ${textMuted}`}>{selectedAgent?.agentName}</p>
                 </div>
               </div>
               <div className="flex items-center gap-4 text-xs">
-                <span className={textSecondary}>共 {currentVersions.length} 个版本</span>
+                <span className={textSecondary}>共 {versions.length} 个版本</span>
                 <span className={textSecondary}>
-                  当前版本: <span className="font-bold text-emerald-500">{currentVersions.find((v) => v.status === 'released')?.version || '—'}</span>
+                  当前版本: <span className="font-bold text-emerald-500">{versions.find((v) => v.status === 'released')?.version || '—'}</span>
                 </span>
               </div>
             </div>
@@ -220,9 +204,9 @@ export const AgentVersionPage: React.FC<Props> = ({ theme, fontSize }) => {
             {/* Version Timeline */}
             <div className={cardCls}>
               <div className="p-5 space-y-0">
-                {currentVersions.map((v, idx) => {
+                {versions.map((v, idx) => {
                   const statusCfg = STATUS_CONFIG[v.status];
-                  const isLast = idx === currentVersions.length - 1;
+                  const isLast = idx === versions.length - 1;
                   return (
                     <div key={v.id} className="flex gap-4">
                       {/* Timeline line */}
@@ -251,37 +235,22 @@ export const AgentVersionPage: React.FC<Props> = ({ theme, fontSize }) => {
                               <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-[11px] font-bold ${statusCfg.color} ${isDark ? statusCfg.bgDark : statusCfg.bgLight}`}>
                                 {statusCfg.label}
                               </span>
-                              {v.snapshotNote && (
-                                <span className={`text-[10px] px-2 py-0.5 rounded-lg ${isDark ? 'bg-white/5 text-slate-500' : 'bg-slate-100 text-slate-400'}`}>
-                                  {v.snapshotNote}
-                                </span>
-                              )}
                             </div>
                             <div className="flex items-center gap-1.5">
                               {(v.status === 'draft' || v.status === 'testing') && (
                                 <button
                                   type="button"
-                                  onClick={() => handleStatusChange(v.id, 'released')}
+                                  onClick={() => handlePublish(v.id)}
                                   className="btn btn-ghost btn-xs h-7 min-h-0 gap-1 rounded-lg text-emerald-600"
                                 >
                                   <ArrowUpCircle size={13} />
                                   发布
                                 </button>
                               )}
-                              {v.status === 'released' && idx !== 0 && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleStatusChange(v.id, 'released')}
-                                  className="btn btn-ghost btn-xs h-7 min-h-0 gap-1 rounded-lg text-blue-600"
-                                >
-                                  <CheckCircle2 size={13} />
-                                  设为当前
-                                </button>
-                              )}
                               {v.status === 'released' && (
                                 <button
                                   type="button"
-                                  onClick={() => handleStatusChange(v.id, 'rollback')}
+                                  onClick={() => handleRollback(v.id)}
                                   className="btn btn-ghost btn-xs h-7 min-h-0 gap-1 rounded-lg text-orange-600"
                                 >
                                   <RotateCcw size={13} />
@@ -291,7 +260,7 @@ export const AgentVersionPage: React.FC<Props> = ({ theme, fontSize }) => {
                               {v.status === 'draft' && (
                                 <button
                                   type="button"
-                                  onClick={() => handleStatusChange(v.id, 'testing')}
+                                  onClick={() => handlePublish(v.id)}
                                   className="btn btn-ghost btn-xs h-7 min-h-0 gap-1 rounded-lg text-blue-600"
                                 >
                                   开始测试
@@ -302,7 +271,7 @@ export const AgentVersionPage: React.FC<Props> = ({ theme, fontSize }) => {
                           <p className={`text-sm leading-relaxed mb-2 ${textSecondary}`}>{v.changelog}</p>
                           <div className={`flex items-center gap-1.5 text-xs ${textMuted}`}>
                             <Clock size={12} />
-                            {v.timestamp}
+                            {v.createTime}
                           </div>
                         </div>
                       </div>
@@ -327,25 +296,25 @@ export const AgentVersionPage: React.FC<Props> = ({ theme, fontSize }) => {
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     <select
                       value={compareA}
-                      onChange={(e) => setCompareA(e.target.value)}
+                      onChange={(e) => setCompareA(e.target.value ? Number(e.target.value) : '')}
                       className={`rounded-xl border px-3 py-2 text-sm ${
                         isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'
                       }`}
                     >
                       <option value="">选择版本 A…</option>
-                      {currentVersions.map((v) => (
+                      {versions.map((v) => (
                         <option key={v.id} value={v.id}>{v.version} ({STATUS_CONFIG[v.status].label})</option>
                       ))}
                     </select>
                     <select
                       value={compareB}
-                      onChange={(e) => setCompareB(e.target.value)}
+                      onChange={(e) => setCompareB(e.target.value ? Number(e.target.value) : '')}
                       className={`rounded-xl border px-3 py-2 text-sm ${
                         isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'
                       }`}
                     >
                       <option value="">选择版本 B…</option>
-                      {currentVersions.map((v) => (
+                      {versions.map((v) => (
                         <option key={v.id} value={v.id}>{v.version} ({STATUS_CONFIG[v.status].label})</option>
                       ))}
                     </select>
@@ -374,7 +343,7 @@ export const AgentVersionPage: React.FC<Props> = ({ theme, fontSize }) => {
                               </div>
                               <div>
                                 <label className={`text-[11px] font-medium ${textMuted}`}>时间</label>
-                                <p className={`text-sm font-mono mt-0.5 ${textSecondary}`}>{vd.timestamp}</p>
+                                <p className={`text-sm font-mono mt-0.5 ${textSecondary}`}>{vd.createTime}</p>
                               </div>
                             </div>
                           </div>

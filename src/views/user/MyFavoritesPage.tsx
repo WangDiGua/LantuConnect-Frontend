@@ -1,29 +1,14 @@
-import React, { useState, useMemo } from 'react';
-import { Heart, Star, Bot, Wrench, AppWindow, HeartOff } from 'lucide-react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { Heart, Star, Bot, Wrench, AppWindow, HeartOff, Loader2 } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { pageBg, cardClass, btnPrimary } from '../../utils/uiClasses';
 import { useMessage } from '../../components/common/Message';
+import { userActivityService } from '../../api/services/user-activity.service';
+import type { FavoriteItem } from '../../types/dto/user-activity';
 
-type TabFilter = 'all' | 'Agent' | 'Skill' | '应用';
+type TabFilter = 'all' | 'agent' | 'skill' | 'app';
 
-interface FavoriteItem {
-  id: number;
-  name: string;
-  type: 'Agent' | 'Skill' | '应用';
-  description: string;
-  icon: string;
-}
-
-const INITIAL_FAVORITES: FavoriteItem[] = [
-  { id: 1, name: '选课助手', type: 'Agent', description: '智能推荐选课方案，分析课程评价和时间冲突', icon: '🎓' },
-  { id: 2, name: '文献翻译', type: 'Skill', description: '支持多语种学术文献翻译，保留专业术语', icon: '📝' },
-  { id: 3, name: '校园导览', type: '应用', description: '校园3D地图导览与建筑信息查询', icon: '🗺️' },
-  { id: 4, name: '图书馆检索', type: 'Agent', description: '智能检索图书馆藏书和电子资源', icon: '📚' },
-  { id: 5, name: 'PDF摘要提取', type: 'Skill', description: '自动提取PDF文档关键信息和摘要', icon: '📄' },
-  { id: 6, name: '成绩查询', type: 'Agent', description: '查询历史成绩、绩点计算和成绩分析', icon: '📊' },
-  { id: 7, name: '课表生成器', type: '应用', description: '自动生成个性化课表并同步日历', icon: '📅' },
-  { id: 8, name: '论文格式检查', type: 'Skill', description: '检查论文格式规范，支持多种期刊模板', icon: '✅' },
-];
+const TYPE_LABEL: Record<string, string> = { agent: 'Agent', skill: 'Skill', app: '应用' };
 
 interface MyFavoritesPageProps {
   theme: Theme;
@@ -33,41 +18,59 @@ interface MyFavoritesPageProps {
 export const MyFavoritesPage: React.FC<MyFavoritesPageProps> = ({ theme }) => {
   const isDark = theme === 'dark';
   const [tab, setTab] = useState<TabFilter>('all');
-  const [favorites, setFavorites] = useState(INITIAL_FAVORITES);
+  const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const { showMessage } = useMessage();
+
+  const fetchData = useCallback(() => {
+    setLoading(true);
+    userActivityService.getFavorites()
+      .then(data => setFavorites(data))
+      .catch(err => console.error(err))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const filtered = useMemo(() => {
     if (tab === 'all') return favorites;
-    return favorites.filter((item) => item.type === tab);
+    return favorites.filter((item) => item.targetType === tab);
   }, [tab, favorites]);
 
   const tabs: { label: string; value: TabFilter }[] = [
     { label: '全部', value: 'all' },
-    { label: 'Agent', value: 'Agent' },
-    { label: 'Skill', value: 'Skill' },
-    { label: '应用', value: '应用' },
+    { label: 'Agent', value: 'agent' },
+    { label: 'Skill', value: 'skill' },
+    { label: '应用', value: 'app' },
   ];
 
   const typeBadge = (type: string) => {
     const styles: Record<string, string> = {
-      Agent: isDark ? 'bg-blue-500/15 text-blue-400' : 'bg-blue-100 text-blue-700',
-      Skill: isDark ? 'bg-purple-500/15 text-purple-400' : 'bg-purple-100 text-purple-700',
-      '应用': isDark ? 'bg-amber-500/15 text-amber-400' : 'bg-amber-100 text-amber-700',
+      agent: isDark ? 'bg-blue-500/15 text-blue-400' : 'bg-blue-100 text-blue-700',
+      skill: isDark ? 'bg-purple-500/15 text-purple-400' : 'bg-purple-100 text-purple-700',
+      app: isDark ? 'bg-amber-500/15 text-amber-400' : 'bg-amber-100 text-amber-700',
     };
     return `inline-flex items-center rounded-lg px-2 py-0.5 text-xs font-semibold ${styles[type] || ''}`;
   };
 
   const TypeIcon = ({ type }: { type: string }) => {
     switch (type) {
-      case 'Agent': return <Bot size={14} />;
-      case 'Skill': return <Wrench size={14} />;
+      case 'agent': return <Bot size={14} />;
+      case 'skill': return <Wrench size={14} />;
       default: return <AppWindow size={14} />;
     }
   };
 
   const handleRemoveFavorite = (id: number, name: string) => {
-    setFavorites((prev) => prev.filter((f) => f.id !== id));
-    showMessage(`已取消收藏「${name}」`, 'info');
+    userActivityService.removeFavorite(id)
+      .then(() => {
+        showMessage(`已取消收藏「${name}」`, 'info');
+        fetchData();
+      })
+      .catch(err => {
+        console.error(err);
+        showMessage('取消收藏失败', 'error');
+      });
   };
 
   const handleUse = (name: string) => {
@@ -109,7 +112,12 @@ export const MyFavoritesPage: React.FC<MyFavoritesPageProps> = ({ theme }) => {
         </div>
 
         {/* Cards Grid */}
-        {filtered.length === 0 ? (
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <Loader2 size={32} className={`animate-spin ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
+            <p className={`mt-3 text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>加载中…</p>
+          </div>
+        ) : filtered.length === 0 ? (
           <div className={`flex-1 flex items-center justify-center ${cardClass(theme)} p-12`}>
             <div className="text-center">
               <HeartOff size={40} className={`mx-auto mb-3 ${isDark ? 'text-slate-600' : 'text-slate-300'}`} />
@@ -124,16 +132,16 @@ export const MyFavoritesPage: React.FC<MyFavoritesPageProps> = ({ theme }) => {
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0 ${
                     isDark ? 'bg-white/10' : 'bg-slate-100'
                   }`}>
-                    {item.icon}
+                    {item.icon || '📦'}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className={`text-sm font-semibold truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                        {item.name}
+                        {item.displayName}
                       </span>
-                      <span className={typeBadge(item.type)}>
-                        <TypeIcon type={item.type} />
-                        <span className="ml-1">{item.type}</span>
+                      <span className={typeBadge(item.targetType)}>
+                        <TypeIcon type={item.targetType} />
+                        <span className="ml-1">{TYPE_LABEL[item.targetType] ?? item.targetType}</span>
                       </span>
                     </div>
                     <p className={`text-xs leading-relaxed line-clamp-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
@@ -144,14 +152,14 @@ export const MyFavoritesPage: React.FC<MyFavoritesPageProps> = ({ theme }) => {
                 <div className="flex items-center gap-2 mt-auto pt-1">
                   <button
                     type="button"
-                    onClick={() => handleUse(item.name)}
+                    onClick={() => handleUse(item.displayName)}
                     className={`flex-1 ${btnPrimary} !py-1.5 text-center`}
                   >
                     使用
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleRemoveFavorite(item.id, item.name)}
+                    onClick={() => handleRemoveFavorite(item.id, item.displayName)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors ${
                       isDark
                         ? 'border-white/10 text-slate-400 hover:text-red-400 hover:border-red-500/30'

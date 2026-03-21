@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, XCircle, Eye, X, Wrench, Clock, User } from 'lucide-react';
+import { CheckCircle2, XCircle, Eye, X, Wrench, Clock, User, Loader2 } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { AgentStatus, AgentType, SourceType } from '../../types/dto/agent';
 import { statusBadgeClass, statusLabel, pageBg, btnSecondary } from '../../utils/uiClasses';
 import type { DomainStatus } from '../../utils/uiClasses';
+import { auditService } from '../../api/services/audit.service';
+import type { AuditItem } from '../../types/dto/audit';
 
 interface Props {
   theme: Theme;
@@ -12,46 +14,55 @@ interface Props {
   showMessage?: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void;
 }
 
-interface AuditSkill {
-  id: number;
-  displayName: string;
-  description: string;
-  agentType: AgentType;
-  sourceType: SourceType;
-  status: AgentStatus;
-  submitter: string;
-  submitterDept: string;
-  submitTime: string;
-  specUrl: string;
-}
-
-const INITIAL_QUEUE: AuditSkill[] = [
-  { id: 201, displayName: '文档摘要生成', description: '对上传文档自动生成结构化摘要', agentType: 'mcp', sourceType: 'internal', status: 'pending_review', submitter: '张三 (2021001)', submitterDept: '计算机学院', submitTime: '2026-03-19 14:50', specUrl: 'https://nlp.example.edu/mcp/summarize' },
-  { id: 202, displayName: '论文查重预检', description: '论文提交前进行查重率预估', agentType: 'http_api', sourceType: 'internal', status: 'pending_review', submitter: '刘七 (T20045)', submitterDept: '图书馆', submitTime: '2026-03-20 10:20', specUrl: 'https://check.example.edu/api/v1/precheck' },
-  { id: 203, displayName: '日程提醒工具', description: '根据教务日历自动发送日程提醒', agentType: 'http_api', sourceType: 'internal', status: 'pending_review', submitter: '陈八 (2022030)', submitterDept: '信息工程学院', submitTime: '2026-03-21 08:30', specUrl: 'https://remind.example.edu/api/schedule' },
-];
-
 export const SkillAuditList: React.FC<Props> = ({ theme, fontSize, showMessage }) => {
   const isDark = theme === 'dark';
-  const [queue, setQueue] = useState<AuditSkill[]>(INITIAL_QUEUE);
-  const [approveTarget, setApproveTarget] = useState<AuditSkill | null>(null);
-  const [rejectTarget, setRejectTarget] = useState<AuditSkill | null>(null);
+  const [queue, setQueue] = useState<AuditItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [approveTarget, setApproveTarget] = useState<AuditItem | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<AuditItem | null>(null);
   const [rejectReason, setRejectReason] = useState('');
-  const [detailTarget, setDetailTarget] = useState<AuditSkill | null>(null);
+  const [detailTarget, setDetailTarget] = useState<AuditItem | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending_review'>('pending_review');
 
-  const handleApprove = (skill: AuditSkill) => {
-    setQueue(prev => prev.map(s => s.id === skill.id ? { ...s, status: 'testing' as AgentStatus } : s));
-    setApproveTarget(null);
-    showMessage?.(`「${skill.displayName}」已通过审核，进入测试阶段`, 'success');
+  const fetchData = useCallback(() => {
+    setLoading(true);
+    auditService.listPendingSkills()
+      .then(res => setQueue(res.list))
+      .catch(err => {
+        console.error(err);
+        showMessage?.('加载审核列表失败', 'error');
+      })
+      .finally(() => setLoading(false));
+  }, [showMessage]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const handleApprove = (skill: AuditItem) => {
+    auditService.approve(skill.id, 'skill')
+      .then(() => {
+        setApproveTarget(null);
+        showMessage?.(`「${skill.displayName}」已通过审核，进入测试阶段`, 'success');
+        fetchData();
+      })
+      .catch(err => {
+        console.error(err);
+        showMessage?.('审核操作失败', 'error');
+      });
   };
 
-  const handleReject = (skill: AuditSkill) => {
+  const handleReject = (skill: AuditItem) => {
     if (!rejectReason.trim()) return;
-    setQueue(prev => prev.map(s => s.id === skill.id ? { ...s, status: 'rejected' as AgentStatus } : s));
-    setRejectTarget(null);
-    setRejectReason('');
-    showMessage?.(`「${skill.displayName}」已驳回`, 'info');
+    auditService.reject(skill.id, 'skill', rejectReason.trim())
+      .then(() => {
+        setRejectTarget(null);
+        setRejectReason('');
+        showMessage?.(`「${skill.displayName}」已驳回`, 'info');
+        fetchData();
+      })
+      .catch(err => {
+        console.error(err);
+        showMessage?.('驳回操作失败', 'error');
+      });
   };
 
   const filteredQueue = filterStatus === 'all' ? queue : queue.filter(s => s.status === filterStatus);
@@ -95,7 +106,12 @@ export const SkillAuditList: React.FC<Props> = ({ theme, fontSize, showMessage }
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4 sm:px-6 py-4">
-        {filteredQueue.length === 0 ? (
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <Loader2 size={32} className={`animate-spin ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
+            <p className={`mt-3 text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>加载中…</p>
+          </div>
+        ) : filteredQueue.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20">
             <CheckCircle2 size={48} className={isDark ? 'text-slate-600' : 'text-slate-300'} />
             <p className={`mt-4 text-sm font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>暂无待审核项目</p>
@@ -122,7 +138,7 @@ export const SkillAuditList: React.FC<Props> = ({ theme, fontSize, showMessage }
                     <p className={`text-sm mb-3 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{skill.description}</p>
                     <div className="flex items-center gap-4 flex-wrap">
                       <span className={`text-xs flex items-center gap-1.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                        <User size={12} /> {skill.submitter} · {skill.submitterDept}
+                        <User size={12} /> {skill.submitter}
                       </span>
                       <span className={`text-xs flex items-center gap-1.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
                         <Clock size={12} /> {skill.submitTime}
@@ -247,8 +263,8 @@ export const SkillAuditList: React.FC<Props> = ({ theme, fontSize, showMessage }
                   { label: '描述', value: detailTarget.description },
                   { label: '协议类型', value: detailTarget.agentType },
                   { label: '来源类型', value: detailTarget.sourceType },
-                  { label: '接口地址', value: detailTarget.specUrl },
-                  { label: '提交人', value: `${detailTarget.submitter} · ${detailTarget.submitterDept}` },
+                  { label: 'Skill 标识', value: detailTarget.agentName },
+                  { label: '提交人', value: detailTarget.submitter },
                   { label: '提交时间', value: detailTarget.submitTime },
                 ].map(item => (
                   <div key={item.label} className="flex items-start justify-between px-4 py-3 gap-4">

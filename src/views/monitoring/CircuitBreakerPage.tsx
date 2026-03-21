@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
-import { AlertTriangle, Zap, RotateCcw } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { AlertTriangle, Zap, RotateCcw, Loader2 } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { nativeInputClass, nativeSelectClass } from '../../utils/formFieldClasses';
 import { btnPrimary, btnSecondary, btnGhost, tableHeadCell, tableBodyRow } from '../../utils/uiClasses';
 import { Modal } from '../../components/common/Modal';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
+import { healthService } from '../../api/services/health.service';
+import type { CircuitBreakerItem } from '../../types/dto/health';
 
 interface Props {
   theme: Theme;
@@ -15,59 +17,6 @@ interface Props {
 
 type CBState = 'CLOSED' | 'OPEN' | 'HALF_OPEN';
 
-interface CircuitBreakerConfig {
-  id: number;
-  displayName: string;
-  agentType: 'mcp' | 'http_api' | 'builtin';
-  currentState: CBState;
-  failureThreshold: number;
-  openDurationSec: number;
-  halfOpenMaxCalls: number;
-  fallbackAgentName: string | null;
-  fallbackMessage: string;
-  failureCount: number;
-  successCount: number;
-  lastOpenedAt: string | null;
-}
-
-const AGENT_NAMES = [
-  '智能问答 Agent', '知识检索 Agent', '成绩分析 Agent',
-  '图像识别 Agent', '数据同步 Agent', '教务查询 Agent',
-];
-
-const INITIAL_DATA: CircuitBreakerConfig[] = [
-  {
-    id: 1, displayName: '智能问答 Agent', agentType: 'http_api', currentState: 'CLOSED',
-    failureThreshold: 5, openDurationSec: 30, halfOpenMaxCalls: 3,
-    fallbackAgentName: '知识检索 Agent', fallbackMessage: '服务暂时不可用，请稍后再试',
-    failureCount: 1, successCount: 2847, lastOpenedAt: null,
-  },
-  {
-    id: 2, displayName: '知识检索 Agent', agentType: 'mcp', currentState: 'OPEN',
-    failureThreshold: 3, openDurationSec: 60, halfOpenMaxCalls: 2,
-    fallbackAgentName: null, fallbackMessage: '检索服务正在恢复中，请稍候',
-    failureCount: 5, successCount: 1203, lastOpenedAt: '2026-03-21 14:28:15',
-  },
-  {
-    id: 3, displayName: '课表查询 Skill', agentType: 'http_api', currentState: 'HALF_OPEN',
-    failureThreshold: 5, openDurationSec: 30, halfOpenMaxCalls: 3,
-    fallbackAgentName: '教务查询 Agent', fallbackMessage: '课表查询暂不可用',
-    failureCount: 3, successCount: 1, lastOpenedAt: '2026-03-21 14:25:00',
-  },
-  {
-    id: 4, displayName: '成绩分析 Agent', agentType: 'builtin', currentState: 'CLOSED',
-    failureThreshold: 10, openDurationSec: 45, halfOpenMaxCalls: 5,
-    fallbackAgentName: null, fallbackMessage: '成绩分析服务暂不可用',
-    failureCount: 0, successCount: 892, lastOpenedAt: null,
-  },
-  {
-    id: 5, displayName: '图像识别 Agent', agentType: 'http_api', currentState: 'CLOSED',
-    failureThreshold: 5, openDurationSec: 30, halfOpenMaxCalls: 3,
-    fallbackAgentName: null, fallbackMessage: '图像识别暂时不可用',
-    failureCount: 2, successCount: 456, lastOpenedAt: '2026-03-20 09:10:00',
-  },
-];
-
 const STATE_CFG: Record<CBState, { label: string; light: string; dark: string }> = {
   CLOSED:    { label: '正常',   light: 'bg-emerald-100 text-emerald-800', dark: 'bg-emerald-500/20 text-emerald-300' },
   OPEN:      { label: '已熔断', light: 'bg-red-100 text-red-800',         dark: 'bg-red-500/20 text-red-300' },
@@ -76,15 +25,29 @@ const STATE_CFG: Record<CBState, { label: string; light: string; dark: string }>
 
 export const CircuitBreakerPage: React.FC<Props> = ({ theme, fontSize, showMessage }) => {
   const isDark = theme === 'dark';
-  const [data, setData] = useState<CircuitBreakerConfig[]>(INITIAL_DATA);
+  const [data, setData] = useState<CircuitBreakerItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [draft, setDraft] = useState<Partial<CircuitBreakerConfig>>({});
+  const [draft, setDraft] = useState<Partial<CircuitBreakerItem>>({});
   const [confirmAction, setConfirmAction] = useState<{ id: number; action: 'trip' | 'reset' } | null>(null);
 
   const sel = nativeSelectClass(theme);
   const inp = nativeInputClass(theme);
 
-  const openEdit = (item: CircuitBreakerConfig) => {
+  const fetchData = useCallback(() => {
+    setLoading(true);
+    healthService.listCircuitBreakers()
+      .then(items => setData(items))
+      .catch(err => {
+        console.error(err);
+        showMessage('加载熔断配置失败', 'error');
+      })
+      .finally(() => setLoading(false));
+  }, [showMessage]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const openEdit = (item: CircuitBreakerItem) => {
     setEditingId(item.id);
     setDraft({
       failureThreshold: item.failureThreshold,
@@ -97,23 +60,35 @@ export const CircuitBreakerPage: React.FC<Props> = ({ theme, fontSize, showMessa
 
   const saveEdit = () => {
     if (editingId == null) return;
-    setData((prev) => prev.map((r) => r.id === editingId ? { ...r, ...draft } as CircuitBreakerConfig : r));
-    setEditingId(null);
-    showMessage('熔断配置已保存', 'success');
+    healthService.updateCircuitBreaker(editingId, draft)
+      .then(() => {
+        setEditingId(null);
+        showMessage('熔断配置已保存', 'success');
+        fetchData();
+      })
+      .catch(err => {
+        console.error(err);
+        showMessage('保存失败', 'error');
+      });
   };
 
   const executeAction = () => {
     if (!confirmAction) return;
     const { id, action } = confirmAction;
-    setData((prev) => prev.map((r) => {
-      if (r.id !== id) return r;
-      if (action === 'trip') {
-        return { ...r, currentState: 'OPEN' as CBState, lastOpenedAt: new Date().toLocaleString('zh-CN', { hour12: false }).replace(/\//g, '-'), failureCount: r.failureThreshold };
-      }
-      return { ...r, currentState: 'CLOSED' as CBState, failureCount: 0 };
-    }));
-    setConfirmAction(null);
-    showMessage(action === 'trip' ? '已手动熔断' : '已手动恢复', action === 'trip' ? 'info' : 'success');
+    const apiCall = action === 'trip'
+      ? healthService.manualBreak(id)
+      : healthService.manualRecover(id);
+
+    apiCall
+      .then(() => {
+        setConfirmAction(null);
+        showMessage(action === 'trip' ? '已手动熔断' : '已手动恢复', action === 'trip' ? 'info' : 'success');
+        fetchData();
+      })
+      .catch(err => {
+        console.error(err);
+        showMessage('操作失败', 'error');
+      });
   };
 
   const confirmItem = confirmAction ? data.find((r) => r.id === confirmAction.id) : null;
@@ -121,81 +96,87 @@ export const CircuitBreakerPage: React.FC<Props> = ({ theme, fontSize, showMessa
   return (
     <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={AlertTriangle} breadcrumbSegments={['监控中心', '熔断降级']} description="配置 Agent / Skill 的熔断策略，支持手动熔断与恢复">
       <div className="min-w-0 px-4 sm:px-6 pb-6 pt-4">
-        {/* Summary cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
-          {([['CLOSED', '正常运行'], ['OPEN', '已熔断'], ['HALF_OPEN', '探测中']] as [CBState, string][]).map(([state, label]) => {
-            const count = data.filter((r) => r.currentState === state).length;
-            const cfg = STATE_CFG[state];
-            return (
-              <div key={state} className={`rounded-2xl border px-4 py-3 ${isDark ? 'bg-[#2C2C2E]/60 border-white/10' : 'bg-white border-slate-200/80'}`}>
-                <div className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{label}</div>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{count}</span>
-                  <span className={`inline-flex px-2 py-0.5 rounded-lg text-[11px] font-medium ${isDark ? cfg.dark : cfg.light}`}>{cfg.label}</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm min-w-[960px]">
-            <thead>
-              <tr>
-                {['名称', '状态', '失败阈值', '熔断时长(s)', '降级 Agent', '最近熔断', '统计', '操作'].map((h) => (
-                  <th key={h} className={tableHeadCell(theme)}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {data.map((r, i) => {
-                const stCfg = STATE_CFG[r.currentState];
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-16">
+            <Loader2 size={32} className={`animate-spin ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
+            <p className={`mt-3 text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>加载中…</p>
+          </div>
+        ) : (
+          <>
+            {/* Summary cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+              {([['CLOSED', '正常运行'], ['OPEN', '已熔断'], ['HALF_OPEN', '探测中']] as [CBState, string][]).map(([state, label]) => {
+                const count = data.filter((r) => r.currentState === state).length;
+                const cfg = STATE_CFG[state];
                 return (
-                  <tr key={r.id} className={tableBodyRow(theme, i)}>
-                    <td className={`px-4 py-3 ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
-                      <div className="font-medium">{r.displayName}</div>
-                      <span className={`text-[11px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                        {r.agentType === 'mcp' ? 'MCP' : r.agentType === 'http_api' ? 'HTTP API' : '内置'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex px-2.5 py-1 rounded-lg text-xs font-semibold ${isDark ? stCfg.dark : stCfg.light}`}>
-                        {stCfg.label}
-                      </span>
-                    </td>
-                    <td className={`px-4 py-3 text-center ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{r.failureThreshold}</td>
-                    <td className={`px-4 py-3 text-center ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{r.openDurationSec}</td>
-                    <td className={`px-4 py-3 text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{r.fallbackAgentName ?? '—'}</td>
-                    <td className={`px-4 py-3 text-xs whitespace-nowrap ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>{r.lastOpenedAt ?? '—'}</td>
-                    <td className="px-4 py-3">
-                      <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                        <span className="text-emerald-500 font-medium">{r.successCount}</span>
-                        <span className="mx-1">/</span>
-                        <span className="text-red-500 font-medium">{r.failureCount}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <button type="button" onClick={() => openEdit(r)} className={btnGhost(theme)}>
-                          配置
-                        </button>
-                        {r.currentState !== 'OPEN' ? (
-                          <button type="button" onClick={() => setConfirmAction({ id: r.id, action: 'trip' })} className="p-1.5 rounded-xl text-red-500 hover:bg-red-500/10 transition-colors" title="手动熔断">
-                            <Zap size={15} />
-                          </button>
-                        ) : (
-                          <button type="button" onClick={() => setConfirmAction({ id: r.id, action: 'reset' })} className="p-1.5 rounded-xl text-emerald-500 hover:bg-emerald-500/10 transition-colors" title="手动恢复">
-                            <RotateCcw size={15} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
+                  <div key={state} className={`rounded-2xl border px-4 py-3 ${isDark ? 'bg-[#2C2C2E]/60 border-white/10' : 'bg-white border-slate-200/80'}`}>
+                    <div className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{label}</div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{count}</span>
+                      <span className={`inline-flex px-2 py-0.5 rounded-lg text-[11px] font-medium ${isDark ? cfg.dark : cfg.light}`}>{cfg.label}</span>
+                    </div>
+                  </div>
                 );
               })}
-            </tbody>
-          </table>
-        </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm min-w-[960px]">
+                <thead>
+                  <tr>
+                    {['名称', '状态', '失败阈值', '熔断时长(s)', '降级 Agent', '最近熔断', '统计', '操作'].map((h) => (
+                      <th key={h} className={tableHeadCell(theme)}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.map((r, i) => {
+                    const stCfg = STATE_CFG[r.currentState];
+                    return (
+                      <tr key={r.id} className={tableBodyRow(theme, i)}>
+                        <td className={`px-4 py-3 ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                          <div className="font-medium">{r.displayName}</div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex px-2.5 py-1 rounded-lg text-xs font-semibold ${isDark ? stCfg.dark : stCfg.light}`}>
+                            {stCfg.label}
+                          </span>
+                        </td>
+                        <td className={`px-4 py-3 text-center ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{r.failureThreshold}</td>
+                        <td className={`px-4 py-3 text-center ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{r.openDurationSec}</td>
+                        <td className={`px-4 py-3 text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{r.fallbackAgentName ?? '—'}</td>
+                        <td className={`px-4 py-3 text-xs whitespace-nowrap ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>{r.lastOpenedAt ?? '—'}</td>
+                        <td className="px-4 py-3">
+                          <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                            <span className="text-emerald-500 font-medium">{r.successCount}</span>
+                            <span className="mx-1">/</span>
+                            <span className="text-red-500 font-medium">{r.failureCount}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <button type="button" onClick={() => openEdit(r)} className={btnGhost(theme)}>
+                              配置
+                            </button>
+                            {r.currentState !== 'OPEN' ? (
+                              <button type="button" onClick={() => setConfirmAction({ id: r.id, action: 'trip' })} className="p-1.5 rounded-xl text-red-500 hover:bg-red-500/10 transition-colors" title="手动熔断">
+                                <Zap size={15} />
+                              </button>
+                            ) : (
+                              <button type="button" onClick={() => setConfirmAction({ id: r.id, action: 'reset' })} className="p-1.5 rounded-xl text-emerald-500 hover:bg-emerald-500/10 transition-colors" title="手动恢复">
+                                <RotateCcw size={15} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </div>
 
       <Modal
@@ -228,12 +209,7 @@ export const CircuitBreakerPage: React.FC<Props> = ({ theme, fontSize, showMessa
           </div>
           <div>
             <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>降级 Agent</label>
-            <select className={sel} value={draft.fallbackAgentName ?? ''} onChange={(e) => setDraft((p) => ({ ...p, fallbackAgentName: e.target.value || null }))}>
-              <option value="">不降级</option>
-              {AGENT_NAMES.filter((n) => n !== data.find((r) => r.id === editingId)?.displayName).map((n) => (
-                <option key={n} value={n}>{n}</option>
-              ))}
-            </select>
+            <input className={inp} value={draft.fallbackAgentName ?? ''} onChange={(e) => setDraft((p) => ({ ...p, fallbackAgentName: e.target.value || null }))} placeholder="降级 Agent 名称（留空不降级）" />
           </div>
           <div>
             <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>降级提示消息</label>

@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
-import { ShieldCheck, Search } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { ShieldCheck, Search, Loader2 } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { nativeInputClass, nativeSelectClass } from '../../utils/formFieldClasses';
 import { TOOLBAR_ROW, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
 import { btnPrimary, btnSecondary, tableHeadCell, tableBodyRow, btnGhost } from '../../utils/uiClasses';
 import { Modal } from '../../components/common/Modal';
+import { healthService } from '../../api/services/health.service';
+import type { HealthConfigItem } from '../../types/dto/health';
 
 interface Props {
   theme: Theme;
@@ -13,35 +15,7 @@ interface Props {
   showMessage: (msg: string, type?: 'success' | 'error' | 'info') => void;
 }
 
-type CheckType = 'http' | 'tcp' | 'ping';
 type HealthStatus = 'healthy' | 'degraded' | 'down';
-
-interface HealthCheckConfig {
-  id: number;
-  displayName: string;
-  agentType: 'mcp' | 'http_api' | 'builtin';
-  entityType: 'agent' | 'skill';
-  checkType: CheckType;
-  checkUrl: string;
-  intervalSec: number;
-  healthyThreshold: number;
-  timeoutSec: number;
-  currentStatus: HealthStatus;
-  lastCheckedAt: string;
-}
-
-const INITIAL_DATA: HealthCheckConfig[] = [
-  { id: 1, displayName: '智能问答 Agent', agentType: 'http_api', entityType: 'agent', checkType: 'http', checkUrl: 'https://qa.internal/health', intervalSec: 60, healthyThreshold: 3, timeoutSec: 5, currentStatus: 'healthy', lastCheckedAt: '2026-03-21 14:32:10' },
-  { id: 2, displayName: '知识检索 Agent', agentType: 'mcp', entityType: 'agent', checkType: 'http', checkUrl: 'https://search.internal/ping', intervalSec: 30, healthyThreshold: 3, timeoutSec: 5, currentStatus: 'healthy', lastCheckedAt: '2026-03-21 14:32:05' },
-  { id: 3, displayName: '课表查询 Skill', agentType: 'http_api', entityType: 'skill', checkType: 'http', checkUrl: 'https://schedule.internal/health', intervalSec: 120, healthyThreshold: 5, timeoutSec: 10, currentStatus: 'degraded', lastCheckedAt: '2026-03-21 14:31:50' },
-  { id: 4, displayName: '成绩分析 Agent', agentType: 'builtin', entityType: 'agent', checkType: 'tcp', checkUrl: '10.0.1.22:8080', intervalSec: 60, healthyThreshold: 3, timeoutSec: 5, currentStatus: 'healthy', lastCheckedAt: '2026-03-21 14:32:08' },
-  { id: 5, displayName: '文档解析 Skill', agentType: 'mcp', entityType: 'skill', checkType: 'http', checkUrl: 'https://docparse.internal/health', intervalSec: 60, healthyThreshold: 3, timeoutSec: 5, currentStatus: 'down', lastCheckedAt: '2026-03-21 14:28:00' },
-  { id: 6, displayName: '邮件发送 Skill', agentType: 'http_api', entityType: 'skill', checkType: 'tcp', checkUrl: '10.0.1.30:25', intervalSec: 90, healthyThreshold: 2, timeoutSec: 3, currentStatus: 'healthy', lastCheckedAt: '2026-03-21 14:32:12' },
-  { id: 7, displayName: '图像识别 Agent', agentType: 'http_api', entityType: 'agent', checkType: 'http', checkUrl: 'https://vision.internal/health', intervalSec: 60, healthyThreshold: 3, timeoutSec: 8, currentStatus: 'degraded', lastCheckedAt: '2026-03-21 14:30:45' },
-  { id: 8, displayName: '数据同步 Agent', agentType: 'mcp', entityType: 'agent', checkType: 'ping', checkUrl: '10.0.1.50', intervalSec: 30, healthyThreshold: 3, timeoutSec: 5, currentStatus: 'healthy', lastCheckedAt: '2026-03-21 14:32:11' },
-  { id: 9, displayName: '日程管理 Skill', agentType: 'builtin', entityType: 'skill', checkType: 'http', checkUrl: 'https://calendar.internal/health', intervalSec: 120, healthyThreshold: 4, timeoutSec: 5, currentStatus: 'healthy', lastCheckedAt: '2026-03-21 14:31:55' },
-  { id: 10, displayName: '消息推送 Skill', agentType: 'http_api', entityType: 'skill', checkType: 'tcp', checkUrl: '10.0.1.40:9090', intervalSec: 45, healthyThreshold: 3, timeoutSec: 5, currentStatus: 'down', lastCheckedAt: '2026-03-21 14:25:30' },
-];
 
 const STATUS_CFG: Record<HealthStatus, { dot: string; label: string; badge: { light: string; dark: string } }> = {
   healthy:  { dot: 'bg-emerald-500', label: '健康', badge: { light: 'bg-emerald-100 text-emerald-800', dark: 'bg-emerald-500/20 text-emerald-300' } },
@@ -53,29 +27,50 @@ const TYPE_LABEL: Record<string, string> = { mcp: 'MCP', http_api: 'HTTP API', b
 
 export const HealthConfigPage: React.FC<Props> = ({ theme, fontSize, showMessage }) => {
   const isDark = theme === 'dark';
-  const [data, setData] = useState<HealthCheckConfig[]>(INITIAL_DATA);
+  const [data, setData] = useState<HealthConfigItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [draft, setDraft] = useState<Partial<HealthCheckConfig>>({});
+  const [draft, setDraft] = useState<Partial<HealthConfigItem>>({});
+
+  const fetchData = useCallback(() => {
+    setLoading(true);
+    healthService.listHealthConfigs()
+      .then(items => setData(items))
+      .catch(err => {
+        console.error(err);
+        showMessage('加载健康检查配置失败', 'error');
+      })
+      .finally(() => setLoading(false));
+  }, [showMessage]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const filtered = data.filter((r) => {
-    if (statusFilter !== 'all' && r.currentStatus !== statusFilter) return false;
+    if (statusFilter !== 'all' && r.healthStatus !== statusFilter) return false;
     const term = q.trim().toLowerCase();
     if (!term) return true;
     return r.displayName.toLowerCase().includes(term) || r.checkUrl.toLowerCase().includes(term);
   });
 
-  const openEdit = (item: HealthCheckConfig) => {
+  const openEdit = (item: HealthConfigItem) => {
     setEditingId(item.id);
     setDraft({ checkType: item.checkType, checkUrl: item.checkUrl, intervalSec: item.intervalSec, healthyThreshold: item.healthyThreshold, timeoutSec: item.timeoutSec });
   };
 
   const saveEdit = () => {
     if (editingId == null) return;
-    setData((prev) => prev.map((r) => r.id === editingId ? { ...r, ...draft } as HealthCheckConfig : r));
-    setEditingId(null);
-    showMessage('健康检查配置已保存', 'success');
+    healthService.updateHealthConfig(editingId, draft)
+      .then(() => {
+        setEditingId(null);
+        showMessage('健康检查配置已保存', 'success');
+        fetchData();
+      })
+      .catch(err => {
+        console.error(err);
+        showMessage('保存失败', 'error');
+      });
   };
 
   const sel = nativeSelectClass(theme);
@@ -100,51 +95,59 @@ export const HealthConfigPage: React.FC<Props> = ({ theme, fontSize, showMessage
   return (
     <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={ShieldCheck} breadcrumbSegments={['监控中心', '健康检查']} description="管理 Agent / Skill 的健康检查策略，实时查看连通性状态" toolbar={toolbar}>
       <div className="min-w-0 px-4 sm:px-6 pb-6 pt-1">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm min-w-[960px]">
-            <thead>
-              <tr>
-                {['名称', '类型', '检查方式', '检查地址', '间隔(s)', '阈值', '状态', '最近检查', '操作'].map((h) => (
-                  <th key={h} className={tableHeadCell(theme)}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((r, i) => {
-                const st = STATUS_CFG[r.currentStatus];
-                return (
-                  <tr key={r.id} className={tableBodyRow(theme, i)}>
-                    <td className={`px-4 py-3 font-medium ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
-                      <div>{r.displayName}</div>
-                      <span className={`text-[11px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{r.entityType === 'agent' ? 'Agent' : 'Skill'}</span>
-                    </td>
-                    <td className={`px-4 py-3 text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{TYPE_LABEL[r.agentType]}</td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex px-2 py-0.5 rounded-lg text-xs font-medium ${isDark ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>{r.checkType.toUpperCase()}</span>
-                    </td>
-                    <td className={`px-4 py-3 text-xs font-mono max-w-[200px] truncate ${isDark ? 'text-slate-400' : 'text-slate-600'}`} title={r.checkUrl}>{r.checkUrl}</td>
-                    <td className={`px-4 py-3 text-xs text-center ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{r.intervalSec}</td>
-                    <td className={`px-4 py-3 text-xs text-center ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{r.healthyThreshold}</td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-medium ${isDark ? st.badge.dark : st.badge.light}`}>
-                        <span className={`w-2 h-2 rounded-full ${st.dot} ${r.currentStatus !== 'down' ? 'animate-pulse' : ''}`} />
-                        {st.label}
-                      </span>
-                    </td>
-                    <td className={`px-4 py-3 text-xs whitespace-nowrap ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>{r.lastCheckedAt.slice(11)}</td>
-                    <td className="px-4 py-3">
-                      <button type="button" onClick={() => openEdit(r)} className={btnGhost(theme)}>
-                        配置
-                      </button>
-                    </td>
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-16">
+            <Loader2 size={32} className={`animate-spin ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
+            <p className={`mt-3 text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>加载中…</p>
+          </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm min-w-[960px]">
+                <thead>
+                  <tr>
+                    {['名称', '类型', '检查方式', '检查地址', '间隔(s)', '阈值', '状态', '最近检查', '操作'].map((h) => (
+                      <th key={h} className={tableHeadCell(theme)}>{h}</th>
+                    ))}
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        {filtered.length === 0 && (
-          <div className={`text-center py-12 text-sm ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>无匹配结果</div>
+                </thead>
+                <tbody>
+                  {filtered.map((r, i) => {
+                    const st = STATUS_CFG[r.healthStatus];
+                    return (
+                      <tr key={r.id} className={tableBodyRow(theme, i)}>
+                        <td className={`px-4 py-3 font-medium ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                          <div>{r.displayName}</div>
+                        </td>
+                        <td className={`px-4 py-3 text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{TYPE_LABEL[r.agentType] ?? r.agentType}</td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex px-2 py-0.5 rounded-lg text-xs font-medium ${isDark ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>{r.checkType.toUpperCase()}</span>
+                        </td>
+                        <td className={`px-4 py-3 text-xs font-mono max-w-[200px] truncate ${isDark ? 'text-slate-400' : 'text-slate-600'}`} title={r.checkUrl}>{r.checkUrl}</td>
+                        <td className={`px-4 py-3 text-xs text-center ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{r.intervalSec}</td>
+                        <td className={`px-4 py-3 text-xs text-center ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{r.healthyThreshold}</td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-medium ${isDark ? st.badge.dark : st.badge.light}`}>
+                            <span className={`w-2 h-2 rounded-full ${st.dot} ${r.healthStatus !== 'down' ? 'animate-pulse' : ''}`} />
+                            {st.label}
+                          </span>
+                        </td>
+                        <td className={`px-4 py-3 text-xs whitespace-nowrap ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>{r.lastCheckTime?.slice(11) ?? '—'}</td>
+                        <td className="px-4 py-3">
+                          <button type="button" onClick={() => openEdit(r)} className={btnGhost(theme)}>
+                            配置
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            {filtered.length === 0 && (
+              <div className={`text-center py-12 text-sm ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>无匹配结果</div>
+            )}
+          </>
         )}
       </div>
 
@@ -164,7 +167,7 @@ export const HealthConfigPage: React.FC<Props> = ({ theme, fontSize, showMessage
         <div className="space-y-4">
           <div>
             <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>检查方式</label>
-            <select className={sel} value={draft.checkType ?? 'http'} onChange={(e) => setDraft((p) => ({ ...p, checkType: e.target.value as CheckType }))}>
+            <select className={sel} value={draft.checkType ?? 'http'} onChange={(e) => setDraft((p) => ({ ...p, checkType: e.target.value as HealthConfigItem['checkType'] }))}>
               <option value="http">HTTP</option>
               <option value="tcp">TCP</option>
               <option value="ping">Ping</option>

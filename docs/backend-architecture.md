@@ -299,12 +299,15 @@ graph TB
 | success_rate | DECIMAL(5,2) | DEFAULT 100 | 成功率(%) |
 | avg_token_cost | DECIMAL(10,4) | DEFAULT 0 | 平均Token消耗 |
 | call_count | BIGINT | DEFAULT 0 | 调用次数 |
-| created_by | BIGINT | NULL | 创建者用户ID |
+| featured | TINYINT | DEFAULT 0 | 是否推荐（市场首页精选） |
+| rating_avg | DECIMAL(3,2) | DEFAULT 0 | 平均评分（从 t_review 聚合，冗余） |
+| rating_count | INTEGER | DEFAULT 0 | 评分数量（冗余） |
+| created_by | BIGINT | NULL | 创建者用户ID（关联 t_user，市场页展示作者） |
 | deleted | TINYINT | DEFAULT 0 | 软删除 |
 | create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
 | update_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
 
-**索引**：`agent_name` UNIQUE, `status`, `source_type`, `category_id`, `agent_type`, `is_public + status`（复合索引，市场查询用）
+**索引**：`agent_name` UNIQUE, `status`, `source_type`, `category_id`, `agent_type`, `is_public + status`（复合索引，市场查询用）, `featured + sort_order`
 
 #### 2.2.2 t_skill — Skill 表
 
@@ -364,6 +367,8 @@ graph TB
 | create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
 | update_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
 
+**索引**：`app_name` UNIQUE, `status`, `embed_type`, `category_id`, `source_type`
+
 #### 2.2.4 t_dataset — 数据集表
 
 | 字段 | 类型 | 约束 | 说明 |
@@ -385,6 +390,8 @@ graph TB
 | deleted | TINYINT | DEFAULT 0 | |
 | create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
 | update_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
+
+**索引**：`dataset_name` UNIQUE, `status`, `source_type`, `data_type`, `category_id`, `is_public + status`
 
 #### 2.2.5 t_dataset_dept_rel — 数据集部门权限关联
 
@@ -426,6 +433,8 @@ graph TB
 | deleted | TINYINT | DEFAULT 0 | |
 | create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
 | update_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
+
+**索引**：`provider_code` UNIQUE, `provider_type`, `status`
 
 #### 2.2.8 t_agent_version — Agent 版本表
 
@@ -508,6 +517,8 @@ graph TB
 | reject_reason | TEXT | NULL | 驳回原因 |
 | review_time | DATETIME | NULL | 审核时间 |
 | create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
+
+**索引**：`target_type + target_id`, `status`, `submitter`, `submit_time`
 
 #### 2.4.2 t_review — 评论评分表
 
@@ -808,7 +819,66 @@ graph TB
 
 ---
 
-### 2.8 ER 关系图
+### 2.8 通知与会话域
+
+#### 2.8.1 t_notification — 消息通知表
+
+> 对应前端 MessagePanel，支持 system（系统公告）、notice（业务通知）、alert（告警）三类消息。
+
+| 字段 | 类型 | 约束 | 说明 |
+|------|------|------|------|
+| id | BIGINT AUTO_INCREMENT | PK | |
+| user_id | BIGINT | FK -> t_user, NOT NULL | 接收用户（0=全体广播） |
+| type | VARCHAR(16) | NOT NULL | system / notice / alert |
+| title | VARCHAR(256) | NOT NULL | 通知标题 |
+| body | TEXT | NOT NULL | 通知内容 |
+| is_read | TINYINT | DEFAULT 0 | 0=未读 1=已读 |
+| source_type | VARCHAR(32) | NULL | 来源类型（audit_result / alert_fire / system_announce） |
+| source_id | VARCHAR(64) | NULL | 来源资源ID |
+| create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
+
+**索引**：`user_id + is_read + create_time`（未读消息查询）, `type`, `create_time`
+
+#### 2.8.2 t_login_history — 登录历史表
+
+> 对应前端 UserProfile 中展示的"最近登录记录"。
+
+| 字段 | 类型 | 约束 | 说明 |
+|------|------|------|------|
+| id | BIGINT AUTO_INCREMENT | PK | |
+| user_id | BIGINT | FK -> t_user, NOT NULL | |
+| ip | VARCHAR(45) | NOT NULL | 登录IP |
+| location | VARCHAR(128) | NULL | IP 归属地（通过 IP 库解析） |
+| device | VARCHAR(256) | NULL | 设备信息（从 User-Agent 解析） |
+| os | VARCHAR(64) | NULL | 操作系统 |
+| browser | VARCHAR(64) | NULL | 浏览器 |
+| login_method | VARCHAR(16) | NOT NULL | password / cas / sms |
+| result | VARCHAR(16) | NOT NULL | success / failed / locked |
+| fail_reason | VARCHAR(128) | NULL | 失败原因 |
+| create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
+
+**索引**：`user_id + create_time`, `ip`, `result`
+
+#### 2.8.3 t_sms_verify_code — 短信验证码表
+
+> 对应 `POST /auth/send-sms` 和 `POST /auth/bind-phone`，Redis 为主存储，MySQL 做审计备份。
+
+| 字段 | 类型 | 约束 | 说明 |
+|------|------|------|------|
+| id | BIGINT AUTO_INCREMENT | PK | |
+| phone | VARCHAR(20) | NOT NULL | 手机号 |
+| code | VARCHAR(8) | NOT NULL | 验证码（6 位数字） |
+| purpose | VARCHAR(16) | NOT NULL | login / bind_phone / reset_password |
+| used | TINYINT | DEFAULT 0 | 是否已使用 |
+| ip | VARCHAR(45) | NOT NULL | 请求IP |
+| expire_time | DATETIME | NOT NULL | 过期时间 |
+| create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
+
+**索引**：`phone + purpose + used`, `expire_time`
+
+---
+
+### 2.9 ER 关系图
 
 ```mermaid
 erDiagram
@@ -842,6 +912,9 @@ erDiagram
 
     t_api_key }o--|| t_user : owned_by
     t_access_token }o--|| t_user : issued_to
+
+    t_notification }o--|| t_user : notified
+    t_login_history }o--|| t_user : logged_in
 ```
 
 ---
@@ -856,6 +929,8 @@ erDiagram
 所有接口统一前缀：/api
 示例：POST /api/auth/login
 ```
+
+> **路径统一说明**：前端 Service 中部分接口使用了 `/api/v1/` 前缀（如 skills、categories），部分使用 `/` 前缀（如 agents、auth）。后端通过 `server.servlet.context-path=/api` 统一加前缀，Controller 中的路径不再重复 `/api`。对于 `/v1/` 前缀，建议当前版本统一去掉，待后续有破坏性变更时再引入版本号。前端 Service 中的路径需同步调整。
 
 #### 统一响应格式
 
@@ -2357,6 +2432,118 @@ erDiagram
 
 ---
 
+### 3.20 通知服务（notifications）
+
+#### GET /user/notifications — 获取通知列表
+
+**Query 参数**：
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| page | number | 页码 |
+| pageSize | number | 每页条数 |
+| type | string | 可选过滤：system / notice / alert |
+| isRead | number | 可选过滤：0=未读 1=已读 |
+
+**响应 data**：`PaginatedData<Notification>`
+
+```json
+{
+  "list": [
+    {
+      "id": 1,
+      "userId": 1,
+      "type": "notice",
+      "title": "您提交的 Agent「智能备课助手」审核通过",
+      "body": "该 Agent 已进入测试阶段，请关注后续状态。",
+      "isRead": false,
+      "sourceType": "audit_result",
+      "sourceId": "3",
+      "createTime": "2026-03-21T09:00:00Z"
+    }
+  ],
+  "total": 15,
+  "page": 1,
+  "pageSize": 20
+}
+```
+
+#### GET /user/notifications/unread-count — 获取未读数量
+
+**响应 data**：
+
+```json
+{ "count": 5 }
+```
+
+#### PATCH /user/notifications/:id/read — 标记单条已读
+
+**响应 data**：null
+
+#### POST /user/notifications/read-all — 全部标记已读
+
+**响应 data**：null
+
+---
+
+### 3.21 登录历史服务（auth）
+
+#### GET /auth/login-history — 获取登录历史
+
+**Query 参数**：page, pageSize
+
+**响应 data**：`PaginatedData<LoginHistory>`
+
+```json
+{
+  "list": [
+    {
+      "id": 1,
+      "ip": "192.168.1.100",
+      "location": "浙江省杭州市",
+      "device": "Windows 10 - Chrome 120",
+      "os": "Windows 10",
+      "browser": "Chrome 120",
+      "loginMethod": "password",
+      "result": "success",
+      "createTime": "2026-03-21T08:30:00Z"
+    }
+  ],
+  "total": 50,
+  "page": 1,
+  "pageSize": 20
+}
+```
+
+---
+
+### 3.22 文件上传服务（files）
+
+#### POST /files/upload — 通用文件上传
+
+**Headers**：`Content-Type: multipart/form-data`
+
+**Form 参数**：
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| file | File | 上传的文件 |
+| category | string | 用途分类：avatar / screenshot / dataset / document |
+
+**响应 data**：
+
+```json
+{
+  "fileId": "f_abc123",
+  "url": "https://oss.school.edu.cn/lantu/avatar/2026/03/uuid.png",
+  "originalName": "photo.png",
+  "size": 102400,
+  "mimeType": "image/png"
+}
+```
+
+---
+
 ## 第4章 核心隐藏逻辑
 
 以下是前端代码中未体现，但在后端实现时**必须考虑**的关键业务逻辑。
@@ -2654,9 +2841,19 @@ stateDiagram-v2
 - 通过 Spring `HandlerInterceptor` 或 Servlet `Filter` 拦截请求，按优先级匹配第一个命中的规则
 - 也可直接使用 Resilience4j `@RateLimiter` 注解对 Controller 方法限流
 - `action` 处理：
-  - `reject`：直接返回 429
-  - `throttle`：延迟响应
-  - `queue`：放入等待队列
+  - `reject`：返回 429，响应头携带 `Retry-After: {秒数}`（根据窗口剩余时间计算）
+  - `throttle`：延迟响应（Thread.sleep 或 Resilience4j BulkHead 排队）
+  - `queue`：放入等待队列，异步处理后回调
+
+**429 响应示例**：
+
+```
+HTTP/1.1 429 Too Many Requests
+Retry-After: 30
+Content-Type: application/json
+
+{"code": 3001, "message": "请求过于频繁，请 30 秒后重试", "data": null, "timestamp": 1711000000000}
+```
 
 #### 4.4.2 Token 配额计量
 
@@ -3009,6 +3206,355 @@ public class QuotaDailyResetTask {
 }
 ```
 
+### 4.11 通知系统
+
+#### 4.11.1 通知触发场景
+
+| 场景 | type | title 示例 | 触发时机 |
+|------|------|-----------|----------|
+| Agent/Skill 审核通过 | notice | 您的 Agent「XX」审核通过 | `auditService.approve()` |
+| Agent/Skill 审核驳回 | notice | 您的 Agent「XX」审核未通过 | `auditService.reject()` |
+| 告警触发 | alert | 告警：API延迟过高 | 告警规则触发时 |
+| 告警恢复 | alert | 告警已恢复：API延迟恢复正常 | 告警状态变为 resolved |
+| 系统维护公告 | system | 系统将于 XX 进行维护 | 管理员手动发布 |
+| 配额即将耗尽 | notice | 本月调用配额已使用 80% | 配额检查定时任务 |
+| 密钥即将过期 | notice | API Key「XX」将于 3 天后过期 | 定时任务扫描 |
+
+#### 4.11.2 通知发送实现
+
+```java
+@Service
+@RequiredArgsConstructor
+public class NotificationService {
+
+    private final NotificationMapper mapper;
+
+    @Async
+    public void send(Long userId, String type, String title, String body,
+                     String sourceType, String sourceId) {
+        Notification n = new Notification();
+        n.setUserId(userId);
+        n.setType(type);
+        n.setTitle(title);
+        n.setBody(body);
+        n.setSourceType(sourceType);
+        n.setSourceId(sourceId);
+        mapper.insert(n);
+    }
+
+    public void broadcast(String type, String title, String body) {
+        // userId = 0 表示广播，查询时 WHERE user_id = ? OR user_id = 0
+        send(0L, type, title, body, "system_announce", null);
+    }
+}
+```
+
+#### 4.11.3 后续增强
+
+- WebSocket / SSE 实时推送（初期前端轮询 unread-count 即可）
+- 通知偏好过滤（用户关闭 email 通知则不发邮件）
+- 已读状态优化：广播消息使用 `t_notification_read_rel` 关联表记录每个用户的已读状态
+
+### 4.12 文件上传与存储
+
+#### 4.12.1 存储方案
+
+| 阶段 | 方案 | 说明 |
+|------|------|------|
+| 开发/初期 | **本地磁盘** | Spring Boot 配置 `file.upload-dir=/data/lantu/uploads`，Nginx 映射静态访问 |
+| 生产推荐 | **MinIO** | 兼容 S3 协议，私有化部署，适合高校内网环境 |
+| 云部署 | **阿里云 OSS** | 公网环境使用，CDN 加速 |
+
+#### 4.12.2 目录结构
+
+```
+/{category}/{yyyy}/{MM}/{uuid}.{ext}
+
+示例：
+/avatar/2026/03/a1b2c3d4-e5f6.png
+/screenshot/2026/03/b2c3d4e5-f6a7.jpg
+/dataset/2026/03/c3d4e5f6-a7b8.csv
+/document/2026/03/d4e5f6a7-b8c9.pdf
+```
+
+#### 4.12.3 上传流程
+
+```mermaid
+sequenceDiagram
+    participant FE as 前端
+    participant BE as Spring Boot
+    participant Store as 存储服务
+
+    FE->>BE: POST /files/upload (multipart)
+    BE->>BE: 校验文件类型/大小
+    BE->>BE: 生成 UUID 文件名
+    BE->>Store: 写入文件
+    Store-->>BE: 存储成功
+    BE-->>FE: 返回 fileId + url
+    FE->>FE: 将 url 填入表单字段
+    FE->>BE: POST /agents (icon = url)
+```
+
+#### 4.12.4 各业务字段对应
+
+| 业务字段 | 所在表 | category | 大小限制 | 类型限制 |
+|----------|--------|----------|----------|----------|
+| head_image | t_user | avatar | 5MB | jpg/png/gif |
+| icon | t_agent / t_skill / t_smart_app | avatar | 2MB | jpg/png/svg |
+| screenshots | t_smart_app | screenshot | 10MB/张 | jpg/png |
+| 数据集文件 | t_dataset | dataset | 由系统参数控制 | pdf/csv/json/docx/parquet/xlsx |
+
+### 4.13 短信与邮件集成
+
+#### 4.13.1 短信验证码流程
+
+```mermaid
+sequenceDiagram
+    participant FE as 前端
+    participant BE as Spring Boot
+    participant Redis as Redis
+    participant SMS as 短信服务商
+
+    FE->>BE: POST /auth/send-sms {phone}
+    BE->>BE: 校验手机号格式
+    BE->>Redis: 检查发送频率 sms:rate:{phone}
+    alt 60秒内已发送
+        BE-->>FE: 返回错误"发送过于频繁"
+    else 可以发送
+        BE->>BE: 生成6位随机验证码
+        BE->>Redis: SET sms:code:{phone}:{purpose} = code (TTL 5min)
+        BE->>Redis: SET sms:rate:{phone} = 1 (TTL 60s)
+        BE->>SMS: 发送短信
+        BE->>BE: 写入 t_sms_verify_code (审计记录)
+        BE-->>FE: 发送成功
+    end
+```
+
+**安全策略**：
+- 同一手机号 60 秒内限发 1 条
+- 同一手机号每日限发 10 条
+- 同一 IP 每小时限发 20 条
+- 验证码 5 分钟过期，验证后立即失效
+- 连续错误 5 次锁定 30 分钟
+
+#### 4.13.2 邮件发送
+
+```yaml
+# application.yml
+spring:
+  mail:
+    host: smtp.school.edu.cn
+    port: 465
+    username: lantu@school.edu.cn
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail.smtp.ssl.enable: true
+```
+
+**邮件模板**（使用 Thymeleaf）：
+
+| 模板 | 用途 | 变量 |
+|------|------|------|
+| audit-approved.html | 审核通过通知 | agentName, reviewerNote |
+| audit-rejected.html | 审核驳回通知 | agentName, rejectReason |
+| alert-fired.html | 告警通知 | alertName, severity, message |
+| password-reset.html | 密码重置 | resetLink, expireMinutes |
+
+#### 4.13.3 告警通知渠道
+
+`t_alert_rule.notify_channels` 支持多渠道：
+
+| 渠道 | 实现 |
+|------|------|
+| email | Spring Mail + Thymeleaf 模板 |
+| sms | 短信服务商 API |
+| webhook | RestTemplate POST 到配置的 URL |
+
+### 4.14 Redis 缓存策略
+
+#### 4.14.1 缓存键命名规范
+
+```
+lantu:{module}:{entity}:{id_or_key}
+
+示例：
+lantu:auth:token_blacklist:{jti}
+lantu:auth:user_perms:{userId}
+lantu:config:category_tree
+lantu:config:sys_params
+lantu:monitor:kpi_cache
+lantu:quota:daily:{targetType}:{targetId}
+lantu:rate_limit:sliding:{target}:{targetValue}
+lantu:sms:code:{phone}:{purpose}
+lantu:sms:rate:{phone}
+lantu:idempotent:{requestId}
+lantu:lock:{taskName}
+```
+
+#### 4.14.2 缓存数据清单
+
+| 缓存键 | 数据 | TTL | 更新策略 |
+|--------|------|-----|----------|
+| `lantu:auth:token_blacklist:{jti}` | 已登出的 Token JTI | 与 Token 剩余有效期一致 | 登出时写入 |
+| `lantu:auth:user_perms:{userId}` | 用户权限列表 | 30 分钟 | 角色变更时主动删除 |
+| `lantu:config:category_tree` | 分类树 JSON | 1 小时 | 分类 CRUD 时主动删除 |
+| `lantu:config:sys_params` | 系统参数 Map | 10 分钟 | 参数更新时主动删除 |
+| `lantu:config:security` | 安全设置 Map | 10 分钟 | 安全设置更新时主动删除 |
+| `lantu:config:model_configs` | 模型配置列表 | 5 分钟 | 模型配置变更时主动删除 |
+| `lantu:monitor:kpi_cache` | KPI 聚合数据 | 5 分钟 | 定时任务刷新 |
+| `lantu:quota:daily:{type}:{id}` | 当日已用配额 | 到次日 00:00 | 调用时 INCR，定时任务同步 |
+| `lantu:quota:monthly:{type}:{id}` | 当月已用配额 | 到次月 1 日 | 调用时 INCR，定时任务同步 |
+| `lantu:agent:detail:{id}` | 热门 Agent 详情 | 10 分钟 | 更新时主动删除 |
+| `lantu:dashboard:admin_overview` | 管理端概览数据 | 5 分钟 | 定时任务刷新 |
+
+#### 4.14.3 缓存防护
+
+| 问题 | 方案 |
+|------|------|
+| 缓存穿透（查询不存在的数据） | 缓存空值（TTL 2 分钟）或使用布隆过滤器 |
+| 缓存击穿（热点 key 过期瞬间高并发） | 互斥锁（Redis SETNX）重建缓存 |
+| 缓存雪崩（大量 key 同时过期） | TTL 加随机偏移（±10%） |
+
+### 4.15 数据库迁移与初始化
+
+#### 4.15.1 Flyway 版本管理
+
+```
+src/main/resources/db/migration/
+├── V1.0.0__create_user_auth_tables.sql        # 用户、角色、组织架构
+├── V1.0.1__create_agent_skill_tables.sql      # Agent、Skill、Provider
+├── V1.0.2__create_app_dataset_tables.sql      # 应用、数据集及关联表
+├── V1.0.3__create_category_tag_tables.sql     # 分类、标签
+├── V1.0.4__create_audit_review_tables.sql     # 审核、评论
+├── V1.0.5__create_monitoring_tables.sql       # 调用日志、告警、链路追踪
+├── V1.0.6__create_config_tables.sql           # 模型配置、限流、系统参数、安全设置
+├── V1.0.7__create_behavior_tables.sql         # 使用记录、收藏、配额、审计日志
+├── V1.0.8__create_notification_tables.sql     # 通知、登录历史、短信验证码
+├── V1.1.0__seed_platform_roles.sql            # 种子数据：平台角色
+├── V1.1.1__seed_categories.sql                # 种子数据：默认分类
+├── V1.1.2__seed_system_params.sql             # 种子数据：系统参数
+├── V1.1.3__seed_security_settings.sql         # 种子数据：安全设置
+└── V1.1.4__seed_admin_user.sql                # 种子数据：初始管理员
+```
+
+#### 4.15.2 种子数据
+
+**初始管理员**：
+
+```sql
+INSERT INTO t_user (username, password_hash, real_name, sex, school_id, role, status)
+VALUES ('admin', '$2a$12$...bcrypt_hash...', '系统管理员', 0, 1, 99, 'active');
+
+INSERT INTO t_user_role_rel (user_id, role_id)
+VALUES (1, 1);  -- 关联 platform_admin 角色
+```
+
+**默认分类**（共 22 个，含 5 个一级分类 + 子分类）：
+
+```sql
+INSERT INTO t_category (category_code, category_name, parent_id, icon, sort_order) VALUES
+('campus-business', '校园业务', NULL, 'School', 1),
+('academic-affairs', '教务管理', 1, 'BookOpen', 1),
+('enrollment', '招生就业', 1, 'GraduationCap', 2),
+('teaching-research', '教学科研', NULL, 'FlaskConical', 2),
+-- ... 完整分类见前端 category.mock.ts
+```
+
+**系统参数默认值**：
+
+```sql
+INSERT INTO t_system_param (`key`, value, type, description, category, editable) VALUES
+('max_upload_size_mb', '50', 'number', '单文件上传大小上限（MB）', '存储', 1),
+('default_model', 'qwen-turbo', 'string', '系统默认模型', '模型', 1),
+('session_timeout_min', '120', 'number', '会话超时时间（分钟）', '安全', 1),
+('enable_registration', 'true', 'boolean', '是否允许新用户注册', '用户', 1),
+('maintenance_mode', 'false', 'boolean', '维护模式开关', '系统', 1),
+('log_retention_days', '90', 'number', '日志保留天数', '存储', 1),
+('webhook_retry_count', '3', 'number', 'Webhook失败重试次数', '集成', 1),
+('system_name', '蓝图智联平台', 'string', '系统名称', '系统', 1);
+```
+
+#### 4.15.3 Flyway 配置
+
+```yaml
+spring:
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+    table: flyway_schema_history
+    validate-on-migrate: true
+```
+
+### 4.16 CORS 跨域配置
+
+```java
+@Configuration
+public class CorsConfig implements WebMvcConfigurer {
+
+    @Value("${cors.allowed-origins:http://localhost:3000}")
+    private String[] allowedOrigins;
+
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        registry.addMapping("/**")
+            .allowedOrigins(allowedOrigins)
+            .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+            .allowedHeaders("*")
+            .exposedHeaders("X-Request-Id", "X-Total-Count")
+            .allowCredentials(true)
+            .maxAge(3600);
+    }
+}
+```
+
+| 环境 | allowed-origins | 说明 |
+|------|----------------|------|
+| 开发 | `http://localhost:3000` | Vite 开发服务器 |
+| 测试 | `https://test-lantu.school.edu.cn` | 测试域名 |
+| 生产 | `https://lantu.school.edu.cn` | 生产域名（Nginx 同源代理时可不配） |
+
+> 生产环境推荐 Nginx 反向代理同源部署，前端静态资源和 API 在同一域名下，无需 CORS。
+
+### 4.17 搜索与过滤实现
+
+#### 4.17.1 keyword 搜索
+
+所有带 `keyword` 参数的列表接口，后端使用 `LIKE` 模糊匹配：
+
+```java
+// MyBatis-Plus QueryWrapper 示例
+if (StringUtils.hasText(query.getKeyword())) {
+    String kw = "%" + query.getKeyword().replace("%", "\\%") + "%";
+    wrapper.and(w -> w
+        .like("display_name", kw)
+        .or().like("agent_name", kw)
+        .or().like("description", kw)
+    );
+}
+```
+
+**注意**：对 `keyword` 参数做 `%` 和 `_` 转义，防止 SQL 通配符注入。
+
+#### 4.17.2 各实体搜索字段
+
+| 实体 | keyword 匹配字段 | 可筛选字段 |
+|------|-----------------|-----------|
+| Agent | display_name, agent_name, description | status, source_type, agent_type, category_id |
+| Skill | display_name, agent_name, description | status, source_type, parent_id, category_id |
+| SmartApp | display_name, app_name, description | status, embed_type, source_type |
+| Dataset | display_name, dataset_name, description | status, source_type, data_type |
+| Provider | provider_name, provider_code, description | provider_type, status |
+| User | username, real_name, mail, mobile | status, role |
+
+#### 4.17.3 演进路径
+
+| 阶段 | 方案 | 适用场景 |
+|------|------|----------|
+| 当前 | MySQL `LIKE` | 数据量 < 10 万条，简单模糊搜索 |
+| 中期 | MySQL `FULLTEXT INDEX` | 中文分词需配合 ngram parser，10~100 万条 |
+| 后期 | Elasticsearch | 百万级数据、高级搜索（聚合、相关性排序、自动补全） |
+
 ---
 
 ## 第5章 前后端对齐注意事项
@@ -3080,24 +3626,69 @@ public class QuotaDailyResetTask {
 
 ## 附录 A：错误码定义
 
+**编码规则**：`{模块}{序号}`，模块编号：1xxx=通用，2xxx=认证，3xxx=限流配额，4xxx=业务，5xxx=系统。
+
+**通用错误（1xxx）**
+
 | code | 含义 | HTTP Status |
 |------|------|-------------|
 | 0 | 成功 | 200 |
 | 1001 | 参数校验失败 | 400 |
-| 1002 | 未认证 | 401 |
+| 1002 | 未认证（未携带 Token） | 401 |
 | 1003 | 权限不足 | 403 |
 | 1004 | 资源不存在 | 404 |
 | 1005 | 资源冲突（如名称重复） | 409 |
+| 1006 | 重复提交（幂等拦截） | 409 |
+| 1007 | 不支持的文件类型 | 400 |
+| 1008 | 文件大小超过限制 | 400 |
+
+**认证错误（2xxx）**
+
+| code | 含义 | HTTP Status |
+|------|------|-------------|
 | 2001 | Token 过期 | 401 |
 | 2002 | Refresh Token 无效 | 401 |
-| 2003 | 账户锁定 | 403 |
+| 2003 | 账户锁定（登录失败过多） | 403 |
 | 2004 | 密码错误 | 401 |
+| 2005 | 短信验证码错误或过期 | 400 |
+| 2006 | 短信发送过于频繁 | 429 |
+| 2007 | CSRF Token 校验失败 | 403 |
+| 2008 | Session 绑定不匹配 | 403 |
+| 2009 | 旧密码不正确 | 400 |
+
+**限流与配额（3xxx）**
+
+| code | 含义 | HTTP Status |
+|------|------|-------------|
 | 3001 | 限流拒绝 | 429 |
-| 3002 | 配额耗尽 | 429 |
-| 3003 | 服务熔断 | 503 |
+| 3002 | 日配额耗尽 | 429 |
+| 3003 | 月配额耗尽 | 429 |
+| 3004 | 服务熔断中 | 503 |
+
+**业务错误（4xxx）**
+
+| code | 含义 | HTTP Status |
+|------|------|-------------|
+| 4001 | 非法状态流转（如 draft 直接到 published） | 400 |
+| 4002 | 审核驳回原因不能为空 | 400 |
+| 4003 | Agent/Skill 已存在同名 | 409 |
+| 4004 | 版本号已存在 | 409 |
+| 4005 | 不能删除已发布的资源 | 400 |
+| 4006 | 数据集无访问权限 | 403 |
+| 4007 | 收藏已存在 | 409 |
+| 4008 | 不能评论自己创建的资源 | 400 |
+| 4009 | 不能删除系统内置角色 | 400 |
+
+**系统错误（5xxx）**
+
+| code | 含义 | HTTP Status |
+|------|------|-------------|
 | 5001 | 内部错误 | 500 |
-| 5002 | 外部服务调用失败 | 502 |
+| 5002 | 外部服务调用失败（LLM/MCP） | 502 |
 | 5003 | 服务超时 | 504 |
+| 5004 | 文件存储服务异常 | 500 |
+| 5005 | 邮件发送失败 | 500 |
+| 5006 | 短信发送失败 | 500 |
 
 ## 附录 B：权限标识完整清单
 
@@ -3178,4 +3769,367 @@ jwt:
 cas:
   server-url: https://cas.school.edu.cn
   service-url: https://lantu.school.edu.cn/api/auth/cas/callback
+
+# 文件存储
+file:
+  upload-dir: /data/lantu/uploads
+  max-size-mb: 50
+  allowed-types: pdf,docx,csv,json,parquet,xlsx,jpg,png,gif,svg
+
+# CORS
+cors:
+  allowed-origins: http://localhost:3000
+
+# 短信
+sms:
+  provider: aliyun  # aliyun / tencent
+  access-key: ${SMS_ACCESS_KEY}
+  secret: ${SMS_SECRET}
+  sign-name: 兰智通
+  template-code: SMS_123456
+
+# 邮件
+spring.mail:
+  host: smtp.school.edu.cn
+  port: 465
+  username: lantu@school.edu.cn
+  password: ${MAIL_PASSWORD}
+```
+
+## 附录 D：推荐项目结构
+
+```
+lantu-connect/
+├── pom.xml
+├── Dockerfile
+├── docker-compose.yml
+├── src/main/java/com/lantu/connect/
+│   ├── LantuConnectApplication.java          # 启动类
+│   │
+│   ├── common/                                # 通用模块
+│   │   ├── config/                            # 配置类
+│   │   │   ├── CorsConfig.java
+│   │   │   ├── RedisConfig.java
+│   │   │   ├── AsyncConfig.java               # @Async 线程池
+│   │   │   ├── SecurityConfig.java            # Spring Security
+│   │   │   └── Resilience4jConfig.java
+│   │   ├── exception/                         # 全局异常
+│   │   │   ├── ApiException.java
+│   │   │   ├── GlobalExceptionHandler.java
+│   │   │   └── ErrorCode.java                 # 错误码枚举
+│   │   ├── filter/                            # 过滤器
+│   │   │   ├── TraceIdFilter.java
+│   │   │   ├── AccessLogFilter.java
+│   │   │   └── IdempotentFilter.java
+│   │   ├── annotation/                        # 自定义注解
+│   │   │   ├── AuditLog.java
+│   │   │   ├── Idempotent.java
+│   │   │   └── RateLimit.java
+│   │   ├── aspect/                            # AOP 切面
+│   │   │   ├── AuditLogAspect.java
+│   │   │   └── CallLogAspect.java
+│   │   ├── handler/                           # MyBatis TypeHandler
+│   │   │   └── AesEncryptTypeHandler.java
+│   │   └── util/                              # 工具类
+│   │       ├── JwtUtil.java
+│   │       ├── AesUtil.java
+│   │       ├── IpUtil.java
+│   │       └── UserAgentUtil.java
+│   │
+│   ├── auth/                                  # 认证模块
+│   │   ├── controller/AuthController.java
+│   │   ├── service/AuthService.java
+│   │   ├── service/SmsService.java
+│   │   ├── service/MailService.java
+│   │   └── dto/LoginRequest.java, ...
+│   │
+│   ├── agent/                                 # Agent 模块
+│   │   ├── controller/AgentController.java
+│   │   ├── service/AgentService.java
+│   │   ├── mapper/AgentMapper.java
+│   │   └── dto/AgentCreatePayload.java, ...
+│   │
+│   ├── skill/                                 # Skill 模块
+│   │   ├── controller/SkillController.java
+│   │   ├── service/SkillService.java
+│   │   └── mapper/SkillMapper.java
+│   │
+│   ├── app/                                   # 智能应用模块
+│   ├── dataset/                               # 数据集模块
+│   ├── provider/                              # 服务提供商模块
+│   ├── category/                              # 分类与标签模块
+│   ├── audit/                                 # 审核模块
+│   ├── review/                                # 评论模块
+│   ├── usermgmt/                              # 用户管理模块
+│   ├── monitoring/                            # 监控模块
+│   ├── sysconfig/                             # 系统配置模块
+│   ├── dashboard/                             # 仪表盘模块
+│   ├── notification/                          # 通知模块
+│   ├── file/                                  # 文件上传模块
+│   ├── quota/                                 # 配额模块
+│   ├── health/                                # 健康检查模块
+│   ├── version/                               # 版本管理模块
+│   ├── useractivity/                          # 用户活动模块
+│   ├── usersettings/                          # 用户设置模块
+│   │
+│   └── task/                                  # 定时任务
+│       ├── QuotaDailyResetTask.java
+│       ├── KpiCacheRefreshTask.java
+│       ├── HealthCheckTask.java
+│       └── ...
+│
+├── src/main/resources/
+│   ├── application.yml
+│   ├── application-dev.yml
+│   ├── application-prod.yml
+│   ├── logback-spring.xml
+│   ├── db/migration/                          # Flyway 迁移脚本
+│   │   ├── V1.0.0__create_user_auth_tables.sql
+│   │   └── ...
+│   └── templates/mail/                        # 邮件模板
+│       ├── audit-approved.html
+│       └── ...
+│
+└── src/test/java/com/lantu/connect/
+    ├── auth/AuthControllerTest.java
+    ├── agent/AgentServiceTest.java
+    └── ...
+```
+
+**模块内部结构**（每个业务模块统一）：
+
+```
+{module}/
+├── controller/    # REST Controller
+├── service/       # 业务逻辑
+├── mapper/        # MyBatis-Plus Mapper 接口
+├── dto/           # 请求/响应 DTO
+└── entity/        # 数据库实体（与表一一对应）
+```
+
+## 附录 E：前后端校验规则对照表
+
+| 表单 | 前端 Schema 文件 | 字段 | 前端规则 (Zod) | 后端注解 (Bean Validation) |
+|------|-----------------|------|---------------|--------------------------|
+| 登录 | `auth.schema.ts` loginSchema | username | `z.string().min(1)` | `@NotBlank` |
+| | | password | `z.string().min(6).max(64)` | `@Size(min=6, max=64)` |
+| 注册 | `auth.schema.ts` registerSchema | username | `z.string().min(2).max(32).regex(...)` | `@Size(min=2, max=32) @Pattern(regexp="^[a-zA-Z0-9_\\u4e00-\\u9fa5]+$")` |
+| | | email | `z.string().email()` | `@Email` |
+| | | password | `z.string().min(8).regex(/[A-Z]/).regex(/[0-9]/)` | `@Size(min=8) @Pattern(regexp="(?=.*[A-Z])(?=.*[0-9]).*")` |
+| | | confirmPassword | `.refine(pw === confirm)` | 自定义 `@PasswordMatch` 类级注解 |
+| 修改密码 | `auth.schema.ts` changePasswordSchema | oldPassword | `z.string().min(1)` | `@NotBlank` |
+| | | newPassword | `z.string().min(8).regex(...)` | 同注册密码规则 |
+| 创建模型配置 | `system-config.schema.ts` | name | `z.string().min(1)` | `@NotBlank` |
+| | | provider | `z.string().min(1)` | `@NotBlank` |
+| | | modelId | `z.string().min(1)` | `@NotBlank` |
+| | | endpoint | `z.string().url()` | `@NotBlank @URL` |
+| 创建告警规则 | `monitoring.schema.ts` | name | `z.string().min(1).max(64)` | `@NotBlank @Size(max=64)` |
+| | | metric | `z.string().min(1)` | `@NotBlank` |
+| | | operator | `z.enum(['gt','lt','eq'])` | `@NotNull @Pattern(regexp="gt\|lt\|eq")` |
+| | | threshold | `z.number()` | `@NotNull @DecimalMin("0")` |
+| | | severity | `z.enum(['critical','warning','info'])` | `@NotNull` |
+| Agent 创建 | 前端手动校验 | displayName | 1~50 字符 | `@NotBlank @Size(max=50)` |
+| | | description | 必填 | `@NotBlank` |
+| | | agentName | 唯一标识 | `@NotBlank @Pattern(regexp="^[a-z0-9_-]+$")` + DB UNIQUE |
+| | | specJson.url | 合法 URL | 嵌套校验 `@Valid` + `@URL` |
+| Skill 创建 | 前端手动校验 | displayName | 必填 | `@NotBlank @Size(max=50)` |
+| | | agentName | 必填 | `@NotBlank @Pattern(regexp="^[a-z0-9_-]+$")` |
+| | | agentType | mcp/http_api/builtin | `@NotNull` 枚举校验 |
+| App 创建 | 前端手动校验 | appUrl | 以 http(s):// 开头 | `@NotBlank @URL` |
+
+## 附录 F：Redis 缓存键完整清单
+
+| 键模式 | 类型 | TTL | 说明 |
+|--------|------|-----|------|
+| `lantu:auth:token_blacklist:{jti}` | STRING | Token 剩余有效期 | 登出 Token 黑名单 |
+| `lantu:auth:refresh_used:{refreshTokenHash}` | STRING | 7 天 | 已使用的 Refresh Token（防重放） |
+| `lantu:auth:user_perms:{userId}` | STRING (JSON) | 30 分钟 | 用户权限列表缓存 |
+| `lantu:auth:login_fail:{username}` | STRING (count) | 30 分钟 | 登录失败次数（达到阈值锁定） |
+| `lantu:config:category_tree` | STRING (JSON) | 1 小时 | 分类树缓存 |
+| `lantu:config:sys_params` | HASH | 10 分钟 | 系统参数缓存 |
+| `lantu:config:security` | HASH | 10 分钟 | 安全设置缓存 |
+| `lantu:config:model_configs` | STRING (JSON) | 5 分钟 | 模型配置列表缓存 |
+| `lantu:monitor:kpi_cache` | STRING (JSON) | 5 分钟 | 监控 KPI 聚合缓存 |
+| `lantu:dashboard:admin_overview` | STRING (JSON) | 5 分钟 | 管理端概览缓存 |
+| `lantu:quota:daily:{type}:{id}` | STRING (count) | 到次日 00:00 | 当日配额计数 |
+| `lantu:quota:monthly:{type}:{id}` | STRING (count) | 到次月 1 日 | 当月配额计数 |
+| `lantu:rate_limit:sliding:{target}:{value}` | ZSET | 窗口大小 | 滑动窗口限流（score=timestamp） |
+| `lantu:sms:code:{phone}:{purpose}` | STRING | 5 分钟 | 短信验证码 |
+| `lantu:sms:rate:{phone}` | STRING | 60 秒 | 短信发送频率限制 |
+| `lantu:sms:daily:{phone}` | STRING (count) | 到次日 00:00 | 每日短信发送次数 |
+| `lantu:idempotent:{requestId}` | STRING | 5 分钟 | 幂等去重键 |
+| `lantu:lock:{taskName}` | STRING | 10 分钟 | 定时任务分布式锁 |
+| `lantu:agent:detail:{id}` | STRING (JSON) | 10 分钟 | 热门 Agent 详情缓存 |
+
+## 附录 G：Flyway 迁移脚本清单
+
+| 版本号 | 文件名 | 说明 |
+|--------|--------|------|
+| V1.0.0 | create_user_auth_tables.sql | t_user, t_platform_role, t_user_role_rel, t_org_menu, t_api_key, t_access_token |
+| V1.0.1 | create_agent_skill_tables.sql | t_agent, t_skill, t_provider, t_agent_version |
+| V1.0.2 | create_app_dataset_tables.sql | t_smart_app, t_dataset, t_dataset_dept_rel, t_dataset_agent_rel |
+| V1.0.3 | create_category_tag_tables.sql | t_category, t_tag, t_resource_tag_rel |
+| V1.0.4 | create_audit_review_tables.sql | t_audit_item, t_review, t_review_helpful_rel |
+| V1.0.5 | create_monitoring_tables.sql | t_call_log, t_alert_rule, t_alert_record, t_trace_span, t_health_config, t_circuit_breaker |
+| V1.0.6 | create_config_tables.sql | t_model_config, t_rate_limit_rule, t_system_param, t_security_setting |
+| V1.0.7 | create_behavior_tables.sql | t_usage_record, t_favorite, t_quota, t_quota_rate_limit, t_audit_log |
+| V1.0.8 | create_notification_tables.sql | t_notification, t_login_history, t_sms_verify_code |
+| V1.1.0 | seed_platform_roles.sql | 4 个预设角色 |
+| V1.1.1 | seed_categories.sql | 22 个默认分类 |
+| V1.1.2 | seed_system_params.sql | 8 个系统参数 |
+| V1.1.3 | seed_security_settings.sql | 8 个安全设置 |
+| V1.1.4 | seed_admin_user.sql | 初始管理员账号 |
+
+## 附录 H：Docker 部署参考
+
+### Dockerfile
+
+```dockerfile
+FROM eclipse-temurin:17-jre-alpine
+
+WORKDIR /app
+COPY target/lantu-connect-*.jar app.jar
+
+ENV JAVA_OPTS="-Xms512m -Xmx1024m -XX:+UseG1GC"
+ENV SPRING_PROFILES_ACTIVE=prod
+
+EXPOSE 8080
+
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+```
+
+### docker-compose.yml
+
+```yaml
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - DB_PASSWORD=${DB_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - SMS_ACCESS_KEY=${SMS_ACCESS_KEY}
+      - SMS_SECRET=${SMS_SECRET}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+      - MYSQL_DATABASE=lantu_connect
+      - MYSQL_USER=lantu
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./dist:/usr/share/nginx/html       # 前端构建产物
+    depends_on:
+      - app
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - app
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+volumes:
+  mysql_data:
+  redis_data:
+  grafana_data:
+```
+
+### prometheus.yml
+
+```yaml
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'lantu-connect'
+    metrics_path: '/api/actuator/prometheus'
+    static_configs:
+      - targets: ['app:8080']
+```
+
+### nginx.conf 参考
+
+```nginx
+server {
+    listen 80;
+    server_name lantu.school.edu.cn;
+
+    # 前端静态资源
+    location / {
+        root /usr/share/nginx/html;
+        try_files $uri $uri/ /index.html;
+    }
+
+    # API 反向代理
+    location /api/ {
+        proxy_pass http://app:8080/api/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        client_max_body_size 100m;
+    }
+
+    # 文件上传资源（如用本地存储）
+    location /uploads/ {
+        alias /data/lantu/uploads/;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+}
 ```

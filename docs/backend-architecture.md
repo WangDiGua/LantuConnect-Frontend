@@ -35,7 +35,7 @@
 |------|----------|------|
 | 语言 / 框架 | **Java 17 + Spring Boot 3.2** | 高校 IT 团队 Java 生态成熟，Spring Boot 社区生态完善 |
 | ORM | **MyBatis-Plus 3.5** | 灵活 SQL + 代码生成，适合复杂查询与高校已有数据库对接 |
-| 数据库 | **PostgreSQL 16** | JSONB 支持 specJson / parametersSchema，树形查询（WITH RECURSIVE）天然支持组织架构与分类 |
+| 数据库 | **MySQL 8.0** | 高校 IT 最广泛使用的关系型数据库，JSON 类型支持 specJson / parametersSchema，8.0 原生 CTE（WITH RECURSIVE）支持树形组织架构与分类查询 |
 | 缓存 | **Redis 7** | Token 黑名单、限流计数器（滑动窗口）、热点数据缓存 |
 | 消息队列 | **RabbitMQ 3.13** | 调用日志异步写入、告警通知、审核流转事件 |
 | 网关 | **Spring Cloud Gateway** | 统一路由、JWT 校验、限流、熔断（Resilience4j） |
@@ -68,7 +68,7 @@ graph TB
     end
 
     subgraph infra [基础设施层]
-        PG["PostgreSQL 16"]
+        MySQL["MySQL 8.0"]
         RD["Redis 7"]
         MQ["RabbitMQ"]
         OSS["对象存储"]
@@ -90,21 +90,21 @@ graph TB
     GW --> ConfigSvc
     GW --> UserSvc
 
-    AuthSvc --> PG
+    AuthSvc --> MySQL
     AuthSvc --> RD
     AuthSvc --> CAS
-    AgentSvc --> PG
+    AgentSvc --> MySQL
     AgentSvc --> RD
     AgentSvc --> MQ
     AgentSvc --> LLM
     AgentSvc --> MCP
-    SkillSvc --> PG
+    SkillSvc --> MySQL
     SkillSvc --> MCP
-    MonitorSvc --> PG
+    MonitorSvc --> MySQL
     MonitorSvc --> MQ
-    ConfigSvc --> PG
+    ConfigSvc --> MySQL
     ConfigSvc --> RD
-    UserSvc --> PG
+    UserSvc --> MySQL
 ```
 
 ### 1.4 部署架构建议
@@ -120,7 +120,7 @@ graph TB
 │  │auth-svc │ │agent-svc│ │monitor-svc│  ...      │
 │  └─────────┘ └─────────┘ └──────────┘           │
 ├──────────────────────────────────────────────────┤
-│  PostgreSQL 主从  │  Redis 哨兵  │  RabbitMQ 集群 │
+│  MySQL 主从复制   │  Redis 哨兵  │  RabbitMQ 集群 │
 └──────────────────────────────────────────────────┘
 ```
 
@@ -130,12 +130,13 @@ graph TB
 
 ### 2.0 通用约定
 
-- 所有表默认包含 `create_time`、`update_time`（自动填充）
+- 所有表默认包含 `create_time`、`update_time`（自动填充，`update_time` 附加 `ON UPDATE CURRENT_TIMESTAMP`）
 - 需要软删除的表包含 `deleted` 字段（0=正常，1=已删除）
-- 主键统一使用 `BIGSERIAL`（自增 bigint），前端 DTO 中 id 为 number 的对应 bigint，id 为 string 的对应 varchar(36) UUID
-- 时间字段统一使用 `TIMESTAMP WITH TIME ZONE`
-- JSON 类型字段使用 PostgreSQL `JSONB`
-- 字符集 UTF-8，排序规则 `zh_CN.UTF-8`
+- 主键统一使用 `BIGINT AUTO_INCREMENT`，前端 DTO 中 id 为 number 的对应 BIGINT，id 为 string 的对应 VARCHAR(36) UUID
+- 时间字段统一使用 `DATETIME`
+- JSON 类型字段使用 MySQL `JSON`
+- 存储引擎 InnoDB，字符集 `utf8mb4`，排序规则 `utf8mb4_unicode_ci`
+- 建表语句末尾添加 `ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`
 
 ---
 
@@ -147,16 +148,16 @@ graph TB
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
-| user_id | BIGSERIAL | PK | 用户ID |
+| user_id | BIGINT AUTO_INCREMENT | PK | 用户ID |
 | username | VARCHAR(64) | NOT NULL, UNIQUE | 学工号 |
 | password_hash | VARCHAR(255) | NOT NULL | bcrypt 加密密码 |
 | real_name | VARCHAR(64) | NOT NULL | 真实姓名 |
-| sex | SMALLINT | DEFAULT 0 | 1=男 2=女 0=未知 |
+| sex | TINYINT | DEFAULT 0 | 1=男 2=女 0=未知 |
 | school_id | BIGINT | NOT NULL | 学校ID |
 | menu_id | BIGINT | FK -> t_org_menu | 主组织架构ID |
 | major | VARCHAR(128) | NULL | 专业（学生） |
 | class | VARCHAR(64) | NULL | 班级（学生） |
-| role | SMALLINT | NOT NULL | 学校身份（非平台角色） |
+| role | TINYINT | NOT NULL | 学校身份（非平台角色） |
 | mobile | VARCHAR(20) | NULL | 手机号 |
 | mail | VARCHAR(128) | NULL | 邮箱 |
 | head_image | VARCHAR(512) | NULL | 头像URL |
@@ -164,10 +165,10 @@ graph TB
 | zc | VARCHAR(64) | NULL | 职称 |
 | birthday | DATE | NULL | 生日 |
 | status | VARCHAR(16) | DEFAULT 'active' | active/disabled/locked |
-| last_login_time | TIMESTAMPTZ | NULL | 最后登录时间 |
-| deleted | SMALLINT | DEFAULT 0 | 软删除 |
-| create_time | TIMESTAMPTZ | DEFAULT NOW() | 创建时间 |
-| update_time | TIMESTAMPTZ | DEFAULT NOW() | 更新时间 |
+| last_login_time | DATETIME | NULL | 最后登录时间 |
+| deleted | TINYINT | DEFAULT 0 | 软删除 |
+| create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | 创建时间 |
+| update_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | 更新时间 |
 
 **索引**：`username` UNIQUE, `school_id`, `menu_id`, `mobile`
 
@@ -175,15 +176,15 @@ graph TB
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
-| id | BIGSERIAL | PK | 角色ID |
+| id | BIGINT AUTO_INCREMENT | PK | 角色ID |
 | role_code | VARCHAR(32) | NOT NULL, UNIQUE | 角色编码：platform_admin / dept_admin / developer / user |
 | role_name | VARCHAR(64) | NOT NULL | 角色名称 |
 | description | VARCHAR(256) | NULL | 角色描述 |
-| permissions | JSONB | NOT NULL | 权限标识数组，如 ["agent:view","agent:create"] |
+| permissions | JSON | NOT NULL | 权限标识数组，如 ["agent:view","agent:create"] |
 | is_system | BOOLEAN | DEFAULT false | 是否系统内置角色（不可删除） |
 | user_count | INTEGER | DEFAULT 0 | 关联用户数（冗余，定时同步） |
-| create_time | TIMESTAMPTZ | DEFAULT NOW() | |
-| update_time | TIMESTAMPTZ | DEFAULT NOW() | |
+| create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
+| update_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
 
 **预设数据**：
 
@@ -198,10 +199,10 @@ graph TB
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
-| id | BIGSERIAL | PK | |
+| id | BIGINT AUTO_INCREMENT | PK | |
 | user_id | BIGINT | FK -> t_user, NOT NULL | |
 | role_id | BIGINT | FK -> t_platform_role, NOT NULL | |
-| create_time | TIMESTAMPTZ | DEFAULT NOW() | |
+| create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
 
 **约束**：`UNIQUE(user_id, role_id)`
 
@@ -211,15 +212,15 @@ graph TB
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
-| menu_id | BIGSERIAL | PK | 组织节点ID |
+| menu_id | BIGINT AUTO_INCREMENT | PK | 组织节点ID |
 | menu_name | VARCHAR(128) | NOT NULL | 组织名称 |
 | menu_parent_id | BIGINT | DEFAULT 0 | 父节点ID，0=顶级 |
-| menu_level | SMALLINT | NOT NULL | 层级深度 |
-| if_xy | SMALLINT | DEFAULT 0 | 1=学院 0=非学院 |
+| menu_level | TINYINT | NOT NULL | 层级深度 |
+| if_xy | TINYINT | DEFAULT 0 | 1=学院 0=非学院 |
 | head_count | INTEGER | DEFAULT 0 | 人数统计 |
 | sort_order | INTEGER | DEFAULT 0 | 排序权重 |
-| create_time | TIMESTAMPTZ | DEFAULT NOW() | |
-| update_time | TIMESTAMPTZ | DEFAULT NOW() | |
+| create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
+| update_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
 
 **索引**：`menu_parent_id`
 
@@ -236,13 +237,13 @@ graph TB
 | masked_key | VARCHAR(64) | NOT NULL | 脱敏展示（sk_a1b2****c3d4） |
 | owner_type | VARCHAR(16) | NOT NULL | admin / user |
 | owner_id | VARCHAR(36) | NOT NULL | 所有者ID |
-| scopes | JSONB | DEFAULT '[]' | 权限范围 |
+| scopes | JSON | DEFAULT '[]' | 权限范围 |
 | status | VARCHAR(16) | DEFAULT 'active' | active / expired / revoked |
-| expires_at | TIMESTAMPTZ | NULL | 过期时间 |
-| last_used_at | TIMESTAMPTZ | NULL | 最后使用时间 |
+| expires_at | DATETIME | NULL | 过期时间 |
+| last_used_at | DATETIME | NULL | 最后使用时间 |
 | call_count | BIGINT | DEFAULT 0 | 调用次数 |
 | created_by | VARCHAR(64) | NOT NULL | 创建人 |
-| create_time | TIMESTAMPTZ | DEFAULT NOW() | |
+| create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
 
 **索引**：`owner_type + owner_id`, `status`, `prefix`
 
@@ -255,12 +256,12 @@ graph TB
 | token_hash | VARCHAR(255) | NOT NULL | 令牌哈希值 |
 | masked_token | VARCHAR(64) | NOT NULL | 脱敏展示 |
 | type | VARCHAR(16) | NOT NULL | access / service / temporary |
-| scopes | JSONB | DEFAULT '[]' | 权限范围 |
+| scopes | JSON | DEFAULT '[]' | 权限范围 |
 | status | VARCHAR(16) | DEFAULT 'active' | active / expired / revoked |
-| expires_at | TIMESTAMPTZ | NOT NULL | 过期时间 |
-| last_used_at | TIMESTAMPTZ | NULL | 最后使用时间 |
+| expires_at | DATETIME | NOT NULL | 过期时间 |
+| last_used_at | DATETIME | NULL | 最后使用时间 |
 | created_by | VARCHAR(64) | NOT NULL | 创建人 |
-| create_time | TIMESTAMPTZ | DEFAULT NOW() | |
+| create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
 
 ---
 
@@ -272,7 +273,7 @@ graph TB
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
-| id | BIGSERIAL | PK | |
+| id | BIGINT AUTO_INCREMENT | PK | |
 | agent_name | VARCHAR(128) | NOT NULL, UNIQUE | 唯一标识（英文） |
 | display_name | VARCHAR(128) | NOT NULL | 显示名称 |
 | description | TEXT | NOT NULL | 描述 |
@@ -282,7 +283,7 @@ graph TB
 | provider_id | BIGINT | FK -> t_provider, NULL | 关联提供商 |
 | category_id | BIGINT | FK -> t_category, NULL | 分类ID |
 | status | VARCHAR(20) | DEFAULT 'draft' | draft / pending_review / testing / published / rejected / deprecated |
-| spec_json | JSONB | NOT NULL | 连接配置 {url, api_key, headers, timeout} |
+| spec_json | JSON | NOT NULL | 连接配置 {url, api_key, headers, timeout} |
 | is_public | BOOLEAN | DEFAULT false | 是否公开 |
 | icon | VARCHAR(512) | NULL | 图标URL |
 | sort_order | INTEGER | DEFAULT 0 | 排序权重 |
@@ -297,9 +298,9 @@ graph TB
 | avg_token_cost | DECIMAL(10,4) | DEFAULT 0 | 平均Token消耗 |
 | call_count | BIGINT | DEFAULT 0 | 调用次数 |
 | created_by | BIGINT | NULL | 创建者用户ID |
-| deleted | SMALLINT | DEFAULT 0 | 软删除 |
-| create_time | TIMESTAMPTZ | DEFAULT NOW() | |
-| update_time | TIMESTAMPTZ | DEFAULT NOW() | |
+| deleted | TINYINT | DEFAULT 0 | 软删除 |
+| create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
+| update_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
 
 **索引**：`agent_name` UNIQUE, `status`, `source_type`, `category_id`, `agent_type`, `is_public + status`（复合索引，市场查询用）
 
@@ -309,7 +310,7 @@ graph TB
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
-| id | BIGSERIAL | PK | |
+| id | BIGINT AUTO_INCREMENT | PK | |
 | agent_name | VARCHAR(128) | NOT NULL, UNIQUE | 唯一标识 |
 | display_name | VARCHAR(128) | NOT NULL | 显示名称 |
 | description | TEXT | NOT NULL | 描述 |
@@ -321,8 +322,8 @@ graph TB
 | category_id | BIGINT | FK -> t_category, NULL | 分类ID |
 | status | VARCHAR(20) | DEFAULT 'draft' | 同 Agent 状态枚举 |
 | display_template | VARCHAR(32) | NULL | file/image/audio/video/app/answer 等展示模板 |
-| spec_json | JSONB | NOT NULL | 连接配置 |
-| parameters_schema | JSONB | NULL | 工具参数 JSON Schema |
+| spec_json | JSON | NOT NULL | 连接配置 |
+| parameters_schema | JSON | NULL | 工具参数 JSON Schema |
 | is_public | BOOLEAN | DEFAULT false | |
 | icon | VARCHAR(512) | NULL | |
 | sort_order | INTEGER | DEFAULT 0 | |
@@ -333,9 +334,9 @@ graph TB
 | avg_token_cost | DECIMAL(10,4) | DEFAULT 0 | |
 | call_count | BIGINT | DEFAULT 0 | |
 | created_by | BIGINT | NULL | |
-| deleted | SMALLINT | DEFAULT 0 | |
-| create_time | TIMESTAMPTZ | DEFAULT NOW() | |
-| update_time | TIMESTAMPTZ | DEFAULT NOW() | |
+| deleted | TINYINT | DEFAULT 0 | |
+| create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
+| update_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
 
 **索引**：`agent_name` UNIQUE, `parent_id`, `status`, `category_id`
 
@@ -343,29 +344,29 @@ graph TB
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
-| id | BIGSERIAL | PK | |
+| id | BIGINT AUTO_INCREMENT | PK | |
 | app_name | VARCHAR(128) | NOT NULL, UNIQUE | 应用标识 |
 | display_name | VARCHAR(128) | NOT NULL | 显示名称 |
 | description | TEXT | NOT NULL | 描述 |
 | app_url | VARCHAR(512) | NOT NULL | 应用URL |
 | embed_type | VARCHAR(20) | NOT NULL | iframe / micro_frontend / redirect |
 | icon | VARCHAR(512) | NULL | 图标URL |
-| screenshots | JSONB | DEFAULT '[]' | 截图URL数组 |
+| screenshots | JSON | DEFAULT '[]' | 截图URL数组 |
 | category_id | BIGINT | FK -> t_category, NULL | 分类ID |
 | source_type | VARCHAR(16) | NOT NULL | internal / partner |
 | status | VARCHAR(16) | DEFAULT 'draft' | draft / published / testing / deprecated |
 | is_public | BOOLEAN | DEFAULT false | |
 | sort_order | INTEGER | DEFAULT 0 | |
 | created_by | BIGINT | NULL | |
-| deleted | SMALLINT | DEFAULT 0 | |
-| create_time | TIMESTAMPTZ | DEFAULT NOW() | |
-| update_time | TIMESTAMPTZ | DEFAULT NOW() | |
+| deleted | TINYINT | DEFAULT 0 | |
+| create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
+| update_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
 
 #### 2.2.4 t_dataset — 数据集表
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
-| id | BIGSERIAL | PK | |
+| id | BIGINT AUTO_INCREMENT | PK | |
 | dataset_name | VARCHAR(128) | NOT NULL, UNIQUE | 数据集标识 |
 | display_name | VARCHAR(128) | NOT NULL | 显示名称 |
 | description | TEXT | NOT NULL | |
@@ -376,21 +377,21 @@ graph TB
 | file_size | BIGINT | DEFAULT 0 | 文件大小(bytes) |
 | category_id | BIGINT | FK -> t_category, NULL | |
 | status | VARCHAR(16) | DEFAULT 'draft' | draft / published / testing / deprecated |
-| tags | JSONB | DEFAULT '[]' | 标签数组 |
+| tags | JSON | DEFAULT '[]' | 标签数组 |
 | is_public | BOOLEAN | DEFAULT false | |
 | created_by | BIGINT | NULL | |
-| deleted | SMALLINT | DEFAULT 0 | |
-| create_time | TIMESTAMPTZ | DEFAULT NOW() | |
-| update_time | TIMESTAMPTZ | DEFAULT NOW() | |
+| deleted | TINYINT | DEFAULT 0 | |
+| create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
+| update_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
 
 #### 2.2.5 t_dataset_dept_rel — 数据集部门权限关联
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
-| id | BIGSERIAL | PK | |
+| id | BIGINT AUTO_INCREMENT | PK | |
 | dataset_id | BIGINT | FK -> t_dataset, NOT NULL | |
 | menu_id | BIGINT | FK -> t_org_menu, NOT NULL | 允许访问的组织ID |
-| create_time | TIMESTAMPTZ | DEFAULT NOW() | |
+| create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
 
 **约束**：`UNIQUE(dataset_id, menu_id)`
 
@@ -398,10 +399,10 @@ graph TB
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
-| id | BIGSERIAL | PK | |
+| id | BIGINT AUTO_INCREMENT | PK | |
 | dataset_id | BIGINT | FK -> t_dataset, NOT NULL | |
 | agent_id | BIGINT | FK -> t_agent, NOT NULL | |
-| create_time | TIMESTAMPTZ | DEFAULT NOW() | |
+| create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
 
 **约束**：`UNIQUE(dataset_id, agent_id)`
 
@@ -409,33 +410,33 @@ graph TB
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
-| id | BIGSERIAL | PK | |
+| id | BIGINT AUTO_INCREMENT | PK | |
 | provider_code | VARCHAR(64) | NOT NULL, UNIQUE | 提供商编码 |
 | provider_name | VARCHAR(128) | NOT NULL | 提供商名称 |
 | provider_type | VARCHAR(16) | NOT NULL | internal / partner / cloud |
 | description | TEXT | NULL | |
 | auth_type | VARCHAR(16) | NOT NULL | api_key / oauth2 / basic / none |
-| auth_config | JSONB | NULL | 认证配置（加密存储） |
+| auth_config | JSON | NULL | 认证配置（加密存储） |
 | base_url | VARCHAR(512) | NULL | 基础URL |
 | status | VARCHAR(16) | DEFAULT 'active' | active / inactive |
 | agent_count | INTEGER | DEFAULT 0 | 关联 Agent 数（冗余） |
 | skill_count | INTEGER | DEFAULT 0 | 关联 Skill 数（冗余） |
-| deleted | SMALLINT | DEFAULT 0 | |
-| create_time | TIMESTAMPTZ | DEFAULT NOW() | |
-| update_time | TIMESTAMPTZ | DEFAULT NOW() | |
+| deleted | TINYINT | DEFAULT 0 | |
+| create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
+| update_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
 
 #### 2.2.8 t_agent_version — Agent 版本表
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
-| id | BIGSERIAL | PK | |
+| id | BIGINT AUTO_INCREMENT | PK | |
 | agent_id | BIGINT | FK -> t_agent, NOT NULL | |
 | version | VARCHAR(32) | NOT NULL | 版本号（如 v1.0.0） |
 | changelog | TEXT | NOT NULL | 变更日志 |
 | status | VARCHAR(16) | DEFAULT 'draft' | draft / testing / released / rollback |
-| spec_json_snapshot | JSONB | NULL | 版本快照 |
+| spec_json_snapshot | JSON | NULL | 版本快照 |
 | created_by | VARCHAR(64) | NOT NULL | 创建人 |
-| create_time | TIMESTAMPTZ | DEFAULT NOW() | |
+| create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
 
 **约束**：`UNIQUE(agent_id, version)`
 
@@ -447,14 +448,14 @@ graph TB
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
-| id | BIGSERIAL | PK | |
+| id | BIGINT AUTO_INCREMENT | PK | |
 | category_code | VARCHAR(64) | NOT NULL, UNIQUE | 分类编码 |
 | category_name | VARCHAR(128) | NOT NULL | 分类名称 |
 | parent_id | BIGINT | NULL | 父分类ID，NULL=顶级 |
 | icon | VARCHAR(64) | NULL | 图标标识 |
 | sort_order | INTEGER | DEFAULT 0 | |
-| create_time | TIMESTAMPTZ | DEFAULT NOW() | |
-| update_time | TIMESTAMPTZ | DEFAULT NOW() | |
+| create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
+| update_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
 
 **预设分类**：校园业务、教学科研、办公效率、数据分析、生活服务（各含子分类）
 
@@ -462,11 +463,11 @@ graph TB
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
-| id | BIGSERIAL | PK | |
+| id | BIGINT AUTO_INCREMENT | PK | |
 | name | VARCHAR(64) | NOT NULL | 标签名称 |
 | category | VARCHAR(32) | NOT NULL | 标签分类（agent/skill/dataset/general） |
 | usage_count | INTEGER | DEFAULT 0 | 使用次数 |
-| create_time | TIMESTAMPTZ | DEFAULT NOW() | |
+| create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
 
 **约束**：`UNIQUE(name, category)`
 
@@ -474,11 +475,11 @@ graph TB
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
-| id | BIGSERIAL | PK | |
+| id | BIGINT AUTO_INCREMENT | PK | |
 | resource_type | VARCHAR(16) | NOT NULL | agent / skill / dataset / app |
 | resource_id | BIGINT | NOT NULL | 资源ID |
 | tag_id | BIGINT | FK -> t_tag, NOT NULL | |
-| create_time | TIMESTAMPTZ | DEFAULT NOW() | |
+| create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
 
 **约束**：`UNIQUE(resource_type, resource_id, tag_id)`
 
@@ -490,7 +491,7 @@ graph TB
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
-| id | BIGSERIAL | PK | |
+| id | BIGINT AUTO_INCREMENT | PK | |
 | target_type | VARCHAR(16) | NOT NULL | agent / skill |
 | target_id | BIGINT | NOT NULL | 关联资源ID |
 | display_name | VARCHAR(128) | NOT NULL | 资源显示名（冗余） |
@@ -499,28 +500,28 @@ graph TB
 | agent_type | VARCHAR(16) | NULL | |
 | source_type | VARCHAR(16) | NULL | |
 | submitter | VARCHAR(64) | NOT NULL | 提交人 |
-| submit_time | TIMESTAMPTZ | NOT NULL | 提交时间 |
+| submit_time | DATETIME | NOT NULL | 提交时间 |
 | status | VARCHAR(20) | DEFAULT 'pending_review' | pending_review / testing / published / rejected |
 | reviewer_id | BIGINT | NULL | 审核人ID |
 | reject_reason | TEXT | NULL | 驳回原因 |
-| review_time | TIMESTAMPTZ | NULL | 审核时间 |
-| create_time | TIMESTAMPTZ | DEFAULT NOW() | |
+| review_time | DATETIME | NULL | 审核时间 |
+| create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
 
 #### 2.4.2 t_review — 评论评分表
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
-| id | BIGSERIAL | PK | |
+| id | BIGINT AUTO_INCREMENT | PK | |
 | target_type | VARCHAR(16) | NOT NULL | agent / skill / app |
 | target_id | BIGINT | NOT NULL | 资源ID |
 | user_id | BIGINT | FK -> t_user, NOT NULL | 评论用户 |
 | user_name | VARCHAR(64) | NOT NULL | 用户名（冗余） |
 | avatar | VARCHAR(512) | NULL | 头像（冗余） |
-| rating | SMALLINT | NOT NULL | 评分 1-5 |
+| rating | TINYINT | NOT NULL | 评分 1-5 |
 | comment | TEXT | NOT NULL | 评论内容 |
 | helpful_count | INTEGER | DEFAULT 0 | "有用"计数 |
-| deleted | SMALLINT | DEFAULT 0 | |
-| create_time | TIMESTAMPTZ | DEFAULT NOW() | |
+| deleted | TINYINT | DEFAULT 0 | |
+| create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
 
 **索引**：`target_type + target_id`, `user_id`
 
@@ -528,10 +529,10 @@ graph TB
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
-| id | BIGSERIAL | PK | |
+| id | BIGINT AUTO_INCREMENT | PK | |
 | review_id | BIGINT | FK -> t_review, NOT NULL | |
 | user_id | BIGINT | FK -> t_user, NOT NULL | |
-| create_time | TIMESTAMPTZ | DEFAULT NOW() | |
+| create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
 
 **约束**：`UNIQUE(review_id, user_id)`（每人每条评论只能点一次有用）
 
@@ -553,14 +554,14 @@ graph TB
 | model | VARCHAR(64) | NULL | 使用的模型名 |
 | method | VARCHAR(128) | NOT NULL | 调用方法（如 POST /chat/completions） |
 | status | VARCHAR(16) | NOT NULL | success / error / timeout |
-| status_code | SMALLINT | NOT NULL | HTTP 状态码 |
+| status_code | TINYINT | NOT NULL | HTTP 状态码 |
 | latency_ms | INTEGER | NOT NULL | 响应延迟(ms) |
 | input_tokens | INTEGER | DEFAULT 0 | 输入Token数 |
 | output_tokens | INTEGER | DEFAULT 0 | 输出Token数 |
 | cost | DECIMAL(10,6) | DEFAULT 0 | 本次费用 |
 | error_message | TEXT | NULL | 错误信息 |
 | ip | VARCHAR(45) | NOT NULL | 客户端IP |
-| create_time | TIMESTAMPTZ | DEFAULT NOW() | |
+| create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
 
 **索引**：`trace_id`, `agent_id + create_time`, `user_id + create_time`, `status`, `create_time`（分区键）
 
@@ -577,9 +578,9 @@ graph TB
 | duration | VARCHAR(16) | DEFAULT '5m' | 持续时间 |
 | severity | VARCHAR(16) | NOT NULL | critical / warning / info |
 | enabled | BOOLEAN | DEFAULT true | |
-| notify_channels | JSONB | DEFAULT '[]' | 通知渠道 ["email","sms","webhook"] |
-| create_time | TIMESTAMPTZ | DEFAULT NOW() | |
-| update_time | TIMESTAMPTZ | DEFAULT NOW() | |
+| notify_channels | JSON | DEFAULT '[]' | 通知渠道 ["email","sms","webhook"] |
+| create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
+| update_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
 
 #### 2.5.3 t_alert_record — 告警记录表
 
@@ -592,9 +593,9 @@ graph TB
 | status | VARCHAR(16) | NOT NULL | firing / resolved / silenced |
 | message | TEXT | NOT NULL | 告警消息 |
 | source | VARCHAR(64) | NOT NULL | 来源服务 |
-| labels | JSONB | DEFAULT '{}' | 标签 |
-| fired_at | TIMESTAMPTZ | NOT NULL | 触发时间 |
-| resolved_at | TIMESTAMPTZ | NULL | 恢复时间 |
+| labels | JSON | DEFAULT '{}' | 标签 |
+| fired_at | DATETIME | NOT NULL | 触发时间 |
+| resolved_at | DATETIME | NULL | 恢复时间 |
 
 #### 2.5.4 t_trace_span — 链路追踪表
 
@@ -605,11 +606,11 @@ graph TB
 | parent_id | VARCHAR(36) | NULL | 父 Span ID |
 | operation_name | VARCHAR(128) | NOT NULL | 操作名（如 gateway.route） |
 | service_name | VARCHAR(64) | NOT NULL | 服务名 |
-| start_time | TIMESTAMPTZ | NOT NULL | 开始时间 |
+| start_time | DATETIME | NOT NULL | 开始时间 |
 | duration | INTEGER | NOT NULL | 持续时间(ms) |
 | status | VARCHAR(8) | NOT NULL | ok / error |
-| tags | JSONB | DEFAULT '{}' | 标签 |
-| logs | JSONB | DEFAULT '[]' | 日志条目 |
+| tags | JSON | DEFAULT '{}' | 标签 |
+| logs | JSON | DEFAULT '[]' | 日志条目 |
 
 **索引**：`trace_id`, `service_name + start_time`
 
@@ -617,7 +618,7 @@ graph TB
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
-| id | BIGSERIAL | PK | |
+| id | BIGINT AUTO_INCREMENT | PK | |
 | agent_name | VARCHAR(128) | NOT NULL | 关联的 Agent/Skill 名 |
 | display_name | VARCHAR(128) | NOT NULL | 显示名称 |
 | agent_type | VARCHAR(16) | NOT NULL | |
@@ -627,15 +628,15 @@ graph TB
 | healthy_threshold | INTEGER | DEFAULT 3 | 健康阈值次数 |
 | timeout_sec | INTEGER | DEFAULT 10 | 超时时间(秒) |
 | health_status | VARCHAR(16) | DEFAULT 'healthy' | healthy / degraded / down |
-| last_check_time | TIMESTAMPTZ | NULL | 最后检查时间 |
-| create_time | TIMESTAMPTZ | DEFAULT NOW() | |
-| update_time | TIMESTAMPTZ | DEFAULT NOW() | |
+| last_check_time | DATETIME | NULL | 最后检查时间 |
+| create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
+| update_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
 
 #### 2.5.6 t_circuit_breaker — 熔断器配置表
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
-| id | BIGSERIAL | PK | |
+| id | BIGINT AUTO_INCREMENT | PK | |
 | agent_name | VARCHAR(128) | NOT NULL | 关联 Agent/Skill |
 | display_name | VARCHAR(128) | NOT NULL | |
 | current_state | VARCHAR(16) | DEFAULT 'CLOSED' | CLOSED / OPEN / HALF_OPEN |
@@ -644,11 +645,11 @@ graph TB
 | half_open_max_calls | INTEGER | DEFAULT 3 | 半开最大尝试数 |
 | fallback_agent_name | VARCHAR(128) | NULL | 降级 Agent |
 | fallback_message | TEXT | NULL | 降级消息 |
-| last_opened_at | TIMESTAMPTZ | NULL | 最后熔断时间 |
+| last_opened_at | DATETIME | NULL | 最后熔断时间 |
 | success_count | BIGINT | DEFAULT 0 | 成功计数 |
 | failure_count | BIGINT | DEFAULT 0 | 失败计数 |
-| create_time | TIMESTAMPTZ | DEFAULT NOW() | |
-| update_time | TIMESTAMPTZ | DEFAULT NOW() | |
+| create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
+| update_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
 
 ---
 
@@ -671,8 +672,8 @@ graph TB
 | rate_limit | INTEGER | DEFAULT 50 | 每分钟限流 |
 | cost_per_token | DECIMAL(10,8) | DEFAULT 0 | 每 Token 成本 |
 | description | TEXT | NULL | |
-| create_time | TIMESTAMPTZ | DEFAULT NOW() | |
-| update_time | TIMESTAMPTZ | DEFAULT NOW() | |
+| create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
+| update_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
 
 #### 2.6.2 t_rate_limit_rule — 限流规则表
 
@@ -689,8 +690,8 @@ graph TB
 | action | VARCHAR(16) | NOT NULL | reject / queue / throttle |
 | enabled | BOOLEAN | DEFAULT true | |
 | priority | INTEGER | DEFAULT 0 | 优先级（高优先） |
-| create_time | TIMESTAMPTZ | DEFAULT NOW() | |
-| update_time | TIMESTAMPTZ | DEFAULT NOW() | |
+| create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
+| update_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
 
 #### 2.6.3 t_system_param — 系统参数表
 
@@ -702,7 +703,7 @@ graph TB
 | description | VARCHAR(256) | NOT NULL | 参数说明 |
 | category | VARCHAR(32) | NOT NULL | 分组（存储/模型/安全/用户/系统/集成） |
 | editable | BOOLEAN | DEFAULT true | 是否可编辑 |
-| update_time | TIMESTAMPTZ | DEFAULT NOW() | |
+| update_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
 
 #### 2.6.4 t_security_setting — 安全设置表
 
@@ -713,7 +714,7 @@ graph TB
 | label | VARCHAR(128) | NOT NULL | 显示名称 |
 | description | VARCHAR(256) | NOT NULL | |
 | type | VARCHAR(16) | NOT NULL | toggle / input / select |
-| options | JSONB | NULL | 可选值（select 类型用） |
+| options | JSON | NULL | 可选值（select 类型用） |
 | category | VARCHAR(32) | NOT NULL | 认证 / 访问控制 / 数据安全 |
 
 ---
@@ -724,7 +725,7 @@ graph TB
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
-| id | BIGSERIAL | PK | |
+| id | BIGINT AUTO_INCREMENT | PK | |
 | user_id | BIGINT | FK -> t_user, NOT NULL | |
 | agent_name | VARCHAR(128) | NOT NULL | |
 | display_name | VARCHAR(128) | NOT NULL | |
@@ -735,7 +736,7 @@ graph TB
 | token_cost | INTEGER | DEFAULT 0 | Token 消耗 |
 | latency_ms | INTEGER | DEFAULT 0 | |
 | status | VARCHAR(16) | NOT NULL | success / failed |
-| create_time | TIMESTAMPTZ | DEFAULT NOW() | |
+| create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
 
 **索引**：`user_id + create_time`, `type`
 
@@ -743,11 +744,11 @@ graph TB
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
-| id | BIGSERIAL | PK | |
+| id | BIGINT AUTO_INCREMENT | PK | |
 | user_id | BIGINT | FK -> t_user, NOT NULL | |
 | target_type | VARCHAR(16) | NOT NULL | agent / skill / app |
 | target_id | BIGINT | NOT NULL | 资源ID |
-| create_time | TIMESTAMPTZ | DEFAULT NOW() | |
+| create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
 
 **约束**：`UNIQUE(user_id, target_type, target_id)`
 
@@ -755,7 +756,7 @@ graph TB
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
-| id | BIGSERIAL | PK | |
+| id | BIGINT AUTO_INCREMENT | PK | |
 | target_type | VARCHAR(16) | NOT NULL | user / department / global |
 | target_id | BIGINT | NULL | 目标ID（global 时为 NULL） |
 | target_name | VARCHAR(128) | NOT NULL | 目标名称 |
@@ -764,14 +765,14 @@ graph TB
 | daily_used | INTEGER | DEFAULT 0 | 当日已用 |
 | monthly_used | INTEGER | DEFAULT 0 | 当月已用 |
 | enabled | BOOLEAN | DEFAULT true | |
-| create_time | TIMESTAMPTZ | DEFAULT NOW() | |
-| update_time | TIMESTAMPTZ | DEFAULT NOW() | |
+| create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
+| update_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
 
 #### 2.7.4 t_quota_rate_limit — 资源级限流表
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
-| id | BIGSERIAL | PK | |
+| id | BIGINT AUTO_INCREMENT | PK | |
 | name | VARCHAR(128) | NOT NULL | |
 | target_type | VARCHAR(16) | NOT NULL | agent / skill / global |
 | target_id | BIGINT | NULL | |
@@ -780,8 +781,8 @@ graph TB
 | max_requests_per_hour | INTEGER | NOT NULL | 每小时最大请求数 |
 | max_concurrent | INTEGER | NOT NULL | 最大并发数 |
 | enabled | BOOLEAN | DEFAULT true | |
-| create_time | TIMESTAMPTZ | DEFAULT NOW() | |
-| update_time | TIMESTAMPTZ | DEFAULT NOW() | |
+| create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
+| update_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
 
 #### 2.7.5 t_audit_log — 审计日志表
 
@@ -799,7 +800,7 @@ graph TB
 | ip | VARCHAR(45) | NOT NULL | 客户端IP |
 | user_agent | VARCHAR(512) | NULL | User-Agent |
 | result | VARCHAR(16) | NOT NULL | success / failure |
-| create_time | TIMESTAMPTZ | DEFAULT NOW() | |
+| create_time | DATETIME | DEFAULT CURRENT_TIMESTAMP | |
 
 **索引**：`user_id + create_time`, `action`, `resource + resource_id`, `create_time`
 
@@ -2749,9 +2750,10 @@ server:
 
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/lantu_connect
+    url: jdbc:mysql://localhost:3306/lantu_connect?useUnicode=true&characterEncoding=utf8mb4&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: lantu
     password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
   redis:
     host: localhost
     port: 6379

@@ -33,16 +33,15 @@
 
 | 层次 | 技术选型 | 理由 |
 |------|----------|------|
-| 语言 / 框架 | **Java 17 + Spring Boot 3.2** | 高校 IT 团队 Java 生态成熟，Spring Boot 社区生态完善 |
+| 语言 / 框架 | **Java 17 + Spring Boot 3.2** | 高校 IT 团队 Java 生态成熟，单体架构开发部署简单 |
 | ORM | **MyBatis-Plus 3.5** | 灵活 SQL + 代码生成，适合复杂查询与高校已有数据库对接 |
 | 数据库 | **MySQL 8.0** | 高校 IT 最广泛使用的关系型数据库，JSON 类型支持 specJson / parametersSchema，8.0 原生 CTE（WITH RECURSIVE）支持树形组织架构与分类查询 |
 | 缓存 | **Redis 7** | Token 黑名单、限流计数器（滑动窗口）、热点数据缓存 |
-| 消息队列 | **RabbitMQ 3.13** | 调用日志异步写入、告警通知、审核流转事件 |
-| 网关 | **Spring Cloud Gateway** | 统一路由、JWT 校验、限流、熔断（Resilience4j） |
+| 限流 / 熔断 | **Resilience4j** | 直接集成到 Spring Boot，通过注解实现限流（@RateLimiter）和熔断（@CircuitBreaker），无需独立网关 |
+| 异步任务 | **Spring 线程池 + @Async** | 调用日志异步写入、告警通知等，初期无需引入 MQ，后续可平滑迁移至 RabbitMQ |
 | 认证 | **Spring Security + JWT** | 双 Token（Access + Refresh）机制，对接高校 CAS / OAuth2 |
 | 文档 | **SpringDoc (OpenAPI 3)** | 自动生成 Swagger 文档，与前端开发者门户对接 |
-| 监控 | **Micrometer + Prometheus + Grafana** | 性能指标采集与可视化 |
-| 链路追踪 | **Micrometer Tracing + Zipkin** | 分布式调用链追踪 |
+| 监控 | **Spring Boot Actuator + Micrometer** | 内置健康检查、指标暴露，可选对接 Prometheus + Grafana |
 
 ### 1.3 系统架构图
 
@@ -52,25 +51,27 @@ graph TB
         WebApp["React SPA<br/>(Vite + React 19)"]
     end
 
-    subgraph gateway [网关层]
-        GW["Spring Cloud Gateway<br/>JWT 校验 / 限流 / 熔断"]
+    subgraph nginx [反向代理]
+        NG["Nginx<br/>SSL 终止 / 静态资源 / 反向代理"]
     end
 
-    subgraph service [服务层]
-        AuthSvc["认证服务<br/>auth-service"]
-        AgentSvc["Agent 服务<br/>agent-service"]
-        SkillSvc["Skill 服务<br/>skill-service"]
-        AppSvc["应用服务<br/>app-service"]
-        DatasetSvc["数据集服务<br/>dataset-service"]
-        MonitorSvc["监控服务<br/>monitor-service"]
-        ConfigSvc["配置服务<br/>config-service"]
-        UserSvc["用户服务<br/>user-service"]
+    subgraph backend [Spring Boot 单体应用]
+        Filter["Security Filter Chain<br/>JWT 校验 / 限流 / CSRF"]
+        AuthMod["认证模块"]
+        AgentMod["Agent 模块"]
+        SkillMod["Skill 模块"]
+        AppMod["应用模块"]
+        DatasetMod["数据集模块"]
+        MonitorMod["监控模块"]
+        ConfigMod["配置模块"]
+        UserMod["用户模块"]
+        R4j["Resilience4j<br/>限流 / 熔断"]
+        Async["@Async 线程池<br/>异步日志写入"]
     end
 
     subgraph infra [基础设施层]
         MySQL["MySQL 8.0"]
         RD["Redis 7"]
-        MQ["RabbitMQ"]
         OSS["对象存储"]
     end
 
@@ -80,49 +81,50 @@ graph TB
         MCP["MCP Server"]
     end
 
-    WebApp --> GW
-    GW --> AuthSvc
-    GW --> AgentSvc
-    GW --> SkillSvc
-    GW --> AppSvc
-    GW --> DatasetSvc
-    GW --> MonitorSvc
-    GW --> ConfigSvc
-    GW --> UserSvc
+    WebApp --> NG
+    NG --> Filter
+    Filter --> AuthMod
+    Filter --> AgentMod
+    Filter --> SkillMod
+    Filter --> AppMod
+    Filter --> DatasetMod
+    Filter --> MonitorMod
+    Filter --> ConfigMod
+    Filter --> UserMod
 
-    AuthSvc --> MySQL
-    AuthSvc --> RD
-    AuthSvc --> CAS
-    AgentSvc --> MySQL
-    AgentSvc --> RD
-    AgentSvc --> MQ
-    AgentSvc --> LLM
-    AgentSvc --> MCP
-    SkillSvc --> MySQL
-    SkillSvc --> MCP
-    MonitorSvc --> MySQL
-    MonitorSvc --> MQ
-    ConfigSvc --> MySQL
-    ConfigSvc --> RD
-    UserSvc --> MySQL
+    AgentMod --> R4j
+    SkillMod --> R4j
+    R4j --> LLM
+    R4j --> MCP
+
+    MonitorMod --> Async
+    AgentMod --> Async
+
+    AuthMod --> CAS
+    AuthMod --> RD
+
+    backend --> MySQL
+    backend --> RD
 ```
 
 ### 1.4 部署架构建议
 
 ```
 ┌──────────────────────────────────────────────────┐
-│  Nginx / SLB（SSL 终止、静态资源、反向代理）       │
+│  Nginx（SSL 终止、前端静态资源、反向代理 /api）     │
 ├──────────────────────────────────────────────────┤
-│  Spring Cloud Gateway × 2（JWT / 限流 / 路由）    │
+│  Spring Boot 单体应用（可部署 1~2 实例做负载均衡）  │
+│  ┌──────────────────────────────────────────┐    │
+│  │  内置模块：Auth / Agent / Skill / App /  │    │
+│  │  Dataset / Monitor / Config / User       │    │
+│  │  内置组件：Resilience4j / @Async 线程池   │    │
+│  └──────────────────────────────────────────┘    │
 ├──────────────────────────────────────────────────┤
-│  微服务集群（各服务 × 2 实例，K8s / Docker Compose）│
-│  ┌─────────┐ ┌─────────┐ ┌──────────┐           │
-│  │auth-svc │ │agent-svc│ │monitor-svc│  ...      │
-│  └─────────┘ └─────────┘ └──────────┘           │
-├──────────────────────────────────────────────────┤
-│  MySQL 主从复制   │  Redis 哨兵  │  RabbitMQ 集群 │
+│        MySQL 8.0        │       Redis 7          │
 └──────────────────────────────────────────────────┘
 ```
+
+> **演进路径**：当前单体足够支撑。后续若调用量激增，可将监控日志写入独立为消费者服务（引入 RabbitMQ），或将 Agent 调用网关拆出为独立服务，无需重写业务代码。
 
 ---
 
@@ -2466,7 +2468,7 @@ stateDiagram-v2
 - 状态流转使用**状态机模式**实现，禁止非法跳转（如 draft 直接到 published）
 - 审核操作记录到 `t_audit_log`
 - 驳回时 `reject_reason` 必填
-- 状态变更通过 MQ 发送通知（邮件/站内信通知提交人）
+- 状态变更通过 `@Async` 异步发送通知（邮件/站内信通知提交人）
 
 #### 4.3.2 自动审核（可选增强）
 
@@ -2487,7 +2489,8 @@ stateDiagram-v2
 **后端实现要点**：
 
 - 使用 Redis `ZSET` 实现滑动窗口（score = timestamp, value = requestId）
-- Gateway 层拦截，按优先级匹配第一个命中的规则
+- 通过 Spring `HandlerInterceptor` 或 Servlet `Filter` 拦截请求，按优先级匹配第一个命中的规则
+- 也可直接使用 Resilience4j `@RateLimiter` 注解对 Controller 方法限流
 - `action` 处理：
   - `reject`：直接返回 429
   - `throttle`：延迟响应
@@ -2496,9 +2499,9 @@ stateDiagram-v2
 #### 4.4.2 Token 配额计量
 
 - `t_quota` 记录日/月配额与已用量
-- 每次调用后通过 MQ 异步更新 `daily_used` 和 `monthly_used`
+- 每次调用后通过 `@Async` 异步更新 `daily_used` 和 `monthly_used`
 - Redis 缓存当前计数，定时同步到数据库
-- 每日 00:00 重置 `daily_used`，每月1日重置 `monthly_used`（定时任务）
+- 每日 00:00 重置 `daily_used`，每月1日重置 `monthly_used`（`@Scheduled` 定时任务）
 
 #### 4.4.3 熔断器状态机
 
@@ -2558,9 +2561,9 @@ stateDiagram-v2
 
 每次 Agent / Skill 调用时：
 
-1. Gateway 层记录请求开始时间
+1. AOP 切面（`@Around`）拦截 Agent / Skill 调用方法，记录请求开始时间
 2. 调用完成后构建 `CallLogEntry`
-3. **通过 MQ 异步写入** `t_call_log`（避免影响主链路延迟）
+3. **通过 `@Async` 异步写入** `t_call_log`（避免影响主链路延迟）
 4. 同时异步更新 Agent / Skill 的 `call_count`、`avg_latency_ms`、`success_rate`
 
 #### 4.6.2 KPI 指标聚合
@@ -2757,9 +2760,26 @@ spring:
   redis:
     host: localhost
     port: 6379
-  rabbitmq:
-    host: localhost
-    port: 5672
+  task:
+    execution:
+      pool:
+        core-size: 8
+        max-size: 32
+        queue-capacity: 200
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 60s
+        sliding-window-size: 10
+  ratelimiter:
+    configs:
+      default:
+        limit-for-period: 100
+        limit-refresh-period: 1m
+        timeout-duration: 0s
 
 jwt:
   secret: ${JWT_SECRET}

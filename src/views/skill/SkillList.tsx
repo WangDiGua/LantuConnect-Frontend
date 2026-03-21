@@ -21,6 +21,7 @@ import {
   techBadge,
 } from '../../utils/uiClasses';
 import type { DomainStatus } from '../../utils/uiClasses';
+import { useMessage } from '../../components/common/Message';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { AnimatedList } from '../../components/common/AnimatedList';
 import { SkillCreate } from './SkillCreate';
@@ -58,6 +59,7 @@ const SOURCE_LABEL: Record<SourceType, string> = {
 
 export const SkillList: React.FC<Props> = ({ theme, fontSize }) => {
   const isDark = theme === 'dark';
+  const { showMessage } = useMessage();
 
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
@@ -139,9 +141,11 @@ export const SkillList: React.FC<Props> = ({ theme, fontSize }) => {
       await skillService.remove(deleteTarget.id);
       setDeleteTarget(null);
       fetchSkills();
-    } catch { /* ignore */ }
-    finally { setDeleting(false); }
-  }, [deleteTarget, fetchSkills]);
+      showMessage('Skill 已删除', 'success');
+    } catch (err) {
+      showMessage('删除失败: ' + (err instanceof Error ? err.message : '未知错误'), 'error');
+    } finally { setDeleting(false); }
+  }, [deleteTarget, fetchSkills, showMessage]);
 
   const mcpServerOptions = useMemo(() => [
     { value: '', label: '全部 MCP Server' },
@@ -163,7 +167,7 @@ export const SkillList: React.FC<Props> = ({ theme, fontSize }) => {
   const totalPages = Math.max(1, Math.ceil(total / (query.pageSize || 20)));
 
   if (viewMode === 'create') {
-    return <SkillCreate theme={theme} fontSize={fontSize} onBack={handleBackToList} onSuccess={() => handleBackToList()} />;
+    return <SkillCreate theme={theme} fontSize={fontSize} onBack={handleBackToList} onSuccess={() => { handleBackToList(); showMessage('Skill 注册成功', 'success'); }} />;
   }
 
   if (viewMode === 'detail' && selectedSkillId) {

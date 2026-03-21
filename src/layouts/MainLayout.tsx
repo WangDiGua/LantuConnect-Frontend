@@ -68,7 +68,7 @@ const HealthCheckOverview = lazy(() => import('../views/dashboard/HealthCheckOve
 const UsageStatsOverview = lazy(() => import('../views/dashboard/UsageStatsOverview').then(m => ({ default: m.UsageStatsOverview })));
 
 import { Logo } from '../components/common/Logo';
-import { MessageProvider, useMessage } from '../components/common/Message';
+import { useMessage } from '../components/common/Message';
 import { useAuthStore } from '../stores/authStore';
 import { readPersistedNavState, writePersistedNavState } from '../utils/navigationState';
 import { readAppearanceState, writeAppearanceState } from '../utils/appearanceState';
@@ -100,16 +100,14 @@ export const MainLayout: React.FC = () => {
   }, []);
 
   return (
-    <MessageProvider theme={theme}>
-      <UserRoleProvider initialRole="admin">
-        <Routes>
-          <Route path="/" element={<ConsoleHomeRedirect />} />
-          <Route path="/:role/:page/*" element={<MainLayoutContent theme={theme} setTheme={setTheme} />} />
-          <Route path="/:role/:page" element={<MainLayoutContent theme={theme} setTheme={setTheme} />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </UserRoleProvider>
-    </MessageProvider>
+    <UserRoleProvider initialRole="admin">
+      <Routes>
+        <Route path="/" element={<ConsoleHomeRedirect />} />
+        <Route path="/:role/:page/*" element={<MainLayoutContent theme={theme} setTheme={setTheme} />} />
+        <Route path="/:role/:page" element={<MainLayoutContent theme={theme} setTheme={setTheme} />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </UserRoleProvider>
   );
 };
 
@@ -195,6 +193,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
 
   const handleSetTheme = (newTheme: Theme) => {
     setTheme(newTheme);
+    window.dispatchEvent(new CustomEvent('lantu-theme-change', { detail: newTheme }));
     showMessage(`已切换至${newTheme === 'light' ? '浅色' : '深色'}模式`, 'success');
   };
   const handleSetThemeColor = (color: ThemeColor) => {
@@ -339,17 +338,17 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
           case 'app-list':
             return <AppList theme={t} fontSize={fs} showMessage={msg} />;
           case 'app-create':
-            return <AppCreate theme={t} fontSize={fs} />;
+            return <AppCreate theme={t} fontSize={fs} showMessage={msg} />;
 
           case 'dataset-list':
             return <DatasetList theme={t} fontSize={fs} showMessage={msg} />;
           case 'dataset-create':
-            return <DatasetCreate theme={t} fontSize={fs} />;
+            return <DatasetCreate theme={t} fontSize={fs} showMessage={msg} />;
 
           case 'provider-list':
             return <ProviderList theme={t} fontSize={fs} showMessage={msg} />;
           case 'provider-create':
-            return <ProviderCreate theme={t} fontSize={fs} onBack={() => nav('provider-list')} />;
+            return <ProviderCreate theme={t} fontSize={fs} onBack={() => nav('provider-list')} showMessage={msg} />;
 
           case 'user-list':
           case 'role-management':
@@ -805,6 +804,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
                   <button 
                     type="button"
                     onClick={() => {
+                      showMessage('已退出登录', 'info');
                       storeLogout();
                       navigate('/login', { replace: true });
                     }}

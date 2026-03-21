@@ -9,6 +9,7 @@ import { authService } from '../../api/services/auth.service';
 import { useAuthStore } from '../../stores/authStore';
 import { ApiException } from '../../types/api';
 import { Logo } from '../../components/common/Logo';
+import { useMessage } from '../../components/common/Message';
 import type { Theme } from '../../types';
 import { defaultPath } from '../../constants/consoleRoutes';
 import { pageBg, btnPrimary } from '../../utils/uiClasses';
@@ -20,6 +21,7 @@ export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const login = useAuthStore((s) => s.login);
+  const { showMessage } = useMessage();
 
   useEffect(() => { hidePreSplash(); }, []);
 
@@ -50,14 +52,13 @@ export const LoginPage: React.FC = () => {
         remember: values.remember,
       });
       login(res.token, res.refreshToken, res.user);
+      showMessage('登录成功，欢迎回来', 'success');
       const isAdmin = res.user.role === 'admin';
       navigate(defaultPath(isAdmin ? 'admin' : 'user'), { replace: true });
     } catch (err) {
-      if (err instanceof ApiException) {
-        setServerError(err.message);
-      } else {
-        setServerError('登录失败，请稍后重试');
-      }
+      const errorMsg = err instanceof ApiException ? err.message : '登录失败，请稍后重试';
+      setServerError(errorMsg);
+      showMessage(errorMsg, 'error');
     }
   };
 

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import { useAgents, useDeleteAgent } from '../../hooks/queries/useAgent';
+import { useMessage } from '../../components/common/Message';
 import { ContentLoader } from '../../components/common/ContentLoader';
 import { PageError } from '../../components/common/PageError';
 import { EmptyState } from '../../components/common/EmptyState';
@@ -78,6 +79,7 @@ export const AgentList: React.FC<AgentListProps> = ({
   onCreateAgent,
 }) => {
   const isDark = theme === 'dark';
+  const { showMessage } = useMessage();
 
   const [page, setPage] = useState(1);
   const [keyword, setKeyword] = useState('');
@@ -123,7 +125,10 @@ export const AgentList: React.FC<AgentListProps> = ({
 
   const handleDelete = () => {
     if (!deleteTarget) return;
-    deleteMut.mutate(deleteTarget.id, { onSuccess: () => setDeleteTarget(null) });
+    deleteMut.mutate(deleteTarget.id, {
+      onSuccess: () => { setDeleteTarget(null); showMessage('Agent 已删除', 'success'); },
+      onError: (err) => { showMessage('删除失败: ' + (err instanceof Error ? err.message : '未知错误'), 'error'); },
+    });
   };
 
   const handleEdit = async (agent: Agent) => {
@@ -151,7 +156,7 @@ export const AgentList: React.FC<AgentListProps> = ({
         theme={theme}
         fontSize={_fontSize}
         onBack={() => { setViewMode('list'); setEditingAgent(null); refetch(); }}
-        onSuccess={() => { setViewMode('list'); setEditingAgent(null); refetch(); }}
+        onSuccess={() => { setViewMode('list'); setEditingAgent(null); refetch(); showMessage('Agent 保存成功', 'success'); }}
         editAgent={editingAgent}
       />
     );

@@ -19,6 +19,7 @@ import type { Agent, AgentType } from '../../types/dto/agent';
 import { nativeSelectClass, nativeInputClass } from '../../utils/formFieldClasses';
 import { btnPrimary, btnSecondary, btnGhost, pageBg, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
 import { useCreateAgent, useUpdateAgent } from '../../hooks/queries/useAgent';
+import { useMessage } from '../../components/common/Message';
 import { z } from 'zod';
 import { ProgressBar } from '../../components/common/ProgressBar';
 import { GlassPanel } from '../../components/common/GlassPanel';
@@ -112,6 +113,7 @@ const INPUT_FOCUS = 'focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-5
 
 export const AgentCreate: React.FC<AgentCreateProps> = ({ theme, fontSize, themeColor = 'blue', onBack, onSuccess, editAgent }) => {
   const isDark = theme === 'dark';
+  const { showMessage } = useMessage();
   const tc = THEME_COLOR_CLASSES[themeColor];
   const isEditMode = !!editAgent;
   const [currentStep, setCurrentStep] = useState<Step>(isEditMode ? 'BASIC_INFO' : 'TEMPLATE_SELECT');
@@ -210,7 +212,9 @@ export const AgentCreate: React.FC<AgentCreateProps> = ({ theme, fontSize, theme
     };
     const onMutError = (err: Error) => {
       setCurrentStep('TYPE_CONFIG');
-      setErrors({ submit: err instanceof Error ? err.message : (isEditMode ? '保存失败，请检查网络连接后重试。' : '创建失败，请检查网络连接后重试。') });
+      const errMsg = err instanceof Error ? err.message : (isEditMode ? '保存失败，请检查网络连接后重试。' : '创建失败，请检查网络连接后重试。');
+      setErrors({ submit: errMsg });
+      showMessage(isEditMode ? '保存失败: ' + errMsg : '创建失败: ' + errMsg, 'error');
     };
 
     if (isEditMode && editAgent) {

@@ -1,4 +1,4 @@
-import React, { useEffect, Suspense, lazy } from 'react';
+import React, { useEffect, useState, Suspense, lazy } from 'react';
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
@@ -13,10 +13,13 @@ export function hidePreSplash() {
   }
 }
 import { EnvBadge } from './components/common/EnvBadge';
+import { MessageProvider } from './components/common/Message';
 import { bindAuthCallbacks } from './lib/http';
 import { useAuthStore } from './stores/authStore';
 import { tokenStorage } from './lib/security';
 import { env } from './config/env';
+import { readAppearanceState } from './utils/appearanceState';
+import type { Theme } from './types';
 
 const MainLayout = lazy(() => import('./layouts/MainLayout').then(m => ({ default: m.MainLayout })));
 const LoginPage = lazy(() => import('./views/login/LoginPage').then(m => ({ default: m.LoginPage })));
@@ -55,32 +58,42 @@ function AuthBinder() {
 }
 
 const App: React.FC = () => {
+  const [theme, setTheme] = useState<Theme>(() => readAppearanceState().theme);
+
+  useEffect(() => {
+    const handler = (e: Event) => setTheme((e as CustomEvent<Theme>).detail);
+    window.addEventListener('lantu-theme-change', handler);
+    return () => window.removeEventListener('lantu-theme-change', handler);
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <ErrorBoundary>
-        <HashRouter>
-          <AuthBinder />
-          <Suspense fallback={<div className="fixed inset-0" />}>
-            <Routes>
-              <Route
-                path="/login"
-                element={
-                  <GuestGuard>
-                    <LoginPage />
-                  </GuestGuard>
-                }
-              />
-              <Route
-                path="/*"
-                element={
-                  <AuthGuard>
-                    <MainLayout />
-                  </AuthGuard>
-                }
-              />
-            </Routes>
-          </Suspense>
-        </HashRouter>
+        <MessageProvider theme={theme}>
+          <HashRouter>
+            <AuthBinder />
+            <Suspense fallback={<div className="fixed inset-0" />}>
+              <Routes>
+                <Route
+                  path="/login"
+                  element={
+                    <GuestGuard>
+                      <LoginPage />
+                    </GuestGuard>
+                  }
+                />
+                <Route
+                  path="/*"
+                  element={
+                    <AuthGuard>
+                      <MainLayout />
+                    </AuthGuard>
+                  }
+                />
+              </Routes>
+            </Suspense>
+          </HashRouter>
+        </MessageProvider>
       </ErrorBoundary>
       <EnvBadge />
       {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}

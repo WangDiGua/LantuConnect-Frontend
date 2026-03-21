@@ -17,6 +17,7 @@ import { nativeSelectClass, nativeInputClass } from '../../utils/formFieldClasse
 import { btnPrimary, btnSecondary, btnGhost, pageBg, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
 import { GlassPanel } from '../../components/common/GlassPanel';
 import { BentoCard } from '../../components/common/BentoCard';
+import { useMessage } from '../../components/common/Message';
 import { skillService } from '../../api/services/skill.service';
 
 interface Props {
@@ -71,6 +72,7 @@ const INPUT_FOCUS = 'focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-5
 
 export const SkillCreate: React.FC<Props> = ({ theme, fontSize: _fontSize, onBack, onSuccess }) => {
   const isDark = theme === 'dark';
+  const { showMessage } = useMessage();
   const [step, setStep] = useState<Step>(1);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -171,10 +173,13 @@ export const SkillCreate: React.FC<Props> = ({ theme, fontSize: _fontSize, onBac
 
     try {
       const created = await skillService.create(payload);
+      showMessage('Skill 注册成功', 'success');
       onSuccess?.(String(created.id));
       onBack();
     } catch (err) {
-      setErrors({ submit: err instanceof Error ? err.message : '创建失败，请检查网络连接后重试' });
+      const errMsg = err instanceof Error ? err.message : '创建失败，请检查网络连接后重试';
+      setErrors({ submit: errMsg });
+      showMessage('Skill 注册失败: ' + errMsg, 'error');
     } finally {
       setSubmitting(false);
     }

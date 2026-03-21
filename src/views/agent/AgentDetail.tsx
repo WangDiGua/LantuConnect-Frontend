@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { useAgent, useDeleteAgent } from '../../hooks/queries/useAgent';
+import { useMessage } from '../../components/common/Message';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { PageError } from '../../components/common/PageError';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
@@ -23,12 +24,18 @@ const SOURCE_TYPE_LABEL: Record<string, string> = { internal: '内部', partner:
 
 export const AgentDetail: React.FC<AgentDetailProps> = ({ agentId, theme, fontSize, onBack }) => {
   const isDark = theme === 'dark';
+  const { showMessage } = useMessage();
   const numericId = Number(agentId);
   const { data: agent, isLoading, isError, error, refetch } = useAgent(numericId);
   const deleteMut = useDeleteAgent();
   const [deleteOpen, setDeleteOpen] = useState(false);
 
-  const handleDelete = () => { deleteMut.mutate(numericId, { onSuccess: () => { setDeleteOpen(false); onBack(); } }); };
+  const handleDelete = () => {
+    deleteMut.mutate(numericId, {
+      onSuccess: () => { setDeleteOpen(false); showMessage('Agent 已删除', 'success'); onBack(); },
+      onError: (err) => { showMessage('删除失败: ' + (err instanceof Error ? err.message : '未知错误'), 'error'); },
+    });
+  };
 
   if (isLoading) return <div className={`flex-1 flex flex-col min-h-0 ${pageBg(theme)}`}><PageSkeleton type="detail" /></div>;
   if (isError || !agent) return <div className={`flex-1 flex flex-col min-h-0 ${pageBg(theme)}`}><PageError error={error instanceof Error ? error : new Error('加载失败')} onRetry={() => refetch()} /></div>;

@@ -9,6 +9,7 @@ import {
   textPrimary, textSecondary, textMuted,
 } from '../../utils/uiClasses';
 import type { DomainStatus } from '../../utils/uiClasses';
+import { useMessage } from '../../components/common/Message';
 import { Modal } from '../../components/common/Modal';
 import { AnimatedList } from '../../components/common/AnimatedList';
 import { userActivityService } from '../../api/services/user-activity.service';
@@ -28,6 +29,7 @@ const STATUS_FLOW: AgentStatus[] = ['draft', 'pending_review', 'testing', 'publi
 
 export const MySkillList: React.FC<Props> = ({ theme }) => {
   const isDark = theme === 'dark';
+  const { showMessage } = useMessage();
   const [skills, setSkills] = useState<MyPublishItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [withdrawTarget, setWithdrawTarget] = useState<MyPublishItem | null>(null);
@@ -42,6 +44,7 @@ export const MySkillList: React.FC<Props> = ({ theme }) => {
   const handleWithdraw = (skill: MyPublishItem) => {
     setSkills(prev => prev.map(s => s.id === skill.id ? { ...s, status: 'draft' as MyPublishItem['status'] } : s));
     setWithdrawTarget(null);
+    showMessage(`已撤回「${skill.displayName}」的审核申请`, 'success');
   };
 
   const StatusFlow: React.FC<{ current: string }> = ({ current }) => {

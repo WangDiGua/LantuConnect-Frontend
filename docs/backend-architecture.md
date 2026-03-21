@@ -41,7 +41,7 @@
 | 异步任务 | **Spring 线程池 + @Async** | 调用日志异步写入、告警通知等，初期无需引入 MQ，后续可平滑迁移至 RabbitMQ |
 | 认证 | **Spring Security + JWT** | 双 Token（Access + Refresh）机制，对接高校 CAS / OAuth2 |
 | 文档 | **SpringDoc (OpenAPI 3)** | 自动生成 Swagger 文档，与前端开发者门户对接 |
-| 监控 | **Spring Boot Actuator + Micrometer** | 内置健康检查、指标暴露，可选对接 Prometheus + Grafana |
+| 监控 | **Micrometer + Prometheus + Grafana** | Actuator 暴露 /actuator/prometheus 端点，Prometheus 定时拉取，Grafana 可视化看板 |
 
 ### 1.3 系统架构图
 

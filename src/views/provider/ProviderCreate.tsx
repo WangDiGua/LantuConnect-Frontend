@@ -4,6 +4,9 @@ import type { Theme, FontSize } from '../../types';
 import type { Provider, AuthType, ProviderType } from '../../types/dto/provider';
 import { providerService } from '../../api/services/provider.service';
 import { nativeInputClass, nativeSelectClass } from '../../utils/formFieldClasses';
+import { btnPrimary, btnSecondary, btnGhost, pageBg, textPrimary, textSecondary } from '../../utils/uiClasses';
+import { GlassPanel } from '../../components/common/GlassPanel';
+import { BentoCard } from '../../components/common/BentoCard';
 
 interface Props {
   theme: Theme;
@@ -27,12 +30,19 @@ const AUTH_TYPE_OPTIONS: { value: AuthType; label: string }[] = [
   { value: 'basic', label: 'Basic Auth' },
 ];
 
+const INPUT_FOCUS = 'focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/40';
+
 export const ProviderCreate: React.FC<Props> = ({ theme, onBack, onSuccess, showMessage, editProvider }) => {
-  const dark = theme === 'dark';
+  const isDark = theme === 'dark';
   const isEditMode = !!editProvider;
 
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const labelCls = `text-sm font-medium ${textSecondary(theme)}`;
+  const inputCls = `${nativeInputClass(theme)} ${INPUT_FOCUS}`;
+  const selectCls = `${nativeSelectClass(theme)} ${INPUT_FOCUS}`;
+
   const [form, setForm] = useState(() => {
     if (editProvider) {
       const ac = (editProvider.authConfig ?? {}) as Record<string, string>;
@@ -136,178 +146,105 @@ export const ProviderCreate: React.FC<Props> = ({ theme, onBack, onSuccess, show
     }
   };
 
-  const inputCls = nativeInputClass(theme);
-  const selectCls = nativeSelectClass(theme);
-  const labelCls = `block text-sm font-semibold mb-1.5 ${dark ? 'text-slate-200' : 'text-slate-700'}`;
   const errCls = 'text-xs text-red-500 mt-1';
 
   return (
-    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${dark ? 'bg-[#000000]' : 'bg-[#F2F2F7]'}`}>
-      {/* Header */}
-      <div className={`shrink-0 z-20 border-b px-4 sm:px-6 py-4 flex items-center gap-4 ${
-        dark ? 'border-white/10 bg-[#000000]' : 'border-slate-200/80 bg-[#F2F2F7]'
+    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${pageBg(theme)}`}>
+      <div className={`shrink-0 z-20 border-b px-4 sm:px-6 py-4 flex items-center gap-4 backdrop-blur-xl ${
+        isDark ? 'border-white/[0.06] bg-[#0c0f17]/80' : 'border-slate-200/40 bg-white/80'
       }`}>
-        <button type="button" onClick={onBack} className="btn btn-ghost btn-sm btn-circle">
+        <button type="button" onClick={onBack} className={btnGhost(theme)}>
           <ArrowLeft size={20} />
         </button>
-        <h2 className={`text-lg font-bold ${dark ? 'text-white' : 'text-slate-900'}`}>{isEditMode ? '编辑 Provider' : '添加 Provider'}</h2>
+        <h2 className={`text-lg font-bold ${textPrimary(theme)}`}>{isEditMode ? '编辑 Provider' : '添加 Provider'}</h2>
       </div>
 
-      {/* Form body */}
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-2 sm:px-3 lg:px-4 py-2 sm:py-3">
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-2 sm:px-3 lg:px-4 py-4 sm:py-6">
         <div className="w-full max-w-2xl mx-auto">
-          <div className={`rounded-2xl border overflow-hidden shadow-none ${
-            dark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200/80'
-          }`}>
-            <div className="p-6 sm:p-8 space-y-5">
-              {/* providerCode */}
-              <div>
-                <label className={labelCls}>提供商编码 <span className="text-red-500">*</span></label>
-                <input
-                  type="text"
-                  placeholder="例如：openai, baidu_wenxin"
-                  className={inputCls}
-                  value={form.providerCode}
-                  onChange={(e) => setField('providerCode', e.target.value)}
-                />
-                {errors.providerCode && <p className={errCls}>{errors.providerCode}</p>}
-              </div>
-
-              {/* providerName */}
-              <div>
-                <label className={labelCls}>提供商名称 <span className="text-red-500">*</span></label>
-                <input
-                  type="text"
-                  placeholder="例如：OpenAI"
-                  className={inputCls}
-                  value={form.providerName}
-                  onChange={(e) => setField('providerName', e.target.value)}
-                />
-                {errors.providerName && <p className={errCls}>{errors.providerName}</p>}
-              </div>
-
-              {/* providerType */}
-              <div>
-                <label className={labelCls}>提供商类型</label>
-                <select
-                  className={selectCls}
-                  value={form.providerType}
-                  onChange={(e) => setField('providerType', e.target.value as ProviderType)}
-                >
-                  {PROVIDER_TYPE_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* description */}
-              <div>
-                <label className={labelCls}>描述</label>
-                <textarea
-                  placeholder="提供商说明信息…"
-                  rows={3}
-                  className={`${inputCls} resize-none`}
-                  value={form.description}
-                  onChange={(e) => setField('description', e.target.value)}
-                />
-              </div>
-
-              {/* authType */}
-              <div>
-                <label className={labelCls}>认证方式</label>
-                <select
-                  className={selectCls}
-                  value={form.authType}
-                  onChange={(e) => setField('authType', e.target.value as AuthType)}
-                >
-                  {AUTH_TYPE_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Conditional auth fields */}
-              {form.authType === 'api_key' && (
-                <div className={`p-4 rounded-xl border ${dark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
-                  <label className={labelCls}>API Key <span className="text-red-500">*</span></label>
-                  <input
-                    type="password"
-                    placeholder="输入 API Key"
-                    className={inputCls}
-                    value={form.authConfig.api_key}
-                    onChange={(e) => setAuthField('api_key', e.target.value)}
-                  />
-                  {errors.api_key && <p className={errCls}>{errors.api_key}</p>}
-                </div>
-              )}
-
-              {form.authType === 'oauth2' && (
-                <div className={`p-4 rounded-xl border space-y-4 ${dark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
+          <GlassPanel theme={theme} padding="lg">
+            <div className="space-y-6">
+              <BentoCard theme={theme} padding="md">
+                <div className="space-y-5">
                   <div>
-                    <label className={labelCls}>Client ID <span className="text-red-500">*</span></label>
-                    <input
-                      type="text"
-                      placeholder="输入 Client ID"
-                      className={inputCls}
-                      value={form.authConfig.client_id}
-                      onChange={(e) => setAuthField('client_id', e.target.value)}
-                    />
-                    {errors.client_id && <p className={errCls}>{errors.client_id}</p>}
+                    <label className={`${labelCls} mb-1.5 block`}>提供商编码 <span className="text-red-500">*</span></label>
+                    <input type="text" placeholder="例如：openai, baidu_wenxin" className={inputCls} value={form.providerCode} onChange={(e) => setField('providerCode', e.target.value)} />
+                    {errors.providerCode && <p className={errCls}>{errors.providerCode}</p>}
                   </div>
+
                   <div>
-                    <label className={labelCls}>Client Secret <span className="text-red-500">*</span></label>
-                    <input
-                      type="password"
-                      placeholder="输入 Client Secret"
-                      className={inputCls}
-                      value={form.authConfig.client_secret}
-                      onChange={(e) => setAuthField('client_secret', e.target.value)}
-                    />
-                    {errors.client_secret && <p className={errCls}>{errors.client_secret}</p>}
+                    <label className={`${labelCls} mb-1.5 block`}>提供商名称 <span className="text-red-500">*</span></label>
+                    <input type="text" placeholder="例如：OpenAI" className={inputCls} value={form.providerName} onChange={(e) => setField('providerName', e.target.value)} />
+                    {errors.providerName && <p className={errCls}>{errors.providerName}</p>}
+                  </div>
+
+                  <div>
+                    <label className={`${labelCls} mb-1.5 block`}>提供商类型</label>
+                    <select className={selectCls} value={form.providerType} onChange={(e) => setField('providerType', e.target.value as ProviderType)}>
+                      {PROVIDER_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className={`${labelCls} mb-1.5 block`}>描述</label>
+                    <textarea placeholder="提供商说明信息…" rows={3} className={`${inputCls} resize-none`} value={form.description} onChange={(e) => setField('description', e.target.value)} />
                   </div>
                 </div>
-              )}
+              </BentoCard>
 
-              {form.authType === 'basic' && (
-                <div className={`p-4 rounded-xl border space-y-4 ${dark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
+              <BentoCard theme={theme} padding="md">
+                <div className="space-y-5">
                   <div>
-                    <label className={labelCls}>用户名 <span className="text-red-500">*</span></label>
-                    <input
-                      type="text"
-                      placeholder="输入用户名"
-                      className={inputCls}
-                      value={form.authConfig.username}
-                      onChange={(e) => setAuthField('username', e.target.value)}
-                    />
-                    {errors.username && <p className={errCls}>{errors.username}</p>}
+                    <label className={`${labelCls} mb-1.5 block`}>认证方式</label>
+                    <select className={selectCls} value={form.authType} onChange={(e) => setField('authType', e.target.value as AuthType)}>
+                      {AUTH_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
                   </div>
-                  <div>
-                    <label className={labelCls}>密码 <span className="text-red-500">*</span></label>
-                    <input
-                      type="password"
-                      placeholder="输入密码"
-                      className={inputCls}
-                      value={form.authConfig.password}
-                      onChange={(e) => setAuthField('password', e.target.value)}
-                    />
-                    {errors.password && <p className={errCls}>{errors.password}</p>}
+
+                  {form.authType === 'api_key' && (
+                    <div className={`p-4 rounded-xl border ${isDark ? 'bg-white/[0.03] border-white/[0.06]' : 'bg-slate-50/50 border-slate-100'}`}>
+                      <label className={`${labelCls} mb-1.5 block`}>API Key <span className="text-red-500">*</span></label>
+                      <input type="password" placeholder="输入 API Key" className={inputCls} value={form.authConfig.api_key} onChange={(e) => setAuthField('api_key', e.target.value)} />
+                      {errors.api_key && <p className={errCls}>{errors.api_key}</p>}
+                    </div>
+                  )}
+
+                  {form.authType === 'oauth2' && (
+                    <div className={`p-4 rounded-xl border space-y-4 ${isDark ? 'bg-white/[0.03] border-white/[0.06]' : 'bg-slate-50/50 border-slate-100'}`}>
+                      <div>
+                        <label className={`${labelCls} mb-1.5 block`}>Client ID <span className="text-red-500">*</span></label>
+                        <input type="text" placeholder="输入 Client ID" className={inputCls} value={form.authConfig.client_id} onChange={(e) => setAuthField('client_id', e.target.value)} />
+                        {errors.client_id && <p className={errCls}>{errors.client_id}</p>}
+                      </div>
+                      <div>
+                        <label className={`${labelCls} mb-1.5 block`}>Client Secret <span className="text-red-500">*</span></label>
+                        <input type="password" placeholder="输入 Client Secret" className={inputCls} value={form.authConfig.client_secret} onChange={(e) => setAuthField('client_secret', e.target.value)} />
+                        {errors.client_secret && <p className={errCls}>{errors.client_secret}</p>}
+                      </div>
+                    </div>
+                  )}
+
+                  {form.authType === 'basic' && (
+                    <div className={`p-4 rounded-xl border space-y-4 ${isDark ? 'bg-white/[0.03] border-white/[0.06]' : 'bg-slate-50/50 border-slate-100'}`}>
+                      <div>
+                        <label className={`${labelCls} mb-1.5 block`}>用户名 <span className="text-red-500">*</span></label>
+                        <input type="text" placeholder="输入用户名" className={inputCls} value={form.authConfig.username} onChange={(e) => setAuthField('username', e.target.value)} />
+                        {errors.username && <p className={errCls}>{errors.username}</p>}
+                      </div>
+                      <div>
+                        <label className={`${labelCls} mb-1.5 block`}>密码 <span className="text-red-500">*</span></label>
+                        <input type="password" placeholder="输入密码" className={inputCls} value={form.authConfig.password} onChange={(e) => setAuthField('password', e.target.value)} />
+                        {errors.password && <p className={errCls}>{errors.password}</p>}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className={`border-t pt-5 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+                    <label className={`${labelCls} mb-1.5 block`}>服务地址</label>
+                    <input type="text" placeholder="https://api.example.com" className={inputCls} value={form.baseUrl} onChange={(e) => setField('baseUrl', e.target.value)} />
                   </div>
                 </div>
-              )}
+              </BentoCard>
 
-              {/* baseUrl */}
-              <div>
-                <label className={labelCls}>服务地址</label>
-                <input
-                  type="text"
-                  placeholder="https://api.example.com"
-                  className={inputCls}
-                  value={form.baseUrl}
-                  onChange={(e) => setField('baseUrl', e.target.value)}
-                />
-              </div>
-
-              {/* Submit error */}
               {errors.submit && (
                 <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
                   <AlertCircle size={16} className="text-red-500 shrink-0" />
@@ -315,22 +252,19 @@ export const ProviderCreate: React.FC<Props> = ({ theme, onBack, onSuccess, show
                 </div>
               )}
 
-              {/* Actions */}
               <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={onBack} className="btn btn-ghost rounded-xl">
-                  取消
-                </button>
+                <button type="button" onClick={onBack} className={btnSecondary(theme)}>取消</button>
                 <button
                   type="button"
                   onClick={handleSubmit}
                   disabled={submitting}
-                  className="btn btn-primary rounded-xl px-8 shadow-lg shadow-blue-500/20"
+                  className={`${btnPrimary} px-8 disabled:opacity-50`}
                 >
                   {submitting ? <span className="loading loading-spinner loading-sm" /> : (isEditMode ? '保存修改' : '提交创建')}
                 </button>
               </div>
             </div>
-          </div>
+          </GlassPanel>
         </div>
       </div>
     </div>

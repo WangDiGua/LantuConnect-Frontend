@@ -1,43 +1,21 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ChevronRight,
-  Plus,
-  Pencil,
-  Trash2,
-  Loader2,
-  FolderTree,
-  School,
-  BookOpen,
-  Users,
-  Building2,
-  GraduationCap,
-  BookMarked,
-  FlaskConical,
-  PenTool,
-  Briefcase,
-  FileText,
-  BarChart3,
-  Workflow,
-  Heart,
-  MapPin,
-  Coffee,
-  Layers,
-  Search,
-  Code2,
-  Tag,
+  ChevronRight, Plus, Pencil, Trash2, Loader2, FolderTree,
+  School, BookOpen, Users, Building2, GraduationCap, BookMarked,
+  FlaskConical, PenTool, Briefcase, FileText, BarChart3, Workflow,
+  Heart, MapPin, Coffee, Layers, Search, Code2, Tag,
   type LucideIcon,
 } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { nativeInputClass, nativeSelectClass } from '../../utils/formFieldClasses';
-import { btnPrimary, btnSecondary } from '../../utils/uiClasses';
+import { btnPrimary, btnSecondary, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { Modal } from '../../components/common/Modal';
+import { BentoCard } from '../../components/common/BentoCard';
 import { categoryService, buildCategoryTree } from '../../api/services/category.service';
 import type {
-  Category,
-  CategoryCreatePayload,
-  CategoryUpdatePayload,
+  Category, CategoryCreatePayload, CategoryUpdatePayload,
 } from '../../types/dto/category';
 
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -51,6 +29,8 @@ const ICON_OPTIONS = Object.keys(ICON_MAP);
 function getIcon(name: string | null): LucideIcon {
   return (name && ICON_MAP[name]) || Tag;
 }
+
+const INPUT_FOCUS = 'focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/40';
 
 interface CategoryManagementProps {
   theme: Theme;
@@ -78,11 +58,12 @@ const emptyForm = (parentId: number | null = null): FormState => ({
 });
 
 export const CategoryManagement: React.FC<CategoryManagementProps> = ({
-  theme,
-  fontSize,
-  showMessage,
+  theme, fontSize, showMessage,
 }) => {
   const isDark = theme === 'dark';
+  const labelCls = `text-sm font-medium ${textSecondary(theme)}`;
+  const inputCls = `${nativeInputClass(theme)} ${INPUT_FOCUS}`;
+  const selectCls = `${nativeSelectClass(theme)} ${INPUT_FOCUS}`;
 
   const [flatList, setFlatList] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -206,10 +187,8 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
     return (
       <div key={node.id}>
         <div
-          className={`group flex items-center gap-2 py-2 px-3 rounded-xl transition-colors cursor-pointer ${
-            isDark
-              ? 'hover:bg-white/5'
-              : 'hover:bg-slate-100/80'
+          className={`group flex items-center gap-2 py-2.5 px-3 rounded-xl transition-colors cursor-pointer ${
+            isDark ? 'hover:bg-white/[0.04]' : 'hover:bg-indigo-50/30'
           }`}
           style={{ paddingLeft: `${depth * 24 + 12}px` }}
         >
@@ -229,26 +208,22 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
             <span className="w-5" />
           )}
 
-          <span
-            className={`shrink-0 w-7 h-7 flex items-center justify-center rounded-lg ${
-              isDark ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-600'
-            }`}
-          >
+          <span className={`shrink-0 w-7 h-7 flex items-center justify-center rounded-lg ${
+            isDark ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-600'
+          }`}>
             <Icon size={15} />
           </span>
 
           <span
-            className={`font-medium text-sm truncate ${isDark ? 'text-white' : 'text-slate-800'}`}
+            className={`font-medium text-sm truncate ${textPrimary(theme)}`}
             onClick={() => hasChildren && toggleExpand(node.id)}
           >
             {node.categoryName}
           </span>
 
-          <span
-            className={`text-xs px-1.5 py-0.5 rounded-lg shrink-0 ${
-              isDark ? 'bg-white/5 text-slate-400' : 'bg-slate-100 text-slate-500'
-            }`}
-          >
+          <span className={`text-xs px-1.5 py-0.5 rounded-lg shrink-0 ${
+            isDark ? 'bg-white/5 text-slate-400' : 'bg-slate-100 text-slate-500'
+          }`}>
             {node.categoryCode}
           </span>
 
@@ -294,10 +269,7 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
 
   const toolbar = (
     <div className="flex items-center gap-2">
-      <button
-        onClick={() => openCreate(null)}
-        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm"
-      >
+      <button onClick={() => openCreate(null)} className={`${btnPrimary} gap-1.5`}>
         <Plus size={15} />
         添加顶级分类
       </button>
@@ -318,16 +290,17 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
         </div>
       ) : tree.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-3 py-16">
-          <FolderTree size={40} className="text-slate-400" />
-          <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>暂无分类</p>
+          <FolderTree size={40} className={textMuted(theme)} />
+          <p className={`text-sm ${textSecondary(theme)}`}>暂无分类</p>
         </div>
       ) : (
-        <div className="p-4 sm:p-6 space-y-0.5">
-          {tree.map((node) => renderNode(node, 0))}
-        </div>
+        <BentoCard theme={theme} padding="md" className="mx-4 sm:mx-6 mb-6">
+          <div className="space-y-0.5">
+            {tree.map((node) => renderNode(node, 0))}
+          </div>
+        </BentoCard>
       )}
 
-      {/* ── Form Modal ── */}
       <Modal
         open={formOpen}
         onClose={() => !saving && setFormOpen(false)}
@@ -337,20 +310,8 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
         closeOnBackdrop={!saving}
         footer={
           <>
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() => setFormOpen(false)}
-              className={`${btnSecondary(theme)} disabled:opacity-50`}
-            >
-              取消
-            </button>
-            <button
-              type="button"
-              disabled={saving}
-              onClick={handleSave}
-              className={`${btnPrimary} inline-flex items-center gap-1.5 disabled:opacity-60`}
-            >
+            <button type="button" disabled={saving} onClick={() => setFormOpen(false)} className={`${btnSecondary(theme)} disabled:opacity-50`}>取消</button>
+            <button type="button" disabled={saving} onClick={handleSave} className={`${btnPrimary} inline-flex items-center gap-1.5 disabled:opacity-60`}>
               {saving && <Loader2 size={14} className="animate-spin" />}
               {form.mode === 'create' ? '创建' : '保存'}
             </button>
@@ -359,49 +320,25 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
       >
         <div className="space-y-4">
           <div>
-            <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-              分类名称 <span className="text-rose-500">*</span>
-            </label>
-            <input
-              className={nativeInputClass(theme)}
-              placeholder="例：校园业务"
-              value={form.categoryName}
-              onChange={(e) => setForm((p) => ({ ...p, categoryName: e.target.value }))}
-            />
+            <label className={`${labelCls} mb-1.5 block`}>分类名称 <span className="text-rose-500">*</span></label>
+            <input className={inputCls} placeholder="例：校园业务" value={form.categoryName} onChange={(e) => setForm((p) => ({ ...p, categoryName: e.target.value }))} />
           </div>
 
           <div>
-            <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-              分类编码 <span className="text-rose-500">*</span>
-            </label>
-            <input
-              className={nativeInputClass(theme)}
-              placeholder="例：campus-business"
-              value={form.categoryCode}
-              onChange={(e) => setForm((p) => ({ ...p, categoryCode: e.target.value }))}
-            />
+            <label className={`${labelCls} mb-1.5 block`}>分类编码 <span className="text-rose-500">*</span></label>
+            <input className={inputCls} placeholder="例：campus-business" value={form.categoryCode} onChange={(e) => setForm((p) => ({ ...p, categoryCode: e.target.value }))} />
           </div>
 
           <div>
-            <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-              上级分类
-            </label>
-            <select
-              className={nativeSelectClass(theme)}
-              value={form.parentId ?? ''}
-              onChange={(e) => setForm((p) => ({ ...p, parentId: e.target.value ? Number(e.target.value) : null }))}
-            >
+            <label className={`${labelCls} mb-1.5 block`}>上级分类</label>
+            <select className={selectCls} value={form.parentId ?? ''} onChange={(e) => setForm((p) => ({ ...p, parentId: e.target.value ? Number(e.target.value) : null }))}>
               <option value="">无（顶级分类）</option>
-              {topLevelCategories.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
+              {topLevelCategories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
 
           <div>
-            <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-              图标
-            </label>
+            <label className={`${labelCls} mb-1.5 block`}>图标</label>
             <div className="flex flex-wrap gap-1.5">
               {ICON_OPTIONS.map((name) => {
                 const Ic = ICON_MAP[name];
@@ -414,7 +351,7 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
                     title={name}
                     className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all ${
                       selected
-                        ? 'bg-blue-600 text-white shadow-sm'
+                        ? 'bg-indigo-600 text-white shadow-sm'
                         : isDark
                           ? 'bg-white/5 text-slate-400 hover:bg-white/10'
                           : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
@@ -428,21 +365,12 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
           </div>
 
           <div>
-            <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-              排序号
-            </label>
-            <input
-              type="number"
-              className={nativeInputClass(theme)}
-              value={form.sortOrder}
-              min={0}
-              onChange={(e) => setForm((p) => ({ ...p, sortOrder: Number(e.target.value) || 0 }))}
-            />
+            <label className={`${labelCls} mb-1.5 block`}>排序号</label>
+            <input type="number" className={inputCls} value={form.sortOrder} min={0} onChange={(e) => setForm((p) => ({ ...p, sortOrder: Number(e.target.value) || 0 }))} />
           </div>
         </div>
       </Modal>
 
-      {/* ── Confirm Delete ── */}
       <ConfirmDialog
         open={!!deleteTarget}
         title="删除分类"

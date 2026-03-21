@@ -3,9 +3,10 @@ import { AlertTriangle, Zap, RotateCcw, Loader2 } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { nativeInputClass, nativeSelectClass } from '../../utils/formFieldClasses';
-import { btnPrimary, btnSecondary, btnGhost, tableHeadCell, tableBodyRow } from '../../utils/uiClasses';
+import { btnPrimary, btnSecondary, btnGhost, tableHeadCell, tableBodyRow, tableCell, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
 import { Modal } from '../../components/common/Modal';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
+import { BentoCard } from '../../components/common/BentoCard';
 import { healthService } from '../../api/services/health.service';
 import type { CircuitBreakerItem } from '../../types/dto/health';
 
@@ -17,6 +18,8 @@ interface Props {
 
 type CBState = 'CLOSED' | 'OPEN' | 'HALF_OPEN';
 
+const INPUT_FOCUS = 'focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/40';
+
 const STATE_CFG: Record<CBState, { label: string; light: string; dark: string }> = {
   CLOSED:    { label: '正常',   light: 'bg-emerald-100 text-emerald-800', dark: 'bg-emerald-500/20 text-emerald-300' },
   OPEN:      { label: '已熔断', light: 'bg-red-100 text-red-800',         dark: 'bg-red-500/20 text-red-300' },
@@ -25,23 +28,20 @@ const STATE_CFG: Record<CBState, { label: string; light: string; dark: string }>
 
 export const CircuitBreakerPage: React.FC<Props> = ({ theme, fontSize, showMessage }) => {
   const isDark = theme === 'dark';
+  const inputCls = `${nativeInputClass(theme)} ${INPUT_FOCUS}`;
+  const labelCls = `text-sm font-medium ${textSecondary(theme)}`;
+
   const [data, setData] = useState<CircuitBreakerItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [draft, setDraft] = useState<Partial<CircuitBreakerItem>>({});
   const [confirmAction, setConfirmAction] = useState<{ id: number; action: 'trip' | 'reset' } | null>(null);
 
-  const sel = nativeSelectClass(theme);
-  const inp = nativeInputClass(theme);
-
   const fetchData = useCallback(() => {
     setLoading(true);
     healthService.listCircuitBreakers()
       .then(items => setData(items))
-      .catch(err => {
-        console.error(err);
-        showMessage('加载熔断配置失败', 'error');
-      })
+      .catch(err => { console.error(err); showMessage('加载熔断配置失败', 'error'); })
       .finally(() => setLoading(false));
   }, [showMessage]);
 
@@ -61,34 +61,18 @@ export const CircuitBreakerPage: React.FC<Props> = ({ theme, fontSize, showMessa
   const saveEdit = () => {
     if (editingId == null) return;
     healthService.updateCircuitBreaker(editingId, draft)
-      .then(() => {
-        setEditingId(null);
-        showMessage('熔断配置已保存', 'success');
-        fetchData();
-      })
-      .catch(err => {
-        console.error(err);
-        showMessage('保存失败', 'error');
-      });
+      .then(() => { setEditingId(null); showMessage('熔断配置已保存', 'success'); fetchData(); })
+      .catch(err => { console.error(err); showMessage('保存失败', 'error'); });
   };
 
   const executeAction = () => {
     if (!confirmAction) return;
     const { id, action } = confirmAction;
-    const apiCall = action === 'trip'
-      ? healthService.manualBreak(id)
-      : healthService.manualRecover(id);
+    const apiCall = action === 'trip' ? healthService.manualBreak(id) : healthService.manualRecover(id);
 
     apiCall
-      .then(() => {
-        setConfirmAction(null);
-        showMessage(action === 'trip' ? '已手动熔断' : '已手动恢复', action === 'trip' ? 'info' : 'success');
-        fetchData();
-      })
-      .catch(err => {
-        console.error(err);
-        showMessage('操作失败', 'error');
-      });
+      .then(() => { setConfirmAction(null); showMessage(action === 'trip' ? '已手动熔断' : '已手动恢复', action === 'trip' ? 'info' : 'success'); fetchData(); })
+      .catch(err => { console.error(err); showMessage('操作失败', 'error'); });
   };
 
   const confirmItem = confirmAction ? data.find((r) => r.id === confirmAction.id) : null;
@@ -98,83 +82,82 @@ export const CircuitBreakerPage: React.FC<Props> = ({ theme, fontSize, showMessa
       <div className="min-w-0 px-4 sm:px-6 pb-6 pt-4">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-16">
-            <Loader2 size={32} className={`animate-spin ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
-            <p className={`mt-3 text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>加载中…</p>
+            <Loader2 size={32} className="animate-spin text-slate-400" />
+            <p className={`mt-3 text-sm ${textSecondary(theme)}`}>加载中…</p>
           </div>
         ) : (
           <>
-            {/* Summary cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
               {([['CLOSED', '正常运行'], ['OPEN', '已熔断'], ['HALF_OPEN', '探测中']] as [CBState, string][]).map(([state, label]) => {
                 const count = data.filter((r) => r.currentState === state).length;
                 const cfg = STATE_CFG[state];
                 return (
-                  <div key={state} className={`rounded-2xl border px-4 py-3 ${isDark ? 'bg-[#2C2C2E]/60 border-white/10' : 'bg-white border-slate-200/80'}`}>
-                    <div className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{label}</div>
+                  <BentoCard key={state} theme={theme} padding="sm">
+                    <div className={`text-xs font-medium ${textMuted(theme)}`}>{label}</div>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{count}</span>
+                      <span className={`text-2xl font-bold ${textPrimary(theme)}`}>{count}</span>
                       <span className={`inline-flex px-2 py-0.5 rounded-lg text-[11px] font-medium ${isDark ? cfg.dark : cfg.light}`}>{cfg.label}</span>
                     </div>
-                  </div>
+                  </BentoCard>
                 );
               })}
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm min-w-[960px]">
-                <thead>
-                  <tr>
-                    {['名称', '状态', '失败阈值', '熔断时长(s)', '降级 Agent', '最近熔断', '统计', '操作'].map((h) => (
-                      <th key={h} className={tableHeadCell(theme)}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.map((r, i) => {
-                    const stCfg = STATE_CFG[r.currentState];
-                    return (
-                      <tr key={r.id} className={tableBodyRow(theme, i)}>
-                        <td className={`px-4 py-3 ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
-                          <div className="font-medium">{r.displayName}</div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`inline-flex px-2.5 py-1 rounded-lg text-xs font-semibold ${isDark ? stCfg.dark : stCfg.light}`}>
-                            {stCfg.label}
-                          </span>
-                        </td>
-                        <td className={`px-4 py-3 text-center ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{r.failureThreshold}</td>
-                        <td className={`px-4 py-3 text-center ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{r.openDurationSec}</td>
-                        <td className={`px-4 py-3 text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{r.fallbackAgentName ?? '—'}</td>
-                        <td className={`px-4 py-3 text-xs whitespace-nowrap ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>{r.lastOpenedAt ?? '—'}</td>
-                        <td className="px-4 py-3">
-                          <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                            <span className="text-emerald-500 font-medium">{r.successCount}</span>
-                            <span className="mx-1">/</span>
-                            <span className="text-red-500 font-medium">{r.failureCount}</span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <button type="button" onClick={() => openEdit(r)} className={btnGhost(theme)}>
-                              配置
-                            </button>
-                            {r.currentState !== 'OPEN' ? (
-                              <button type="button" onClick={() => setConfirmAction({ id: r.id, action: 'trip' })} className="p-1.5 rounded-xl text-red-500 hover:bg-red-500/10 transition-colors" title="手动熔断">
-                                <Zap size={15} />
-                              </button>
-                            ) : (
-                              <button type="button" onClick={() => setConfirmAction({ id: r.id, action: 'reset' })} className="p-1.5 rounded-xl text-emerald-500 hover:bg-emerald-500/10 transition-colors" title="手动恢复">
-                                <RotateCcw size={15} />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <BentoCard theme={theme} padding="sm" className="overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm min-w-[960px]">
+                  <thead>
+                    <tr>
+                      {['名称', '状态', '失败阈值', '熔断时长(s)', '降级 Agent', '最近熔断', '统计', '操作'].map((h) => (
+                        <th key={h} className={tableHeadCell(theme)}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.map((r, i) => {
+                      const stCfg = STATE_CFG[r.currentState];
+                      return (
+                        <tr key={r.id} className={tableBodyRow(theme, i)}>
+                          <td className={`${tableCell()} ${textPrimary(theme)}`}>
+                            <div className="font-medium">{r.displayName}</div>
+                          </td>
+                          <td className={tableCell()}>
+                            <span className={`inline-flex px-2.5 py-1 rounded-lg text-xs font-semibold ${isDark ? stCfg.dark : stCfg.light}`}>
+                              {stCfg.label}
+                            </span>
+                          </td>
+                          <td className={`${tableCell()} text-center ${textMuted(theme)}`}>{r.failureThreshold}</td>
+                          <td className={`${tableCell()} text-center ${textMuted(theme)}`}>{r.openDurationSec}</td>
+                          <td className={`${tableCell()} text-xs ${textMuted(theme)}`}>{r.fallbackAgentName ?? '—'}</td>
+                          <td className={`${tableCell()} text-xs whitespace-nowrap ${textMuted(theme)}`}>{r.lastOpenedAt ?? '—'}</td>
+                          <td className={tableCell()}>
+                            <div className={`text-xs ${textMuted(theme)}`}>
+                              <span className="text-emerald-500 font-medium">{r.successCount}</span>
+                              <span className="mx-1">/</span>
+                              <span className="text-red-500 font-medium">{r.failureCount}</span>
+                            </div>
+                          </td>
+                          <td className={tableCell()}>
+                            <div className="flex items-center gap-2">
+                              <button type="button" onClick={() => openEdit(r)} className={btnGhost(theme)}>配置</button>
+                              {r.currentState !== 'OPEN' ? (
+                                <button type="button" onClick={() => setConfirmAction({ id: r.id, action: 'trip' })} className="p-1.5 rounded-xl text-red-500 hover:bg-red-500/10 transition-colors" title="手动熔断">
+                                  <Zap size={15} />
+                                </button>
+                              ) : (
+                                <button type="button" onClick={() => setConfirmAction({ id: r.id, action: 'reset' })} className="p-1.5 rounded-xl text-emerald-500 hover:bg-emerald-500/10 transition-colors" title="手动恢复">
+                                  <RotateCcw size={15} />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </BentoCard>
           </>
         )}
       </div>
@@ -195,25 +178,25 @@ export const CircuitBreakerPage: React.FC<Props> = ({ theme, fontSize, showMessa
         <div className="space-y-4">
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>失败阈值</label>
-              <input type="number" className={inp} value={draft.failureThreshold ?? 5} onChange={(e) => setDraft((p) => ({ ...p, failureThreshold: Number(e.target.value) }))} />
+              <label className={`${labelCls} mb-1.5 block`}>失败阈值</label>
+              <input type="number" className={inputCls} value={draft.failureThreshold ?? 5} onChange={(e) => setDraft((p) => ({ ...p, failureThreshold: Number(e.target.value) }))} />
             </div>
             <div>
-              <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>熔断时长(s)</label>
-              <input type="number" className={inp} value={draft.openDurationSec ?? 30} onChange={(e) => setDraft((p) => ({ ...p, openDurationSec: Number(e.target.value) }))} />
+              <label className={`${labelCls} mb-1.5 block`}>熔断时长(s)</label>
+              <input type="number" className={inputCls} value={draft.openDurationSec ?? 30} onChange={(e) => setDraft((p) => ({ ...p, openDurationSec: Number(e.target.value) }))} />
             </div>
             <div>
-              <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>半开最大调用</label>
-              <input type="number" className={inp} value={draft.halfOpenMaxCalls ?? 3} onChange={(e) => setDraft((p) => ({ ...p, halfOpenMaxCalls: Number(e.target.value) }))} />
+              <label className={`${labelCls} mb-1.5 block`}>半开最大调用</label>
+              <input type="number" className={inputCls} value={draft.halfOpenMaxCalls ?? 3} onChange={(e) => setDraft((p) => ({ ...p, halfOpenMaxCalls: Number(e.target.value) }))} />
             </div>
           </div>
           <div>
-            <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>降级 Agent</label>
-            <input className={inp} value={draft.fallbackAgentName ?? ''} onChange={(e) => setDraft((p) => ({ ...p, fallbackAgentName: e.target.value || null }))} placeholder="降级 Agent 名称（留空不降级）" />
+            <label className={`${labelCls} mb-1.5 block`}>降级 Agent</label>
+            <input className={inputCls} value={draft.fallbackAgentName ?? ''} onChange={(e) => setDraft((p) => ({ ...p, fallbackAgentName: e.target.value || null }))} placeholder="降级 Agent 名称（留空不降级）" />
           </div>
           <div>
-            <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>降级提示消息</label>
-            <textarea className={`${inp} min-h-[80px] resize-y`} value={draft.fallbackMessage ?? ''} onChange={(e) => setDraft((p) => ({ ...p, fallbackMessage: e.target.value }))} />
+            <label className={`${labelCls} mb-1.5 block`}>降级提示消息</label>
+            <textarea className={`${inputCls} min-h-[80px] resize-y`} value={draft.fallbackMessage ?? ''} onChange={(e) => setDraft((p) => ({ ...p, fallbackMessage: e.target.value }))} />
           </div>
         </div>
       </Modal>

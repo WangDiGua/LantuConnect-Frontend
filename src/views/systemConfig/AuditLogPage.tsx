@@ -8,6 +8,7 @@ import { ContentLoader } from '../../components/common/ContentLoader';
 import { PageError } from '../../components/common/PageError';
 import { EmptyState } from '../../components/common/EmptyState';
 import { DataTable, SearchInput, FilterSelect, type Column } from '../../components/common';
+import { btnSecondary, textSecondary, textMuted } from '../../utils/uiClasses';
 import type { AuditLogEntry } from '../../types/dto/system-config';
 
 interface AuditLogPageProps {
@@ -18,14 +19,10 @@ interface AuditLogPageProps {
 }
 
 const PAGE_SIZE = 20;
-
 const ACTION_OPTIONS = ['全部', 'CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'EXPORT', 'DEPLOY'];
 
 export const AuditLogPage: React.FC<AuditLogPageProps> = ({
-  theme,
-  fontSize,
-  showMessage,
-  breadcrumbSegments,
+  theme, fontSize, showMessage, breadcrumbSegments,
 }) => {
   const isDark = theme === 'dark';
   const [search, setSearch] = useState('');
@@ -93,12 +90,7 @@ export const AuditLogPage: React.FC<AuditLogPageProps> = ({
       toolbar={
         <div className={TOOLBAR_ROW}>
           <div className="flex-1 min-w-0 sm:max-w-md">
-            <SearchInput
-              value={search}
-              onChange={setSearch}
-              placeholder="操作者、动作、资源、IP…"
-              theme={theme}
-            />
+            <SearchInput value={search} onChange={setSearch} placeholder="操作者、动作、资源、IP…" theme={theme} />
           </div>
           <FilterSelect
             value={actionFilter}
@@ -112,18 +104,14 @@ export const AuditLogPage: React.FC<AuditLogPageProps> = ({
               type="checkbox"
               checked={onlyFail}
               onChange={(e) => setOnlyFail(e.target.checked)}
-              className="rounded border-slate-300"
+              className="toggle toggle-primary toggle-sm"
             />
-            <span className={`text-sm whitespace-nowrap ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>仅失败</span>
+            <span className={`text-sm whitespace-nowrap ${textSecondary(theme)}`}>仅失败</span>
           </label>
           <button
             type="button"
             onClick={exportCsv}
-            className={`inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium border shrink-0 min-h-[2.5rem] ${
-              isDark
-                ? 'border-white/10 text-slate-200 hover:bg-white/5'
-                : 'border-slate-200 text-slate-700 hover:bg-slate-50'
-            }`}
+            className={`${btnSecondary(theme)} gap-1.5 shrink-0`}
           >
             <Download size={16} />
             导出 CSV
@@ -142,18 +130,14 @@ export const AuditLogPage: React.FC<AuditLogPageProps> = ({
                   key: 'time',
                   label: '时间',
                   render: (value, row) => (
-                    <span className="text-xs font-mono whitespace-nowrap">
-                      {value || row.createdAt}
-                    </span>
+                    <span className="text-xs font-mono whitespace-nowrap">{value || row.createdAt}</span>
                   ),
                 },
                 {
                   key: 'operator',
                   label: '操作者',
                   render: (value, row) => (
-                    <span className="max-w-[180px] truncate" title={String(value || row.username)}>
-                      {value || row.username}
-                    </span>
+                    <span className="max-w-[180px] truncate" title={String(value || row.username)}>{value || row.username}</span>
                   ),
                 },
                 {
@@ -165,9 +149,7 @@ export const AuditLogPage: React.FC<AuditLogPageProps> = ({
                   key: 'resource',
                   label: '资源',
                   render: (value) => (
-                    <span className="max-w-[200px] truncate font-mono text-xs" title={String(value)}>
-                      {value}
-                    </span>
+                    <span className="max-w-[200px] truncate font-mono text-xs" title={String(value)}>{value}</span>
                   ),
                 },
                 {
@@ -179,13 +161,11 @@ export const AuditLogPage: React.FC<AuditLogPageProps> = ({
                   key: 'result',
                   label: '结果',
                   render: (value) => (
-                    <span
-                      className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
-                        value === 'success'
-                          ? isDark ? 'bg-emerald-500/20 text-emerald-300' : 'bg-emerald-100 text-emerald-800'
-                          : isDark ? 'bg-red-500/20 text-red-300' : 'bg-red-100 text-red-800'
-                      }`}
-                    >
+                    <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
+                      value === 'success'
+                        ? isDark ? 'bg-emerald-500/20 text-emerald-300' : 'bg-emerald-100 text-emerald-800'
+                        : isDark ? 'bg-red-500/20 text-red-300' : 'bg-red-100 text-red-800'
+                    }`}>
                       {value === 'success' ? '成功' : '失败'}
                     </span>
                   ),

@@ -6,7 +6,8 @@ import { TOOLBAR_ROW, toolbarSearchInputClass } from '../../utils/toolbarFieldCl
 import { Search, Plus, Save, Trash2, Cpu, Power, Loader2 } from 'lucide-react';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { Modal } from '../../components/common/Modal';
-import { btnPrimary, btnSecondary } from '../../utils/uiClasses';
+import { BentoCard } from '../../components/common/BentoCard';
+import { btnPrimary, btnSecondary, tableHeadCell, tableBodyRow, tableCell, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
 import { systemConfigService } from '../../api/services/system-config.service';
 import type { ModelConfig, CreateModelConfigDTO } from '../../types/dto/system-config';
 
@@ -18,6 +19,7 @@ interface ModelConfigPageProps {
 }
 
 const MODEL_TYPE_LABEL: Record<string, string> = { chat: '对话', embedding: '向量', image: '图像' };
+const INPUT_FOCUS = 'focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/40';
 
 const emptyDraft = (): Omit<CreateModelConfigDTO, 'apiKey'> & { enabled: boolean } => ({
   name: '',
@@ -29,10 +31,7 @@ const emptyDraft = (): Omit<CreateModelConfigDTO, 'apiKey'> & { enabled: boolean
 });
 
 export const ModelConfigPage: React.FC<ModelConfigPageProps> = ({
-  theme,
-  fontSize,
-  showMessage,
-  breadcrumbSegments,
+  theme, fontSize, showMessage, breadcrumbSegments,
 }) => {
   const isDark = theme === 'dark';
   const [models, setModels] = useState<ModelConfig[]>([]);
@@ -43,9 +42,9 @@ export const ModelConfigPage: React.FC<ModelConfigPageProps> = ({
   const [draft, setDraft] = useState(emptyDraft());
   const [deleteTarget, setDeleteTarget] = useState<ModelConfig | null>(null);
 
-  const input = nativeInputClass(theme);
-  const sel = nativeSelectClass(theme);
-  const labelCls = `block text-xs font-medium mb-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`;
+  const inputCls = `${nativeInputClass(theme)} ${INPUT_FOCUS}`;
+  const selectCls = `${nativeSelectClass(theme)} ${INPUT_FOCUS}`;
+  const labelCls = `text-sm font-medium ${textSecondary(theme)}`;
 
   const fetchModels = useCallback(async () => {
     setLoading(true);
@@ -65,19 +64,11 @@ export const ModelConfigPage: React.FC<ModelConfigPageProps> = ({
     const q = search.trim().toLowerCase();
     return models.filter((r) => {
       if (!q) return true;
-      return (
-        r.name.toLowerCase().includes(q) ||
-        r.provider.toLowerCase().includes(q) ||
-        r.modelId.toLowerCase().includes(q)
-      );
+      return r.name.toLowerCase().includes(q) || r.provider.toLowerCase().includes(q) || r.modelId.toLowerCase().includes(q);
     });
   }, [models, search]);
 
-  const openCreate = () => {
-    setEditingId(null);
-    setDraft(emptyDraft());
-    setModalOpen(true);
-  };
+  const openCreate = () => { setEditingId(null); setDraft(emptyDraft()); setModalOpen(true); };
 
   const openEdit = (r: ModelConfig) => {
     setEditingId(r.id);
@@ -92,11 +83,8 @@ export const ModelConfigPage: React.FC<ModelConfigPageProps> = ({
     }
     try {
       const payload: CreateModelConfigDTO = {
-        name: draft.name.trim(),
-        provider: draft.provider,
-        modelId: draft.modelId.trim(),
-        endpoint: draft.endpoint.trim(),
-        maxTokens: draft.maxTokens,
+        name: draft.name.trim(), provider: draft.provider, modelId: draft.modelId.trim(),
+        endpoint: draft.endpoint.trim(), maxTokens: draft.maxTokens,
       };
       if (editingId) {
         await systemConfigService.updateModelConfig(editingId, payload);
@@ -147,10 +135,10 @@ export const ModelConfigPage: React.FC<ModelConfigPageProps> = ({
       toolbar={
         <div className={TOOLBAR_ROW}>
           <div className="relative flex-1 min-w-0 sm:max-w-md">
-            <Search className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${isDark ? 'text-slate-500' : 'text-slate-400'}`} size={16} />
+            <Search className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${textMuted(theme)}`} size={16} />
             <input type="search" placeholder="搜索名称、提供方、模型 ID…" value={search} onChange={(e) => setSearch(e.target.value)} className={toolbarSearchInputClass(theme)} />
           </div>
-          <button type="button" onClick={openCreate} className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 min-h-[2.5rem] shrink-0">
+          <button type="button" onClick={openCreate} className={`${btnPrimary} gap-1.5 shrink-0`}>
             <Plus size={16} />
             新增配置
           </button>
@@ -163,61 +151,58 @@ export const ModelConfigPage: React.FC<ModelConfigPageProps> = ({
             <Loader2 size={24} className="animate-spin text-slate-400" />
           </div>
         ) : filtered.length === 0 ? (
-          <p className={`text-center py-12 text-sm ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-            暂无匹配模型配置
-          </p>
+          <p className={`text-center py-12 text-sm ${textMuted(theme)}`}>暂无匹配模型配置</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm min-w-[960px]">
-              <thead>
-                <tr className={`border-b ${isDark ? 'border-white/10 bg-[#2C2C2E]/80' : 'border-slate-200 bg-slate-50'}`}>
-                  <th className={`px-4 py-3 font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>模型名称</th>
-                  <th className={`px-4 py-3 font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>提供商</th>
-                  <th className={`px-4 py-3 font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>模型 ID</th>
-                  <th className={`px-4 py-3 font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>类型</th>
-                  <th className={`px-4 py-3 font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>状态</th>
-                  <th className={`px-4 py-3 font-semibold text-right ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((r, i) => {
-                  const mt = modelType(r);
-                  return (
-                    <tr key={r.id} className={`border-b transition-colors ${isDark ? `border-white/5 ${i % 2 === 0 ? 'bg-[#1C1C1E]' : 'bg-[#2C2C2E]/40'} hover:bg-white/5` : `border-slate-100 ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50/80'} hover:bg-slate-100/80`}`}>
-                      <td className={`px-4 py-3 font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>{r.name}</td>
-                      <td className={`px-4 py-3 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{r.provider}</td>
-                      <td className={`px-4 py-3 font-mono text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{r.modelId}</td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
-                          mt === 'chat' ? (isDark ? 'bg-blue-500/15 text-blue-400' : 'bg-blue-100 text-blue-700')
-                          : mt === 'embedding' ? (isDark ? 'bg-purple-500/15 text-purple-400' : 'bg-purple-100 text-purple-700')
-                          : (isDark ? 'bg-amber-500/15 text-amber-400' : 'bg-amber-100 text-amber-700')
-                        }`}>
-                          {MODEL_TYPE_LABEL[mt] ?? mt}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${r.enabled ? (isDark ? 'bg-emerald-500/20 text-emerald-300' : 'bg-emerald-100 text-emerald-800') : (isDark ? 'bg-slate-600/40 text-slate-300' : 'bg-slate-200 text-slate-700')}`}>
-                          {r.enabled ? '启用' : '停用'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="inline-flex flex-wrap justify-end gap-1">
-                          <button type="button" onClick={() => toggleEnabled(r.id)} className={`p-1.5 rounded-xl ${isDark ? 'text-slate-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'}`} title={r.enabled ? '停用' : '启用'}>
-                            <Power size={16} />
-                          </button>
-                          <button type="button" onClick={() => openEdit(r)} className={`px-2 py-1 rounded-xl text-xs font-medium ${isDark ? 'text-blue-400 hover:bg-white/10' : 'text-blue-600 hover:bg-blue-50'}`}>编辑</button>
-                          <button type="button" onClick={() => setDeleteTarget(r)} className={`p-1.5 rounded-xl ${isDark ? 'text-red-400 hover:bg-white/10' : 'text-red-600 hover:bg-red-50'}`}>
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <BentoCard theme={theme} padding="sm" className="overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm min-w-[960px]">
+                <thead>
+                  <tr>
+                    {['模型名称', '提供商', '模型 ID', '类型', '状态', '操作'].map((h, i) => (
+                      <th key={h} className={`${tableHeadCell(theme)} ${i === 5 ? 'text-right' : ''}`}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((r, i) => {
+                    const mt = modelType(r);
+                    return (
+                      <tr key={r.id} className={tableBodyRow(theme, i)}>
+                        <td className={`${tableCell()} font-medium ${textPrimary(theme)}`}>{r.name}</td>
+                        <td className={`${tableCell()} ${textSecondary(theme)}`}>{r.provider}</td>
+                        <td className={`${tableCell()} font-mono text-xs ${textMuted(theme)}`}>{r.modelId}</td>
+                        <td className={tableCell()}>
+                          <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
+                            mt === 'chat' ? (isDark ? 'bg-blue-500/15 text-blue-400' : 'bg-blue-100 text-blue-700')
+                            : mt === 'embedding' ? (isDark ? 'bg-purple-500/15 text-purple-400' : 'bg-purple-100 text-purple-700')
+                            : (isDark ? 'bg-amber-500/15 text-amber-400' : 'bg-amber-100 text-amber-700')
+                          }`}>
+                            {MODEL_TYPE_LABEL[mt] ?? mt}
+                          </span>
+                        </td>
+                        <td className={tableCell()}>
+                          <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${r.enabled ? (isDark ? 'bg-emerald-500/20 text-emerald-300' : 'bg-emerald-100 text-emerald-800') : (isDark ? 'bg-slate-600/40 text-slate-300' : 'bg-slate-200 text-slate-700')}`}>
+                            {r.enabled ? '启用' : '停用'}
+                          </span>
+                        </td>
+                        <td className={`${tableCell()} text-right`}>
+                          <div className="inline-flex flex-wrap justify-end gap-1">
+                            <button type="button" onClick={() => toggleEnabled(r.id)} className={`p-1.5 rounded-xl ${isDark ? 'text-slate-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'}`} title={r.enabled ? '停用' : '启用'}>
+                              <Power size={16} />
+                            </button>
+                            <button type="button" onClick={() => openEdit(r)} className={`px-2 py-1 rounded-xl text-xs font-medium ${isDark ? 'text-indigo-400 hover:bg-white/10' : 'text-indigo-600 hover:bg-indigo-50'}`}>编辑</button>
+                            <button type="button" onClick={() => setDeleteTarget(r)} className={`p-1.5 rounded-xl ${isDark ? 'text-red-400 hover:bg-white/10' : 'text-red-600 hover:bg-red-50'}`}>
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </BentoCard>
         )}
       </div>
 
@@ -230,8 +215,8 @@ export const ModelConfigPage: React.FC<ModelConfigPageProps> = ({
         footer={
           <>
             <button className={btnSecondary(theme)} onClick={() => setModalOpen(false)}>取消</button>
-            <button className={btnPrimary} onClick={saveForm}>
-              <Save size={16} className="inline mr-1" />
+            <button className={`${btnPrimary} inline-flex items-center gap-1.5`} onClick={saveForm}>
+              <Save size={16} />
               保存
             </button>
           </>
@@ -239,12 +224,12 @@ export const ModelConfigPage: React.FC<ModelConfigPageProps> = ({
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className={labelCls}>显示名称</label>
-            <input className={input} value={draft.name} onChange={(e) => setDraft(d => ({ ...d, name: e.target.value }))} placeholder="如 GPT-4.1" />
+            <label className={`${labelCls} mb-1.5 block`}>显示名称</label>
+            <input className={inputCls} value={draft.name} onChange={(e) => setDraft(d => ({ ...d, name: e.target.value }))} placeholder="如 GPT-4.1" />
           </div>
           <div>
-            <label className={labelCls}>提供商</label>
-            <select className={sel} value={draft.provider} onChange={(e) => setDraft(d => ({ ...d, provider: e.target.value }))}>
+            <label className={`${labelCls} mb-1.5 block`}>提供商</label>
+            <select className={selectCls} value={draft.provider} onChange={(e) => setDraft(d => ({ ...d, provider: e.target.value }))}>
               <option>OpenAI</option>
               <option>阿里云百炼</option>
               <option>百度千帆</option>
@@ -253,21 +238,21 @@ export const ModelConfigPage: React.FC<ModelConfigPageProps> = ({
             </select>
           </div>
           <div>
-            <label className={labelCls}>模型 ID</label>
-            <input className={input} value={draft.modelId} onChange={(e) => setDraft(d => ({ ...d, modelId: e.target.value }))} placeholder="如 gpt-4.1-mini" />
+            <label className={`${labelCls} mb-1.5 block`}>模型 ID</label>
+            <input className={inputCls} value={draft.modelId} onChange={(e) => setDraft(d => ({ ...d, modelId: e.target.value }))} placeholder="如 gpt-4.1-mini" />
           </div>
           <div>
-            <label className={labelCls}>Max Tokens</label>
-            <input className={input} type="number" value={draft.maxTokens} onChange={(e) => setDraft(d => ({ ...d, maxTokens: Number(e.target.value) || 0 }))} />
+            <label className={`${labelCls} mb-1.5 block`}>Max Tokens</label>
+            <input className={inputCls} type="number" value={draft.maxTokens} onChange={(e) => setDraft(d => ({ ...d, maxTokens: Number(e.target.value) || 0 }))} />
           </div>
           <div className="sm:col-span-2">
-            <label className={labelCls}>API Base / 接入地址</label>
-            <input className={input} value={draft.endpoint} onChange={(e) => setDraft(d => ({ ...d, endpoint: e.target.value }))} placeholder="https://..." />
+            <label className={`${labelCls} mb-1.5 block`}>API Base / 接入地址</label>
+            <input className={inputCls} value={draft.endpoint} onChange={(e) => setDraft(d => ({ ...d, endpoint: e.target.value }))} placeholder="https://..." />
           </div>
           <div className="flex items-end pb-1">
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={draft.enabled} onChange={(e) => setDraft(d => ({ ...d, enabled: e.target.checked }))} className="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
-              <span className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>启用</span>
+              <input type="checkbox" checked={draft.enabled} onChange={(e) => setDraft(d => ({ ...d, enabled: e.target.checked }))} className="toggle toggle-primary toggle-sm" />
+              <span className={`text-sm ${textSecondary(theme)}`}>启用</span>
             </label>
           </div>
         </div>

@@ -4,6 +4,9 @@ import type { Theme, FontSize } from '../../types';
 import type { Dataset, DatasetCreatePayload, DatasetSourceType, DatasetDataType } from '../../types/dto/dataset';
 import { datasetService } from '../../api/services/dataset.service';
 import { nativeInputClass, nativeSelectClass } from '../../utils/formFieldClasses';
+import { btnPrimary, btnSecondary, btnGhost, pageBg, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import { GlassPanel } from '../../components/common/GlassPanel';
+import { BentoCard } from '../../components/common/BentoCard';
 
 interface DatasetCreateProps {
   theme: Theme;
@@ -14,11 +17,18 @@ interface DatasetCreateProps {
   editDataset?: Dataset;
 }
 
+const INPUT_FOCUS = 'focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/40';
+
 export const DatasetCreate: React.FC<DatasetCreateProps> = ({ theme, onBack, onSuccess, showMessage, editDataset }) => {
   const isDark = theme === 'dark';
   const isEditMode = !!editDataset;
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const labelCls = `text-sm font-medium ${textSecondary(theme)}`;
+  const inputCls = `${nativeInputClass(theme)} ${INPUT_FOCUS}`;
+  const selectCls = `${nativeSelectClass(theme)} ${INPUT_FOCUS}`;
+
   const [formData, setFormData] = useState<DatasetCreatePayload>(() => {
     if (editDataset) {
       return {
@@ -87,189 +97,155 @@ export const DatasetCreate: React.FC<DatasetCreateProps> = ({ theme, onBack, onS
   };
 
   return (
-    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${isDark ? 'bg-[#000000]' : 'bg-[#F2F2F7]'}`}>
-      <div className={`shrink-0 z-20 border-b px-4 sm:px-6 py-4 flex items-center gap-4 ${
-        isDark ? 'border-white/10 bg-[#000000]' : 'border-slate-200/80 bg-[#F2F2F7]'
+    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${pageBg(theme)}`}>
+      <div className={`shrink-0 z-20 border-b px-4 sm:px-6 py-4 flex items-center gap-4 backdrop-blur-xl ${
+        isDark ? 'border-white/[0.06] bg-[#0c0f17]/80' : 'border-slate-200/40 bg-white/80'
       }`}>
-        <button type="button" onClick={onBack} className="btn btn-ghost btn-sm btn-circle">
+        <button type="button" onClick={onBack} className={btnGhost(theme)}>
           <ArrowLeft size={20} />
         </button>
-        <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{isEditMode ? '编辑数据集' : '注册数据集'}</h2>
+        <h2 className={`text-lg font-bold ${textPrimary(theme)}`}>{isEditMode ? '编辑数据集' : '注册数据集'}</h2>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-2 sm:px-3 lg:px-4 py-2 sm:py-3">
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-2 sm:px-3 lg:px-4 py-4 sm:py-6">
         <div className="w-full max-w-2xl mx-auto">
-          <div className={`rounded-2xl border overflow-hidden shadow-none ${
-            isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200/80'
-          }`}>
-            <div className="p-6 sm:p-8 space-y-6">
-              <div className="form-control w-full">
-                <label className="label">
-                  <span className="label-text font-bold">数据集标识 <span className="text-red-500">*</span></span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="例如：student-records-2024"
-                  className={`${nativeInputClass(theme)} ${errors.datasetName ? 'ring-1 ring-red-500' : ''}`}
-                  value={formData.datasetName}
-                  onChange={(e) => update('datasetName', e.target.value)}
-                />
-                {errors.datasetName && <span className="text-xs text-red-500 mt-1">{errors.datasetName}</span>}
-              </div>
+          <GlassPanel theme={theme} padding="lg">
+            <div className="space-y-6">
+              <BentoCard theme={theme} padding="md">
+                <div className="space-y-5">
+                  <div>
+                    <label className={`${labelCls} mb-1.5 block`}>数据集标识 <span className="text-red-500">*</span></label>
+                    <input
+                      type="text"
+                      placeholder="例如：student-records-2024"
+                      className={`${inputCls} ${errors.datasetName ? '!border-red-500 !ring-red-500/20' : ''}`}
+                      value={formData.datasetName}
+                      onChange={(e) => update('datasetName', e.target.value)}
+                    />
+                    {errors.datasetName && <span className="text-xs text-red-500 mt-1 block">{errors.datasetName}</span>}
+                  </div>
 
-              <div className="form-control w-full">
-                <label className="label">
-                  <span className="label-text font-bold">显示名称 <span className="text-red-500">*</span></span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="例如：学生成绩数据集"
-                  className={`${nativeInputClass(theme)} ${errors.displayName ? 'ring-1 ring-red-500' : ''}`}
-                  value={formData.displayName}
-                  onChange={(e) => update('displayName', e.target.value)}
-                />
-                {errors.displayName && <span className="text-xs text-red-500 mt-1">{errors.displayName}</span>}
-              </div>
+                  <div>
+                    <label className={`${labelCls} mb-1.5 block`}>显示名称 <span className="text-red-500">*</span></label>
+                    <input
+                      type="text"
+                      placeholder="例如：学生成绩数据集"
+                      className={`${inputCls} ${errors.displayName ? '!border-red-500 !ring-red-500/20' : ''}`}
+                      value={formData.displayName}
+                      onChange={(e) => update('displayName', e.target.value)}
+                    />
+                    {errors.displayName && <span className="text-xs text-red-500 mt-1 block">{errors.displayName}</span>}
+                  </div>
 
-              <div className="form-control w-full">
-                <label className="label">
-                  <span className="label-text font-bold">描述</span>
-                </label>
-                <textarea
-                  className={`${nativeInputClass(theme)} h-24 resize-none`}
-                  placeholder="描述数据集的内容、用途…"
-                  value={formData.description}
-                  onChange={(e) => update('description', e.target.value)}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="form-control w-full">
-                  <label className="label">
-                    <span className="label-text font-bold">来源类型</span>
-                  </label>
-                  <select
-                    className={nativeSelectClass(theme)}
-                    value={formData.sourceType}
-                    onChange={(e) => update('sourceType', e.target.value as DatasetSourceType)}
-                  >
-                    <option value="department">部门数据</option>
-                    <option value="knowledge">知识库</option>
-                    <option value="third_party">第三方</option>
-                  </select>
+                  <div>
+                    <label className={`${labelCls} mb-1.5 block`}>描述</label>
+                    <textarea
+                      className={`${inputCls} h-24 resize-none`}
+                      placeholder="描述数据集的内容、用途…"
+                      value={formData.description}
+                      onChange={(e) => update('description', e.target.value)}
+                    />
+                  </div>
                 </div>
-                <div className="form-control w-full">
-                  <label className="label">
-                    <span className="label-text font-bold">数据类型</span>
-                  </label>
-                  <select
-                    className={nativeSelectClass(theme)}
-                    value={formData.dataType}
-                    onChange={(e) => update('dataType', e.target.value as DatasetDataType)}
-                  >
-                    <option value="document">文档</option>
-                    <option value="structured">结构化</option>
-                    <option value="image">图片</option>
-                    <option value="audio">音频</option>
-                    <option value="video">视频</option>
-                    <option value="mixed">混合</option>
-                  </select>
+              </BentoCard>
+
+              <BentoCard theme={theme} padding="md">
+                <div className="space-y-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div>
+                      <label className={`${labelCls} mb-1.5 block`}>来源类型</label>
+                      <select className={selectCls} value={formData.sourceType} onChange={(e) => update('sourceType', e.target.value as DatasetSourceType)}>
+                        <option value="department">部门数据</option>
+                        <option value="knowledge">知识库</option>
+                        <option value="third_party">第三方</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className={`${labelCls} mb-1.5 block`}>数据类型</label>
+                      <select className={selectCls} value={formData.dataType} onChange={(e) => update('dataType', e.target.value as DatasetDataType)}>
+                        <option value="document">文档</option>
+                        <option value="structured">结构化</option>
+                        <option value="image">图片</option>
+                        <option value="audio">音频</option>
+                        <option value="video">视频</option>
+                        <option value="mixed">混合</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className={`border-t pt-5 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+                    <label className={`${labelCls} mb-1.5 block`}>格式</label>
+                    <input
+                      type="text"
+                      placeholder="例如：csv, json, pdf, docx"
+                      className={inputCls}
+                      value={formData.format}
+                      onChange={(e) => update('format', e.target.value)}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div>
+                      <label className={`${labelCls} mb-1.5 block`}>记录数</label>
+                      <input type="number" min={0} placeholder="0" className={inputCls} value={formData.recordCount ?? 0} onChange={(e) => update('recordCount', parseInt(e.target.value) || 0)} />
+                    </div>
+                    <div>
+                      <label className={`${labelCls} mb-1.5 block`}>文件大小（字节）</label>
+                      <input type="number" min={0} placeholder="0" className={inputCls} value={formData.fileSize ?? 0} onChange={(e) => update('fileSize', parseInt(e.target.value) || 0)} />
+                    </div>
+                  </div>
                 </div>
-              </div>
+              </BentoCard>
 
-              <div className="form-control w-full">
-                <label className="label">
-                  <span className="label-text font-bold">格式</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="例如：csv, json, pdf, docx"
-                  className={nativeInputClass(theme)}
-                  value={formData.format}
-                  onChange={(e) => update('format', e.target.value)}
-                />
-              </div>
+              <BentoCard theme={theme} padding="md">
+                <div className="space-y-5">
+                  <div>
+                    <label className={`${labelCls} mb-1.5 block`}>标签</label>
+                    <input
+                      type="text"
+                      placeholder="多个标签用逗号分隔，例如：教务,成绩,学生"
+                      className={inputCls}
+                      value={tagsInput}
+                      onChange={(e) => setTagsInput(e.target.value)}
+                    />
+                    <span className={`text-xs mt-1 block ${textMuted(theme)}`}>多个标签用逗号分隔</span>
+                  </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="form-control w-full">
-                  <label className="label">
-                    <span className="label-text font-bold">记录数</span>
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    placeholder="0"
-                    className={nativeInputClass(theme)}
-                    value={formData.recordCount ?? 0}
-                    onChange={(e) => update('recordCount', parseInt(e.target.value) || 0)}
-                  />
+                  <div className={`border-t pt-5 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="toggle toggle-primary toggle-sm"
+                        checked={formData.isPublic ?? false}
+                        onChange={(e) => update('isPublic', e.target.checked)}
+                      />
+                      <span className={labelCls}>是否公开</span>
+                    </label>
+                  </div>
                 </div>
-                <div className="form-control w-full">
-                  <label className="label">
-                    <span className="label-text font-bold">文件大小（字节）</span>
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    placeholder="0"
-                    className={nativeInputClass(theme)}
-                    value={formData.fileSize ?? 0}
-                    onChange={(e) => update('fileSize', parseInt(e.target.value) || 0)}
-                  />
-                </div>
-              </div>
-
-              <div className="form-control w-full">
-                <label className="label">
-                  <span className="label-text font-bold">标签</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="多个标签用逗号分隔，例如：教务,成绩,学生"
-                  className={nativeInputClass(theme)}
-                  value={tagsInput}
-                  onChange={(e) => setTagsInput(e.target.value)}
-                />
-                <span className={`text-xs mt-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                  多个标签用逗号分隔
-                </span>
-              </div>
-
-              <div className="form-control">
-                <label className="label cursor-pointer justify-start gap-3">
-                  <input
-                    type="checkbox"
-                    className="toggle toggle-primary toggle-sm"
-                    checked={formData.isPublic ?? false}
-                    onChange={(e) => update('isPublic', e.target.checked)}
-                  />
-                  <span className="label-text font-bold">是否公开</span>
-                </label>
-              </div>
+              </BentoCard>
 
               {errors.submit && (
-                <div className="flex items-center gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400">
-                  <AlertCircle size={16} />
-                  <span className="text-sm">{errors.submit}</span>
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
+                  <AlertCircle size={16} className="text-red-500 shrink-0" />
+                  <span className="text-sm text-red-500">{errors.submit}</span>
                 </div>
               )}
 
               <div className="flex justify-end gap-3 pt-4">
-                <button type="button" onClick={onBack} className="btn btn-ghost rounded-xl">
-                  取消
-                </button>
+                <button type="button" onClick={onBack} className={btnSecondary(theme)}>取消</button>
                 <button
                   type="button"
                   onClick={handleSubmit}
                   disabled={submitting}
-                  className="btn btn-primary rounded-xl px-8 shadow-lg shadow-blue-500/20"
+                  className={`${btnPrimary} px-8 disabled:opacity-50`}
                 >
                   {submitting && <Loader2 size={16} className="animate-spin mr-2" />}
                   {isEditMode ? '保存修改' : '提交注册'}
                 </button>
               </div>
             </div>
-          </div>
+          </GlassPanel>
         </div>
       </div>
     </div>

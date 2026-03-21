@@ -4,6 +4,9 @@ import { ArrowLeft, ArrowRight, Check, Rocket, Save, AlertCircle, Info } from 'l
 import type { Theme, FontSize } from '../../types';
 import type { AgentType } from '../../types/dto/agent';
 import { nativeInputClass } from '../../utils/formFieldClasses';
+import { btnPrimary, btnSecondary, pageBg, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import { GlassPanel } from '../../components/common/GlassPanel';
+import { BentoCard } from '../../components/common/BentoCard';
 
 interface Props {
   theme: Theme;
@@ -19,12 +22,18 @@ const AGENT_TYPE_OPTIONS: { value: AgentType; label: string; desc: string }[] = 
   { value: 'builtin', label: '内置', desc: '平台内置能力' },
 ];
 
+const springTransition = { type: 'spring' as const, stiffness: 400, damping: 30 };
+const INPUT_FOCUS = 'focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/40';
+
 export const SubmitAgent: React.FC<Props> = ({ theme, fontSize }) => {
   const isDark = theme === 'dark';
   const [step, setStep] = useState<Step>(1);
   const [submitted, setSubmitted] = useState(false);
   const [savedDraft, setSavedDraft] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const labelCls = `text-sm font-medium ${textSecondary(theme)}`;
+  const inputCls = `${nativeInputClass(theme)} ${INPUT_FOCUS}`;
 
   const [form, setForm] = useState({
     displayName: '',
@@ -71,42 +80,75 @@ export const SubmitAgent: React.FC<Props> = ({ theme, fontSize }) => {
     setSubmitted(true);
   };
 
-  const labelCls = `block text-xs font-semibold mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`;
-
   if (submitted) {
     return (
-      <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${isDark ? 'bg-[#000000]' : 'bg-[#F2F2F7]'}`}>
+      <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${pageBg(theme)}`}>
         <div className="flex-1 flex items-center justify-center">
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className={`w-full max-w-md mx-4 p-8 rounded-2xl border text-center ${isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200'}`}
+            transition={springTransition}
           >
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-emerald-500/20 flex items-center justify-center">
-              <Check size={32} className="text-emerald-500" />
-            </div>
-            <h3 className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>提交成功</h3>
-            <p className={`text-sm mb-6 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-              您的 Agent「{form.displayName}」已提交审核，管理员将尽快处理。
-            </p>
-            <button
-              onClick={() => { setSubmitted(false); setStep(1); setForm({ displayName: '', description: '', agentType: 'http_api', specUrl: '' }); }}
-              className="px-6 py-2.5 rounded-xl text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-            >
-              继续提交
-            </button>
+            <GlassPanel theme={theme} padding="lg" className="w-full max-w-md mx-4 text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                <Check size={32} className="text-emerald-500" />
+              </div>
+              <h3 className={`text-xl font-bold mb-2 ${textPrimary(theme)}`}>提交成功</h3>
+              <p className={`text-sm mb-6 ${textSecondary(theme)}`}>
+                您的 Agent「{form.displayName}」已提交审核，管理员将尽快处理。
+              </p>
+              <button
+                onClick={() => { setSubmitted(false); setStep(1); setForm({ displayName: '', description: '', agentType: 'http_api', specUrl: '' }); }}
+                className={btnPrimary}
+              >
+                继续提交
+              </button>
+            </GlassPanel>
           </motion.div>
         </div>
       </div>
     );
   }
 
+  const renderStepIndicator = () => (
+    <div className="mb-8 flex items-center justify-center gap-4">
+      {[{ id: 1, label: '基本信息' }, { id: 2, label: '接口配置' }].map((s, i) => (
+        <React.Fragment key={s.id}>
+          <div className="flex flex-col items-center gap-2">
+            <div className="relative w-10 h-10">
+              {step === s.id && (
+                <motion.div
+                  layoutId="submitAgentStepBg"
+                  className="absolute inset-0 rounded-full bg-indigo-600 ring-2 ring-indigo-400/40"
+                  transition={springTransition}
+                />
+              )}
+              {step > s.id && <div className="absolute inset-0 rounded-full bg-emerald-500" />}
+              {step < s.id && <div className={`absolute inset-0 rounded-full ${isDark ? 'bg-white/10' : 'bg-slate-200'}`} />}
+              <div className={`relative z-10 w-full h-full flex items-center justify-center ${step >= s.id ? 'text-white' : 'text-slate-500'}`}>
+                {step > s.id ? <Check size={20} /> : <span className="text-sm font-semibold">{s.id}</span>}
+              </div>
+            </div>
+            <span className={`text-xs font-bold ${step >= s.id ? 'text-indigo-600 dark:text-indigo-400' : textMuted(theme)}`}>
+              {s.label}
+            </span>
+          </div>
+          {i === 0 && (
+            <div className={`w-16 h-0.5 rounded-full ${step > 1 ? 'bg-emerald-500' : isDark ? 'bg-white/10' : 'bg-slate-200'}`} />
+          )}
+        </React.Fragment>
+      ))}
+    </div>
+  );
+
   return (
-    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${isDark ? 'bg-[#000000]' : 'bg-[#F2F2F7]'}`}>
-      <div className={`shrink-0 z-20 border-b px-4 sm:px-6 py-4 flex items-center gap-4 ${isDark ? 'border-white/10 bg-[#000000]' : 'border-slate-200/80 bg-[#F2F2F7]'}`}>
+    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${pageBg(theme)}`}>
+      <div className={`shrink-0 z-20 border-b px-4 sm:px-6 py-4 flex items-center gap-4 backdrop-blur-xl ${
+        isDark ? 'border-white/[0.06] bg-[#0c0f17]/80' : 'border-slate-200/40 bg-white/80'
+      }`}>
         {step === 2 && (
           <button type="button" onClick={() => setStep(1)} className={`p-2 rounded-xl transition-colors ${isDark ? 'hover:bg-white/10' : 'hover:bg-slate-100'}`}>
-            <ArrowLeft size={20} className={isDark ? 'text-white' : 'text-slate-900'} />
+            <ArrowLeft size={20} className={textPrimary(theme)} />
           </button>
         )}
         <div className="flex items-center gap-3">
@@ -114,183 +156,153 @@ export const SubmitAgent: React.FC<Props> = ({ theme, fontSize }) => {
             <Rocket size={20} className={isDark ? 'text-orange-400' : 'text-orange-600'} />
           </div>
           <div>
-            <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>提交 Agent</h2>
-            <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>填写基本信息后提交审核，审核通过后将对全校可用</p>
+            <h2 className={`text-lg font-bold ${textPrimary(theme)}`}>提交 Agent</h2>
+            <p className={`text-xs ${textSecondary(theme)}`}>填写基本信息后提交审核，审核通过后将对全校可用</p>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-2 sm:px-3 lg:px-4 py-4">
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-2 sm:px-3 lg:px-4 py-4 sm:py-6">
         <div className="w-full max-w-2xl mx-auto">
-          {/* Step indicator */}
-          <div className="mb-8 flex items-center justify-center gap-4">
-            {[{ id: 1, label: '基本信息' }, { id: 2, label: '接口配置' }].map((s, i) => (
-              <React.Fragment key={s.id}>
-                <div className="flex flex-col items-center gap-2">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-                    step > s.id ? 'bg-emerald-500 text-white'
-                      : step === s.id ? 'bg-blue-600 text-white ring-2 ring-blue-400/40'
-                      : isDark ? 'bg-white/10 text-slate-500' : 'bg-slate-200 text-slate-500'
-                  }`}>
-                    {step > s.id ? <Check size={20} /> : s.id}
+          {renderStepIndicator()}
+
+          <GlassPanel theme={theme} padding="lg">
+            <AnimatePresence mode="wait">
+              {step === 1 && (
+                <motion.div key="s1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={springTransition} className="space-y-5">
+                  <BentoCard theme={theme} padding="sm" className="!border-indigo-500/20">
+                    <div className="flex items-start gap-2.5">
+                      <Info size={16} className="text-indigo-500 shrink-0 mt-0.5" />
+                      <span className={`text-xs ${textSecondary(theme)}`}>来源类型自动设为「内部」，提交后状态为「待审核」。</span>
+                    </div>
+                  </BentoCard>
+
+                  <BentoCard theme={theme} padding="md">
+                    <div className="space-y-5">
+                      <div>
+                        <label className={`${labelCls} mb-1.5 block`}>Agent 名称 *</label>
+                        <input
+                          type="text"
+                          placeholder="例如：课表查询助手"
+                          className={`${inputCls} ${errors.displayName ? '!border-red-500 !ring-red-500/20' : ''}`}
+                          value={form.displayName}
+                          onChange={e => updateField('displayName', e.target.value)}
+                        />
+                        <div className="flex justify-between mt-1">
+                          {errors.displayName ? <p className="text-xs text-red-500">{errors.displayName}</p> : <span />}
+                          <span className={`text-xs ${textMuted(theme)}`}>{form.displayName.length}/50</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className={`${labelCls} mb-1.5 block`}>描述 *</label>
+                        <textarea
+                          rows={4}
+                          placeholder="描述该 Agent 的功能、用途及核心逻辑..."
+                          className={`${inputCls} !min-h-[100px] resize-y ${errors.description ? '!border-red-500 !ring-red-500/20' : ''}`}
+                          value={form.description}
+                          onChange={e => updateField('description', e.target.value)}
+                        />
+                        {errors.description && <p className="text-xs text-red-500 mt-1">{errors.description}</p>}
+                      </div>
+
+                      <div className={`border-t pt-5 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+                        <label className={`${labelCls} mb-2 block`}>Agent 类型</label>
+                        <div className="grid grid-cols-3 gap-3">
+                          {AGENT_TYPE_OPTIONS.map(opt => (
+                            <BentoCard
+                              key={opt.value}
+                              theme={theme}
+                              hover
+                              padding="sm"
+                              className={`cursor-pointer text-left ${form.agentType === opt.value ? 'ring-2 ring-indigo-500/40 border-indigo-500/30' : ''}`}
+                              onClick={() => updateField('agentType', opt.value)}
+                            >
+                              <span className={`block text-sm font-semibold ${form.agentType === opt.value ? 'text-indigo-600 dark:text-indigo-400' : textPrimary(theme)}`}>
+                                {opt.label}
+                              </span>
+                              <span className={`block text-xs mt-0.5 ${textMuted(theme)}`}>{opt.desc}</span>
+                            </BentoCard>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </BentoCard>
+
+                  <div className="flex justify-between pt-4">
+                    <button
+                      type="button"
+                      onClick={handleSaveDraft}
+                      className={`${btnSecondary(theme)} inline-flex items-center gap-2 ${savedDraft ? '!bg-emerald-500 !text-white !border-emerald-500' : ''}`}
+                    >
+                      {savedDraft ? <Check size={16} /> : <Save size={16} />}
+                      {savedDraft ? '已保存' : '保存草稿'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { if (validateStep1()) setStep(2); }}
+                      className={`${btnPrimary} inline-flex items-center gap-2`}
+                    >
+                      下一步
+                      <ArrowRight size={16} />
+                    </button>
                   </div>
-                  <span className={`text-xs font-bold ${step >= s.id ? 'text-blue-600 dark:text-blue-400' : isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                    {s.label}
-                  </span>
-                </div>
-                {i === 0 && (
-                  <div className={`w-16 h-0.5 rounded-full ${step > 1 ? 'bg-emerald-500' : isDark ? 'bg-white/10' : 'bg-slate-200'}`} />
-                )}
-              </React.Fragment>
-            ))}
-          </div>
+                </motion.div>
+              )}
 
-          <div className={`rounded-2xl border overflow-hidden ${isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200/80'}`}>
-            <div className="p-6 sm:p-8">
-              <AnimatePresence mode="wait">
-                {step === 1 && (
-                  <motion.div key="s1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-5">
-                    <div className={`p-3 rounded-xl flex items-start gap-2.5 ${isDark ? 'bg-blue-500/10 border border-blue-500/20' : 'bg-blue-50 border border-blue-200'}`}>
-                      <Info size={16} className={isDark ? 'text-blue-400 shrink-0 mt-0.5' : 'text-blue-600 shrink-0 mt-0.5'} />
-                      <span className={`text-xs ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>
-                        来源类型自动设为「内部」，提交后状态为「待审核」。
-                      </span>
-                    </div>
-
+              {step === 2 && (
+                <motion.div key="s2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={springTransition} className="space-y-5">
+                  <BentoCard theme={theme} padding="md">
                     <div>
-                      <label className={labelCls}>Agent 名称 *</label>
-                      <input
-                        type="text"
-                        placeholder="例如：课表查询助手"
-                        className={`${nativeInputClass(theme)} ${errors.displayName ? '!border-red-500' : ''}`}
-                        value={form.displayName}
-                        onChange={e => updateField('displayName', e.target.value)}
-                      />
-                      <div className="flex justify-between mt-1">
-                        {errors.displayName ? <p className="text-xs text-red-500">{errors.displayName}</p> : <span />}
-                        <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{form.displayName.length}/50</span>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className={labelCls}>描述 *</label>
-                      <textarea
-                        rows={4}
-                        placeholder="描述该 Agent 的功能、用途及核心逻辑..."
-                        className={`${nativeInputClass(theme)} !min-h-[100px] resize-y ${errors.description ? '!border-red-500' : ''}`}
-                        value={form.description}
-                        onChange={e => updateField('description', e.target.value)}
-                      />
-                      {errors.description && <p className="text-xs text-red-500 mt-1">{errors.description}</p>}
-                    </div>
-
-                    <div>
-                      <label className={labelCls}>Agent 类型</label>
-                      <div className="grid grid-cols-3 gap-3">
-                        {AGENT_TYPE_OPTIONS.map(opt => (
-                          <button
-                            key={opt.value}
-                            type="button"
-                            onClick={() => updateField('agentType', opt.value)}
-                            className={`p-3 rounded-xl border text-left transition-colors ${
-                              form.agentType === opt.value
-                                ? isDark ? 'border-blue-500 bg-blue-500/10' : 'border-blue-500 bg-blue-50'
-                                : isDark ? 'border-white/10 hover:border-white/20' : 'border-slate-200 hover:border-slate-300'
-                            }`}
-                          >
-                            <span className={`block text-sm font-semibold ${form.agentType === opt.value ? (isDark ? 'text-blue-400' : 'text-blue-700') : (isDark ? 'text-white' : 'text-slate-900')}`}>
-                              {opt.label}
-                            </span>
-                            <span className={`block text-xs mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{opt.desc}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="flex justify-between pt-4">
-                      <button
-                        type="button"
-                        onClick={handleSaveDraft}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                          savedDraft
-                            ? 'bg-emerald-500 text-white'
-                            : isDark ? 'bg-white/10 text-slate-300 hover:bg-white/15' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                        }`}
-                      >
-                        {savedDraft ? <Check size={16} /> : <Save size={16} />}
-                        {savedDraft ? '已保存' : '保存草稿'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => { if (validateStep1()) setStep(2); }}
-                        className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20"
-                      >
-                        下一步
-                        <ArrowRight size={16} />
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-
-                {step === 2 && (
-                  <motion.div key="s2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-5">
-                    <div>
-                      <label className={labelCls}>接口地址 (URL) *</label>
+                      <label className={`${labelCls} mb-1.5 block`}>接口地址 (URL) *</label>
                       <input
                         type="text"
                         placeholder="https://api.example.com/v1/agent"
-                        className={`${nativeInputClass(theme)} ${errors.specUrl ? '!border-red-500' : ''}`}
+                        className={`${inputCls} ${errors.specUrl ? '!border-red-500 !ring-red-500/20' : ''}`}
                         value={form.specUrl}
                         onChange={e => updateField('specUrl', e.target.value)}
                       />
                       {errors.specUrl && <p className="text-xs text-red-500 mt-1">{errors.specUrl}</p>}
                     </div>
+                  </BentoCard>
 
-                    {/* Summary */}
-                    <div className={`rounded-xl border divide-y ${isDark ? 'border-white/10 divide-white/10' : 'border-slate-200 divide-slate-100'}`}>
+                  <BentoCard theme={theme} padding="sm">
+                    <div className={`divide-y ${isDark ? 'divide-white/[0.06]' : 'divide-slate-100'}`}>
                       {[
                         { label: '名称', value: form.displayName },
                         { label: '类型', value: AGENT_TYPE_OPTIONS.find(o => o.value === form.agentType)?.label ?? form.agentType },
                         { label: '来源', value: '内部' },
                         { label: '接口', value: form.specUrl || '—' },
                       ].map(item => (
-                        <div key={item.label} className="flex items-center justify-between px-4 py-3">
-                          <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{item.label}</span>
-                          <span className={`text-sm font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>{item.value}</span>
+                        <div key={item.label} className="flex items-center justify-between px-2 py-3">
+                          <span className={`text-xs ${textMuted(theme)}`}>{item.label}</span>
+                          <span className={`text-sm font-medium ${textPrimary(theme)}`}>{item.value}</span>
                         </div>
                       ))}
                     </div>
+                  </BentoCard>
 
-                    {errors.submit && (
-                      <div className="flex items-center gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/40">
-                        <AlertCircle size={16} className="text-red-500 shrink-0" />
-                        <span className="text-xs text-red-600 dark:text-red-400">{errors.submit}</span>
-                      </div>
-                    )}
-
-                    <div className="flex justify-between pt-4">
-                      <button
-                        type="button"
-                        onClick={() => setStep(1)}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-colors ${isDark ? 'bg-white/10 text-slate-300 hover:bg-white/15' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
-                      >
-                        <ArrowLeft size={16} />
-                        上一步
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleSubmitReview}
-                        className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-medium bg-orange-500 text-white hover:bg-orange-600 transition-colors shadow-lg shadow-orange-500/20"
-                      >
-                        <Rocket size={16} />
-                        提交审核
-                      </button>
+                  {errors.submit && (
+                    <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
+                      <AlertCircle size={16} className="text-red-500 shrink-0" />
+                      <span className="text-xs text-red-500">{errors.submit}</span>
                     </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
+                  )}
+
+                  <div className="flex justify-between pt-4">
+                    <button type="button" onClick={() => setStep(1)} className={`${btnSecondary(theme)} inline-flex items-center gap-2`}>
+                      <ArrowLeft size={16} />
+                      上一步
+                    </button>
+                    <button type="button" onClick={handleSubmitReview} className={`${btnPrimary} inline-flex items-center gap-2`}>
+                      <Rocket size={16} />
+                      提交审核
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </GlassPanel>
         </div>
       </div>
     </div>

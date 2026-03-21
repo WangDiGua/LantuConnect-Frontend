@@ -14,7 +14,9 @@ import type { Theme, FontSize } from '../../types';
 import type { AgentType, SourceType, DisplayTemplate } from '../../types/dto/agent';
 import type { McpServer, SkillCreatePayload } from '../../types/dto/skill';
 import { nativeSelectClass, nativeInputClass } from '../../utils/formFieldClasses';
-import { btnPrimary, btnSecondary } from '../../utils/uiClasses';
+import { btnPrimary, btnSecondary, btnGhost, pageBg, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import { GlassPanel } from '../../components/common/GlassPanel';
+import { BentoCard } from '../../components/common/BentoCard';
 import { skillService } from '../../api/services/skill.service';
 
 interface Props {
@@ -64,12 +66,19 @@ function toPinyin(str: string): string {
     .replace(/^_|_$/g, '') || 'skill';
 }
 
+const springTransition = { type: 'spring' as const, stiffness: 400, damping: 30 };
+const INPUT_FOCUS = 'focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/40';
+
 export const SkillCreate: React.FC<Props> = ({ theme, fontSize: _fontSize, onBack, onSuccess }) => {
   const isDark = theme === 'dark';
   const [step, setStep] = useState<Step>(1);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [mcpServers, setMcpServers] = useState<McpServer[]>([]);
+
+  const labelCls = `text-sm font-medium ${textSecondary(theme)}`;
+  const inputCls = `${nativeInputClass(theme)} ${INPUT_FOCUS}`;
+  const selectCls = `${nativeSelectClass(theme)} ${INPUT_FOCUS}`;
 
   const [form, setForm] = useState({
     displayName: '',
@@ -171,10 +180,6 @@ export const SkillCreate: React.FC<Props> = ({ theme, fontSize: _fontSize, onBac
     }
   };
 
-  const cardCls = `rounded-2xl border shadow-none ${isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200/80'}`;
-  const labelCls = `block text-xs font-semibold mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`;
-  const mutedCls = isDark ? 'text-slate-400' : 'text-slate-500';
-
   const summaryItems = useMemo(() => {
     const serverName = form.parentId ? mcpServers.find(s => s.id === Number(form.parentId))?.displayName ?? '—' : '无';
     return [
@@ -201,27 +206,33 @@ export const SkillCreate: React.FC<Props> = ({ theme, fontSize: _fontSize, onBac
         return (
           <React.Fragment key={s.id}>
             <div className="flex flex-col items-center gap-2">
-              <motion.div
-                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
-                  isCompleted ? 'bg-emerald-500 text-white'
-                    : isActive ? 'bg-blue-600 text-white ring-2 ring-blue-400/40'
-                    : isDark ? 'bg-white/10 text-slate-500' : 'bg-slate-200 text-slate-500'
-                }`}
-                whileHover={!isActive && !isCompleted ? { scale: 1.1 } : {}}
-              >
-                {isCompleted ? <Check size={20} /> : <Icon size={18} />}
-              </motion.div>
+              <div className="relative w-10 h-10">
+                {isActive && (
+                  <motion.div
+                    layoutId="skillStepBg"
+                    className="absolute inset-0 rounded-full bg-indigo-600 ring-2 ring-indigo-400/40"
+                    transition={springTransition}
+                  />
+                )}
+                {isCompleted && !isActive && (
+                  <div className="absolute inset-0 rounded-full bg-emerald-500" />
+                )}
+                {!isActive && !isCompleted && (
+                  <div className={`absolute inset-0 rounded-full ${isDark ? 'bg-white/10' : 'bg-slate-200'}`} />
+                )}
+                <div className={`relative z-10 w-full h-full flex items-center justify-center ${isActive || isCompleted ? 'text-white' : 'text-slate-500'}`}>
+                  {isCompleted ? <Check size={20} /> : <Icon size={18} />}
+                </div>
+              </div>
               <span className={`text-xs font-bold text-center max-w-[80px] ${
-                isActive || isCompleted ? 'text-blue-600 dark:text-blue-400' : mutedCls
+                isActive || isCompleted ? 'text-indigo-600 dark:text-indigo-400' : textMuted(theme)
               }`}>
                 {s.label}
               </span>
             </div>
             {idx < STEPS.length - 1 && (
               <motion.div
-                className={`w-14 h-0.5 rounded-full transition-all duration-300 ${
-                  isCompleted ? 'bg-emerald-500' : isDark ? 'bg-white/10' : 'bg-slate-200'
-                }`}
+                className={`w-14 h-0.5 rounded-full transition-all duration-300 ${isCompleted ? 'bg-emerald-500' : isDark ? 'bg-white/10' : 'bg-slate-200'}`}
                 initial={{ scaleX: 0.3 }}
                 animate={{ scaleX: isCompleted ? 1 : 0.3 }}
               />
@@ -233,66 +244,68 @@ export const SkillCreate: React.FC<Props> = ({ theme, fontSize: _fontSize, onBac
   );
 
   const renderStep1 = () => (
-    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-5">
-      <div>
-        <label className={labelCls}>显示名称 *</label>
-        <input
-          type="text"
-          placeholder="例如：天气查询工具"
-          className={`${nativeInputClass(theme)} ${errors.displayName ? '!border-red-500' : ''}`}
-          value={form.displayName}
-          onChange={e => handleDisplayNameChange(e.target.value)}
-        />
-        {errors.displayName && <p className="text-xs text-red-500 mt-1">{errors.displayName}</p>}
-      </div>
+    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={springTransition} className="space-y-5">
+      <BentoCard theme={theme} padding="md">
+        <div className="space-y-5">
+          <div>
+            <label className={`${labelCls} mb-1.5 block`}>显示名称 *</label>
+            <input
+              type="text"
+              placeholder="例如：天气查询工具"
+              className={`${inputCls} ${errors.displayName ? '!border-red-500 !ring-red-500/20' : ''}`}
+              value={form.displayName}
+              onChange={e => handleDisplayNameChange(e.target.value)}
+            />
+            {errors.displayName && <p className="text-xs text-red-500 mt-1">{errors.displayName}</p>}
+          </div>
 
-      <div>
-        <label className={labelCls}>唯一标识 (agentName) *</label>
-        <input
-          type="text"
-          placeholder="自动生成，可手动修改"
-          className={`${nativeInputClass(theme)} font-mono text-sm ${errors.agentName ? '!border-red-500' : ''}`}
-          value={form.agentName}
-          onChange={e => updateField('agentName', e.target.value)}
-        />
-        {errors.agentName && <p className="text-xs text-red-500 mt-1">{errors.agentName}</p>}
-      </div>
+          <div>
+            <label className={`${labelCls} mb-1.5 block`}>唯一标识 (agentName) *</label>
+            <input
+              type="text"
+              placeholder="自动生成，可手动修改"
+              className={`${inputCls} font-mono text-sm ${errors.agentName ? '!border-red-500 !ring-red-500/20' : ''}`}
+              value={form.agentName}
+              onChange={e => updateField('agentName', e.target.value)}
+            />
+            {errors.agentName && <p className="text-xs text-red-500 mt-1">{errors.agentName}</p>}
+          </div>
 
-      <div>
-        <label className={labelCls}>描述 *</label>
-        <textarea
-          rows={4}
-          placeholder="描述该 Skill 的功能与用途…"
-          className={`${nativeInputClass(theme)} !min-h-[100px] resize-y ${errors.description ? '!border-red-500' : ''}`}
-          value={form.description}
-          onChange={e => updateField('description', e.target.value)}
-        />
-        {errors.description && <p className="text-xs text-red-500 mt-1">{errors.description}</p>}
-      </div>
+          <div>
+            <label className={`${labelCls} mb-1.5 block`}>描述 *</label>
+            <textarea
+              rows={4}
+              placeholder="描述该 Skill 的功能与用途…"
+              className={`${inputCls} !min-h-[100px] resize-y ${errors.description ? '!border-red-500 !ring-red-500/20' : ''}`}
+              value={form.description}
+              onChange={e => updateField('description', e.target.value)}
+            />
+            {errors.description && <p className="text-xs text-red-500 mt-1">{errors.description}</p>}
+          </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className={labelCls}>来源类型</label>
-          <select
-            className={nativeSelectClass(theme)}
-            value={form.sourceType}
-            onChange={e => updateField('sourceType', e.target.value as SourceType)}
-          >
-            {SOURCE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
+          <div className={`border-t pt-5 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={`${labelCls} mb-1.5 block`}>来源类型</label>
+                <select className={selectCls} value={form.sourceType} onChange={e => updateField('sourceType', e.target.value as SourceType)}>
+                  {SOURCE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className={`${labelCls} mb-1.5 block`}>分类</label>
+                <select className={selectCls} value={form.categoryId} onChange={e => updateField('categoryId', e.target.value)}>
+                  <option value="">暂不分类</option>
+                  <option value="1">校园业务</option>
+                  <option value="2">教学科研</option>
+                  <option value="3">办公效率</option>
+                  <option value="4">数据分析</option>
+                  <option value="5">生活服务</option>
+                </select>
+              </div>
+            </div>
+          </div>
         </div>
-        <div>
-          <label className={labelCls}>分类</label>
-          <select className={nativeSelectClass(theme)} value={form.categoryId} onChange={e => updateField('categoryId', e.target.value)}>
-            <option value="">暂不分类</option>
-            <option value="1">校园业务</option>
-            <option value="2">教学科研</option>
-            <option value="3">办公效率</option>
-            <option value="4">数据分析</option>
-            <option value="5">生活服务</option>
-          </select>
-        </div>
-      </div>
+      </BentoCard>
 
       <div className="flex justify-end pt-4">
         <button type="button" onClick={goNext} className={`${btnPrimary} px-8 inline-flex items-center gap-2`}>
@@ -304,94 +317,71 @@ export const SkillCreate: React.FC<Props> = ({ theme, fontSize: _fontSize, onBac
   );
 
   const renderStep2 = () => (
-    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-5">
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className={labelCls}>协议类型 *</label>
-          <select
-            className={nativeSelectClass(theme)}
-            value={form.agentType}
-            onChange={e => updateField('agentType', e.target.value as AgentType)}
-          >
-            {AGENT_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className={labelCls}>所属 MCP Server</label>
-          <div className="flex items-center gap-2">
-            <select
-              className={nativeSelectClass(theme)}
-              value={form.parentId}
-              onChange={e => updateField('parentId', e.target.value)}
-            >
-              <option value="">无（独立 Skill）</option>
-              {mcpServers.map(s => <option key={s.id} value={s.id}>{s.displayName}</option>)}
+    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={springTransition} className="space-y-5">
+      <BentoCard theme={theme} padding="md">
+        <div className="space-y-5">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={`${labelCls} mb-1.5 block`}>协议类型 *</label>
+              <select className={selectCls} value={form.agentType} onChange={e => updateField('agentType', e.target.value as AgentType)}>
+                {AGENT_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={`${labelCls} mb-1.5 block`}>所属 MCP Server</label>
+              <div className="flex items-center gap-2">
+                <select className={selectCls} value={form.parentId} onChange={e => updateField('parentId', e.target.value)}>
+                  <option value="">无（独立 Skill）</option>
+                  {mcpServers.map(s => <option key={s.id} value={s.id}>{s.displayName}</option>)}
+                </select>
+                {mcpServers.length > 0 && <Server size={16} className={`shrink-0 ${textMuted(theme)}`} />}
+              </div>
+            </div>
+          </div>
+
+          <div className={`border-t pt-5 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+            <label className={`${labelCls} mb-1.5 block`}>服务地址 (URL) *</label>
+            <input
+              type="text"
+              placeholder="https://api.example.com/v1/tool"
+              className={`${inputCls} ${errors.specUrl ? '!border-red-500 !ring-red-500/20' : ''}`}
+              value={form.specUrl}
+              onChange={e => updateField('specUrl', e.target.value)}
+            />
+            {errors.specUrl && <p className="text-xs text-red-500 mt-1">{errors.specUrl}</p>}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={`${labelCls} mb-1.5 block`}>API Key</label>
+              <input type="password" placeholder="可选" className={inputCls} value={form.specApiKey} onChange={e => updateField('specApiKey', e.target.value)} />
+            </div>
+            <div>
+              <label className={`${labelCls} mb-1.5 block`}>超时秒数</label>
+              <input type="number" min={1} max={300} className={inputCls} value={form.specTimeout} onChange={e => updateField('specTimeout', Number(e.target.value) || 30)} />
+            </div>
+          </div>
+
+          <div className={`border-t pt-5 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+            <label className={`${labelCls} mb-1.5 block`}>展示模板</label>
+            <select className={selectCls} value={form.displayTemplate} onChange={e => updateField('displayTemplate', e.target.value as DisplayTemplate | '')}>
+              {DISPLAY_TEMPLATE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
-            {mcpServers.length > 0 && (
-              <Server size={16} className={`shrink-0 ${mutedCls}`} />
-            )}
+          </div>
+
+          <div>
+            <label className={`${labelCls} mb-1.5 block`}>参数 Schema (JSON)</label>
+            <textarea
+              rows={5}
+              placeholder={'{\n  "type": "object",\n  "properties": { ... }\n}'}
+              className={`${inputCls} !min-h-[120px] font-mono text-xs resize-y ${errors.parametersSchema ? '!border-red-500 !ring-red-500/20' : ''}`}
+              value={form.parametersSchema}
+              onChange={e => updateField('parametersSchema', e.target.value)}
+            />
+            {errors.parametersSchema && <p className="text-xs text-red-500 mt-1">{errors.parametersSchema}</p>}
           </div>
         </div>
-      </div>
-
-      <div>
-        <label className={labelCls}>服务地址 (URL) *</label>
-        <input
-          type="text"
-          placeholder="https://api.example.com/v1/tool"
-          className={`${nativeInputClass(theme)} ${errors.specUrl ? '!border-red-500' : ''}`}
-          value={form.specUrl}
-          onChange={e => updateField('specUrl', e.target.value)}
-        />
-        {errors.specUrl && <p className="text-xs text-red-500 mt-1">{errors.specUrl}</p>}
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className={labelCls}>API Key</label>
-          <input
-            type="password"
-            placeholder="可选"
-            className={nativeInputClass(theme)}
-            value={form.specApiKey}
-            onChange={e => updateField('specApiKey', e.target.value)}
-          />
-        </div>
-        <div>
-          <label className={labelCls}>超时秒数</label>
-          <input
-            type="number"
-            min={1}
-            max={300}
-            className={nativeInputClass(theme)}
-            value={form.specTimeout}
-            onChange={e => updateField('specTimeout', Number(e.target.value) || 30)}
-          />
-        </div>
-      </div>
-
-      <div>
-        <label className={labelCls}>展示模板</label>
-        <select
-          className={nativeSelectClass(theme)}
-          value={form.displayTemplate}
-          onChange={e => updateField('displayTemplate', e.target.value as DisplayTemplate | '')}
-        >
-          {DISPLAY_TEMPLATE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-      </div>
-
-      <div>
-        <label className={labelCls}>参数 Schema (JSON)</label>
-        <textarea
-          rows={5}
-          placeholder={'{\n  "type": "object",\n  "properties": { ... }\n}'}
-          className={`${nativeInputClass(theme)} !min-h-[120px] font-mono text-xs resize-y ${errors.parametersSchema ? '!border-red-500' : ''}`}
-          value={form.parametersSchema}
-          onChange={e => updateField('parametersSchema', e.target.value)}
-        />
-        {errors.parametersSchema && <p className="text-xs text-red-500 mt-1">{errors.parametersSchema}</p>}
-      </div>
+      </BentoCard>
 
       <div className="flex justify-between pt-4">
         <button type="button" onClick={goBack} className={`${btnSecondary(theme)} inline-flex items-center gap-2`}>
@@ -407,27 +397,27 @@ export const SkillCreate: React.FC<Props> = ({ theme, fontSize: _fontSize, onBac
   );
 
   const renderStep3 = () => (
-    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-5">
+    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={springTransition} className="space-y-5">
       <div className="text-center mb-2">
-        <h3 className={`text-lg font-bold mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>确认信息</h3>
-        <p className={`text-sm ${mutedCls}`}>请检查以下信息，确认无误后提交</p>
+        <h3 className={`text-lg font-bold mb-1 ${textPrimary(theme)}`}>确认信息</h3>
+        <p className={`text-sm ${textSecondary(theme)}`}>请检查以下信息，确认无误后提交</p>
       </div>
 
-      <div className={`rounded-xl border divide-y ${isDark ? 'border-white/10 divide-white/10' : 'border-slate-200 divide-slate-100'}`}>
-        {summaryItems.map(item => (
-          <div key={item.label} className="flex items-start justify-between px-4 py-3">
-            <span className={`text-xs shrink-0 ${mutedCls}`}>{item.label}</span>
-            <span className={`text-sm font-medium text-right max-w-[60%] break-all ${isDark ? 'text-white' : 'text-slate-900'}`}>
-              {item.value}
-            </span>
-          </div>
-        ))}
-      </div>
+      <BentoCard theme={theme} padding="sm">
+        <div className={`divide-y ${isDark ? 'divide-white/[0.06]' : 'divide-slate-100'}`}>
+          {summaryItems.map(item => (
+            <div key={item.label} className="flex items-start justify-between px-2 py-3">
+              <span className={`text-xs shrink-0 ${textMuted(theme)}`}>{item.label}</span>
+              <span className={`text-sm font-medium text-right max-w-[60%] break-all ${textPrimary(theme)}`}>{item.value}</span>
+            </div>
+          ))}
+        </div>
+      </BentoCard>
 
       {errors.submit && (
-        <div className="flex items-center gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/40">
+        <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
           <AlertCircle size={16} className="text-red-500 shrink-0" />
-          <span className="text-xs text-red-600 dark:text-red-400">{errors.submit}</span>
+          <span className="text-xs text-red-500">{errors.submit}</span>
         </div>
       )}
 
@@ -442,7 +432,7 @@ export const SkillCreate: React.FC<Props> = ({ theme, fontSize: _fontSize, onBac
           disabled={submitting}
           className={`${btnPrimary} px-10 inline-flex items-center gap-2 disabled:opacity-50`}
         >
-          {submitting && <span className="loading loading-spinner loading-xs" />}
+          {submitting && <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white" />}
           提交创建
         </button>
       </div>
@@ -450,29 +440,27 @@ export const SkillCreate: React.FC<Props> = ({ theme, fontSize: _fontSize, onBac
   );
 
   return (
-    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${isDark ? 'bg-[#000000]' : 'bg-[#F2F2F7]'}`}>
-      <div className={`shrink-0 z-20 border-b px-4 sm:px-6 py-4 flex items-center gap-4 ${
-        isDark ? 'border-white/10 bg-[#000000]' : 'border-slate-200/80 bg-[#F2F2F7]'
+    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${pageBg(theme)}`}>
+      <div className={`shrink-0 z-20 border-b px-4 sm:px-6 py-4 flex items-center gap-4 backdrop-blur-xl ${
+        isDark ? 'border-white/[0.06] bg-[#0c0f17]/80' : 'border-slate-200/40 bg-white/80'
       }`}>
-        <button type="button" onClick={onBack} className="btn btn-ghost btn-sm btn-circle">
+        <button type="button" onClick={onBack} className={btnGhost(theme)}>
           <ArrowLeft size={20} />
         </button>
-        <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>注册新 Skill</h2>
+        <h2 className={`text-lg font-bold ${textPrimary(theme)}`}>注册新 Skill</h2>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-2 sm:px-3 lg:px-4 py-2 sm:py-3">
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-2 sm:px-3 lg:px-4 py-4 sm:py-6">
         <div className="w-full max-w-2xl mx-auto">
           {renderStepIndicator()}
 
-          <div className={`${cardCls} overflow-hidden`}>
-            <div className="p-6 sm:p-8">
-              <AnimatePresence mode="wait">
-                {step === 1 && renderStep1()}
-                {step === 2 && renderStep2()}
-                {step === 3 && renderStep3()}
-              </AnimatePresence>
-            </div>
-          </div>
+          <GlassPanel theme={theme} padding="lg">
+            <AnimatePresence mode="wait">
+              {step === 1 && renderStep1()}
+              {step === 2 && renderStep2()}
+              {step === 3 && renderStep3()}
+            </AnimatePresence>
+          </GlassPanel>
         </div>
       </div>
     </div>

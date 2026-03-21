@@ -57,10 +57,15 @@ const SubmitAgent = lazy(() => import('../views/publish/SubmitAgent').then(m => 
 const SubmitSkill = lazy(() => import('../views/publish/SubmitSkill').then(m => ({ default: m.SubmitSkill })));
 const UserProfile = lazy(() => import('../views/user/UserProfile').then(m => ({ default: m.UserProfile })));
 const UserSettingsPage = lazy(() => import('../views/user/UserSettingsPage').then(m => ({ default: m.UserSettingsPage })));
+const UsageRecordsPage = lazy(() => import('../views/user/UsageRecordsPage').then(m => ({ default: m.UsageRecordsPage })));
+const MyFavoritesPage = lazy(() => import('../views/user/MyFavoritesPage').then(m => ({ default: m.MyFavoritesPage })));
+const UsageStatsPage = lazy(() => import('../views/user/UsageStatsPage').then(m => ({ default: m.UsageStatsPage })));
 const ApiDocsPage = lazy(() => import('../views/developer/ApiDocsPage').then(m => ({ default: m.ApiDocsPage })));
 const SdkDownloadPage = lazy(() => import('../views/developer/SdkDownloadPage').then(m => ({ default: m.SdkDownloadPage })));
 const ApiPlaygroundPage = lazy(() => import('../views/developer/ApiPlaygroundPage').then(m => ({ default: m.ApiPlaygroundPage })));
 const DataReportsPage = lazy(() => import('../views/dashboard/DataReportsPage').then(m => ({ default: m.DataReportsPage })));
+const HealthCheckOverview = lazy(() => import('../views/dashboard/HealthCheckOverview').then(m => ({ default: m.HealthCheckOverview })));
+const UsageStatsOverview = lazy(() => import('../views/dashboard/UsageStatsOverview').then(m => ({ default: m.UsageStatsOverview })));
 
 import { Logo } from '../components/common/Logo';
 import { MessageProvider, useMessage } from '../components/common/Message';
@@ -280,8 +285,9 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
           case 'dashboard':
             return <Overview theme={t} fontSize={fs} />;
           case 'health-check':
+            return <HealthCheckOverview theme={t} fontSize={fs} />;
           case 'usage-statistics':
-            return <PlaceholderView title={p} theme={t} fontSize={fs} />;
+            return <UsageStatsOverview theme={t} fontSize={fs} />;
           case 'data-reports':
             return <DataReportsPage theme={t} fontSize={fs} />;
 
@@ -403,9 +409,11 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
           return <SubmitSkill theme={t} fontSize={fs} />;
 
         case 'usage-records':
+          return <UsageRecordsPage theme={t} fontSize={fs} />;
         case 'my-favorites':
+          return <MyFavoritesPage theme={t} fontSize={fs} />;
         case 'usage-stats':
-          return <PlaceholderView title={p} theme={t} fontSize={fs} />;
+          return <UsageStatsPage theme={t} fontSize={fs} />;
 
         case 'profile':
           return <UserProfile theme={t} fontSize={fs} />;
@@ -739,7 +747,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
                     type="button"
                     onClick={() => {
                       if (layoutIsAdmin) setRole('user');
-                      navigate(buildPath('user', 'profile'));
+                      navigate(buildPath('user', 'preferences'));
                       setShowUserMenu(false);
                       setShowAppearanceMenu(false);
                     }}
@@ -943,7 +951,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
               animate="animate"
               exit="exit"
               transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-              className="flex-1 flex flex-col min-w-0 min-h-[600px] overflow-hidden"
+              className="flex-1 flex flex-col min-w-0 overflow-y-auto"
               style={{ willChange: 'opacity, transform' }}
             >
               <MainContent

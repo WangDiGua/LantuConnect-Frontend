@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import {
   User,
@@ -21,6 +21,7 @@ import {
 import { Theme, FontSize } from '../../types';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { useAuthStore } from '../../stores/authStore';
+import { useMessage } from '../../components/common/Message';
 
 interface UserProfileProps {
   theme: Theme;
@@ -48,6 +49,11 @@ export const UserProfile: React.FC<UserProfileProps> = ({ theme, fontSize: _font
   const [showNewPwd, setShowNewPwd] = useState(false);
   const [pwdSaving, setPwdSaving] = useState(false);
   const [pwdSuccess, setPwdSuccess] = useState(false);
+  const [twoStepEnabled, setTwoStepEnabled] = useState(false);
+  const [notificationEnabled, setNotificationEnabled] = useState(true);
+  const [language, setLanguage] = useState('zh-CN');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { showMessage } = useMessage();
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,6 +100,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ theme, fontSize: _font
             </div>
             <button
               type="button"
+              onClick={() => fileInputRef.current?.click()}
               className={`absolute inset-0 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity ${
                 isDark ? 'bg-black/50' : 'bg-black/30'
               }`}
@@ -101,6 +108,18 @@ export const UserProfile: React.FC<UserProfileProps> = ({ theme, fontSize: _font
             >
               <Camera size={20} className="text-white" />
             </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files?.length) {
+                  showMessage('头像已更新', 'success');
+                  e.target.value = '';
+                }
+              }}
+            />
           </div>
           <div className="flex-1 min-w-0">
             <h1 className={`text-2xl sm:text-3xl font-bold tracking-tight mb-1 ${isDark ? 'text-white' : 'text-black'}`}>
@@ -238,15 +257,22 @@ export const UserProfile: React.FC<UserProfileProps> = ({ theme, fontSize: _font
                   </button>
                 </motion.form>
               )}
-              <div className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer group">
+              <button
+                type="button"
+                onClick={() => {
+                  setTwoStepEnabled((v) => !v);
+                  showMessage(twoStepEnabled ? '两步验证已关闭' : '两步验证已开启', 'success');
+                }}
+                className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer group"
+              >
                 <div className="flex items-center gap-3">
                   <Shield size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors" />
                   <span className={`text-[14px] ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>两步验证</span>
                 </div>
-                <div className={`w-10 h-5 rounded-full relative ${isDark ? 'bg-white/10' : 'bg-slate-200'}`}>
-                  <div className="absolute left-1 top-1 w-3 h-3 bg-white rounded-full" />
+                <div className={`w-10 h-5 rounded-full relative transition-colors ${twoStepEnabled ? 'bg-blue-600' : isDark ? 'bg-white/10' : 'bg-slate-200'}`}>
+                  <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${twoStepEnabled ? 'right-1' : 'left-1'}`} />
                 </div>
-              </div>
+              </button>
             </div>
           </div>
 
@@ -257,22 +283,41 @@ export const UserProfile: React.FC<UserProfileProps> = ({ theme, fontSize: _font
               偏好设置
             </h2>
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer group">
+              <div className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group">
                 <div className="flex items-center gap-3">
                   <Globe size={18} className="text-slate-400 group-hover:text-emerald-500 transition-colors" />
                   <span className={`text-[14px] ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>语言</span>
                 </div>
-                <span className="text-[13px] text-slate-500">简体中文</span>
+                <select
+                  value={language}
+                  onChange={(e) => {
+                    setLanguage(e.target.value);
+                    showMessage(e.target.value === 'zh-CN' ? '已切换至简体中文' : 'Switched to English', 'success');
+                  }}
+                  className={`text-[13px] px-2 py-1 rounded-lg border outline-none cursor-pointer ${
+                    isDark ? 'bg-white/5 border-white/10 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'
+                  }`}
+                >
+                  <option value="zh-CN">简体中文</option>
+                  <option value="en">English</option>
+                </select>
               </div>
-              <div className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer group">
+              <button
+                type="button"
+                onClick={() => {
+                  setNotificationEnabled((v) => !v);
+                  showMessage(notificationEnabled ? '通知提醒已关闭' : '通知提醒已开启', 'success');
+                }}
+                className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer group"
+              >
                 <div className="flex items-center gap-3">
                   <Bell size={18} className="text-slate-400 group-hover:text-emerald-500 transition-colors" />
                   <span className={`text-[14px] ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>通知提醒</span>
                 </div>
-                <div className="w-10 h-5 bg-blue-600 rounded-full relative">
-                  <div className="absolute right-1 top-1 w-3 h-3 bg-white rounded-full" />
+                <div className={`w-10 h-5 rounded-full relative transition-colors ${notificationEnabled ? 'bg-blue-600' : isDark ? 'bg-white/10' : 'bg-slate-200'}`}>
+                  <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${notificationEnabled ? 'right-1' : 'left-1'}`} />
                 </div>
-              </div>
+              </button>
               <div className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer group">
                 <div className="flex items-center gap-3">
                   {theme === 'light' ? (

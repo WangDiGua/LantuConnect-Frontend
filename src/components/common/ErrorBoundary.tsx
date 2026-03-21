@@ -24,33 +24,45 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     console.error('[ErrorBoundary]', error, info.componentStack);
   }
 
+  private handleReset = () => {
+    this.setState({ hasError: false, error: null });
+  };
+
   render() {
     if (!this.state.hasError) return this.props.children;
 
+    const errMsg = this.state.error?.message || '发生未知错误';
+
     return (
-      <div className="flex-1 flex items-center justify-center min-h-[320px] p-6">
-        <div className="flex flex-col items-center gap-4 max-w-md text-center">
-          <div className="w-14 h-14 rounded-2xl bg-rose-100 dark:bg-rose-500/10 flex items-center justify-center">
-            <AlertTriangle size={28} className="text-rose-500" />
+      <div className="min-h-screen flex items-center justify-center bg-[#F2F2F7] dark:bg-[#000000]">
+        <div className="flex flex-col items-center gap-5 max-w-md text-center px-6">
+          <div className="w-16 h-16 rounded-2xl bg-red-100 dark:bg-red-500/10 flex items-center justify-center">
+            <AlertTriangle size={32} className="text-red-500" />
           </div>
 
           <div className="space-y-1.5">
-            <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
-              页面出现错误
-            </h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-              {this.state.error?.message || '发生未知错误，请重新加载页面'}
-            </p>
+            <p className="text-6xl font-black text-slate-200 dark:text-white/10 tracking-tight">500</p>
+            <h2 className="text-lg font-bold text-slate-800 dark:text-white">页面出现错误</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{errMsg}</p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 active:scale-[0.97] transition-all shadow-sm"
-          >
-            <RefreshCw size={15} />
-            重新加载
-          </button>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={this.handleReset}
+              className="px-4 py-2.5 rounded-xl text-sm font-medium border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+            >
+              重试
+            </button>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 active:scale-[0.97] transition-all"
+            >
+              <RefreshCw size={15} />
+              刷新页面
+            </button>
+          </div>
         </div>
       </div>
     );

@@ -566,34 +566,36 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
                   )}
                 </div>
 
-                {hasSubItems && isExpanded && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2, ease: 'easeInOut' }}
-                    className="overflow-hidden"
+                {hasSubItems && (
+                  <div
+                    className={`grid transition-[grid-template-rows] duration-200 ease-out ${
+                      isExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+                    }`}
                   >
-                    <div className="pl-3 pr-2 pt-1 pb-2 space-y-1">
-                      {item.id === activeSidebar && (
-                        <div className="relative px-1 mb-2">
-                          <Search
-                            size={14}
-                            className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${
-                              theme === 'light' ? 'text-slate-400' : 'text-slate-500'
-                            }`}
-                            aria-hidden
-                          />
-                          <input
-                            type="search"
-                            value={sidebarNavFilter}
-                            onChange={(e) => setSidebarNavFilter(e.target.value)}
-                            placeholder="筛选子项…"
-                            className={`${toolbarSearchInputClass(theme)} !py-2 !text-xs !min-h-0 !pl-8`}
-                            aria-label="筛选当前菜单子项"
-                          />
-                        </div>
-                      )}
+                    <div className="overflow-hidden pl-3 pr-2 pt-1 pb-2 space-y-1">
+                      <div
+                        className={`relative px-1 transition-all duration-150 ${
+                          item.id === activeSidebar
+                            ? 'mb-2 opacity-100'
+                            : 'h-0 opacity-0 overflow-hidden pointer-events-none'
+                        }`}
+                      >
+                        <Search
+                          size={14}
+                          className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${
+                            theme === 'light' ? 'text-slate-400' : 'text-slate-500'
+                          }`}
+                          aria-hidden
+                        />
+                        <input
+                          type="search"
+                          value={sidebarNavFilter}
+                          onChange={(e) => setSidebarNavFilter(e.target.value)}
+                          placeholder="筛选子项…"
+                          className={`${toolbarSearchInputClass(theme)} !py-2 !text-xs !min-h-0 !pl-8`}
+                          aria-label="筛选当前菜单子项"
+                        />
+                      </div>
                       {filteredSubGroups.length === 0 ? (
                         <p className={`px-2 py-2 text-xs ${theme === 'light' ? 'text-slate-400' : 'text-slate-500'}`}>
                           无匹配项
@@ -643,7 +645,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
                         ))
                       )}
                     </div>
-                  </motion.div>
+                  </div>
                 )}
               </div>
             );
@@ -703,38 +705,34 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
                       />
                     </button>
 
-                    <AnimatePresence initial={false}>
-                      {showAppearanceMenu && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.2, ease: 'easeInOut' }}
-                          className="overflow-hidden"
+                    <div
+                      className={`grid transition-[grid-template-rows] duration-200 ease-out ${
+                        showAppearanceMenu ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+                      }`}
+                    >
+                      <div className="overflow-hidden">
+                        <div
+                          className={`mt-1 pt-2 border-t max-h-[min(70vh,420px)] overflow-y-auto custom-scrollbar ${
+                            theme === 'light' ? 'border-slate-100' : 'border-white/10'
+                          }`}
                         >
-                          <div
-                            className={`mt-1 pt-2 border-t max-h-[min(70vh,420px)] overflow-y-auto custom-scrollbar ${
-                              theme === 'light' ? 'border-slate-100' : 'border-white/10'
-                            }`}
-                          >
-                            <AppearanceMenu
-                              embedded
-                              theme={theme}
-                              setTheme={handleSetTheme}
-                              themeColor={themeColor}
-                              setThemeColor={handleSetThemeColor}
-                              fontSize={fontSize}
-                              setFontSize={handleSetFontSize}
-                              fontFamily={fontFamily}
-                              setFontFamily={handleSetFontFamily}
-                              animationStyle={animationStyle}
-                              setAnimationStyle={handleSetAnimationStyle}
-                              onReset={handleReset}
-                            />
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                          <AppearanceMenu
+                            embedded
+                            theme={theme}
+                            setTheme={handleSetTheme}
+                            themeColor={themeColor}
+                            setThemeColor={handleSetThemeColor}
+                            fontSize={fontSize}
+                            setFontSize={handleSetFontSize}
+                            fontFamily={fontFamily}
+                            setFontFamily={handleSetFontFamily}
+                            animationStyle={animationStyle}
+                            setAnimationStyle={handleSetAnimationStyle}
+                            onReset={handleReset}
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <button 

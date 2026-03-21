@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -12,6 +12,7 @@ import { Logo } from '../../components/common/Logo';
 import type { Theme } from '../../types';
 import { defaultPath } from '../../constants/consoleRoutes';
 import { pageBg, btnPrimary } from '../../utils/uiClasses';
+import { hidePreSplash } from '../../App';
 
 const springHover = { type: 'spring' as const, stiffness: 400, damping: 30 };
 
@@ -19,6 +20,8 @@ export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const login = useAuthStore((s) => s.login);
+
+  useEffect(() => { hidePreSplash(); }, []);
 
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState('');

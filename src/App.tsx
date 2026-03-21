@@ -5,7 +5,13 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { AuthGuard } from './router/guards/AuthGuard';
 import { GuestGuard } from './router/guards/GuestGuard';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
-import { SplashScreen } from './components/common/SplashScreen';
+export function hidePreSplash() {
+  const el = document.getElementById('pre-splash');
+  if (el) {
+    el.classList.add('hidden');
+    setTimeout(() => el.remove(), 400);
+  }
+}
 import { EnvBadge } from './components/common/EnvBadge';
 import { bindAuthCallbacks } from './lib/http';
 import { useAuthStore } from './stores/authStore';
@@ -54,7 +60,7 @@ const App: React.FC = () => {
       <ErrorBoundary>
         <HashRouter>
           <AuthBinder />
-          <Suspense fallback={<SplashScreen />}>
+          <Suspense fallback={<div className="fixed inset-0" />}>
             <Routes>
               <Route
                 path="/login"

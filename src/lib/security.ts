@@ -43,6 +43,27 @@ export const tokenStorage = {
   },
 };
 
+export function getCsrfToken(): string {
+  let token = sessionStorage.getItem('csrf_token');
+  if (!token) {
+    token = crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2, 15)}`;
+    sessionStorage.setItem('csrf_token', token);
+  }
+  return token;
+}
+
+export function isValidUrl(url: string): boolean {
+  try { new URL(url); return true; } catch { return false; }
+}
+
+export function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+export function isValidPhone(phone: string): boolean {
+  return /^1[3-9]\d{9}$/.test(phone);
+}
+
 export function maskSensitive(value: string, visibleChars = 4): string {
   if (value.length <= visibleChars * 2) return '****';
   return value.slice(0, visibleChars) + '****' + value.slice(-visibleChars);

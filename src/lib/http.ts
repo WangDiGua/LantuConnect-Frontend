@@ -6,8 +6,9 @@ import axios, {
   InternalAxiosRequestConfig,
 } from 'axios';
 import { env } from '../config/env';
-import { setupMockAdapter } from './mock/mockAdapter';
+import { setupMockAdapter } from '../mock';
 import { ApiException, ApiResponse } from '../types/api';
+import { getCsrfToken } from './security';
 
 let getToken: () => string | null = () => localStorage.getItem(env.VITE_TOKEN_KEY);
 let getRefreshToken: () => string | null = () => localStorage.getItem(env.VITE_REFRESH_TOKEN_KEY);
@@ -39,6 +40,12 @@ instance.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  config.headers['X-Request-Id'] = crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  config.headers['X-Request-Time'] = new Date().toISOString();
+  if (config.method !== 'get') {
+    config.headers['X-CSRF-Token'] = getCsrfToken();
+  }
+  (config as any).__startTime = Date.now();
   return config;
 });
 
@@ -58,6 +65,11 @@ function processQueue(error: unknown, token: string | null) {
 
 instance.interceptors.response.use(
   (response: AxiosResponse<ApiResponse>) => {
+    if (import.meta.env.DEV) {
+      const config = response.config;
+      const duration = Date.now() - ((config as any).__startTime || Date.now());
+      console.debug(`[API] ${config.method?.toUpperCase()} ${config.url} → ${response.status} (${duration}ms)`);
+    }
     const body = response.data;
     if (body && typeof body.code === 'number' && body.code !== 0) {
       return Promise.reject(
@@ -72,6 +84,12 @@ instance.interceptors.response.use(
   },
   async (error: AxiosError<ApiResponse>) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
+    if (error.response?.status === 429) {
+      return Promise.reject(
+        new ApiException({ code: 429, message: '请求过于频繁，请稍后重试', status: 429 }),
+      );
+    }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {

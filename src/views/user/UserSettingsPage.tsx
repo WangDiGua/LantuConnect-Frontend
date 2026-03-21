@@ -19,6 +19,7 @@ import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { nativeSelectClass, nativeInputClass } from '../../utils/formFieldClasses';
 import { btnPrimary, btnSecondary } from '../../utils/uiClasses';
 import { Modal } from '../../components/common/Modal';
+import { env } from '../../config/env';
 
 export interface UserSettingsPageProps {
   theme: Theme;
@@ -265,9 +266,11 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
             <button
               type="button"
               onClick={() => {
-                const authToken = localStorage.getItem('auth_token');
+                const tokenBackup = localStorage.getItem(env.VITE_TOKEN_KEY);
+                const refreshBackup = localStorage.getItem(env.VITE_REFRESH_TOKEN_KEY);
                 localStorage.clear();
-                if (authToken) localStorage.setItem('auth_token', authToken);
+                if (tokenBackup) localStorage.setItem(env.VITE_TOKEN_KEY, tokenBackup);
+                if (refreshBackup) localStorage.setItem(env.VITE_REFRESH_TOKEN_KEY, refreshBackup);
                 showMessage('已清除本地缓存', 'success');
               }}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-slate-200 dark:border-white/15 hover:bg-slate-50 dark:hover:bg-white/5"

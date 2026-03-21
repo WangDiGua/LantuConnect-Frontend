@@ -69,6 +69,7 @@ const UsageStatsOverview = lazy(() => import('../views/dashboard/UsageStatsOverv
 
 import { Logo } from '../components/common/Logo';
 import { MessageProvider, useMessage } from '../components/common/Message';
+import { useAuthStore } from '../stores/authStore';
 import { readPersistedNavState, writePersistedNavState } from '../utils/navigationState';
 import { readAppearanceState, writeAppearanceState } from '../utils/appearanceState';
 import { toolbarSearchInputClass } from '../utils/toolbarFieldClasses';
@@ -84,6 +85,7 @@ import {
   type ConsoleRole,
 } from '../constants/consoleRoutes';
 import { ContentLoader } from '../components/common/ContentLoader';
+import { PageSkeleton } from '../components/common/PageSkeleton';
 
 export const MainLayout: React.FC = () => {
   const [theme, setTheme] = useState<Theme>(() => readAppearanceState().theme);
@@ -120,7 +122,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
   const userMenuRef = useRef<HTMLDivElement>(null);
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const [sidebarNavFilter, setSidebarNavFilter] = useState('');
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const storeLogout = useAuthStore((s) => s.logout);
   const [themeColor, setThemeColor] = useState<ThemeColor>(() => readAppearanceState().themeColor);
   const [fontSize, setFontSize] = useState<FontSize>(() => readAppearanceState().fontSize);
   const [fontFamily, setFontFamily] = useState<FontFamily>(() => readAppearanceState().fontFamily);
@@ -433,8 +435,17 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
       }
     })();
 
+    const skeletonType = (() => {
+      if (p === 'dashboard' || p === 'workspace') return 'dashboard' as const;
+      if (p.includes('create') || p === 'submit-agent' || p === 'submit-skill') return 'form' as const;
+      if (p.includes('detail') || p === 'profile') return 'detail' as const;
+      if (p.includes('market') || p === 'quick-access') return 'cards' as const;
+      if (p.includes('monitoring') || p === 'performance-analysis' || p === 'data-reports' || p === 'usage-statistics') return 'chart' as const;
+      return 'table' as const;
+    })();
+
     return (
-      <Suspense fallback={<ContentLoader theme={t} />}>
+      <Suspense fallback={<PageSkeleton type={skeletonType} />}>
         {content}
       </Suspense>
     );
@@ -450,32 +461,6 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
   });
 
   MainContent.displayName = 'MainContent';
-
-  if (!isLoggedIn) {
-    return (
-      <div className={`min-h-screen flex items-center justify-center ${theme === 'light' ? 'bg-[#F2F2F7]' : 'bg-black'}`}>
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className={`p-10 rounded-2xl shadow-2xl max-w-md w-full border ${
-          theme === 'light' ? 'bg-white border-slate-200' : 'bg-[#1C1C1E] border-white/10'
-        }`}>
-          <div className="flex flex-col items-center text-center">
-            <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-blue-600 via-indigo-500 to-violet-600 bg-clip-text text-transparent">
-              LantuConnect
-            </h1>
-            <p className="text-slate-500 mb-8">兰智通 · AI Agent 与知识连接平台</p>
-            <button 
-              onClick={() => setIsLoggedIn(true)}
-              className="w-full py-3.5 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-500/20"
-            >
-              立即体验
-            </button>
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
 
   return (
     <LayoutChromeProvider value={{ hasSecondarySidebar }}>
@@ -802,7 +787,10 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
 
                   <button 
                     type="button"
-                    onClick={() => setIsLoggedIn(false)}
+                    onClick={() => {
+                      storeLogout();
+                      navigate('/login', { replace: true });
+                    }}
                     className={`flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] transition-all text-red-500 hover:bg-red-500/10`}
                   >
                     <LogOut size={16} />

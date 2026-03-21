@@ -10,13 +10,12 @@ import { ApiException } from '../../types/api';
 import { Logo } from '../../components/common/Logo';
 import type { Theme } from '../../types';
 import { nativeInputClass } from '../../utils/formFieldClasses';
+import { defaultPath } from '../../constants/consoleRoutes';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const login = useAuthStore((s) => s.login);
-  const from =
-    (location.state as { from?: { pathname: string } })?.from?.pathname || '/';
 
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState('');
@@ -45,7 +44,8 @@ export const LoginPage: React.FC = () => {
         remember: values.remember,
       });
       login(res.token, res.refreshToken, res.user);
-      navigate(from, { replace: true });
+      const isAdmin = res.user.role === 'admin';
+      navigate(defaultPath(isAdmin ? 'admin' : 'user'), { replace: true });
     } catch (err) {
       if (err instanceof ApiException) {
         setServerError(err.message);

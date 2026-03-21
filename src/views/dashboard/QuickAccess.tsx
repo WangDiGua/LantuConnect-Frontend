@@ -1,17 +1,14 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { 
+  Bot,
   Zap, 
-  Search, 
-  MessageSquare, 
+  Cpu, 
   Code, 
   Layers, 
-  Cpu, 
   Activity, 
-  Shield, 
-  Terminal,
   Database,
-  BarChart3,
+  Server,
   ExternalLink,
   Plus
 } from 'lucide-react';
@@ -30,14 +27,12 @@ export const QuickAccess: React.FC<QuickAccessProps> = ({ theme, fontSize: _font
   const maxW = hasSecondarySidebar ? 'max-w-7xl mx-auto' : 'w-full max-w-none';
 
   const tools = [
-    { name: '模型精调', icon: Cpu, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-    { name: '智能搜索', icon: Search, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-    { name: 'Agent 开发', icon: MessageSquare, color: 'text-purple-500', bg: 'bg-purple-500/10' },
-    { name: '知识库管理', icon: Database, color: 'text-orange-500', bg: 'bg-orange-500/10' },
-    { name: 'API 调用', icon: Terminal, color: 'text-slate-500', bg: 'bg-slate-500/10' },
-    { name: '性能监控', icon: Activity, color: 'text-red-500', bg: 'bg-red-500/10' },
-    { name: '安全中心', icon: Shield, color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
-    { name: '数据分析', icon: BarChart3, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
+    { name: 'Agent 管理', icon: Bot, color: 'text-blue-500', bg: 'bg-blue-500/10', desc: '注册、审核与发布' },
+    { name: 'Skill 管理', icon: Zap, color: 'text-violet-500', bg: 'bg-violet-500/10', desc: 'MCP 工具与 API' },
+    { name: '智能应用', icon: Cpu, color: 'text-emerald-500', bg: 'bg-emerald-500/10', desc: '应用注册与上架' },
+    { name: '数据集', icon: Database, color: 'text-orange-500', bg: 'bg-orange-500/10', desc: '数据集管理' },
+    { name: 'Provider', icon: Server, color: 'text-cyan-500', bg: 'bg-cyan-500/10', desc: '服务提供商配置' },
+    { name: '监控中心', icon: Activity, color: 'text-red-500', bg: 'bg-red-500/10', desc: '调用日志与告警' },
   ];
 
   return (
@@ -57,10 +52,10 @@ export const QuickAccess: React.FC<QuickAccessProps> = ({ theme, fontSize: _font
           </button>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          {tools.map((tool, i) => (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {tools.map((tool) => (
             <motion.div
-              key={i}
+              key={tool.name}
               whileHover={{ y: -4, scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               className={`p-4 rounded-2xl border cursor-pointer transition-colors flex flex-col items-center gap-3 text-center shadow-none ${
@@ -70,7 +65,10 @@ export const QuickAccess: React.FC<QuickAccessProps> = ({ theme, fontSize: _font
               <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${tool.bg} ${tool.color}`}>
                 <tool.icon size={24} />
               </div>
-              <span className={`text-[13px] font-medium ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{tool.name}</span>
+              <div>
+                <span className={`text-[13px] font-medium block ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{tool.name}</span>
+                <span className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{tool.desc}</span>
+              </div>
             </motion.div>
           ))}
         </div>
@@ -79,10 +77,10 @@ export const QuickAccess: React.FC<QuickAccessProps> = ({ theme, fontSize: _font
           <h3 className={`text-sm font-bold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>常用资源</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
-              { title: '开发文档', desc: '快速上手指南与详细 API 文档', icon: Code },
-              { title: '最佳实践', desc: '各行业 AI 应用落地案例分享', icon: Layers },
-            ].map((card, i) => (
-              <div key={i} className={`p-5 rounded-2xl border flex items-start gap-4 group cursor-pointer transition-colors shadow-none ${
+              { title: '接入文档', desc: 'Agent/Skill 接入流程与 API 规范文档', icon: Code },
+              { title: '最佳实践', desc: '校园场景 AI Agent 落地案例与模板', icon: Layers },
+            ].map((card) => (
+              <div key={card.title} className={`p-5 rounded-2xl border flex items-start gap-4 group cursor-pointer transition-colors shadow-none ${
                 isDark ? 'bg-[#1C1C1E] border-white/10 hover:bg-white/5' : 'bg-white border-slate-200/80 hover:bg-slate-50/80'
               }`}>
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDark ? 'bg-white/5' : 'bg-slate-100'} text-slate-500`}>

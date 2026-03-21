@@ -8,11 +8,12 @@ import {
   Edit2, 
   Trash2,
   CheckCircle2,
-  AlertCircle,
   Clock,
   BarChart3,
   ShieldCheck,
-  Code2
+  Code2,
+  Globe,
+  Activity
 } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { useAgent, useDeleteAgent } from '../../hooks/queries/useAgent';
@@ -27,14 +28,36 @@ interface AgentDetailProps {
   onBack: () => void;
 }
 
+const STATUS_MAP: Record<string, { label: string; cls: string }> = {
+  published: { label: '已发布', cls: 'badge-success' },
+  draft: { label: '草稿', cls: 'badge-ghost' },
+  pending_review: { label: '待审核', cls: 'badge-warning' },
+  testing: { label: '测试中', cls: 'badge-info' },
+  rejected: { label: '已拒绝', cls: 'badge-error' },
+  deprecated: { label: '已废弃', cls: 'badge-ghost' },
+};
+
+const AGENT_TYPE_LABEL: Record<string, string> = {
+  mcp: 'MCP 协议',
+  http_api: 'HTTP API',
+  builtin: '内置',
+};
+
+const SOURCE_TYPE_LABEL: Record<string, string> = {
+  internal: '内部',
+  partner: '合作方',
+  cloud: '云端',
+};
+
 export const AgentDetail: React.FC<AgentDetailProps> = ({ agentId, theme, fontSize, onBack }) => {
   const isDark = theme === 'dark';
-  const { data: agent, isLoading, isError, error, refetch } = useAgent(agentId);
+  const numericId = Number(agentId);
+  const { data: agent, isLoading, isError, error, refetch } = useAgent(numericId);
   const deleteMut = useDeleteAgent();
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   const handleDelete = () => {
-    deleteMut.mutate(agentId, {
+    deleteMut.mutate(numericId, {
       onSuccess: () => { setDeleteOpen(false); onBack(); },
     });
   };
@@ -60,6 +83,8 @@ export const AgentDetail: React.FC<AgentDetailProps> = ({ agentId, theme, fontSi
     return n.toLocaleString();
   };
 
+  const statusInfo = STATUS_MAP[agent.status] ?? { label: agent.status, cls: 'badge-ghost' };
+
   return (
     <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${
       isDark ? 'bg-[#000000]' : 'bg-[#F2F2F7]'
@@ -74,19 +99,13 @@ export const AgentDetail: React.FC<AgentDetailProps> = ({ agentId, theme, fontSi
           </button>
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-2xl text-white shadow-none border border-blue-500/30 shrink-0">
-              {agent.avatar || '🤖'}
+              {agent.icon || '🤖'}
             </div>
             <div>
-              <h2 className="text-xl font-bold">{agent.name}</h2>
+              <h2 className="text-xl font-bold">{agent.displayName}</h2>
               <div className="flex items-center gap-2 mt-0.5">
-                <div className={`badge badge-sm font-bold text-[10px] ${
-                  agent.status === 'published' ? 'badge-success' :
-                  agent.status === 'draft' ? 'badge-ghost' :
-                  agent.status === 'error' ? 'badge-error' : 'badge-warning'
-                }`}>
-                  {agent.status === 'published' ? '已发布' :
-                   agent.status === 'draft' ? '草稿' :
-                   agent.status === 'error' ? '异常' : '已归档'}
+                <div className={`badge badge-sm font-bold text-[10px] ${statusInfo.cls}`}>
+                  {statusInfo.label}
                 </div>
                 <span className="text-xs text-slate-500">ID: {agentId}</span>
               </div>
@@ -120,15 +139,31 @@ export const AgentDetail: React.FC<AgentDetailProps> = ({ agentId, theme, fontSi
               </h3>
               <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <label className="text-xs text-slate-500 block mb-1">Agent 名称</label>
-                  <p className="font-medium">{agent.name}</p>
+                  <label className="text-xs text-slate-500 block mb-1">显示名称</label>
+                  <p className="font-medium">{agent.displayName}</p>
                 </div>
                 <div>
-                  <label className="text-xs text-slate-500 block mb-1">类型</label>
-                  <p className="font-medium">{agent.type}</p>
+                  <label className="text-xs text-slate-500 block mb-1">标识名称</label>
+                  <p className="font-medium font-mono text-sm">{agent.agentName}</p>
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1">接入类型</label>
+                  <p className="font-medium">{AGENT_TYPE_LABEL[agent.agentType] ?? agent.agentType}</p>
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1">来源</label>
+                  <p className="font-medium">{SOURCE_TYPE_LABEL[agent.sourceType] ?? agent.sourceType}</p>
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1">模式</label>
+                  <p className="font-medium">{agent.mode}</p>
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500 block mb-1">状态</label>
+                  <p className="font-medium">{statusInfo.label}</p>
                 </div>
                 <div className="col-span-2">
-                  <label className="text-xs text-slate-500 block mb-1">Agent 描述</label>
+                  <label className="text-xs text-slate-500 block mb-1">描述</label>
                   <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-400">
                     {agent.description}
                   </p>
@@ -147,11 +182,13 @@ export const AgentDetail: React.FC<AgentDetailProps> = ({ agentId, theme, fontSi
                 <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-inherit">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-blue-100 dark:bg-blue-500/20 text-blue-600 rounded-xl">
-                      <Zap size={18} />
+                      <Globe size={18} />
                     </div>
                     <div>
-                      <p className="text-sm font-bold">模型</p>
-                      <p className="text-xs text-slate-500">{agent.modelName || agent.modelId}</p>
+                      <p className="text-sm font-bold">连接配置</p>
+                      <p className="text-xs text-slate-500 font-mono break-all">
+                        {JSON.stringify(agent.specJson)}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -177,9 +214,9 @@ export const AgentDetail: React.FC<AgentDetailProps> = ({ agentId, theme, fontSi
                       <Code2 size={18} />
                     </div>
                     <div>
-                      <p className="text-sm font-bold">参数</p>
+                      <p className="text-sm font-bold">运行参数</p>
                       <p className="text-xs text-slate-500">
-                        温度: {agent.temperature ?? 0.7} | Top-P: {agent.topP ?? 1.0} | 最大 Token: {agent.maxTokens ?? '—'}
+                        温度: {agent.temperature ?? '—'} | 最大并发: {agent.maxConcurrency} | 最大步数: {agent.maxSteps ?? '—'}
                       </p>
                     </div>
                   </div>
@@ -212,6 +249,10 @@ export const AgentDetail: React.FC<AgentDetailProps> = ({ agentId, theme, fontSi
                     <div className="stat-title text-xs">平均响应时间</div>
                     <div className="stat-value text-2xl text-orange-500">{agent.avgLatencyMs}ms</div>
                   </div>
+                  <div className="stat px-0 py-2">
+                    <div className="stat-title text-xs">质量评分</div>
+                    <div className="stat-value text-2xl text-purple-500">{agent.qualityScore}</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -226,18 +267,12 @@ export const AgentDetail: React.FC<AgentDetailProps> = ({ agentId, theme, fontSi
               <div className="space-y-3">
                 <div className="flex justify-between text-xs">
                   <span className="text-slate-500">创建时间</span>
-                  <span className="font-mono">{agent.createdAt}</span>
+                  <span className="font-mono">{agent.createTime}</span>
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-slate-500">最后更新</span>
-                  <span className="font-mono">{agent.updatedAt}</span>
+                  <span className="font-mono">{agent.updateTime}</span>
                 </div>
-                {agent.publishedAt && (
-                  <div className="flex justify-between text-xs">
-                    <span className="text-slate-500">发布时间</span>
-                    <span className="font-mono">{agent.publishedAt}</span>
-                  </div>
-                )}
               </div>
             </div>
           </div>
@@ -247,7 +282,7 @@ export const AgentDetail: React.FC<AgentDetailProps> = ({ agentId, theme, fontSi
       <ConfirmDialog
         open={deleteOpen}
         title="删除 Agent"
-        message={`确定要删除「${agent.name}」吗？此操作不可撤销。`}
+        message={`确定要删除「${agent.displayName}」吗？此操作不可撤销。`}
         confirmText="删除"
         variant="danger"
         loading={deleteMut.isPending}

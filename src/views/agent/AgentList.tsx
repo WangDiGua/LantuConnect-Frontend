@@ -1,27 +1,29 @@
-import React, { useState, useMemo } from 'react';
-import { 
-  Plus, 
-  RefreshCw, 
-  Library, 
-  Zap, 
-  FileText, 
-  Webhook, 
-  Activity, 
-  Settings,
+import React, { useState, useEffect } from 'react';
+import {
+  Plus,
+  RefreshCw,
+  Bot,
   ExternalLink,
   Trash2,
   Edit2,
-  Play
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
-import { Theme, FontSize } from '../../types';
+import type { Theme, FontSize } from '../../types';
 import { TOOLBAR_ROW } from '../../utils/toolbarFieldClasses';
 import { useAgents, useDeleteAgent } from '../../hooks/queries/useAgent';
 import { ContentLoader } from '../../components/common/ContentLoader';
 import { PageError } from '../../components/common/PageError';
 import { EmptyState } from '../../components/common/EmptyState';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
-import { DataTable, SearchInput, FilterSelect, type Column, type RowAction } from '../../components/common';
-import type { Agent } from '../../types/dto/agent';
+import { SearchInput, FilterSelect } from '../../components/common';
+import type {
+  Agent,
+  AgentStatus,
+  SourceType,
+  AgentType as DtoAgentType,
+  AgentListQuery,
+} from '../../types/dto/agent';
 
 interface AgentListProps {
   theme: Theme;
@@ -30,78 +32,86 @@ interface AgentListProps {
   onCreateAgent: () => void;
 }
 
-type AgentStatus = 'DRAFT' | 'TESTING' | 'PUBLISHED' | 'SUSPENDED' | 'DEPRECATED';
-type AgentType = 'REST_API' | 'MCP' | 'OPENAPI' | 'WEBHOOK' | 'STREAMING' | 'CONFIGURED';
-
-const statusConfig: Record<AgentStatus, { label: string; color: string; bg: string }> = {
-  DRAFT: { label: '草稿', color: 'text-slate-500', bg: 'bg-slate-500/10' },
-  TESTING: { label: '测试中', color: 'text-orange-500', bg: 'bg-orange-500/10' },
-  PUBLISHED: { label: '已发布', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-  SUSPENDED: { label: '已暂停', color: 'text-red-500', bg: 'bg-red-500/10' },
-  DEPRECATED: { label: '已废弃', color: 'text-slate-400', bg: 'bg-slate-400/10' },
+const STATUS_CFG: Record<AgentStatus, { label: string; color: string; bg: string }> = {
+  draft: { label: '草稿', color: 'text-slate-500', bg: 'bg-slate-500/10' },
+  pending_review: { label: '待审核', color: 'text-amber-500', bg: 'bg-amber-500/10' },
+  testing: { label: '测试中', color: 'text-blue-500', bg: 'bg-blue-500/10' },
+  published: { label: '已发布', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+  rejected: { label: '已拒绝', color: 'text-red-500', bg: 'bg-red-500/10' },
+  deprecated: { label: '已废弃', color: 'text-orange-500', bg: 'bg-orange-500/10' },
 };
 
-const typeConfig: Record<AgentType, { label: string; icon: any }> = {
-  REST_API: { label: 'REST API', icon: Zap },
-  MCP: { label: 'MCP协议', icon: Activity },
-  OPENAPI: { label: 'OpenAPI', icon: FileText },
-  WEBHOOK: { label: 'Webhook', icon: Webhook },
-  STREAMING: { label: '流式接口', icon: Activity },
-  CONFIGURED: { label: '配置化', icon: Settings },
+const SOURCE_LABEL: Record<SourceType, string> = {
+  internal: '自研',
+  partner: '合作方',
+  cloud: '云服务',
 };
 
-const STATUS_MAP: Record<Agent['status'], AgentStatus> = {
-  draft: 'DRAFT',
-  published: 'PUBLISHED',
-  archived: 'DEPRECATED',
-  error: 'SUSPENDED',
-};
-
-const TYPE_MAP: Record<Agent['type'], AgentType> = {
-  chat: 'REST_API',
-  task: 'MCP',
-  workflow: 'OPENAPI',
-  custom: 'CONFIGURED',
+const TYPE_LABEL: Record<DtoAgentType, string> = {
+  mcp: 'MCP',
+  http_api: 'HTTP API',
+  builtin: '内置',
 };
 
 const PAGE_SIZE = 20;
 
-export const AgentList: React.FC<AgentListProps> = ({ theme, fontSize, onViewDetail, onCreateAgent }) => {
-  const isDark = theme === 'dark';
-  const [statusFilter, setStatusFilter] = useState('全部');
-  const [typeFilter, setTypeFilter] = useState('全部');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [page, setPage] = useState(1);
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+function formatCount(n: number): string {
+  if (n >= 10000) return (n / 10000).toFixed(1) + '万';
+  return n.toLocaleString();
+}
 
-  const { data, isLoading, isError, error, refetch } = useAgents({ page, pageSize: PAGE_SIZE });
+export const AgentList: React.FC<AgentListProps> = ({
+  theme,
+  fontSize: _fontSize,
+  onViewDetail,
+  onCreateAgent,
+}) => {
+  const isDark = theme === 'dark';
+
+  const [page, setPage] = useState(1);
+  const [keyword, setKeyword] = useState('');
+  const [debouncedKw, setDebouncedKw] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [sourceFilter, setSourceFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedKw(keyword);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [keyword]);
+
+  const query: AgentListQuery = {
+    page,
+    pageSize: PAGE_SIZE,
+    keyword: debouncedKw || undefined,
+    status: (statusFilter || undefined) as AgentStatus | undefined,
+    sourceType: (sourceFilter || undefined) as SourceType | undefined,
+    agentType: (typeFilter || undefined) as DtoAgentType | undefined,
+  };
+
+  const { data, isLoading, isError, error, refetch } = useAgents(query);
   const deleteMut = useDeleteAgent();
 
-  const agents = useMemo(() => {
-    const list = data?.list ?? [];
-    return list.filter((a) => {
-      const mapped = STATUS_MAP[a.status] ?? 'DRAFT';
-      if (statusFilter !== '全部' && statusConfig[mapped]?.label !== statusFilter) return false;
-      const mappedType = TYPE_MAP[a.type] ?? 'CONFIGURED';
-      if (typeFilter !== '全部' && typeConfig[mappedType]?.label !== typeFilter) return false;
-      if (searchQuery.trim()) {
-        const q = searchQuery.trim().toLowerCase();
-        if (!a.name.toLowerCase().includes(q) && !a.description.toLowerCase().includes(q)) return false;
-      }
-      return true;
-    });
-  }, [data, statusFilter, typeFilter, searchQuery]);
-
-  const formatNumber = (num: number) => {
-    if (num >= 10000) return (num / 10000).toFixed(1) + '万';
-    return num.toLocaleString();
-  };
+  const agents: Agent[] = data?.list ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const handleDelete = () => {
     if (!deleteTarget) return;
-    deleteMut.mutate(deleteTarget.id, {
-      onSuccess: () => setDeleteTarget(null),
-    });
+    deleteMut.mutate(deleteTarget.id, { onSuccess: () => setDeleteTarget(null) });
+  };
+
+  const resetFilters = () => {
+    setKeyword('');
+    setDebouncedKw('');
+    setStatusFilter('');
+    setSourceFilter('');
+    setTypeFilter('');
+    setPage(1);
   };
 
   if (isError) {
@@ -112,271 +122,372 @@ export const AgentList: React.FC<AgentListProps> = ({ theme, fontSize, onViewDet
     );
   }
 
+  const thCls = `px-4 py-3 font-semibold text-xs uppercase tracking-wider ${
+    isDark ? 'text-slate-400' : 'text-slate-500'
+  }`;
+
   return (
-    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-colors duration-300 ${
-      isDark ? 'bg-[#000000]' : 'bg-[#F2F2F7]'
-    }`}>
+    <div
+      className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-colors duration-300 ${
+        isDark ? 'bg-[#000000]' : 'bg-[#F2F2F7]'
+      }`}
+    >
       <div className="w-full flex-1 min-h-0 flex flex-col px-2 sm:px-3 lg:px-4 py-2 sm:py-3">
-        <div className={`rounded-2xl border overflow-hidden flex-1 min-h-0 flex flex-col ${
-          isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200/80 shadow-none'
-        }`}>
+        <div
+          className={`rounded-2xl border overflow-hidden flex-1 min-h-0 flex flex-col ${
+            isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200/80'
+          }`}
+        >
           {/* Header */}
-          <div className={`flex items-center justify-between px-6 py-4 border-b ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
+          <div
+            className={`flex items-center justify-between px-6 py-4 border-b shrink-0 ${
+              isDark ? 'border-white/10' : 'border-slate-200'
+            }`}
+          >
             <div className="flex items-center gap-2">
-              <Library className="text-blue-600" size={20} />
-              <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Agent列表</h2>
+              <Bot className="text-blue-600" size={20} />
+              <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                Agent 管理
+              </h2>
+              {total > 0 && (
+                <span
+                  className={`text-xs px-2 py-0.5 rounded-full ${
+                    isDark ? 'bg-white/5 text-slate-400' : 'bg-slate-100 text-slate-500'
+                  }`}
+                >
+                  {total}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-3">
-              <button type="button" onClick={() => refetch()} className="btn btn-ghost btn-sm gap-1.5 font-medium">
+              <button
+                type="button"
+                onClick={() => refetch()}
+                className={`btn btn-ghost btn-sm gap-1.5 ${isDark ? 'text-slate-300' : ''}`}
+              >
                 <RefreshCw size={16} />
-                <span>刷新</span>
+                刷新
               </button>
-              <button 
+              <button
+                type="button"
                 onClick={onCreateAgent}
                 className="btn btn-primary btn-sm gap-1.5 font-bold shadow-lg shadow-blue-500/20"
               >
                 <Plus size={16} />
-                <span>创建 Agent</span>
+                注册 Agent
               </button>
             </div>
           </div>
 
           {/* Filters */}
           <div
-            className={`p-4 border-b ${isDark ? 'border-white/10 bg-[#1C1C1E]/50' : 'border-slate-200 bg-slate-50/50'}`}
+            className={`p-4 border-b shrink-0 ${
+              isDark ? 'border-white/10' : 'border-slate-200 bg-slate-50/50'
+            }`}
           >
             <div className={TOOLBAR_ROW}>
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0">
-                <span className={`text-xs font-semibold shrink-0 ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
-                  状态
-                </span>
-                <FilterSelect
-                  value={statusFilter}
-                  onChange={setStatusFilter}
-                  options={[
-                    { value: '全部', label: '全部' },
-                    { value: '草稿', label: '草稿' },
-                    { value: '测试中', label: '测试中' },
-                    { value: '已发布', label: '已发布' },
-                    { value: '已暂停', label: '已暂停' },
-                    { value: '已废弃', label: '已废弃' },
-                  ]}
-                  theme={theme}
-                  className="w-full sm:w-[9.5rem] shrink-0"
-                />
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0">
-                <span className={`text-xs font-semibold shrink-0 ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
-                  类型
-                </span>
-                <FilterSelect
-                  value={typeFilter}
-                  onChange={setTypeFilter}
-                  options={[
-                    { value: '全部', label: '全部' },
-                    { value: 'REST API', label: 'REST API' },
-                    { value: 'MCP', label: 'MCP' },
-                    { value: 'OpenAPI', label: 'OpenAPI' },
-                    { value: 'Webhook', label: 'Webhook' },
-                    { value: '流式', label: '流式' },
-                    { value: '配置化', label: '配置化' },
-                  ]}
-                  theme={theme}
-                  className="w-full sm:w-[9.5rem] shrink-0"
-                />
-              </div>
-
-              <div className="flex-1 min-w-[min(100%,220px)] sm:min-w-[200px]">
+              <FilterSelect
+                value={statusFilter}
+                onChange={(v) => {
+                  setStatusFilter(v);
+                  setPage(1);
+                }}
+                options={[
+                  { value: '', label: '全部状态' },
+                  { value: 'draft', label: '草稿' },
+                  { value: 'published', label: '已发布' },
+                  { value: 'testing', label: '测试中' },
+                  { value: 'pending_review', label: '待审核' },
+                  { value: 'deprecated', label: '已废弃' },
+                ]}
+                placeholder=""
+                theme={theme}
+                className="w-full sm:w-36"
+              />
+              <FilterSelect
+                value={sourceFilter}
+                onChange={(v) => {
+                  setSourceFilter(v);
+                  setPage(1);
+                }}
+                options={[
+                  { value: '', label: '全部来源' },
+                  { value: 'internal', label: '自研' },
+                  { value: 'partner', label: '合作方' },
+                  { value: 'cloud', label: '云服务' },
+                ]}
+                placeholder=""
+                theme={theme}
+                className="w-full sm:w-36"
+              />
+              <FilterSelect
+                value={typeFilter}
+                onChange={(v) => {
+                  setTypeFilter(v);
+                  setPage(1);
+                }}
+                options={[
+                  { value: '', label: '全部类型' },
+                  { value: 'mcp', label: 'MCP' },
+                  { value: 'http_api', label: 'HTTP API' },
+                  { value: 'builtin', label: '内置' },
+                ]}
+                placeholder=""
+                theme={theme}
+                className="w-full sm:w-36"
+              />
+              <div className="flex-1 min-w-[min(100%,200px)]">
                 <SearchInput
-                  value={searchQuery}
-                  onChange={setSearchQuery}
-                  placeholder="搜索 Agent 名称或描述"
+                  value={keyword}
+                  onChange={setKeyword}
+                  placeholder="搜索名称或描述…"
                   theme={theme}
                 />
               </div>
-
-              <div className="flex flex-wrap items-center gap-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => refetch()}
-                  className="inline-flex items-center justify-center px-4 rounded-xl text-sm font-medium min-h-[2.5rem] bg-blue-600 text-white hover:bg-blue-700"
-                >
-                  搜索
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setStatusFilter('全部');
-                    setTypeFilter('全部');
-                    setSearchQuery('');
-                  }}
-                  className={`inline-flex items-center justify-center px-4 rounded-xl text-sm font-medium min-h-[2.5rem] border ${
-                    isDark
-                      ? 'border-white/15 text-slate-200 hover:bg-white/5'
-                      : 'border-slate-200 text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  重置
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={resetFilters}
+                className={`inline-flex items-center justify-center px-4 rounded-xl text-sm font-medium min-h-[2.5rem] border ${
+                  isDark
+                    ? 'border-white/15 text-slate-200 hover:bg-white/5'
+                    : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                重置
+              </button>
             </div>
           </div>
 
-          {/* Table Area */}
-          <ContentLoader loading={isLoading}>
-            {agents.length === 0 ? (
-              <EmptyState
-                title="暂无 Agent"
-                description="创建第一个 Agent 开始使用"
-                action={
-                  <button type="button" onClick={onCreateAgent} className="btn btn-primary btn-sm gap-1.5">
-                    <Plus size={16} />
-                    创建 Agent
-                  </button>
-                }
-              />
-            ) : (
-              <DataTable<Agent>
-                columns={[
-                  {
-                    key: 'avatar',
-                    label: '图标',
-                    minWidth: '3.5rem',
-                    render: (value) => (
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${
-                        isDark ? 'bg-white/5' : 'bg-white border border-slate-100'
-                      }`}>
-                        {value || '🤖'}
-                      </div>
-                    ),
-                  },
-                  {
-                    key: 'name',
-                    label: '名称',
-                    minWidth: '140px',
-                    render: (value) => (
-                      <div className="font-bold truncate" title={String(value)}>
-                        {value}
-                      </div>
-                    ),
-                  },
-                  {
-                    key: 'description',
-                    label: '描述',
-                    minWidth: '300px',
-                    render: (value) => (
-                      <div className="text-slate-500 line-clamp-3 leading-snug whitespace-normal" title={String(value)}>
-                        {value}
-                      </div>
-                    ),
-                  },
-                  {
-                    key: 'status',
-                    label: '状态',
-                    minWidth: '92px',
-                    render: (value, row) => {
-                      const mappedStatus = STATUS_MAP[row.status] ?? 'DRAFT';
-                      const sc = statusConfig[mappedStatus];
+          {/* Table */}
+          <div className="flex-1 min-h-0 overflow-auto">
+            <ContentLoader loading={isLoading} theme={theme}>
+              {agents.length === 0 ? (
+                <EmptyState
+                  title="暂无 Agent"
+                  description="注册第一个 Agent 开始使用"
+                  action={
+                    <button
+                      type="button"
+                      onClick={onCreateAgent}
+                      className="btn btn-primary btn-sm gap-1.5"
+                    >
+                      <Plus size={16} />
+                      注册 Agent
+                    </button>
+                  }
+                />
+              ) : (
+                <table className="table w-full text-sm min-w-[900px]">
+                  <thead className="sticky top-0 z-10">
+                    <tr
+                      className={`border-b ${
+                        isDark
+                          ? 'border-white/10 bg-[#2C2C2E]'
+                          : 'border-slate-200 bg-slate-50'
+                      }`}
+                    >
+                      <th className={`${thCls} text-left`} style={{ minWidth: 200 }}>
+                        名称
+                      </th>
+                      <th className={`${thCls} text-left`}>接入类型</th>
+                      <th className={`${thCls} text-left`}>来源</th>
+                      <th className={`${thCls} text-left`}>状态</th>
+                      <th className={`${thCls} text-right`}>调用次数</th>
+                      <th className={`${thCls} text-right`}>成功率</th>
+                      <th className={`${thCls} text-right`}>平均延迟</th>
+                      <th className={`${thCls} text-right`} style={{ minWidth: 100 }}>
+                        操作
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {agents.map((agent, idx) => {
+                      const sc = STATUS_CFG[agent.status] ?? STATUS_CFG.draft;
                       return (
-                        <div className={`badge badge-sm font-bold gap-1 whitespace-nowrap h-auto min-h-7 py-1.5 px-2 ${sc.bg} ${sc.color} border-none`}>
-                          {sc.label}
-                        </div>
+                        <tr
+                          key={agent.id}
+                          className={`border-b transition-colors ${
+                            isDark
+                              ? `border-white/5 ${idx % 2 ? 'bg-white/[0.02]' : ''} hover:bg-white/5`
+                              : `border-slate-100 ${idx % 2 ? 'bg-slate-50/50' : ''} hover:bg-slate-50`
+                          }`}
+                        >
+                          <td
+                            className={`px-4 py-3 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div
+                                className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg shrink-0 ${
+                                  isDark ? 'bg-white/5' : 'bg-slate-100'
+                                }`}
+                              >
+                                {agent.icon || '🤖'}
+                              </div>
+                              <div className="min-w-0">
+                                <div
+                                  className={`font-semibold truncate ${
+                                    isDark ? 'text-white' : 'text-slate-900'
+                                  }`}
+                                >
+                                  {agent.displayName}
+                                </div>
+                                <div className="text-xs text-slate-500 truncate">
+                                  {agent.agentName}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={`inline-flex px-2 py-0.5 rounded-md text-xs font-medium ${
+                                isDark
+                                  ? 'bg-white/5 text-slate-300'
+                                  : 'bg-slate-100 text-slate-600'
+                              }`}
+                            >
+                              {TYPE_LABEL[agent.agentType]}
+                            </span>
+                          </td>
+                          <td
+                            className={`px-4 py-3 text-xs ${
+                              isDark ? 'text-slate-400' : 'text-slate-500'
+                            }`}
+                          >
+                            {SOURCE_LABEL[agent.sourceType]}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={`inline-flex items-center px-2 py-1 rounded-lg text-xs font-semibold ${sc.bg} ${sc.color}`}
+                            >
+                              {sc.label}
+                            </span>
+                          </td>
+                          <td
+                            className={`px-4 py-3 text-right font-mono text-xs tabular-nums ${
+                              isDark ? 'text-slate-300' : 'text-slate-700'
+                            }`}
+                          >
+                            {formatCount(agent.callCount)}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <span
+                              className={`font-mono text-xs tabular-nums ${
+                                agent.successRate >= 95
+                                  ? 'text-emerald-500'
+                                  : agent.successRate >= 90
+                                    ? 'text-blue-500'
+                                    : 'text-orange-500'
+                              }`}
+                            >
+                              {agent.successRate.toFixed(1)}%
+                            </span>
+                          </td>
+                          <td
+                            className={`px-4 py-3 text-right font-mono text-xs tabular-nums ${
+                              isDark ? 'text-slate-400' : 'text-slate-500'
+                            }`}
+                          >
+                            {agent.avgLatencyMs >= 1000
+                              ? (agent.avgLatencyMs / 1000).toFixed(1) + 's'
+                              : agent.avgLatencyMs + 'ms'}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <div className="inline-flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => onViewDetail(String(agent.id))}
+                                className={`p-1.5 rounded-lg transition-colors ${
+                                  isDark
+                                    ? 'text-blue-400 hover:bg-blue-500/10'
+                                    : 'text-blue-600 hover:bg-blue-50'
+                                }`}
+                                title="详情"
+                              >
+                                <ExternalLink size={14} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => alert('编辑功能开发中')}
+                                className={`p-1.5 rounded-lg transition-colors ${
+                                  isDark
+                                    ? 'text-slate-400 hover:bg-white/5'
+                                    : 'text-slate-500 hover:bg-slate-100'
+                                }`}
+                                title="编辑"
+                              >
+                                <Edit2 size={14} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setDeleteTarget({ id: agent.id, name: agent.displayName })
+                                }
+                                className={`p-1.5 rounded-lg transition-colors ${
+                                  isDark
+                                    ? 'text-red-400 hover:bg-red-500/10'
+                                    : 'text-red-500 hover:bg-red-50'
+                                }`}
+                                title="删除"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
                       );
-                    },
-                  },
-                  {
-                    key: 'type',
-                    label: '类型',
-                    minWidth: '140px',
-                    render: (value, row) => {
-                      const mappedType = TYPE_MAP[row.type] ?? 'CONFIGURED';
-                      const tc = typeConfig[mappedType];
-                      return (
-                        <div className="flex items-center gap-2">
-                          <div className={`p-1.5 rounded-xl shrink-0 ${isDark ? 'bg-white/5 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
-                            {React.createElement(tc.icon, { size: 12 })}
-                          </div>
-                          <span className="text-xs whitespace-nowrap">{tc.label}</span>
-                        </div>
-                      );
-                    },
-                  },
-                  {
-                    key: 'callCount',
-                    label: '调用量',
-                    align: 'right',
-                    minWidth: '88px',
-                    render: (value) => <span className="font-mono text-xs tabular-nums">{formatNumber(value as number)}</span>,
-                  },
-                  {
-                    key: 'successRate',
-                    label: '成功率',
-                    align: 'right',
-                    minWidth: '128px',
-                    render: (value, row) => {
-                      const rate = row.successRate;
-                      return (
-                        <div className="flex items-center justify-end gap-1.5 flex-nowrap">
-                          <progress 
-                            className={`progress w-12 shrink-0 ${rate > 95 ? 'progress-success' : rate > 90 ? 'progress-info' : 'progress-warning'}`} 
-                            value={rate} 
-                            max="100"
-                          />
-                          <span className={`font-mono text-[11px] tabular-nums shrink-0 ${
-                            rate > 95 ? 'text-emerald-500' : rate > 90 ? 'text-blue-500' : 'text-orange-500'
-                          }`}>
-                            {rate}%
-                          </span>
-                        </div>
-                      );
-                    },
-                  },
-                  {
-                    key: 'createdAt',
-                    label: '创建时间',
-                    minWidth: '136px',
-                    render: (value) => <div className="text-[11px] text-slate-400 font-mono">{value}</div>,
-                  },
-                ]}
-                data={agents}
-                theme={theme}
-                rowActions={[
-                  {
-                    label: '详情',
-                    onClick: (row) => onViewDetail(row.id),
-                    icon: <ExternalLink size={14} />,
-                  },
-                  {
-                    label: '编辑',
-                    onClick: () => {},
-                    icon: <Edit2 size={14} />,
-                  },
-                  {
-                    label: '测试',
-                    onClick: () => {},
-                    icon: <Play size={14} />,
-                  },
-                  {
-                    label: '删除',
-                    onClick: (row) => setDeleteTarget({ id: row.id, name: row.name }),
-                    icon: <Trash2 size={14} />,
-                    variant: 'danger',
-                  },
-                ]}
-                pagination={
-                  (data?.total ?? 0) > 0
-                    ? {
-                        currentPage: page,
-                        totalPages: Math.ceil((data?.total ?? 0) / PAGE_SIZE),
-                        onPageChange: setPage,
-                        pageSize: PAGE_SIZE,
-                      }
-                    : undefined
-                }
-              />
-            )}
-          </ContentLoader>
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </ContentLoader>
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div
+              className={`px-4 py-3 border-t shrink-0 flex items-center justify-between ${
+                isDark ? 'border-white/10' : 'border-slate-200'
+              }`}
+            >
+              <span className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                共 {total} 条，第 {page}/{totalPages} 页
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className={`p-2 rounded-xl transition-colors ${
+                    page === 1
+                      ? isDark
+                        ? 'text-slate-600 cursor-not-allowed'
+                        : 'text-slate-300 cursor-not-allowed'
+                      : isDark
+                        ? 'text-slate-300 hover:bg-white/5'
+                        : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className={`p-2 rounded-xl transition-colors ${
+                    page === totalPages
+                      ? isDark
+                        ? 'text-slate-600 cursor-not-allowed'
+                        : 'text-slate-300 cursor-not-allowed'
+                      : isDark
+                        ? 'text-slate-300 hover:bg-white/5'
+                        : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

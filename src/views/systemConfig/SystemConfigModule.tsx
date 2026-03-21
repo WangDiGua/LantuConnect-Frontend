@@ -11,6 +11,7 @@ import {
   SystemQuotaPage,
   AccessControlPage,
 } from './SystemConfigExtraPages';
+import { CategoryManagement } from './CategoryManagement';
 
 export interface SystemConfigModuleProps {
   activeSubItem: string;
@@ -64,6 +65,8 @@ export const SystemConfigModule: React.FC<SystemConfigModuleProps> = ({
       return <SystemQuotaPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
     case 'access-control':
       return <AccessControlPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
+    case 'category-management':
+      return <CategoryManagement theme={theme} fontSize={fontSize} showMessage={showMessage} />;
     default:
       return <PlaceholderView title={activeSubItem} theme={theme} fontSize={fontSize} />;
   }

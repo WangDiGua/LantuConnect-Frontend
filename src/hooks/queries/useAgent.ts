@@ -1,28 +1,29 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { agentService } from '../../api/services/agent.service';
-import type { AgentCreatePayload, DebugMessageRequest } from '../../types/dto/agent';
-import type { PaginationParams } from '../../types/api';
+import type {
+  AgentCreatePayload,
+  AgentUpdatePayload,
+  AgentListQuery,
+} from '../../types/dto/agent';
 
 export const agentKeys = {
   all: ['agents'] as const,
-  list: (p?: PaginationParams) => ['agents', 'list', p] as const,
-  detail: (id: string) => ['agents', 'detail', id] as const,
-  versions: (agentId: string) => ['agents', 'versions', agentId] as const,
-  market: (p?: PaginationParams) => ['agents', 'market', p] as const,
+  list: (q?: AgentListQuery) => ['agents', 'list', q] as const,
+  detail: (id: number) => ['agents', 'detail', id] as const,
 };
 
-export function useAgents(params?: PaginationParams) {
+export function useAgents(query?: AgentListQuery) {
   return useQuery({
-    queryKey: agentKeys.list(params),
-    queryFn: () => agentService.list(params),
+    queryKey: agentKeys.list(query),
+    queryFn: () => agentService.list(query),
   });
 }
 
-export function useAgent(id: string) {
+export function useAgent(id: number) {
   return useQuery({
     queryKey: agentKeys.detail(id),
     queryFn: () => agentService.getById(id),
-    enabled: !!id,
+    enabled: id > 0,
   });
 }
 
@@ -37,7 +38,7 @@ export function useCreateAgent() {
 export function useUpdateAgent() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<AgentCreatePayload> }) =>
+    mutationFn: ({ id, data }: { id: number; data: AgentUpdatePayload }) =>
       agentService.update(id, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: agentKeys.all }),
   });
@@ -46,28 +47,7 @@ export function useUpdateAgent() {
 export function useDeleteAgent() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => agentService.delete(id),
+    mutationFn: (id: number) => agentService.remove(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: agentKeys.all }),
-  });
-}
-
-export function useAgentVersions(agentId: string) {
-  return useQuery({
-    queryKey: agentKeys.versions(agentId),
-    queryFn: () => agentService.listVersions(agentId),
-    enabled: !!agentId,
-  });
-}
-
-export function useSendDebugMessage() {
-  return useMutation({
-    mutationFn: (data: DebugMessageRequest) => agentService.sendDebugMessage(data),
-  });
-}
-
-export function useAgentMarket(params?: PaginationParams) {
-  return useQuery({
-    queryKey: agentKeys.market(params),
-    queryFn: () => agentService.listMarket(params),
   });
 }

@@ -7,14 +7,17 @@ import {
   Activity,
   Shield,
   Database,
-  BookOpen,
-  Wrench,
   Settings,
   User,
   ChevronRight,
   MessageSquare,
   Megaphone,
   Calendar,
+  ArrowUpRight,
+  CheckCircle2,
+  AlertTriangle,
+  Clock,
+  Server,
 } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
@@ -28,9 +31,9 @@ interface OverviewProps {
 
 const slides: HeroSlide[] = [
   {
-    kicker: '工作台',
-    title: '本学期办事大厅服务时间调整',
-    body: '自 3 月 20 日起，线下窗口与线上预约时段同步更新，详见校内通知。',
+    kicker: '接入平台',
+    title: '新一批 Agent 已完成注册审核',
+    body: '本周已通过 8 个 Agent 和 12 个 Skill 的注册审核，涵盖教务查询、课表管理等场景。',
     lightMesh: 'from-slate-100 via-white to-blue-50/90',
     darkMesh: 'from-[#141418] via-[#1C1C1E] to-blue-950/40',
     kickerLight: 'text-slate-600',
@@ -59,56 +62,53 @@ const slides: HeroSlide[] = [
 const announcements = [
   { date: '03-18', title: '关于统一身份认证升级的配合事项', tag: '重要' },
   { date: '03-15', title: 'API 调用配额统计口径说明', tag: '说明' },
-  { date: '03-12', title: '知识库批量导入模板更新', tag: '更新' },
+  { date: '03-12', title: '新增 Dataset 批量导入功能', tag: '更新' },
   { date: '03-08', title: '监控中心告警订阅功能开放试用', tag: '功能' },
 ];
 
-/** 概览：门户式轮播 + 公告 + 能力说明（兰智通 LantuConnect） */
+const platformKpis = [
+  { label: 'Agent 总数', value: '47', delta: '+5 本周', up: true, icon: Bot, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+  { label: 'Skill 总数', value: '126', delta: '+12 本周', up: true, icon: Zap, color: 'text-violet-500', bg: 'bg-violet-500/10' },
+  { label: '智能应用', value: '18', delta: '+2 本周', up: true, icon: Cpu, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+  { label: '数据集', value: '34', delta: '+3 本周', up: true, icon: Database, color: 'text-orange-500', bg: 'bg-orange-500/10' },
+  { label: 'Provider', value: '8', delta: '稳定', up: true, icon: Server, color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
+];
+
+const recentRegistrations = [
+  { name: '课表查询 Agent', type: 'Agent', time: '2 小时前', status: 'published' as const },
+  { name: '图书馆座位预约', type: 'Skill', time: '5 小时前', status: 'testing' as const },
+  { name: '教务成绩导出', type: 'Skill', time: '昨天', status: 'published' as const },
+  { name: '智能报修助手', type: 'Agent', time: '昨天', status: 'pending_review' as const },
+  { name: '一卡通余额查询', type: 'Skill', time: '2 天前', status: 'published' as const },
+];
+
+const STATUS_DISPLAY: Record<string, { light: string; dark: string; label: string }> = {
+  published: { light: 'bg-emerald-100 text-emerald-800', dark: 'bg-emerald-500/20 text-emerald-300', label: '已发布' },
+  testing: { light: 'bg-blue-100 text-blue-800', dark: 'bg-blue-500/20 text-blue-300', label: '测试中' },
+  pending_review: { light: 'bg-amber-100 text-amber-900', dark: 'bg-amber-500/20 text-amber-300', label: '待审核' },
+};
+
+/** 管理员概览：KPI + 轮播 + 趋势 + 健康 + 最近注册（兰智通 LantuConnect） */
 export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }) => {
   const isDark = theme === 'dark';
   const { hasSecondarySidebar } = useLayoutChrome();
   const outerPad = hasSecondarySidebar ? 'px-2 sm:px-3 lg:px-4' : 'px-1.5 sm:px-2 lg:px-3';
   const maxW = hasSecondarySidebar ? 'max-w-7xl mx-auto' : 'w-full max-w-none';
 
-  /** 平台能力：与公告区一致的素色卡片 + 中性图标底，避免整卡渐变 */
   const modules = [
-    {
-      title: '对话助手',
-      desc: '日常咨询与任务引导，按需接入工具与知识片段。',
-      icon: MessageSquare,
-    },
-    {
-      title: 'Agent 管理',
-      desc: '列表、创建与测试；知识库、数据库等资产在同一模块维护。',
-      icon: Bot,
-    },
-    {
-      title: '模型服务',
-      desc: '在线体验、接入配置与精调相关流程入口。',
-      icon: Cpu,
-    },
-    {
-      title: '监控中心',
-      desc: '调用记录、告警与运行概览，便于值班与复盘。',
-      icon: Activity,
-    },
-    {
-      title: '用户管理',
-      desc: '账号、角色、API Key 与令牌管理。',
-      icon: User,
-    },
-    {
-      title: '系统配置',
-      desc: '模型接入、限流与审计日志等运维配置。',
-      icon: Settings,
-    },
+    { title: 'Agent 管理', desc: 'Agent 注册、审核、测试与发布全流程管理。', icon: Bot },
+    { title: 'Skill 管理', desc: 'MCP 工具注册与参数配置，支持 HTTP/内置类型。', icon: Zap },
+    { title: '智能应用', desc: '应用注册、嵌入配置与上架管理。', icon: Cpu },
+    { title: '监控中心', desc: '调用日志、性能分析、告警规则与告警记录。', icon: Activity },
+    { title: '用户管理', desc: '账号、角色、API Key 与组织架构管理。', icon: User },
+    { title: '系统配置', desc: '分类管理、Provider 配置与审计日志。', icon: Settings },
   ];
 
   const shortcuts = [
-    { label: '快捷入口', icon: Zap, hint: '收藏与常用能力' },
-    { label: '知识库', icon: BookOpen, hint: 'Agent 管理 · 知识库' },
-    { label: '数据库', icon: Database, hint: 'Agent 管理 · 数据库' },
-    { label: '工具广场', icon: Wrench, hint: 'MCP 与工具发现' },
+    { label: 'Agent 列表', icon: Bot, hint: 'Agent 管理 · 查看全部' },
+    { label: 'Skill 列表', icon: Zap, hint: 'Skill 管理 · 查看全部' },
+    { label: '数据集', icon: Database, hint: '数据集管理 · 查看全部' },
+    { label: '监控概览', icon: Activity, hint: '监控中心 · 运行概览' },
   ];
 
   return (
@@ -118,6 +118,32 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
       }`}
     >
       <div className={`${maxW} w-full space-y-8`}>
+        {/* KPI 总览 */}
+        <section>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            {platformKpis.map((k) => (
+              <div
+                key={k.label}
+                className={`rounded-2xl border p-4 shadow-none transition-colors ${
+                  isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200/80'
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${k.bg} ${k.color}`}>
+                    <k.icon size={16} strokeWidth={2} />
+                  </div>
+                  <span className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{k.label}</span>
+                </div>
+                <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{k.value}</p>
+                <p className={`text-xs mt-1 flex items-center gap-0.5 ${k.up ? 'text-emerald-500' : 'text-red-400'}`}>
+                  <ArrowUpRight size={12} className={k.up ? '' : 'rotate-90'} />
+                  {k.delta}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+
         {/* 轮播 + 公告 */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
           <HeroCarousel theme={theme} slides={slides} className="lg:col-span-2" />
@@ -167,7 +193,106 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
 
         <OverviewAnalyticsGrid theme={theme} />
 
-        {/* 平台能力：素色卡片 + 左图右文，对齐通知公告/常用入口气质 */}
+        {/* 健康状态 + 最近注册 */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+          {/* 健康状态 */}
+          <section
+            className={`rounded-2xl border p-5 shadow-none ${
+              isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200/80'
+            }`}
+          >
+            <h2
+              className={`text-sm font-bold tracking-tight flex items-center gap-2 mb-4 ${
+                isDark ? 'text-white' : 'text-slate-900'
+              }`}
+            >
+              <span className="w-1 h-4 rounded-full bg-emerald-500 shrink-0" aria-hidden />
+              健康状态
+            </h2>
+            <div className="grid grid-cols-3 gap-3">
+              <div
+                className={`rounded-xl p-3 text-center ${
+                  isDark ? 'bg-emerald-500/10' : 'bg-emerald-50'
+                }`}
+              >
+                <CheckCircle2 size={20} className="text-emerald-500 mx-auto mb-1" />
+                <p className={`text-lg font-bold ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>42</p>
+                <p className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>正常运行</p>
+              </div>
+              <div
+                className={`rounded-xl p-3 text-center ${
+                  isDark ? 'bg-amber-500/10' : 'bg-amber-50'
+                }`}
+              >
+                <AlertTriangle size={20} className="text-amber-500 mx-auto mb-1" />
+                <p className={`text-lg font-bold ${isDark ? 'text-amber-400' : 'text-amber-700'}`}>3</p>
+                <p className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>告警中</p>
+              </div>
+              <div
+                className={`rounded-xl p-3 text-center ${
+                  isDark ? 'bg-slate-500/10' : 'bg-slate-50'
+                }`}
+              >
+                <Clock size={20} className={`mx-auto mb-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
+                <p className={`text-lg font-bold ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>2</p>
+                <p className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>维护中</p>
+              </div>
+            </div>
+            <p className={`text-xs mt-3 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+              平台整体可用率 99.2%，平均响应延迟 128ms
+            </p>
+          </section>
+
+          {/* 最近注册 */}
+          <section
+            className={`rounded-2xl border shadow-none ${
+              isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200/80'
+            }`}
+          >
+            <div
+              className={`flex items-center gap-2 px-5 py-3 border-b ${
+                isDark ? 'border-white/10' : 'border-slate-100'
+              }`}
+            >
+              <MessageSquare size={16} className={isDark ? 'text-slate-400' : 'text-slate-500'} />
+              <h2 className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>最近注册</h2>
+            </div>
+            <ul className={`divide-y ${isDark ? 'divide-white/5' : 'divide-slate-100'}`}>
+              {recentRegistrations.map((r) => {
+                const badge = STATUS_DISPLAY[r.status];
+                return (
+                  <li
+                    key={r.name}
+                    className={`px-5 py-3 flex items-center gap-3 transition-colors ${
+                      isDark ? 'hover:bg-white/[0.04]' : 'hover:bg-slate-50'
+                    }`}
+                  >
+                    <div
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                        r.type === 'Agent'
+                          ? 'bg-blue-500/10 text-blue-500'
+                          : 'bg-violet-500/10 text-violet-500'
+                      }`}
+                    >
+                      {r.type === 'Agent' ? <Bot size={14} /> : <Zap size={14} />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-[13px] font-medium truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                        {r.name}
+                      </p>
+                      <p className={`text-[11px] ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>{r.type} · {r.time}</p>
+                    </div>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-lg font-medium shrink-0 ${isDark ? badge.dark : badge.light}`}>
+                      {badge.label}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        </div>
+
+        {/* 平台能力 */}
         <section className="space-y-5">
           <h2
             className={`text-sm font-bold tracking-tight flex items-center gap-2 ${
@@ -209,7 +334,7 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
           </div>
         </section>
 
-        {/* 常用跳转：卡片分组感 */}
+        {/* 常用入口 */}
         <section className="space-y-5">
           <h2
             className={`text-sm font-bold tracking-tight flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}
@@ -244,12 +369,9 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
               </div>
             ))}
           </div>
-          <p className={`text-[11px] ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
-            请从左侧主导航进入对应模块；含子菜单的栏目会在第二列展示目录。
-          </p>
         </section>
 
-        {/* 安全与合规：强调块 */}
+        {/* 安全与合规 */}
         <section
           className={`rounded-2xl border-l-4 border-emerald-500/80 p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4 ${
             isDark

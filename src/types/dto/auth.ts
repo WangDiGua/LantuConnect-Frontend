@@ -14,8 +14,9 @@ export interface UserInfo {
 }
 
 export interface LoginRequest {
-  email: string;
+  username: string;
   password: string;
+  email?: string;
   captcha?: string;
   remember?: boolean;
 }

@@ -2,34 +2,25 @@ import type { LucideIcon } from 'lucide-react';
 import {
   LayoutDashboard,
   Activity,
-  Server,
-  Shield,
   Bot,
-  Layers,
+  Settings,
   Database,
-  BarChart3,
+  Wrench,
+  AppWindow,
 } from 'lucide-react';
 
 import {
   ADMIN_OVERVIEW_GROUPS,
-  ADMIN_SYSTEM_CONFIG_GROUPS,
+  ADMIN_AGENT_MANAGEMENT_GROUPS,
+  ADMIN_SKILL_MANAGEMENT_GROUPS,
+  ADMIN_APP_MANAGEMENT_GROUPS,
+  ADMIN_DATASET_MANAGEMENT_GROUPS,
+  ADMIN_PROVIDER_MANAGEMENT_GROUPS,
   ADMIN_USER_MANAGEMENT_GROUPS,
-  ADMIN_MODEL_SERVICE_GROUPS,
-  ADMIN_TOOL_MANAGEMENT_GROUPS,
-  ADMIN_OPS_SECURITY_GROUPS,
-  ADMIN_INTEGRATION_GROUPS,
   ADMIN_MONITORING_GROUPS,
-  ADMIN_DATA_MANAGEMENT_GROUPS,
-  ADMIN_SYSTEM_LOG_GROUPS,
+  ADMIN_SYSTEM_CONFIG_GROUPS,
   USER_WORKSPACE_GROUPS,
-  USER_AGENT_MANAGEMENT_GROUPS,
-  USER_WORKFLOW_GROUPS,
-  USER_ASSETS_GROUPS,
-  USER_MODEL_SERVICE_GROUPS,
-  USER_TOOL_SQUARE_GROUPS,
-  USER_PUBLISH_GROUPS,
-  USER_DATA_GROUPS,
-  USER_USAGE_GROUPS,
+  USER_MY_SPACE_GROUPS,
   USER_SETTINGS_GROUPS,
 } from './navigation';
 
@@ -64,7 +55,7 @@ export interface Space {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers – convert existing navigation groups into SpaceSections
+// Helpers
 // ---------------------------------------------------------------------------
 
 type NavGroup = {
@@ -117,45 +108,46 @@ function standalone(
 
 export const ADMIN_SPACES: Space[] = [
   {
-    id: 'admin-overview',
-    label: '工作台',
+    id: 'admin-dashboard',
+    label: '总览',
     icon: LayoutDashboard,
     accentFrom: '#3B82F6',
     accentTo: '#6366F1',
-    sections: [...fromGroups('系统概览', ADMIN_OVERVIEW_GROUPS as NavGroup[])],
+    sections: [...fromGroups('overview', ADMIN_OVERVIEW_GROUPS as NavGroup[])],
   },
   {
-    id: 'admin-monitoring',
-    label: '观测中心',
+    id: 'admin-modules',
+    label: '能力管理',
+    icon: Bot,
+    accentFrom: '#8B5CF6',
+    accentTo: '#A855F7',
+    sections: [
+      ...fromGroups('agent-management', ADMIN_AGENT_MANAGEMENT_GROUPS as NavGroup[]),
+      ...fromGroups('skill-management', ADMIN_SKILL_MANAGEMENT_GROUPS as NavGroup[]),
+      ...fromGroups('app-management', ADMIN_APP_MANAGEMENT_GROUPS as NavGroup[]),
+      ...fromGroups('dataset-management', ADMIN_DATASET_MANAGEMENT_GROUPS as NavGroup[]),
+      ...fromGroups('provider-management', ADMIN_PROVIDER_MANAGEMENT_GROUPS as NavGroup[]),
+    ],
+  },
+  {
+    id: 'admin-ops',
+    label: '运维监控',
     icon: Activity,
     accentFrom: '#10B981',
     accentTo: '#14B8A6',
-    sections: [...fromGroups('监控中心', ADMIN_MONITORING_GROUPS as NavGroup[])],
-  },
-  {
-    id: 'admin-infra',
-    label: '底层设施',
-    icon: Server,
-    accentFrom: '#F59E0B',
-    accentTo: '#EF4444',
     sections: [
-      ...fromGroups('系统配置', ADMIN_SYSTEM_CONFIG_GROUPS as NavGroup[]),
-      ...fromGroups('模型服务管理', ADMIN_MODEL_SERVICE_GROUPS as NavGroup[]),
-      ...fromGroups('数据管理', ADMIN_DATA_MANAGEMENT_GROUPS as NavGroup[]),
+      ...fromGroups('monitoring', ADMIN_MONITORING_GROUPS as NavGroup[]),
     ],
   },
   {
     id: 'admin-system',
     label: '系统管理',
-    icon: Shield,
-    accentFrom: '#8B5CF6',
-    accentTo: '#EC4899',
+    icon: Settings,
+    accentFrom: '#F59E0B',
+    accentTo: '#EF4444',
     sections: [
-      ...fromGroups('用户管理', ADMIN_USER_MANAGEMENT_GROUPS as NavGroup[]),
-      ...fromGroups('工具管理', ADMIN_TOOL_MANAGEMENT_GROUPS as NavGroup[]),
-      ...fromGroups('运营与安全', ADMIN_OPS_SECURITY_GROUPS as NavGroup[]),
-      ...fromGroups('集成与中台', ADMIN_INTEGRATION_GROUPS as NavGroup[]),
-      ...fromGroups('系统日志', ADMIN_SYSTEM_LOG_GROUPS as NavGroup[]),
+      ...fromGroups('user-management', ADMIN_USER_MANAGEMENT_GROUPS as NavGroup[]),
+      ...fromGroups('system-config', ADMIN_SYSTEM_CONFIG_GROUPS as NavGroup[]),
     ],
   },
 ];
@@ -172,45 +164,31 @@ export const USER_SPACES: Space[] = [
     accentFrom: '#3B82F6',
     accentTo: '#6366F1',
     sections: [
-      ...fromGroups('工作台', USER_WORKSPACE_GROUPS as NavGroup[]),
-      ...standalone('AI 助手', 'AI 助手', Bot),
-      ...standalone('文档教程', '文档与教程', Database),
+      ...fromGroups('workspace', USER_WORKSPACE_GROUPS as NavGroup[]),
     ],
   },
   {
-    id: 'user-build',
-    label: '智能构建',
-    icon: Bot,
+    id: 'user-discover',
+    label: '发现',
+    icon: Wrench,
     accentFrom: '#8B5CF6',
     accentTo: '#A855F7',
     sections: [
-      ...fromGroups('我的 Agent', USER_AGENT_MANAGEMENT_GROUPS as NavGroup[], true),
-      ...fromGroups('工作流', USER_WORKFLOW_GROUPS as NavGroup[]),
+      ...standalone('agent-market', 'Agent 市场', Bot),
+      ...standalone('skill-market', '技能市场', Wrench),
+      ...standalone('app-market', '应用广场', AppWindow),
+      ...standalone('dataset-market', '数据集', Database),
     ],
   },
   {
-    id: 'user-resources',
-    label: '资源与模型',
-    icon: Layers,
-    accentFrom: '#14B8A6',
-    accentTo: '#06B6D4',
-    sections: [
-      ...fromGroups('我的资产', USER_ASSETS_GROUPS as NavGroup[]),
-      ...fromGroups('模型服务', USER_MODEL_SERVICE_GROUPS as NavGroup[]),
-      ...fromGroups('工具广场', USER_TOOL_SQUARE_GROUPS as NavGroup[]),
-    ],
-  },
-  {
-    id: 'user-data',
-    label: '数据与账户',
-    icon: BarChart3,
+    id: 'user-personal',
+    label: '个人',
+    icon: Settings,
     accentFrom: '#F59E0B',
     accentTo: '#F97316',
     sections: [
-      ...fromGroups('我的数据', USER_DATA_GROUPS as NavGroup[]),
-      ...fromGroups('发布与连接', USER_PUBLISH_GROUPS as NavGroup[]),
-      ...fromGroups('用量账单', USER_USAGE_GROUPS as NavGroup[]),
-      ...fromGroups('个人设置', USER_SETTINGS_GROUPS as NavGroup[]),
+      ...fromGroups('my-space', USER_MY_SPACE_GROUPS as NavGroup[]),
+      ...fromGroups('user-settings', USER_SETTINGS_GROUPS as NavGroup[]),
     ],
   },
 ];

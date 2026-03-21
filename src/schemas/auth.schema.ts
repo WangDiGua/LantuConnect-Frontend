@@ -1,10 +1,9 @@
 import { z } from 'zod';
 
 export const loginSchema = z.object({
-  email: z
+  username: z
     .string()
-    .min(1, '请输入邮箱')
-    .email('请输入有效的邮箱地址'),
+    .min(1, '请输入学工号'),
   password: z
     .string()
     .min(1, '请输入密码')

@@ -1,80 +1,87 @@
+// Agent 智能体 - 映射 genie_external_agent (mode=SUBAGENT, parent_id=NULL)
+
+export type AgentType = 'mcp' | 'http_api' | 'builtin';
+export type AgentMode = 'SUBAGENT' | 'TOOL' | 'ALL';
+export type SourceType = 'internal' | 'partner' | 'cloud';
+export type AgentStatus = 'draft' | 'pending_review' | 'testing' | 'published' | 'rejected' | 'deprecated';
+export type DisplayTemplate = 'file' | 'image' | 'audio' | 'video' | 'app' | 'microService' | 'search_web' | 'search_file' | 'answer' | 'ai_answer';
+
 export interface Agent {
-  id: string;
-  name: string;
+  id: number;
+  agentName: string;
+  displayName: string;
   description: string;
-  avatar?: string;
-  type: 'chat' | 'task' | 'workflow' | 'custom';
-  status: 'draft' | 'published' | 'archived' | 'error';
-  modelId: string;
-  modelName?: string;
-  systemPrompt?: string;
-  temperature?: number;
-  maxTokens?: number;
-  topP?: number;
-  tools: string[];
-  knowledgeBases: string[];
-  tags: string[];
-  version: string;
-  publishedAt?: string;
-  callCount: number;
+  agentType: AgentType;
+  mode: AgentMode;
+  sourceType: SourceType;
+  providerId: number | null;
+  categoryId: number | null;
+  categoryName?: string;
+  status: AgentStatus;
+  specJson: Record<string, unknown>;
+  isPublic: boolean;
+  icon: string | null;
+  sortOrder: number;
+  hidden: boolean;
+  maxConcurrency: number;
+  maxSteps: number | null;
+  temperature: number | null;
+  systemPrompt: string | null;
+  qualityScore: number;
   avgLatencyMs: number;
   successRate: number;
-  createdBy: string;
-  createdAt: string;
-  updatedAt: string;
+  avgTokenCost: number;
+  callCount: number;
+  createTime: string;
+  updateTime: string;
 }
 
 export interface AgentCreatePayload {
-  name: string;
+  agentName: string;
+  displayName: string;
   description: string;
-  type: Agent['type'];
-  modelId: string;
-  systemPrompt?: string;
+  agentType: AgentType;
+  sourceType: SourceType;
+  providerId?: number;
+  categoryId?: number;
+  specJson: Record<string, unknown>;
+  isPublic?: boolean;
+  icon?: string;
+  maxConcurrency?: number;
+  maxSteps?: number;
   temperature?: number;
-  maxTokens?: number;
-  topP?: number;
-  tools?: string[];
-  knowledgeBases?: string[];
-  tags?: string[];
+  systemPrompt?: string;
 }
 
-export interface AgentVersion {
-  id: string;
-  agentId: string;
-  version: string;
-  changelog: string;
-  note?: string;
-  current: boolean;
-  publishedAt?: string;
-  snapshot: Partial<Agent>;
-  createdBy: string;
-  createdAt: string;
+export interface AgentUpdatePayload extends Partial<AgentCreatePayload> {
+  status?: AgentStatus;
+  hidden?: boolean;
+  sortOrder?: number;
+}
+
+export interface AgentListQuery {
+  page?: number;
+  pageSize?: number;
+  keyword?: string;
+  status?: AgentStatus;
+  sourceType?: SourceType;
+  agentType?: AgentType;
+  categoryId?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
 }
 
 export interface AgentMarketItem {
-  id: string;
-  name: string;
+  id: number;
+  agentName: string;
+  displayName: string;
   description: string;
-  avatar?: string;
-  author: string;
-  category: string;
+  icon: string | null;
+  categoryName: string;
+  sourceType: SourceType;
+  qualityScore: number;
+  avgLatencyMs: number;
+  callCount: number;
+  successRate: number;
   tags: string[];
-  rating: number;
-  usageCount: number;
-  price: number | 'free';
-  featured: boolean;
-  createdAt: string;
-}
-
-export interface DebugMessageRequest {
-  agentId: string;
-  message: string;
-  sessionId?: string;
-}
-
-export interface DebugMessageResponse {
-  reply: string;
-  usage: { promptTokens: number; completionTokens: number; totalTokens: number };
-  latencyMs: number;
-  traceId: string;
 }

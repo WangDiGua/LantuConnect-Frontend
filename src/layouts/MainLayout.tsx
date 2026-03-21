@@ -2,16 +2,8 @@ import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallba
 import { Routes, Route, Navigate, useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Bot,
-  Zap,
   ChevronDown,
-  ChevronRight,
-  History,
-  Paperclip,
-  Image as ImageIcon,
   User,
-  Mic,
-  Send,
   Settings,
   LogOut,
   Palette,
@@ -25,79 +17,60 @@ import { FONT_FAMILY_CLASSES, THEME_COLOR_CLASSES, getRootFontSizePx } from '../
 import { LayoutChromeProvider } from '../context/LayoutChromeContext';
 import { UserRoleProvider, useUserRole } from '../context/UserRoleContext';
 import { 
-  SIDEBAR_ITEMS,
   ADMIN_SIDEBAR_ITEMS,
   USER_SIDEBAR_ITEMS,
-  DASHBOARD_GROUPS, 
-  AGENT_MANAGEMENT_GROUPS,
   AGENT_WORKSPACE_SUBITEM_ID,
-  MONITORING_GROUPS, 
-  SYSTEM_CONFIG_GROUPS, 
-  USER_MANAGEMENT_GROUPS, 
-  MODEL_SERVICE_GROUPS,
-  TOOL_SQUARE_GROUPS,
-  // 管理员菜单组
   ADMIN_OVERVIEW_GROUPS,
-  ADMIN_SYSTEM_CONFIG_GROUPS,
+  ADMIN_AGENT_MANAGEMENT_GROUPS,
+  ADMIN_SKILL_MANAGEMENT_GROUPS,
+  ADMIN_APP_MANAGEMENT_GROUPS,
+  ADMIN_DATASET_MANAGEMENT_GROUPS,
+  ADMIN_PROVIDER_MANAGEMENT_GROUPS,
   ADMIN_USER_MANAGEMENT_GROUPS,
-  ADMIN_MODEL_SERVICE_GROUPS,
-  ADMIN_TOOL_MANAGEMENT_GROUPS,
   ADMIN_MONITORING_GROUPS,
-  ADMIN_DATA_MANAGEMENT_GROUPS,
-  ADMIN_SYSTEM_LOG_GROUPS,
-  ADMIN_OPS_SECURITY_GROUPS,
-  ADMIN_INTEGRATION_GROUPS,
+  ADMIN_SYSTEM_CONFIG_GROUPS,
   USER_WORKSPACE_GROUPS,
-  USER_AGENT_MANAGEMENT_GROUPS,
-  USER_ASSETS_GROUPS,
-  USER_MODEL_SERVICE_GROUPS,
-  USER_TOOL_SQUARE_GROUPS,
-  USER_DATA_GROUPS,
+  USER_MY_SPACE_GROUPS,
   USER_SETTINGS_GROUPS,
-  USER_WORKFLOW_GROUPS,
-  USER_PUBLISH_GROUPS,
-  USER_USAGE_GROUPS,
   getNavSubGroups,
 } from '../constants/navigation';
 import { SidebarItem, SidebarGroup } from '../components/layout/Sidebar';
 import { AppearanceMenu } from '../components/business/AppearanceMenu';
 import { MessagePanel, INITIAL_MESSAGE_UNREAD_COUNT } from '../components/business/MessagePanel';
-// 懒加载大型组件以优化初始加载性能
-const AIAssistant = lazy(() => import('../views/agent/AIAssistant').then(m => ({ default: m.AIAssistant })));
-const ToolMarketModule = lazy(() => import('../views/tools/ToolMarketModule').then(m => ({ default: m.ToolMarketModule })));
-const AgentMonitoringPage = lazy(() => import('../views/agent/AgentMonitoringPage').then(m => ({ default: m.AgentMonitoringPage })));
-const AgentTracePage = lazy(() => import('../views/agent/AgentTracePage').then(m => ({ default: m.AgentTracePage })));
+// 懒加载视图组件
 const Overview = lazy(() => import('../views/dashboard/Overview').then(m => ({ default: m.Overview })));
+const UserWorkspaceOverview = lazy(() => import('../views/dashboard/UserWorkspaceOverview').then(m => ({ default: m.UserWorkspaceOverview })));
 const QuickAccess = lazy(() => import('../views/dashboard/QuickAccess').then(m => ({ default: m.QuickAccess })));
+const PlaceholderView = lazy(() => import('../views/common/PlaceholderView').then(m => ({ default: m.PlaceholderView })));
+// Agent
 const AgentList = lazy(() => import('../views/agent/AgentList').then(m => ({ default: m.AgentList })));
 const AgentDetail = lazy(() => import('../views/agent/AgentDetail').then(m => ({ default: m.AgentDetail })));
 const AgentCreate = lazy(() => import('../views/agent/AgentCreate').then(m => ({ default: m.AgentCreate })));
 const AgentMarket = lazy(() => import('../views/agent/AgentMarket').then(m => ({ default: m.AgentMarket })));
-const UserProfile = lazy(() => import('../views/user/UserProfile').then(m => ({ default: m.UserProfile })));
-const UserSettingsPage = lazy(() => import('../views/user/UserSettingsPage').then(m => ({ default: m.UserSettingsPage })));
-const DocsTutorialPage = lazy(() => import('../views/docs/DocsTutorialPage').then(m => ({ default: m.DocsTutorialPage })));
-const PlaceholderView = lazy(() => import('../views/common/PlaceholderView').then(m => ({ default: m.PlaceholderView })));
+const AgentMonitoringPage = lazy(() => import('../views/agent/AgentMonitoringPage').then(m => ({ default: m.AgentMonitoringPage })));
+const AgentTracePage = lazy(() => import('../views/agent/AgentTracePage').then(m => ({ default: m.AgentTracePage })));
+// Skill
+const SkillList = lazy(() => import('../views/skill/SkillList').then(m => ({ default: m.SkillList })));
+const SkillCreate = lazy(() => import('../views/skill/SkillCreate').then(m => ({ default: m.SkillCreate })));
+const SkillMarket = lazy(() => import('../views/skill/SkillMarket').then(m => ({ default: m.SkillMarket })));
+// 智能应用
+const AppList = lazy(() => import('../views/apps/AppList').then(m => ({ default: m.AppList })));
+const AppCreate = lazy(() => import('../views/apps/AppCreate').then(m => ({ default: m.AppCreate })));
+const AppMarket = lazy(() => import('../views/apps/AppMarket').then(m => ({ default: m.AppMarket })));
+// 数据集
+const DatasetList = lazy(() => import('../views/dataset/DatasetList').then(m => ({ default: m.DatasetList })));
+const DatasetCreate = lazy(() => import('../views/dataset/DatasetCreate').then(m => ({ default: m.DatasetCreate })));
+const DatasetMarket = lazy(() => import('../views/dataset/DatasetMarket').then(m => ({ default: m.DatasetMarket })));
+// Provider
+const ProviderList = lazy(() => import('../views/provider/ProviderList').then(m => ({ default: m.ProviderList })));
+const ProviderCreate = lazy(() => import('../views/provider/ProviderCreate').then(m => ({ default: m.ProviderCreate })));
+// 管理模块（保留）
 const UserManagementModule = lazy(() => import('../views/userMgmt/UserManagementModule').then(m => ({ default: m.UserManagementModule })));
 const SystemConfigModule = lazy(() => import('../views/systemConfig/SystemConfigModule').then(m => ({ default: m.SystemConfigModule })));
 const MonitoringModule = lazy(() => import('../views/monitoring/MonitoringModule').then(m => ({ default: m.MonitoringModule })));
-const KnowledgeBase = lazy(() => import('../views/knowledge/KnowledgeBase').then(m => ({ default: m.KnowledgeBase })));
-const Database = lazy(() => import('../views/database/Database').then(m => ({ default: m.Database })));
-const RecentProjectsPage = lazy(() => import('../views/userApp/RecentProjectsPage').then(m => ({ default: m.RecentProjectsPage })));
-const WorkflowUserModule = lazy(() => import('../views/userApp/WorkflowUserModule').then(m => ({ default: m.WorkflowUserModule })));
-const PublishConnectUserModule = lazy(() => import('../views/userApp/PublishConnectUserModule').then(m => ({ default: m.PublishConnectUserModule })));
-const UsageBillingUserModule = lazy(() => import('../views/userApp/UsageBillingUserModule').then(m => ({ default: m.UsageBillingUserModule })));
-const DataEvalUserModule = lazy(() => import('../views/userApp/DataEvalUserModule').then(m => ({ default: m.DataEvalUserModule })));
-const ModelServiceUserModule = lazy(() => import('../views/userApp/ModelServiceUserModule').then(m => ({ default: m.ModelServiceUserModule })));
-const AssetsExtrasUserModule = lazy(() => import('../views/userApp/AssetsExtrasUserModule').then(m => ({ default: m.AssetsExtrasUserModule })));
-const AgentExtrasUserModule = lazy(() => import('../views/userApp/AgentExtrasUserModule').then(m => ({ default: m.AgentExtrasUserModule })));
-const UserSettingsExtrasModule = lazy(() => import('../views/userApp/UserSettingsExtrasModule').then(m => ({ default: m.UserSettingsExtrasModule })));
-const AdminOverviewModule = lazy(() => import('../views/adminApp/AdminOverviewModule').then(m => ({ default: m.AdminOverviewModule })));
-const AdminModelServiceModule = lazy(() => import('../views/adminApp/AdminModelServiceModule').then(m => ({ default: m.AdminModelServiceModule })));
-const AdminToolManagementModule = lazy(() => import('../views/adminApp/AdminToolManagementModule').then(m => ({ default: m.AdminToolManagementModule })));
-const AdminOpsSecurityModule = lazy(() => import('../views/adminApp/AdminOpsSecurityModule').then(m => ({ default: m.AdminOpsSecurityModule })));
-const AdminIntegrationModule = lazy(() => import('../views/adminApp/AdminIntegrationModule').then(m => ({ default: m.AdminIntegrationModule })));
-const AdminDataManagementModule = lazy(() => import('../views/adminApp/AdminDataManagementModule').then(m => ({ default: m.AdminDataManagementModule })));
-const AdminSystemLogModule = lazy(() => import('../views/adminApp/AdminSystemLogModule').then(m => ({ default: m.AdminSystemLogModule })));
+// 用户设置
+const UserProfile = lazy(() => import('../views/user/UserProfile').then(m => ({ default: m.UserProfile })));
+const UserSettingsPage = lazy(() => import('../views/user/UserSettingsPage').then(m => ({ default: m.UserSettingsPage })));
 
 import { Logo } from '../components/common/Logo';
 import { MessageProvider, useMessage } from '../components/common/Message';
@@ -365,44 +338,18 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
 
     if (layoutIsAdmin) {
       if (activeSidebar === 'overview') { groups = ADMIN_OVERVIEW_GROUPS; prefix = 'admin-overview-'; }
-      else if (activeSidebar === 'system-config') { groups = ADMIN_SYSTEM_CONFIG_GROUPS; prefix = 'admin-sys-'; }
+      else if (activeSidebar === 'agent-management') { groups = ADMIN_AGENT_MANAGEMENT_GROUPS; prefix = 'admin-agent-'; }
+      else if (activeSidebar === 'skill-management') { groups = ADMIN_SKILL_MANAGEMENT_GROUPS; prefix = 'admin-skill-'; }
+      else if (activeSidebar === 'app-management') { groups = ADMIN_APP_MANAGEMENT_GROUPS; prefix = 'admin-app-'; }
+      else if (activeSidebar === 'dataset-management') { groups = ADMIN_DATASET_MANAGEMENT_GROUPS; prefix = 'admin-dataset-'; }
+      else if (activeSidebar === 'provider-management') { groups = ADMIN_PROVIDER_MANAGEMENT_GROUPS; prefix = 'admin-provider-'; }
       else if (activeSidebar === 'user-management') { groups = ADMIN_USER_MANAGEMENT_GROUPS; prefix = 'admin-user-'; }
-      else if (activeSidebar === 'model-service') { groups = ADMIN_MODEL_SERVICE_GROUPS; prefix = 'admin-model-'; }
-      else if (activeSidebar === 'tool-management') { groups = ADMIN_TOOL_MANAGEMENT_GROUPS; prefix = 'admin-tool-'; }
-      else if (activeSidebar === 'ops-security') { groups = ADMIN_OPS_SECURITY_GROUPS; prefix = 'admin-ops-'; }
-      else if (activeSidebar === 'integration') { groups = ADMIN_INTEGRATION_GROUPS; prefix = 'admin-integ-'; }
       else if (activeSidebar === 'monitoring') { groups = ADMIN_MONITORING_GROUPS; prefix = 'admin-mon-'; }
-      else if (activeSidebar === 'data-management') { groups = ADMIN_DATA_MANAGEMENT_GROUPS; prefix = 'admin-data-'; }
-      else if (activeSidebar === 'system-log') { groups = ADMIN_SYSTEM_LOG_GROUPS; prefix = 'admin-log-'; }
+      else if (activeSidebar === 'system-config') { groups = ADMIN_SYSTEM_CONFIG_GROUPS; prefix = 'admin-sys-'; }
     } else {
       if (activeSidebar === 'workspace') { groups = USER_WORKSPACE_GROUPS; prefix = 'user-workspace-'; }
-      else if (activeSidebar === 'my-agent') { groups = USER_AGENT_MANAGEMENT_GROUPS; activeItem = activeAgentSubItem; setActive = handleAgentSubItemClick; prefix = 'user-agent-'; }
-      else if (activeSidebar === 'workflow') { groups = USER_WORKFLOW_GROUPS; prefix = 'user-flow-'; }
-      else if (activeSidebar === 'my-assets') { groups = USER_ASSETS_GROUPS; prefix = 'user-assets-'; }
-      else if (activeSidebar === 'model-service') { groups = USER_MODEL_SERVICE_GROUPS; prefix = 'user-model-'; }
-      else if (activeSidebar === 'tool-square') { groups = USER_TOOL_SQUARE_GROUPS; prefix = 'user-tool-'; }
-      else if (activeSidebar === 'publish-connect') { groups = USER_PUBLISH_GROUPS; prefix = 'user-pub-'; }
-      else if (activeSidebar === 'my-data') { groups = USER_DATA_GROUPS; prefix = 'user-data-'; }
-      else if (activeSidebar === 'usage-billing') { groups = USER_USAGE_GROUPS; prefix = 'user-usage-'; }
+      else if (activeSidebar === 'my-space') { groups = USER_MY_SPACE_GROUPS; prefix = 'user-space-'; }
       else if (activeSidebar === 'user-settings') { groups = USER_SETTINGS_GROUPS; prefix = 'user-settings-'; }
-    }
-
-    // 兼容旧版本菜单
-    if (groups.length === 0) {
-      if (activeSidebar === 'overview' || activeSidebar === 'quick-access' || activeSidebar === 'ai-assistant' || activeSidebar === 'docs-tutorial') { 
-        groups = []; 
-      }
-      else if (activeSidebar === 'agent-management') { 
-        groups = AGENT_MANAGEMENT_GROUPS; 
-        activeItem = activeAgentSubItem; 
-        setActive = handleAgentSubItemClick; 
-        prefix = 'agent-'; 
-      }
-      else if (activeSidebar === 'monitoring') { groups = MONITORING_GROUPS; prefix = 'mon-'; }
-      else if (activeSidebar === 'system-config') { groups = SYSTEM_CONFIG_GROUPS; prefix = 'sys-'; }
-      else if (activeSidebar === 'user-management') { groups = USER_MANAGEMENT_GROUPS; prefix = 'user-'; }
-      else if (activeSidebar === 'model-service') { groups = MODEL_SERVICE_GROUPS; prefix = 'model-'; }
-      else if (activeSidebar === 'tool-square') { groups = TOOL_SQUARE_GROUPS; prefix = 'tool-'; }
     }
 
     if (groups.length === 0) return null;
@@ -459,13 +406,11 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
   const contentKey = useMemo(() => {
     // 只包含真正影响内容的状态
     const parts: string[] = [activeSidebar];
-    if (activeSidebar === 'my-agent' || activeSidebar === 'agent-management') {
-      parts.push(activeAgentSubItem || '');
-      if (activeAgentSubItem === AGENT_WORKSPACE_SUBITEM_ID) {
-        parts.push(activeAgentView);
-        if (selectedAgentId) parts.push(selectedAgentId);
-      }
-    } else {
+    if (activeSidebar === 'agent-management') {
+      parts.push(activeAgentView);
+      if (selectedAgentId) parts.push(selectedAgentId);
+    }
+    {
       parts.push(activeSubItem || '');
     }
     return parts.filter(Boolean).join('|');
@@ -504,297 +449,119 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
     setShowAppearanceMenu,
   }) => {
     const content = (() => {
-      // ==================== 管理员菜单内容 ====================
+      // ==================== 管理员视图 ====================
       if (layoutIsAdmin) {
         if (activeSidebar === 'overview') {
-          if (activeSubItem === 'overview') {
-            return <Overview theme={theme} fontSize={fontSize} />;
+          return <Overview theme={theme} fontSize={fontSize} />;
+        }
+
+        if (activeSidebar === 'agent-management') {
+          if (activeSubItem === 'agent-list') {
+            if (activeAgentView === 'detail' && selectedAgentId) {
+              return <AgentDetail agentId={selectedAgentId} theme={theme} fontSize={fontSize} onBack={() => setActiveAgentView('list')} />;
+            }
+            if (activeAgentView === 'create') {
+              return (
+                <AgentCreate
+                  theme={theme}
+                  fontSize={fontSize}
+                  onBack={() => setActiveAgentView('list')}
+                  onSuccess={(id) => { setSelectedAgentId(id); setActiveAgentView('detail'); showMessage('Agent 注册成功！', 'success'); }}
+                />
+              );
+            }
+            return (
+              <AgentList
+                theme={theme}
+                fontSize={fontSize}
+                onViewDetail={(id) => { setSelectedAgentId(id); setActiveAgentView('detail'); }}
+                onCreateAgent={() => setActiveAgentView('create')}
+              />
+            );
           }
-          return (
-            <AdminOverviewModule
-              activeSubItem={activeSubItem}
-              theme={theme}
-              fontSize={fontSize}
-              showMessage={showMessage}
-            />
-          );
+          if (activeSubItem === 'agent-create') {
+            return (
+              <AgentCreate
+                theme={theme}
+                fontSize={fontSize}
+                onBack={() => setActiveAgentView('list')}
+                onSuccess={(id) => { setSelectedAgentId(id); setActiveAgentView('detail'); showMessage('Agent 注册成功！', 'success'); }}
+              />
+            );
+          }
+          if (activeSubItem === 'agent-monitoring') return <AgentMonitoringPage theme={theme} fontSize={fontSize} />;
+          if (activeSubItem === 'agent-trace') return <AgentTracePage theme={theme} fontSize={fontSize} />;
+          return <PlaceholderView title={activeSubItem || 'agent-management'} theme={theme} fontSize={fontSize} />;
         }
 
-        if (activeSidebar === 'ops-security') {
-          return (
-            <AdminOpsSecurityModule
-              activeSubItem={activeSubItem}
-              theme={theme}
-              fontSize={fontSize}
-              showMessage={showMessage}
-            />
-          );
+        if (activeSidebar === 'skill-management') {
+          if (activeSubItem === 'skill-list') return <SkillList theme={theme} fontSize={fontSize} />;
+          if (activeSubItem === 'skill-create') return <SkillCreate theme={theme} fontSize={fontSize} onBack={() => setActiveSubItem('skill-list')} />;
+          if (activeSubItem === 'mcp-server-list') return <PlaceholderView title="MCP Server 管理" theme={theme} fontSize={fontSize} />;
+          return <PlaceholderView title={activeSubItem || 'skill-management'} theme={theme} fontSize={fontSize} />;
         }
 
-        if (activeSidebar === 'integration') {
-          return (
-            <AdminIntegrationModule
-              activeSubItem={activeSubItem}
-              theme={theme}
-              fontSize={fontSize}
-              showMessage={showMessage}
-            />
-          );
+        if (activeSidebar === 'app-management') {
+          if (activeSubItem === 'app-list') return <AppList theme={theme} fontSize={fontSize} showMessage={showMessage} />;
+          if (activeSubItem === 'app-create') return <AppCreate theme={theme} fontSize={fontSize} />;
+          return <PlaceholderView title={activeSubItem || 'app-management'} theme={theme} fontSize={fontSize} />;
         }
 
-        if (activeSidebar === 'system-config') {
-          return <SystemConfigModule activeSubItem={activeSubItem} theme={theme} fontSize={fontSize} showMessage={showMessage} />;
+        if (activeSidebar === 'dataset-management') {
+          if (activeSubItem === 'dataset-list') return <DatasetList theme={theme} fontSize={fontSize} showMessage={showMessage} />;
+          if (activeSubItem === 'dataset-create') return <DatasetCreate theme={theme} fontSize={fontSize} />;
+          return <PlaceholderView title={activeSubItem || 'dataset-management'} theme={theme} fontSize={fontSize} />;
+        }
+
+        if (activeSidebar === 'provider-management') {
+          if (activeSubItem === 'provider-list') return <ProviderList theme={theme} fontSize={fontSize} showMessage={showMessage} />;
+          if (activeSubItem === 'provider-create') return <ProviderCreate theme={theme} fontSize={fontSize} onBack={() => {}} />;
+          return <PlaceholderView title={activeSubItem || 'provider-management'} theme={theme} fontSize={fontSize} />;
         }
 
         if (activeSidebar === 'user-management') {
           return <UserManagementModule activeSubItem={activeSubItem} theme={theme} fontSize={fontSize} showMessage={showMessage} />;
         }
 
-        if (activeSidebar === 'model-service') {
-          return (
-            <AdminModelServiceModule
-              activeSubItem={activeSubItem}
-              theme={theme}
-              fontSize={fontSize}
-              showMessage={showMessage}
-            />
-          );
-        }
-
-        if (activeSidebar === 'tool-management') {
-          return (
-            <AdminToolManagementModule
-              activeSubItem={activeSubItem}
-              theme={theme}
-              fontSize={fontSize}
-              showMessage={showMessage}
-            />
-          );
-        }
-
         if (activeSidebar === 'monitoring') {
           return <MonitoringModule activeSubItem={activeSubItem} theme={theme} fontSize={fontSize} showMessage={showMessage} />;
         }
 
-        if (activeSidebar === 'data-management') {
-          return (
-            <AdminDataManagementModule
-              activeSubItem={activeSubItem}
-              theme={theme}
-              fontSize={fontSize}
-              showMessage={showMessage}
-            />
-          );
-        }
-
-        if (activeSidebar === 'system-log') {
-          return (
-            <AdminSystemLogModule
-              activeSubItem={activeSubItem}
-              theme={theme}
-              fontSize={fontSize}
-              showMessage={showMessage}
-            />
-          );
+        if (activeSidebar === 'system-config') {
+          return <SystemConfigModule activeSubItem={activeSubItem} theme={theme} fontSize={fontSize} showMessage={showMessage} />;
         }
       }
 
-      // ==================== 普通用户菜单内容 ====================
+      // ==================== 用户端视图 ====================
       if (!layoutIsAdmin) {
         if (activeSidebar === 'workspace') {
-          if (activeSubItem === 'overview') {
-            return <Overview theme={theme} fontSize={fontSize} />;
-          }
-          if (activeSubItem === 'quick-access') {
-            return <QuickAccess theme={theme} fontSize={fontSize} />;
-          }
-          if (activeSubItem === 'recent-projects') {
-            return (
-              <RecentProjectsPage theme={theme} fontSize={fontSize} showMessage={showMessage} />
-            );
-          }
+          if (activeSubItem === 'overview') return <UserWorkspaceOverview theme={theme} fontSize={fontSize} />;
+          if (activeSubItem === 'quick-access') return <QuickAccess theme={theme} fontSize={fontSize} />;
           return <PlaceholderView title={activeSubItem || 'workspace'} theme={theme} fontSize={fontSize} />;
         }
 
-        if (activeSidebar === 'workflow') {
-          return (
-            <WorkflowUserModule
-              activeSubItem={activeSubItem}
-              theme={theme}
-              fontSize={fontSize}
-              showMessage={showMessage}
-            />
-          );
+        if (activeSidebar === 'agent-market') {
+          return <AgentMarket theme={theme} fontSize={fontSize} themeColor={themeColor} showMessage={showMessage} />;
         }
 
-        if (activeSidebar === 'publish-connect') {
-          return (
-            <PublishConnectUserModule
-              activeSubItem={activeSubItem}
-              theme={theme}
-              fontSize={fontSize}
-              themeColor={themeColor}
-              showMessage={showMessage}
-            />
-          );
+        if (activeSidebar === 'skill-market') {
+          return <SkillMarket theme={theme} fontSize={fontSize} />;
         }
 
-        if (activeSidebar === 'usage-billing') {
-          return (
-            <UsageBillingUserModule
-              activeSubItem={activeSubItem}
-              theme={theme}
-              fontSize={fontSize}
-              showMessage={showMessage}
-            />
-          );
+        if (activeSidebar === 'app-market') {
+          return <AppMarket theme={theme} fontSize={fontSize} />;
         }
 
-        if (activeSidebar === 'ai-assistant') {
-          return <AIAssistant theme={theme} fontSize={fontSize} />;
+        if (activeSidebar === 'dataset-market') {
+          return <DatasetMarket theme={theme} fontSize={fontSize} />;
         }
 
-        if (activeSidebar === 'my-agent') {
-          if (activeAgentSubItem === AGENT_WORKSPACE_SUBITEM_ID) {
-            if (activeAgentView === 'detail' && selectedAgentId) {
-              return (
-                <AgentDetail 
-                  agentId={selectedAgentId} 
-                  theme={theme} 
-                  fontSize={fontSize} 
-                  onBack={() => setActiveAgentView('list')} 
-                />
-              );
-            }
-            if (activeAgentView === 'create') {
-              return (
-                <AgentCreate 
-                  theme={theme} 
-                  fontSize={fontSize} 
-                  onBack={() => setActiveAgentView('list')}
-                  onSuccess={(id) => {
-                    setSelectedAgentId(id);
-                    setActiveAgentView('detail');
-                    showMessage('Agent 创建成功！', 'success');
-                  }}
-                />
-              );
-            }
-            return (
-              <AgentList 
-                theme={theme} 
-                fontSize={fontSize} 
-                onViewDetail={(id) => {
-                  setSelectedAgentId(id);
-                  setActiveAgentView('detail');
-                }}
-                onCreateAgent={() => setActiveAgentView('create')}
-              />
-            );
-          }
-          if (activeAgentSubItem === 'agent-marketplace') {
-            return (
-              <AgentMarket
-                theme={theme}
-                fontSize={fontSize}
-                themeColor={themeColor}
-                showMessage={showMessage}
-              />
-            );
-          }
-          if (activeAgentSubItem === 'agent-monitoring') {
-            return <AgentMonitoringPage theme={theme} fontSize={fontSize} />;
-          }
-          if (activeAgentSubItem === 'trace-tracking') {
-            return <AgentTracePage theme={theme} fontSize={fontSize} />;
-          }
-          if (
-            activeAgentSubItem === 'conversation-flow' ||
-            activeAgentSubItem === 'version-publish' ||
-            activeAgentSubItem === 'my-apps' ||
-            activeAgentSubItem === 'debug-session'
-          ) {
-            return (
-              <AgentExtrasUserModule
-                activeAgentSubItem={activeAgentSubItem}
-                theme={theme}
-                fontSize={fontSize}
-                showMessage={showMessage}
-                agentId={selectedAgentId}
-              />
-            );
-          }
-          return <PlaceholderView title={activeAgentSubItem || 'my-agent'} theme={theme} fontSize={fontSize} />;
-        }
-
-        if (activeSidebar === 'my-assets') {
-          if (activeSubItem === 'knowledge-base') {
-            return (
-              <KnowledgeBase
-                theme={theme}
-                fontSize={fontSize}
-                themeColor={themeColor}
-                showMessage={showMessage}
-              />
-            );
-          }
-          if (activeSubItem === 'database') {
-            return (
-              <Database
-                theme={theme}
-                fontSize={fontSize}
-                themeColor={themeColor}
-                showMessage={showMessage}
-              />
-            );
-          }
-          return (
-            <AssetsExtrasUserModule
-              activeSubItem={activeSubItem}
-              theme={theme}
-              fontSize={fontSize}
-              showMessage={showMessage}
-            />
-          );
-        }
-
-        if (activeSidebar === 'model-service') {
-          return (
-            <ModelServiceUserModule
-              activeSubItem={activeSubItem}
-              theme={theme}
-              fontSize={fontSize}
-              showMessage={showMessage}
-            />
-          );
-        }
-
-        if (activeSidebar === 'tool-square') {
-          return (
-            <ToolMarketModule
-              activeSubItem={activeSubItem}
-              theme={theme}
-              fontSize={fontSize}
-              showMessage={showMessage}
-            />
-          );
-        }
-
-        if (activeSidebar === 'my-data') {
-          return (
-            <DataEvalUserModule
-              activeSubItem={activeSubItem}
-              theme={theme}
-              fontSize={fontSize}
-              showMessage={showMessage}
-            />
-          );
+        if (activeSidebar === 'my-space') {
+          return <PlaceholderView title={activeSubItem || '我的空间'} theme={theme} fontSize={fontSize} />;
         }
 
         if (activeSidebar === 'user-settings') {
-          if (activeSubItem === 'profile') {
-            return <UserProfile theme={theme} fontSize={fontSize} />;
-          }
+          if (activeSubItem === 'profile') return <UserProfile theme={theme} fontSize={fontSize} />;
           if (activeSubItem === 'preferences') {
             return (
               <UserSettingsPage
@@ -802,188 +569,12 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
                 fontSize={fontSize}
                 themeColor={themeColor}
                 showMessage={showMessage}
-                onOpenAppearance={() => {
-                  setShowUserMenu(true);
-                  setShowAppearanceMenu(true);
-                }}
-              />
-            );
-          }
-          if (activeSubItem === 'workspace-settings' || activeSubItem === 'API Key' || activeSubItem === 'usage-statistics') {
-            return (
-              <UserSettingsExtrasModule
-                activeSubItem={activeSubItem}
-                theme={theme}
-                fontSize={fontSize}
-                showMessage={showMessage}
+                onOpenAppearance={() => { setShowUserMenu(true); setShowAppearanceMenu(true); }}
               />
             );
           }
           return <PlaceholderView title={activeSubItem || 'user-settings'} theme={theme} fontSize={fontSize} />;
         }
-
-        if (activeSidebar === 'docs-tutorial') {
-          return <DocsTutorialPage theme={theme} fontSize={fontSize} />;
-        }
-      }
-
-      // ==================== 兼容旧版本菜单 ====================
-      if (activeSidebar === 'overview') {
-        return <Overview theme={theme} fontSize={fontSize} />;
-      }
-
-      if (activeSidebar === 'quick-access') {
-        return <QuickAccess theme={theme} fontSize={fontSize} />;
-      }
-
-      if (activeSidebar === 'ai-assistant') {
-        return <AIAssistant theme={theme} fontSize={fontSize} />;
-      }
-
-      if (activeSidebar === 'agent-management' && activeAgentSubItem === AGENT_WORKSPACE_SUBITEM_ID) {
-        if (activeAgentView === 'detail' && selectedAgentId) {
-          return (
-            <AgentDetail 
-              agentId={selectedAgentId} 
-              theme={theme} 
-              fontSize={fontSize} 
-              onBack={() => setActiveAgentView('list')} 
-            />
-          );
-        }
-        if (activeAgentView === 'create') {
-          return (
-            <AgentCreate 
-              theme={theme} 
-              fontSize={fontSize} 
-              onBack={() => setActiveAgentView('list')}
-              onSuccess={(id) => {
-                setSelectedAgentId(id);
-                setActiveAgentView('detail');
-                showMessage('Agent 创建成功！', 'success');
-              }}
-            />
-          );
-        }
-        return (
-          <AgentList 
-            theme={theme} 
-            fontSize={fontSize} 
-            onViewDetail={(id) => {
-              setSelectedAgentId(id);
-              setActiveAgentView('detail');
-            }}
-            onCreateAgent={() => setActiveAgentView('create')}
-          />
-        );
-      }
-
-      if (activeSidebar === 'agent-management' && activeAgentSubItem === 'agent-marketplace') {
-        return (
-          <AgentMarket
-            theme={theme}
-            fontSize={fontSize}
-            themeColor={themeColor}
-            showMessage={showMessage}
-          />
-        );
-      }
-
-      if (activeSidebar === 'agent-management' && activeAgentSubItem === 'knowledge-base') {
-        return (
-          <KnowledgeBase
-            theme={theme}
-            fontSize={fontSize}
-            themeColor={themeColor}
-            showMessage={showMessage}
-          />
-        );
-      }
-
-      if (activeSidebar === 'agent-management' && activeAgentSubItem === 'database') {
-        return (
-          <Database
-            theme={theme}
-            fontSize={fontSize}
-            themeColor={themeColor}
-            showMessage={showMessage}
-          />
-        );
-      }
-
-      if (activeSidebar === 'agent-management' && activeAgentSubItem === 'agent-monitoring') {
-        return <AgentMonitoringPage theme={theme} fontSize={fontSize} />;
-      }
-
-      if (activeSidebar === 'agent-management' && activeAgentSubItem === 'trace-tracking') {
-        return <AgentTracePage theme={theme} fontSize={fontSize} />;
-      }
-
-      if (activeSidebar === 'tool-square') {
-        return (
-          <ToolMarketModule
-            activeSubItem={activeSubItem}
-            theme={theme}
-            fontSize={fontSize}
-            showMessage={showMessage}
-          />
-        );
-      }
-
-      if (activeSidebar === 'user-profile') {
-        return <UserProfile theme={theme} fontSize={fontSize} />;
-      }
-
-      if (activeSidebar === 'user-settings') {
-        return (
-          <UserSettingsPage
-            theme={theme}
-            fontSize={fontSize}
-            themeColor={themeColor}
-            showMessage={showMessage}
-            onOpenAppearance={() => {
-              setShowUserMenu(true);
-              setShowAppearanceMenu(true);
-            }}
-          />
-        );
-      }
-
-      if (activeSidebar === 'docs-tutorial') {
-        return <DocsTutorialPage theme={theme} fontSize={fontSize} />;
-      }
-
-      if (activeSidebar === 'user-management') {
-        return (
-          <UserManagementModule
-            activeSubItem={activeSubItem}
-            theme={theme}
-            fontSize={fontSize}
-            showMessage={showMessage}
-          />
-        );
-      }
-
-      if (activeSidebar === 'system-config') {
-        return (
-          <SystemConfigModule
-            activeSubItem={activeSubItem}
-            theme={theme}
-            fontSize={fontSize}
-            showMessage={showMessage}
-          />
-        );
-      }
-
-      if (activeSidebar === 'monitoring') {
-        return (
-          <MonitoringModule
-            activeSubItem={activeSubItem}
-            theme={theme}
-            fontSize={fontSize}
-            showMessage={showMessage}
-          />
-        );
       }
 
       return <PlaceholderView title={activeSidebar} theme={theme} fontSize={fontSize} />;
@@ -1510,9 +1101,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 relative">
         <main
-          className={`flex-1 flex flex-col relative min-h-0 ${
-            activeSidebar === 'ai-assistant' ? (theme === 'light' ? 'bg-[#F2F2F7]' : 'bg-[#000000]') : ''
-          }`}
+          className="flex-1 flex flex-col relative min-h-0"
         >
           <AnimatePresence mode="wait">
             <motion.div
@@ -1544,61 +1133,6 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
             </motion.div>
           </AnimatePresence>
 
-          {/* Input Area - iOS Messages Style */}
-          {activeSidebar === 'ai-assistant' && (
-            <div className="p-4 sm:p-6 max-w-4xl w-full mx-auto">
-              <div className={`relative flex flex-col rounded-2xl border transition-all focus-within:ring-1 focus-within:ring-offset-0 ${THEME_COLOR_CLASSES[themeColor].ring} ${
-                theme === 'light' 
-                  ? `bg-[#F2F2F7] border-slate-200 focus-within:${THEME_COLOR_CLASSES[themeColor].border}` 
-                  : `bg-[#1C1C1E] border-white/10 focus-within:${THEME_COLOR_CLASSES[themeColor].border}`
-              }`}>
-                <textarea 
-                  placeholder="输入问题或指令..."
-                  className="w-full bg-transparent p-4 pb-12 resize-none outline-none leading-relaxed min-h-[100px] text-base transition-all"
-                ></textarea>
-                
-                <div className="absolute bottom-3 left-3 flex items-center gap-1">
-                  <button className={`p-2 rounded-full transition-colors ${
-                    theme === 'light' ? 'text-slate-500 hover:bg-slate-200' : 'text-slate-400 hover:bg-white/10'
-                  }`}>
-                    <Paperclip size={18} />
-                  </button>
-                  <button className={`p-2 rounded-full transition-colors ${
-                    theme === 'light' ? 'text-slate-500 hover:bg-slate-200' : 'text-slate-400 hover:bg-white/10'
-                  }`}>
-                    <ImageIcon size={18} />
-                  </button>
-                  <button className={`p-2 rounded-full transition-colors ${
-                    theme === 'light' ? 'text-slate-500 hover:bg-slate-200' : 'text-slate-400 hover:bg-white/10'
-                  }`}>
-                    <User size={18} />
-                  </button>
-                </div>
-
-                <div className="absolute bottom-3 right-3 flex items-center gap-2">
-                  <button className={`p-2 rounded-full transition-colors ${
-                    theme === 'light' ? 'text-slate-500 hover:bg-slate-200' : 'text-slate-400 hover:bg-white/10'
-                  }`}>
-                    <Mic size={18} />
-                  </button>
-                  <button className={`w-8 h-8 ${THEME_COLOR_CLASSES[themeColor].bg} rounded-full flex items-center justify-center text-white shadow-sm hover:opacity-90 transition-colors`}>
-                    <Send size={16} />
-                  </button>
-                </div>
-              </div>
-              
-              <div className="mt-4 flex justify-center items-center gap-3 text-[11px] text-slate-400">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
-                  <span>额度: <span className={`${theme === 'light' ? 'text-slate-600' : 'text-slate-300'} font-semibold`}>99/100</span></span>
-                </div>
-                <span>•</span>
-                <span className="hover:text-blue-600 cursor-pointer transition-colors">定制咨询</span>
-                <span>•</span>
-                <span className="italic opacity-60">AI 生成内容仅供参考</span>
-              </div>
-            </div>
-          )}
         </main>
       </div>
     </div>

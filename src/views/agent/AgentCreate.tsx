@@ -17,9 +17,9 @@ import {
   MessageSquare
 } from 'lucide-react';
 import { Theme, FontSize, ThemeColor } from '../../types';
+import type { AgentType } from '../../types/dto/agent';
 import { nativeSelectClass } from '../../utils/formFieldClasses';
 import { useCreateAgent } from '../../hooks/queries/useAgent';
-import { createAgentSchema } from '../../schemas/agent.schema';
 import { z } from 'zod';
 import { ProgressBar } from '../../components/common/ProgressBar';
 import { THEME_COLOR_CLASSES } from '../../constants/theme';
@@ -83,11 +83,11 @@ const QUICK_PRESETS = [
   { label: '高性能', config: { method: 'GET', authType: 'API_KEY', timeout: 10 } },
 ];
 
-const FORM_TYPE_TO_DTO: Record<string, 'chat' | 'task' | 'workflow' | 'custom'> = {
-  REST_API: 'chat',
-  MCP: 'task',
-  OPENAPI: 'workflow',
-  WEBHOOK: 'custom',
+const FORM_TYPE_TO_AGENT_TYPE: Record<string, AgentType> = {
+  REST_API: 'http_api',
+  MCP: 'mcp',
+  OPENAPI: 'http_api',
+  WEBHOOK: 'http_api',
 };
 
 const basicInfoSchema = z.object({
@@ -170,14 +170,21 @@ export const AgentCreate: React.FC<AgentCreateProps> = ({ theme, fontSize, theme
 
     createMut.mutate(
       {
-        name: formData.name,
+        agentName: formData.name,
+        displayName: formData.name,
         description: formData.description,
-        type: FORM_TYPE_TO_DTO[formData.type] ?? 'custom',
-        modelId: 'default',
+        agentType: FORM_TYPE_TO_AGENT_TYPE[formData.type] ?? 'http_api',
+        sourceType: 'internal',
+        specJson: {
+          url: formData.config.url,
+          method: formData.config.method,
+          authType: formData.config.authType,
+          timeout: formData.config.timeout,
+        },
         systemPrompt: `Endpoint: ${formData.config.url}`,
       },
       {
-        onSuccess: (agent) => onSuccess(agent.id),
+        onSuccess: (agent) => onSuccess(String(agent.id)),
         onError: (err) => {
           setCurrentStep('TYPE_CONFIG');
           setErrors({ submit: err instanceof Error ? err.message : '创建失败，请检查网络连接后重试。' });

@@ -1,33 +1,23 @@
 import { http } from '../../lib/http';
-import type { PaginatedData, PaginationParams } from '../../types/api';
+import type { PaginatedData } from '../../types/api';
 import type {
   Agent,
   AgentCreatePayload,
-  AgentMarketItem,
-  AgentVersion,
-  DebugMessageRequest,
-  DebugMessageResponse,
+  AgentUpdatePayload,
+  AgentListQuery,
 } from '../../types/dto/agent';
 
 export const agentService = {
-  list: (params?: PaginationParams) =>
-    http.get<PaginatedData<Agent>>('/agents', { params }),
+  list: (query?: AgentListQuery) =>
+    http.get<PaginatedData<Agent>>('/agents', { params: query }),
 
-  getById: (id: string) => http.get<Agent>(`/agents/${id}`),
+  getById: (id: number) => http.get<Agent>(`/agents/${id}`),
 
-  create: (data: AgentCreatePayload) => http.post<Agent>('/agents', data),
+  create: (payload: AgentCreatePayload) =>
+    http.post<Agent>('/agents', payload),
 
-  update: (id: string, data: Partial<AgentCreatePayload>) =>
-    http.put<Agent>(`/agents/${id}`, data),
+  update: (id: number, payload: AgentUpdatePayload) =>
+    http.put<Agent>(`/agents/${id}`, payload),
 
-  delete: (id: string) => http.delete(`/agents/${id}`),
-
-  listVersions: (agentId: string) =>
-    http.get<AgentVersion[]>(`/agents/${agentId}/versions`),
-
-  sendDebugMessage: (data: DebugMessageRequest) =>
-    http.post<DebugMessageResponse>('/agents/debug', data),
-
-  listMarket: (params?: PaginationParams) =>
-    http.get<PaginatedData<AgentMarketItem>>('/agents/market', { params }),
+  remove: (id: number) => http.delete(`/agents/${id}`),
 };

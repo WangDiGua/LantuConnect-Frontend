@@ -4,8 +4,8 @@ import { mockOk } from '../mockAdapter';
 
 const mockUser: UserInfo = {
   id: 'u_001',
-  username: '张明',
-  email: 'zhangming@school.edu.cn',
+  username: '张管理',
+  email: 'admin@school.edu.cn',
   phone: '13800138000',
   avatar: '',
   nickname: '张老师',
@@ -17,14 +17,60 @@ const mockUser: UserInfo = {
   updatedAt: '2026-03-20T08:30:00Z',
 };
 
+const DEMO_ACCOUNTS: Record<string, { password: string; user: UserInfo }> = {
+  admin: {
+    password: '123456',
+    user: {
+      ...mockUser,
+      id: 'u_001',
+      username: '张管理',
+      email: 'admin@school.edu.cn',
+      nickname: '张老师',
+      role: 'admin',
+      department: '信息技术中心',
+    },
+  },
+  '2024001': {
+    password: '123456',
+    user: {
+      ...mockUser,
+      id: 'u_002',
+      username: '李同学',
+      email: '2024001@stu.school.edu.cn',
+      nickname: '李同学',
+      role: 'user',
+      department: '计算机科学学院',
+    },
+  },
+};
+
 export function registerHandlers(mock: MockAdapter): void {
   mock.onPost('/auth/login').reply((config) => {
     const body = JSON.parse(config.data || '{}');
-    const email = body.email || 'user@school.edu.cn';
+    const loginId = body.username || body.email || '';
+    const password = body.password || '';
+
+    const account = DEMO_ACCOUNTS[loginId];
+    if (account && account.password === password) {
+      const loginResp: LoginResponse = {
+        token: 'mock_access_' + Date.now().toString(36),
+        refreshToken: 'mock_refresh_' + Date.now().toString(36),
+        user: { ...account.user, lastLoginAt: new Date().toISOString() },
+        expiresIn: 7200,
+      };
+      return mockOk(loginResp);
+    }
+
+    const fallbackUser: UserInfo = {
+      ...mockUser,
+      id: 'u_' + Date.now().toString(36),
+      username: loginId || '用户',
+      email: loginId.includes('@') ? loginId : `${loginId}@school.edu.cn`,
+    };
     const loginResp: LoginResponse = {
       token: 'mock_access_' + Date.now().toString(36),
       refreshToken: 'mock_refresh_' + Date.now().toString(36),
-      user: { ...mockUser, email, username: email.split('@')[0] },
+      user: fallbackUser,
       expiresIn: 7200,
     };
     return mockOk(loginResp);

@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
-import { CreditCard, Plus } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { CreditCard, Plus, Loader2 } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { nativeInputClass, nativeSelectClass } from '../../utils/formFieldClasses';
 import { btnPrimary, btnSecondary, tableHeadCell, tableBodyRow } from '../../utils/uiClasses';
 import { Modal } from '../../components/common/Modal';
+import { quotaService } from '../../api/services/quota.service';
+import type { QuotaItem, RateLimitItem } from '../../types/dto/quota';
 
 interface Props {
   theme: Theme;
@@ -12,55 +14,10 @@ interface Props {
   showMessage: (msg: string, type?: 'success' | 'error' | 'info') => void;
 }
 
-type ScopeType = 'global' | 'department' | 'user';
-
-interface QuotaRule {
-  id: number;
-  scopeType: ScopeType;
-  scopeName: string;
-  dailyLimit: number;
-  monthlyLimit: number;
-  qpsLimit: number;
-  currentDailyUsage: number;
-  currentMonthlyUsage: number;
-}
-
-interface RateLimitRule {
-  id: number;
-  targetName: string;
-  dimension: 'APP' | 'USER' | 'IP' | 'AGENT';
-  qpsLimit: number;
-  burstSize: number;
-  enabled: boolean;
-}
-
-const INITIAL_QUOTAS: QuotaRule[] = [
-  { id: 1, scopeType: 'global', scopeName: '全平台', dailyLimit: 1000000, monthlyLimit: 20000000, qpsLimit: 500, currentDailyUsage: 423100, currentMonthlyUsage: 8450000 },
-  { id: 2, scopeType: 'department', scopeName: '计算机学院', dailyLimit: 100000, monthlyLimit: 2000000, qpsLimit: 100, currentDailyUsage: 67200, currentMonthlyUsage: 1240000 },
-  { id: 3, scopeType: 'department', scopeName: '教务处', dailyLimit: 50000, monthlyLimit: 1000000, qpsLimit: 50, currentDailyUsage: 12300, currentMonthlyUsage: 280000 },
-  { id: 4, scopeType: 'user', scopeName: '张三 (2021001)', dailyLimit: 1000, monthlyLimit: 20000, qpsLimit: 10, currentDailyUsage: 856, currentMonthlyUsage: 15600 },
-  { id: 5, scopeType: 'user', scopeName: '李四 (T2019052)', dailyLimit: 5000, monthlyLimit: 100000, qpsLimit: 20, currentDailyUsage: 4200, currentMonthlyUsage: 87000 },
-  { id: 6, scopeType: 'department', scopeName: '图书馆', dailyLimit: 30000, monthlyLimit: 600000, qpsLimit: 30, currentDailyUsage: 1850, currentMonthlyUsage: 42000 },
-];
-
-const INITIAL_RATE_LIMITS: RateLimitRule[] = [
-  { id: 1, targetName: '全局默认', dimension: 'USER', qpsLimit: 10, burstSize: 20, enabled: true },
-  { id: 2, targetName: '智能问答 Agent', dimension: 'AGENT', qpsLimit: 50, burstSize: 80, enabled: true },
-  { id: 3, targetName: '外部 API 接入', dimension: 'APP', qpsLimit: 100, burstSize: 150, enabled: true },
-  { id: 4, targetName: 'IP 防刷', dimension: 'IP', qpsLimit: 30, burstSize: 50, enabled: false },
-];
-
-const SCOPE_CFG: Record<ScopeType, { label: string; light: string; dark: string }> = {
+const SCOPE_CFG: Record<string, { label: string; light: string; dark: string }> = {
   global:     { label: '全局', light: 'bg-blue-100 text-blue-800',     dark: 'bg-blue-500/20 text-blue-300' },
   department: { label: '部门', light: 'bg-purple-100 text-purple-800', dark: 'bg-purple-500/20 text-purple-300' },
   user:       { label: '用户', light: 'bg-teal-100 text-teal-800',     dark: 'bg-teal-500/20 text-teal-300' },
-};
-
-const DIM_CFG: Record<string, { label: string; light: string; dark: string }> = {
-  APP:   { label: 'APP',   light: 'bg-indigo-100 text-indigo-800', dark: 'bg-indigo-500/20 text-indigo-300' },
-  USER:  { label: 'USER',  light: 'bg-sky-100 text-sky-800',       dark: 'bg-sky-500/20 text-sky-300' },
-  IP:    { label: 'IP',    light: 'bg-orange-100 text-orange-800', dark: 'bg-orange-500/20 text-orange-300' },
-  AGENT: { label: 'AGENT', light: 'bg-rose-100 text-rose-800',     dark: 'bg-rose-500/20 text-rose-300' },
 };
 
 function ProgressBar({ value, max, theme }: { value: number; max: number; theme: Theme }) {
@@ -91,52 +48,93 @@ function formatNum(n: number): string {
 export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMessage }) => {
   const isDark = theme === 'dark';
   const [tab, setTab] = useState<'quota' | 'rate-limit'>('quota');
-  const [quotas, setQuotas] = useState<QuotaRule[]>(INITIAL_QUOTAS);
-  const [rateLimits, setRateLimits] = useState<RateLimitRule[]>(INITIAL_RATE_LIMITS);
+  const [quotas, setQuotas] = useState<QuotaItem[]>([]);
+  const [rateLimits, setRateLimits] = useState<RateLimitItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [showQuotaModal, setShowQuotaModal] = useState(false);
-  const [quotaDraft, setQuotaDraft] = useState<Partial<QuotaRule>>({ scopeType: 'global', dailyLimit: 10000, monthlyLimit: 200000, qpsLimit: 20 });
+  const [quotaDraft, setQuotaDraft] = useState<{ targetType: string; targetName: string; dailyLimit: number; monthlyLimit: number }>({ targetType: 'global', targetName: '全平台', dailyLimit: 10000, monthlyLimit: 200000 });
 
   const [showRLModal, setShowRLModal] = useState(false);
-  const [rlDraft, setRlDraft] = useState<Partial<RateLimitRule>>({ targetName: '', dimension: 'USER', qpsLimit: 10, burstSize: 20, enabled: true });
+  const [rlDraft, setRlDraft] = useState<{ name: string; targetType: string; targetName: string; maxRequestsPerMin: number; maxRequestsPerHour: number; maxConcurrent: number }>({ name: '', targetType: 'global', targetName: '全局', maxRequestsPerMin: 60, maxRequestsPerHour: 1000, maxConcurrent: 10 });
 
   const sel = nativeSelectClass(theme);
   const inp = nativeInputClass(theme);
 
-  const addQuota = () => {
-    const next: QuotaRule = {
-      id: Date.now(),
-      scopeType: quotaDraft.scopeType ?? 'global',
-      scopeName: quotaDraft.scopeType === 'global' ? '全平台' : quotaDraft.scopeName ?? '未命名',
-      dailyLimit: quotaDraft.dailyLimit ?? 10000,
-      monthlyLimit: quotaDraft.monthlyLimit ?? 200000,
-      qpsLimit: quotaDraft.qpsLimit ?? 20,
-      currentDailyUsage: 0,
-      currentMonthlyUsage: 0,
-    };
-    setQuotas((prev) => [...prev, next]);
-    setShowQuotaModal(false);
-    setQuotaDraft({ scopeType: 'global', dailyLimit: 10000, monthlyLimit: 200000, qpsLimit: 20 });
-    showMessage('配额规则已添加', 'success');
+  const fetchQuotas = useCallback(async () => {
+    try {
+      const result = await quotaService.listQuotas();
+      setQuotas(result);
+    } catch (err) {
+      console.error('Failed to load quotas:', err);
+    }
+  }, []);
+
+  const fetchRateLimits = useCallback(async () => {
+    try {
+      const result = await quotaService.listRateLimits();
+      setRateLimits(result);
+    } catch (err) {
+      console.error('Failed to load rate limits:', err);
+    }
+  }, []);
+
+  const fetchAll = useCallback(async () => {
+    setLoading(true);
+    await Promise.all([fetchQuotas(), fetchRateLimits()]);
+    setLoading(false);
+  }, [fetchQuotas, fetchRateLimits]);
+
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  const addQuota = async () => {
+    try {
+      await quotaService.createQuota({
+        targetType: quotaDraft.targetType as 'user' | 'department' | 'global',
+        targetName: quotaDraft.targetType === 'global' ? '全平台' : quotaDraft.targetName,
+        dailyLimit: quotaDraft.dailyLimit,
+        monthlyLimit: quotaDraft.monthlyLimit,
+      });
+      setShowQuotaModal(false);
+      setQuotaDraft({ targetType: 'global', targetName: '全平台', dailyLimit: 10000, monthlyLimit: 200000 });
+      showMessage('配额规则已添加', 'success');
+      await fetchQuotas();
+    } catch (err) {
+      console.error(err);
+      showMessage('添加失败', 'error');
+    }
   };
 
-  const addRateLimit = () => {
-    const next: RateLimitRule = {
-      id: Date.now(),
-      targetName: rlDraft.targetName || '未命名规则',
-      dimension: rlDraft.dimension ?? 'USER',
-      qpsLimit: rlDraft.qpsLimit ?? 10,
-      burstSize: rlDraft.burstSize ?? 20,
-      enabled: rlDraft.enabled ?? true,
-    };
-    setRateLimits((prev) => [...prev, next]);
-    setShowRLModal(false);
-    setRlDraft({ targetName: '', dimension: 'USER', qpsLimit: 10, burstSize: 20, enabled: true });
-    showMessage('限流规则已添加', 'success');
+  const addRateLimit = async () => {
+    try {
+      await quotaService.createRateLimit({
+        name: rlDraft.name || '未命名规则',
+        targetType: rlDraft.targetType as 'agent' | 'skill' | 'global',
+        targetName: rlDraft.targetName,
+        maxRequestsPerMin: rlDraft.maxRequestsPerMin,
+        maxRequestsPerHour: rlDraft.maxRequestsPerHour,
+        maxConcurrent: rlDraft.maxConcurrent,
+      });
+      setShowRLModal(false);
+      setRlDraft({ name: '', targetType: 'global', targetName: '全局', maxRequestsPerMin: 60, maxRequestsPerHour: 1000, maxConcurrent: 10 });
+      showMessage('限流规则已添加', 'success');
+      await fetchRateLimits();
+    } catch (err) {
+      console.error(err);
+      showMessage('添加失败', 'error');
+    }
   };
 
-  const toggleRL = (id: number) => {
-    setRateLimits((prev) => prev.map((r) => r.id === id ? { ...r, enabled: !r.enabled } : r));
+  const toggleRL = async (id: number) => {
+    const rl = rateLimits.find(r => r.id === id);
+    if (!rl) return;
+    try {
+      await quotaService.toggleRateLimit(id, !rl.enabled);
+      await fetchRateLimits();
+    } catch (err) {
+      console.error(err);
+      showMessage('操作失败', 'error');
+    }
   };
 
   const tabs = [
@@ -167,130 +165,128 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
     <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={CreditCard} breadcrumbSegments={['系统配置', '配额管理']} description="管理调用配额与限流策略，按全局 / 部门 / 用户维度配置用量上限">
       {tabBar}
 
-      {tab === 'quota' && (
-        <div className="min-w-0 px-4 sm:px-6 pb-6 pt-3">
-          <div className="flex justify-end mb-3">
-            <button type="button" onClick={() => setShowQuotaModal(true)} className={`${btnPrimary} gap-1.5`}>
-              <Plus size={15} />
-              新增配额
-            </button>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm min-w-[860px]">
-              <thead>
-                <tr>
-                  {['范围', '名称', '日配额', '日用量', '月配额', '月用量', 'QPS 上限'].map((h) => (
-                    <th key={h} className={tableHeadCell(theme)}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {quotas.map((r, i) => {
-                  const sc = SCOPE_CFG[r.scopeType];
-                  return (
-                    <tr key={r.id} className={tableBodyRow(theme, i)}>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex px-2 py-0.5 rounded-lg text-xs font-medium ${isDark ? sc.dark : sc.light}`}>{sc.label}</span>
-                      </td>
-                      <td className={`px-4 py-3 font-medium ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{r.scopeName}</td>
-                      <td className={`px-4 py-3 text-xs tabular-nums ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{formatNum(r.dailyLimit)}</td>
-                      <td className="px-4 py-3">
-                        <div className={`text-xs mb-1 tabular-nums ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{formatNum(r.currentDailyUsage)}</div>
-                        <ProgressBar value={r.currentDailyUsage} max={r.dailyLimit} theme={theme} />
-                      </td>
-                      <td className={`px-4 py-3 text-xs tabular-nums ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{formatNum(r.monthlyLimit)}</td>
-                      <td className="px-4 py-3">
-                        <div className={`text-xs mb-1 tabular-nums ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{formatNum(r.currentMonthlyUsage)}</div>
-                        <ProgressBar value={r.currentMonthlyUsage} max={r.monthlyLimit} theme={theme} />
-                      </td>
-                      <td className={`px-4 py-3 text-xs font-mono text-center ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{r.qpsLimit}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+      {loading && quotas.length === 0 && rateLimits.length === 0 ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 size={24} className="animate-spin text-slate-400" />
         </div>
-      )}
+      ) : (
+        <>
+          {tab === 'quota' && (
+            <div className="min-w-0 px-4 sm:px-6 pb-6 pt-3">
+              <div className="flex justify-end mb-3">
+                <button type="button" onClick={() => setShowQuotaModal(true)} className={`${btnPrimary} gap-1.5`}>
+                  <Plus size={15} />
+                  新增配额
+                </button>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm min-w-[860px]">
+                  <thead>
+                    <tr>
+                      {['范围', '名称', '日配额', '日用量', '月配额', '月用量'].map((h) => (
+                        <th key={h} className={tableHeadCell(theme)}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {quotas.map((r, i) => {
+                      const sc = SCOPE_CFG[r.targetType] ?? SCOPE_CFG.global;
+                      return (
+                        <tr key={r.id} className={tableBodyRow(theme, i)}>
+                          <td className="px-4 py-3">
+                            <span className={`inline-flex px-2 py-0.5 rounded-lg text-xs font-medium ${isDark ? sc.dark : sc.light}`}>{sc.label}</span>
+                          </td>
+                          <td className={`px-4 py-3 font-medium ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{r.targetName}</td>
+                          <td className={`px-4 py-3 text-xs tabular-nums ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{formatNum(r.dailyLimit)}</td>
+                          <td className="px-4 py-3">
+                            <div className={`text-xs mb-1 tabular-nums ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{formatNum(r.dailyUsed)}</div>
+                            <ProgressBar value={r.dailyUsed} max={r.dailyLimit} theme={theme} />
+                          </td>
+                          <td className={`px-4 py-3 text-xs tabular-nums ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{formatNum(r.monthlyLimit)}</td>
+                          <td className="px-4 py-3">
+                            <div className={`text-xs mb-1 tabular-nums ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{formatNum(r.monthlyUsed)}</div>
+                            <ProgressBar value={r.monthlyUsed} max={r.monthlyLimit} theme={theme} />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
-      {tab === 'rate-limit' && (
-        <div className="min-w-0 px-4 sm:px-6 pb-6 pt-3">
-          <div className="flex justify-end mb-3">
-            <button type="button" onClick={() => setShowRLModal(true)} className={`${btnPrimary} gap-1.5`}>
-              <Plus size={15} />
-              新增规则
-            </button>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm min-w-[700px]">
-              <thead>
-                <tr>
-                  {['目标', '维度', 'QPS 上限', '突发容量', '状态'].map((h) => (
-                    <th key={h} className={tableHeadCell(theme)}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {rateLimits.map((r, i) => {
-                  const dim = DIM_CFG[r.dimension];
-                  return (
-                    <tr key={r.id} className={tableBodyRow(theme, i)}>
-                      <td className={`px-4 py-3 font-medium ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{r.targetName}</td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex px-2 py-0.5 rounded-lg text-xs font-medium ${isDark ? dim.dark : dim.light}`}>{dim.label}</span>
-                      </td>
-                      <td className={`px-4 py-3 text-sm font-mono text-center ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{r.qpsLimit}</td>
-                      <td className={`px-4 py-3 text-sm font-mono text-center ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{r.burstSize}</td>
-                      <td className="px-4 py-3">
-                        <button
-                          type="button"
-                          onClick={() => toggleRL(r.id)}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${r.enabled ? 'bg-blue-600' : isDark ? 'bg-white/20' : 'bg-slate-300'}`}
-                          role="switch"
-                          aria-checked={r.enabled}
-                        >
-                          <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${r.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
-                        </button>
-                      </td>
+          {tab === 'rate-limit' && (
+            <div className="min-w-0 px-4 sm:px-6 pb-6 pt-3">
+              <div className="flex justify-end mb-3">
+                <button type="button" onClick={() => setShowRLModal(true)} className={`${btnPrimary} gap-1.5`}>
+                  <Plus size={15} />
+                  新增规则
+                </button>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm min-w-[700px]">
+                  <thead>
+                    <tr>
+                      {['规则名称', '目标', '请求/分', '请求/时', '状态'].map((h) => (
+                        <th key={h} className={tableHeadCell(theme)}>{h}</th>
+                      ))}
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                  </thead>
+                  <tbody>
+                    {rateLimits.map((r, i) => (
+                      <tr key={r.id} className={tableBodyRow(theme, i)}>
+                        <td className={`px-4 py-3 font-medium ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{r.name}</td>
+                        <td className={`px-4 py-3 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{r.targetName}</td>
+                        <td className={`px-4 py-3 text-sm font-mono text-center ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{r.maxRequestsPerMin}</td>
+                        <td className={`px-4 py-3 text-sm font-mono text-center ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{r.maxRequestsPerHour}</td>
+                        <td className="px-4 py-3">
+                          <button
+                            type="button"
+                            onClick={() => toggleRL(r.id)}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${r.enabled ? 'bg-blue-600' : isDark ? 'bg-white/20' : 'bg-slate-300'}`}
+                            role="switch"
+                            aria-checked={r.enabled}
+                          >
+                            <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${r.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       <Modal open={showQuotaModal} onClose={() => setShowQuotaModal(false)} title="新增配额规则" theme={theme} size="md" footer={<><button type="button" onClick={() => setShowQuotaModal(false)} className={btnSecondary(theme)}>取消</button><button type="button" onClick={addQuota} className={btnPrimary}>添加</button></>}>
         <div className="space-y-4">
           <div>
             <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>范围类型</label>
-            <select className={sel} value={quotaDraft.scopeType ?? 'global'} onChange={(e) => setQuotaDraft((p) => ({ ...p, scopeType: e.target.value as ScopeType }))}>
+            <select className={sel} value={quotaDraft.targetType} onChange={(e) => setQuotaDraft((p) => ({ ...p, targetType: e.target.value }))}>
               <option value="global">全局</option>
               <option value="department">部门</option>
               <option value="user">用户</option>
             </select>
           </div>
-          {quotaDraft.scopeType !== 'global' && (
+          {quotaDraft.targetType !== 'global' && (
             <div>
               <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                {quotaDraft.scopeType === 'department' ? '部门名称' : '用户标识'}
+                {quotaDraft.targetType === 'department' ? '部门名称' : '用户标识'}
               </label>
-              <input className={inp} placeholder={quotaDraft.scopeType === 'department' ? '如：信息工程学院' : '如：王五 (2022003)'} value={quotaDraft.scopeName ?? ''} onChange={(e) => setQuotaDraft((p) => ({ ...p, scopeName: e.target.value }))} />
+              <input className={inp} placeholder={quotaDraft.targetType === 'department' ? '如：信息工程学院' : '如：王五 (2022003)'} value={quotaDraft.targetName} onChange={(e) => setQuotaDraft((p) => ({ ...p, targetName: e.target.value }))} />
             </div>
           )}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>日配额</label>
-              <input type="number" className={inp} value={quotaDraft.dailyLimit ?? 10000} onChange={(e) => setQuotaDraft((p) => ({ ...p, dailyLimit: Number(e.target.value) }))} />
+              <input type="number" className={inp} value={quotaDraft.dailyLimit} onChange={(e) => setQuotaDraft((p) => ({ ...p, dailyLimit: Number(e.target.value) }))} />
             </div>
             <div>
               <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>月配额</label>
-              <input type="number" className={inp} value={quotaDraft.monthlyLimit ?? 200000} onChange={(e) => setQuotaDraft((p) => ({ ...p, monthlyLimit: Number(e.target.value) }))} />
-            </div>
-            <div>
-              <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>QPS 上限</label>
-              <input type="number" className={inp} value={quotaDraft.qpsLimit ?? 20} onChange={(e) => setQuotaDraft((p) => ({ ...p, qpsLimit: Number(e.target.value) }))} />
+              <input type="number" className={inp} value={quotaDraft.monthlyLimit} onChange={(e) => setQuotaDraft((p) => ({ ...p, monthlyLimit: Number(e.target.value) }))} />
             </div>
           </div>
         </div>
@@ -299,40 +295,23 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
       <Modal open={showRLModal} onClose={() => setShowRLModal(false)} title="新增限流规则" theme={theme} size="md" footer={<><button type="button" onClick={() => setShowRLModal(false)} className={btnSecondary(theme)}>取消</button><button type="button" onClick={addRateLimit} className={btnPrimary}>添加</button></>}>
         <div className="space-y-4">
           <div>
-            <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>目标名称</label>
-            <input className={inp} placeholder="如：智能问答 Agent" value={rlDraft.targetName ?? ''} onChange={(e) => setRlDraft((p) => ({ ...p, targetName: e.target.value }))} />
+            <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>规则名称</label>
+            <input className={inp} placeholder="如：智能问答 Agent" value={rlDraft.name} onChange={(e) => setRlDraft((p) => ({ ...p, name: e.target.value }))} />
           </div>
-          <div>
-            <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>限流维度</label>
-            <select className={sel} value={rlDraft.dimension ?? 'USER'} onChange={(e) => setRlDraft((p) => ({ ...p, dimension: e.target.value as RateLimitRule['dimension'] }))}>
-              <option value="APP">APP</option>
-              <option value="USER">USER</option>
-              <option value="IP">IP</option>
-              <option value="AGENT">AGENT</option>
-            </select>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>QPS 上限</label>
-              <input type="number" className={inp} value={rlDraft.qpsLimit ?? 10} onChange={(e) => setRlDraft((p) => ({ ...p, qpsLimit: Number(e.target.value) }))} />
+              <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>请求/分</label>
+              <input type="number" className={inp} value={rlDraft.maxRequestsPerMin} onChange={(e) => setRlDraft((p) => ({ ...p, maxRequestsPerMin: Number(e.target.value) }))} />
             </div>
             <div>
-              <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>突发容量</label>
-              <input type="number" className={inp} value={rlDraft.burstSize ?? 20} onChange={(e) => setRlDraft((p) => ({ ...p, burstSize: Number(e.target.value) }))} />
+              <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>请求/时</label>
+              <input type="number" className={inp} value={rlDraft.maxRequestsPerHour} onChange={(e) => setRlDraft((p) => ({ ...p, maxRequestsPerHour: Number(e.target.value) }))} />
+            </div>
+            <div>
+              <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>并发上限</label>
+              <input type="number" className={inp} value={rlDraft.maxConcurrent} onChange={(e) => setRlDraft((p) => ({ ...p, maxConcurrent: Number(e.target.value) }))} />
             </div>
           </div>
-          <label className="flex items-center gap-2.5 cursor-pointer">
-            <button
-              type="button"
-              onClick={() => setRlDraft((p) => ({ ...p, enabled: !p.enabled }))}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${rlDraft.enabled ? 'bg-blue-600' : isDark ? 'bg-white/20' : 'bg-slate-300'}`}
-              role="switch"
-              aria-checked={!!rlDraft.enabled}
-            >
-              <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${rlDraft.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
-            </button>
-            <span className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>立即启用</span>
-          </label>
         </div>
       </Modal>
     </MgmtPageShell>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   Bot,
@@ -18,11 +18,14 @@ import {
   AlertTriangle,
   Clock,
   Server,
+  Loader2,
 } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { HeroCarousel, type HeroSlide } from '../../components/ui/HeroCarousel';
 import { OverviewAnalyticsGrid } from '../../components/charts/OverviewAnalyticsGrid';
+import { dashboardService } from '../../api/services/dashboard.service';
+import type { AdminOverview } from '../../types/dto/dashboard';
 
 interface OverviewProps {
   theme: Theme;
@@ -66,20 +69,12 @@ const announcements = [
   { date: '03-08', title: '监控中心告警订阅功能开放试用', tag: '功能' },
 ];
 
-const platformKpis = [
-  { label: 'Agent 总数', value: '47', delta: '+5 本周', up: true, icon: Bot, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-  { label: 'Skill 总数', value: '126', delta: '+12 本周', up: true, icon: Zap, color: 'text-violet-500', bg: 'bg-violet-500/10' },
-  { label: '智能应用', value: '18', delta: '+2 本周', up: true, icon: Cpu, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-  { label: '数据集', value: '34', delta: '+3 本周', up: true, icon: Database, color: 'text-orange-500', bg: 'bg-orange-500/10' },
-  { label: 'Provider', value: '8', delta: '稳定', up: true, icon: Server, color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
-];
-
-const recentRegistrations = [
-  { name: '课表查询 Agent', type: 'Agent', time: '2 小时前', status: 'published' as const },
-  { name: '图书馆座位预约', type: 'Skill', time: '5 小时前', status: 'testing' as const },
-  { name: '教务成绩导出', type: 'Skill', time: '昨天', status: 'published' as const },
-  { name: '智能报修助手', type: 'Agent', time: '昨天', status: 'pending_review' as const },
-  { name: '一卡通余额查询', type: 'Skill', time: '2 天前', status: 'published' as const },
+const KPI_ICONS: { icon: React.ElementType; color: string; bg: string }[] = [
+  { icon: Bot, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+  { icon: Zap, color: 'text-violet-500', bg: 'bg-violet-500/10' },
+  { icon: Cpu, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+  { icon: Database, color: 'text-orange-500', bg: 'bg-orange-500/10' },
+  { icon: Server, color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
 ];
 
 const STATUS_DISPLAY: Record<string, { light: string; dark: string; label: string }> = {
@@ -88,12 +83,39 @@ const STATUS_DISPLAY: Record<string, { light: string; dark: string; label: strin
   pending_review: { light: 'bg-amber-100 text-amber-900', dark: 'bg-amber-500/20 text-amber-300', label: '待审核' },
 };
 
-/** 管理员概览：KPI + 轮播 + 趋势 + 健康 + 最近注册（兰智通 LantuConnect） */
 export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }) => {
   const isDark = theme === 'dark';
   const { hasSecondarySidebar } = useLayoutChrome();
   const outerPad = hasSecondarySidebar ? 'px-2 sm:px-3 lg:px-4' : 'px-1.5 sm:px-2 lg:px-3';
   const maxW = hasSecondarySidebar ? 'max-w-7xl mx-auto' : 'w-full max-w-none';
+
+  const [overview, setOverview] = useState<AdminOverview | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await dashboardService.getAdminOverview();
+      setOverview(result);
+    } catch (err) {
+      console.error('Failed to load admin overview:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const platformKpis = (overview?.kpis ?? []).map((k, i) => ({
+    label: k.label,
+    value: String(k.value),
+    delta: k.trend > 0 ? `+${k.trend}%` : `${k.trend}%`,
+    up: k.trend >= 0,
+    ...(KPI_ICONS[i % KPI_ICONS.length]),
+  }));
+
+  const healthSummary = overview?.healthSummary ?? { healthy: 0, warning: 0, down: 0 };
+  const recentRegistrations = overview?.recentRegistrations ?? [];
 
   const modules = [
     { title: 'Agent 管理', desc: 'Agent 注册、审核、测试与发布全流程管理。', icon: Bot },
@@ -110,6 +132,14 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
     { label: '数据集', icon: Database, hint: '数据集管理 · 查看全部' },
     { label: '监控概览', icon: Activity, hint: '监控中心 · 运行概览' },
   ];
+
+  if (loading && !overview) {
+    return (
+      <div className={`flex-1 flex items-center justify-center ${isDark ? 'bg-[#000000]' : 'bg-[#F2F2F7]'}`}>
+        <Loader2 size={28} className="animate-spin text-slate-400" />
+      </div>
+    );
+  }
 
   return (
     <div
@@ -216,7 +246,7 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
                 }`}
               >
                 <CheckCircle2 size={20} className="text-emerald-500 mx-auto mb-1" />
-                <p className={`text-lg font-bold ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>42</p>
+                <p className={`text-lg font-bold ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>{healthSummary.healthy}</p>
                 <p className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>正常运行</p>
               </div>
               <div
@@ -225,7 +255,7 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
                 }`}
               >
                 <AlertTriangle size={20} className="text-amber-500 mx-auto mb-1" />
-                <p className={`text-lg font-bold ${isDark ? 'text-amber-400' : 'text-amber-700'}`}>3</p>
+                <p className={`text-lg font-bold ${isDark ? 'text-amber-400' : 'text-amber-700'}`}>{healthSummary.warning}</p>
                 <p className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>告警中</p>
               </div>
               <div
@@ -234,13 +264,10 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
                 }`}
               >
                 <Clock size={20} className={`mx-auto mb-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
-                <p className={`text-lg font-bold ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>2</p>
+                <p className={`text-lg font-bold ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{healthSummary.down}</p>
                 <p className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>维护中</p>
               </div>
             </div>
-            <p className={`text-xs mt-3 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-              平台整体可用率 99.2%，平均响应延迟 128ms
-            </p>
           </section>
 
           {/* 最近注册 */}
@@ -259,7 +286,7 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
             </div>
             <ul className={`divide-y ${isDark ? 'divide-white/5' : 'divide-slate-100'}`}>
               {recentRegistrations.map((r) => {
-                const badge = STATUS_DISPLAY[r.status];
+                const badge = STATUS_DISPLAY[r.status] ?? STATUS_DISPLAY.published;
                 return (
                   <li
                     key={r.name}

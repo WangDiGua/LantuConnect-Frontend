@@ -1,12 +1,13 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from './MgmtPageShell';
-import { MOCK_TOKENS, MgmtToken } from '../../constants/userMgmt';
 import { nativeSelectClass } from '../../utils/formFieldClasses';
 import { TOOLBAR_ROW, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
-import { Search, Ban, Shield } from 'lucide-react';
+import { Search, Ban, Shield, Loader2 } from 'lucide-react';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { Pagination } from '../../components/common/Pagination';
+import { userMgmtService } from '../../api/services/user-mgmt.service';
+import type { TokenRecord } from '../../types/dto/user-mgmt';
 
 interface TokenListPageProps {
   theme: Theme;
@@ -24,11 +25,26 @@ export const TokenListPage: React.FC<TokenListPageProps> = ({
   breadcrumbSegments,
 }) => {
   const isDark = theme === 'dark';
-  const [tokens, setTokens] = useState<MgmtToken[]>(() => [...MOCK_TOKENS]);
+  const [tokens, setTokens] = useState<TokenRecord[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | MgmtToken['status']>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | TokenRecord['status']>('all');
   const [page, setPage] = useState(1);
   const [revokeTarget, setRevokeTarget] = useState<string | null>(null);
+
+  const fetchTokens = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await userMgmtService.listTokens();
+      setTokens(result.list);
+    } catch (err) {
+      console.error('Failed to load tokens:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchTokens(); }, [fetchTokens]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -36,8 +52,9 @@ export const TokenListPage: React.FC<TokenListPageProps> = ({
       if (statusFilter !== 'all' && t.status !== statusFilter) return false;
       if (!q) return true;
       return (
-        t.subject.toLowerCase().includes(q) ||
-        t.scope.toLowerCase().includes(q)
+        t.name.toLowerCase().includes(q) ||
+        t.scopes.join(' ').toLowerCase().includes(q) ||
+        t.createdBy.toLowerCase().includes(q)
       );
     });
   }, [tokens, search, statusFilter]);
@@ -47,32 +64,32 @@ export const TokenListPage: React.FC<TokenListPageProps> = ({
     return filtered.slice(start, start + PAGE_SIZE);
   }, [filtered, page]);
 
-  const handleRevoke = () => {
+  const handleRevoke = async () => {
     if (!revokeTarget) return;
     const t = tokens.find((x) => x.id === revokeTarget);
-    if (t?.status !== 'valid') {
+    if (t?.status !== 'active') {
       showMessage('该 Token 已失效或撤销', 'info');
       setRevokeTarget(null);
       return;
     }
-    setTokens((prev) =>
-      prev.map((x) => (x.id === revokeTarget ? { ...x, status: 'revoked' as const } : x))
-    );
-    showMessage('Token 已撤销', 'success');
-    setRevokeTarget(null);
-    setPage(1);
+    try {
+      await userMgmtService.revokeToken(revokeTarget);
+      showMessage('Token 已撤销', 'success');
+      setRevokeTarget(null);
+      setPage(1);
+      await fetchTokens();
+    } catch (err) {
+      console.error(err);
+      showMessage('撤销失败', 'error');
+    }
   };
 
-  const statusLabel = (s: MgmtToken['status']) => {
+  const statusLabel = (s: TokenRecord['status']) => {
     switch (s) {
-      case 'valid':
-        return '有效';
-      case 'revoked':
-        return '已撤销';
-      case 'expired':
-        return '已过期';
-      default:
-        return s;
+      case 'active': return '有效';
+      case 'revoked': return '已撤销';
+      case 'expired': return '已过期';
+      default: return s;
     }
   };
 
@@ -82,29 +99,16 @@ export const TokenListPage: React.FC<TokenListPageProps> = ({
       fontSize={fontSize}
       breadcrumbSegments={breadcrumbSegments}
       titleIcon={Shield}
-      description="查看访问令牌主体、范围与有效期，支持撤销有效 Token（演示）"
+      description="查看访问令牌主体、范围与有效期，支持撤销有效 Token"
       toolbar={
         <div className={TOOLBAR_ROW}>
           <div className="relative flex-1 min-w-0 sm:max-w-md">
-            <Search
-              className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${isDark ? 'text-slate-500' : 'text-slate-400'}`}
-              size={16}
-            />
-            <input
-              type="search"
-              placeholder="搜索主体或 scope…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className={toolbarSearchInputClass(theme)}
-            />
+            <Search className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${isDark ? 'text-slate-500' : 'text-slate-400'}`} size={16} />
+            <input type="search" placeholder="搜索名称或 scope…" value={search} onChange={(e) => setSearch(e.target.value)} className={toolbarSearchInputClass(theme)} />
           </div>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-            className={`${nativeSelectClass(theme)} w-full sm:w-[8.5rem] shrink-0`}
-          >
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)} className={`${nativeSelectClass(theme)} w-full sm:w-[8.5rem] shrink-0`}>
             <option value="all">全部状态</option>
-            <option value="valid">有效</option>
+            <option value="active">有效</option>
             <option value="revoked">已撤销</option>
             <option value="expired">已过期</option>
           </select>
@@ -112,114 +116,57 @@ export const TokenListPage: React.FC<TokenListPageProps> = ({
       }
     >
       <div className="min-w-0 px-4 sm:px-6 pb-6 pt-1">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm min-w-[880px]">
-            <thead>
-              <tr
-                className={`border-b ${
-                  isDark ? 'border-white/10 bg-[#2C2C2E]/80' : 'border-slate-200 bg-slate-50'
-                }`}
-              >
-                <th className={`px-4 py-3 font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
-                  主体
-                </th>
-                <th className={`px-4 py-3 font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
-                  Scope
-                </th>
-                <th className={`px-4 py-3 font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
-                  签发时间
-                </th>
-                <th className={`px-4 py-3 font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
-                  过期时间
-                </th>
-                <th className={`px-4 py-3 font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
-                  状态
-                </th>
-                <th className={`px-4 py-3 font-semibold text-right ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
-                  操作
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginated.map((t, i) => (
-                <tr
-                  key={t.id}
-                  className={`border-b transition-colors ${
-                    isDark
-                      ? `border-white/5 ${i % 2 === 0 ? 'bg-[#1C1C1E]' : 'bg-[#2C2C2E]/40'} hover:bg-white/5`
-                      : `border-slate-100 ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50/80'} hover:bg-slate-100/80`
-                  }`}
-                >
-                  <td className={`px-4 py-3 max-w-[200px] ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                    <span className="line-clamp-2">{t.subject}</span>
-                  </td>
-                  <td className={`px-4 py-3 text-xs max-w-[240px] ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                    <span className="line-clamp-2 font-mono">{t.scope}</span>
-                  </td>
-                  <td className={`px-4 py-3 whitespace-nowrap ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                    {t.issuedAt}
-                  </td>
-                  <td className={`px-4 py-3 whitespace-nowrap ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                    {t.expiresAt}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
-                        t.status === 'valid'
-                          ? isDark
-                            ? 'bg-emerald-500/20 text-emerald-300'
-                            : 'bg-emerald-100 text-emerald-800'
-                          : t.status === 'expired'
-                            ? isDark
-                              ? 'bg-slate-600/40 text-slate-300'
-                              : 'bg-slate-200 text-slate-700'
-                            : isDark
-                              ? 'bg-red-500/20 text-red-300'
-                              : 'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      {statusLabel(t.status)}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    {t.status === 'valid' ? (
-                      <button
-                        type="button"
-                        onClick={() => setRevokeTarget(t.id)}
-                        className={`inline-flex items-center gap-1 px-2 py-1 rounded-xl text-xs font-medium ${
-                          isDark ? 'text-amber-400 hover:bg-white/10' : 'text-amber-700 hover:bg-amber-50'
-                        }`}
-                      >
-                        <Ban size={14} />
-                        撤销
-                      </button>
-                    ) : (
-                      <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>—</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {filtered.length === 0 ? (
-          <p className={`text-center py-12 text-sm ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-            暂无 Token
-          </p>
-        ) : null}
-        {filtered.length > 0 && (
-          <Pagination page={page} pageSize={PAGE_SIZE} total={filtered.length} onChange={setPage} />
+        {loading && tokens.length === 0 ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 size={24} className="animate-spin text-slate-400" />
+          </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm min-w-[880px]">
+                <thead>
+                  <tr className={`border-b ${isDark ? 'border-white/10 bg-[#2C2C2E]/80' : 'border-slate-200 bg-slate-50'}`}>
+                    <th className={`px-4 py-3 font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>名称</th>
+                    <th className={`px-4 py-3 font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>Scope</th>
+                    <th className={`px-4 py-3 font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>创建时间</th>
+                    <th className={`px-4 py-3 font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>过期时间</th>
+                    <th className={`px-4 py-3 font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>状态</th>
+                    <th className={`px-4 py-3 font-semibold text-right ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginated.map((t, i) => (
+                    <tr key={t.id} className={`border-b transition-colors ${isDark ? `border-white/5 ${i % 2 === 0 ? 'bg-[#1C1C1E]' : 'bg-[#2C2C2E]/40'} hover:bg-white/5` : `border-slate-100 ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50/80'} hover:bg-slate-100/80`}`}>
+                      <td className={`px-4 py-3 max-w-[200px] ${isDark ? 'text-white' : 'text-slate-900'}`}><span className="line-clamp-2">{t.name}</span></td>
+                      <td className={`px-4 py-3 text-xs max-w-[240px] ${isDark ? 'text-slate-400' : 'text-slate-600'}`}><span className="line-clamp-2 font-mono">{t.scopes.join(', ')}</span></td>
+                      <td className={`px-4 py-3 whitespace-nowrap ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{t.createdAt}</td>
+                      <td className={`px-4 py-3 whitespace-nowrap ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{t.expiresAt}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${t.status === 'active' ? isDark ? 'bg-emerald-500/20 text-emerald-300' : 'bg-emerald-100 text-emerald-800' : t.status === 'expired' ? isDark ? 'bg-slate-600/40 text-slate-300' : 'bg-slate-200 text-slate-700' : isDark ? 'bg-red-500/20 text-red-300' : 'bg-red-100 text-red-800'}`}>
+                          {statusLabel(t.status)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {t.status === 'active' ? (
+                          <button type="button" onClick={() => setRevokeTarget(t.id)} className={`inline-flex items-center gap-1 px-2 py-1 rounded-xl text-xs font-medium ${isDark ? 'text-amber-400 hover:bg-white/10' : 'text-amber-700 hover:bg-amber-50'}`}>
+                            <Ban size={14} />
+                            撤销
+                          </button>
+                        ) : (
+                          <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>—</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {filtered.length === 0 && <p className={`text-center py-12 text-sm ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>暂无 Token</p>}
+            {filtered.length > 0 && <Pagination page={page} pageSize={PAGE_SIZE} total={filtered.length} onChange={setPage} />}
+          </>
         )}
       </div>
-      <ConfirmDialog
-        open={!!revokeTarget}
-        title="撤销 Token"
-        message="确定撤销该 Token？客户端需重新登录或刷新令牌。"
-        confirmText="撤销"
-        variant="warning"
-        onConfirm={handleRevoke}
-        onCancel={() => setRevokeTarget(null)}
-      />
+      <ConfirmDialog open={!!revokeTarget} title="撤销 Token" message="确定撤销该 Token？客户端需重新登录或刷新令牌。" confirmText="撤销" variant="warning" onConfirm={handleRevoke} onCancel={() => setRevokeTarget(null)} />
     </MgmtPageShell>
   );
 };

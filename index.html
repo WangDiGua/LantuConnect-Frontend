@@ -10,131 +10,35 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>兰智通 LantuConnect</title>
     
-    <!-- 字体预加载 - 关键字体优先 -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" as="style" />
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" as="style" />
-    
-    <!-- 关键CSS - 防止FOUC -->
+
     <style>
-      /* 根元素基础样式 - 立即应用 */
       html {
         font-size: 16px;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
         text-rendering: optimizeLegibility;
       }
-      
       body {
         margin: 0;
         padding: 0;
         font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
-        background-color: #f8fafc;
+        background-color: #f1f5f9;
         color: #1e293b;
         overflow: hidden;
-        /* 防止字体加载时的布局偏移 */
-        font-display: swap;
       }
-      
-      /* 防止根容器闪烁 */
       #root {
         width: 100vw;
         height: 100vh;
         position: relative;
         overflow: hidden;
-        /* 设置固定尺寸避免CLS */
-        min-width: 100vw;
-        min-height: 100vh;
-      }
-      
-      /* Pre-splash 样式 - 确保立即显示 */
-      #pre-splash {
-        position: fixed;
-        inset: 0;
-        z-index: 9999;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        background: linear-gradient(135deg, #f8fafc, #fff, #eef2ff80);
-        opacity: 1;
-        transition: opacity 0.3s ease-out;
-        /* 防止布局偏移 */
-        width: 100vw;
-        height: 100vh;
-        /* 优化动画性能 */
-        will-change: opacity;
-        /* 确保在React加载前可见 */
-        visibility: visible;
-      }
-      
-      /* 隐藏pre-splash的类 */
-      #pre-splash.hidden {
-        opacity: 0;
-        visibility: hidden;
-        pointer-events: none;
-      }
-      
-      /* 加载动画 */
-      @keyframes _b {
-        0%, 80%, 100% {
-          transform: scale(0.6);
-          opacity: 0.4;
-        }
-        40% {
-          transform: scale(1);
-          opacity: 1;
-        }
-      }
-      
-      /* 布局容器固定尺寸 - 防止CLS */
-      .layout-container {
-        width: 100%;
-        height: 100%;
-        min-height: 100vh;
-        position: relative;
-      }
-      
-      /* 导航栏和侧边栏固定尺寸 */
-      nav, aside, header {
-        will-change: transform;
-      }
-      
-      /* 主内容区域稳定布局 */
-      main {
-        min-height: 0;
-        flex: 1;
-        overflow: hidden;
       }
     </style>
   </head>
   <body>
-    <div id="root">
-      <!-- Pre-React splash: removed once React mounts -->
-      <div id="pre-splash">
-        <!-- 新Logo字标 -->
-        <svg viewBox="0 0 380 100" width="240" height="63" style="margin-bottom:20px" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <mask id="zap-mask-splash">
-              <rect width="100%" height="100%" fill="white" />
-              <path d="M 160 25 L 140 60 L 152 60 L 145 85 L 175 45 L 160 45 Z" fill="black" />
-            </mask>
-          </defs>
-          <g mask="url(#zap-mask-splash)">
-            <text x="10" y="70" font-family="system-ui, -apple-system, sans-serif" font-size="56" font-weight="900" fill="#0F172A" letter-spacing="-2.5">Lantu</text>
-            <text x="162" y="70" font-family="system-ui, -apple-system, sans-serif" font-size="56" font-weight="900" fill="#2563EB" letter-spacing="-2.5">Connect</text>
-          </g>
-          <path d="M 160 25 L 140 60 L 152 60 L 145 85 L 175 45 L 160 45 Z" fill="#38BDF8" transform="scale(0.3) translate(350, 110)" />
-        </svg>
-        <div style="font-size:11px;color:#94a3b8;margin-bottom:28px">智能体接入平台</div>
-        <div style="display:flex;gap:6px">
-          <div style="width:6px;height:6px;border-radius:50%;background:#6366f1b3;animation:_b 1.2s ease-in-out infinite"></div>
-          <div style="width:6px;height:6px;border-radius:50%;background:#6366f1b3;animation:_b 1.2s ease-in-out .15s infinite"></div>
-          <div style="width:6px;height:6px;border-radius:50%;background:#6366f1b3;animation:_b 1.2s ease-in-out .3s infinite"></div>
-        </div>
-      </div>
-    </div>
+    <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

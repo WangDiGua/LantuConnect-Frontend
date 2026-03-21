@@ -93,12 +93,6 @@ const springTransition = { type: 'spring' as const, stiffness: 300, damping: 30 
 export const MainLayout: React.FC = () => {
   const [theme, setTheme] = useState<Theme>(() => readAppearanceState().theme);
 
-  useEffect(() => {
-    // Hide the HTML pre-splash once the real layout has mounted
-    const el = document.getElementById('pre-splash');
-    if (el) { el.classList.add('hidden'); setTimeout(() => el.remove(), 400); }
-  }, []);
-
   return (
     <UserRoleProvider initialRole="admin">
       <Routes>

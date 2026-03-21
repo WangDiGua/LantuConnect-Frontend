@@ -5,13 +5,6 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { AuthGuard } from './router/guards/AuthGuard';
 import { GuestGuard } from './router/guards/GuestGuard';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
-export function hidePreSplash() {
-  const el = document.getElementById('pre-splash');
-  if (el) {
-    el.classList.add('hidden');
-    setTimeout(() => el.remove(), 400);
-  }
-}
 import { EnvBadge } from './components/common/EnvBadge';
 import { MessageProvider } from './components/common/Message';
 import { bindAuthCallbacks } from './lib/http';

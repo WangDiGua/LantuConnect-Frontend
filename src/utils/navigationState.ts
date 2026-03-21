@@ -9,6 +9,7 @@ import {
   ADMIN_USER_MANAGEMENT_GROUPS,
   ADMIN_MONITORING_GROUPS,
   ADMIN_SYSTEM_CONFIG_GROUPS,
+  ADMIN_DEVELOPER_PORTAL_GROUPS,
   USER_WORKSPACE_GROUPS,
   USER_MY_PUBLISH_GROUPS,
   USER_MY_SPACE_GROUPS,
@@ -61,6 +62,8 @@ export function getFirstSubItemForSidebar(sidebarId: string): { subItem?: string
       return { subItem: ADMIN_MONITORING_GROUPS[0].items[0].id };
     case 'system-config':
       return { subItem: ADMIN_SYSTEM_CONFIG_GROUPS[0].items[0].id };
+    case 'developer-portal':
+      return { subItem: ADMIN_DEVELOPER_PORTAL_GROUPS[0].items[0].id };
     case 'workspace':
       return { subItem: USER_WORKSPACE_GROUPS[0].items[0].id };
     case 'my-publish':
@@ -99,6 +102,8 @@ function isValidSubItemForSidebar(sidebarId: string, id: string): boolean {
       return flatItemIds(ADMIN_MONITORING_GROUPS).includes(id);
     case 'system-config':
       return flatItemIds(ADMIN_SYSTEM_CONFIG_GROUPS).includes(id);
+    case 'developer-portal':
+      return flatItemIds(ADMIN_DEVELOPER_PORTAL_GROUPS).includes(id);
     case 'workspace':
       return flatItemIds(USER_WORKSPACE_GROUPS).includes(id);
     case 'my-publish':
@@ -134,6 +139,7 @@ export function readPersistedNavState(): PersistedNavState {
       'user-management',
       'monitoring',
       'system-config',
+      'developer-portal',
       'workspace',
       'my-publish',
       'my-space',

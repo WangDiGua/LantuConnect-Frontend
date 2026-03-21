@@ -29,6 +29,7 @@ import {
   ADMIN_USER_MANAGEMENT_GROUPS,
   ADMIN_MONITORING_GROUPS,
   ADMIN_SYSTEM_CONFIG_GROUPS,
+  ADMIN_DEVELOPER_PORTAL_GROUPS,
   USER_WORKSPACE_GROUPS,
   USER_MY_PUBLISH_GROUPS,
   USER_MY_SPACE_GROUPS,
@@ -51,6 +52,7 @@ const AgentMarket = lazy(() => import('../views/agent/AgentMarket').then(m => ({
 const AgentMonitoringPage = lazy(() => import('../views/agent/AgentMonitoringPage').then(m => ({ default: m.AgentMonitoringPage })));
 const AgentTracePage = lazy(() => import('../views/agent/AgentTracePage').then(m => ({ default: m.AgentTracePage })));
 const AgentAuditList = lazy(() => import('../views/agent/AgentAuditList').then(m => ({ default: m.AgentAuditList })));
+const AgentVersionPage = lazy(() => import('../views/agent/AgentVersionPage').then(m => ({ default: m.AgentVersionPage })));
 // Skill
 const SkillList = lazy(() => import('../views/skill/SkillList').then(m => ({ default: m.SkillList })));
 const SkillCreate = lazy(() => import('../views/skill/SkillCreate').then(m => ({ default: m.SkillCreate })));
@@ -79,6 +81,12 @@ const SubmitSkill = lazy(() => import('../views/publish/SubmitSkill').then(m => 
 // 用户设置
 const UserProfile = lazy(() => import('../views/user/UserProfile').then(m => ({ default: m.UserProfile })));
 const UserSettingsPage = lazy(() => import('../views/user/UserSettingsPage').then(m => ({ default: m.UserSettingsPage })));
+// 开发者中心
+const ApiDocsPage = lazy(() => import('../views/developer/ApiDocsPage').then(m => ({ default: m.ApiDocsPage })));
+const SdkDownloadPage = lazy(() => import('../views/developer/SdkDownloadPage').then(m => ({ default: m.SdkDownloadPage })));
+const ApiPlaygroundPage = lazy(() => import('../views/developer/ApiPlaygroundPage').then(m => ({ default: m.ApiPlaygroundPage })));
+// 数据报表
+const DataReportsPage = lazy(() => import('../views/dashboard/DataReportsPage').then(m => ({ default: m.DataReportsPage })));
 
 import { Logo } from '../components/common/Logo';
 import { MessageProvider, useMessage } from '../components/common/Message';
@@ -354,6 +362,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
       else if (activeSidebar === 'user-management') { groups = ADMIN_USER_MANAGEMENT_GROUPS; prefix = 'admin-user-'; }
       else if (activeSidebar === 'monitoring') { groups = ADMIN_MONITORING_GROUPS; prefix = 'admin-mon-'; }
       else if (activeSidebar === 'system-config') { groups = ADMIN_SYSTEM_CONFIG_GROUPS; prefix = 'admin-sys-'; }
+      else if (activeSidebar === 'developer-portal') { groups = ADMIN_DEVELOPER_PORTAL_GROUPS; prefix = 'admin-dev-'; }
     } else {
       if (activeSidebar === 'workspace') { groups = USER_WORKSPACE_GROUPS; prefix = 'user-workspace-'; }
       else if (activeSidebar === 'my-publish') { groups = USER_MY_PUBLISH_GROUPS; prefix = 'user-publish-'; }
@@ -461,6 +470,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
       // ==================== 管理员视图 ====================
       if (layoutIsAdmin) {
         if (activeSidebar === 'overview') {
+          if (activeSubItem === 'data-reports') return <DataReportsPage theme={theme} fontSize={fontSize} />;
           return <Overview theme={theme} fontSize={fontSize} />;
         }
 
@@ -499,6 +509,7 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
             );
           }
           if (activeSubItem === 'agent-audit') return <AgentAuditList theme={theme} fontSize={fontSize} showMessage={showMessage} />;
+          if (activeSubItem === 'agent-versions') return <AgentVersionPage theme={theme} fontSize={fontSize} />;
           if (activeSubItem === 'agent-monitoring') return <AgentMonitoringPage theme={theme} fontSize={fontSize} />;
           if (activeSubItem === 'agent-trace') return <AgentTracePage theme={theme} fontSize={fontSize} />;
           return <PlaceholderView title={activeSubItem || 'agent-management'} theme={theme} fontSize={fontSize} />;
@@ -540,6 +551,13 @@ const MainLayoutContent: React.FC<{ theme: Theme; setTheme: (t: Theme) => void }
 
         if (activeSidebar === 'system-config') {
           return <SystemConfigModule activeSubItem={activeSubItem} theme={theme} fontSize={fontSize} showMessage={showMessage} />;
+        }
+
+        if (activeSidebar === 'developer-portal') {
+          if (activeSubItem === 'api-docs') return <ApiDocsPage theme={theme} fontSize={fontSize} />;
+          if (activeSubItem === 'sdk-download') return <SdkDownloadPage theme={theme} fontSize={fontSize} />;
+          if (activeSubItem === 'api-playground') return <ApiPlaygroundPage theme={theme} fontSize={fontSize} />;
+          return <PlaceholderView title={activeSubItem || 'developer-portal'} theme={theme} fontSize={fontSize} />;
         }
       }
 

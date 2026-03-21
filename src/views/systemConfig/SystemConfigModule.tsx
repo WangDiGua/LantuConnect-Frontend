@@ -12,6 +12,7 @@ import {
 } from './SystemConfigExtraPages';
 import { CategoryManagement } from './CategoryManagement';
 import { QuotaManagementPage } from './QuotaManagementPage';
+import { TagManagementPage } from './TagManagementPage';
 
 export interface SystemConfigModuleProps {
   activeSubItem: string;
@@ -67,6 +68,8 @@ export const SystemConfigModule: React.FC<SystemConfigModuleProps> = ({
       return <AccessControlPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
     case 'category-management':
       return <CategoryManagement theme={theme} fontSize={fontSize} showMessage={showMessage} />;
+    case 'tag-management':
+      return <TagManagementPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
     default:
       return <PlaceholderView title={activeSubItem} theme={theme} fontSize={fontSize} />;
   }

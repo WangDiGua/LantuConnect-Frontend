@@ -8,6 +8,7 @@ import {
   Wrench,
   AppWindow,
   Rocket,
+  Code2,
 } from 'lucide-react';
 
 import {
@@ -20,6 +21,7 @@ import {
   ADMIN_USER_MANAGEMENT_GROUPS,
   ADMIN_MONITORING_GROUPS,
   ADMIN_SYSTEM_CONFIG_GROUPS,
+  ADMIN_DEVELOPER_PORTAL_GROUPS,
   USER_WORKSPACE_GROUPS,
   USER_MY_PUBLISH_GROUPS,
   USER_MY_SPACE_GROUPS,
@@ -150,6 +152,16 @@ export const ADMIN_SPACES: Space[] = [
     sections: [
       ...fromGroups('user-management', ADMIN_USER_MANAGEMENT_GROUPS as NavGroup[]),
       ...fromGroups('system-config', ADMIN_SYSTEM_CONFIG_GROUPS as NavGroup[]),
+    ],
+  },
+  {
+    id: 'admin-developer',
+    label: '开发者中心',
+    icon: Code2,
+    accentFrom: '#06B6D4',
+    accentTo: '#3B82F6',
+    sections: [
+      ...fromGroups('developer-portal', ADMIN_DEVELOPER_PORTAL_GROUPS as NavGroup[]),
     ],
   },
 ];

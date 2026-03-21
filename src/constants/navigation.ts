@@ -45,6 +45,9 @@ import {
   Heart,
   Cpu,
   CheckCircle2,
+  Code2,
+  Terminal,
+  Download,
 } from 'lucide-react';
 
 // ==================== 管理员菜单（接入平台管理视角）====================
@@ -59,6 +62,7 @@ export const ADMIN_SIDEBAR_ITEMS = [
   { id: 'user-management', icon: Users, label: '用户与权限' },
   { id: 'monitoring', icon: Activity, label: '监控中心' },
   { id: 'system-config', icon: Settings, label: '系统配置' },
+  { id: 'developer-portal', icon: Code2, label: '开发者中心' },
 ];
 
 // ==================== 用户菜单（师生使用视角）====================
@@ -86,6 +90,7 @@ export const ADMIN_OVERVIEW_GROUPS = [
       { id: 'overview', icon: LayoutDashboard, label: '数据概览' },
       { id: 'health-check', icon: Activity, label: '健康状态' },
       { id: 'usage-statistics', icon: TrendingUp, label: '使用统计' },
+      { id: 'data-reports', icon: BarChart3, label: '数据报表' },
     ],
   },
 ];
@@ -97,6 +102,7 @@ export const ADMIN_AGENT_MANAGEMENT_GROUPS = [
       { id: 'agent-list', icon: Bot, label: 'Agent 列表' },
       { id: 'agent-create', icon: Sparkles, label: '注册 Agent' },
       { id: 'agent-audit', icon: CheckCircle2, label: '审核队列' },
+      { id: 'agent-versions', icon: GitBranch, label: '版本管理' },
     ],
   },
   {
@@ -197,6 +203,7 @@ export const ADMIN_SYSTEM_CONFIG_GROUPS = [
     title: '基础',
     items: [
       { id: 'category-management', icon: Tag, label: '分类管理' },
+      { id: 'tag-management', icon: Tag, label: '标签管理' },
       { id: 'model-config', icon: Cpu, label: '模型配置' },
       { id: 'security-settings', icon: Shield, label: '安全设置' },
     ],
@@ -213,6 +220,17 @@ export const ADMIN_SYSTEM_CONFIG_GROUPS = [
     title: '审计',
     items: [
       { id: 'audit-log', icon: History, label: '审计日志' },
+    ],
+  },
+];
+
+export const ADMIN_DEVELOPER_PORTAL_GROUPS = [
+  {
+    title: '文档',
+    items: [
+      { id: 'api-docs', icon: FileText, label: 'API 文档' },
+      { id: 'sdk-download', icon: Download, label: 'SDK 下载' },
+      { id: 'api-playground', icon: Terminal, label: 'API Playground' },
     ],
   },
 ];
@@ -286,6 +304,8 @@ export function getNavSubGroups(sidebarId: string, isAdminRole: boolean) {
         return ADMIN_MONITORING_GROUPS;
       case 'system-config':
         return ADMIN_SYSTEM_CONFIG_GROUPS;
+      case 'developer-portal':
+        return ADMIN_DEVELOPER_PORTAL_GROUPS;
       default:
         return [];
     }

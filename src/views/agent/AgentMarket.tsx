@@ -11,8 +11,9 @@ import {
   BarChart3,
   Rocket,
   GitBranch,
+  X,
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Theme, FontSize, ThemeColor } from '../../types';
 import { THEME_COLOR_CLASSES } from '../../constants/theme';
 import {
@@ -24,6 +25,7 @@ import {
   type AgentMarketCard,
 } from '../../constants/agentMarket';
 import { nativeSelectClass } from '../../utils/formFieldClasses';
+import { AgentReviews } from './AgentReviews';
 
 export interface AgentMarketProps {
   theme: Theme;
@@ -71,24 +73,7 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({
     showMessage(`已添加「${name}」到工作区（演示）`, 'success');
   };
 
-  const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
-  const [showReviews, setShowReviews] = useState(false);
-  const [showStats, setShowStats] = useState(false);
-  const [showVersions, setShowVersions] = useState(false);
-
-  // 模拟评论数据
-  const mockReviews = [
-    { id: '1', user: '用户A', rating: 5, comment: '非常好用，推荐！', date: '2026-03-15' },
-    { id: '2', user: '用户B', rating: 4, comment: '功能完善，但响应稍慢', date: '2026-03-14' },
-  ];
-
-  // 模拟统计数据
-  const mockStats = {
-    installs: 1234,
-    activeUsers: 567,
-    avgRating: 4.5,
-    totalRuns: 8901,
-  };
+  const [detailAgent, setDetailAgent] = useState<(AgentMarketCard & { _source?: 'featured' | 'list' }) | null>(null);
 
   return (
     <div
@@ -288,31 +273,9 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({
                             <button
                               type="button"
                               className="btn btn-ghost btn-sm h-8 min-h-0 text-xs"
-                              onClick={() => {
-                                setSelectedAgent(a.id);
-                                setShowReviews(true);
-                              }}
+                              onClick={() => setDetailAgent({ ...a, _source: 'featured' })}
                             >
-                              <MessageSquare size={14} />
-                              评论
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-ghost btn-sm h-8 min-h-0 text-xs"
-                              onClick={() => {
-                                setSelectedAgent(a.id);
-                                setShowStats(true);
-                              }}
-                            >
-                              <BarChart3 size={14} />
-                              统计
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-ghost btn-sm h-8 min-h-0 text-xs"
-                              onClick={() => showMessage(`「${a.name}」详情页（演示）`, 'info')}
-                            >
-                              详情
+                              详情与评论
                               <ChevronRight size={14} />
                             </button>
                             <button
@@ -360,7 +323,8 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({
                     return (
                       <article
                         key={a.id}
-                        className={`rounded-2xl border p-4 flex flex-col h-full shadow-none transition-colors ${
+                        onClick={() => setDetailAgent({ ...a, _source: 'list' })}
+                        className={`rounded-2xl border p-4 flex flex-col h-full shadow-none transition-colors cursor-pointer ${
                           isDark
                             ? 'border-white/10 bg-[#1C1C1E] hover:border-white/15'
                             : 'border-slate-200/80 bg-white hover:border-slate-300'
@@ -423,119 +387,96 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({
           </div>
         </div>
 
-        {/* 评论弹窗 */}
-        {showReviews && selectedAgent && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50"
-            onClick={() => setShowReviews(false)}
-          >
+        {/* Agent 详情弹窗 (含评论) */}
+        <AnimatePresence>
+          {detailAgent && (
             <motion.div
-              initial={{ scale: 0.95, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              className={`w-full max-w-lg rounded-2xl border p-6 ${
-                isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200'
-              }`}
-              onClick={(e) => e.stopPropagation()}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50"
+              onClick={() => setDetailAgent(null)}
             >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>评分与评论</h3>
-                <button
-                  type="button"
-                  onClick={() => setShowReviews(false)}
-                  className="btn btn-ghost btn-sm btn-circle"
-                >
-                  ×
-                </button>
-              </div>
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {mockReviews.map((review) => (
-                  <div
-                    key={review.id}
-                    className={`p-3 rounded-xl border ${
-                      isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="flex">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <Star
-                            key={i}
-                            size={14}
-                            className={i < review.rating ? 'text-amber-500 fill-amber-500' : 'text-slate-300'}
-                          />
-                        ))}
-                      </div>
-                      <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                        {review.user} · {review.date}
-                      </span>
+              <motion.div
+                initial={{ scale: 0.95, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.95, y: 20 }}
+                className={`w-full max-w-2xl max-h-[85vh] rounded-2xl border flex flex-col ${
+                  isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200'
+                }`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Modal Header */}
+                <div className={`shrink-0 px-6 py-4 border-b flex items-center justify-between ${
+                  isDark ? 'border-white/10' : 'border-slate-200'
+                }`}>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shrink-0 ${
+                      isDark ? 'bg-white/10' : 'bg-slate-100'
+                    }`}>
+                      {detailAgent.emoji}
                     </div>
-                    <p className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{review.comment}</p>
+                    <div className="min-w-0">
+                      <h3 className={`text-lg font-bold truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                        {detailAgent.name}
+                      </h3>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{detailAgent.author}</span>
+                        <span className="inline-flex items-center gap-0.5 text-xs">
+                          <Star size={12} className="text-amber-500 fill-amber-500" />
+                          {detailAgent.rating}
+                        </span>
+                        <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{detailAgent.installs} 次安装</span>
+                      </div>
+                    </div>
                   </div>
-                ))}
-              </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      className={`btn btn-sm h-9 min-h-0 text-xs text-white border-0 gap-1 ${tc.bg}`}
+                      onClick={(e) => { e.stopPropagation(); addAgent(detailAgent.name); }}
+                    >
+                      <Rocket size={14} />
+                      一键部署
+                    </button>
+                    <button type="button" onClick={() => setDetailAgent(null)} className="btn btn-ghost btn-sm btn-circle">
+                      <X size={18} />
+                    </button>
+                  </div>
+                </div>
+                {/* Modal Body */}
+                <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-5 space-y-5">
+                  {/* Description */}
+                  <div>
+                    <p className={`text-sm leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                      {detailAgent.description}
+                    </p>
+                    <div className="flex flex-wrap gap-1.5 mt-3">
+                      {detailAgent.tags.map((t) => (
+                        <span
+                          key={t}
+                          className={`text-[11px] px-2.5 py-1 rounded-lg font-medium ${
+                            isDark ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  {/* Reviews */}
+                  <div>
+                    <h4 className={`font-bold text-base mb-4 flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                      <MessageSquare size={18} className="text-blue-500" />
+                      评分与评论
+                    </h4>
+                    <AgentReviews agentId={Number(detailAgent.id)} theme={theme} fontSize={fontSize} />
+                  </div>
+                </div>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-
-        {/* 统计弹窗 */}
-        {showStats && selectedAgent && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50"
-            onClick={() => setShowStats(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              className={`w-full max-w-md rounded-2xl border p-6 ${
-                isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200'
-              }`}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>使用统计</h3>
-                <button
-                  type="button"
-                  onClick={() => setShowStats(false)}
-                  className="btn btn-ghost btn-sm btn-circle"
-                >
-                  ×
-                </button>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className={`p-4 rounded-xl ${isDark ? 'bg-white/5' : 'bg-slate-50'}`}>
-                  <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>安装次数</p>
-                  <p className={`text-2xl font-bold mt-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                    {mockStats.installs}
-                  </p>
-                </div>
-                <div className={`p-4 rounded-xl ${isDark ? 'bg-white/5' : 'bg-slate-50'}`}>
-                  <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>活跃用户</p>
-                  <p className={`text-2xl font-bold mt-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                    {mockStats.activeUsers}
-                  </p>
-                </div>
-                <div className={`p-4 rounded-xl ${isDark ? 'bg-white/5' : 'bg-slate-50'}`}>
-                  <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>平均评分</p>
-                  <p className={`text-2xl font-bold mt-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                    {mockStats.avgRating}
-                  </p>
-                </div>
-                <div className={`p-4 rounded-xl ${isDark ? 'bg-white/5' : 'bg-slate-50'}`}>
-                  <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>总运行次数</p>
-                  <p className={`text-2xl font-bold mt-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                    {mockStats.totalRuns}
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

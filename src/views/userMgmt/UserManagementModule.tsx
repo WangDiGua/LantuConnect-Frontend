@@ -22,6 +22,7 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({
   showMessage,
 }) => {
   switch (activeSubItem) {
+    case 'user-list':
     case 'user-management':
       return <UserListPage theme={theme} fontSize={fontSize} breadcrumbBase={['用户管理']} />;
     case 'role-management':
@@ -44,6 +45,7 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({
           breadcrumbSegments={['用户管理', 'Token 管理']}
         />
       );
+    case 'organization':
     case 'org-structure':
       return <OrgStructurePage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
     default:

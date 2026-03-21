@@ -46,7 +46,7 @@ export const RoleListPage: React.FC<RoleListPageProps> = ({ theme, fontSize, bre
   const [mode, setMode] = useState<ViewMode>('list');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState(emptyForm());
   const [page, setPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 

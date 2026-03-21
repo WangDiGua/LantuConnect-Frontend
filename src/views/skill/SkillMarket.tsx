@@ -3,7 +3,9 @@ import { Search, Zap, Clock, Activity, Star, ThumbsUp, MessageSquare, Play, Load
 import type { Theme, FontSize, ThemeColor } from '../../types';
 import type { Skill } from '../../types/dto/skill';
 import type { AgentType, SourceType } from '../../types/dto/agent';
+import type { Review } from '../../types/dto/review';
 import { skillService } from '../../api/services/skill.service';
+import { reviewService } from '../../api/services/review.service';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import {
   pageBg, bentoCard, btnPrimary, btnSecondary,
@@ -25,13 +27,10 @@ function formatCount(n: number): string { if (n >= 10000) return (n / 10000).toF
 
 interface SkillReview { id: string; userName: string; avatarColor: string; rating: number; comment: string; date: string; helpfulCount: number; helpedByMe: boolean; }
 const AVATAR_COLORS = ['from-blue-500 to-indigo-500', 'from-emerald-500 to-teal-500', 'from-violet-500 to-purple-500', 'from-orange-500 to-amber-500', 'from-rose-500 to-pink-500', 'from-cyan-500 to-sky-500'];
-const MOCK_SKILL_REVIEWS: SkillReview[] = [
-  { id: 'sr1', userName: '张三', avatarColor: AVATAR_COLORS[0], rating: 5, comment: '文档生成质量很高，格式规范，大大提升了工作效率。', date: '2026-03-17', helpfulCount: 8, helpedByMe: false },
-  { id: 'sr2', userName: '李老师', avatarColor: AVATAR_COLORS[1], rating: 4, comment: '代码补全功能实用，偶尔有些小错误，但整体不错。', date: '2026-03-15', helpfulCount: 5, helpedByMe: false },
-  { id: 'sr3', userName: '王五', avatarColor: AVATAR_COLORS[2], rating: 5, comment: '搜索检索速度快，结果精准，非常好用！', date: '2026-03-12', helpfulCount: 11, helpedByMe: true },
-  { id: 'sr4', userName: '赵六', avatarColor: AVATAR_COLORS[3], rating: 3, comment: '基本功能可以，希望支持更多格式的文件转换。', date: '2026-03-10', helpfulCount: 3, helpedByMe: false },
-  { id: 'sr5', userName: '陈七', avatarColor: AVATAR_COLORS[4], rating: 4, comment: '翻译准确率不错，中英文互译很流畅。', date: '2026-03-08', helpfulCount: 6, helpedByMe: false },
-];
+
+function reviewToSkillReview(r: Review): SkillReview {
+  return { id: String(r.id), userName: r.userName, avatarColor: AVATAR_COLORS[r.id % AVATAR_COLORS.length], rating: r.rating, comment: r.comment, date: r.createTime.slice(0, 10), helpfulCount: r.helpfulCount, helpedByMe: false };
+}
 
 export const SkillMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, themeColor: _themeColor, showMessage }) => {
   const isDark = theme === 'dark';
@@ -40,9 +39,21 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, theme
   const [keyword, setKeyword] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('全部');
   const [detailSkill, setDetailSkill] = useState<Skill | null>(null);
-  const [skillReviews, setSkillReviews] = useState<SkillReview[]>(MOCK_SKILL_REVIEWS);
+  const [skillReviews, setSkillReviews] = useState<SkillReview[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
   const [myRating, setMyRating] = useState(0);
   const [myComment, setMyComment] = useState('');
+
+  useEffect(() => {
+    if (!detailSkill) return;
+    let cancelled = false;
+    setReviewsLoading(true);
+    reviewService.list('skill', detailSkill.id)
+      .then((data) => { if (!cancelled) setSkillReviews(data.map(reviewToSkillReview)); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setReviewsLoading(false); });
+    return () => { cancelled = true; };
+  }, [detailSkill]);
   const [useSkill, setUseSkill] = useState<Skill | null>(null);
   const [useParams, setUseParams] = useState<Record<string, string>>({});
   const [useLoading, setUseLoading] = useState(false);
@@ -54,7 +65,19 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, theme
     return Object.entries(schema.properties).map(([key, val]) => ({ key, type: val.type || 'string', required: schema.required?.includes(key) ?? false }));
   }, []);
   const handleOpenUse = useCallback((skill: Skill) => { setUseSkill(skill); setUseParams({}); setUseResult(null); setUseLoading(false); }, []);
-  const handleExecute = useCallback(() => { setUseLoading(true); setUseResult(null); const latency = 200 + Math.floor(Math.random() * 1800); setTimeout(() => { setUseLoading(false); setUseResult(`调用成功，耗时 ${latency}ms`); }, 1000 + Math.random() * 1000); }, []);
+  const handleExecute = useCallback(async () => {
+    if (!useSkill) return;
+    setUseLoading(true);
+    setUseResult(null);
+    try {
+      const res = await skillService.invoke(useSkill.id, useParams as Record<string, unknown>);
+      setUseResult(`${res.result}，耗时 ${res.latencyMs}ms`);
+    } catch (e) {
+      setUseResult(`调用失败: ${e instanceof Error ? e.message : '未知错误'}`);
+    } finally {
+      setUseLoading(false);
+    }
+  }, [useSkill, useParams]);
 
   useEffect(() => {
     let cancelled = false; setLoading(true);

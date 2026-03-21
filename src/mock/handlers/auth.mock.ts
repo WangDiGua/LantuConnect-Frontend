@@ -109,4 +109,20 @@ export function registerHandlers(mock: MockAdapter): void {
   mock.onPost('/auth/logout').reply(() => {
     return mockOk(null);
   });
+
+  mock.onPost('/auth/change-password').reply(() => {
+    return mockOk(null);
+  });
+
+  mock.onPost('/auth/send-sms').reply(() => {
+    return mockOk(null);
+  });
+
+  mock.onPost('/auth/bind-phone').reply(() => {
+    return mockOk(null);
+  });
+
+  mock.onPut('/auth/profile').reply(() => {
+    return mockOk(null);
+  });
 }

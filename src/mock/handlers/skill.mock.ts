@@ -508,4 +508,12 @@ export function registerHandlers(mock: MockAdapter): void {
   mock.onGet('/api/v1/mcp-servers').reply(() => {
     return mockOk(mcpServers);
   });
+
+  mock.onPost(/\/api\/v1\/skills\/(\d+)\/invoke$/).reply((config) => {
+    const id = Number(config.url!.match(/\/api\/v1\/skills\/(\d+)\/invoke/)?.[1]);
+    const skill = skills.find((s) => s.id === id);
+    if (!skill) return [404, { code: 404, message: 'Skill not found', timestamp: Date.now() }];
+    const latencyMs = 200 + Math.floor(Math.random() * 1800);
+    return mockOk({ result: `Skill「${skill.displayName}」执行成功`, latencyMs });
+  });
 }

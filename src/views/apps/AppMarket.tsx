@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, LayoutGrid, ExternalLink, Star, ThumbsUp, MessageSquare } from 'lucide-react';
+import { Search, LayoutGrid, ExternalLink, Star, ThumbsUp, MessageSquare, Loader2 } from 'lucide-react';
 import type { Theme, FontSize, ThemeColor } from '../../types';
 import type { SmartApp, EmbedType } from '../../types/dto/smart-app';
+import type { Review } from '../../types/dto/review';
 import { smartAppService } from '../../api/services/smart-app.service';
+import { reviewService } from '../../api/services/review.service';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import {
   pageBg, bentoCard, btnPrimary,
@@ -21,12 +23,10 @@ function pickColor(str: string): string { let h = 0; for (let i = 0; i < str.len
 
 interface AppReview { id: string; userName: string; avatarColor: string; rating: number; comment: string; date: string; helpfulCount: number; helpedByMe: boolean; }
 const AVATAR_COLORS = ['from-blue-500 to-indigo-500', 'from-emerald-500 to-teal-500', 'from-violet-500 to-purple-500', 'from-orange-500 to-amber-500', 'from-rose-500 to-pink-500', 'from-cyan-500 to-sky-500'];
-const MOCK_APP_REVIEWS: AppReview[] = [
-  { id: 'ar1', userName: '张三', avatarColor: AVATAR_COLORS[0], rating: 5, comment: '应用体验流畅，功能完善，推荐使用！', date: '2026-03-18', helpfulCount: 10, helpedByMe: false },
-  { id: 'ar2', userName: '李老师', avatarColor: AVATAR_COLORS[1], rating: 4, comment: '界面设计美观，操作直观。希望能增加更多自定义选项。', date: '2026-03-16', helpfulCount: 7, helpedByMe: false },
-  { id: 'ar3', userName: '王五', avatarColor: AVATAR_COLORS[2], rating: 5, comment: '非常好用的工具，帮我节省了大量时间。', date: '2026-03-14', helpfulCount: 13, helpedByMe: true },
-  { id: 'ar4', userName: '赵六', avatarColor: AVATAR_COLORS[3], rating: 3, comment: '功能基本够用，但加载速度有待提升。', date: '2026-03-11', helpfulCount: 4, helpedByMe: false },
-];
+
+function reviewToAppReview(r: Review): AppReview {
+  return { id: String(r.id), userName: r.userName, avatarColor: AVATAR_COLORS[r.id % AVATAR_COLORS.length], rating: r.rating, comment: r.comment, date: r.createTime.slice(0, 10), helpfulCount: r.helpfulCount, helpedByMe: false };
+}
 
 export const AppMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, themeColor: _themeColor, showMessage }) => {
   const isDark = theme === 'dark';
@@ -34,9 +34,21 @@ export const AppMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, themeCo
   const [loading, setLoading] = useState(true);
   const [keyword, setKeyword] = useState('');
   const [detailApp, setDetailApp] = useState<SmartApp | null>(null);
-  const [appReviews, setAppReviews] = useState<AppReview[]>(MOCK_APP_REVIEWS);
+  const [appReviews, setAppReviews] = useState<AppReview[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
   const [myRating, setMyRating] = useState(0);
   const [myComment, setMyComment] = useState('');
+
+  useEffect(() => {
+    if (!detailApp) return;
+    let cancelled = false;
+    setReviewsLoading(true);
+    reviewService.list('app', detailApp.id)
+      .then((data) => { if (!cancelled) setAppReviews(data.map(reviewToAppReview)); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setReviewsLoading(false); });
+    return () => { cancelled = true; };
+  }, [detailApp]);
 
   useEffect(() => {
     let cancelled = false; setLoading(true);

@@ -7,6 +7,7 @@ import {
 import type { Theme, FontSize } from '../../types';
 import { useAuthStore } from '../../stores/authStore';
 import { useMessage } from '../../components/common/Message';
+import { authService } from '../../api/services/auth.service';
 import { BentoCard } from '../../components/common/BentoCard';
 import { GlassPanel } from '../../components/common/GlassPanel';
 import { nativeInputClass } from '../../utils/formFieldClasses';
@@ -46,14 +47,19 @@ export const UserProfile: React.FC<UserProfileProps> = ({ theme }) => {
     e.preventDefault();
     if (!pwdOld || !pwdNew || pwdNew !== pwdConfirm) return;
     setPwdSaving(true);
-    await new Promise((r) => setTimeout(r, 1200));
-    setPwdSaving(false);
-    setPwdSuccess(true);
-    setTimeout(() => {
-      setPwdSuccess(false);
-      setShowPwdForm(false);
-      setPwdOld(''); setPwdNew(''); setPwdConfirm('');
-    }, 1500);
+    try {
+      await authService.changePassword(pwdOld, pwdNew);
+      setPwdSuccess(true);
+      setTimeout(() => {
+        setPwdSuccess(false);
+        setShowPwdForm(false);
+        setPwdOld(''); setPwdNew(''); setPwdConfirm('');
+      }, 1500);
+    } catch (err) {
+      showMessage(err instanceof Error ? err.message : '密码修改失败', 'error');
+    } finally {
+      setPwdSaving(false);
+    }
   };
 
   const rowCls = `flex items-center justify-between p-3 rounded-xl transition-colors ${isDark ? 'hover:bg-white/[0.04]' : 'hover:bg-slate-50'} group`;
@@ -78,7 +84,18 @@ export const UserProfile: React.FC<UserProfileProps> = ({ theme }) => {
               >
                 <Camera size={20} className="text-white" />
               </button>
-              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { if (e.target.files?.length) { showMessage('头像已更新', 'success'); e.target.value = ''; } }} />
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                if (e.target.files?.length) {
+                  const fakeUrl = URL.createObjectURL(e.target.files[0]);
+                  try {
+                    await authService.updateProfile({ avatar: fakeUrl });
+                    showMessage('头像已更新', 'success');
+                  } catch (err) {
+                    showMessage(err instanceof Error ? err.message : '头像更新失败', 'error');
+                  }
+                  e.target.value = '';
+                }
+              }} />
             </div>
             <div className="flex-1 min-w-0">
               <h1 className={`text-2xl sm:text-3xl font-bold tracking-tight mb-1 ${textPrimary(theme)}`}>{displayName}</h1>
@@ -156,7 +173,16 @@ export const UserProfile: React.FC<UserProfileProps> = ({ theme }) => {
               )}
               <button
                 type="button"
-                onClick={() => { setTwoStepEnabled((v) => !v); showMessage(twoStepEnabled ? '两步验证已关闭' : '两步验证已开启', 'success'); }}
+                onClick={async () => {
+                  const next = !twoStepEnabled;
+                  try {
+                    await authService.updateProfile({ twoStep: next });
+                    setTwoStepEnabled(next);
+                    showMessage(next ? '两步验证已开启' : '两步验证已关闭', 'success');
+                  } catch (err) {
+                    showMessage(err instanceof Error ? err.message : '操作失败', 'error');
+                  }
+                }}
                 className={`w-full ${rowCls}`}
               >
                 <div className="flex items-center gap-3">
@@ -183,7 +209,16 @@ export const UserProfile: React.FC<UserProfileProps> = ({ theme }) => {
                 </div>
                 <select
                   value={language}
-                  onChange={(e) => { setLanguage(e.target.value); showMessage(e.target.value === 'zh-CN' ? '已切换至简体中文' : 'Switched to English', 'success'); }}
+                  onChange={async (e) => {
+                    const val = e.target.value;
+                    try {
+                      await authService.updateProfile({ language: val });
+                      setLanguage(val);
+                      showMessage(val === 'zh-CN' ? '已切换至简体中文' : 'Switched to English', 'success');
+                    } catch (err) {
+                      showMessage(err instanceof Error ? err.message : '切换失败', 'error');
+                    }
+                  }}
                   className={`text-xs px-2 py-1 rounded-lg border outline-none cursor-pointer ${isDark ? 'bg-white/5 border-white/10 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-600'}`}
                 >
                   <option value="zh-CN">简体中文</option>

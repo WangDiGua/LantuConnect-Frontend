@@ -196,4 +196,8 @@ export function registerHandlers(mock: MockAdapter): void {
     if (idx >= 0) datasets.splice(idx, 1);
     return mockOk(null);
   });
+
+  mock.onPost(/\/v1\/datasets\/(\d+)\/apply$/).reply(() => {
+    return mockOk(null);
+  });
 }

@@ -29,6 +29,7 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, the
   const [keyword, setKeyword] = useState('');
   const [sourceFilter, setSourceFilter] = useState<DatasetSourceType | ''>('');
   const [detailDataset, setDetailDataset] = useState<Dataset | null>(null);
+  const [applyLoading, setApplyLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false; setLoading(true);
@@ -118,7 +119,19 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, the
       {/* Detail modal */}
       <Modal open={!!detailDataset} onClose={() => setDetailDataset(null)} title={detailDataset?.displayName ?? ''} theme={theme} size="md" footer={
         <><button type="button" className={btnSecondary(theme)} onClick={() => setDetailDataset(null)}>关闭</button>
-        <button type="button" className={btnPrimary} onClick={() => { showMessage?.('申请已提交，等待审批', 'success'); setDetailDataset(null); }}>申请使用</button></>
+        <button type="button" className={`${btnPrimary} disabled:opacity-50`} disabled={applyLoading} onClick={async () => {
+          if (!detailDataset) return;
+          setApplyLoading(true);
+          try {
+            await datasetService.applyAccess(detailDataset.id);
+            showMessage?.('申请已提交，等待审批', 'success');
+            setDetailDataset(null);
+          } catch (e) {
+            showMessage?.(e instanceof Error ? e.message : '申请失败', 'error');
+          } finally {
+            setApplyLoading(false);
+          }
+        }}>{applyLoading ? '提交中…' : '申请使用'}</button></>
       }>
         {detailDataset && (() => {
           const ds = detailDataset;

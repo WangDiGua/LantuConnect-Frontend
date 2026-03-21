@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
-import { Sliders, Shield, Network, HardDrive, Lock } from 'lucide-react';
+import { Sliders, Shield, Network, HardDrive, Lock, Loader2 } from 'lucide-react';
 import { nativeInputClass, nativeSelectClass } from '../../utils/formFieldClasses';
 import { useSysParams, useUpdateSysParams, useSysSecurity, useUpdateSysSecurity } from '../../hooks/queries/useSystemConfig';
+import { systemConfigService } from '../../api/services/system-config.service';
+import { quotaService } from '../../api/services/quota.service';
 import type { SystemParam, SecuritySetting } from '../../types/dto/system-config';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { PageError } from '../../components/common/PageError';
@@ -227,6 +229,20 @@ export const NetworkConfigPage: React.FC<PageProps> = ({ theme, fontSize, showMe
   const inputCls = `${nativeInputClass(theme)} ${INPUT_FOCUS}`;
   const labelCls = `text-sm font-medium ${textSecondary(theme)}`;
   const [allowlist, setAllowlist] = useState('10.0.0.0/8\n172.16.0.0/12');
+  const [saving, setSaving] = useState(false);
+
+  const handleApply = async () => {
+    const rules = allowlist.split('\n').map((l) => l.trim()).filter(Boolean);
+    setSaving(true);
+    try {
+      await systemConfigService.applyNetworkWhitelist(rules);
+      showMessage('白名单已下发至网关', 'success');
+    } catch (e) {
+      showMessage(e instanceof Error ? e.message : '下发失败', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={Network} breadcrumbSegments={['系统配置', '网络配置']}>
@@ -237,7 +253,9 @@ export const NetworkConfigPage: React.FC<PageProps> = ({ theme, fontSize, showMe
               <label className={`${labelCls} mb-1.5 block`}>管理端 IP 白名单（每行一个 CIDR）</label>
               <textarea className={`${inputCls} min-h-[120px] font-mono text-xs`} value={allowlist} onChange={(e) => setAllowlist(e.target.value)} />
             </div>
-            <button type="button" className={btnPrimary} onClick={() => showMessage('白名单已下发至网关（Mock）', 'success')}>应用</button>
+            <button type="button" className={`${btnPrimary} disabled:opacity-50`} disabled={saving} onClick={handleApply}>
+              {saving ? <><Loader2 size={14} className="animate-spin" /> 应用中…</> : '应用'}
+            </button>
           </div>
         </BentoCard>
       </div>
@@ -250,6 +268,20 @@ export const SystemQuotaPage: React.FC<PageProps> = ({ theme, fontSize, showMess
   const selectCls = `${nativeSelectClass(theme)} ${INPUT_FOCUS}`;
   const labelCls = `text-sm font-medium ${textSecondary(theme)}`;
   const [globalCap, setGlobalCap] = useState('1000000');
+  const [policy, setPolicy] = useState('仅告警');
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await quotaService.createQuota({ name: '全局日配额', target: 'global', maxCalls: Number(globalCap), policy } as never);
+      showMessage('全局配额已保存', 'success');
+    } catch (e) {
+      showMessage(e instanceof Error ? e.message : '保存失败', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={HardDrive} breadcrumbSegments={['系统配置', '配额管理']}>
@@ -262,13 +294,15 @@ export const SystemQuotaPage: React.FC<PageProps> = ({ theme, fontSize, showMess
             </div>
             <div>
               <label className={`${labelCls} mb-1.5 block`}>超限策略</label>
-              <select className={selectCls}>
+              <select className={selectCls} value={policy} onChange={(e) => setPolicy(e.target.value)}>
                 <option>仅告警</option>
                 <option>软限流</option>
                 <option>硬拒绝</option>
               </select>
             </div>
-            <button type="button" className={btnPrimary} onClick={() => showMessage('全局配额已保存（Mock）', 'success')}>保存</button>
+            <button type="button" className={`${btnPrimary} disabled:opacity-50`} disabled={saving} onClick={handleSave}>
+              {saving ? <><Loader2 size={14} className="animate-spin" /> 保存中…</> : '保存'}
+            </button>
           </div>
         </BentoCard>
       </div>
@@ -281,6 +315,19 @@ export const AccessControlPage: React.FC<PageProps> = ({ theme, fontSize, showMe
   const [rules, setRules] = useState<{ id: string; path: string; roles: string }[]>([
     { id: '1', path: '/admin/**', roles: 'super_admin' },
   ]);
+  const [publishing, setPublishing] = useState(false);
+
+  const handlePublish = async () => {
+    setPublishing(true);
+    try {
+      await systemConfigService.publishAcl(rules);
+      showMessage('ACL 已发布', 'success');
+    } catch (e) {
+      showMessage(e instanceof Error ? e.message : '发布失败', 'error');
+    } finally {
+      setPublishing(false);
+    }
+  };
 
   return (
     <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={Lock} breadcrumbSegments={['系统配置', '访问控制']}>
@@ -305,10 +352,11 @@ export const AccessControlPage: React.FC<PageProps> = ({ theme, fontSize, showMe
         </BentoCard>
         <button
           type="button"
-          className={`${btnSecondary(theme)} mt-4`}
-          onClick={() => showMessage('ACL 已发布（Mock）', 'success')}
+          className={`${btnSecondary(theme)} mt-4 disabled:opacity-50`}
+          disabled={publishing}
+          onClick={handlePublish}
         >
-          发布 ACL
+          {publishing ? <><Loader2 size={14} className="animate-spin" /> 发布中…</> : '发布 ACL'}
         </button>
       </div>
     </MgmtPageShell>

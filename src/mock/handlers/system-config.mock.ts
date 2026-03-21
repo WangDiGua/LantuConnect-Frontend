@@ -192,4 +192,12 @@ export function registerHandlers(mock: MockAdapter): void {
     }
     return mockOk(securitySettings);
   });
+
+  mock.onPost('/system-config/network/apply').reply(() => {
+    return mockOk(null);
+  });
+
+  mock.onPost('/system-config/acl/publish').reply(() => {
+    return mockOk(null);
+  });
 }

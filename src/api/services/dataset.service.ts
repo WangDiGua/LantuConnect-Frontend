@@ -22,4 +22,7 @@ export const datasetService = {
 
   remove: (id: number) =>
     http.delete(`/v1/datasets/${id}`),
+
+  applyAccess: (id: number) =>
+    http.post<void>(`/v1/datasets/${id}/apply`),
 };

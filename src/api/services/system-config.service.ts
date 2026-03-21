@@ -48,4 +48,10 @@ export const systemConfigService = {
 
   updateSecurity: (data: SecuritySetting[]) =>
     http.put<SecuritySetting[]>('/system-config/security', data),
+
+  applyNetworkWhitelist: (rules: string[]) =>
+    http.post<void>('/system-config/network/apply', { rules }),
+
+  publishAcl: (rules: unknown[]) =>
+    http.post<void>('/system-config/acl/publish', { rules }),
 };

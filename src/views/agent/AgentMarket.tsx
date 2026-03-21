@@ -18,6 +18,7 @@ import { AgentReviews } from './AgentReviews';
 import { useNavigate } from 'react-router-dom';
 import { buildPath } from '../../constants/consoleRoutes';
 import { agentService } from '../../api/services/agent.service';
+import { userActivityService } from '../../api/services/user-activity.service';
 import type { Agent } from '../../types/dto/agent';
 
 export interface AgentMarketProps {
@@ -90,7 +91,20 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
   const isInWorkspace = (id: string) => workspaceAgents.includes(id);
 
   const [confirmAgent, setConfirmAgent] = useState<MarketCard | null>(null);
-  const addToWorkspace = (agent: MarketCard) => { if (isInWorkspace(agent.id)) return; setWorkspaceAgents((prev) => [...prev, agent.id]); showMessage(`已将「${agent.name}」添加到工作区`, 'success'); };
+  const [addingAgent, setAddingAgent] = useState(false);
+  const addToWorkspace = async (agent: MarketCard) => {
+    if (isInWorkspace(agent.id)) return;
+    setAddingAgent(true);
+    try {
+      await userActivityService.addFavorite('agent', Number(agent.id));
+      setWorkspaceAgents((prev) => [...prev, agent.id]);
+      showMessage(`已将「${agent.name}」添加到工作区`, 'success');
+    } catch (e) {
+      showMessage(e instanceof Error ? e.message : '添加失败', 'error');
+    } finally {
+      setAddingAgent(false);
+    }
+  };
   const [detailAgent, setDetailAgent] = useState<MarketCard | null>(null);
 
   return (
@@ -270,7 +284,7 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
         {/* Confirm add modal */}
         <Modal open={!!confirmAgent} onClose={() => setConfirmAgent(null)} title="确认添加" theme={theme} size="sm" footer={
           <><button type="button" className={btnSecondary(theme)} onClick={() => setConfirmAgent(null)}>取消</button>
-          <button type="button" className={btnPrimary} onClick={() => { if (confirmAgent) { addToWorkspace(confirmAgent); setConfirmAgent(null); } }}>确认添加</button></>
+          <button type="button" className={`${btnPrimary} disabled:opacity-50`} disabled={addingAgent} onClick={async () => { if (confirmAgent) { await addToWorkspace(confirmAgent); setConfirmAgent(null); } }}>{addingAgent ? <><Loader2 size={14} className="animate-spin" /> 添加中…</> : '确认添加'}</button></>
         }>
           {confirmAgent && <p className={`text-sm ${textSecondary(theme)}`}>确认将「{confirmAgent.name}」添加到工作区？</p>}
         </Modal>

@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Settings, Lock, Smartphone, Monitor, Bell, Mail, Eye, Database, Palette,
-  ChevronRight, Trash2, Download,
+  ChevronRight, Trash2, Download, Loader2,
 } from 'lucide-react';
 import type { Theme, FontSize, ThemeColor } from '../../types';
 import { THEME_COLOR_CLASSES } from '../../constants/theme';
+import { authService } from '../../api/services/auth.service';
 import { nativeSelectClass, nativeInputClass } from '../../utils/formFieldClasses';
 import { Modal } from '../../components/common/Modal';
 import { BentoCard } from '../../components/common/BentoCard';
@@ -55,15 +56,24 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
   const [pwdNew, setPwdNew] = useState('');
   const [pwdConfirm, setPwdConfirm] = useState('');
   const [pwdError, setPwdError] = useState('');
+  const [pwdLoading, setPwdLoading] = useState(false);
 
-  const handlePwdSubmit = useCallback(() => {
+  const handlePwdSubmit = useCallback(async () => {
     if (pwdNew.length < 6) { setPwdError('新密码至少 6 个字符'); return; }
     if (pwdNew !== pwdConfirm) { setPwdError('两次输入的新密码不一致'); return; }
     if (!pwdCurrent) { setPwdError('请输入当前密码'); return; }
     setPwdError('');
-    showMessage('密码修改成功', 'success');
-    setShowPwdModal(false);
-    setPwdCurrent(''); setPwdNew(''); setPwdConfirm('');
+    setPwdLoading(true);
+    try {
+      await authService.changePassword(pwdCurrent, pwdNew);
+      showMessage('密码修改成功', 'success');
+      setShowPwdModal(false);
+      setPwdCurrent(''); setPwdNew(''); setPwdConfirm('');
+    } catch (e) {
+      setPwdError(e instanceof Error ? e.message : '密码修改失败');
+    } finally {
+      setPwdLoading(false);
+    }
   }, [pwdCurrent, pwdNew, pwdConfirm, showMessage]);
 
   const [showPhoneModal, setShowPhoneModal] = useState(false);
@@ -72,22 +82,41 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
   const [countdown, setCountdown] = useState(0);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const handleSendCode = useCallback(() => {
+  const [smsLoading, setSmsLoading] = useState(false);
+  const [phoneLoading, setPhoneLoading] = useState(false);
+
+  const handleSendCode = useCallback(async () => {
     if (!/^1\d{10}$/.test(phone)) { showMessage('请输入正确的手机号', 'error'); return; }
-    setCountdown(60);
-    countdownRef.current = setInterval(() => {
-      setCountdown((v) => { if (v <= 1) { clearInterval(countdownRef.current!); return 0; } return v - 1; });
-    }, 1000);
+    setSmsLoading(true);
+    try {
+      await authService.sendSmsCode(phone);
+      setCountdown(60);
+      countdownRef.current = setInterval(() => {
+        setCountdown((v) => { if (v <= 1) { clearInterval(countdownRef.current!); return 0; } return v - 1; });
+      }, 1000);
+    } catch (e) {
+      showMessage(e instanceof Error ? e.message : '发送验证码失败', 'error');
+    } finally {
+      setSmsLoading(false);
+    }
   }, [phone, showMessage]);
 
   useEffect(() => () => { if (countdownRef.current) clearInterval(countdownRef.current); }, []);
 
-  const handlePhoneSubmit = useCallback(() => {
+  const handlePhoneSubmit = useCallback(async () => {
     if (!/^1\d{10}$/.test(phone)) { showMessage('请输入正确的手机号', 'error'); return; }
     if (smsCode.length < 4) { showMessage('请输入验证码', 'error'); return; }
-    showMessage('手机号绑定成功', 'success');
-    setShowPhoneModal(false);
-    setPhone(''); setSmsCode('');
+    setPhoneLoading(true);
+    try {
+      await authService.bindPhone(phone, smsCode);
+      showMessage('手机号绑定成功', 'success');
+      setShowPhoneModal(false);
+      setPhone(''); setSmsCode('');
+    } catch (e) {
+      showMessage(e instanceof Error ? e.message : '绑定失败', 'error');
+    } finally {
+      setPhoneLoading(false);
+    }
   }, [phone, smsCode, showMessage]);
 
   const rowBtn = `w-full flex items-center justify-between gap-3 p-3 rounded-xl text-left transition-colors ${isDark ? 'hover:bg-white/[0.04]' : 'hover:bg-slate-50'}`;
@@ -206,7 +235,7 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
       </div>
 
       {/* Password Modal */}
-      <Modal open={showPwdModal} onClose={() => setShowPwdModal(false)} title="修改密码" theme={theme} size="sm" footer={<><button type="button" className={btnSecondary(theme)} onClick={() => setShowPwdModal(false)}>取消</button><button type="button" className={btnPrimary} onClick={handlePwdSubmit}>确认修改</button></>}>
+      <Modal open={showPwdModal} onClose={() => setShowPwdModal(false)} title="修改密码" theme={theme} size="sm" footer={<><button type="button" className={btnSecondary(theme)} onClick={() => setShowPwdModal(false)}>取消</button><button type="button" className={`${btnPrimary} disabled:opacity-50`} disabled={pwdLoading} onClick={handlePwdSubmit}>{pwdLoading ? <><Loader2 size={14} className="animate-spin" /> 提交中…</> : '确认修改'}</button></>}>
         <div className="space-y-3">
           <div><label className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>当前密码</label><input type="password" value={pwdCurrent} onChange={(e) => setPwdCurrent(e.target.value)} className={nativeInputClass(theme)} /></div>
           <div><label className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>新密码</label><input type="password" value={pwdNew} onChange={(e) => setPwdNew(e.target.value)} placeholder="至少 6 个字符" className={nativeInputClass(theme)} /></div>
@@ -216,7 +245,7 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
       </Modal>
 
       {/* Phone Modal */}
-      <Modal open={showPhoneModal} onClose={() => setShowPhoneModal(false)} title="绑定手机号" theme={theme} size="sm" footer={<><button type="button" className={btnSecondary(theme)} onClick={() => setShowPhoneModal(false)}>取消</button><button type="button" className={btnPrimary} onClick={handlePhoneSubmit}>确认绑定</button></>}>
+      <Modal open={showPhoneModal} onClose={() => setShowPhoneModal(false)} title="绑定手机号" theme={theme} size="sm" footer={<><button type="button" className={btnSecondary(theme)} onClick={() => setShowPhoneModal(false)}>取消</button><button type="button" className={`${btnPrimary} disabled:opacity-50`} disabled={phoneLoading} onClick={handlePhoneSubmit}>{phoneLoading ? <><Loader2 size={14} className="animate-spin" /> 绑定中…</> : '确认绑定'}</button></>}>
         <div className="space-y-3">
           <div><label className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>手机号</label><input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="输入 11 位手机号" className={nativeInputClass(theme)} /></div>
           <div>

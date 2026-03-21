@@ -26,4 +26,7 @@ export const skillService = {
 
   listMcpServers: () =>
     http.get<McpServer[]>('/api/v1/mcp-servers'),
+
+  invoke: (id: number, params: Record<string, unknown>) =>
+    http.post<{ result: string; latencyMs: number }>(`/api/v1/skills/${id}/invoke`, params),
 };

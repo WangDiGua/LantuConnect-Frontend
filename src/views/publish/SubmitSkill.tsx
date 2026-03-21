@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Check, Rocket, Save, AlertCircle, Info, Puzzle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Rocket, Save, AlertCircle, Info, Puzzle, Loader2 } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { AgentType } from '../../types/dto/agent';
+import { skillService } from '../../api/services/skill.service';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { btnPrimary, btnSecondary, pageBg, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
 import { GlassPanel } from '../../components/common/GlassPanel';
@@ -30,6 +31,7 @@ export const SubmitSkill: React.FC<Props> = ({ theme, fontSize }) => {
   const [step, setStep] = useState<Step>(1);
   const [submitted, setSubmitted] = useState(false);
   const [savedDraft, setSavedDraft] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const labelCls = `text-sm font-medium ${textSecondary(theme)}`;
@@ -68,20 +70,47 @@ export const SubmitSkill: React.FC<Props> = ({ theme, fontSize }) => {
     return Object.keys(errs).length === 0;
   };
 
-  const handleSaveDraft = () => {
+  const buildPayload = (status: 'draft' | 'pending_review') => ({
+    agentName: form.displayName.trim().toLowerCase().replace(/\s+/g, '_'),
+    displayName: form.displayName.trim(),
+    description: form.description.trim(),
+    agentType: form.agentType,
+    sourceType: 'internal' as const,
+    specJson: { url: form.specUrl.trim() },
+    parametersSchema: form.parametersSchema.trim() ? JSON.parse(form.parametersSchema) : null,
+    status,
+  });
+
+  const handleSaveDraft = async () => {
     if (!validateStep1()) return;
-    setSavedDraft(true);
-    setTimeout(() => setSavedDraft(false), 2000);
+    setLoading(true);
+    try {
+      await skillService.create(buildPayload('draft'));
+      setSavedDraft(true);
+      setTimeout(() => setSavedDraft(false), 2000);
+    } catch (e) {
+      setErrors({ submit: e instanceof Error ? e.message : '保存草稿失败' });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSubmitReview = () => {
+  const handleSubmitReview = async () => {
     if (step === 1) {
       if (!validateStep1()) return;
       setStep(2);
       return;
     }
     if (!validateStep2()) return;
-    setSubmitted(true);
+    setLoading(true);
+    try {
+      await skillService.create(buildPayload('pending_review'));
+      setSubmitted(true);
+    } catch (e) {
+      setErrors({ submit: e instanceof Error ? e.message : '提交审核失败' });
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (submitted) {
@@ -237,9 +266,10 @@ export const SubmitSkill: React.FC<Props> = ({ theme, fontSize }) => {
                     <button
                       type="button"
                       onClick={handleSaveDraft}
-                      className={`${btnSecondary(theme)} inline-flex items-center gap-2 ${savedDraft ? '!bg-emerald-500 !text-white !border-emerald-500' : ''}`}
+                      disabled={loading}
+                      className={`${btnSecondary(theme)} inline-flex items-center gap-2 ${savedDraft ? '!bg-emerald-500 !text-white !border-emerald-500' : ''} disabled:opacity-50`}
                     >
-                      {savedDraft ? <Check size={16} /> : <Save size={16} />}
+                      {loading ? <Loader2 size={16} className="animate-spin" /> : savedDraft ? <Check size={16} /> : <Save size={16} />}
                       {savedDraft ? '已保存' : '保存草稿'}
                     </button>
                     <button
@@ -313,8 +343,8 @@ export const SubmitSkill: React.FC<Props> = ({ theme, fontSize }) => {
                       <ArrowLeft size={16} />
                       上一步
                     </button>
-                    <button type="button" onClick={handleSubmitReview} className={`${btnPrimary} inline-flex items-center gap-2`}>
-                      <Rocket size={16} />
+                    <button type="button" onClick={handleSubmitReview} disabled={loading} className={`${btnPrimary} inline-flex items-center gap-2 disabled:opacity-50`}>
+                      {loading ? <Loader2 size={16} className="animate-spin" /> : <Rocket size={16} />}
                       提交审核
                     </button>
                   </div>

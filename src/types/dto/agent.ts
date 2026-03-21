@@ -71,6 +71,17 @@ export interface AgentListQuery {
   sortOrder?: 'asc' | 'desc';
 }
 
+export interface AgentVersion {
+  id: number;
+  agentId: number;
+  version: string;
+  changelog: string;
+  status: 'draft' | 'testing' | 'released' | 'rollback';
+  specJsonSnapshot?: Record<string, unknown>;
+  createdBy: string;
+  createTime: string;
+}
+
 export interface AgentMarketItem {
   id: number;
   agentName: string;

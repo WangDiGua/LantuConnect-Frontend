@@ -10,6 +10,14 @@ import { registerHandlers as monitoringHandlers } from './monitoring.mock';
 import { registerHandlers as systemConfigHandlers } from './system-config.mock';
 import { registerHandlers as userSettingsHandlers } from './user-settings.mock';
 import { registerHandlers as userMgmtHandlers } from './user-mgmt.mock';
+import { registerHandlers as versionHandlers } from './version.mock';
+import { registerHandlers as reviewHandlers } from './review.mock';
+import { registerHandlers as auditHandlers } from './audit.mock';
+import { registerHandlers as healthHandlers } from './health.mock';
+import { registerHandlers as dashboardHandlers } from './dashboard.mock';
+import { registerHandlers as tagHandlers } from './tag.mock';
+import { registerHandlers as quotaHandlers } from './quota.mock';
+import { registerHandlers as userActivityHandlers } from './user-activity.mock';
 
 export function registerAllHandlers(mock: MockAdapter): void {
   authHandlers(mock);
@@ -23,4 +31,12 @@ export function registerAllHandlers(mock: MockAdapter): void {
   systemConfigHandlers(mock);
   userSettingsHandlers(mock);
   userMgmtHandlers(mock);
+  versionHandlers(mock);
+  reviewHandlers(mock);
+  auditHandlers(mock);
+  healthHandlers(mock);
+  dashboardHandlers(mock);
+  tagHandlers(mock);
+  quotaHandlers(mock);
+  userActivityHandlers(mock);
 }

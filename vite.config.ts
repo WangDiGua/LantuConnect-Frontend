@@ -1,33 +1,35 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import {defineConfig, loadEnv} from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 
-export default defineConfig(({mode}) => {
+export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   const useMock = env.VITE_USE_MOCK === 'true';
+  const proxyTarget = env.VITE_API_PROXY_TARGET || 'http://localhost:8080';
 
   return {
     plugins: [react(), tailwindcss()],
-    define: {
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-    },
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': path.resolve(__dirname, 'src'),
       },
     },
     server: {
+      port: 5173,
       hmr: process.env.DISABLE_HMR !== 'true',
       proxy: useMock
         ? undefined
         : {
             '/api': {
-              target: env.VITE_API_PROXY_TARGET || 'http://localhost:8080',
+              target: proxyTarget,
               changeOrigin: true,
-              rewrite: (p: string) => p.replace(/^\/api/, ''),
             },
           },
+    },
+    build: {
+      outDir: 'dist',
+      sourcemap: mode !== 'production',
     },
   };
 });

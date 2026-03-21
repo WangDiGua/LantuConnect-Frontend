@@ -2415,6 +2415,168 @@ erDiagram
 - `device` 模式：JWT 中嵌入 User-Agent 指纹
 - 绑定不匹配时拒绝请求并通知用户
 
+#### 4.1.5 SQL 注入防护
+
+- MyBatis-Plus 默认使用 `#{}` 预编译参数绑定，天然防注入
+- 禁止在 XML Mapper 中使用 `${}` 拼接用户输入
+- 对排序字段等动态 SQL 做白名单校验（仅允许预定义的 column name）
+
+```java
+private static final Set<String> ALLOWED_SORT_FIELDS =
+    Set.of("create_time", "update_time", "call_count", "quality_score");
+
+public void validateSortBy(String sortBy) {
+    if (sortBy != null && !ALLOWED_SORT_FIELDS.contains(sortBy)) {
+        throw new ApiException(1001, "非法排序字段");
+    }
+}
+```
+
+#### 4.1.6 XSS 防护
+
+前端 `lib/security.ts` 已实现 `escapeHtml` 和 `sanitizeInput`，后端需镜像防护：
+
+- 使用全局 `@ControllerAdvice` + Jackson 自定义序列化器，对 String 类型输出做 HTML 转义
+- 入库前使用 OWASP Java HTML Sanitizer 清洗富文本字段（如 `description`、`comment`）
+- `Content-Type` 强制为 `application/json`，禁止返回 HTML
+
+```java
+@Bean
+public Jackson2ObjectMapperBuilderCustomizer xssCustomizer() {
+    return builder -> builder.serializers(
+        new StdSerializer<String>(String.class) {
+            @Override
+            public void serialize(String value, JsonGenerator gen,
+                    SerializerProvider provider) throws IOException {
+                gen.writeString(HtmlUtils.htmlEscape(value));
+            }
+        }
+    );
+}
+```
+
+#### 4.1.7 敏感数据加密
+
+以下字段在数据库中必须加密存储，不能明文：
+
+| 字段 | 所在表 | 加密方式 |
+|------|--------|----------|
+| password_hash | t_user | bcrypt（不可逆） |
+| key_hash | t_api_key | SHA-256（不可逆，用于校验） |
+| token_hash | t_access_token | SHA-256（不可逆） |
+| api_key | t_model_config | AES-256-GCM（可逆，运行时需解密调用） |
+| auth_config | t_provider | AES-256-GCM（可逆，含第三方密钥） |
+
+**实现**：使用 MyBatis-Plus `TypeHandler` 自定义加解密，对业务层透明。
+
+```java
+@MappedTypes(String.class)
+public class AesEncryptTypeHandler extends BaseTypeHandler<String> {
+    @Override
+    public void setNonNullParameter(PreparedStatement ps, int i,
+            String parameter, JdbcType jdbcType) throws SQLException {
+        ps.setString(i, AesUtil.encrypt(parameter));
+    }
+
+    @Override
+    public String getNullableResult(ResultSet rs, String columnName)
+            throws SQLException {
+        String value = rs.getString(columnName);
+        return value != null ? AesUtil.decrypt(value) : null;
+    }
+    // ... 其他重载
+}
+```
+
+#### 4.1.8 接口幂等性
+
+以下写入接口需要保证幂等，防止网络重试导致重复操作：
+
+| 场景 | 方案 |
+|------|------|
+| 创建 Agent / Skill / App | 前端 `X-Request-Id` Header 作为幂等键，Redis `SETNX` 去重（5 分钟过期） |
+| 支付 / 扣费类操作 | 业务流水号 + 数据库唯一索引 |
+| 收藏 / 取消收藏 | `UNIQUE(user_id, target_type, target_id)` 数据库约束天然幂等 |
+| 评论点赞 Toggle | `UNIQUE(review_id, user_id)` 约束 + 应用层判断插入/删除 |
+
+```java
+@Around("@annotation(idempotent)")
+public Object checkIdempotent(ProceedingJoinPoint pjp, Idempotent idempotent)
+        throws Throwable {
+    String requestId = request.getHeader("X-Request-Id");
+    if (requestId == null) return pjp.proceed();
+
+    String key = "idempotent:" + requestId;
+    Boolean isNew = redis.opsForValue().setIfAbsent(key, "1", Duration.ofMinutes(5));
+    if (Boolean.FALSE.equals(isNew)) {
+        throw new ApiException(1005, "请勿重复提交");
+    }
+    return pjp.proceed();
+}
+```
+
+#### 4.1.9 文件上传安全
+
+数据集、头像等涉及文件上传的场景：
+
+- 文件大小限制：从 `t_system_param.max_upload_size_mb` 读取（默认 50MB）
+- 文件类型白名单：仅允许 pdf/docx/csv/json/parquet/jpg/png 等
+- 文件名清洗：去除路径分隔符、特殊字符，重命名为 UUID
+- 存储路径隔离：按 `/{resource_type}/{yyyy}/{MM}/{uuid}.ext` 组织
+- 病毒扫描（可选）：ClamAV 集成
+
+```java
+private static final Set<String> ALLOWED_EXTENSIONS =
+    Set.of("pdf", "docx", "csv", "json", "parquet", "jpg", "png", "xlsx");
+
+public String validateAndStore(MultipartFile file) {
+    String ext = FilenameUtils.getExtension(file.getOriginalFilename()).toLowerCase();
+    if (!ALLOWED_EXTENSIONS.contains(ext)) {
+        throw new ApiException(1001, "不支持的文件类型: " + ext);
+    }
+    if (file.getSize() > maxUploadBytes) {
+        throw new ApiException(1001, "文件大小超过限制");
+    }
+    String storedName = UUID.randomUUID() + "." + ext;
+    // 保存到 OSS 或本地磁盘
+    return storedName;
+}
+```
+
+#### 4.1.10 请求参数统一校验
+
+- Controller 层使用 `@Valid` / `@Validated` + JSR 380 注解，与前端 Zod Schema 镜像
+- 全局异常处理器捕获 `MethodArgumentNotValidException`，返回标准化错误响应
+
+```java
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ApiResponse<Void> handleValidation(MethodArgumentNotValidException ex) {
+        Map<String, String[]> details = new HashMap<>();
+        ex.getBindingResult().getFieldErrors().forEach(e ->
+            details.merge(e.getField(),
+                new String[]{e.getDefaultMessage()},
+                (a, b) -> Stream.concat(Arrays.stream(a), Arrays.stream(b))
+                    .toArray(String[]::new))
+        );
+        return ApiResponse.fail(1001, "参数校验失败", details);
+    }
+
+    @ExceptionHandler(ApiException.class)
+    public ApiResponse<Void> handleApiException(ApiException ex) {
+        return ApiResponse.fail(ex.getCode(), ex.getMessage());
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ApiResponse<Void> handleUnknown(Exception ex) {
+        log.error("未捕获异常", ex);
+        return ApiResponse.fail(5001, "服务器内部错误");
+    }
+}
+```
+
 ### 4.2 权限控制（RBAC）
 
 #### 4.2.1 四角色体系
@@ -2585,7 +2747,181 @@ stateDiagram-v2
 - 后端需要暴露 `/actuator/prometheus` 端点
 - 查询时从 Prometheus 拉取最近 24 小时数据并格式化
 
-### 4.7 高校系统对接
+### 4.7 日志体系
+
+系统日志分为三层，各司其职：
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  业务调用日志（t_call_log）   — 记录每次 Agent/Skill 调用     │
+│  审计操作日志（t_audit_log）  — 记录所有管理操作               │
+│  应用运行日志（Logback 文件） — 记录异常、调试、SQL 等系统日志 │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### 4.7.1 应用运行日志（Logback）
+
+**日志配置** `logback-spring.xml`：
+
+```xml
+<configuration>
+    <!-- 控制台输出（开发环境） -->
+    <springProfile name="dev">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{traceId}] %-5level %logger{36} - %msg%n</pattern>
+            </encoder>
+        </appender>
+    </springProfile>
+
+    <!-- 文件滚动输出（生产环境） -->
+    <springProfile name="prod">
+        <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>logs/lantu-connect.log</file>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>logs/lantu-connect.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+                <maxFileSize>100MB</maxFileSize>
+                <maxHistory>30</maxHistory>
+                <totalSizeCap>3GB</totalSizeCap>
+            </rollingPolicy>
+            <encoder>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{traceId}] %-5level %logger{36} - %msg%n</pattern>
+            </encoder>
+        </appender>
+
+        <!-- 错误日志单独一份，方便排查 -->
+        <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <filter class="ch.qos.logback.classic.filter.LevelFilter">
+                <level>ERROR</level>
+                <onMatch>ACCEPT</onMatch>
+                <onMismatch>DENY</onMismatch>
+            </filter>
+            <file>logs/lantu-connect-error.log</file>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>logs/lantu-connect-error.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+                <maxFileSize>50MB</maxFileSize>
+                <maxHistory>60</maxHistory>
+            </rollingPolicy>
+            <encoder>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{traceId}] %-5level %logger{36} - %msg%n</pattern>
+            </encoder>
+        </appender>
+    </springProfile>
+
+    <!-- 日志级别 -->
+    <logger name="com.lantu" level="INFO"/>
+    <logger name="com.lantu.mapper" level="DEBUG"/>    <!-- MyBatis SQL 日志 -->
+    <logger name="org.springframework.security" level="WARN"/>
+</configuration>
+```
+
+**日志级别规范**：
+
+| 级别 | 使用场景 |
+|------|----------|
+| ERROR | 影响业务的异常：外部服务调用失败、数据库异常、未捕获异常 |
+| WARN | 可恢复的异常：参数校验失败、限流触发、Token 过期 |
+| INFO | 关键业务节点：登录成功、Agent 创建/发布、审核通过/驳回 |
+| DEBUG | 开发调试：SQL 语句、请求参数、外部调用入参出参 |
+
+#### 4.7.2 请求链路追踪（TraceId）
+
+前端在每个请求中自动携带 `X-Request-Id` Header，后端需贯穿整条调用链：
+
+```java
+@Component
+public class TraceIdFilter extends OncePerRequestFilter {
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request,
+            HttpServletResponse response, FilterChain chain)
+            throws ServletException, IOException {
+        String traceId = request.getHeader("X-Request-Id");
+        if (traceId == null || traceId.isBlank()) {
+            traceId = UUID.randomUUID().toString().replace("-", "");
+        }
+        MDC.put("traceId", traceId);
+        response.setHeader("X-Request-Id", traceId);
+        try {
+            chain.doFilter(request, response);
+        } finally {
+            MDC.remove("traceId");
+        }
+    }
+}
+```
+
+- Logback pattern 中的 `%X{traceId}` 自动输出
+- `t_call_log.trace_id` 也记录同一个值
+- `@Async` 异步线程需通过 `TaskDecorator` 传递 MDC 上下文
+
+```java
+@Bean
+public TaskExecutor taskExecutor() {
+    ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+    executor.setCorePoolSize(8);
+    executor.setMaxPoolSize(32);
+    executor.setQueueCapacity(200);
+    executor.setTaskDecorator(runnable -> {
+        Map<String, String> context = MDC.getCopyOfContextMap();
+        return () -> {
+            if (context != null) MDC.setContextMap(context);
+            try { runnable.run(); }
+            finally { MDC.clear(); }
+        };
+    });
+    executor.initialize();
+    return executor;
+}
+```
+
+#### 4.7.3 请求/响应日志
+
+通过 Filter 自动记录每个 HTTP 请求的摘要（生产环境建议仅记录 WARN 级别以上的慢请求）：
+
+```java
+@Component
+@Slf4j
+public class AccessLogFilter extends OncePerRequestFilter {
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request,
+            HttpServletResponse response, FilterChain chain)
+            throws ServletException, IOException {
+        long start = System.currentTimeMillis();
+        ContentCachingResponseWrapper wrappedResponse =
+            new ContentCachingResponseWrapper(response);
+        try {
+            chain.doFilter(request, wrappedResponse);
+        } finally {
+            long elapsed = System.currentTimeMillis() - start;
+            log.info("[{}] {} {} -> {} ({}ms, user={})",
+                request.getMethod(),
+                request.getRequestURI(),
+                request.getQueryString() != null ? "?" + request.getQueryString() : "",
+                wrappedResponse.getStatus(),
+                elapsed,
+                MDC.get("userId"));
+
+            if (elapsed > 3000) {
+                log.warn("慢请求: {} {} 耗时 {}ms", request.getMethod(),
+                    request.getRequestURI(), elapsed);
+            }
+            wrappedResponse.copyBodyToResponse();
+        }
+    }
+}
+```
+
+#### 4.7.4 三层日志关系总结
+
+| 日志层 | 存储位置 | 保留策略 | 用途 |
+|--------|----------|----------|------|
+| 应用运行日志 | 本地文件 `logs/` | 30 天 / 3GB 滚动 | 开发调试、异常排查 |
+| 业务调用日志 | `t_call_log` 表 | 按系统参数 `log_retention_days`（默认 90 天） | 调用统计、监控看板、计费依据 |
+| 审计操作日志 | `t_audit_log` 表 | 归档保留（每月归档，永久可追溯） | 合规审计、操作追溯、安全事件调查 |
+
+### 4.8 高校系统对接
 
 #### 4.7.1 统一身份认证
 
@@ -2605,7 +2941,7 @@ stateDiagram-v2
 - 或通过 Webhook 接收增量变更
 - 同步时维护 `menu_parent_id` 关系，重建 `children` 树
 
-### 4.8 审计日志
+### 4.9 审计日志
 
 所有管理操作必须记录审计日志：
 
@@ -2620,7 +2956,7 @@ stateDiagram-v2
 
 **实现**：使用 AOP（`@AuditLog` 注解）自动拦截并记录。
 
-### 4.9 定时任务清单
+### 4.10 定时任务清单
 
 使用 Spring `@Scheduled` 实现，统一在 `task` 包下管理。
 

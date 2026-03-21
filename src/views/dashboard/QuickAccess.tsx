@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import {
   Bot,
-  Zap, 
-  Cpu, 
-  Code, 
-  Layers, 
-  Activity, 
+  Zap,
+  Cpu,
+  Code,
+  Layers,
+  Activity,
   Database,
   Server,
   ExternalLink,
@@ -18,6 +18,8 @@ import { useNavigate } from 'react-router-dom';
 import { Theme, FontSize } from '../../types';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { buildPath } from '../../constants/consoleRoutes';
+import { pageBg, textPrimary, textSecondary, textMuted, btnPrimary, btnGhost } from '../../utils/uiClasses';
+import { BentoCard } from '../../components/common/BentoCard';
 
 interface QuickAccessProps {
   theme: Theme;
@@ -27,13 +29,22 @@ interface QuickAccessProps {
 const QUICK_LINKS_KEY = 'lantu_quick_links_visible';
 
 const ALL_TOOLS = [
-  { id: 'agent', name: 'Agent 管理', icon: Bot, color: 'text-blue-500', bg: 'bg-blue-500/10', desc: '注册、审核与发布', page: 'agent-list' },
-  { id: 'skill', name: 'Skill 管理', icon: Zap, color: 'text-violet-500', bg: 'bg-violet-500/10', desc: 'MCP 工具与 API', page: 'skill-list' },
-  { id: 'app', name: '智能应用', icon: Cpu, color: 'text-emerald-500', bg: 'bg-emerald-500/10', desc: '应用注册与上架', page: 'app-list' },
-  { id: 'dataset', name: '数据集', icon: Database, color: 'text-orange-500', bg: 'bg-orange-500/10', desc: '数据集管理', page: 'dataset-list' },
-  { id: 'provider', name: 'Provider', icon: Server, color: 'text-cyan-500', bg: 'bg-cyan-500/10', desc: '服务提供商配置', page: 'provider-list' },
-  { id: 'monitoring', name: '监控中心', icon: Activity, color: 'text-red-500', bg: 'bg-red-500/10', desc: '调用日志与告警', page: 'monitoring-overview' },
+  { id: 'agent', name: 'Agent 管理', icon: Bot, desc: '注册、审核与发布', page: 'agent-list', glow: 'indigo' as const },
+  { id: 'skill', name: 'Skill 管理', icon: Zap, desc: 'MCP 工具与 API', page: 'skill-list', glow: 'emerald' as const },
+  { id: 'app', name: '智能应用', icon: Cpu, desc: '应用注册与上架', page: 'app-list', glow: 'amber' as const },
+  { id: 'dataset', name: '数据集', icon: Database, desc: '数据集管理', page: 'dataset-list', glow: 'rose' as const },
+  { id: 'provider', name: 'Provider', icon: Server, desc: '服务提供商配置', page: 'provider-list', glow: 'indigo' as const },
+  { id: 'monitoring', name: '监控中心', icon: Activity, desc: '调用日志与告警', page: 'monitoring-overview', glow: 'emerald' as const },
 ] as const;
+
+const ICON_BG: Record<string, { light: string; dark: string }> = {
+  agent:      { light: 'bg-blue-50 text-blue-600',      dark: 'bg-blue-500/15 text-blue-400' },
+  skill:      { light: 'bg-violet-50 text-violet-600',  dark: 'bg-violet-500/15 text-violet-400' },
+  app:        { light: 'bg-emerald-50 text-emerald-600', dark: 'bg-emerald-500/15 text-emerald-400' },
+  dataset:    { light: 'bg-orange-50 text-orange-600',  dark: 'bg-orange-500/15 text-orange-400' },
+  provider:   { light: 'bg-cyan-50 text-cyan-600',      dark: 'bg-cyan-500/15 text-cyan-400' },
+  monitoring: { light: 'bg-rose-50 text-rose-600',      dark: 'bg-rose-500/15 text-rose-400' },
+};
 
 export const QuickAccess: React.FC<QuickAccessProps> = ({ theme, fontSize: _fontSize }) => {
   const isDark = theme === 'dark';
@@ -54,116 +65,141 @@ export const QuickAccess: React.FC<QuickAccessProps> = ({ theme, fontSize: _font
   const tools = ALL_TOOLS.filter((t) => visibleIds.includes(t.id));
 
   return (
-    <div
-      className={`flex-1 overflow-y-auto custom-scrollbar ${outerPad} py-2 sm:py-3 ${
-        isDark ? 'bg-[#000000]' : 'bg-[#F2F2F7]'
-      }`}
-    >
-      <div className={`${maxW} w-full space-y-8`}>
+    <div className={`flex-1 overflow-y-auto custom-scrollbar ${outerPad} py-4 sm:py-6 ${pageBg(theme)}`}>
+      <div className={`${maxW} w-full space-y-6`}>
+
+        {/* Header */}
         <div className="flex items-center justify-between">
-          <h2 className={`text-xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>快捷入口</h2>
+          <h2 className={`text-xl font-bold tracking-tight ${textPrimary(theme)}`}>快捷入口</h2>
           <button
             type="button"
             onClick={() => { setDraftVisible(visibleIds); setShowCustomize(true); }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-all ${
-              isDark ? 'bg-white/5 text-slate-300 hover:bg-white/10' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium transition-all active:scale-[0.97] ${
+              isDark
+                ? 'bg-white/[0.06] text-slate-300 hover:bg-white/10 border border-white/[0.06]'
+                : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
             }`}
           >
             <Plus size={16} />
-            <span>自定义入口</span>
+            自定义入口
           </button>
         </div>
 
+        {/* Quick Link Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {tools.map((tool) => (
-            <motion.div
-              key={tool.name}
-              whileHover={{ y: -4, scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => navigate(buildPath('admin', tool.page))}
-              className={`p-4 rounded-2xl border cursor-pointer transition-colors flex flex-col items-center gap-3 text-center shadow-none ${
-                isDark ? 'bg-[#1C1C1E] border-white/10 hover:border-white/20' : 'bg-white border-slate-200/80 hover:border-slate-300'
-              }`}
-            >
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${tool.bg} ${tool.color}`}>
-                <tool.icon size={24} />
-              </div>
-              <div>
-                <span className={`text-[13px] font-medium block ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{tool.name}</span>
-                <span className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{tool.desc}</span>
-              </div>
-            </motion.div>
-          ))}
+          {tools.map((tool, i) => {
+            const iconCls = isDark ? ICON_BG[tool.id]?.dark : ICON_BG[tool.id]?.light;
+            return (
+              <motion.div
+                key={tool.id}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 30, delay: i * 0.05 }}
+              >
+                <BentoCard
+                  theme={theme}
+                  hover
+                  glow={tool.glow}
+                  onClick={() => navigate(buildPath('admin', tool.page))}
+                  className="flex flex-col items-center gap-3 text-center"
+                >
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${iconCls}`}>
+                    <tool.icon size={24} />
+                  </div>
+                  <div>
+                    <span className={`text-[13px] font-medium block ${textPrimary(theme)}`}>{tool.name}</span>
+                    <span className={`text-[10px] ${textMuted(theme)}`}>{tool.desc}</span>
+                  </div>
+                </BentoCard>
+              </motion.div>
+            );
+          })}
         </div>
 
-        <section className="space-y-4 pt-4">
-          <h3 className={`text-sm font-bold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>常用资源</h3>
+        {/* Resources */}
+        <section className="space-y-4 pt-2">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400">常用资源</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
-              { title: '接入文档', desc: 'Agent/Skill 接入流程与 API 规范文档', icon: Code },
-              { title: '最佳实践', desc: '校园场景 AI Agent 落地案例与模板', icon: Layers },
-            ].map((card) => (
-              <div
+              { title: '接入文档', desc: 'Agent/Skill 接入流程与 API 规范文档', icon: Code, glow: 'indigo' as const },
+              { title: '最佳实践', desc: '校园场景 AI Agent 落地案例与模板', icon: Layers, glow: 'emerald' as const },
+            ].map((card, i) => (
+              <motion.div
                 key={card.title}
-                onClick={() => navigate(buildPath('admin', 'api-docs'))}
-                className={`p-5 rounded-2xl border flex items-start gap-4 group cursor-pointer transition-colors shadow-none ${
-                  isDark ? 'bg-[#1C1C1E] border-white/10 hover:bg-white/5' : 'bg-white border-slate-200/80 hover:bg-slate-50/80'
-                }`}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.3 + i * 0.05 }}
               >
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isDark ? 'bg-white/5' : 'bg-slate-100'} text-slate-500`}>
-                  <card.icon size={20} />
-                </div>
-                <div className="flex-1 space-y-1">
-                  <div className={`text-[14px] font-bold flex items-center gap-1.5 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                    <span>{card.title}</span>
-                    <ExternalLink size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                <BentoCard
+                  theme={theme}
+                  hover
+                  glow={card.glow}
+                  onClick={() => navigate(buildPath('admin', 'api-docs'))}
+                  className="flex items-start gap-4 group"
+                >
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                    isDark ? 'bg-white/[0.06]' : 'bg-slate-100'
+                  } ${textSecondary(theme)}`}>
+                    <card.icon size={20} />
                   </div>
-                  <p className="text-[12px] text-slate-500">{card.desc}</p>
-                </div>
-              </div>
+                  <div className="flex-1 space-y-1">
+                    <div className={`text-[14px] font-bold flex items-center gap-1.5 ${textPrimary(theme)}`}>
+                      <span>{card.title}</span>
+                      <ExternalLink size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                    <p className={`text-[12px] ${textSecondary(theme)}`}>{card.desc}</p>
+                  </div>
+                </BentoCard>
+              </motion.div>
             ))}
           </div>
         </section>
       </div>
 
-      {/* 自定义入口弹窗 */}
+      {/* Customize Modal */}
       <AnimatePresence>
         {showCustomize && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50"
+            className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
             onClick={() => setShowCustomize(false)}
           >
             <motion.div
               initial={{ scale: 0.95, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 20 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
               className={`w-full max-w-sm rounded-2xl border p-6 ${
-                isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200'
+                isDark ? 'bg-[#1a1f2e] border-white/[0.06]' : 'bg-white border-slate-200'
               }`}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className={`text-base font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>自定义快捷入口</h3>
-                <button type="button" onClick={() => setShowCustomize(false)} className="btn btn-ghost btn-sm btn-circle">
+              <div className="flex items-center justify-between mb-5">
+                <h3 className={`text-base font-bold ${textPrimary(theme)}`}>自定义快捷入口</h3>
+                <button
+                  type="button"
+                  onClick={() => setShowCustomize(false)}
+                  className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-white/10 text-slate-400' : 'hover:bg-slate-100 text-slate-500'}`}
+                >
                   <X size={18} />
                 </button>
               </div>
-              <div className="space-y-2 mb-6">
+              <div className="space-y-1.5 mb-6">
                 {ALL_TOOLS.map((tool) => {
                   const checked = draftVisible.includes(tool.id);
+                  const iconCls = isDark ? ICON_BG[tool.id]?.dark : ICON_BG[tool.id]?.light;
                   return (
                     <label
                       key={tool.id}
                       className={`flex items-center gap-3 p-2.5 rounded-xl cursor-pointer transition-colors ${
-                        isDark ? 'hover:bg-white/5' : 'hover:bg-slate-50'
+                        isDark ? 'hover:bg-white/[0.04]' : 'hover:bg-slate-50'
                       }`}
                     >
                       <div className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors ${
                         checked
-                          ? 'bg-blue-600 border-blue-600 text-white'
+                          ? 'bg-indigo-600 border-indigo-600 text-white'
                           : isDark ? 'border-white/20 bg-transparent' : 'border-slate-300 bg-white'
                       }`}>
                         {checked && <Check size={13} strokeWidth={3} />}
@@ -176,21 +212,21 @@ export const QuickAccess: React.FC<QuickAccessProps> = ({ theme, fontSize: _font
                           checked ? prev.filter((id) => id !== tool.id) : [...prev, tool.id]
                         )}
                       />
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${tool.bg} ${tool.color}`}>
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${iconCls}`}>
                         <tool.icon size={16} />
                       </div>
-                      <span className={`text-sm font-medium ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{tool.name}</span>
+                      <span className={`text-sm font-medium ${textPrimary(theme)}`}>{tool.name}</span>
                     </label>
                   );
                 })}
               </div>
               <div className="flex justify-end gap-2">
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowCustomize(false)}>
+                <button type="button" className={btnGhost(theme)} onClick={() => setShowCustomize(false)}>
                   取消
                 </button>
                 <button
                   type="button"
-                  className="btn btn-primary btn-sm"
+                  className={btnPrimary}
                   onClick={() => { setVisibleIds(draftVisible); setShowCustomize(false); }}
                 >
                   保存

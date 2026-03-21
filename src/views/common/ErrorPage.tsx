@@ -1,6 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Home, RefreshCw, ShieldX, ServerCrash, Ban, Lock, WifiOff } from 'lucide-react';
+import { GlassPanel } from '../../components/common/GlassPanel';
+import { btnPrimary, btnSecondary } from '../../utils/uiClasses';
+import type { Theme } from '../../types';
 
 interface Props {
   code?: number;
@@ -21,43 +25,63 @@ export const ErrorPage: React.FC<Props> = ({ code = 500, title, message }) => {
   const cfg = ERROR_CONFIG[code] || ERROR_CONFIG[500];
   const Icon = cfg.icon;
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const theme: Theme = isDark ? 'dark' : 'light';
 
   return (
-    <div className={`min-h-screen flex items-center justify-center ${isDark ? 'bg-[#000000] text-white' : 'bg-[#F2F2F7] text-slate-900'}`}>
-      <div className="text-center px-6 max-w-lg">
-        <div className={`mx-auto w-20 h-20 rounded-2xl flex items-center justify-center mb-6 ${isDark ? 'bg-white/5' : 'bg-white shadow-sm border border-slate-200/60'}`}>
-          <Icon size={36} className={code >= 500 ? 'text-red-500' : code === 403 ? 'text-amber-500' : 'text-slate-400'} />
-        </div>
+    <div className={`min-h-screen flex items-center justify-center p-6 bg-gradient-to-br ${
+      isDark
+        ? 'from-[#0c0f17] via-[#111827] to-indigo-950/30'
+        : 'from-slate-100 via-[#e8eef5] to-indigo-50'
+    }`}>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+      >
+        <GlassPanel theme={theme} padding="lg" className="text-center max-w-lg">
+          <div className={`mx-auto w-20 h-20 rounded-2xl flex items-center justify-center mb-6 ${
+            isDark ? 'bg-white/[0.06]' : 'bg-white shadow-sm border border-slate-200/40'
+          }`}>
+            <Icon
+              size={36}
+              className={code >= 500 ? 'text-rose-500' : code === 403 ? 'text-amber-500' : 'text-slate-400'}
+            />
+          </div>
 
-        <p className={`text-7xl font-black mb-3 tracking-tight ${isDark ? 'text-white/10' : 'text-slate-200'}`}>
-          {code}
-        </p>
+          <p className={`text-8xl font-black tracking-tighter mb-4 bg-gradient-to-b bg-clip-text text-transparent ${
+            isDark
+              ? 'from-white/20 to-white/[0.04]'
+              : 'from-slate-300 to-slate-100'
+          }`}>
+            {code}
+          </p>
 
-        <h1 className="text-xl font-bold mb-2">{title || cfg.title}</h1>
+          <h1 className={`text-xl font-bold mb-2 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+            {title || cfg.title}
+          </h1>
 
-        <p className={`text-sm leading-relaxed mb-8 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-          {message || cfg.message}
-        </p>
+          <p className={`text-sm leading-relaxed mb-8 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            {message || cfg.message}
+          </p>
 
-        <div className="flex items-center justify-center gap-3">
-          <button
-            onClick={() => window.location.reload()}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border transition-colors ${
-              isDark ? 'border-white/10 text-slate-300 hover:bg-white/5' : 'border-slate-200 text-slate-600 hover:bg-white'
-            }`}
-          >
-            <RefreshCw size={15} />
-            刷新页面
-          </button>
-          <button
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors"
-          >
-            <Home size={15} />
-            返回首页
-          </button>
-        </div>
-      </div>
+          <div className="flex items-center justify-center gap-3">
+            <button
+              onClick={() => window.location.reload()}
+              className={btnSecondary(theme)}
+            >
+              <RefreshCw size={15} />
+              刷新页面
+            </button>
+            <button
+              onClick={() => navigate('/')}
+              className={btnPrimary}
+            >
+              <Home size={15} />
+              返回首页
+            </button>
+          </div>
+        </GlassPanel>
+      </motion.div>
     </div>
   );
 };

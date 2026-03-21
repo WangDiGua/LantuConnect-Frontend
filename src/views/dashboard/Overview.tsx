@@ -9,11 +9,8 @@ import {
   Database,
   Settings,
   User,
-  ChevronRight,
-  MessageSquare,
   Megaphone,
   Calendar,
-  ArrowUpRight,
   CheckCircle2,
   AlertTriangle,
   Clock,
@@ -26,6 +23,10 @@ import { HeroCarousel, type HeroSlide } from '../../components/ui/HeroCarousel';
 import { OverviewAnalyticsGrid } from '../../components/charts/OverviewAnalyticsGrid';
 import { dashboardService } from '../../api/services/dashboard.service';
 import type { AdminOverview } from '../../types/dto/dashboard';
+import { pageBg, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import { BentoCard } from '../../components/common/BentoCard';
+import { KpiCard } from '../../components/common/KpiCard';
+import { AnimatedList } from '../../components/common/AnimatedList';
 
 interface OverviewProps {
   theme: Theme;
@@ -69,19 +70,23 @@ const announcements = [
   { date: '03-08', title: '监控中心告警订阅功能开放试用', tag: '功能' },
 ];
 
-const KPI_ICONS: { icon: React.ElementType; color: string; bg: string }[] = [
-  { icon: Bot, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-  { icon: Zap, color: 'text-violet-500', bg: 'bg-violet-500/10' },
-  { icon: Cpu, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-  { icon: Database, color: 'text-orange-500', bg: 'bg-orange-500/10' },
-  { icon: Server, color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
-];
+const KPI_GLOWS: ('indigo' | 'emerald' | 'amber' | 'rose')[] = ['indigo', 'emerald', 'emerald', 'amber', 'rose'];
+const KPI_ICONS_LIST = [Bot, Zap, Cpu, Database, Server];
 
 const STATUS_DISPLAY: Record<string, { light: string; dark: string; label: string }> = {
-  published: { light: 'bg-emerald-100 text-emerald-800', dark: 'bg-emerald-500/20 text-emerald-300', label: '已发布' },
-  testing: { light: 'bg-blue-100 text-blue-800', dark: 'bg-blue-500/20 text-blue-300', label: '测试中' },
-  pending_review: { light: 'bg-amber-100 text-amber-900', dark: 'bg-amber-500/20 text-amber-300', label: '待审核' },
+  published: { light: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/60', dark: 'bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20', label: '已发布' },
+  testing: { light: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200/60', dark: 'bg-blue-500/10 text-blue-400 ring-1 ring-blue-500/20', label: '测试中' },
+  pending_review: { light: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200/60', dark: 'bg-amber-500/10 text-amber-400 ring-1 ring-amber-500/20', label: '待审核' },
 };
+
+const modules = [
+  { title: 'Agent 管理', desc: 'Agent 注册、审核、测试与发布全流程管理。', icon: Bot, glow: 'indigo' as const },
+  { title: 'Skill 管理', desc: 'MCP 工具注册与参数配置，支持 HTTP/内置类型。', icon: Zap, glow: 'emerald' as const },
+  { title: '智能应用', desc: '应用注册、嵌入配置与上架管理。', icon: Cpu, glow: 'amber' as const },
+  { title: '监控中心', desc: '调用日志、性能分析、告警规则与告警记录。', icon: Activity, glow: 'rose' as const },
+  { title: '用户管理', desc: '账号、角色、API Key 与组织架构管理。', icon: User, glow: 'indigo' as const },
+  { title: '系统配置', desc: '分类管理、Provider 配置与审计日志。', icon: Settings, glow: 'emerald' as const },
+];
 
 export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }) => {
   const isDark = theme === 'dark';
@@ -109,317 +114,199 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
   const platformKpis = (overview?.kpis ?? []).map((k, i) => ({
     label: k.label,
     value: String(k.value),
-    delta: k.trend > 0 ? `+${k.trend}%` : `${k.trend}%`,
-    up: k.trend >= 0,
-    ...(KPI_ICONS[i % KPI_ICONS.length]),
+    trend: k.trend,
+    icon: KPI_ICONS_LIST[i % KPI_ICONS_LIST.length],
+    glow: KPI_GLOWS[i % KPI_GLOWS.length],
   }));
 
   const healthSummary = overview?.healthSummary ?? { healthy: 0, warning: 0, down: 0 };
   const recentRegistrations = overview?.recentRegistrations ?? [];
 
-  const modules = [
-    { title: 'Agent 管理', desc: 'Agent 注册、审核、测试与发布全流程管理。', icon: Bot },
-    { title: 'Skill 管理', desc: 'MCP 工具注册与参数配置，支持 HTTP/内置类型。', icon: Zap },
-    { title: '智能应用', desc: '应用注册、嵌入配置与上架管理。', icon: Cpu },
-    { title: '监控中心', desc: '调用日志、性能分析、告警规则与告警记录。', icon: Activity },
-    { title: '用户管理', desc: '账号、角色、API Key 与组织架构管理。', icon: User },
-    { title: '系统配置', desc: '分类管理、Provider 配置与审计日志。', icon: Settings },
-  ];
-
-  const shortcuts = [
-    { label: 'Agent 列表', icon: Bot, hint: 'Agent 管理 · 查看全部' },
-    { label: 'Skill 列表', icon: Zap, hint: 'Skill 管理 · 查看全部' },
-    { label: '数据集', icon: Database, hint: '数据集管理 · 查看全部' },
-    { label: '监控概览', icon: Activity, hint: '监控中心 · 运行概览' },
-  ];
-
   if (loading && !overview) {
     return (
-      <div className={`flex-1 flex items-center justify-center ${isDark ? 'bg-[#000000]' : 'bg-[#F2F2F7]'}`}>
+      <div className={`flex-1 flex items-center justify-center ${pageBg(theme)}`}>
         <Loader2 size={28} className="animate-spin text-slate-400" />
       </div>
     );
   }
 
   return (
-    <div
-      className={`flex-1 overflow-y-auto custom-scrollbar ${outerPad} py-2 sm:py-3 ${
-        isDark ? 'bg-[#000000]' : 'bg-[#F2F2F7]'
-      }`}
-    >
-      <div className={`${maxW} w-full space-y-8`}>
-        {/* KPI 总览 */}
-        <section>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            {platformKpis.map((k) => (
-              <div
-                key={k.label}
-                className={`rounded-2xl border p-4 shadow-none transition-colors ${
-                  isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200/80'
-                }`}
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${k.bg} ${k.color}`}>
-                    <k.icon size={16} strokeWidth={2} />
-                  </div>
-                  <span className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{k.label}</span>
-                </div>
-                <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{k.value}</p>
-                <p className={`text-xs mt-1 flex items-center gap-0.5 ${k.up ? 'text-emerald-500' : 'text-red-400'}`}>
-                  <ArrowUpRight size={12} className={k.up ? '' : 'rotate-90'} />
-                  {k.delta}
-                </p>
-              </div>
-            ))}
-          </div>
+    <div className={`flex-1 overflow-y-auto custom-scrollbar ${outerPad} py-4 sm:py-6 ${pageBg(theme)}`}>
+      <div className={`${maxW} w-full space-y-6`}>
+
+        {/* KPI Row */}
+        <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {platformKpis.map((k, i) => (
+            <KpiCard
+              key={k.label}
+              theme={theme}
+              label={k.label}
+              value={k.value}
+              trend={k.trend}
+              icon={<k.icon size={16} />}
+              glow={k.glow}
+              delay={i * 0.05}
+            />
+          ))}
         </section>
 
-        {/* 轮播 + 公告 */}
+        {/* Carousel + Announcements */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
-          <HeroCarousel theme={theme} slides={slides} className="lg:col-span-2" />
+          <BentoCard theme={theme} padding="sm" className="lg:col-span-2 overflow-hidden !p-0">
+            <HeroCarousel theme={theme} slides={slides} />
+          </BentoCard>
 
-          <aside className="card card-border bg-base-100 border-base-200 shadow-none rounded-2xl flex flex-col min-h-0">
-            <div className="card-body p-0 flex flex-col min-h-0">
-            <div
-              className={`flex items-center gap-2 px-4 py-3 border-b shrink-0 ${
-                isDark ? 'border-white/10' : 'border-base-200'
-              }`}
-            >
-              <Megaphone size={16} className={isDark ? 'text-slate-400' : 'text-slate-500'} />
-              <h2 className={`card-title text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>通知公告</h2>
+          <BentoCard theme={theme} padding="sm" className="flex flex-col min-h-0 !p-0">
+            <div className={`flex items-center gap-2 px-5 py-3.5 border-b shrink-0 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+              <Megaphone size={15} className={textMuted(theme)} />
+              <h2 className={`text-sm font-semibold uppercase tracking-wider ${textSecondary(theme)}`}>通知公告</h2>
             </div>
-            <ul className="flex-1 overflow-y-auto custom-scrollbar divide-y divide-dashed max-h-[280px] lg:max-h-none">
+            <AnimatedList className="flex-1 overflow-y-auto custom-scrollbar max-h-[280px] lg:max-h-none">
               {announcements.map((a) => (
-                <li key={a.title}>
-                  <button
-                    type="button"
-                    className={`w-full text-left px-4 py-3 flex gap-3 items-start transition-colors ${
-                      isDark ? 'hover:bg-white/[0.04]' : 'hover:bg-slate-50'
-                    }`}
-                  >
-                    <span
-                      className={`shrink-0 inline-flex items-center gap-1 text-[10px] font-mono tabular-nums px-2 py-0.5 rounded-lg ${
-                        isDark ? 'bg-white/10 text-slate-400' : 'bg-slate-100 text-slate-600'
-                      }`}
-                    >
-                      <Calendar size={10} className="opacity-70" />
-                      {a.date}
+                <button
+                  key={a.title}
+                  type="button"
+                  className={`w-full text-left px-5 py-3 flex gap-3 items-start transition-colors ${
+                    isDark ? 'hover:bg-white/[0.04]' : 'hover:bg-slate-50'
+                  }`}
+                >
+                  <span className={`shrink-0 inline-flex items-center gap-1 text-[10px] font-mono tabular-nums px-2 py-0.5 rounded-lg ${
+                    isDark ? 'bg-white/[0.06] text-slate-500' : 'bg-slate-100 text-slate-500'
+                  }`}>
+                    <Calendar size={10} className="opacity-70" />
+                    {a.date}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className={`block text-[13px] font-medium leading-snug ${textPrimary(theme)}`}>
+                      {a.title}
                     </span>
-                    <span className="min-w-0 flex-1">
-                      <span className={`block text-[13px] font-medium leading-snug ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                        {a.title}
-                      </span>
-                      <span className={`text-[10px] mt-0.5 inline-block ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
-                        {a.tag}
-                      </span>
+                    <span className={`text-[10px] mt-0.5 inline-block ${textMuted(theme)}`}>
+                      {a.tag}
                     </span>
-                  </button>
-                </li>
+                  </span>
+                </button>
               ))}
-            </ul>
-            </div>
-          </aside>
+            </AnimatedList>
+          </BentoCard>
         </div>
 
         <OverviewAnalyticsGrid theme={theme} />
 
-        {/* 健康状态 + 最近注册 */}
+        {/* Health + Recent Registrations */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-          {/* 健康状态 */}
-          <section
-            className={`rounded-2xl border p-5 shadow-none ${
-              isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200/80'
-            }`}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.15 }}
           >
-            <h2
-              className={`text-sm font-bold tracking-tight flex items-center gap-2 mb-4 ${
-                isDark ? 'text-white' : 'text-slate-900'
-              }`}
-            >
-              <span className="w-1 h-4 rounded-full bg-emerald-500 shrink-0" aria-hidden />
-              健康状态
-            </h2>
-            <div className="grid grid-cols-3 gap-3">
-              <div
-                className={`rounded-xl p-3 text-center ${
-                  isDark ? 'bg-emerald-500/10' : 'bg-emerald-50'
-                }`}
-              >
-                <CheckCircle2 size={20} className="text-emerald-500 mx-auto mb-1" />
-                <p className={`text-lg font-bold ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>{healthSummary.healthy}</p>
-                <p className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>正常运行</p>
+            <BentoCard theme={theme}>
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-4">
+                健康状态
+              </h2>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { label: '正常运行', count: healthSummary.healthy, icon: CheckCircle2, color: 'text-emerald-500', bg: isDark ? 'bg-emerald-500/10' : 'bg-emerald-50' },
+                  { label: '告警中', count: healthSummary.warning, icon: AlertTriangle, color: 'text-amber-500', bg: isDark ? 'bg-amber-500/10' : 'bg-amber-50' },
+                  { label: '维护中', count: healthSummary.down, icon: Clock, color: isDark ? 'text-slate-400' : 'text-slate-500', bg: isDark ? 'bg-white/[0.04]' : 'bg-slate-50' },
+                ].map((item) => (
+                  <div key={item.label} className={`rounded-xl p-3 text-center ${item.bg}`}>
+                    <item.icon size={20} className={`${item.color} mx-auto mb-1.5`} />
+                    <p className={`text-2xl font-bold tracking-tight ${textPrimary(theme)}`}>{item.count}</p>
+                    <p className={`text-[11px] mt-0.5 ${textSecondary(theme)}`}>{item.label}</p>
+                  </div>
+                ))}
               </div>
-              <div
-                className={`rounded-xl p-3 text-center ${
-                  isDark ? 'bg-amber-500/10' : 'bg-amber-50'
-                }`}
-              >
-                <AlertTriangle size={20} className="text-amber-500 mx-auto mb-1" />
-                <p className={`text-lg font-bold ${isDark ? 'text-amber-400' : 'text-amber-700'}`}>{healthSummary.warning}</p>
-                <p className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>告警中</p>
-              </div>
-              <div
-                className={`rounded-xl p-3 text-center ${
-                  isDark ? 'bg-slate-500/10' : 'bg-slate-50'
-                }`}
-              >
-                <Clock size={20} className={`mx-auto mb-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
-                <p className={`text-lg font-bold ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{healthSummary.down}</p>
-                <p className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>维护中</p>
-              </div>
-            </div>
-          </section>
+            </BentoCard>
+          </motion.div>
 
-          {/* 最近注册 */}
-          <section
-            className={`rounded-2xl border shadow-none ${
-              isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200/80'
-            }`}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.2 }}
           >
-            <div
-              className={`flex items-center gap-2 px-5 py-3 border-b ${
-                isDark ? 'border-white/10' : 'border-slate-100'
-              }`}
-            >
-              <MessageSquare size={16} className={isDark ? 'text-slate-400' : 'text-slate-500'} />
-              <h2 className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>最近注册</h2>
-            </div>
-            <ul className={`divide-y ${isDark ? 'divide-white/5' : 'divide-slate-100'}`}>
-              {recentRegistrations.map((r) => {
-                const badge = STATUS_DISPLAY[r.status] ?? STATUS_DISPLAY.published;
-                return (
-                  <li
-                    key={r.name}
-                    className={`px-5 py-3 flex items-center gap-3 transition-colors ${
-                      isDark ? 'hover:bg-white/[0.04]' : 'hover:bg-slate-50'
-                    }`}
-                  >
+            <BentoCard theme={theme} padding="sm" className="!p-0 h-full flex flex-col">
+              <div className={`flex items-center gap-2 px-5 py-3.5 border-b shrink-0 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">最近注册</h2>
+              </div>
+              <AnimatedList className={`flex-1 overflow-y-auto custom-scrollbar divide-y ${isDark ? 'divide-white/[0.04]' : 'divide-slate-100'}`}>
+                {recentRegistrations.map((r) => {
+                  const badge = STATUS_DISPLAY[r.status] ?? STATUS_DISPLAY.published;
+                  return (
                     <div
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                        r.type === 'Agent'
-                          ? 'bg-blue-500/10 text-blue-500'
-                          : 'bg-violet-500/10 text-violet-500'
-                      }`}
+                      key={r.name}
+                      className={`px-5 py-3 flex items-center gap-3 transition-colors ${isDark ? 'hover:bg-white/[0.04]' : 'hover:bg-slate-50'}`}
                     >
-                      {r.type === 'Agent' ? <Bot size={14} /> : <Zap size={14} />}
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                        r.type === 'Agent' ? 'bg-blue-500/10 text-blue-500' : 'bg-violet-500/10 text-violet-500'
+                      }`}>
+                        {r.type === 'Agent' ? <Bot size={14} /> : <Zap size={14} />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-[13px] font-medium truncate ${textPrimary(theme)}`}>{r.name}</p>
+                        <p className={`text-[11px] ${textMuted(theme)}`}>{r.type} · {r.time}</p>
+                      </div>
+                      <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-semibold shrink-0 ${isDark ? badge.dark : badge.light}`}>
+                        {badge.label}
+                      </span>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-[13px] font-medium truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                        {r.name}
-                      </p>
-                      <p className={`text-[11px] ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>{r.type} · {r.time}</p>
-                    </div>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-lg font-medium shrink-0 ${isDark ? badge.dark : badge.light}`}>
-                      {badge.label}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
+                  );
+                })}
+              </AnimatedList>
+            </BentoCard>
+          </motion.div>
         </div>
 
-        {/* 平台能力 */}
-        <section className="space-y-5">
-          <h2
-            className={`text-sm font-bold tracking-tight flex items-center gap-2 ${
-              isDark ? 'text-white' : 'text-slate-900'
-            }`}
-          >
-            <span className="w-1 h-4 rounded-full bg-slate-400 dark:bg-slate-500 shrink-0" aria-hidden />
-            平台能力
-          </h2>
+        {/* Platform Capabilities */}
+        <section className="space-y-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">平台能力</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-            {modules.map((m) => (
+            {modules.map((m, i) => (
               <motion.div
                 key={m.title}
-                whileHover={{ y: -1 }}
-                transition={{ duration: 0.18 }}
-                className={`rounded-2xl border shadow-none transition-colors duration-200 ${
-                  isDark
-                    ? 'bg-[#1C1C1E] border-white/10 hover:border-white/[0.14] hover:bg-[#222226]'
-                    : 'bg-white border-slate-200/80 hover:border-slate-300'
-                }`}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 30, delay: i * 0.05 }}
               >
-                <div className="flex gap-4 p-4 sm:p-5 items-start">
-                  <div
-                    className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ${
+                <BentoCard theme={theme} hover glow={m.glow}>
+                  <div className="flex gap-4 items-start">
+                    <div className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ${
                       isDark ? 'bg-white/[0.06] text-slate-400' : 'bg-slate-100 text-slate-600'
-                    }`}
-                  >
-                    <m.icon size={20} strokeWidth={2} />
+                    }`}>
+                      <m.icon size={20} strokeWidth={2} />
+                    </div>
+                    <div className="min-w-0 flex-1 pt-0.5">
+                      <h3 className={`text-[15px] font-bold leading-snug mb-1 ${textPrimary(theme)}`}>{m.title}</h3>
+                      <p className={`text-[12px] leading-relaxed ${textSecondary(theme)}`}>{m.desc}</p>
+                    </div>
                   </div>
-                  <div className="min-w-0 flex-1 pt-0.5">
-                    <h3 className={`text-[15px] font-bold leading-snug mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                      {m.title}
-                    </h3>
-                    <p className={`text-[12px] leading-relaxed ${isDark ? 'text-slate-500' : 'text-slate-600'}`}>{m.desc}</p>
-                  </div>
-                </div>
+                </BentoCard>
               </motion.div>
             ))}
           </div>
         </section>
 
-        {/* 常用入口 */}
-        <section className="space-y-5">
-          <h2
-            className={`text-sm font-bold tracking-tight flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}
-          >
-            <span className="w-1 h-4 rounded-full bg-indigo-500 shrink-0" aria-hidden />
-            常用入口
-          </h2>
-          <div
-            className={`rounded-2xl border overflow-hidden ${
-              isDark ? 'bg-[#1C1C1E] border-white/10 shadow-lg shadow-black/10' : 'bg-white border-slate-200/80 shadow-md shadow-slate-200/40'
-            } divide-y ${isDark ? 'divide-white/5' : 'divide-slate-100'}`}
-          >
-            {shortcuts.map((s, i) => (
-              <div
-                key={s.label}
-                className={`flex items-center gap-4 px-5 py-4 transition-all duration-200 ${
-                  isDark ? 'hover:bg-white/[0.06]' : 'hover:bg-slate-50'
-                } ${i % 2 === 1 ? (isDark ? 'bg-white/[0.02]' : 'bg-slate-50/50') : ''}`}
-              >
-                <div
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                    isDark ? 'bg-white/10 text-slate-200' : 'bg-slate-100 text-slate-700'
-                  }`}
-                >
-                  <s.icon size={18} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className={`font-semibold text-[13px] ${isDark ? 'text-white' : 'text-slate-900'}`}>{s.label}</div>
-                  <div className={`text-[11px] mt-0.5 ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>{s.hint}</div>
-                </div>
-                <ChevronRight size={16} className={`shrink-0 ${isDark ? 'text-slate-600' : 'text-slate-400'}`} />
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* 安全与合规 */}
-        <section
-          className={`rounded-2xl border-l-4 border-emerald-500/80 p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4 ${
-            isDark
-              ? 'bg-gradient-to-r from-emerald-950/30 to-transparent border-slate-800 border-l-emerald-500/60'
-              : 'bg-gradient-to-r from-emerald-50/80 to-white border-slate-200/80'
-          } ${isDark ? 'shadow-lg shadow-black/10' : 'shadow-md shadow-slate-200/30'}`}
+        {/* Security Banner */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.35 }}
         >
-          <div
-            className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
-              isDark ? 'bg-emerald-500/20 text-emerald-300' : 'bg-emerald-100 text-emerald-700'
-            }`}
-          >
-            <Shield size={24} />
-          </div>
-          <div className="min-w-0">
-            <h3 className={`font-bold text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>安全与审计</h3>
-            <p className={`text-[12px] mt-1 leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-              密钥与令牌在用户管理中维护；限流与审计日志在系统配置中查看。生产环境请对接统一身份与机构存储策略。
-            </p>
-          </div>
-        </section>
+          <BentoCard theme={theme} glow="emerald" className="!border-l-4 !border-l-emerald-500/80">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                isDark ? 'bg-emerald-500/15 text-emerald-400' : 'bg-emerald-50 text-emerald-700'
+              }`}>
+                <Shield size={24} />
+              </div>
+              <div className="min-w-0">
+                <h3 className={`font-bold text-sm ${textPrimary(theme)}`}>安全与审计</h3>
+                <p className={`text-[12px] mt-1 leading-relaxed ${textSecondary(theme)}`}>
+                  密钥与令牌在用户管理中维护；限流与审计日志在系统配置中查看。生产环境请对接统一身份与机构存储策略。
+                </p>
+              </div>
+            </div>
+          </BentoCard>
+        </motion.div>
       </div>
     </div>
   );

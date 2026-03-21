@@ -1,54 +1,42 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { motion } from 'framer-motion';
+import { Plus, Eye, Edit2, Trash2, MoreHorizontal, ChevronLeft, ChevronRight, Server } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { Provider, ProviderType, ProviderStatus } from '../../types/dto/provider';
 import { providerService } from '../../api/services/provider.service';
 import { nativeInputClass, nativeSelectClass } from '../../utils/formFieldClasses';
-import { btnPrimary, btnGhost, tableHeadCell, tableBodyRow, statusBadgeClass, statusLabel, pageBg, cardClass } from '../../utils/uiClasses';
+import {
+  pageBg, bentoCard, bentoCardHover, btnPrimary, btnGhost,
+  statusBadgeClass, statusDot, statusLabel,
+  textPrimary, textSecondary, textMuted, techBadge,
+} from '../../utils/uiClasses';
 import type { DomainStatus } from '../../utils/uiClasses';
 import { Modal } from '../../components/common/Modal';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
+import { AnimatedList } from '../../components/common/AnimatedList';
 import { ProviderCreate } from './ProviderCreate';
 
-interface Props {
-  theme: Theme;
-  fontSize: FontSize;
-  showMessage?: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void;
-}
-
+interface Props { theme: Theme; fontSize: FontSize; showMessage?: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void; }
 type ViewMode = 'list' | 'create' | 'edit';
 
-const STATUS_LABEL_PV: Record<ProviderStatus, string> = {
-  active: '运行中',
-  inactive: '已停用',
-};
-
+const STATUS_LABEL_PV: Record<ProviderStatus, string> = { active: '运行中', inactive: '已停用' };
 const TYPE_MAP: Record<ProviderType, { label: string; cls: string }> = {
   internal: { label: '自研产品', cls: 'text-blue-600 bg-blue-500/10' },
   partner: { label: '合作伙伴', cls: 'text-purple-600 bg-purple-500/10' },
   cloud: { label: '云平台', cls: 'text-cyan-600 bg-cyan-500/10' },
 };
+const AUTH_MAP: Record<string, string> = { api_key: 'API Key', oauth2: 'OAuth 2.0', basic: 'Basic Auth', none: '无认证' };
 
-const AUTH_MAP: Record<string, string> = {
-  api_key: 'API Key',
-  oauth2: 'OAuth 2.0',
-  basic: 'Basic Auth',
-  none: '无认证',
-};
-
-function truncateUrl(url: string | null, max = 30): string {
-  if (!url) return '—';
-  return url.length > max ? url.slice(0, max) + '...' : url;
-}
+function truncateUrl(url: string | null, max = 30): string { if (!url) return '—'; return url.length > max ? url.slice(0, max) + '...' : url; }
 
 export const ProviderList: React.FC<Props> = ({ theme, fontSize, showMessage }) => {
-  const dark = theme === 'dark';
+  const isDark = theme === 'dark';
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const pageSize = 20;
-
   const [keyword, setKeyword] = useState('');
   const [typeFilter, setTypeFilter] = useState<ProviderType | ''>('');
   const [statusFilter, setStatusFilter] = useState<ProviderStatus | ''>('');
@@ -56,235 +44,140 @@ export const ProviderList: React.FC<Props> = ({ theme, fontSize, showMessage }) 
   const [viewProvider, setViewProvider] = useState<Provider | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await providerService.list({
-        page,
-        pageSize,
-        keyword: keyword || undefined,
-        providerType: typeFilter || undefined,
-        status: statusFilter || undefined,
-      });
-      setProviders(res.list);
-      setTotal(res.total);
-    } catch {
-      showMessage?.('加载 Provider 列表失败', 'error');
-    } finally {
-      setLoading(false);
-    }
+      const res = await providerService.list({ page, pageSize, keyword: keyword || undefined, providerType: typeFilter || undefined, status: statusFilter || undefined });
+      setProviders(res.list); setTotal(res.total);
+    } catch { showMessage?.('加载 Provider 列表失败', 'error'); }
+    finally { setLoading(false); }
   }, [page, keyword, typeFilter, statusFilter, showMessage]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => { if (openMenuId === null) return; const h = () => setOpenMenuId(null); document.addEventListener('click', h); return () => document.removeEventListener('click', h); }, [openMenuId]);
 
   const handleDelete = async () => {
-    if (!deleteTarget) return;
-    setDeleting(true);
-    try {
-      await providerService.remove(deleteTarget.id);
-      showMessage?.('删除成功', 'success');
-      setDeleteTarget(null);
-      fetchData();
-    } catch {
-      showMessage?.('删除失败', 'error');
-    } finally {
-      setDeleting(false);
-    }
+    if (!deleteTarget) return; setDeleting(true);
+    try { await providerService.remove(deleteTarget.id); showMessage?.('删除成功', 'success'); setDeleteTarget(null); fetchData(); }
+    catch { showMessage?.('删除失败', 'error'); } finally { setDeleting(false); }
   };
 
-  const handleView = (pv: Provider) => {
-    setViewProvider(pv);
-  };
-
+  const handleView = (pv: Provider) => { setViewProvider(pv); };
   const handleEdit = async (pv: Provider) => {
-    try {
-      const full = await providerService.getById(pv.id);
-      setEditingProvider(full);
-    } catch {
-      setEditingProvider(pv);
-    }
+    try { const full = await providerService.getById(pv.id); setEditingProvider(full); } catch { setEditingProvider(pv); }
     setViewMode('edit');
   };
 
-  if (viewMode === 'create') {
-    return (
-      <ProviderCreate
-        theme={theme}
-        fontSize={fontSize}
-        onBack={() => { setViewMode('list'); fetchData(); }}
-        showMessage={showMessage}
-      />
-    );
-  }
-
-  if (viewMode === 'edit' && editingProvider) {
-    return (
-      <ProviderCreate
-        theme={theme}
-        fontSize={fontSize}
-        onBack={() => { setViewMode('list'); setEditingProvider(null); fetchData(); }}
-        showMessage={showMessage}
-        editProvider={editingProvider}
-      />
-    );
-  }
+  if (viewMode === 'create') return <ProviderCreate theme={theme} fontSize={fontSize} onBack={() => { setViewMode('list'); fetchData(); }} showMessage={showMessage} />;
+  if (viewMode === 'edit' && editingProvider) return <ProviderCreate theme={theme} fontSize={fontSize} onBack={() => { setViewMode('list'); setEditingProvider(null); fetchData(); }} showMessage={showMessage} editProvider={editingProvider} />;
 
   const totalPages = Math.ceil(total / pageSize);
-  const fsTitle = fontSize === 'small' ? 'text-lg' : fontSize === 'medium' ? 'text-xl' : 'text-2xl';
 
   return (
-    <div className={`flex-1 overflow-y-auto px-2 sm:px-3 lg:px-4 py-2 sm:py-3 ${pageBg(theme)}`}>
-      <div className={`${cardClass(theme)} p-4 sm:p-6`}>
-        {/* Header */}
-        <div className="flex items-center justify-between mb-5">
-          <h1 className={`font-bold ${fsTitle} ${dark ? 'text-white' : 'text-slate-900'}`}>Provider 管理</h1>
-          <button
-            type="button"
-            onClick={() => setViewMode('create')}
-            className={`${btnPrimary} shadow-lg shadow-blue-500/20`}
-          >
-            + 添加 Provider
-          </button>
-        </div>
+    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-colors duration-300 ${pageBg(theme)}`}>
+      <div className="w-full flex-1 min-h-0 flex flex-col px-2 sm:px-3 lg:px-4 py-2 sm:py-3">
+        <div className={`${bentoCard(theme)} overflow-hidden flex-1 min-h-0 flex flex-col`}>
+          {/* Header */}
+          <div className={`flex items-center justify-between px-6 py-4 border-b shrink-0 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-xl ${isDark ? 'bg-cyan-500/15' : 'bg-cyan-50'}`}><Server size={20} className={isDark ? 'text-cyan-400' : 'text-cyan-600'} /></div>
+              <div>
+                <h1 className={`text-lg font-bold ${textPrimary(theme)}`}>Provider 管理</h1>
+                {total > 0 && <span className={`text-xs ${textMuted(theme)}`}>共 {total} 个</span>}
+              </div>
+            </div>
+            <button type="button" onClick={() => setViewMode('create')} className={btnPrimary}><Plus size={15} /> 添加 Provider</button>
+          </div>
 
-        {/* Filters */}
-        <div className="flex flex-wrap gap-3 mb-5">
-          <input
-            type="text"
-            placeholder="搜索提供商…"
-            value={keyword}
-            onChange={(e) => { setKeyword(e.target.value); setPage(1); }}
-            className={`${nativeInputClass(theme)} max-w-xs`}
-          />
-          <select
-            value={typeFilter}
-            onChange={(e) => { setTypeFilter(e.target.value as ProviderType | ''); setPage(1); }}
-            className={`${nativeSelectClass(theme)} max-w-[10rem]`}
-          >
-            <option value="">全部类型</option>
-            <option value="internal">自研产品</option>
-            <option value="partner">合作伙伴</option>
-            <option value="cloud">云平台</option>
-          </select>
-          <select
-            value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value as ProviderStatus | ''); setPage(1); }}
-            className={`${nativeSelectClass(theme)} max-w-[10rem]`}
-          >
-            <option value="">全部状态</option>
-            <option value="active">运行中</option>
-            <option value="inactive">已停用</option>
-          </select>
-        </div>
-
-        {/* Table */}
-        <div className="overflow-x-auto">
-          <table className={`table w-full min-w-[1020px] ${dark ? 'text-slate-200' : 'text-slate-700'}`}>
-            <thead>
-              <tr>
-                <th className={tableHeadCell(theme)} style={{ minWidth: 130 }}>名称</th>
-                <th className={tableHeadCell(theme)} style={{ minWidth: 100 }}>类型</th>
-                <th className={tableHeadCell(theme)} style={{ minWidth: 90 }}>认证方式</th>
-                <th className={tableHeadCell(theme)} style={{ minWidth: 180 }}>Base URL</th>
-                <th className={tableHeadCell(theme)} style={{ minWidth: 80 }}>状态</th>
-                <th className={`${tableHeadCell(theme)} text-right`} style={{ minWidth: 70 }}>Agent</th>
-                <th className={`${tableHeadCell(theme)} text-right`} style={{ minWidth: 70 }}>Skill</th>
-                <th className={tableHeadCell(theme)} style={{ minWidth: 120 }}>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan={8} className="text-center py-12 text-slate-400">加载中…</td></tr>
-              ) : providers.length === 0 ? (
-                <tr><td colSpan={8} className="text-center py-12 text-slate-400">暂无数据</td></tr>
-              ) : (
-                providers.map((pv, i) => {
-                  const tInfo = TYPE_MAP[pv.providerType];
-                  return (
-                    <tr
-                      key={pv.id}
-                      className={tableBodyRow(theme, i)}
-                    >
-                      <td className="font-medium whitespace-nowrap">{pv.providerName}</td>
-                      <td>
-                        <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full whitespace-nowrap ${tInfo.cls}`}>
-                          {tInfo.label}
-                        </span>
-                      </td>
-                      <td className="whitespace-nowrap">{AUTH_MAP[pv.authType] ?? pv.authType}</td>
-                      <td className="truncate max-w-[220px]" title={pv.baseUrl ?? ''}>
-                        <span className={`font-mono text-xs ${dark ? 'text-slate-400' : 'text-slate-500'}`}>
-                          {truncateUrl(pv.baseUrl)}
-                        </span>
-                      </td>
-                      <td>
-                        <span className={statusBadgeClass(pv.status as DomainStatus, theme)}>
-                          {STATUS_LABEL_PV[pv.status] ?? statusLabel(pv.status as DomainStatus)}
-                        </span>
-                      </td>
-                      <td className="text-right tabular-nums">{pv.agentCount}</td>
-                      <td className="text-right tabular-nums">{pv.skillCount}</td>
-                      <td>
-                        <div className="flex gap-1">
-                          <button
-                            type="button"
-                            className={btnGhost(theme)}
-                            onClick={() => handleView(pv)}
-                          >
-                            查看
-                          </button>
-                          <button
-                            type="button"
-                            className={btnGhost(theme)}
-                            onClick={() => handleEdit(pv)}
-                          >
-                            编辑
-                          </button>
-                          <button
-                            type="button"
-                            className={btnGhost(theme)}
-                            onClick={() => setDeleteTarget({ id: pv.id, name: pv.providerName })}
-                          >
-                            删除
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between mt-4">
-            <span className={`text-sm ${dark ? 'text-slate-400' : 'text-slate-500'}`}>
-              共 {total} 条
-            </span>
-            <div className="join">
-              <button
-                className="join-item btn btn-sm rounded-xl"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
-                上一页
-              </button>
-              <button className="join-item btn btn-sm rounded-xl btn-active">
-                {page} / {totalPages}
-              </button>
-              <button
-                className="join-item btn btn-sm rounded-xl"
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                下一页
-              </button>
+          {/* Filters */}
+          <div className={`px-4 py-3 border-b shrink-0 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+            <div className="flex flex-wrap gap-2">
+              <input type="text" placeholder="搜索提供商…" value={keyword} onChange={(e) => { setKeyword(e.target.value); setPage(1); }} className={`${nativeInputClass(theme)} max-w-xs`} />
+              <select value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value as ProviderType | ''); setPage(1); }} className={`${nativeSelectClass(theme)} max-w-[10rem]`}>
+                <option value="">全部类型</option><option value="internal">自研产品</option><option value="partner">合作伙伴</option><option value="cloud">云平台</option>
+              </select>
+              <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value as ProviderStatus | ''); setPage(1); }} className={`${nativeSelectClass(theme)} max-w-[10rem]`}>
+                <option value="">全部状态</option><option value="active">运行中</option><option value="inactive">已停用</option>
+              </select>
             </div>
           </div>
-        )}
+
+          {/* Card rows */}
+          <div className="flex-1 min-h-0 overflow-auto p-3">
+            {loading ? (
+              <div className={`text-center py-12 ${textMuted(theme)}`}>加载中…</div>
+            ) : providers.length === 0 ? (
+              <div className={`text-center py-12 ${textMuted(theme)}`}>暂无数据</div>
+            ) : (
+              <AnimatedList className="space-y-2">
+                {providers.map((pv) => {
+                  const tInfo = TYPE_MAP[pv.providerType];
+                  return (
+                    <motion.div key={pv.id} whileHover={{ y: -2 }} transition={{ type: 'spring', stiffness: 400, damping: 30 }} className={`${bentoCardHover(theme)} p-4 flex items-center gap-4 ${isDark ? 'hover:bg-indigo-500/[0.03]' : 'hover:bg-indigo-50/40'}`}>
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isDark ? 'bg-white/[0.04]' : 'bg-slate-50'}`}>
+                        <Server size={18} className={isDark ? 'text-slate-400' : 'text-slate-500'} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`font-semibold truncate ${textPrimary(theme)}`}>{pv.providerName}</span>
+                          <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-medium rounded-full whitespace-nowrap ${tInfo.cls}`}>{tInfo.label}</span>
+                          <span className={statusBadgeClass(pv.status as DomainStatus, theme)}>
+                            <span className={statusDot(pv.status as DomainStatus)} />
+                            {STATUS_LABEL_PV[pv.status] ?? statusLabel(pv.status as DomainStatus)}
+                          </span>
+                        </div>
+                        <div className={`text-xs mt-0.5 truncate ${textMuted(theme)}`}>
+                          {AUTH_MAP[pv.authType] ?? pv.authType} · <span className="font-mono">{truncateUrl(pv.baseUrl)}</span>
+                        </div>
+                      </div>
+                      <div className="hidden lg:flex items-center gap-6 shrink-0">
+                        <div className="text-right">
+                          <div className={`text-[10px] uppercase tracking-wider ${textMuted(theme)}`}>Agent</div>
+                          <div className={`text-sm font-mono tabular-nums font-medium ${textSecondary(theme)}`}>{pv.agentCount}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className={`text-[10px] uppercase tracking-wider ${textMuted(theme)}`}>Skill</div>
+                          <div className={`text-sm font-mono tabular-nums font-medium ${textSecondary(theme)}`}>{pv.skillCount}</div>
+                        </div>
+                      </div>
+                      {/* Desktop actions */}
+                      <div className="hidden sm:flex items-center gap-1 shrink-0">
+                        <button type="button" className={btnGhost(theme)} onClick={() => handleView(pv)} title="查看"><Eye size={15} /></button>
+                        <button type="button" className={btnGhost(theme)} onClick={() => handleEdit(pv)} title="编辑"><Edit2 size={15} /></button>
+                        <button type="button" onClick={() => setDeleteTarget({ id: pv.id, name: pv.providerName })} className={`p-2 rounded-xl transition-colors ${isDark ? 'text-rose-400 hover:bg-rose-500/10' : 'text-rose-500 hover:bg-rose-50'}`} title="删除"><Trash2 size={15} /></button>
+                      </div>
+                      {/* Mobile menu */}
+                      <div className="relative sm:hidden shrink-0">
+                        <button type="button" onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === pv.id ? null : pv.id); }} className={btnGhost(theme)}><MoreHorizontal size={16} /></button>
+                        {openMenuId === pv.id && (
+                          <div className={`absolute right-0 top-full mt-1 z-30 w-32 rounded-xl border shadow-xl py-1 ${isDark ? 'bg-[#1a1f2e] border-white/10' : 'bg-white border-slate-200'}`}>
+                            <button type="button" onClick={() => { handleView(pv); setOpenMenuId(null); }} className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 ${isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`}><Eye size={14} /> 查看</button>
+                            <button type="button" onClick={() => { handleEdit(pv); setOpenMenuId(null); }} className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 ${isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`}><Edit2 size={14} /> 编辑</button>
+                            <button type="button" onClick={() => { setDeleteTarget({ id: pv.id, name: pv.providerName }); setOpenMenuId(null); }} className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 ${isDark ? 'text-rose-400 hover:bg-rose-500/10' : 'text-rose-500 hover:bg-rose-50'}`}><Trash2 size={14} /> 删除</button>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </AnimatedList>
+            )}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className={`px-4 py-3 border-t shrink-0 flex items-center justify-between ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+              <span className={`text-sm ${textMuted(theme)}`}>共 {total} 条</span>
+              <div className="flex items-center gap-2">
+                <button type="button" disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className={`p-2 rounded-xl transition-colors ${page <= 1 ? (isDark ? 'text-slate-600 cursor-not-allowed' : 'text-slate-300 cursor-not-allowed') : (isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-600 hover:bg-slate-100')}`}><ChevronLeft size={16} /></button>
+                <span className={`text-xs font-medium ${textSecondary(theme)}`}>{page} / {totalPages}</span>
+                <button type="button" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)} className={`p-2 rounded-xl transition-colors ${page >= totalPages ? (isDark ? 'text-slate-600 cursor-not-allowed' : 'text-slate-300 cursor-not-allowed') : (isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-600 hover:bg-slate-100')}`}><ChevronRight size={16} /></button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <Modal open={!!viewProvider} onClose={() => setViewProvider(null)} title="Provider 详情" theme={theme} size="md">
@@ -304,24 +197,15 @@ export const ProviderList: React.FC<Props> = ({ theme, fontSize, showMessage }) 
               { label: '更新时间', value: viewProvider.updateTime },
             ].map((row) => (
               <div key={row.label} className="flex items-start gap-4">
-                <span className={`text-sm font-medium w-24 shrink-0 ${dark ? 'text-slate-400' : 'text-slate-500'}`}>{row.label}</span>
-                <span className={`text-sm break-all ${dark ? 'text-slate-200' : 'text-slate-700'}`}>{row.value}</span>
+                <span className={`text-sm font-medium w-24 shrink-0 ${textMuted(theme)}`}>{row.label}</span>
+                <span className={`text-sm break-all ${textPrimary(theme)}`}>{row.value}</span>
               </div>
             ))}
           </div>
         )}
       </Modal>
 
-      <ConfirmDialog
-        open={!!deleteTarget}
-        title="删除 Provider"
-        message={`确定要删除「${deleteTarget?.name ?? ''}」吗？此操作不可撤销。`}
-        confirmText="删除"
-        variant="danger"
-        loading={deleting}
-        onConfirm={handleDelete}
-        onCancel={() => setDeleteTarget(null)}
-      />
+      <ConfirmDialog open={!!deleteTarget} title="删除 Provider" message={`确定要删除「${deleteTarget?.name ?? ''}」吗？此操作不可撤销。`} confirmText="删除" variant="danger" loading={deleting} onConfirm={handleDelete} onCancel={() => setDeleteTarget(null)} />
     </div>
   );
 };

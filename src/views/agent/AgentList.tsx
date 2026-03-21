@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import {
   Plus,
   RefreshCw,
@@ -8,15 +9,16 @@ import {
   Edit2,
   ChevronLeft,
   ChevronRight,
+  MoreHorizontal,
 } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
-import { TOOLBAR_ROW } from '../../utils/toolbarFieldClasses';
 import { useAgents, useDeleteAgent } from '../../hooks/queries/useAgent';
 import { ContentLoader } from '../../components/common/ContentLoader';
 import { PageError } from '../../components/common/PageError';
 import { EmptyState } from '../../components/common/EmptyState';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { SearchInput, FilterSelect } from '../../components/common';
+import { AnimatedList } from '../../components/common/AnimatedList';
 import type {
   Agent,
   AgentStatus,
@@ -26,7 +28,21 @@ import type {
 } from '../../types/dto/agent';
 import { agentService } from '../../api/services/agent.service';
 import { AgentCreate } from './AgentCreate';
-import { btnPrimary, btnGhost, btnSecondary, tableHeadCell, tableBodyRow, tableCell, statusBadgeClass, statusLabel, pageBg, cardClass } from '../../utils/uiClasses';
+import {
+  pageBg,
+  bentoCard,
+  bentoCardHover,
+  btnPrimary,
+  btnGhost,
+  btnSecondary,
+  statusBadgeClass,
+  statusDot,
+  statusLabel,
+  textPrimary,
+  textSecondary,
+  textMuted,
+  techBadge,
+} from '../../utils/uiClasses';
 import type { DomainStatus } from '../../utils/uiClasses';
 
 interface AgentListProps {
@@ -72,6 +88,7 @@ export const AgentList: React.FC<AgentListProps> = ({
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'edit'>('list');
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -80,6 +97,13 @@ export const AgentList: React.FC<AgentListProps> = ({
     }, 300);
     return () => clearTimeout(t);
   }, [keyword]);
+
+  useEffect(() => {
+    if (openMenuId === null) return;
+    const handler = () => setOpenMenuId(null);
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, [openMenuId]);
 
   const query: AgentListQuery = {
     page,
@@ -142,69 +166,40 @@ export const AgentList: React.FC<AgentListProps> = ({
   }
 
   return (
-    <div
-      className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-colors duration-300 ${
-        pageBg(theme)
-      }`}
-    >
+    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-colors duration-300 ${pageBg(theme)}`}>
       <div className="w-full flex-1 min-h-0 flex flex-col px-2 sm:px-3 lg:px-4 py-2 sm:py-3">
-        <div
-          className={`${cardClass(theme)} overflow-hidden flex-1 min-h-0 flex flex-col`}
-        >
+        <div className={`${bentoCard(theme)} overflow-hidden flex-1 min-h-0 flex flex-col`}>
           {/* Header */}
-          <div
-            className={`flex items-center justify-between px-6 py-4 border-b shrink-0 ${
-              isDark ? 'border-white/10' : 'border-slate-200'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <Bot className="text-blue-600" size={20} />
-              <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                Agent 管理
-              </h2>
-              {total > 0 && (
-                <span
-                  className={`text-xs px-2 py-0.5 rounded-full ${
-                    isDark ? 'bg-white/5 text-slate-400' : 'bg-slate-100 text-slate-500'
-                  }`}
-                >
-                  {total}
-                </span>
-              )}
-            </div>
+          <div className={`flex items-center justify-between px-6 py-4 border-b shrink-0 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
             <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => refetch()}
-                className={`${btnGhost(theme)} gap-1.5`}
-              >
-                <RefreshCw size={16} />
-                刷新
+              <div className={`p-2 rounded-xl ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-50'}`}>
+                <Bot size={20} className={isDark ? 'text-indigo-400' : 'text-indigo-600'} />
+              </div>
+              <div>
+                <h2 className={`text-lg font-bold ${textPrimary(theme)}`}>Agent 管理</h2>
+                {total > 0 && (
+                  <span className={`text-xs ${textMuted(theme)}`}>共 {total} 个</span>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={() => refetch()} className={btnGhost(theme)}>
+                <RefreshCw size={15} />
+                <span className="hidden sm:inline">刷新</span>
               </button>
-              <button
-                type="button"
-                onClick={onCreateAgent}
-                className={`${btnPrimary} gap-1.5 shadow-lg shadow-blue-500/20`}
-              >
-                <Plus size={16} />
+              <button type="button" onClick={onCreateAgent} className={btnPrimary}>
+                <Plus size={15} />
                 注册 Agent
               </button>
             </div>
           </div>
 
           {/* Filters */}
-          <div
-            className={`p-4 border-b shrink-0 ${
-              isDark ? 'border-white/10' : 'border-slate-200 bg-slate-50/50'
-            }`}
-          >
-            <div className={TOOLBAR_ROW}>
+          <div className={`px-4 py-3 border-b shrink-0 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+            <div className="flex flex-wrap items-center gap-2">
               <FilterSelect
                 value={statusFilter}
-                onChange={(v) => {
-                  setStatusFilter(v);
-                  setPage(1);
-                }}
+                onChange={(v) => { setStatusFilter(v); setPage(1); }}
                 options={[
                   { value: '', label: '全部状态' },
                   { value: 'draft', label: '草稿' },
@@ -219,10 +214,7 @@ export const AgentList: React.FC<AgentListProps> = ({
               />
               <FilterSelect
                 value={sourceFilter}
-                onChange={(v) => {
-                  setSourceFilter(v);
-                  setPage(1);
-                }}
+                onChange={(v) => { setSourceFilter(v); setPage(1); }}
                 options={[
                   { value: '', label: '全部来源' },
                   { value: 'internal', label: '自研' },
@@ -235,10 +227,7 @@ export const AgentList: React.FC<AgentListProps> = ({
               />
               <FilterSelect
                 value={typeFilter}
-                onChange={(v) => {
-                  setTypeFilter(v);
-                  setPage(1);
-                }}
+                onChange={(v) => { setTypeFilter(v); setPage(1); }}
                 options={[
                   { value: '', label: '全部类型' },
                   { value: 'mcp', label: 'MCP' },
@@ -250,24 +239,15 @@ export const AgentList: React.FC<AgentListProps> = ({
                 className="w-full sm:w-36"
               />
               <div className="flex-1 min-w-[min(100%,200px)]">
-                <SearchInput
-                  value={keyword}
-                  onChange={setKeyword}
-                  placeholder="搜索名称或描述…"
-                  theme={theme}
-                />
+                <SearchInput value={keyword} onChange={setKeyword} placeholder="搜索名称或描述…" theme={theme} />
               </div>
-              <button
-                type="button"
-                onClick={resetFilters}
-                className={btnSecondary(theme)}
-              >
+              <button type="button" onClick={resetFilters} className={btnSecondary(theme)}>
                 重置
               </button>
             </div>
           </div>
 
-          {/* Table */}
+          {/* Card-style rows */}
           <div className="flex-1 min-h-0 overflow-auto">
             <ContentLoader loading={isLoading} theme={theme}>
               {agents.length === 0 ? (
@@ -275,175 +255,163 @@ export const AgentList: React.FC<AgentListProps> = ({
                   title="暂无 Agent"
                   description="注册第一个 Agent 开始使用"
                   action={
-                    <button
-                      type="button"
-                      onClick={onCreateAgent}
-                      className={`${btnPrimary} gap-1.5`}
-                    >
+                    <button type="button" onClick={onCreateAgent} className={btnPrimary}>
                       <Plus size={16} />
                       注册 Agent
                     </button>
                   }
                 />
               ) : (
-                <table className="table w-full text-sm min-w-[900px]">
-                  <thead className="sticky top-0 z-10">
-                    <tr>
-                      <th className={tableHeadCell(theme)} style={{ minWidth: 200 }}>
-                        名称
-                      </th>
-                      <th className={tableHeadCell(theme)}>接入类型</th>
-                      <th className={tableHeadCell(theme)}>来源</th>
-                      <th className={tableHeadCell(theme)}>状态</th>
-                      <th className={`${tableHeadCell(theme)} text-right`}>调用次数</th>
-                      <th className={`${tableHeadCell(theme)} text-right`}>成功率</th>
-                      <th className={`${tableHeadCell(theme)} text-right`}>平均延迟</th>
-                      <th className={`${tableHeadCell(theme)} text-right`} style={{ minWidth: 100 }}>
-                        操作
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {agents.map((agent, idx) => (
-                        <tr
-                          key={agent.id}
-                          className={tableBodyRow(theme, idx)}
-                        >
-                          <td
-                            className={`px-4 py-3 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}
-                          >
-                            <div className="flex items-center gap-3">
-                              <div
-                                className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg shrink-0 ${
-                                  isDark ? 'bg-white/5' : 'bg-slate-100'
-                                }`}
-                              >
-                                {agent.icon || '🤖'}
-                              </div>
-                              <div className="min-w-0">
-                                <div
-                                  className={`font-semibold truncate ${
-                                    isDark ? 'text-white' : 'text-slate-900'
-                                  }`}
-                                >
-                                  {agent.displayName}
-                                </div>
-                                <div className="text-xs text-slate-500 truncate">
-                                  {agent.agentName}
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span
-                              className={`inline-flex px-2 py-0.5 rounded-md text-xs font-medium ${
-                                isDark
-                                  ? 'bg-white/5 text-slate-300'
-                                  : 'bg-slate-100 text-slate-600'
-                              }`}
-                            >
-                              {TYPE_LABEL[agent.agentType]}
-                            </span>
-                          </td>
-                          <td
-                            className={`px-4 py-3 text-xs ${
-                              isDark ? 'text-slate-400' : 'text-slate-500'
-                            }`}
-                          >
-                            {SOURCE_LABEL[agent.sourceType]}
-                          </td>
-                          <td className={tableCell()}>
-                            <span className={statusBadgeClass(agent.status as DomainStatus, theme)}>
-                              {statusLabel(agent.status as DomainStatus)}
-                            </span>
-                          </td>
-                          <td
-                            className={`px-4 py-3 text-right font-mono text-xs tabular-nums ${
-                              isDark ? 'text-slate-300' : 'text-slate-700'
-                            }`}
-                          >
+                <AnimatedList className="p-3 space-y-2">
+                  {agents.map((agent) => (
+                    <motion.div
+                      key={agent.id}
+                      whileHover={{ y: -2 }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                      className={`${bentoCardHover(theme)} p-4 flex items-center gap-4 ${
+                        isDark ? 'hover:bg-indigo-500/[0.03]' : 'hover:bg-indigo-50/40'
+                      }`}
+                    >
+                      {/* Icon */}
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0 ${
+                        isDark ? 'bg-white/[0.04]' : 'bg-slate-50'
+                      }`}>
+                        {agent.icon || '🤖'}
+                      </div>
+
+                      {/* Main info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`font-semibold truncate ${textPrimary(theme)}`}>{agent.displayName}</span>
+                          <span className={techBadge(theme)}>{TYPE_LABEL[agent.agentType]}</span>
+                          <span className={statusBadgeClass(agent.status as DomainStatus, theme)}>
+                            <span className={statusDot(agent.status as DomainStatus)} />
+                            {statusLabel(agent.status as DomainStatus)}
+                          </span>
+                        </div>
+                        <div className={`text-xs mt-0.5 truncate ${textMuted(theme)}`}>
+                          {agent.agentName} · {SOURCE_LABEL[agent.sourceType]}
+                        </div>
+                      </div>
+
+                      {/* Metadata — hidden on small screens */}
+                      <div className="hidden lg:flex items-center gap-6 shrink-0">
+                        <div className="text-right">
+                          <div className={`text-[10px] uppercase tracking-wider ${textMuted(theme)}`}>调用</div>
+                          <div className={`text-sm font-mono tabular-nums font-medium ${textSecondary(theme)}`}>
                             {formatCount(agent.callCount)}
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <span
-                              className={`font-mono text-xs tabular-nums ${
-                                agent.successRate >= 95
-                                  ? 'text-emerald-500'
-                                  : agent.successRate >= 90
-                                    ? 'text-blue-500'
-                                    : 'text-orange-500'
-                              }`}
-                            >
-                              {agent.successRate.toFixed(1)}%
-                            </span>
-                          </td>
-                          <td
-                            className={`px-4 py-3 text-right font-mono text-xs tabular-nums ${
-                              isDark ? 'text-slate-400' : 'text-slate-500'
-                            }`}
-                          >
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className={`text-[10px] uppercase tracking-wider ${textMuted(theme)}`}>成功率</div>
+                          <div className={`text-sm font-mono tabular-nums font-semibold ${
+                            agent.successRate >= 95 ? 'text-emerald-500'
+                              : agent.successRate >= 90 ? 'text-blue-500'
+                              : 'text-orange-500'
+                          }`}>
+                            {agent.successRate.toFixed(1)}%
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className={`text-[10px] uppercase tracking-wider ${textMuted(theme)}`}>延迟</div>
+                          <div className={`text-sm font-mono tabular-nums ${textMuted(theme)}`}>
                             {agent.avgLatencyMs >= 1000
                               ? (agent.avgLatencyMs / 1000).toFixed(1) + 's'
                               : agent.avgLatencyMs + 'ms'}
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <div className="inline-flex items-center gap-1">
-                              <button
-                                type="button"
-                                onClick={() => onViewDetail(String(agent.id))}
-                                className={`p-1.5 rounded-lg transition-colors ${
-                                  isDark
-                                    ? 'text-blue-400 hover:bg-blue-500/10'
-                                    : 'text-blue-600 hover:bg-blue-50'
-                                }`}
-                                title="详情"
-                              >
-                                <ExternalLink size={14} />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleEdit(agent)}
-                                className={`p-1.5 rounded-lg transition-colors ${
-                                  isDark
-                                    ? 'text-slate-400 hover:bg-white/5'
-                                    : 'text-slate-500 hover:bg-slate-100'
-                                }`}
-                                title="编辑"
-                              >
-                                <Edit2 size={14} />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setDeleteTarget({ id: agent.id, name: agent.displayName })
-                                }
-                                className={`p-1.5 rounded-lg transition-colors ${
-                                  isDark
-                                    ? 'text-red-400 hover:bg-red-500/10'
-                                    : 'text-red-500 hover:bg-red-50'
-                                }`}
-                                title="删除"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                    ))}
-                  </tbody>
-                </table>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Desktop actions */}
+                      <div className="hidden sm:flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => onViewDetail(String(agent.id))}
+                          className={`p-2 rounded-xl transition-colors ${
+                            isDark ? 'text-indigo-400 hover:bg-indigo-500/10' : 'text-indigo-600 hover:bg-indigo-50'
+                          }`}
+                          title="详情"
+                        >
+                          <ExternalLink size={15} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleEdit(agent)}
+                          className={`p-2 rounded-xl transition-colors ${
+                            isDark ? 'text-slate-400 hover:bg-white/5' : 'text-slate-500 hover:bg-slate-100'
+                          }`}
+                          title="编辑"
+                        >
+                          <Edit2 size={15} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteTarget({ id: agent.id, name: agent.displayName })}
+                          className={`p-2 rounded-xl transition-colors ${
+                            isDark ? 'text-rose-400 hover:bg-rose-500/10' : 'text-rose-500 hover:bg-rose-50'
+                          }`}
+                          title="删除"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+
+                      {/* Mobile menu */}
+                      <div className="relative sm:hidden shrink-0">
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === agent.id ? null : agent.id); }}
+                          className={btnGhost(theme)}
+                        >
+                          <MoreHorizontal size={16} />
+                        </button>
+                        {openMenuId === agent.id && (
+                          <div className={`absolute right-0 top-full mt-1 z-30 w-32 rounded-xl border shadow-xl py-1 ${
+                            isDark ? 'bg-[#1a1f2e] border-white/10' : 'bg-white border-slate-200'
+                          }`}>
+                            <button
+                              type="button"
+                              onClick={() => { onViewDetail(String(agent.id)); setOpenMenuId(null); }}
+                              className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 ${
+                                isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'
+                              }`}
+                            >
+                              <ExternalLink size={14} /> 详情
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => { handleEdit(agent); setOpenMenuId(null); }}
+                              className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 ${
+                                isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'
+                              }`}
+                            >
+                              <Edit2 size={14} /> 编辑
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => { setDeleteTarget({ id: agent.id, name: agent.displayName }); setOpenMenuId(null); }}
+                              className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 ${
+                                isDark ? 'text-rose-400 hover:bg-rose-500/10' : 'text-rose-500 hover:bg-rose-50'
+                              }`}
+                            >
+                              <Trash2 size={14} /> 删除
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatedList>
               )}
             </ContentLoader>
           </div>
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div
-              className={`px-4 py-3 border-t shrink-0 flex items-center justify-between ${
-                isDark ? 'border-white/10' : 'border-slate-200'
-              }`}
-            >
-              <span className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            <div className={`px-4 py-3 border-t shrink-0 flex items-center justify-between ${
+              isDark ? 'border-white/[0.06]' : 'border-slate-100'
+            }`}>
+              <span className={`text-sm ${textMuted(theme)}`}>
                 共 {total} 条，第 {page}/{totalPages} 页
               </span>
               <div className="flex items-center gap-2">
@@ -453,12 +421,8 @@ export const AgentList: React.FC<AgentListProps> = ({
                   disabled={page === 1}
                   className={`p-2 rounded-xl transition-colors ${
                     page === 1
-                      ? isDark
-                        ? 'text-slate-600 cursor-not-allowed'
-                        : 'text-slate-300 cursor-not-allowed'
-                      : isDark
-                        ? 'text-slate-300 hover:bg-white/5'
-                        : 'text-slate-600 hover:bg-slate-100'
+                      ? isDark ? 'text-slate-600 cursor-not-allowed' : 'text-slate-300 cursor-not-allowed'
+                      : isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >
                   <ChevronLeft size={16} />
@@ -469,12 +433,8 @@ export const AgentList: React.FC<AgentListProps> = ({
                   disabled={page === totalPages}
                   className={`p-2 rounded-xl transition-colors ${
                     page === totalPages
-                      ? isDark
-                        ? 'text-slate-600 cursor-not-allowed'
-                        : 'text-slate-300 cursor-not-allowed'
-                      : isDark
-                        ? 'text-slate-300 hover:bg-white/5'
-                        : 'text-slate-600 hover:bg-slate-100'
+                      ? isDark ? 'text-slate-600 cursor-not-allowed' : 'text-slate-300 cursor-not-allowed'
+                      : isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >
                   <ChevronRight size={16} />

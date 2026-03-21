@@ -1,10 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, XCircle, Eye, X, Wrench, Clock, User, Loader2 } from 'lucide-react';
+import { CheckCircle2, XCircle, Eye, X, Clock, User, Loader2 } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
-import type { AgentStatus, AgentType, SourceType } from '../../types/dto/agent';
-import { statusBadgeClass, statusLabel, pageBg, btnSecondary } from '../../utils/uiClasses';
+import {
+  pageBg, bentoCard, bentoCardHover, btnSecondary,
+  statusBadgeClass, statusDot, statusLabel,
+  textPrimary, textSecondary, textMuted,
+} from '../../utils/uiClasses';
 import type { DomainStatus } from '../../utils/uiClasses';
+import { AnimatedList } from '../../components/common/AnimatedList';
 import { auditService } from '../../api/services/audit.service';
 import type { AuditItem } from '../../types/dto/audit';
 
@@ -28,10 +32,7 @@ export const SkillAuditList: React.FC<Props> = ({ theme, fontSize, showMessage }
     setLoading(true);
     auditService.listPendingSkills()
       .then(res => setQueue(res.list))
-      .catch(err => {
-        console.error(err);
-        showMessage?.('加载审核列表失败', 'error');
-      })
+      .catch(err => { console.error(err); showMessage?.('加载审核列表失败', 'error'); })
       .finally(() => setLoading(false));
   }, [showMessage]);
 
@@ -39,146 +40,83 @@ export const SkillAuditList: React.FC<Props> = ({ theme, fontSize, showMessage }
 
   const handleApprove = (skill: AuditItem) => {
     auditService.approve(skill.id, 'skill')
-      .then(() => {
-        setApproveTarget(null);
-        showMessage?.(`「${skill.displayName}」已通过审核，进入测试阶段`, 'success');
-        fetchData();
-      })
-      .catch(err => {
-        console.error(err);
-        showMessage?.('审核操作失败', 'error');
-      });
+      .then(() => { setApproveTarget(null); showMessage?.(`「${skill.displayName}」已通过审核，进入测试阶段`, 'success'); fetchData(); })
+      .catch(err => { console.error(err); showMessage?.('审核操作失败', 'error'); });
   };
 
   const handleReject = (skill: AuditItem) => {
     if (!rejectReason.trim()) return;
     auditService.reject(skill.id, 'skill', rejectReason.trim())
-      .then(() => {
-        setRejectTarget(null);
-        setRejectReason('');
-        showMessage?.(`「${skill.displayName}」已驳回`, 'info');
-        fetchData();
-      })
-      .catch(err => {
-        console.error(err);
-        showMessage?.('驳回操作失败', 'error');
-      });
+      .then(() => { setRejectTarget(null); setRejectReason(''); showMessage?.(`「${skill.displayName}」已驳回`, 'info'); fetchData(); })
+      .catch(err => { console.error(err); showMessage?.('驳回操作失败', 'error'); });
   };
 
   const filteredQueue = filterStatus === 'all' ? queue : queue.filter(s => s.status === filterStatus);
   const pendingCount = queue.filter(s => s.status === 'pending_review').length;
 
-  const StatusBadge: React.FC<{ status: string }> = ({ status }) => (
-    <span className={statusBadgeClass(status as DomainStatus, theme)}>
-      {statusLabel(status as DomainStatus)}
-    </span>
-  );
-
   return (
     <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${pageBg(theme)}`}>
-      <div className={`shrink-0 z-20 border-b px-4 sm:px-6 py-4 ${isDark ? 'border-white/10' : 'border-slate-200/80'} ${pageBg(theme)}`}>
+      {/* Header */}
+      <div className={`shrink-0 z-20 border-b px-4 sm:px-6 py-4 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-xl ${isDark ? 'bg-amber-500/20' : 'bg-amber-50'}`}>
+            <div className={`p-2 rounded-xl ${isDark ? 'bg-amber-500/15' : 'bg-amber-50'}`}>
               <CheckCircle2 size={20} className={isDark ? 'text-amber-400' : 'text-amber-600'} />
             </div>
             <div>
-              <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Skill 审核队列</h2>
-              <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>审核用户提交的 Skill，决定是否允许上线</p>
+              <h2 className={`text-lg font-bold ${textPrimary(theme)}`}>Skill 审核队列</h2>
+              <p className={`text-xs ${textMuted(theme)}`}>审核用户提交的 Skill，决定是否允许上线</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            {pendingCount > 0 && (
-              <span className="text-xs px-3 py-1.5 rounded-lg font-semibold bg-amber-500/20 text-amber-500">
-                {pendingCount} 条待审核
-              </span>
-            )}
-            <select
-              value={filterStatus}
-              onChange={e => setFilterStatus(e.target.value as any)}
-              className={`text-xs px-3 py-1.5 rounded-xl border outline-none ${isDark ? 'bg-[#2C2C2E] border-white/10 text-white' : 'bg-white border-slate-200 text-slate-700'}`}
-            >
-              <option value="pending_review">仅待审核</option>
-              <option value="all">全部</option>
+            {pendingCount > 0 && <span className="text-xs px-3 py-1.5 rounded-lg font-semibold bg-amber-500/20 text-amber-500">{pendingCount} 条待审核</span>}
+            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value as 'all' | 'pending_review')} className={`text-xs px-3 py-1.5 rounded-xl border outline-none transition-colors ${isDark ? 'bg-[#1a1f2e] border-white/10 text-white' : 'bg-white border-slate-200 text-slate-700'}`}>
+              <option value="pending_review">仅待审核</option><option value="all">全部</option>
             </select>
           </div>
         </div>
       </div>
 
+      {/* Content */}
       <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4 sm:px-6 py-4">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 size={32} className={`animate-spin ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
-            <p className={`mt-3 text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>加载中…</p>
+            <Loader2 size={32} className={`animate-spin ${textMuted(theme)}`} />
+            <p className={`mt-3 text-sm ${textMuted(theme)}`}>加载中…</p>
           </div>
         ) : filteredQueue.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20">
             <CheckCircle2 size={48} className={isDark ? 'text-slate-600' : 'text-slate-300'} />
-            <p className={`mt-4 text-sm font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>暂无待审核项目</p>
+            <p className={`mt-4 text-sm font-medium ${textMuted(theme)}`}>暂无待审核项目</p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <AnimatedList className="space-y-2">
             {filteredQueue.map((skill) => (
-              <motion.div
-                key={skill.id}
-                layout
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`rounded-2xl border p-4 sm:p-5 transition-colors ${isDark ? 'bg-[#1C1C1E] border-white/10 hover:border-white/20' : 'bg-white border-slate-200/80 hover:border-slate-300'}`}
-              >
+              <motion.div key={skill.id} whileHover={{ y: -2 }} transition={{ type: 'spring', stiffness: 400, damping: 30 }} className={`${bentoCardHover(theme)} p-4 sm:p-5 ${isDark ? 'hover:bg-indigo-500/[0.03]' : 'hover:bg-indigo-50/40'}`}>
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-2 flex-wrap">
-                      <h3 className={`font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{skill.displayName}</h3>
-                      <StatusBadge status={skill.status} />
-                      <span className={`text-xs px-2 py-0.5 rounded-md ${isDark ? 'bg-white/5 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
-                        {skill.agentType}
-                      </span>
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <h3 className={`font-bold ${textPrimary(theme)}`}>{skill.displayName}</h3>
+                      <span className={statusBadgeClass(skill.status as DomainStatus, theme)}><span className={statusDot(skill.status as DomainStatus)} />{statusLabel(skill.status as DomainStatus)}</span>
+                      <span className={`text-[10px] uppercase tracking-widest font-medium px-1.5 py-0.5 rounded ${isDark ? 'bg-white/5 text-slate-500' : 'bg-slate-50 text-slate-400'}`}>{skill.agentType}</span>
                     </div>
-                    <p className={`text-sm mb-3 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{skill.description}</p>
+                    <p className={`text-sm mb-3 ${textSecondary(theme)}`}>{skill.description}</p>
                     <div className="flex items-center gap-4 flex-wrap">
-                      <span className={`text-xs flex items-center gap-1.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                        <User size={12} /> {skill.submitter}
-                      </span>
-                      <span className={`text-xs flex items-center gap-1.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                        <Clock size={12} /> {skill.submitTime}
-                      </span>
+                      <span className={`text-xs flex items-center gap-1.5 ${textMuted(theme)}`}><User size={12} /> {skill.submitter}</span>
+                      <span className={`text-xs flex items-center gap-1.5 ${textMuted(theme)}`}><Clock size={12} /> {skill.submitTime}</span>
                     </div>
                   </div>
-
                   {skill.status === 'pending_review' && (
                     <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        onClick={() => setDetailTarget(skill)}
-                        className={`p-2 rounded-xl transition-colors ${isDark ? 'hover:bg-white/10 text-slate-400' : 'hover:bg-slate-100 text-slate-500'}`}
-                        title="查看详情"
-                      >
-                        <Eye size={16} />
-                      </button>
-                      <button
-                        onClick={() => setApproveTarget(skill)}
-                        className={`px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-colors ${
-                          isDark ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                        }`}
-                      >
-                        <CheckCircle2 size={14} />
-                        通过
-                      </button>
-                      <button
-                        onClick={() => setRejectTarget(skill)}
-                        className={`px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-colors ${
-                          isDark ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' : 'bg-red-50 text-red-700 hover:bg-red-100'
-                        }`}
-                      >
-                        <XCircle size={14} />
-                        驳回
-                      </button>
+                      <button onClick={() => setDetailTarget(skill)} className={`p-2 rounded-xl transition-colors ${isDark ? 'hover:bg-white/5 text-slate-400' : 'hover:bg-slate-100 text-slate-500'}`} title="查看详情"><Eye size={16} /></button>
+                      <button onClick={() => setApproveTarget(skill)} className={`px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-colors ${isDark ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}`}><CheckCircle2 size={14} /> 通过</button>
+                      <button onClick={() => setRejectTarget(skill)} className={`px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-colors ${isDark ? 'bg-rose-500/15 text-rose-400 hover:bg-rose-500/25' : 'bg-rose-50 text-rose-700 hover:bg-rose-100'}`}><XCircle size={14} /> 驳回</button>
                     </div>
                   )}
                 </div>
               </motion.div>
             ))}
-          </div>
+          </AnimatedList>
         )}
       </div>
 
@@ -186,26 +124,16 @@ export const SkillAuditList: React.FC<Props> = ({ theme, fontSize, showMessage }
       <AnimatePresence>
         {approveTarget && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setApproveTarget(null)}>
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} onClick={e => e.stopPropagation()} className={`w-full max-w-md mx-4 p-6 rounded-2xl border shadow-2xl ${isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200'}`}>
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} onClick={e => e.stopPropagation()} className={`w-full max-w-md mx-4 p-6 ${bentoCard(theme)}`}>
               <div className="flex items-center justify-between mb-4">
-                <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>确认审核通过</h3>
-                <button onClick={() => setApproveTarget(null)} className={`p-1.5 rounded-lg ${isDark ? 'hover:bg-white/10' : 'hover:bg-slate-100'}`}>
-                  <X size={18} className={isDark ? 'text-slate-400' : 'text-slate-500'} />
-                </button>
+                <h3 className={`text-lg font-bold ${textPrimary(theme)}`}>确认审核通过</h3>
+                <button onClick={() => setApproveTarget(null)} className={`p-1.5 rounded-lg ${isDark ? 'hover:bg-white/10' : 'hover:bg-slate-100'}`}><X size={18} className={textMuted(theme)} /></button>
               </div>
-              <p className={`text-sm mb-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                确定通过 <strong>{approveTarget.displayName}</strong> 的审核？
-              </p>
-              <p className={`text-xs mb-6 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                通过后该 Skill 将进入测试阶段，测试完成后可发布上线。
-              </p>
+              <p className={`text-sm mb-2 ${textSecondary(theme)}`}>确定通过 <strong>{approveTarget.displayName}</strong> 的审核？</p>
+              <p className={`text-xs mb-6 ${textMuted(theme)}`}>通过后该 Skill 将进入测试阶段，测试完成后可发布上线。</p>
               <div className="flex justify-end gap-3">
-                <button onClick={() => setApproveTarget(null)} className={btnSecondary(theme)}>
-                  取消
-                </button>
-                <button onClick={() => handleApprove(approveTarget)} className="px-4 py-2 rounded-xl text-sm font-medium bg-emerald-500 text-white hover:bg-emerald-600 transition-colors">
-                  确认通过
-                </button>
+                <button onClick={() => setApproveTarget(null)} className={btnSecondary(theme)}>取消</button>
+                <button onClick={() => handleApprove(approveTarget)} className="px-4 py-2.5 rounded-xl text-sm font-medium bg-emerald-500 text-white hover:bg-emerald-600 transition-colors">确认通过</button>
               </div>
             </motion.div>
           </motion.div>
@@ -216,30 +144,16 @@ export const SkillAuditList: React.FC<Props> = ({ theme, fontSize, showMessage }
       <AnimatePresence>
         {rejectTarget && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => { setRejectTarget(null); setRejectReason(''); }}>
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} onClick={e => e.stopPropagation()} className={`w-full max-w-md mx-4 p-6 rounded-2xl border shadow-2xl ${isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200'}`}>
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} onClick={e => e.stopPropagation()} className={`w-full max-w-md mx-4 p-6 ${bentoCard(theme)}`}>
               <div className="flex items-center justify-between mb-4">
-                <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>驳回审核</h3>
-                <button onClick={() => { setRejectTarget(null); setRejectReason(''); }} className={`p-1.5 rounded-lg ${isDark ? 'hover:bg-white/10' : 'hover:bg-slate-100'}`}>
-                  <X size={18} className={isDark ? 'text-slate-400' : 'text-slate-500'} />
-                </button>
+                <h3 className={`text-lg font-bold ${textPrimary(theme)}`}>驳回审核</h3>
+                <button onClick={() => { setRejectTarget(null); setRejectReason(''); }} className={`p-1.5 rounded-lg ${isDark ? 'hover:bg-white/10' : 'hover:bg-slate-100'}`}><X size={18} className={textMuted(theme)} /></button>
               </div>
-              <p className={`text-sm mb-4 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                请输入 <strong>{rejectTarget.displayName}</strong> 的驳回原因：
-              </p>
-              <textarea
-                rows={3}
-                placeholder="请说明驳回理由，提交者将看到此说明..."
-                className={`w-full rounded-xl border px-3 py-2.5 text-sm resize-y outline-none focus:ring-1 focus:ring-red-500/30 mb-6 ${isDark ? 'bg-[#2C2C2E] border-white/10 text-white placeholder:text-slate-500' : 'bg-white border-slate-200 text-slate-900 placeholder:text-slate-400'}`}
-                value={rejectReason}
-                onChange={e => setRejectReason(e.target.value)}
-              />
+              <p className={`text-sm mb-4 ${textSecondary(theme)}`}>请输入 <strong>{rejectTarget.displayName}</strong> 的驳回原因：</p>
+              <textarea rows={3} placeholder="请说明驳回理由，提交者将看到此说明..." className={`w-full rounded-xl border px-3 py-2.5 text-sm resize-y outline-none focus:ring-1 focus:ring-rose-500/30 mb-6 ${isDark ? 'bg-[#141820] border-white/10 text-white placeholder:text-slate-500' : 'bg-white border-slate-200 text-slate-900 placeholder:text-slate-400'}`} value={rejectReason} onChange={e => setRejectReason(e.target.value)} />
               <div className="flex justify-end gap-3">
-                <button onClick={() => { setRejectTarget(null); setRejectReason(''); }} className={btnSecondary(theme)}>
-                  取消
-                </button>
-                <button onClick={() => handleReject(rejectTarget)} disabled={!rejectReason.trim()} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${rejectReason.trim() ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-red-500/40 text-white/60 cursor-not-allowed'}`}>
-                  确认驳回
-                </button>
+                <button onClick={() => { setRejectTarget(null); setRejectReason(''); }} className={btnSecondary(theme)}>取消</button>
+                <button onClick={() => handleReject(rejectTarget)} disabled={!rejectReason.trim()} className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${rejectReason.trim() ? 'bg-rose-500 text-white hover:bg-rose-600' : 'bg-rose-500/40 text-white/60 cursor-not-allowed'}`}>确认驳回</button>
               </div>
             </motion.div>
           </motion.div>
@@ -250,14 +164,12 @@ export const SkillAuditList: React.FC<Props> = ({ theme, fontSize, showMessage }
       <AnimatePresence>
         {detailTarget && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setDetailTarget(null)}>
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} onClick={e => e.stopPropagation()} className={`w-full max-w-lg mx-4 p-6 rounded-2xl border shadow-2xl ${isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200'}`}>
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} onClick={e => e.stopPropagation()} className={`w-full max-w-lg mx-4 p-6 ${bentoCard(theme)}`}>
               <div className="flex items-center justify-between mb-4">
-                <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Skill 详情</h3>
-                <button onClick={() => setDetailTarget(null)} className={`p-1.5 rounded-lg ${isDark ? 'hover:bg-white/10' : 'hover:bg-slate-100'}`}>
-                  <X size={18} className={isDark ? 'text-slate-400' : 'text-slate-500'} />
-                </button>
+                <h3 className={`text-lg font-bold ${textPrimary(theme)}`}>Skill 详情</h3>
+                <button onClick={() => setDetailTarget(null)} className={`p-1.5 rounded-lg ${isDark ? 'hover:bg-white/10' : 'hover:bg-slate-100'}`}><X size={18} className={textMuted(theme)} /></button>
               </div>
-              <div className={`rounded-xl border divide-y ${isDark ? 'border-white/10 divide-white/10' : 'border-slate-200 divide-slate-100'}`}>
+              <div className={`rounded-xl border divide-y ${isDark ? 'border-white/[0.06] divide-white/[0.06]' : 'border-slate-100 divide-slate-100'}`}>
                 {[
                   { label: '名称', value: detailTarget.displayName },
                   { label: '描述', value: detailTarget.description },
@@ -268,16 +180,12 @@ export const SkillAuditList: React.FC<Props> = ({ theme, fontSize, showMessage }
                   { label: '提交时间', value: detailTarget.submitTime },
                 ].map(item => (
                   <div key={item.label} className="flex items-start justify-between px-4 py-3 gap-4">
-                    <span className={`text-xs shrink-0 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{item.label}</span>
-                    <span className={`text-sm font-medium text-right break-all ${isDark ? 'text-white' : 'text-slate-900'}`}>{item.value}</span>
+                    <span className={`text-xs shrink-0 ${textMuted(theme)}`}>{item.label}</span>
+                    <span className={`text-sm font-medium text-right break-all ${textPrimary(theme)}`}>{item.value}</span>
                   </div>
                 ))}
               </div>
-              <div className="flex justify-end mt-4">
-                <button onClick={() => setDetailTarget(null)} className={btnSecondary(theme)}>
-                  关闭
-                </button>
-              </div>
+              <div className="flex justify-end mt-4"><button onClick={() => setDetailTarget(null)} className={btnSecondary(theme)}>关闭</button></div>
             </motion.div>
           </motion.div>
         )}

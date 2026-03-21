@@ -1,53 +1,25 @@
 import React, { useState } from 'react';
-import { 
-  ArrowLeft, 
-  Settings, 
-  Zap, 
-  FileText, 
-  Play, 
-  Edit2, 
-  Trash2,
-  CheckCircle2,
-  Clock,
-  BarChart3,
-  ShieldCheck,
-  Code2,
-  Globe,
-  Activity
+import { motion } from 'framer-motion';
+import {
+  ArrowLeft, Settings, FileText, Play, Edit2, Trash2,
+  CheckCircle2, Clock, BarChart3, ShieldCheck, Code2, Globe, Activity,
 } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { useAgent, useDeleteAgent } from '../../hooks/queries/useAgent';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { PageError } from '../../components/common/PageError';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
+import {
+  pageBg, bentoCard, btnGhost, btnDanger,
+  textPrimary, textSecondary, textMuted,
+  statusBadgeClass, statusDot, statusLabel,
+} from '../../utils/uiClasses';
+import type { DomainStatus } from '../../utils/uiClasses';
 
-interface AgentDetailProps {
-  agentId: string;
-  theme: Theme;
-  fontSize: FontSize;
-  onBack: () => void;
-}
+interface AgentDetailProps { agentId: string; theme: Theme; fontSize: FontSize; onBack: () => void; }
 
-const STATUS_MAP: Record<string, { label: string; cls: string }> = {
-  published: { label: '已发布', cls: 'badge-success' },
-  draft: { label: '草稿', cls: 'badge-ghost' },
-  pending_review: { label: '待审核', cls: 'badge-warning' },
-  testing: { label: '测试中', cls: 'badge-info' },
-  rejected: { label: '已拒绝', cls: 'badge-error' },
-  deprecated: { label: '已废弃', cls: 'badge-ghost' },
-};
-
-const AGENT_TYPE_LABEL: Record<string, string> = {
-  mcp: 'MCP 协议',
-  http_api: 'HTTP API',
-  builtin: '内置',
-};
-
-const SOURCE_TYPE_LABEL: Record<string, string> = {
-  internal: '内部',
-  partner: '合作方',
-  cloud: '云端',
-};
+const AGENT_TYPE_LABEL: Record<string, string> = { mcp: 'MCP 协议', http_api: 'HTTP API', builtin: '内置' };
+const SOURCE_TYPE_LABEL: Record<string, string> = { internal: '内部', partner: '合作方', cloud: '云端' };
 
 export const AgentDetail: React.FC<AgentDetailProps> = ({ agentId, theme, fontSize, onBack }) => {
   const isDark = theme === 'dark';
@@ -56,239 +28,116 @@ export const AgentDetail: React.FC<AgentDetailProps> = ({ agentId, theme, fontSi
   const deleteMut = useDeleteAgent();
   const [deleteOpen, setDeleteOpen] = useState(false);
 
-  const handleDelete = () => {
-    deleteMut.mutate(numericId, {
-      onSuccess: () => { setDeleteOpen(false); onBack(); },
-    });
-  };
+  const handleDelete = () => { deleteMut.mutate(numericId, { onSuccess: () => { setDeleteOpen(false); onBack(); } }); };
 
-  if (isLoading) {
-    return (
-      <div className={`flex-1 flex flex-col min-h-0 ${isDark ? 'bg-[#000000]' : 'bg-[#F2F2F7]'}`}>
-        <PageSkeleton type="detail" />
-      </div>
-    );
-  }
+  if (isLoading) return <div className={`flex-1 flex flex-col min-h-0 ${pageBg(theme)}`}><PageSkeleton type="detail" /></div>;
+  if (isError || !agent) return <div className={`flex-1 flex flex-col min-h-0 ${pageBg(theme)}`}><PageError error={error instanceof Error ? error : new Error('加载失败')} onRetry={() => refetch()} /></div>;
 
-  if (isError || !agent) {
-    return (
-      <div className={`flex-1 flex flex-col min-h-0 ${isDark ? 'bg-[#000000]' : 'bg-[#F2F2F7]'}`}>
-        <PageError error={error instanceof Error ? error : new Error('加载失败')} onRetry={() => refetch()} />
-      </div>
-    );
-  }
-
-  const formatCallCount = (n: number) => {
-    if (n >= 10000) return (n / 10000).toFixed(2) + '万';
-    return n.toLocaleString();
-  };
-
-  const statusInfo = STATUS_MAP[agent.status] ?? { label: agent.status, cls: 'badge-ghost' };
+  const formatCallCount = (n: number) => n >= 10000 ? (n / 10000).toFixed(2) + '万' : n.toLocaleString();
 
   return (
-    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${
-      isDark ? 'bg-[#000000]' : 'bg-[#F2F2F7]'
-    }`}>
+    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${pageBg(theme)}`}>
       {/* Header */}
-      <div className={`shrink-0 z-20 border-b px-4 sm:px-6 py-4 flex items-center justify-between ${
-        isDark ? 'border-white/10 bg-[#000000]' : 'border-slate-200/80 bg-[#F2F2F7]'
-      }`}>
+      <div className={`shrink-0 z-20 border-b px-4 sm:px-6 py-4 flex items-center justify-between ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
         <div className="flex items-center gap-4 min-w-0">
-          <button type="button" onClick={onBack} className="btn btn-ghost btn-sm btn-circle shrink-0">
-            <ArrowLeft size={20} />
-          </button>
+          <button type="button" onClick={onBack} className={btnGhost(theme)}><ArrowLeft size={20} /></button>
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-2xl text-white shadow-none border border-blue-500/30 shrink-0">
-              {agent.icon || '🤖'}
-            </div>
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shrink-0 ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-50'}`}>{agent.icon || '🤖'}</div>
             <div>
-              <h2 className="text-xl font-bold">{agent.displayName}</h2>
+              <h2 className={`text-xl font-bold ${textPrimary(theme)}`}>{agent.displayName}</h2>
               <div className="flex items-center gap-2 mt-0.5">
-                <div className={`badge badge-sm font-bold text-[10px] ${statusInfo.cls}`}>
-                  {statusInfo.label}
-                </div>
-                <span className="text-xs text-slate-500">ID: {agentId}</span>
+                <span className={statusBadgeClass(agent.status as DomainStatus, theme)}><span className={statusDot(agent.status as DomainStatus)} />{statusLabel(agent.status as DomainStatus)}</span>
+                <span className={`text-xs ${textMuted(theme)}`}>ID: {agentId}</span>
               </div>
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <button type="button" className="btn btn-ghost btn-sm gap-2">
-            <Play size={16} />
-            <span>测试</span>
-          </button>
-          <button type="button" className="btn btn-ghost btn-sm gap-2">
-            <Edit2 size={16} />
-            <span>编辑</span>
-          </button>
-          <button type="button" onClick={() => setDeleteOpen(true)} className="btn btn-error btn-sm btn-outline gap-2">
-            <Trash2 size={16} />
-            <span>删除</span>
-          </button>
+          <button type="button" className={btnGhost(theme)}><Play size={16} /> <span className="hidden sm:inline">测试</span></button>
+          <button type="button" className={btnGhost(theme)}><Edit2 size={16} /> <span className="hidden sm:inline">编辑</span></button>
+          <button type="button" onClick={() => setDeleteOpen(true)} className={btnDanger}><Trash2 size={16} /> <span className="hidden sm:inline">删除</span></button>
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-2 sm:px-3 lg:px-4 py-2 sm:py-3 grid grid-cols-1 lg:grid-cols-3 gap-6 content-start">
-        {/* Left Column: Info & Config */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className={`card border rounded-2xl shadow-none ${isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200/80'}`}>
-            <div className="card-body p-6">
-              <h3 className="card-title text-sm font-bold mb-4 flex items-center gap-2">
-                <FileText size={18} className="text-blue-500" />
-                基本信息
-              </h3>
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <label className="text-xs text-slate-500 block mb-1">显示名称</label>
-                  <p className="font-medium">{agent.displayName}</p>
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-2 sm:px-3 lg:px-4 py-3 grid grid-cols-1 lg:grid-cols-3 gap-4 content-start">
+        {/* Left */}
+        <div className="lg:col-span-2 space-y-4">
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }} className={`${bentoCard(theme)} p-6`}>
+            <h3 className={`text-sm font-bold mb-4 flex items-center gap-2 ${textPrimary(theme)}`}><FileText size={18} className="text-blue-500" /> 基本信息</h3>
+            <div className="grid grid-cols-2 gap-5">
+              {[
+                { label: '显示名称', value: agent.displayName },
+                { label: '标识名称', value: agent.agentName, mono: true },
+                { label: '接入类型', value: AGENT_TYPE_LABEL[agent.agentType] ?? agent.agentType },
+                { label: '来源', value: SOURCE_TYPE_LABEL[agent.sourceType] ?? agent.sourceType },
+                { label: '模式', value: agent.mode },
+                { label: '状态', value: statusLabel(agent.status as DomainStatus) },
+              ].map((item) => (
+                <div key={item.label}>
+                  <label className={`text-xs block mb-1 ${textMuted(theme)}`}>{item.label}</label>
+                  <p className={`font-medium ${item.mono ? 'font-mono text-sm' : ''} ${textPrimary(theme)}`}>{item.value}</p>
                 </div>
-                <div>
-                  <label className="text-xs text-slate-500 block mb-1">标识名称</label>
-                  <p className="font-medium font-mono text-sm">{agent.agentName}</p>
-                </div>
-                <div>
-                  <label className="text-xs text-slate-500 block mb-1">接入类型</label>
-                  <p className="font-medium">{AGENT_TYPE_LABEL[agent.agentType] ?? agent.agentType}</p>
-                </div>
-                <div>
-                  <label className="text-xs text-slate-500 block mb-1">来源</label>
-                  <p className="font-medium">{SOURCE_TYPE_LABEL[agent.sourceType] ?? agent.sourceType}</p>
-                </div>
-                <div>
-                  <label className="text-xs text-slate-500 block mb-1">模式</label>
-                  <p className="font-medium">{agent.mode}</p>
-                </div>
-                <div>
-                  <label className="text-xs text-slate-500 block mb-1">状态</label>
-                  <p className="font-medium">{statusInfo.label}</p>
-                </div>
-                <div className="col-span-2">
-                  <label className="text-xs text-slate-500 block mb-1">描述</label>
-                  <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-                    {agent.description}
-                  </p>
-                </div>
+              ))}
+              <div className="col-span-2">
+                <label className={`text-xs block mb-1 ${textMuted(theme)}`}>描述</label>
+                <p className={`text-sm leading-relaxed ${textSecondary(theme)}`}>{agent.description}</p>
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          <div className={`card border rounded-2xl shadow-none ${isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200/80'}`}>
-            <div className="card-body p-6">
-              <h3 className="card-title text-sm font-bold mb-4 flex items-center gap-2">
-                <Settings size={18} className="text-purple-500" />
-                配置详情
-              </h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-inherit">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-100 dark:bg-blue-500/20 text-blue-600 rounded-xl">
-                      <Globe size={18} />
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold">连接配置</p>
-                      <p className="text-xs text-slate-500 font-mono break-all">
-                        {JSON.stringify(agent.specJson)}
-                      </p>
-                    </div>
-                  </div>
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.05 }} className={`${bentoCard(theme)} p-6`}>
+            <h3 className={`text-sm font-bold mb-4 flex items-center gap-2 ${textPrimary(theme)}`}><Settings size={18} className="text-purple-500" /> 配置详情</h3>
+            <div className="space-y-3">
+              <div className={`flex items-start gap-3 p-3 rounded-xl ${isDark ? 'bg-white/[0.02]' : 'bg-slate-50'} border ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+                <div className={`p-2 rounded-xl shrink-0 ${isDark ? 'bg-blue-500/15 text-blue-400' : 'bg-blue-50 text-blue-600'}`}><Globe size={18} /></div>
+                <div className="min-w-0"><p className={`text-sm font-bold ${textPrimary(theme)}`}>连接配置</p><p className={`text-xs font-mono break-all ${textMuted(theme)}`}>{JSON.stringify(agent.specJson)}</p></div>
+              </div>
+              {agent.systemPrompt && (
+                <div className={`flex items-start gap-3 p-3 rounded-xl ${isDark ? 'bg-white/[0.02]' : 'bg-slate-50'} border ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+                  <div className={`p-2 rounded-xl shrink-0 ${isDark ? 'bg-emerald-500/15 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}><ShieldCheck size={18} /></div>
+                  <div className="min-w-0 flex-1"><p className={`text-sm font-bold ${textPrimary(theme)}`}>系统提示词</p><p className={`text-xs line-clamp-2 ${textMuted(theme)}`}>{agent.systemPrompt}</p></div>
+                  <CheckCircle2 size={18} className="text-emerald-500 shrink-0" />
                 </div>
-
-                {agent.systemPrompt && (
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-inherit">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 rounded-xl">
-                        <ShieldCheck size={18} />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold">系统提示词</p>
-                        <p className="text-xs text-slate-500 line-clamp-2">{agent.systemPrompt}</p>
-                      </div>
-                    </div>
-                    <CheckCircle2 size={18} className="text-emerald-500" />
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-inherit">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-orange-100 dark:bg-orange-500/20 text-orange-600 rounded-xl">
-                      <Code2 size={18} />
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold">运行参数</p>
-                      <p className="text-xs text-slate-500">
-                        温度: {agent.temperature ?? '—'} | 最大并发: {agent.maxConcurrency} | 最大步数: {agent.maxSteps ?? '—'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+              )}
+              <div className={`flex items-start gap-3 p-3 rounded-xl ${isDark ? 'bg-white/[0.02]' : 'bg-slate-50'} border ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+                <div className={`p-2 rounded-xl shrink-0 ${isDark ? 'bg-orange-500/15 text-orange-400' : 'bg-orange-50 text-orange-600'}`}><Code2 size={18} /></div>
+                <div><p className={`text-sm font-bold ${textPrimary(theme)}`}>运行参数</p><p className={`text-xs ${textMuted(theme)}`}>温度: {agent.temperature ?? '—'} | 最大并发: {agent.maxConcurrency} | 最大步数: {agent.maxSteps ?? '—'}</p></div>
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
 
-        {/* Right Column: Stats & Meta */}
-        <div className="space-y-6">
-          <div className={`card border rounded-2xl shadow-none ${isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200/80'}`}>
-            <div className="card-body p-6">
-              <h3 className="card-title text-sm font-bold mb-4 flex items-center gap-2">
-                <BarChart3 size={18} className="text-emerald-500" />
-                运行统计
-              </h3>
-              <div className="space-y-6">
-                <div className="stats stats-vertical w-full bg-transparent shadow-none">
-                  <div className="stat px-0 py-2">
-                    <div className="stat-title text-xs">累计调用量</div>
-                    <div className="stat-value text-2xl text-blue-600">{formatCallCount(agent.callCount)}</div>
-                  </div>
-                  <div className="stat px-0 py-2">
-                    <div className="stat-title text-xs">平均成功率</div>
-                    <div className="stat-value text-2xl text-emerald-500">{agent.successRate}%</div>
-                    <progress className="progress progress-success w-full mt-2" value={agent.successRate} max="100" />
-                  </div>
-                  <div className="stat px-0 py-2">
-                    <div className="stat-title text-xs">平均响应时间</div>
-                    <div className="stat-value text-2xl text-orange-500">{agent.avgLatencyMs}ms</div>
-                  </div>
-                  <div className="stat px-0 py-2">
-                    <div className="stat-title text-xs">质量评分</div>
-                    <div className="stat-value text-2xl text-purple-500">{agent.qualityScore}</div>
-                  </div>
+        {/* Right */}
+        <div className="space-y-4">
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.1 }} className={`${bentoCard(theme)} p-6`}>
+            <h3 className={`text-sm font-bold mb-4 flex items-center gap-2 ${textPrimary(theme)}`}><BarChart3 size={18} className="text-emerald-500" /> 运行统计</h3>
+            <div className="space-y-5">
+              {[
+                { label: '累计调用量', value: formatCallCount(agent.callCount), color: 'text-blue-500' },
+                { label: '平均成功率', value: `${agent.successRate}%`, color: 'text-emerald-500', bar: agent.successRate },
+                { label: '平均响应时间', value: `${agent.avgLatencyMs}ms`, color: 'text-orange-500' },
+                { label: '质量评分', value: String(agent.qualityScore), color: 'text-purple-500' },
+              ].map((item) => (
+                <div key={item.label}>
+                  <div className={`text-xs ${textMuted(theme)}`}>{item.label}</div>
+                  <div className={`text-2xl font-bold ${item.color}`}>{item.value}</div>
+                  {item.bar !== undefined && <div className={`w-full h-1.5 rounded-full mt-2 ${isDark ? 'bg-white/5' : 'bg-slate-100'}`}><div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${item.bar}%` }} /></div>}
                 </div>
-              </div>
+              ))}
             </div>
-          </div>
+          </motion.div>
 
-          <div className={`card border rounded-2xl shadow-none ${isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200/80'}`}>
-            <div className="card-body p-6">
-              <h3 className="card-title text-sm font-bold mb-4 flex items-center gap-2">
-                <Clock size={18} className="text-slate-500" />
-                时间信息
-              </h3>
-              <div className="space-y-3">
-                <div className="flex justify-between text-xs">
-                  <span className="text-slate-500">创建时间</span>
-                  <span className="font-mono">{agent.createTime}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-slate-500">最后更新</span>
-                  <span className="font-mono">{agent.updateTime}</span>
-                </div>
-              </div>
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.15 }} className={`${bentoCard(theme)} p-6`}>
+            <h3 className={`text-sm font-bold mb-4 flex items-center gap-2 ${textPrimary(theme)}`}><Clock size={18} className="text-slate-500" /> 时间信息</h3>
+            <div className="space-y-3">
+              <div className="flex justify-between text-xs"><span className={textMuted(theme)}>创建时间</span><span className={`font-mono ${textSecondary(theme)}`}>{agent.createTime}</span></div>
+              <div className="flex justify-between text-xs"><span className={textMuted(theme)}>最后更新</span><span className={`font-mono ${textSecondary(theme)}`}>{agent.updateTime}</span></div>
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
 
-      <ConfirmDialog
-        open={deleteOpen}
-        title="删除 Agent"
-        message={`确定要删除「${agent.displayName}」吗？此操作不可撤销。`}
-        confirmText="删除"
-        variant="danger"
-        loading={deleteMut.isPending}
-        onConfirm={handleDelete}
-        onCancel={() => setDeleteOpen(false)}
-      />
+      <ConfirmDialog open={deleteOpen} title="删除 Agent" message={`确定要删除「${agent.displayName}」吗？此操作不可撤销。`} confirmText="删除" variant="danger" loading={deleteMut.isPending} onConfirm={handleDelete} onCancel={() => setDeleteOpen(false)} />
     </div>
   );
 };

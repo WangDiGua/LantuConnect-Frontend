@@ -18,7 +18,8 @@ import {
 } from 'lucide-react';
 import { Theme, FontSize, ThemeColor } from '../../types';
 import type { Agent, AgentType } from '../../types/dto/agent';
-import { nativeSelectClass } from '../../utils/formFieldClasses';
+import { nativeSelectClass, nativeInputClass } from '../../utils/formFieldClasses';
+import { btnPrimary, btnSecondary } from '../../utils/uiClasses';
 import { useCreateAgent, useUpdateAgent } from '../../hooks/queries/useAgent';
 import { z } from 'zod';
 import { ProgressBar } from '../../components/common/ProgressBar';
@@ -366,7 +367,7 @@ export const AgentCreate: React.FC<AgentCreateProps> = ({ theme, fontSize, theme
         <button 
           type="button"
           onClick={() => setCurrentStep('BASIC_INFO')}
-          className="btn btn-primary px-8 gap-2 shadow-lg shadow-blue-500/20"
+          className={`${btnPrimary} px-8 inline-flex items-center gap-2`}
         >
           跳过模板，直接创建
           <ArrowRight size={18} />
@@ -390,11 +391,11 @@ export const AgentCreate: React.FC<AgentCreateProps> = ({ theme, fontSize, theme
         <input 
           type="text" 
           placeholder="例如：学生办事助手" 
-          className={`input input-bordered w-full ${errors.name ? 'input-error' : ''}`}
+          className={`${nativeInputClass(theme)} ${errors.name ? '!border-red-500' : ''}`}
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
         />
-        {errors.name && <label className="label"><span className="label-text-alt text-error">{errors.name}</span></label>}
+        {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
       </div>
 
       <div className="form-control w-full">
@@ -402,12 +403,12 @@ export const AgentCreate: React.FC<AgentCreateProps> = ({ theme, fontSize, theme
           <span className="label-text font-bold">Agent 描述</span>
         </label>
         <textarea 
-          className={`textarea textarea-bordered h-32 ${errors.description ? 'textarea-error' : ''}`} 
+          className={`${nativeInputClass(theme)} !min-h-[8rem] resize-y ${errors.description ? '!border-red-500' : ''}`} 
           placeholder="描述该 Agent 的功能、用途及核心逻辑..."
           value={formData.description}
           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
         />
-        {errors.description && <label className="label"><span className="label-text-alt text-error">{errors.description}</span></label>}
+        {errors.description && <p className="text-xs text-red-500 mt-1">{errors.description}</p>}
       </div>
 
       {renderPreview()}
@@ -424,7 +425,7 @@ export const AgentCreate: React.FC<AgentCreateProps> = ({ theme, fontSize, theme
         <button 
           type="button"
           onClick={() => validateBasicInfo() && setCurrentStep('TYPE_SELECT')}
-          className="btn btn-primary px-8 gap-2 shadow-lg shadow-blue-500/20"
+          className={`${btnPrimary} px-8 inline-flex items-center gap-2`}
         >
           下一步
           <ArrowRight size={18} />
@@ -476,11 +477,11 @@ export const AgentCreate: React.FC<AgentCreateProps> = ({ theme, fontSize, theme
         </div>
 
         <div className="flex justify-between pt-4">
-          <button type="button" onClick={() => setCurrentStep('BASIC_INFO')} className="btn btn-ghost gap-2">
+          <button type="button" onClick={() => setCurrentStep('BASIC_INFO')} className={`${btnSecondary(theme)} inline-flex items-center gap-2`}>
             <ArrowLeft size={18} />
             上一步
           </button>
-          <button type="button" onClick={() => setCurrentStep('TYPE_CONFIG')} className="btn btn-primary px-8 gap-2 shadow-lg shadow-blue-500/20">
+          <button type="button" onClick={() => setCurrentStep('TYPE_CONFIG')} className={`${btnPrimary} px-8 inline-flex items-center gap-2`}>
             下一步
             <ArrowRight size={18} />
           </button>
@@ -543,12 +544,12 @@ export const AgentCreate: React.FC<AgentCreateProps> = ({ theme, fontSize, theme
           <input
             type="text"
             placeholder="https://api.example.com/v1/..."
-            className={`input input-bordered join-item flex-1 rounded-l-none rounded-r-xl ${errors.url ? 'input-error' : ''}`}
+            className={`${nativeInputClass(theme)} join-item flex-1 !rounded-l-none !rounded-r-xl ${errors.url ? '!border-red-500' : ''}`}
             value={formData.config.url}
             onChange={(e) => setFormData({ ...formData, config: { ...formData.config, url: e.target.value } })}
           />
         </div>
-        {errors.url && <label className="label"><span className="label-text-alt text-error">{errors.url}</span></label>}
+        {errors.url && <p className="text-xs text-red-500 mt-1">{errors.url}</p>}
       </div>
 
       <div className="grid grid-cols-2 gap-6">
@@ -573,7 +574,7 @@ export const AgentCreate: React.FC<AgentCreateProps> = ({ theme, fontSize, theme
           </label>
           <input 
             type="number" 
-            className="input input-bordered w-full"
+            className={nativeInputClass(theme)}
             value={formData.config.timeout}
             onChange={(e) => setFormData({ ...formData, config: { ...formData.config, timeout: parseInt(e.target.value) } })}
           />
@@ -599,12 +600,12 @@ export const AgentCreate: React.FC<AgentCreateProps> = ({ theme, fontSize, theme
             <Eye size={16} />
             {showPreview ? '隐藏预览' : '实时预览'}
           </button>
-          <button type="button" onClick={() => setCurrentStep('TYPE_SELECT')} className="btn btn-ghost gap-2">
+          <button type="button" onClick={() => setCurrentStep('TYPE_SELECT')} className={`${btnSecondary(theme)} inline-flex items-center gap-2`}>
             <ArrowLeft size={18} />
             上一步
           </button>
         </div>
-        <button type="button" onClick={handleSubmit} disabled={createMut.isPending || updateMut.isPending} className="btn btn-primary px-10 shadow-lg shadow-blue-500/20">
+        <button type="button" onClick={handleSubmit} disabled={createMut.isPending || updateMut.isPending} className={`${btnPrimary} px-10 disabled:opacity-50`}>
           {isEditMode ? '保存修改' : '提交创建'}
         </button>
       </div>

@@ -12,13 +12,13 @@ import {
   ChevronRight,
   Trash2,
   Download,
-  X,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Theme, FontSize, ThemeColor } from '../../types';
 import { THEME_COLOR_CLASSES } from '../../constants/theme';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
-import { nativeSelectClass } from '../../utils/formFieldClasses';
+import { nativeSelectClass, nativeInputClass } from '../../utils/formFieldClasses';
+import { btnPrimary, btnSecondary } from '../../utils/uiClasses';
+import { Modal } from '../../components/common/Modal';
 
 export interface UserSettingsPageProps {
   theme: Theme;
@@ -331,151 +331,105 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
       </div>
 
       {/* 修改密码弹窗 */}
-      <AnimatePresence>
-        {showPwdModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50"
-            onClick={() => setShowPwdModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 20 }}
-              className={`w-full max-w-sm rounded-2xl border p-6 ${
-                isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200'
-              }`}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className={`text-base font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>修改密码</h3>
-                <button type="button" onClick={() => setShowPwdModal(false)} className="btn btn-ghost btn-sm btn-circle">
-                  <X size={18} />
-                </button>
-              </div>
-              <div className="space-y-3">
-                <div>
-                  <label className={`text-xs font-semibold block mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>当前密码</label>
-                  <input
-                    type="password"
-                    value={pwdCurrent}
-                    onChange={(e) => setPwdCurrent(e.target.value)}
-                    className={`w-full px-3 py-2 rounded-xl border text-sm ${
-                      isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'
-                    }`}
-                  />
-                </div>
-                <div>
-                  <label className={`text-xs font-semibold block mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>新密码</label>
-                  <input
-                    type="password"
-                    value={pwdNew}
-                    onChange={(e) => setPwdNew(e.target.value)}
-                    placeholder="至少 6 个字符"
-                    className={`w-full px-3 py-2 rounded-xl border text-sm ${
-                      isDark ? 'bg-white/5 border-white/10 text-white placeholder:text-slate-600' : 'bg-white border-slate-200 text-slate-900 placeholder:text-slate-400'
-                    }`}
-                  />
-                </div>
-                <div>
-                  <label className={`text-xs font-semibold block mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>确认新密码</label>
-                  <input
-                    type="password"
-                    value={pwdConfirm}
-                    onChange={(e) => setPwdConfirm(e.target.value)}
-                    className={`w-full px-3 py-2 rounded-xl border text-sm ${
-                      isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'
-                    }`}
-                  />
-                </div>
-                {pwdError && (
-                  <p className="text-xs text-red-500 font-medium">{pwdError}</p>
-                )}
-              </div>
-              <div className="flex justify-end gap-2 mt-5">
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowPwdModal(false)}>取消</button>
-                <button type="button" className={`btn btn-sm text-white border-0 ${tc.bg}`} onClick={handlePwdSubmit}>确认修改</button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <Modal
+        open={showPwdModal}
+        onClose={() => setShowPwdModal(false)}
+        title="修改密码"
+        theme={theme}
+        size="sm"
+        footer={
+          <>
+            <button type="button" className={btnSecondary(theme)} onClick={() => setShowPwdModal(false)}>取消</button>
+            <button type="button" className={btnPrimary} onClick={handlePwdSubmit}>确认修改</button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <div>
+            <label className={`text-xs font-semibold block mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>当前密码</label>
+            <input
+              type="password"
+              value={pwdCurrent}
+              onChange={(e) => setPwdCurrent(e.target.value)}
+              className={nativeInputClass(theme)}
+            />
+          </div>
+          <div>
+            <label className={`text-xs font-semibold block mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>新密码</label>
+            <input
+              type="password"
+              value={pwdNew}
+              onChange={(e) => setPwdNew(e.target.value)}
+              placeholder="至少 6 个字符"
+              className={nativeInputClass(theme)}
+            />
+          </div>
+          <div>
+            <label className={`text-xs font-semibold block mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>确认新密码</label>
+            <input
+              type="password"
+              value={pwdConfirm}
+              onChange={(e) => setPwdConfirm(e.target.value)}
+              className={nativeInputClass(theme)}
+            />
+          </div>
+          {pwdError && (
+            <p className="text-xs text-red-500 font-medium">{pwdError}</p>
+          )}
+        </div>
+      </Modal>
 
       {/* 手机绑定弹窗 */}
-      <AnimatePresence>
-        {showPhoneModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50"
-            onClick={() => setShowPhoneModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 20 }}
-              className={`w-full max-w-sm rounded-2xl border p-6 ${
-                isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200'
-              }`}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className={`text-base font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>绑定手机号</h3>
-                <button type="button" onClick={() => setShowPhoneModal(false)} className="btn btn-ghost btn-sm btn-circle">
-                  <X size={18} />
-                </button>
-              </div>
-              <div className="space-y-3">
-                <div>
-                  <label className={`text-xs font-semibold block mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>手机号</label>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="输入 11 位手机号"
-                    className={`w-full px-3 py-2 rounded-xl border text-sm ${
-                      isDark ? 'bg-white/5 border-white/10 text-white placeholder:text-slate-600' : 'bg-white border-slate-200 text-slate-900 placeholder:text-slate-400'
-                    }`}
-                  />
-                </div>
-                <div>
-                  <label className={`text-xs font-semibold block mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>验证码</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={smsCode}
-                      onChange={(e) => setSmsCode(e.target.value)}
-                      placeholder="输入验证码"
-                      className={`flex-1 px-3 py-2 rounded-xl border text-sm ${
-                        isDark ? 'bg-white/5 border-white/10 text-white placeholder:text-slate-600' : 'bg-white border-slate-200 text-slate-900 placeholder:text-slate-400'
-                      }`}
-                    />
-                    <button
-                      type="button"
-                      disabled={countdown > 0}
-                      onClick={handleSendCode}
-                      className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
-                        countdown > 0
-                          ? 'bg-slate-200 text-slate-400 cursor-not-allowed dark:bg-white/5 dark:text-slate-600'
-                          : `text-white ${tc.bg}`
-                      }`}
-                    >
-                      {countdown > 0 ? `${countdown}s` : '获取验证码'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <div className="flex justify-end gap-2 mt-5">
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowPhoneModal(false)}>取消</button>
-                <button type="button" className={`btn btn-sm text-white border-0 ${tc.bg}`} onClick={handlePhoneSubmit}>确认绑定</button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <Modal
+        open={showPhoneModal}
+        onClose={() => setShowPhoneModal(false)}
+        title="绑定手机号"
+        theme={theme}
+        size="sm"
+        footer={
+          <>
+            <button type="button" className={btnSecondary(theme)} onClick={() => setShowPhoneModal(false)}>取消</button>
+            <button type="button" className={btnPrimary} onClick={handlePhoneSubmit}>确认绑定</button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <div>
+            <label className={`text-xs font-semibold block mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>手机号</label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="输入 11 位手机号"
+              className={nativeInputClass(theme)}
+            />
+          </div>
+          <div>
+            <label className={`text-xs font-semibold block mb-1 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>验证码</label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={smsCode}
+                onChange={(e) => setSmsCode(e.target.value)}
+                placeholder="输入验证码"
+                className={`${nativeInputClass(theme)} !w-auto flex-1`}
+              />
+              <button
+                type="button"
+                disabled={countdown > 0}
+                onClick={handleSendCode}
+                className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
+                  countdown > 0
+                    ? isDark ? 'bg-white/5 text-slate-600 cursor-not-allowed' : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                    : `text-white ${tc.bg}`
+                }`}
+              >
+                {countdown > 0 ? `${countdown}s` : '获取验证码'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

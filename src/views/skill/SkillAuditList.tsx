@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, XCircle, Eye, X, Wrench, Clock, User } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { AgentStatus, AgentType, SourceType } from '../../types/dto/agent';
+import { statusBadgeClass, statusLabel, pageBg, btnSecondary } from '../../utils/uiClasses';
+import type { DomainStatus } from '../../utils/uiClasses';
 
 interface Props {
   theme: Theme;
@@ -22,13 +24,6 @@ interface AuditSkill {
   submitTime: string;
   specUrl: string;
 }
-
-const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; darkBg: string; darkText: string }> = {
-  pending_review: { label: '待审核', bg: 'bg-amber-50',    text: 'text-amber-700',  darkBg: 'bg-amber-500/20',    darkText: 'text-amber-400' },
-  testing:        { label: '测试中', bg: 'bg-blue-50',     text: 'text-blue-700',   darkBg: 'bg-blue-500/20',     darkText: 'text-blue-400' },
-  published:      { label: '已发布', bg: 'bg-emerald-50',  text: 'text-emerald-700',darkBg: 'bg-emerald-500/20',  darkText: 'text-emerald-400' },
-  rejected:       { label: '已驳回', bg: 'bg-red-50',      text: 'text-red-700',    darkBg: 'bg-red-500/20',      darkText: 'text-red-400' },
-};
 
 const INITIAL_QUEUE: AuditSkill[] = [
   { id: 201, displayName: '文档摘要生成', description: '对上传文档自动生成结构化摘要', agentType: 'mcp', sourceType: 'internal', status: 'pending_review', submitter: '张三 (2021001)', submitterDept: '计算机学院', submitTime: '2026-03-19 14:50', specUrl: 'https://nlp.example.edu/mcp/summarize' },
@@ -62,19 +57,15 @@ export const SkillAuditList: React.FC<Props> = ({ theme, fontSize, showMessage }
   const filteredQueue = filterStatus === 'all' ? queue : queue.filter(s => s.status === filterStatus);
   const pendingCount = queue.filter(s => s.status === 'pending_review').length;
 
-  const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
-    const cfg = STATUS_CONFIG[status];
-    if (!cfg) return null;
-    return (
-      <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold ${isDark ? `${cfg.darkBg} ${cfg.darkText}` : `${cfg.bg} ${cfg.text}`}`}>
-        {cfg.label}
-      </span>
-    );
-  };
+  const StatusBadge: React.FC<{ status: string }> = ({ status }) => (
+    <span className={statusBadgeClass(status as DomainStatus, theme)}>
+      {statusLabel(status as DomainStatus)}
+    </span>
+  );
 
   return (
-    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${isDark ? 'bg-[#000000]' : 'bg-[#F2F2F7]'}`}>
-      <div className={`shrink-0 z-20 border-b px-4 sm:px-6 py-4 ${isDark ? 'border-white/10 bg-[#000000]' : 'border-slate-200/80 bg-[#F2F2F7]'}`}>
+    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${pageBg(theme)}`}>
+      <div className={`shrink-0 z-20 border-b px-4 sm:px-6 py-4 ${isDark ? 'border-white/10' : 'border-slate-200/80'} ${pageBg(theme)}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className={`p-2 rounded-xl ${isDark ? 'bg-amber-500/20' : 'bg-amber-50'}`}>
@@ -193,7 +184,7 @@ export const SkillAuditList: React.FC<Props> = ({ theme, fontSize, showMessage }
                 通过后该 Skill 将进入测试阶段，测试完成后可发布上线。
               </p>
               <div className="flex justify-end gap-3">
-                <button onClick={() => setApproveTarget(null)} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${isDark ? 'bg-white/10 text-slate-300 hover:bg-white/15' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>
+                <button onClick={() => setApproveTarget(null)} className={btnSecondary(theme)}>
                   取消
                 </button>
                 <button onClick={() => handleApprove(approveTarget)} className="px-4 py-2 rounded-xl text-sm font-medium bg-emerald-500 text-white hover:bg-emerald-600 transition-colors">
@@ -227,7 +218,7 @@ export const SkillAuditList: React.FC<Props> = ({ theme, fontSize, showMessage }
                 onChange={e => setRejectReason(e.target.value)}
               />
               <div className="flex justify-end gap-3">
-                <button onClick={() => { setRejectTarget(null); setRejectReason(''); }} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${isDark ? 'bg-white/10 text-slate-300 hover:bg-white/15' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>
+                <button onClick={() => { setRejectTarget(null); setRejectReason(''); }} className={btnSecondary(theme)}>
                   取消
                 </button>
                 <button onClick={() => handleReject(rejectTarget)} disabled={!rejectReason.trim()} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${rejectReason.trim() ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-red-500/40 text-white/60 cursor-not-allowed'}`}>
@@ -267,7 +258,7 @@ export const SkillAuditList: React.FC<Props> = ({ theme, fontSize, showMessage }
                 ))}
               </div>
               <div className="flex justify-end mt-4">
-                <button onClick={() => setDetailTarget(null)} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${isDark ? 'bg-white/10 text-slate-300 hover:bg-white/15' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>
+                <button onClick={() => setDetailTarget(null)} className={btnSecondary(theme)}>
                   关闭
                 </button>
               </div>

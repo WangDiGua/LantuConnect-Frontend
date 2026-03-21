@@ -4,6 +4,8 @@ import type { Skill, SkillListQuery, McpServer } from '../../types/dto/skill';
 import type { AgentStatus, SourceType } from '../../types/dto/agent';
 import { skillService } from '../../api/services/skill.service';
 import { nativeSelectClass, nativeInputClass } from '../../utils/formFieldClasses';
+import { btnPrimary, btnGhost, tableHeadCell, tableBodyRow, statusBadgeClass, statusLabel, pageBg as pageBgCls, cardClass } from '../../utils/uiClasses';
+import type { DomainStatus } from '../../utils/uiClasses';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { SkillCreate } from './SkillCreate';
 import { SkillDetail } from './SkillDetail';
@@ -31,28 +33,6 @@ const SOURCE_OPTIONS: { value: SourceType | ''; label: string }[] = [
   { value: 'partner', label: '合作方' },
   { value: 'cloud', label: '云服务' },
 ];
-
-function statusBadge(status: AgentStatus, theme: Theme): string {
-  const base = 'badge badge-sm whitespace-nowrap';
-  const map: Record<AgentStatus, string> = {
-    published: theme === 'light' ? `${base} bg-emerald-100 text-emerald-700 border-emerald-200` : `${base} bg-emerald-900/40 text-emerald-300 border-emerald-700/40`,
-    draft: theme === 'light' ? `${base} bg-slate-100 text-slate-600 border-slate-200` : `${base} bg-slate-700/40 text-slate-300 border-slate-600/40`,
-    testing: theme === 'light' ? `${base} bg-amber-100 text-amber-700 border-amber-200` : `${base} bg-amber-900/40 text-amber-300 border-amber-700/40`,
-    pending_review: theme === 'light' ? `${base} bg-blue-100 text-blue-700 border-blue-200` : `${base} bg-blue-900/40 text-blue-300 border-blue-700/40`,
-    rejected: theme === 'light' ? `${base} bg-red-100 text-red-600 border-red-200` : `${base} bg-red-900/40 text-red-300 border-red-700/40`,
-    deprecated: theme === 'light' ? `${base} bg-gray-100 text-gray-500 border-gray-200` : `${base} bg-gray-700/40 text-gray-400 border-gray-600/40`,
-  };
-  return map[status] ?? base;
-}
-
-const STATUS_LABEL: Record<AgentStatus, string> = {
-  published: '已发布',
-  draft: '草稿',
-  testing: '测试中',
-  pending_review: '待审核',
-  rejected: '已拒绝',
-  deprecated: '已废弃',
-};
 
 const SOURCE_LABEL: Record<SourceType, string> = {
   internal: '内部',
@@ -179,31 +159,27 @@ export const SkillList: React.FC<Props> = ({ theme, fontSize }) => {
 
   const titleSize = fontSize === 'small' ? 'text-lg' : fontSize === 'medium' ? 'text-xl' : 'text-2xl';
   const textMuted = dark ? 'text-slate-400' : 'text-slate-500';
-  const cardBg = dark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200/80';
-  const pageBg = dark ? 'bg-[#000000]' : 'bg-[#F2F2F7]';
-  const rowEven = dark ? 'bg-white/5' : 'bg-slate-50/80';
-  const hoverRow = dark ? 'hover:bg-white/10' : 'hover:bg-slate-100';
 
   const renderTable = (items: Skill[]) => (
     <div className="overflow-x-auto">
       <table className="table w-full min-w-[1100px]">
         <thead>
-          <tr className={`text-xs uppercase ${textMuted}`}>
-            <th className="min-w-[180px]">名称</th>
-            <th className="min-w-[80px]">类型</th>
-            <th className="min-w-[140px]">MCP Server</th>
-            <th className="min-w-[80px]">来源</th>
-            <th className="min-w-[80px]">状态</th>
-            <th className="min-w-[80px] text-right">调用次数</th>
-            <th className="min-w-[100px] text-right">平均延迟</th>
-            <th className="min-w-[120px]">操作</th>
+          <tr>
+            <th className={tableHeadCell(theme)} style={{ minWidth: 180 }}>名称</th>
+            <th className={tableHeadCell(theme)} style={{ minWidth: 80 }}>类型</th>
+            <th className={tableHeadCell(theme)} style={{ minWidth: 140 }}>MCP Server</th>
+            <th className={tableHeadCell(theme)} style={{ minWidth: 80 }}>来源</th>
+            <th className={tableHeadCell(theme)} style={{ minWidth: 80 }}>状态</th>
+            <th className={`${tableHeadCell(theme)} text-right`} style={{ minWidth: 80 }}>调用次数</th>
+            <th className={`${tableHeadCell(theme)} text-right`} style={{ minWidth: 100 }}>平均延迟</th>
+            <th className={tableHeadCell(theme)} style={{ minWidth: 120 }}>操作</th>
           </tr>
         </thead>
         <tbody>
           {items.map((skill, idx) => (
             <tr
               key={skill.id}
-              className={`${idx % 2 === 0 ? 'bg-transparent' : rowEven} ${hoverRow} transition-colors`}
+              className={tableBodyRow(theme, idx)}
             >
               <td>
                 <div className="flex flex-col gap-0.5">
@@ -222,14 +198,14 @@ export const SkillList: React.FC<Props> = ({ theme, fontSize }) => {
                 </span>
               </td>
               <td><span className={sourceBadge(skill.sourceType, theme)}>{SOURCE_LABEL[skill.sourceType]}</span></td>
-              <td><span className={statusBadge(skill.status, theme)}>{STATUS_LABEL[skill.status]}</span></td>
+              <td><span className={statusBadgeClass(skill.status as DomainStatus, theme)}>{statusLabel(skill.status as DomainStatus)}</span></td>
               <td className="text-right tabular-nums">{skill.callCount.toLocaleString()}</td>
               <td className="text-right tabular-nums">{skill.avgLatencyMs}ms</td>
               <td>
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
-                    className={`btn btn-ghost btn-xs rounded-xl ${dark ? 'text-slate-300 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100'}`}
+                    className={btnGhost(theme)}
                     onClick={() => handleViewDetail(skill.id)}
                   >
                     查看
@@ -258,8 +234,8 @@ export const SkillList: React.FC<Props> = ({ theme, fontSize }) => {
   );
 
   return (
-    <div className={`flex-1 overflow-y-auto px-2 sm:px-3 lg:px-4 py-2 sm:py-3 ${pageBg}`}>
-      <div className={`rounded-2xl border shadow-none ${cardBg}`}>
+    <div className={`flex-1 overflow-y-auto px-2 sm:px-3 lg:px-4 py-2 sm:py-3 ${pageBgCls(theme)}`}>
+      <div className={cardClass(theme)}>
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-5 pb-3">
           <div>
@@ -270,7 +246,7 @@ export const SkillList: React.FC<Props> = ({ theme, fontSize }) => {
           </div>
           <button
             type="button"
-            className="btn btn-primary btn-sm rounded-xl shadow-lg shadow-blue-500/20"
+            className={`${btnPrimary} shadow-lg shadow-blue-500/20`}
             onClick={handleCreateSkill}
           >
             + 注册 Skill

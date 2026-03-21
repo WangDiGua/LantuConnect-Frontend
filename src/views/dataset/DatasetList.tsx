@@ -20,6 +20,8 @@ import { PageError } from '../../components/common/PageError';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { DatasetCreate } from './DatasetCreate';
 import { DatasetDetail } from './DatasetDetail';
+import { btnPrimary, btnGhost, btnSecondary, tableHeadCell, tableBodyRow, tableCell, statusBadgeClass, statusLabel, pageBg, cardClass } from '../../utils/uiClasses';
+import type { DomainStatus } from '../../utils/uiClasses';
 
 interface Props {
   theme: Theme;
@@ -27,11 +29,11 @@ interface Props {
   showMessage?: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void;
 }
 
-const STATUS_CFG: Record<DatasetStatus, { label: string; color: string; bg: string }> = {
-  draft: { label: '草稿', color: 'text-slate-500', bg: 'bg-slate-500/10' },
-  published: { label: '已发布', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-  testing: { label: '测试中', color: 'text-blue-500', bg: 'bg-blue-500/10' },
-  deprecated: { label: '已下架', color: 'text-orange-500', bg: 'bg-orange-500/10' },
+const STATUS_LABEL_DS: Record<DatasetStatus, string> = {
+  draft: '草稿',
+  published: '已发布',
+  testing: '测试中',
+  deprecated: '已下架',
 };
 
 const SOURCE_LABEL: Record<DatasetSourceType, string> = {
@@ -182,19 +184,18 @@ export const DatasetList: React.FC<Props> = ({ theme, fontSize, showMessage }) =
 
   if (error) {
     return (
-      <div className={`flex-1 flex flex-col min-h-0 ${isDark ? 'bg-[#000000]' : 'bg-[#F2F2F7]'}`}>
+      <div className={`flex-1 flex flex-col min-h-0 ${pageBg(theme)}`}>
         <PageError error={error} onRetry={fetchData} />
       </div>
     );
   }
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const thCls = `px-4 py-3 font-semibold text-xs uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`;
 
   return (
-    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-colors duration-300 ${isDark ? 'bg-[#000000]' : 'bg-[#F2F2F7]'}`}>
+    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-colors duration-300 ${pageBg(theme)}`}>
       <div className="w-full flex-1 min-h-0 flex flex-col px-2 sm:px-3 lg:px-4 py-2 sm:py-3">
-        <div className={`rounded-2xl border overflow-hidden flex-1 min-h-0 flex flex-col ${isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200/80'}`}>
+        <div className={`${cardClass(theme)} overflow-hidden flex-1 min-h-0 flex flex-col`}>
           {/* Header */}
           <div className={`flex items-center justify-between px-6 py-4 border-b shrink-0 ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
             <div className="flex items-center gap-2">
@@ -207,11 +208,11 @@ export const DatasetList: React.FC<Props> = ({ theme, fontSize, showMessage }) =
               )}
             </div>
             <div className="flex items-center gap-3">
-              <button type="button" onClick={() => fetchData()} className={`btn btn-ghost btn-sm gap-1.5 ${isDark ? 'text-slate-300' : ''}`}>
+              <button type="button" onClick={() => fetchData()} className={`${btnGhost(theme)} gap-1.5`}>
                 <RefreshCw size={16} />
                 刷新
               </button>
-              <button type="button" onClick={() => setViewMode('create')} className="btn btn-primary btn-sm gap-1.5 font-bold shadow-lg shadow-blue-500/20">
+              <button type="button" onClick={() => setViewMode('create')} className={`${btnPrimary} gap-1.5 shadow-lg shadow-blue-500/20`}>
                 <Plus size={16} />
                 注册数据集
               </button>
@@ -270,9 +271,7 @@ export const DatasetList: React.FC<Props> = ({ theme, fontSize, showMessage }) =
               <button
                 type="button"
                 onClick={resetFilters}
-                className={`inline-flex items-center justify-center px-4 rounded-xl text-sm font-medium min-h-[2.5rem] border ${
-                  isDark ? 'border-white/15 text-slate-200 hover:bg-white/5' : 'border-slate-200 text-slate-700 hover:bg-slate-50'
-                }`}
+                className={btnSecondary(theme)}
               >
                 重置
               </button>
@@ -296,28 +295,22 @@ export const DatasetList: React.FC<Props> = ({ theme, fontSize, showMessage }) =
               ) : (
                 <table className="table w-full text-sm min-w-[1080px]">
                   <thead className="sticky top-0 z-10">
-                    <tr className={`border-b ${isDark ? 'border-white/10 bg-[#2C2C2E]' : 'border-slate-200 bg-slate-50'}`}>
-                      <th className={`${thCls} text-left`} style={{ minWidth: 160 }}>名称</th>
-                      <th className={`${thCls} text-left`}>来源</th>
-                      <th className={`${thCls} text-left`}>类型</th>
-                      <th className={`${thCls} text-left`}>格式</th>
-                      <th className={`${thCls} text-right`}>记录数</th>
-                      <th className={`${thCls} text-right`}>大小</th>
-                      <th className={`${thCls} text-left`}>状态</th>
-                      <th className={`${thCls} text-right`} style={{ minWidth: 100 }}>操作</th>
+                    <tr>
+                      <th className={tableHeadCell(theme)} style={{ minWidth: 160 }}>名称</th>
+                      <th className={tableHeadCell(theme)}>来源</th>
+                      <th className={tableHeadCell(theme)}>类型</th>
+                      <th className={tableHeadCell(theme)}>格式</th>
+                      <th className={`${tableHeadCell(theme)} text-right`}>记录数</th>
+                      <th className={`${tableHeadCell(theme)} text-right`}>大小</th>
+                      <th className={tableHeadCell(theme)}>状态</th>
+                      <th className={`${tableHeadCell(theme)} text-right`} style={{ minWidth: 100 }}>操作</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {datasets.map((ds, idx) => {
-                      const sc = STATUS_CFG[ds.status] ?? STATUS_CFG.draft;
-                      return (
+                    {datasets.map((ds, idx) => (
                         <tr
                           key={ds.id}
-                          className={`border-b transition-colors ${
-                            isDark
-                              ? `border-white/5 ${idx % 2 ? 'bg-white/[0.02]' : ''} hover:bg-white/5`
-                              : `border-slate-100 ${idx % 2 ? 'bg-slate-50/50' : ''} hover:bg-slate-50`
-                          }`}
+                          className={tableBodyRow(theme, idx)}
                         >
                           <td className={`px-4 py-3 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                             <div className="flex items-center gap-3">
@@ -347,9 +340,9 @@ export const DatasetList: React.FC<Props> = ({ theme, fontSize, showMessage }) =
                           <td className={`px-4 py-3 text-right font-mono text-xs tabular-nums ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                             {formatFileSize(ds.fileSize)}
                           </td>
-                          <td className="px-4 py-3">
-                            <span className={`inline-flex items-center px-2 py-1 rounded-lg text-xs font-semibold ${sc.bg} ${sc.color}`}>
-                              {sc.label}
+                          <td className={tableCell()}>
+                            <span className={statusBadgeClass(ds.status as DomainStatus, theme)}>
+                              {STATUS_LABEL_DS[ds.status] ?? statusLabel(ds.status as DomainStatus)}
                             </span>
                           </td>
                           <td className="px-4 py-3 text-right">
@@ -389,8 +382,7 @@ export const DatasetList: React.FC<Props> = ({ theme, fontSize, showMessage }) =
                             </div>
                           </td>
                         </tr>
-                      );
-                    })}
+                    ))}
                   </tbody>
                 </table>
               )}

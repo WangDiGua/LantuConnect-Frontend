@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { AlertTriangle, X, Zap, RotateCcw } from 'lucide-react';
+import { AlertTriangle, Zap, RotateCcw } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { nativeInputClass, nativeSelectClass } from '../../utils/formFieldClasses';
+import { btnPrimary, btnSecondary, btnGhost, tableHeadCell, tableBodyRow } from '../../utils/uiClasses';
+import { Modal } from '../../components/common/Modal';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 
 interface Props {
@@ -139,9 +141,9 @@ export const CircuitBreakerPage: React.FC<Props> = ({ theme, fontSize, showMessa
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm min-w-[960px]">
             <thead>
-              <tr className={`border-b ${isDark ? 'border-white/10 bg-[#2C2C2E]/80' : 'border-slate-200 bg-slate-50'}`}>
+              <tr>
                 {['名称', '状态', '失败阈值', '熔断时长(s)', '降级 Agent', '最近熔断', '统计', '操作'].map((h) => (
-                  <th key={h} className={`px-4 py-3 font-semibold whitespace-nowrap ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{h}</th>
+                  <th key={h} className={tableHeadCell(theme)}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -149,7 +151,7 @@ export const CircuitBreakerPage: React.FC<Props> = ({ theme, fontSize, showMessa
               {data.map((r, i) => {
                 const stCfg = STATE_CFG[r.currentState];
                 return (
-                  <tr key={r.id} className={`border-b ${isDark ? `border-white/5 ${i % 2 === 0 ? 'bg-[#1C1C1E]' : 'bg-[#2C2C2E]/40'}` : `border-slate-100 ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50/80'}`}`}>
+                  <tr key={r.id} className={tableBodyRow(theme, i)}>
                     <td className={`px-4 py-3 ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
                       <div className="font-medium">{r.displayName}</div>
                       <span className={`text-[11px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
@@ -174,7 +176,7 @@ export const CircuitBreakerPage: React.FC<Props> = ({ theme, fontSize, showMessa
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <button type="button" onClick={() => openEdit(r)} className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${isDark ? 'bg-white/10 hover:bg-white/15 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}>
+                        <button type="button" onClick={() => openEdit(r)} className={btnGhost(theme)}>
                           配置
                         </button>
                         {r.currentState !== 'OPEN' ? (
@@ -196,58 +198,49 @@ export const CircuitBreakerPage: React.FC<Props> = ({ theme, fontSize, showMessa
         </div>
       </div>
 
-      {/* Config modal */}
-      {editingId != null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setEditingId(null)}>
-          <div onClick={(e) => e.stopPropagation()} className={`w-full max-w-md mx-4 rounded-2xl border shadow-2xl ${isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200'}`}>
-            <div className={`flex items-center justify-between px-6 py-4 border-b ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
-              <h3 className={`font-bold text-base ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                熔断配置 · {data.find((r) => r.id === editingId)?.displayName}
-              </h3>
-              <button type="button" onClick={() => setEditingId(null)} className={`p-1.5 rounded-xl transition-colors ${isDark ? 'hover:bg-white/10 text-slate-400' : 'hover:bg-slate-100 text-slate-500'}`}>
-                <X size={18} />
-              </button>
+      <Modal
+        open={editingId != null}
+        onClose={() => setEditingId(null)}
+        title={`熔断配置 · ${data.find((r) => r.id === editingId)?.displayName ?? ''}`}
+        theme={theme}
+        size="md"
+        footer={
+          <>
+            <button type="button" onClick={() => setEditingId(null)} className={btnSecondary(theme)}>取消</button>
+            <button type="button" onClick={saveEdit} className={btnPrimary}>保存</button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>失败阈值</label>
+              <input type="number" className={inp} value={draft.failureThreshold ?? 5} onChange={(e) => setDraft((p) => ({ ...p, failureThreshold: Number(e.target.value) }))} />
             </div>
-            <div className="px-6 py-5 space-y-4">
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>失败阈值</label>
-                  <input type="number" className={inp} value={draft.failureThreshold ?? 5} onChange={(e) => setDraft((p) => ({ ...p, failureThreshold: Number(e.target.value) }))} />
-                </div>
-                <div>
-                  <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>熔断时长(s)</label>
-                  <input type="number" className={inp} value={draft.openDurationSec ?? 30} onChange={(e) => setDraft((p) => ({ ...p, openDurationSec: Number(e.target.value) }))} />
-                </div>
-                <div>
-                  <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>半开最大调用</label>
-                  <input type="number" className={inp} value={draft.halfOpenMaxCalls ?? 3} onChange={(e) => setDraft((p) => ({ ...p, halfOpenMaxCalls: Number(e.target.value) }))} />
-                </div>
-              </div>
-              <div>
-                <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>降级 Agent</label>
-                <select className={sel} value={draft.fallbackAgentName ?? ''} onChange={(e) => setDraft((p) => ({ ...p, fallbackAgentName: e.target.value || null }))}>
-                  <option value="">不降级</option>
-                  {AGENT_NAMES.filter((n) => n !== data.find((r) => r.id === editingId)?.displayName).map((n) => (
-                    <option key={n} value={n}>{n}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>降级提示消息</label>
-                <textarea className={`${inp} min-h-[80px] resize-y`} value={draft.fallbackMessage ?? ''} onChange={(e) => setDraft((p) => ({ ...p, fallbackMessage: e.target.value }))} />
-              </div>
+            <div>
+              <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>熔断时长(s)</label>
+              <input type="number" className={inp} value={draft.openDurationSec ?? 30} onChange={(e) => setDraft((p) => ({ ...p, openDurationSec: Number(e.target.value) }))} />
             </div>
-            <div className={`flex justify-end gap-3 px-6 py-4 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
-              <button type="button" onClick={() => setEditingId(null)} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${isDark ? 'bg-white/10 hover:bg-white/15 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}>
-                取消
-              </button>
-              <button type="button" onClick={saveEdit} className="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors">
-                保存
-              </button>
+            <div>
+              <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>半开最大调用</label>
+              <input type="number" className={inp} value={draft.halfOpenMaxCalls ?? 3} onChange={(e) => setDraft((p) => ({ ...p, halfOpenMaxCalls: Number(e.target.value) }))} />
             </div>
           </div>
+          <div>
+            <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>降级 Agent</label>
+            <select className={sel} value={draft.fallbackAgentName ?? ''} onChange={(e) => setDraft((p) => ({ ...p, fallbackAgentName: e.target.value || null }))}>
+              <option value="">不降级</option>
+              {AGENT_NAMES.filter((n) => n !== data.find((r) => r.id === editingId)?.displayName).map((n) => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>降级提示消息</label>
+            <textarea className={`${inp} min-h-[80px] resize-y`} value={draft.fallbackMessage ?? ''} onChange={(e) => setDraft((p) => ({ ...p, fallbackMessage: e.target.value }))} />
+          </div>
         </div>
-      )}
+      </Modal>
 
       <ConfirmDialog
         open={!!confirmAction}

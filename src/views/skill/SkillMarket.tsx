@@ -6,6 +6,8 @@ import type { Skill } from '../../types/dto/skill';
 import type { AgentType, SourceType } from '../../types/dto/agent';
 import { skillService } from '../../api/services/skill.service';
 import { nativeInputClass } from '../../utils/formFieldClasses';
+import { btnPrimary, btnSecondary } from '../../utils/uiClasses';
+import { Modal } from '../../components/common/Modal';
 
 interface Props {
   theme: Theme;
@@ -268,279 +270,221 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, theme
       </div>
 
       {/* Skill Detail + Reviews Modal */}
-      <AnimatePresence>
+      <Modal
+        open={!!detailSkill}
+        onClose={() => setDetailSkill(null)}
+        theme={theme}
+        size="lg"
+      >
         {detailSkill && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50"
-            onClick={() => setDetailSkill(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 20 }}
-              className={`w-full max-w-2xl max-h-[85vh] rounded-2xl border flex flex-col ${
-                dark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200'
-              }`}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Header */}
-              <div className={`shrink-0 px-6 py-4 border-b flex items-center justify-between ${
-                dark ? 'border-white/10' : 'border-slate-200'
-              }`}>
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-bold shrink-0 ${pickColor(detailSkill.agentName)}`}>
-                    {(detailSkill.displayName || detailSkill.agentName).charAt(0)}
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className={`text-lg font-bold truncate ${dark ? 'text-white' : 'text-slate-900'}`}>
-                      {detailSkill.displayName}
-                    </h3>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xs font-mono ${dark ? 'text-slate-500' : 'text-slate-400'}`}>{detailSkill.agentName}</span>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${TYPE_BADGE[detailSkill.agentType].cls}`}>
-                        {TYPE_BADGE[detailSkill.agentType].label}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <button type="button" onClick={() => setDetailSkill(null)} className="btn btn-ghost btn-sm btn-circle shrink-0">
-                  <X size={18} />
-                </button>
+          <>
+            <div className="flex items-center gap-3 mb-4">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-bold shrink-0 ${pickColor(detailSkill.agentName)}`}>
+                {(detailSkill.displayName || detailSkill.agentName).charAt(0)}
               </div>
-              {/* Body */}
-              <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-5 space-y-5">
-                <p className={`text-sm leading-relaxed ${dark ? 'text-slate-300' : 'text-slate-700'}`}>
-                  {detailSkill.description || '暂无描述'}
-                </p>
-                <div className="flex flex-wrap gap-3 text-xs">
-                  <span className={`flex items-center gap-1 ${dark ? 'text-slate-400' : 'text-slate-500'}`}>
-                    <Activity size={13} /> {formatCount(detailSkill.callCount)} 次调用
-                  </span>
-                  <span className={`flex items-center gap-1 ${dark ? 'text-slate-400' : 'text-slate-500'}`}>
-                    <Clock size={13} /> {formatLatency(detailSkill.avgLatencyMs)}
-                  </span>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-md font-medium ${SOURCE_BADGE[detailSkill.sourceType].cls}`}>
-                    {SOURCE_BADGE[detailSkill.sourceType].label}
+              <div className="min-w-0">
+                <h3 className={`text-lg font-bold truncate ${dark ? 'text-white' : 'text-slate-900'}`}>
+                  {detailSkill.displayName}
+                </h3>
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs font-mono ${dark ? 'text-slate-500' : 'text-slate-400'}`}>{detailSkill.agentName}</span>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${TYPE_BADGE[detailSkill.agentType].cls}`}>
+                    {TYPE_BADGE[detailSkill.agentType].label}
                   </span>
                 </div>
+              </div>
+            </div>
+            <div className="space-y-5">
+              <p className={`text-sm leading-relaxed ${dark ? 'text-slate-300' : 'text-slate-700'}`}>
+                {detailSkill.description || '暂无描述'}
+              </p>
+              <div className="flex flex-wrap gap-3 text-xs">
+                <span className={`flex items-center gap-1 ${dark ? 'text-slate-400' : 'text-slate-500'}`}>
+                  <Activity size={13} /> {formatCount(detailSkill.callCount)} 次调用
+                </span>
+                <span className={`flex items-center gap-1 ${dark ? 'text-slate-400' : 'text-slate-500'}`}>
+                  <Clock size={13} /> {formatLatency(detailSkill.avgLatencyMs)}
+                </span>
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-md font-medium ${SOURCE_BADGE[detailSkill.sourceType].cls}`}>
+                  {SOURCE_BADGE[detailSkill.sourceType].label}
+                </span>
+              </div>
 
-                {/* Review section */}
-                <div>
-                  <h4 className={`font-bold text-base mb-4 flex items-center gap-2 ${dark ? 'text-white' : 'text-slate-900'}`}>
-                    <MessageSquare size={18} className="text-violet-500" />
-                    评分与评论
-                  </h4>
-                  {/* Rating summary */}
-                  <div className={`rounded-xl border p-4 mb-4 ${dark ? 'border-white/5 bg-white/[0.02]' : 'border-slate-100 bg-slate-50/50'}`}>
-                    <div className="flex items-center gap-4">
-                      <div className="text-center">
-                        <div className={`text-3xl font-bold ${dark ? 'text-white' : 'text-slate-900'}`}>
-                          {(skillReviews.reduce((s, r) => s + r.rating, 0) / skillReviews.length).toFixed(1)}
-                        </div>
-                        <div className="flex gap-0.5 mt-1">
-                          {Array.from({ length: 5 }).map((_, i) => (
-                            <Star key={i} size={12} className={i < 4 ? 'text-amber-500 fill-amber-500' : 'text-slate-300'} />
-                          ))}
-                        </div>
-                        <p className={`text-[11px] mt-1 ${dark ? 'text-slate-500' : 'text-slate-400'}`}>{skillReviews.length} 条评价</p>
+              <div>
+                <h4 className={`font-bold text-base mb-4 flex items-center gap-2 ${dark ? 'text-white' : 'text-slate-900'}`}>
+                  <MessageSquare size={18} className="text-violet-500" />
+                  评分与评论
+                </h4>
+                <div className={`rounded-xl border p-4 mb-4 ${dark ? 'border-white/5 bg-white/[0.02]' : 'border-slate-100 bg-slate-50/50'}`}>
+                  <div className="flex items-center gap-4">
+                    <div className="text-center">
+                      <div className={`text-3xl font-bold ${dark ? 'text-white' : 'text-slate-900'}`}>
+                        {(skillReviews.reduce((s, r) => s + r.rating, 0) / skillReviews.length).toFixed(1)}
                       </div>
-                    </div>
-                  </div>
-                  {/* Reviews list */}
-                  <div className="space-y-3">
-                    {skillReviews.map((review) => (
-                      <div key={review.id} className={`rounded-xl border p-3 ${
-                        dark ? 'border-white/5 bg-white/[0.02]' : 'border-slate-100 bg-white'
-                      }`}>
-                        <div className="flex items-start gap-2.5">
-                          <div className={`w-8 h-8 rounded-full bg-gradient-to-tr ${review.avatarColor} flex items-center justify-center text-white text-xs font-bold shrink-0`}>
-                            {review.userName.charAt(0)}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className={`font-medium text-sm ${dark ? 'text-white' : 'text-slate-900'}`}>{review.userName}</span>
-                              <div className="flex gap-0.5">
-                                {Array.from({ length: 5 }).map((_, i) => (
-                                  <Star key={i} size={10} className={i < review.rating ? 'text-amber-500 fill-amber-500' : 'text-slate-300'} />
-                                ))}
-                              </div>
-                              <span className={`text-[11px] ${dark ? 'text-slate-500' : 'text-slate-400'}`}>{review.date}</span>
-                            </div>
-                            <p className={`text-sm ${dark ? 'text-slate-400' : 'text-slate-600'}`}>{review.comment}</p>
-                            <button
-                              type="button"
-                              onClick={() => setSkillReviews(prev => prev.map(r =>
-                                r.id === review.id ? { ...r, helpfulCount: r.helpedByMe ? r.helpfulCount - 1 : r.helpfulCount + 1, helpedByMe: !r.helpedByMe } : r
-                              ))}
-                              className={`mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] ${
-                                review.helpedByMe ? 'bg-blue-500/10 text-blue-600' : dark ? 'bg-white/5 text-slate-500 hover:bg-white/10' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
-                              }`}
-                            >
-                              <ThumbsUp size={10} className={review.helpedByMe ? 'fill-current' : ''} />
-                              有帮助 {review.helpfulCount > 0 && `(${review.helpfulCount})`}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  {/* Write review */}
-                  <div className={`rounded-xl border p-4 mt-4 ${dark ? 'border-white/5 bg-white/[0.02]' : 'border-slate-100 bg-slate-50/50'}`}>
-                    <h5 className={`font-bold text-sm mb-2 ${dark ? 'text-white' : 'text-slate-900'}`}>写评价</h5>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className={`text-xs ${dark ? 'text-slate-400' : 'text-slate-600'}`}>评分：</span>
-                      <div className="flex gap-0.5">
+                      <div className="flex gap-0.5 mt-1">
                         {Array.from({ length: 5 }).map((_, i) => (
-                          <Star
-                            key={i}
-                            size={18}
-                            className={`cursor-pointer transition-colors ${i < myRating ? 'text-amber-500 fill-amber-500' : 'text-slate-300'}`}
-                            onClick={() => setMyRating(i + 1)}
-                          />
+                          <Star key={i} size={12} className={i < 4 ? 'text-amber-500 fill-amber-500' : 'text-slate-300'} />
                         ))}
                       </div>
-                    </div>
-                    <textarea
-                      value={myComment}
-                      onChange={(e) => setMyComment(e.target.value)}
-                      placeholder="分享你的使用体验…"
-                      rows={2}
-                      className={`w-full px-3 py-2 rounded-xl border text-sm resize-none mb-2 ${
-                        dark ? 'bg-white/5 border-white/10 text-white placeholder:text-slate-600' : 'bg-white border-slate-200 text-slate-900 placeholder:text-slate-400'
-                      }`}
-                    />
-                    <div className="flex justify-end">
-                      <button
-                        type="button"
-                        disabled={myRating === 0 || !myComment.trim()}
-                        onClick={() => {
-                          if (myRating === 0 || !myComment.trim()) return;
-                          setSkillReviews(prev => [{
-                            id: `sr-new-${Date.now()}`,
-                            userName: '我',
-                            avatarColor: AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)],
-                            rating: myRating,
-                            comment: myComment,
-                            date: new Date().toISOString().slice(0, 10),
-                            helpfulCount: 0,
-                            helpedByMe: false,
-                          }, ...prev]);
-                          setMyRating(0);
-                          setMyComment('');
-                        }}
-                        className="btn btn-primary btn-sm rounded-xl"
-                      >
-                        提交评价
-                      </button>
+                      <p className={`text-[11px] mt-1 ${dark ? 'text-slate-500' : 'text-slate-400'}`}>{skillReviews.length} 条评价</p>
                     </div>
                   </div>
                 </div>
+                <div className="space-y-3">
+                  {skillReviews.map((review) => (
+                    <div key={review.id} className={`rounded-xl border p-3 ${
+                      dark ? 'border-white/5 bg-white/[0.02]' : 'border-slate-100 bg-white'
+                    }`}>
+                      <div className="flex items-start gap-2.5">
+                        <div className={`w-8 h-8 rounded-full bg-gradient-to-tr ${review.avatarColor} flex items-center justify-center text-white text-xs font-bold shrink-0`}>
+                          {review.userName.charAt(0)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`font-medium text-sm ${dark ? 'text-white' : 'text-slate-900'}`}>{review.userName}</span>
+                            <div className="flex gap-0.5">
+                              {Array.from({ length: 5 }).map((_, i) => (
+                                <Star key={i} size={10} className={i < review.rating ? 'text-amber-500 fill-amber-500' : 'text-slate-300'} />
+                              ))}
+                            </div>
+                            <span className={`text-[11px] ${dark ? 'text-slate-500' : 'text-slate-400'}`}>{review.date}</span>
+                          </div>
+                          <p className={`text-sm ${dark ? 'text-slate-400' : 'text-slate-600'}`}>{review.comment}</p>
+                          <button
+                            type="button"
+                            onClick={() => setSkillReviews(prev => prev.map(r =>
+                              r.id === review.id ? { ...r, helpfulCount: r.helpedByMe ? r.helpfulCount - 1 : r.helpfulCount + 1, helpedByMe: !r.helpedByMe } : r
+                            ))}
+                            className={`mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] ${
+                              review.helpedByMe ? 'bg-blue-500/10 text-blue-600' : dark ? 'bg-white/5 text-slate-500 hover:bg-white/10' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                            }`}
+                          >
+                            <ThumbsUp size={10} className={review.helpedByMe ? 'fill-current' : ''} />
+                            有帮助 {review.helpfulCount > 0 && `(${review.helpfulCount})`}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className={`rounded-xl border p-4 mt-4 ${dark ? 'border-white/5 bg-white/[0.02]' : 'border-slate-100 bg-slate-50/50'}`}>
+                  <h5 className={`font-bold text-sm mb-2 ${dark ? 'text-white' : 'text-slate-900'}`}>写评价</h5>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={`text-xs ${dark ? 'text-slate-400' : 'text-slate-600'}`}>评分：</span>
+                    <div className="flex gap-0.5">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star
+                          key={i}
+                          size={18}
+                          className={`cursor-pointer transition-colors ${i < myRating ? 'text-amber-500 fill-amber-500' : 'text-slate-300'}`}
+                          onClick={() => setMyRating(i + 1)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <textarea
+                    value={myComment}
+                    onChange={(e) => setMyComment(e.target.value)}
+                    placeholder="分享你的使用体验…"
+                    rows={2}
+                    className={`${nativeInputClass(theme)} resize-none mb-2`}
+                  />
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      disabled={myRating === 0 || !myComment.trim()}
+                      onClick={() => {
+                        if (myRating === 0 || !myComment.trim()) return;
+                        setSkillReviews(prev => [{
+                          id: `sr-new-${Date.now()}`,
+                          userName: '我',
+                          avatarColor: AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)],
+                          rating: myRating,
+                          comment: myComment,
+                          date: new Date().toISOString().slice(0, 10),
+                          helpfulCount: 0,
+                          helpedByMe: false,
+                        }, ...prev]);
+                        setMyRating(0);
+                        setMyComment('');
+                      }}
+                      className={`${btnPrimary} disabled:opacity-50`}
+                    >
+                      提交评价
+                    </button>
+                  </div>
+                </div>
               </div>
-            </motion.div>
-          </motion.div>
+            </div>
+          </>
         )}
-      </AnimatePresence>
+      </Modal>
 
       {/* 使用面板 */}
-      <AnimatePresence>
-        {useSkill && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[210] flex items-center justify-center p-4 bg-black/50"
-            onClick={() => setUseSkill(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 20 }}
-              className={`w-full max-w-lg max-h-[80vh] rounded-2xl border flex flex-col ${
-                dark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200'
-              }`}
-              onClick={(e) => e.stopPropagation()}
+      <Modal
+        open={!!useSkill}
+        onClose={() => setUseSkill(null)}
+        title={useSkill ? `使用面板 — ${useSkill.displayName}` : ''}
+        theme={theme}
+        size="md"
+        footer={
+          <>
+            <button type="button" className={btnSecondary(theme)} onClick={() => setUseSkill(null)}>
+              关闭
+            </button>
+            <button
+              type="button"
+              className={`${btnPrimary} inline-flex items-center gap-1.5 disabled:opacity-50`}
+              disabled={useLoading}
+              onClick={handleExecute}
             >
-              <div className={`shrink-0 px-6 py-4 border-b flex items-center justify-between ${
-                dark ? 'border-white/10' : 'border-slate-200'
-              }`}>
-                <div className="min-w-0">
-                  <h3 className={`text-base font-bold truncate ${dark ? 'text-white' : 'text-slate-900'}`}>
-                    使用面板 — {useSkill.displayName}
-                  </h3>
-                  <p className={`text-xs mt-0.5 ${dark ? 'text-slate-500' : 'text-slate-400'}`}>
-                    {useSkill.description || '暂无描述'}
-                  </p>
-                </div>
-                <button type="button" onClick={() => setUseSkill(null)} className="btn btn-ghost btn-sm btn-circle shrink-0">
-                  <X size={18} />
-                </button>
-              </div>
-              <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-5 space-y-4">
-                {getParamFields(useSkill).map((f) => (
-                  <div key={f.key}>
-                    <label className={`text-xs font-semibold block mb-1.5 ${dark ? 'text-slate-300' : 'text-slate-700'}`}>
-                      {f.key}
-                      {f.required && <span className="text-red-500 ml-0.5">*</span>}
-                      <span className={`ml-2 font-normal ${dark ? 'text-slate-500' : 'text-slate-400'}`}>({f.type})</span>
-                    </label>
-                    {f.type === 'array' || f.type === 'object' ? (
-                      <textarea
-                        rows={3}
-                        placeholder={`输入 ${f.type} 类型的 JSON…`}
-                        value={useParams[f.key] || ''}
-                        onChange={(e) => setUseParams((p) => ({ ...p, [f.key]: e.target.value }))}
-                        className={`w-full px-3 py-2 rounded-xl border text-sm resize-none ${
-                          dark ? 'bg-white/5 border-white/10 text-white placeholder:text-slate-600' : 'bg-white border-slate-200 text-slate-900 placeholder:text-slate-400'
-                        }`}
-                      />
-                    ) : (
-                      <input
-                        type="text"
-                        placeholder={`输入 ${f.key}…`}
-                        value={useParams[f.key] || ''}
-                        onChange={(e) => setUseParams((p) => ({ ...p, [f.key]: e.target.value }))}
-                        className={`w-full px-3 py-2 rounded-xl border text-sm ${
-                          dark ? 'bg-white/5 border-white/10 text-white placeholder:text-slate-600' : 'bg-white border-slate-200 text-slate-900 placeholder:text-slate-400'
-                        }`}
-                      />
-                    )}
-                  </div>
-                ))}
-
-                {useResult && (
-                  <div className={`rounded-xl p-4 text-sm font-medium ${
-                    dark ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                  }`}>
-                    {useResult}
-                  </div>
+              {useLoading ? <><Loader2 size={14} className="animate-spin" /> 调用中…</> : <><Play size={14} /> 调用</>}
+            </button>
+          </>
+        }
+      >
+        {useSkill && (
+          <div className="space-y-4">
+            <p className={`text-xs ${dark ? 'text-slate-500' : 'text-slate-400'}`}>
+              {useSkill.description || '暂无描述'}
+            </p>
+            {getParamFields(useSkill).map((f) => (
+              <div key={f.key}>
+                <label className={`text-xs font-semibold block mb-1.5 ${dark ? 'text-slate-300' : 'text-slate-700'}`}>
+                  {f.key}
+                  {f.required && <span className="text-red-500 ml-0.5">*</span>}
+                  <span className={`ml-2 font-normal ${dark ? 'text-slate-500' : 'text-slate-400'}`}>({f.type})</span>
+                </label>
+                {f.type === 'array' || f.type === 'object' ? (
+                  <textarea
+                    rows={3}
+                    placeholder={`输入 ${f.type} 类型的 JSON…`}
+                    value={useParams[f.key] || ''}
+                    onChange={(e) => setUseParams((p) => ({ ...p, [f.key]: e.target.value }))}
+                    className={`${nativeInputClass(theme)} resize-none`}
+                  />
+                ) : (
+                  <input
+                    type="text"
+                    placeholder={`输入 ${f.key}…`}
+                    value={useParams[f.key] || ''}
+                    onChange={(e) => setUseParams((p) => ({ ...p, [f.key]: e.target.value }))}
+                    className={nativeInputClass(theme)}
+                  />
                 )}
               </div>
-              <div className={`shrink-0 px-6 py-4 border-t flex justify-end gap-2 ${
-                dark ? 'border-white/10' : 'border-slate-200'
+            ))}
+
+            {useResult && (
+              <div className={`rounded-xl p-4 text-sm font-medium ${
+                dark ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
               }`}>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => setUseSkill(null)}
-                >
-                  关闭
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm gap-1.5"
-                  disabled={useLoading}
-                  onClick={handleExecute}
-                >
-                  {useLoading ? <><Loader2 size={14} className="animate-spin" /> 调用中…</> : <><Play size={14} /> 调用</>}
-                </button>
+                {useResult}
               </div>
-            </motion.div>
-          </motion.div>
+            )}
+          </div>
         )}
-      </AnimatePresence>
+      </Modal>
     </div>
   );
 };

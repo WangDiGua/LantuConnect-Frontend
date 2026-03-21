@@ -14,6 +14,7 @@ import type { Theme, FontSize } from '../../types';
 import type { AgentType, SourceType, DisplayTemplate } from '../../types/dto/agent';
 import type { McpServer, SkillCreatePayload } from '../../types/dto/skill';
 import { nativeSelectClass, nativeInputClass } from '../../utils/formFieldClasses';
+import { btnPrimary, btnSecondary } from '../../utils/uiClasses';
 import { skillService } from '../../api/services/skill.service';
 
 interface Props {
@@ -294,7 +295,7 @@ export const SkillCreate: React.FC<Props> = ({ theme, fontSize: _fontSize, onBac
       </div>
 
       <div className="flex justify-end pt-4">
-        <button type="button" onClick={goNext} className="btn btn-primary px-8 gap-2 shadow-lg shadow-blue-500/20">
+        <button type="button" onClick={goNext} className={`${btnPrimary} px-8 inline-flex items-center gap-2`}>
           下一步
           <ArrowRight size={18} />
         </button>
@@ -393,11 +394,11 @@ export const SkillCreate: React.FC<Props> = ({ theme, fontSize: _fontSize, onBac
       </div>
 
       <div className="flex justify-between pt-4">
-        <button type="button" onClick={goBack} className="btn btn-ghost gap-2">
+        <button type="button" onClick={goBack} className={`${btnSecondary(theme)} inline-flex items-center gap-2`}>
           <ArrowLeft size={18} />
           上一步
         </button>
-        <button type="button" onClick={goNext} className="btn btn-primary px-8 gap-2 shadow-lg shadow-blue-500/20">
+        <button type="button" onClick={goNext} className={`${btnPrimary} px-8 inline-flex items-center gap-2`}>
           下一步
           <ArrowRight size={18} />
         </button>
@@ -431,7 +432,7 @@ export const SkillCreate: React.FC<Props> = ({ theme, fontSize: _fontSize, onBac
       )}
 
       <div className="flex justify-between pt-4">
-        <button type="button" onClick={goBack} disabled={submitting} className="btn btn-ghost gap-2">
+        <button type="button" onClick={goBack} disabled={submitting} className={`${btnSecondary(theme)} inline-flex items-center gap-2 disabled:opacity-50`}>
           <ArrowLeft size={18} />
           上一步
         </button>
@@ -439,7 +440,7 @@ export const SkillCreate: React.FC<Props> = ({ theme, fontSize: _fontSize, onBac
           type="button"
           onClick={handleSubmit}
           disabled={submitting}
-          className="btn btn-primary px-10 gap-2 shadow-lg shadow-blue-500/20"
+          className={`${btnPrimary} px-10 inline-flex items-center gap-2 disabled:opacity-50`}
         >
           {submitting && <span className="loading loading-spinner loading-xs" />}
           提交创建

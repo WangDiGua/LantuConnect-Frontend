@@ -10,11 +10,13 @@ import {
   AppWindow,
   Database,
   Globe,
-  ChevronDown,
   FileText,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Theme, FontSize } from '../../types';
+import { nativeInputClass, nativeSelectClass } from '../../utils/formFieldClasses';
+import { btnPrimary, btnSecondary } from '../../utils/uiClasses';
+import { Modal } from '../../components/common/Modal';
 
 interface Props {
   theme: Theme;
@@ -201,9 +203,7 @@ export const TagManagementPage: React.FC<Props> = ({ theme, fontSize, showMessag
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="搜索标签…"
-              className={`w-full pl-9 pr-4 py-2 rounded-xl border text-sm ${
-                isDark ? 'bg-white/5 border-white/10 text-white placeholder:text-slate-600' : 'bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400'
-              }`}
+              className={`${nativeInputClass(theme)} !pl-9`}
             />
           </div>
           <div className="flex flex-wrap gap-1.5">
@@ -258,26 +258,19 @@ export const TagManagementPage: React.FC<Props> = ({ theme, fontSize, showMessag
                     onChange={(e) => setNewTagName(e.target.value)}
                     placeholder="输入标签名称…"
                     onKeyDown={(e) => { if (e.key === 'Enter') handleAddTag(); }}
-                    className={`w-full px-3 py-2 rounded-xl border text-sm ${
-                      isDark ? 'bg-white/5 border-white/10 text-white placeholder:text-slate-600' : 'bg-white border-slate-200 text-slate-900 placeholder:text-slate-400'
-                    }`}
+                    className={nativeInputClass(theme)}
                     autoFocus
                   />
                 </div>
                 <div className="w-36">
                   <label className={`text-xs font-medium block mb-1 ${textSecondary}`}>分类</label>
-                  <div className="relative">
-                    <select
-                      value={newTagCategory}
-                      onChange={(e) => setNewTagCategory(e.target.value as TagCategory)}
-                      className={`appearance-none w-full px-3 py-2 pr-8 rounded-xl border text-sm cursor-pointer ${
-                        isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'
-                      }`}
-                    >
-                      {TAG_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                    <ChevronDown size={14} className={`absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none ${textMuted}`} />
-                  </div>
+                  <select
+                    value={newTagCategory}
+                    onChange={(e) => setNewTagCategory(e.target.value as TagCategory)}
+                    className={nativeSelectClass(theme)}
+                  >
+                    {TAG_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
                 </div>
                 <div className="flex gap-2">
                   <button type="button" onClick={handleAddTag} disabled={!newTagName.trim()} className="btn btn-primary btn-sm rounded-xl">
@@ -431,77 +424,52 @@ export const TagManagementPage: React.FC<Props> = ({ theme, fontSize, showMessag
       </div>
 
       {/* Batch Add Modal */}
-      <AnimatePresence>
-        {showBatchAdd && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50"
-            onClick={() => setShowBatchAdd(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 20 }}
-              className={`w-full max-w-lg rounded-2xl border p-6 ${
-                isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200'
-              }`}
-              onClick={(e) => e.stopPropagation()}
+      <Modal
+        open={showBatchAdd}
+        onClose={() => setShowBatchAdd(false)}
+        title="批量添加标签"
+        theme={theme}
+        size="md"
+        footer={
+          <>
+            <button type="button" onClick={() => setShowBatchAdd(false)} className={btnSecondary(theme)}>
+              取消
+            </button>
+            <button
+              type="button"
+              onClick={handleBatchAdd}
+              disabled={!batchText.trim()}
+              className={`${btnPrimary} inline-flex items-center gap-1.5 disabled:opacity-50`}
             >
-              <div className="flex items-center justify-between mb-5">
-                <h3 className={`text-lg font-bold ${textPrimary}`}>批量添加标签</h3>
-                <button type="button" onClick={() => setShowBatchAdd(false)} className="btn btn-ghost btn-sm btn-circle">
-                  <X size={18} />
-                </button>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <label className={`text-sm font-medium block mb-1.5 ${textSecondary}`}>标签列表（每行一个）</label>
-                  <textarea
-                    value={batchText}
-                    onChange={(e) => setBatchText(e.target.value)}
-                    placeholder="文档生成\n图像处理\n数据分析\n…"
-                    rows={8}
-                    className={`w-full px-4 py-2.5 rounded-xl border text-sm resize-none font-mono ${
-                      isDark ? 'bg-white/5 border-white/10 text-white placeholder:text-slate-600' : 'bg-white border-slate-200 text-slate-900 placeholder:text-slate-400'
-                    }`}
-                  />
-                </div>
-                <div>
-                  <label className={`text-sm font-medium block mb-1.5 ${textSecondary}`}>统一分类</label>
-                  <div className="relative">
-                    <select
-                      value={batchCategory}
-                      onChange={(e) => setBatchCategory(e.target.value as TagCategory)}
-                      className={`appearance-none w-full px-3 py-2 pr-8 rounded-xl border text-sm cursor-pointer ${
-                        isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'
-                      }`}
-                    >
-                      {TAG_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                    <ChevronDown size={14} className={`absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none ${textMuted}`} />
-                  </div>
-                </div>
-              </div>
-              <div className="flex justify-end gap-2 mt-5">
-                <button type="button" onClick={() => setShowBatchAdd(false)} className="btn btn-ghost btn-sm rounded-xl">
-                  取消
-                </button>
-                <button
-                  type="button"
-                  onClick={handleBatchAdd}
-                  disabled={!batchText.trim()}
-                  className="btn btn-primary btn-sm rounded-xl gap-1.5"
-                >
-                  <Plus size={14} />
-                  批量添加
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              <Plus size={14} />
+              批量添加
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <label className={`text-sm font-medium block mb-1.5 ${textSecondary}`}>标签列表（每行一个）</label>
+            <textarea
+              value={batchText}
+              onChange={(e) => setBatchText(e.target.value)}
+              placeholder="文档生成\n图像处理\n数据分析\n…"
+              rows={8}
+              className={`${nativeInputClass(theme)} !min-h-[180px] resize-none font-mono`}
+            />
+          </div>
+          <div>
+            <label className={`text-sm font-medium block mb-1.5 ${textSecondary}`}>统一分类</label>
+            <select
+              value={batchCategory}
+              onChange={(e) => setBatchCategory(e.target.value as TagCategory)}
+              className={nativeSelectClass(theme)}
+            >
+              {TAG_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

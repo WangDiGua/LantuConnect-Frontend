@@ -8,6 +8,8 @@ import { authService } from '../../api/services/auth.service';
 import { useAuthStore } from '../../stores/authStore';
 import { ApiException } from '../../types/api';
 import { Logo } from '../../components/common/Logo';
+import type { Theme } from '../../types';
+import { nativeInputClass } from '../../utils/formFieldClasses';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -23,6 +25,7 @@ export const LoginPage: React.FC = () => {
     typeof window !== 'undefined' &&
     window.matchMedia('(prefers-color-scheme: dark)').matches;
   const isDark = prefersDark;
+  const theme: Theme = isDark ? 'dark' : 'light';
 
   const {
     register,
@@ -54,9 +57,6 @@ export const LoginPage: React.FC = () => {
 
   const bgMain = isDark ? 'bg-[#000000]' : 'bg-[#F2F2F7]';
   const cardBg = isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200/80';
-  const inputBg = isDark
-    ? 'bg-[#2C2C2E] border-white/10 text-white placeholder-slate-500'
-    : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400';
   const labelColor = isDark ? 'text-slate-300' : 'text-slate-700';
   const subtitleColor = isDark ? 'text-slate-400' : 'text-slate-500';
 
@@ -99,11 +99,9 @@ export const LoginPage: React.FC = () => {
                   type="text"
                   autoComplete="username"
                   placeholder="请输入学工号"
-                  className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-sm border outline-none transition-all focus:ring-1 focus:ring-blue-500/30 ${
-                    errors.username
-                      ? 'border-rose-500/50 focus:border-rose-400'
-                      : `${inputBg} focus:border-blue-400/60`
-                  } ${!errors.username ? inputBg : isDark ? 'bg-[#2C2C2E] text-white' : 'bg-white text-slate-900'}`}
+                  className={`${nativeInputClass(theme)} !pl-10 !pr-4 ${
+                    errors.username ? '!border-rose-500/50 focus:!border-rose-400' : ''
+                  }`}
                   {...register('username')}
                 />
               </div>
@@ -125,11 +123,9 @@ export const LoginPage: React.FC = () => {
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
                   placeholder="请输入密码"
-                  className={`w-full pl-10 pr-10 py-2.5 rounded-xl text-sm border outline-none transition-all focus:ring-1 focus:ring-blue-500/30 ${
-                    errors.password
-                      ? 'border-rose-500/50 focus:border-rose-400'
-                      : `${inputBg} focus:border-blue-400/60`
-                  } ${!errors.password ? inputBg : isDark ? 'bg-[#2C2C2E] text-white' : 'bg-white text-slate-900'}`}
+                  className={`${nativeInputClass(theme)} !pl-10 !pr-10 ${
+                    errors.password ? '!border-rose-500/50 focus:!border-rose-400' : ''
+                  }`}
                   {...register('password')}
                 />
                 <button

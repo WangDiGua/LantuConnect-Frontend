@@ -24,7 +24,9 @@ import {
   type AgentMarketCategoryId,
   type AgentMarketCard,
 } from '../../constants/agentMarket';
-import { nativeSelectClass } from '../../utils/formFieldClasses';
+import { nativeSelectClass, nativeInputClass } from '../../utils/formFieldClasses';
+import { btnPrimary, btnSecondary } from '../../utils/uiClasses';
+import { Modal } from '../../components/common/Modal';
 import { AgentReviews } from './AgentReviews';
 import { useNavigate } from 'react-router-dom';
 import { buildPath } from '../../constants/consoleRoutes';
@@ -169,7 +171,7 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({
                 />
                 <input
                   type="text"
-                  className="input input-bordered w-full pl-12 h-12 rounded-xl text-sm"
+                  className={`${nativeInputClass(theme)} !pl-12 !h-12`}
                   placeholder="搜索 Agent 名称、能力、提供方或标签…"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
@@ -408,144 +410,101 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({
         </div>
 
         {/* Agent 详情弹窗 (含评论) */}
-        <AnimatePresence>
+        <Modal
+          open={!!detailAgent}
+          onClose={() => setDetailAgent(null)}
+          theme={theme}
+          size="lg"
+        >
           {detailAgent && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50"
-              onClick={() => setDetailAgent(null)}
-            >
-              <motion.div
-                initial={{ scale: 0.95, y: 20 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.95, y: 20 }}
-                className={`w-full max-w-2xl max-h-[85vh] rounded-2xl border flex flex-col ${
-                  isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200'
-                }`}
-                onClick={(e) => e.stopPropagation()}
-              >
-                {/* Modal Header */}
-                <div className={`shrink-0 px-6 py-4 border-b flex items-center justify-between ${
-                  isDark ? 'border-white/10' : 'border-slate-200'
+            <>
+              <div className="flex items-center gap-3 mb-4">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shrink-0 ${
+                  isDark ? 'bg-white/10' : 'bg-slate-100'
                 }`}>
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shrink-0 ${
-                      isDark ? 'bg-white/10' : 'bg-slate-100'
-                    }`}>
-                      {detailAgent.emoji}
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className={`text-lg font-bold truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                        {detailAgent.name}
-                      </h3>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{detailAgent.author}</span>
-                        <span className="inline-flex items-center gap-0.5 text-xs">
-                          <Star size={12} className="text-amber-500 fill-amber-500" />
-                          {detailAgent.rating}
-                        </span>
-                        <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{detailAgent.installs} 次安装</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      type="button"
-                      className={`btn btn-sm h-9 min-h-0 text-xs border-0 gap-1 ${
-                        isInWorkspace(detailAgent.id) ? 'bg-slate-400 text-white cursor-not-allowed' : `text-white ${tc.bg}`
-                      }`}
-                      disabled={isInWorkspace(detailAgent.id)}
-                      onClick={(e) => { e.stopPropagation(); if (!isInWorkspace(detailAgent.id)) setConfirmAgent(detailAgent); }}
-                    >
-                      <Rocket size={14} />
-                      {isInWorkspace(detailAgent.id) ? '已添加' : '一键部署'}
-                    </button>
-                    <button type="button" onClick={() => setDetailAgent(null)} className="btn btn-ghost btn-sm btn-circle">
-                      <X size={18} />
-                    </button>
+                  {detailAgent.emoji}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className={`text-lg font-bold truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                    {detailAgent.name}
+                  </h3>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{detailAgent.author}</span>
+                    <span className="inline-flex items-center gap-0.5 text-xs">
+                      <Star size={12} className="text-amber-500 fill-amber-500" />
+                      {detailAgent.rating}
+                    </span>
+                    <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{detailAgent.installs} 次安装</span>
                   </div>
                 </div>
-                {/* Modal Body */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-5 space-y-5">
-                  {/* Description */}
-                  <div>
-                    <p className={`text-sm leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                      {detailAgent.description}
-                    </p>
-                    <div className="flex flex-wrap gap-1.5 mt-3">
-                      {detailAgent.tags.map((t) => (
-                        <span
-                          key={t}
-                          className={`text-[11px] px-2.5 py-1 rounded-lg font-medium ${
-                            isDark ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-600'
-                          }`}
-                        >
-                          {t}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  {/* Reviews */}
-                  <div>
-                    <h4 className={`font-bold text-base mb-4 flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                      <MessageSquare size={18} className="text-blue-500" />
-                      评分与评论
-                    </h4>
-                    <AgentReviews agentId={Number(detailAgent.id)} theme={theme} fontSize={fontSize} />
+                <button
+                  type="button"
+                  className={`${isInWorkspace(detailAgent.id) ? 'bg-slate-400 cursor-not-allowed' : tc.bg} px-3 py-2 rounded-xl text-xs font-semibold text-white inline-flex items-center gap-1 shrink-0`}
+                  disabled={isInWorkspace(detailAgent.id)}
+                  onClick={(e) => { e.stopPropagation(); if (!isInWorkspace(detailAgent.id)) setConfirmAgent(detailAgent); }}
+                >
+                  <Rocket size={14} />
+                  {isInWorkspace(detailAgent.id) ? '已添加' : '一键部署'}
+                </button>
+              </div>
+              <div className="space-y-5">
+                <div>
+                  <p className={`text-sm leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                    {detailAgent.description}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5 mt-3">
+                    {detailAgent.tags.map((t) => (
+                      <span
+                        key={t}
+                        className={`text-[11px] px-2.5 py-1 rounded-lg font-medium ${
+                          isDark ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-600'
+                        }`}
+                      >
+                        {t}
+                      </span>
+                    ))}
                   </div>
                 </div>
-              </motion.div>
-            </motion.div>
+                <div>
+                  <h4 className={`font-bold text-base mb-4 flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                    <MessageSquare size={18} className="text-blue-500" />
+                    评分与评论
+                  </h4>
+                  <AgentReviews agentId={Number(detailAgent.id)} theme={theme} fontSize={fontSize} />
+                </div>
+              </div>
+            </>
           )}
-        </AnimatePresence>
+        </Modal>
 
         {/* 确认添加弹窗 */}
-        <AnimatePresence>
-          {confirmAgent && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/50"
-              onClick={() => setConfirmAgent(null)}
-            >
-              <motion.div
-                initial={{ scale: 0.95, y: 20 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.95, y: 20 }}
-                className={`w-full max-w-sm rounded-2xl border p-6 ${
-                  isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200'
-                }`}
-                onClick={(e) => e.stopPropagation()}
+        <Modal
+          open={!!confirmAgent}
+          onClose={() => setConfirmAgent(null)}
+          title="确认添加"
+          theme={theme}
+          size="sm"
+          footer={
+            <>
+              <button type="button" className={btnSecondary(theme)} onClick={() => setConfirmAgent(null)}>
+                取消
+              </button>
+              <button
+                type="button"
+                className={btnPrimary}
+                onClick={() => { if (confirmAgent) { addToWorkspace(confirmAgent); setConfirmAgent(null); } }}
               >
-                <h3 className={`text-base font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                  确认添加
-                </h3>
-                <p className={`text-sm mb-6 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                  确认将「{confirmAgent.name}」添加到工作区？
-                </p>
-                <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => setConfirmAgent(null)}
-                  >
-                    取消
-                  </button>
-                  <button
-                    type="button"
-                    className={`btn btn-sm text-white border-0 ${tc.bg}`}
-                    onClick={() => { addToWorkspace(confirmAgent); setConfirmAgent(null); }}
-                  >
-                    确认添加
-                  </button>
-                </div>
-              </motion.div>
-            </motion.div>
+                确认添加
+              </button>
+            </>
+          }
+        >
+          {confirmAgent && (
+            <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+              确认将「{confirmAgent.name}」添加到工作区？
+            </p>
           )}
-        </AnimatePresence>
+        </Modal>
       </div>
     </div>
   );

@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Wrench, Eye, Pencil, Undo2, ArrowRight, X } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { AgentStatus } from '../../types/dto/agent';
+import { statusBadgeClass, statusLabel, pageBg } from '../../utils/uiClasses';
+import type { DomainStatus } from '../../utils/uiClasses';
 
 interface Props {
   theme: Theme;
@@ -47,14 +49,11 @@ export const MySkillList: React.FC<Props> = ({ theme, fontSize }) => {
     setWithdrawTarget(null);
   };
 
-  const StatusBadge: React.FC<{ status: AgentStatus }> = ({ status }) => {
-    const cfg = STATUS_CONFIG[status];
-    return (
-      <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold ${isDark ? `${cfg.darkBg} ${cfg.darkText}` : `${cfg.bg} ${cfg.text}`}`}>
-        {cfg.label}
-      </span>
-    );
-  };
+  const StatusBadge: React.FC<{ status: AgentStatus }> = ({ status }) => (
+    <span className={statusBadgeClass(status as DomainStatus, theme)}>
+      {statusLabel(status as DomainStatus)}
+    </span>
+  );
 
   const StatusFlow: React.FC<{ current: AgentStatus }> = ({ current }) => {
     const currentIdx = STATUS_FLOW.indexOf(current);
@@ -86,8 +85,8 @@ export const MySkillList: React.FC<Props> = ({ theme, fontSize }) => {
   };
 
   return (
-    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${isDark ? 'bg-[#000000]' : 'bg-[#F2F2F7]'}`}>
-      <div className={`shrink-0 z-20 border-b px-4 sm:px-6 py-4 flex items-center justify-between ${isDark ? 'border-white/10 bg-[#000000]' : 'border-slate-200/80 bg-[#F2F2F7]'}`}>
+    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${pageBg(theme)}`}>
+      <div className={`shrink-0 z-20 border-b px-4 sm:px-6 py-4 flex items-center justify-between ${isDark ? 'border-white/10' : 'border-slate-200/80'} ${pageBg(theme)}`}>
         <div className="flex items-center gap-3">
           <div className={`p-2 rounded-xl ${isDark ? 'bg-purple-500/20' : 'bg-purple-50'}`}>
             <Wrench size={20} className={isDark ? 'text-purple-400' : 'text-purple-600'} />

@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { CreditCard, X, Plus } from 'lucide-react';
+import { CreditCard, Plus } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { nativeInputClass, nativeSelectClass } from '../../utils/formFieldClasses';
+import { btnPrimary, btnSecondary, tableHeadCell, tableBodyRow } from '../../utils/uiClasses';
+import { Modal } from '../../components/common/Modal';
 
 interface Props {
   theme: Theme;
@@ -168,7 +170,7 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
       {tab === 'quota' && (
         <div className="min-w-0 px-4 sm:px-6 pb-6 pt-3">
           <div className="flex justify-end mb-3">
-            <button type="button" onClick={() => setShowQuotaModal(true)} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors">
+            <button type="button" onClick={() => setShowQuotaModal(true)} className={`${btnPrimary} gap-1.5`}>
               <Plus size={15} />
               新增配额
             </button>
@@ -176,9 +178,9 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm min-w-[860px]">
               <thead>
-                <tr className={`border-b ${isDark ? 'border-white/10 bg-[#2C2C2E]/80' : 'border-slate-200 bg-slate-50'}`}>
+                <tr>
                   {['范围', '名称', '日配额', '日用量', '月配额', '月用量', 'QPS 上限'].map((h) => (
-                    <th key={h} className={`px-4 py-3 font-semibold whitespace-nowrap ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{h}</th>
+                    <th key={h} className={tableHeadCell(theme)}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -186,7 +188,7 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
                 {quotas.map((r, i) => {
                   const sc = SCOPE_CFG[r.scopeType];
                   return (
-                    <tr key={r.id} className={`border-b ${isDark ? `border-white/5 ${i % 2 === 0 ? 'bg-[#1C1C1E]' : 'bg-[#2C2C2E]/40'}` : `border-slate-100 ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50/80'}`}`}>
+                    <tr key={r.id} className={tableBodyRow(theme, i)}>
                       <td className="px-4 py-3">
                         <span className={`inline-flex px-2 py-0.5 rounded-lg text-xs font-medium ${isDark ? sc.dark : sc.light}`}>{sc.label}</span>
                       </td>
@@ -214,7 +216,7 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
       {tab === 'rate-limit' && (
         <div className="min-w-0 px-4 sm:px-6 pb-6 pt-3">
           <div className="flex justify-end mb-3">
-            <button type="button" onClick={() => setShowRLModal(true)} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors">
+            <button type="button" onClick={() => setShowRLModal(true)} className={`${btnPrimary} gap-1.5`}>
               <Plus size={15} />
               新增规则
             </button>
@@ -222,9 +224,9 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm min-w-[700px]">
               <thead>
-                <tr className={`border-b ${isDark ? 'border-white/10 bg-[#2C2C2E]/80' : 'border-slate-200 bg-slate-50'}`}>
+                <tr>
                   {['目标', '维度', 'QPS 上限', '突发容量', '状态'].map((h) => (
-                    <th key={h} className={`px-4 py-3 font-semibold whitespace-nowrap ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{h}</th>
+                    <th key={h} className={tableHeadCell(theme)}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -232,7 +234,7 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
                 {rateLimits.map((r, i) => {
                   const dim = DIM_CFG[r.dimension];
                   return (
-                    <tr key={r.id} className={`border-b ${isDark ? `border-white/5 ${i % 2 === 0 ? 'bg-[#1C1C1E]' : 'bg-[#2C2C2E]/40'}` : `border-slate-100 ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50/80'}`}`}>
+                    <tr key={r.id} className={tableBodyRow(theme, i)}>
                       <td className={`px-4 py-3 font-medium ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{r.targetName}</td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex px-2 py-0.5 rounded-lg text-xs font-medium ${isDark ? dim.dark : dim.light}`}>{dim.label}</span>
@@ -259,118 +261,80 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
         </div>
       )}
 
-      {/* Quota modal */}
-      {showQuotaModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowQuotaModal(false)}>
-          <div onClick={(e) => e.stopPropagation()} className={`w-full max-w-md mx-4 rounded-2xl border shadow-2xl ${isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200'}`}>
-            <div className={`flex items-center justify-between px-6 py-4 border-b ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
-              <h3 className={`font-bold text-base ${isDark ? 'text-white' : 'text-slate-900'}`}>新增配额规则</h3>
-              <button type="button" onClick={() => setShowQuotaModal(false)} className={`p-1.5 rounded-xl transition-colors ${isDark ? 'hover:bg-white/10 text-slate-400' : 'hover:bg-slate-100 text-slate-500'}`}>
-                <X size={18} />
-              </button>
-            </div>
-            <div className="px-6 py-5 space-y-4">
-              <div>
-                <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>范围类型</label>
-                <select className={sel} value={quotaDraft.scopeType ?? 'global'} onChange={(e) => setQuotaDraft((p) => ({ ...p, scopeType: e.target.value as ScopeType }))}>
-                  <option value="global">全局</option>
-                  <option value="department">部门</option>
-                  <option value="user">用户</option>
-                </select>
-              </div>
-              {quotaDraft.scopeType !== 'global' && (
-                <div>
-                  <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                    {quotaDraft.scopeType === 'department' ? '部门名称' : '用户标识'}
-                  </label>
-                  <input className={inp} placeholder={quotaDraft.scopeType === 'department' ? '如：信息工程学院' : '如：王五 (2022003)'} value={quotaDraft.scopeName ?? ''} onChange={(e) => setQuotaDraft((p) => ({ ...p, scopeName: e.target.value }))} />
-                </div>
-              )}
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>日配额</label>
-                  <input type="number" className={inp} value={quotaDraft.dailyLimit ?? 10000} onChange={(e) => setQuotaDraft((p) => ({ ...p, dailyLimit: Number(e.target.value) }))} />
-                </div>
-                <div>
-                  <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>月配额</label>
-                  <input type="number" className={inp} value={quotaDraft.monthlyLimit ?? 200000} onChange={(e) => setQuotaDraft((p) => ({ ...p, monthlyLimit: Number(e.target.value) }))} />
-                </div>
-                <div>
-                  <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>QPS 上限</label>
-                  <input type="number" className={inp} value={quotaDraft.qpsLimit ?? 20} onChange={(e) => setQuotaDraft((p) => ({ ...p, qpsLimit: Number(e.target.value) }))} />
-                </div>
-              </div>
-            </div>
-            <div className={`flex justify-end gap-3 px-6 py-4 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
-              <button type="button" onClick={() => setShowQuotaModal(false)} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${isDark ? 'bg-white/10 hover:bg-white/15 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}>
-                取消
-              </button>
-              <button type="button" onClick={addQuota} className="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors">
-                添加
-              </button>
-            </div>
+      <Modal open={showQuotaModal} onClose={() => setShowQuotaModal(false)} title="新增配额规则" theme={theme} size="md" footer={<><button type="button" onClick={() => setShowQuotaModal(false)} className={btnSecondary(theme)}>取消</button><button type="button" onClick={addQuota} className={btnPrimary}>添加</button></>}>
+        <div className="space-y-4">
+          <div>
+            <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>范围类型</label>
+            <select className={sel} value={quotaDraft.scopeType ?? 'global'} onChange={(e) => setQuotaDraft((p) => ({ ...p, scopeType: e.target.value as ScopeType }))}>
+              <option value="global">全局</option>
+              <option value="department">部门</option>
+              <option value="user">用户</option>
+            </select>
           </div>
-        </div>
-      )}
-
-      {/* Rate limit modal */}
-      {showRLModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowRLModal(false)}>
-          <div onClick={(e) => e.stopPropagation()} className={`w-full max-w-md mx-4 rounded-2xl border shadow-2xl ${isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200'}`}>
-            <div className={`flex items-center justify-between px-6 py-4 border-b ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
-              <h3 className={`font-bold text-base ${isDark ? 'text-white' : 'text-slate-900'}`}>新增限流规则</h3>
-              <button type="button" onClick={() => setShowRLModal(false)} className={`p-1.5 rounded-xl transition-colors ${isDark ? 'hover:bg-white/10 text-slate-400' : 'hover:bg-slate-100 text-slate-500'}`}>
-                <X size={18} />
-              </button>
-            </div>
-            <div className="px-6 py-5 space-y-4">
-              <div>
-                <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>目标名称</label>
-                <input className={inp} placeholder="如：智能问答 Agent" value={rlDraft.targetName ?? ''} onChange={(e) => setRlDraft((p) => ({ ...p, targetName: e.target.value }))} />
-              </div>
-              <div>
-                <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>限流维度</label>
-                <select className={sel} value={rlDraft.dimension ?? 'USER'} onChange={(e) => setRlDraft((p) => ({ ...p, dimension: e.target.value as RateLimitRule['dimension'] }))}>
-                  <option value="APP">APP</option>
-                  <option value="USER">USER</option>
-                  <option value="IP">IP</option>
-                  <option value="AGENT">AGENT</option>
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>QPS 上限</label>
-                  <input type="number" className={inp} value={rlDraft.qpsLimit ?? 10} onChange={(e) => setRlDraft((p) => ({ ...p, qpsLimit: Number(e.target.value) }))} />
-                </div>
-                <div>
-                  <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>突发容量</label>
-                  <input type="number" className={inp} value={rlDraft.burstSize ?? 20} onChange={(e) => setRlDraft((p) => ({ ...p, burstSize: Number(e.target.value) }))} />
-                </div>
-              </div>
-              <label className="flex items-center gap-2.5 cursor-pointer">
-                <button
-                  type="button"
-                  onClick={() => setRlDraft((p) => ({ ...p, enabled: !p.enabled }))}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${rlDraft.enabled ? 'bg-blue-600' : isDark ? 'bg-white/20' : 'bg-slate-300'}`}
-                  role="switch"
-                  aria-checked={!!rlDraft.enabled}
-                >
-                  <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${rlDraft.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
-                </button>
-                <span className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>立即启用</span>
+          {quotaDraft.scopeType !== 'global' && (
+            <div>
+              <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                {quotaDraft.scopeType === 'department' ? '部门名称' : '用户标识'}
               </label>
+              <input className={inp} placeholder={quotaDraft.scopeType === 'department' ? '如：信息工程学院' : '如：王五 (2022003)'} value={quotaDraft.scopeName ?? ''} onChange={(e) => setQuotaDraft((p) => ({ ...p, scopeName: e.target.value }))} />
             </div>
-            <div className={`flex justify-end gap-3 px-6 py-4 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
-              <button type="button" onClick={() => setShowRLModal(false)} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${isDark ? 'bg-white/10 hover:bg-white/15 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}>
-                取消
-              </button>
-              <button type="button" onClick={addRateLimit} className="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors">
-                添加
-              </button>
+          )}
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>日配额</label>
+              <input type="number" className={inp} value={quotaDraft.dailyLimit ?? 10000} onChange={(e) => setQuotaDraft((p) => ({ ...p, dailyLimit: Number(e.target.value) }))} />
+            </div>
+            <div>
+              <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>月配额</label>
+              <input type="number" className={inp} value={quotaDraft.monthlyLimit ?? 200000} onChange={(e) => setQuotaDraft((p) => ({ ...p, monthlyLimit: Number(e.target.value) }))} />
+            </div>
+            <div>
+              <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>QPS 上限</label>
+              <input type="number" className={inp} value={quotaDraft.qpsLimit ?? 20} onChange={(e) => setQuotaDraft((p) => ({ ...p, qpsLimit: Number(e.target.value) }))} />
             </div>
           </div>
         </div>
-      )}
+      </Modal>
+
+      <Modal open={showRLModal} onClose={() => setShowRLModal(false)} title="新增限流规则" theme={theme} size="md" footer={<><button type="button" onClick={() => setShowRLModal(false)} className={btnSecondary(theme)}>取消</button><button type="button" onClick={addRateLimit} className={btnPrimary}>添加</button></>}>
+        <div className="space-y-4">
+          <div>
+            <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>目标名称</label>
+            <input className={inp} placeholder="如：智能问答 Agent" value={rlDraft.targetName ?? ''} onChange={(e) => setRlDraft((p) => ({ ...p, targetName: e.target.value }))} />
+          </div>
+          <div>
+            <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>限流维度</label>
+            <select className={sel} value={rlDraft.dimension ?? 'USER'} onChange={(e) => setRlDraft((p) => ({ ...p, dimension: e.target.value as RateLimitRule['dimension'] }))}>
+              <option value="APP">APP</option>
+              <option value="USER">USER</option>
+              <option value="IP">IP</option>
+              <option value="AGENT">AGENT</option>
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>QPS 上限</label>
+              <input type="number" className={inp} value={rlDraft.qpsLimit ?? 10} onChange={(e) => setRlDraft((p) => ({ ...p, qpsLimit: Number(e.target.value) }))} />
+            </div>
+            <div>
+              <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>突发容量</label>
+              <input type="number" className={inp} value={rlDraft.burstSize ?? 20} onChange={(e) => setRlDraft((p) => ({ ...p, burstSize: Number(e.target.value) }))} />
+            </div>
+          </div>
+          <label className="flex items-center gap-2.5 cursor-pointer">
+            <button
+              type="button"
+              onClick={() => setRlDraft((p) => ({ ...p, enabled: !p.enabled }))}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${rlDraft.enabled ? 'bg-blue-600' : isDark ? 'bg-white/20' : 'bg-slate-300'}`}
+              role="switch"
+              aria-checked={!!rlDraft.enabled}
+            >
+              <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${rlDraft.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+            </button>
+            <span className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>立即启用</span>
+          </label>
+        </div>
+      </Modal>
     </MgmtPageShell>
   );
 };

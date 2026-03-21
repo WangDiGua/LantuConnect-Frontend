@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { ShieldCheck, X, Search } from 'lucide-react';
+import { ShieldCheck, Search } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { nativeInputClass, nativeSelectClass } from '../../utils/formFieldClasses';
 import { TOOLBAR_ROW, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
+import { btnPrimary, btnSecondary, tableHeadCell, tableBodyRow, btnGhost } from '../../utils/uiClasses';
+import { Modal } from '../../components/common/Modal';
 
 interface Props {
   theme: Theme;
@@ -101,9 +103,9 @@ export const HealthConfigPage: React.FC<Props> = ({ theme, fontSize, showMessage
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm min-w-[960px]">
             <thead>
-              <tr className={`border-b ${isDark ? 'border-white/10 bg-[#2C2C2E]/80' : 'border-slate-200 bg-slate-50'}`}>
+              <tr>
                 {['名称', '类型', '检查方式', '检查地址', '间隔(s)', '阈值', '状态', '最近检查', '操作'].map((h) => (
-                  <th key={h} className={`px-4 py-3 font-semibold whitespace-nowrap ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{h}</th>
+                  <th key={h} className={tableHeadCell(theme)}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -111,7 +113,7 @@ export const HealthConfigPage: React.FC<Props> = ({ theme, fontSize, showMessage
               {filtered.map((r, i) => {
                 const st = STATUS_CFG[r.currentStatus];
                 return (
-                  <tr key={r.id} className={`border-b ${isDark ? `border-white/5 ${i % 2 === 0 ? 'bg-[#1C1C1E]' : 'bg-[#2C2C2E]/40'}` : `border-slate-100 ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50/80'}`}`}>
+                  <tr key={r.id} className={tableBodyRow(theme, i)}>
                     <td className={`px-4 py-3 font-medium ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
                       <div>{r.displayName}</div>
                       <span className={`text-[11px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{r.entityType === 'agent' ? 'Agent' : 'Skill'}</span>
@@ -131,7 +133,7 @@ export const HealthConfigPage: React.FC<Props> = ({ theme, fontSize, showMessage
                     </td>
                     <td className={`px-4 py-3 text-xs whitespace-nowrap ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>{r.lastCheckedAt.slice(11)}</td>
                     <td className="px-4 py-3">
-                      <button type="button" onClick={() => openEdit(r)} className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${isDark ? 'bg-white/10 hover:bg-white/15 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}>
+                      <button type="button" onClick={() => openEdit(r)} className={btnGhost(theme)}>
                         配置
                       </button>
                     </td>
@@ -146,56 +148,48 @@ export const HealthConfigPage: React.FC<Props> = ({ theme, fontSize, showMessage
         )}
       </div>
 
-      {editingId != null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setEditingId(null)}>
-          <div onClick={(e) => e.stopPropagation()} className={`w-full max-w-md mx-4 rounded-2xl border shadow-2xl ${isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200'}`}>
-            <div className={`flex items-center justify-between px-6 py-4 border-b ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
-              <h3 className={`font-bold text-base ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                健康检查配置 · {data.find((r) => r.id === editingId)?.displayName}
-              </h3>
-              <button type="button" onClick={() => setEditingId(null)} className={`p-1.5 rounded-xl transition-colors ${isDark ? 'hover:bg-white/10 text-slate-400' : 'hover:bg-slate-100 text-slate-500'}`}>
-                <X size={18} />
-              </button>
+      <Modal
+        open={editingId != null}
+        onClose={() => setEditingId(null)}
+        title={`健康检查配置 · ${data.find((r) => r.id === editingId)?.displayName ?? ''}`}
+        theme={theme}
+        size="md"
+        footer={
+          <>
+            <button type="button" onClick={() => setEditingId(null)} className={btnSecondary(theme)}>取消</button>
+            <button type="button" onClick={saveEdit} className={btnPrimary}>保存</button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>检查方式</label>
+            <select className={sel} value={draft.checkType ?? 'http'} onChange={(e) => setDraft((p) => ({ ...p, checkType: e.target.value as CheckType }))}>
+              <option value="http">HTTP</option>
+              <option value="tcp">TCP</option>
+              <option value="ping">Ping</option>
+            </select>
+          </div>
+          <div>
+            <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>检查地址</label>
+            <input className={inp} value={draft.checkUrl ?? ''} onChange={(e) => setDraft((p) => ({ ...p, checkUrl: e.target.value }))} placeholder="https://example.com/health" />
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>间隔(秒)</label>
+              <input type="number" className={inp} value={draft.intervalSec ?? 60} onChange={(e) => setDraft((p) => ({ ...p, intervalSec: Number(e.target.value) }))} />
             </div>
-            <div className="px-6 py-5 space-y-4">
-              <div>
-                <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>检查方式</label>
-                <select className={sel} value={draft.checkType ?? 'http'} onChange={(e) => setDraft((p) => ({ ...p, checkType: e.target.value as CheckType }))}>
-                  <option value="http">HTTP</option>
-                  <option value="tcp">TCP</option>
-                  <option value="ping">Ping</option>
-                </select>
-              </div>
-              <div>
-                <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>检查地址</label>
-                <input className={inp} value={draft.checkUrl ?? ''} onChange={(e) => setDraft((p) => ({ ...p, checkUrl: e.target.value }))} placeholder="https://example.com/health" />
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>间隔(秒)</label>
-                  <input type="number" className={inp} value={draft.intervalSec ?? 60} onChange={(e) => setDraft((p) => ({ ...p, intervalSec: Number(e.target.value) }))} />
-                </div>
-                <div>
-                  <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>健康阈值</label>
-                  <input type="number" className={inp} value={draft.healthyThreshold ?? 3} onChange={(e) => setDraft((p) => ({ ...p, healthyThreshold: Number(e.target.value) }))} />
-                </div>
-                <div>
-                  <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>超时(秒)</label>
-                  <input type="number" className={inp} value={draft.timeoutSec ?? 5} onChange={(e) => setDraft((p) => ({ ...p, timeoutSec: Number(e.target.value) }))} />
-                </div>
-              </div>
+            <div>
+              <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>健康阈值</label>
+              <input type="number" className={inp} value={draft.healthyThreshold ?? 3} onChange={(e) => setDraft((p) => ({ ...p, healthyThreshold: Number(e.target.value) }))} />
             </div>
-            <div className={`flex justify-end gap-3 px-6 py-4 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
-              <button type="button" onClick={() => setEditingId(null)} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${isDark ? 'bg-white/10 hover:bg-white/15 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`}>
-                取消
-              </button>
-              <button type="button" onClick={saveEdit} className="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors">
-                保存
-              </button>
+            <div>
+              <label className={`text-xs font-medium block mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>超时(秒)</label>
+              <input type="number" className={inp} value={draft.timeoutSec ?? 5} onChange={(e) => setDraft((p) => ({ ...p, timeoutSec: Number(e.target.value) }))} />
             </div>
           </div>
         </div>
-      )}
+      </Modal>
     </MgmtPageShell>
   );
 };

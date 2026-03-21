@@ -26,6 +26,8 @@ import type {
 } from '../../types/dto/agent';
 import { agentService } from '../../api/services/agent.service';
 import { AgentCreate } from './AgentCreate';
+import { btnPrimary, btnGhost, btnSecondary, tableHeadCell, tableBodyRow, tableCell, statusBadgeClass, statusLabel, pageBg, cardClass } from '../../utils/uiClasses';
+import type { DomainStatus } from '../../utils/uiClasses';
 
 interface AgentListProps {
   theme: Theme;
@@ -33,15 +35,6 @@ interface AgentListProps {
   onViewDetail: (id: string) => void;
   onCreateAgent: () => void;
 }
-
-const STATUS_CFG: Record<AgentStatus, { label: string; color: string; bg: string }> = {
-  draft: { label: '草稿', color: 'text-slate-500', bg: 'bg-slate-500/10' },
-  pending_review: { label: '待审核', color: 'text-amber-500', bg: 'bg-amber-500/10' },
-  testing: { label: '测试中', color: 'text-blue-500', bg: 'bg-blue-500/10' },
-  published: { label: '已发布', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-  rejected: { label: '已拒绝', color: 'text-red-500', bg: 'bg-red-500/10' },
-  deprecated: { label: '已废弃', color: 'text-orange-500', bg: 'bg-orange-500/10' },
-};
 
 const SOURCE_LABEL: Record<SourceType, string> = {
   internal: '自研',
@@ -142,27 +135,21 @@ export const AgentList: React.FC<AgentListProps> = ({
 
   if (isError) {
     return (
-      <div className={`flex-1 flex flex-col min-h-0 ${isDark ? 'bg-[#000000]' : 'bg-[#F2F2F7]'}`}>
+      <div className={`flex-1 flex flex-col min-h-0 ${pageBg(theme)}`}>
         <PageError error={error instanceof Error ? error : null} onRetry={() => refetch()} />
       </div>
     );
   }
 
-  const thCls = `px-4 py-3 font-semibold text-xs uppercase tracking-wider ${
-    isDark ? 'text-slate-400' : 'text-slate-500'
-  }`;
-
   return (
     <div
       className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-colors duration-300 ${
-        isDark ? 'bg-[#000000]' : 'bg-[#F2F2F7]'
+        pageBg(theme)
       }`}
     >
       <div className="w-full flex-1 min-h-0 flex flex-col px-2 sm:px-3 lg:px-4 py-2 sm:py-3">
         <div
-          className={`rounded-2xl border overflow-hidden flex-1 min-h-0 flex flex-col ${
-            isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200/80'
-          }`}
+          className={`${cardClass(theme)} overflow-hidden flex-1 min-h-0 flex flex-col`}
         >
           {/* Header */}
           <div
@@ -189,7 +176,7 @@ export const AgentList: React.FC<AgentListProps> = ({
               <button
                 type="button"
                 onClick={() => refetch()}
-                className={`btn btn-ghost btn-sm gap-1.5 ${isDark ? 'text-slate-300' : ''}`}
+                className={`${btnGhost(theme)} gap-1.5`}
               >
                 <RefreshCw size={16} />
                 刷新
@@ -197,7 +184,7 @@ export const AgentList: React.FC<AgentListProps> = ({
               <button
                 type="button"
                 onClick={onCreateAgent}
-                className="btn btn-primary btn-sm gap-1.5 font-bold shadow-lg shadow-blue-500/20"
+                className={`${btnPrimary} gap-1.5 shadow-lg shadow-blue-500/20`}
               >
                 <Plus size={16} />
                 注册 Agent
@@ -273,11 +260,7 @@ export const AgentList: React.FC<AgentListProps> = ({
               <button
                 type="button"
                 onClick={resetFilters}
-                className={`inline-flex items-center justify-center px-4 rounded-xl text-sm font-medium min-h-[2.5rem] border ${
-                  isDark
-                    ? 'border-white/15 text-slate-200 hover:bg-white/5'
-                    : 'border-slate-200 text-slate-700 hover:bg-slate-50'
-                }`}
+                className={btnSecondary(theme)}
               >
                 重置
               </button>
@@ -295,7 +278,7 @@ export const AgentList: React.FC<AgentListProps> = ({
                     <button
                       type="button"
                       onClick={onCreateAgent}
-                      className="btn btn-primary btn-sm gap-1.5"
+                      className={`${btnPrimary} gap-1.5`}
                     >
                       <Plus size={16} />
                       注册 Agent
@@ -305,38 +288,26 @@ export const AgentList: React.FC<AgentListProps> = ({
               ) : (
                 <table className="table w-full text-sm min-w-[900px]">
                   <thead className="sticky top-0 z-10">
-                    <tr
-                      className={`border-b ${
-                        isDark
-                          ? 'border-white/10 bg-[#2C2C2E]'
-                          : 'border-slate-200 bg-slate-50'
-                      }`}
-                    >
-                      <th className={`${thCls} text-left`} style={{ minWidth: 200 }}>
+                    <tr>
+                      <th className={tableHeadCell(theme)} style={{ minWidth: 200 }}>
                         名称
                       </th>
-                      <th className={`${thCls} text-left`}>接入类型</th>
-                      <th className={`${thCls} text-left`}>来源</th>
-                      <th className={`${thCls} text-left`}>状态</th>
-                      <th className={`${thCls} text-right`}>调用次数</th>
-                      <th className={`${thCls} text-right`}>成功率</th>
-                      <th className={`${thCls} text-right`}>平均延迟</th>
-                      <th className={`${thCls} text-right`} style={{ minWidth: 100 }}>
+                      <th className={tableHeadCell(theme)}>接入类型</th>
+                      <th className={tableHeadCell(theme)}>来源</th>
+                      <th className={tableHeadCell(theme)}>状态</th>
+                      <th className={`${tableHeadCell(theme)} text-right`}>调用次数</th>
+                      <th className={`${tableHeadCell(theme)} text-right`}>成功率</th>
+                      <th className={`${tableHeadCell(theme)} text-right`}>平均延迟</th>
+                      <th className={`${tableHeadCell(theme)} text-right`} style={{ minWidth: 100 }}>
                         操作
                       </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {agents.map((agent, idx) => {
-                      const sc = STATUS_CFG[agent.status] ?? STATUS_CFG.draft;
-                      return (
+                    {agents.map((agent, idx) => (
                         <tr
                           key={agent.id}
-                          className={`border-b transition-colors ${
-                            isDark
-                              ? `border-white/5 ${idx % 2 ? 'bg-white/[0.02]' : ''} hover:bg-white/5`
-                              : `border-slate-100 ${idx % 2 ? 'bg-slate-50/50' : ''} hover:bg-slate-50`
-                          }`}
+                          className={tableBodyRow(theme, idx)}
                         >
                           <td
                             className={`px-4 py-3 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}
@@ -381,11 +352,9 @@ export const AgentList: React.FC<AgentListProps> = ({
                           >
                             {SOURCE_LABEL[agent.sourceType]}
                           </td>
-                          <td className="px-4 py-3">
-                            <span
-                              className={`inline-flex items-center px-2 py-1 rounded-lg text-xs font-semibold ${sc.bg} ${sc.color}`}
-                            >
-                              {sc.label}
+                          <td className={tableCell()}>
+                            <span className={statusBadgeClass(agent.status as DomainStatus, theme)}>
+                              {statusLabel(agent.status as DomainStatus)}
                             </span>
                           </td>
                           <td
@@ -460,8 +429,7 @@ export const AgentList: React.FC<AgentListProps> = ({
                             </div>
                           </td>
                         </tr>
-                      );
-                    })}
+                    ))}
                   </tbody>
                 </table>
               )}

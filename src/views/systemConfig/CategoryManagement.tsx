@@ -1,12 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronRight,
   Plus,
   Pencil,
   Trash2,
   Loader2,
-  X,
   FolderTree,
   School,
   BookOpen,
@@ -32,7 +30,9 @@ import {
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { nativeInputClass, nativeSelectClass } from '../../utils/formFieldClasses';
+import { btnPrimary, btnSecondary } from '../../utils/uiClasses';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
+import { Modal } from '../../components/common/Modal';
 import { categoryService, buildCategoryTree } from '../../api/services/category.service';
 import type {
   Category,
@@ -328,149 +328,119 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
       )}
 
       {/* ── Form Modal ── */}
-      <AnimatePresence>
-        {formOpen && (
-          <div className="fixed inset-0 z-[9000] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
-              onClick={() => !saving && setFormOpen(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 8 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 8 }}
-              transition={{ duration: 0.18, ease: 'easeOut' }}
-              className={`relative w-full max-w-md rounded-2xl border shadow-2xl p-6 ${
-                isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200'
-              }`}
+      <Modal
+        open={formOpen}
+        onClose={() => !saving && setFormOpen(false)}
+        title={form.mode === 'create' ? '新建分类' : '编辑分类'}
+        theme={theme}
+        size="md"
+        closeOnBackdrop={!saving}
+        footer={
+          <>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => setFormOpen(false)}
+              className={`${btnSecondary(theme)} disabled:opacity-50`}
             >
-              <div className="flex items-center justify-between mb-5">
-                <h3 className={`text-base font-semibold ${isDark ? 'text-white' : 'text-slate-800'}`}>
-                  {form.mode === 'create' ? '新建分类' : '编辑分类'}
-                </h3>
-                <button
-                  onClick={() => setFormOpen(false)}
-                  className={`p-1 rounded-lg transition-colors ${
-                    isDark ? 'hover:bg-white/10 text-slate-400' : 'hover:bg-slate-100 text-slate-500'
-                  }`}
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                    分类名称 <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    className={nativeInputClass(theme)}
-                    placeholder="例：校园业务"
-                    value={form.categoryName}
-                    onChange={(e) => setForm((p) => ({ ...p, categoryName: e.target.value }))}
-                  />
-                </div>
-
-                <div>
-                  <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                    分类编码 <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    className={nativeInputClass(theme)}
-                    placeholder="例：campus-business"
-                    value={form.categoryCode}
-                    onChange={(e) => setForm((p) => ({ ...p, categoryCode: e.target.value }))}
-                  />
-                </div>
-
-                <div>
-                  <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                    上级分类
-                  </label>
-                  <select
-                    className={nativeSelectClass(theme)}
-                    value={form.parentId ?? ''}
-                    onChange={(e) => setForm((p) => ({ ...p, parentId: e.target.value ? Number(e.target.value) : null }))}
-                  >
-                    <option value="">无（顶级分类）</option>
-                    {topLevelCategories.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                    图标
-                  </label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {ICON_OPTIONS.map((name) => {
-                      const Ic = ICON_MAP[name];
-                      const selected = form.icon === name;
-                      return (
-                        <button
-                          key={name}
-                          type="button"
-                          onClick={() => setForm((p) => ({ ...p, icon: name }))}
-                          title={name}
-                          className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all ${
-                            selected
-                              ? 'bg-blue-600 text-white shadow-sm'
-                              : isDark
-                                ? 'bg-white/5 text-slate-400 hover:bg-white/10'
-                                : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                          }`}
-                        >
-                          <Ic size={15} />
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div>
-                  <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                    排序号
-                  </label>
-                  <input
-                    type="number"
-                    className={nativeInputClass(theme)}
-                    value={form.sortOrder}
-                    min={0}
-                    onChange={(e) => setForm((p) => ({ ...p, sortOrder: Number(e.target.value) || 0 }))}
-                  />
-                </div>
-              </div>
-
-              <div className="mt-6 flex items-center justify-end gap-2.5">
-                <button
-                  type="button"
-                  disabled={saving}
-                  onClick={() => setFormOpen(false)}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-                    isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-600 hover:bg-slate-100'
-                  } disabled:opacity-50`}
-                >
-                  取消
-                </button>
-                <button
-                  type="button"
-                  disabled={saving}
-                  onClick={handleSave}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-60"
-                >
-                  {saving && <Loader2 size={14} className="animate-spin" />}
-                  {form.mode === 'create' ? '创建' : '保存'}
-                </button>
-              </div>
-            </motion.div>
+              取消
+            </button>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={handleSave}
+              className={`${btnPrimary} inline-flex items-center gap-1.5 disabled:opacity-60`}
+            >
+              {saving && <Loader2 size={14} className="animate-spin" />}
+              {form.mode === 'create' ? '创建' : '保存'}
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+              分类名称 <span className="text-rose-500">*</span>
+            </label>
+            <input
+              className={nativeInputClass(theme)}
+              placeholder="例：校园业务"
+              value={form.categoryName}
+              onChange={(e) => setForm((p) => ({ ...p, categoryName: e.target.value }))}
+            />
           </div>
-        )}
-      </AnimatePresence>
+
+          <div>
+            <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+              分类编码 <span className="text-rose-500">*</span>
+            </label>
+            <input
+              className={nativeInputClass(theme)}
+              placeholder="例：campus-business"
+              value={form.categoryCode}
+              onChange={(e) => setForm((p) => ({ ...p, categoryCode: e.target.value }))}
+            />
+          </div>
+
+          <div>
+            <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+              上级分类
+            </label>
+            <select
+              className={nativeSelectClass(theme)}
+              value={form.parentId ?? ''}
+              onChange={(e) => setForm((p) => ({ ...p, parentId: e.target.value ? Number(e.target.value) : null }))}
+            >
+              <option value="">无（顶级分类）</option>
+              {topLevelCategories.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+              图标
+            </label>
+            <div className="flex flex-wrap gap-1.5">
+              {ICON_OPTIONS.map((name) => {
+                const Ic = ICON_MAP[name];
+                const selected = form.icon === name;
+                return (
+                  <button
+                    key={name}
+                    type="button"
+                    onClick={() => setForm((p) => ({ ...p, icon: name }))}
+                    title={name}
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all ${
+                      selected
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : isDark
+                          ? 'bg-white/5 text-slate-400 hover:bg-white/10'
+                          : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                    }`}
+                  >
+                    <Ic size={15} />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+              排序号
+            </label>
+            <input
+              type="number"
+              className={nativeInputClass(theme)}
+              value={form.sortOrder}
+              min={0}
+              onChange={(e) => setForm((p) => ({ ...p, sortOrder: Number(e.target.value) || 0 }))}
+            />
+          </div>
+        </div>
+      </Modal>
 
       {/* ── Confirm Delete ── */}
       <ConfirmDialog

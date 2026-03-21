@@ -15,79 +15,54 @@ export interface ConfirmDialogProps {
 }
 
 const VARIANT_CLASSES: Record<string, string> = {
-  danger: 'bg-rose-600 hover:bg-rose-700 focus-visible:ring-rose-500',
-  warning: 'bg-amber-500 hover:bg-amber-600 focus-visible:ring-amber-400',
-  info: 'bg-blue-600 hover:bg-blue-700 focus-visible:ring-blue-500',
+  danger: 'bg-rose-600 hover:bg-rose-500 hover:shadow-[var(--shadow-glow-rose)]',
+  warning: 'bg-amber-500 hover:bg-amber-400 hover:shadow-[var(--shadow-glow-amber)]',
+  info: 'bg-indigo-600 hover:bg-indigo-500 hover:shadow-[var(--shadow-glow-indigo)]',
 };
 
 export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
-  open,
-  title,
-  message,
-  confirmText,
-  cancelText = '取消',
-  variant = 'info',
-  loading = false,
-  onCancel,
-  onConfirm,
+  open, title, message, confirmText, cancelText = '取消', variant = 'info', loading = false, onCancel, onConfirm,
 }) => (
   <AnimatePresence>
     {open && (
       <div className="fixed inset-0 z-[9000] flex items-center justify-center p-4">
-        {/* Backdrop */}
         <motion.div
           key="confirm-backdrop"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
-          className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+          className="absolute inset-0 bg-black/30 backdrop-blur-sm"
           onClick={loading ? undefined : onCancel}
-          aria-hidden="true"
         />
 
-        {/* Dialog */}
         <motion.div
           key="confirm-dialog"
           role="alertdialog"
           aria-modal="true"
-          aria-labelledby="confirm-title"
-          aria-describedby="confirm-message"
-          initial={{ opacity: 0, scale: 0.95, y: 8 }}
+          initial={{ opacity: 0, scale: 0.96, y: 12 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 8 }}
-          transition={{ duration: 0.18, ease: 'easeOut' }}
-          className="relative w-full max-w-sm rounded-2xl border shadow-2xl p-6 bg-white dark:bg-[#1C1C1E] border-slate-200 dark:border-white/10"
+          exit={{ opacity: 0, scale: 0.96, y: 12 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+          className="relative w-full max-w-sm rounded-2xl border p-6 bg-white/90 dark:bg-[#1a1f2e]/90 backdrop-blur-2xl border-slate-200/60 dark:border-white/[0.08] shadow-2xl"
         >
-          <h3
-            id="confirm-title"
-            className="text-base font-semibold text-slate-800 dark:text-slate-100"
-          >
-            {title}
-          </h3>
-
-          <p
-            id="confirm-message"
-            className="mt-2 text-sm text-slate-500 dark:text-slate-400 leading-relaxed"
-          >
-            {message}
-          </p>
+          <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100">{title}</h3>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{message}</p>
 
           <div className="mt-6 flex items-center justify-end gap-2.5">
             <button
               type="button"
               disabled={loading}
               onClick={onCancel}
-              className="px-4 py-2 rounded-xl text-sm font-medium transition-colors text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 disabled:opacity-50"
+              className="px-4 py-2.5 rounded-xl text-sm font-medium transition-colors text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 disabled:opacity-50"
             >
               {cancelText}
             </button>
-
             <button
               type="button"
               disabled={loading}
               onClick={onConfirm}
-              className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white transition-all active:scale-[0.97] shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-70 ${VARIANT_CLASSES[variant]}`}
+              className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all active:scale-[0.97] shadow-sm disabled:opacity-70 ${VARIANT_CLASSES[variant]}`}
             >
               {loading && <Loader2 size={14} className="animate-spin" />}
               {confirmText}

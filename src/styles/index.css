@@ -2,13 +2,11 @@
 @import "tailwindcss";
 @plugin "daisyui";
 
-/* 优化字体渲染 */
 * {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Pre-splash 淡出 */
 #pre-splash {
   transition: opacity 0.3s ease-out, visibility 0.3s ease-out;
 }
@@ -28,33 +26,89 @@
   --font-anton: "Anton", sans-serif;
 }
 
-/* 与 docs/UI_STYLE_GUIDE.md 一致：控件 12px / 容器 16px，统一 DaisyUI 与手写 Tailwind */
+/* ═══════════════════════════════════════════════════
+   Design Tokens — Bento / Glassmorphism / Diffused
+   ═══════════════════════════════════════════════════ */
+
 @layer base {
   :root {
     --radius-field: 0.75rem;
     --radius-box: 1rem;
     --radius-selector: 0.75rem;
+
+    /* Surface & Background */
+    --bg-page-from: #f1f5f9;
+    --bg-page-to: #e8eef5;
+    --bg-surface: #ffffff;
+    --bg-card: #ffffff;
+    --bg-card-hover: #fafbfd;
+    --bg-subtle: #f8fafc;
+
+    /* Glass */
+    --glass-bg: rgba(255, 255, 255, 0.55);
+    --glass-border: rgba(148, 163, 184, 0.18);
+    --glass-blur: 24px;
+
+    /* Shadows — diffused, low opacity */
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.02), 0 4px 16px rgba(0,0,0,0.03);
+    --shadow-card-hover: 0 2px 8px rgba(0,0,0,0.03), 0 8px 32px rgba(0,0,0,0.06);
+    --shadow-glow-indigo: 0 4px 24px rgba(99,102,241,0.12);
+    --shadow-glow-emerald: 0 4px 24px rgba(16,185,129,0.12);
+    --shadow-glow-amber: 0 4px 24px rgba(245,158,11,0.12);
+    --shadow-glow-rose: 0 4px 24px rgba(244,63,94,0.12);
+
+    /* Text */
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+    --text-on-glass: #334155;
+
+    /* Border */
+    --border-default: #e2e8f0;
+    --border-subtle: #f1f5f9;
+  }
+
+  [data-theme="dark"] {
+    --bg-page-from: #0c0f17;
+    --bg-page-to: #111827;
+    --bg-surface: #141820;
+    --bg-card: #1a1f2e;
+    --bg-card-hover: #1f2537;
+    --bg-subtle: #111827;
+
+    --glass-bg: rgba(20, 24, 32, 0.65);
+    --glass-border: rgba(255, 255, 255, 0.06);
+
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.15);
+    --shadow-card-hover: 0 2px 8px rgba(0,0,0,0.25), 0 8px 32px rgba(0,0,0,0.2);
+    --shadow-glow-indigo: 0 4px 24px rgba(99,102,241,0.2);
+    --shadow-glow-emerald: 0 4px 24px rgba(16,185,129,0.2);
+    --shadow-glow-amber: 0 4px 24px rgba(245,158,11,0.2);
+    --shadow-glow-rose: 0 4px 24px rgba(244,63,94,0.2);
+
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --text-on-glass: #cbd5e1;
+
+    --border-default: rgba(255, 255, 255, 0.08);
+    --border-subtle: rgba(255, 255, 255, 0.04);
   }
 }
 
-/*
- * Subtle focus（§3）：弱化 DaisyUI 默认的 2px 深色 outline（易呈「粗黑双边」）
- * DaisyUI 5 在 .input/.select/.textarea 的 :focus-within 使用 outline:2px solid var(--input-color)，
- * 且将 --input-color 设为 base-content，故用无 layer 规则覆盖，保证全站输入/下拉/按钮一致。
- */
+/* Focus — subtle ring, never thick DaisyUI outline */
 @layer utilities {
   .btn:focus-visible {
     outline-width: 1px !important;
     outline-style: solid !important;
     outline-offset: 1px !important;
-    outline-color: rgb(59 130 246 / 0.4) !important;
+    outline-color: rgb(99 102 241 / 0.4) !important;
   }
   .join .btn:focus-visible {
     outline-offset: 0 !important;
   }
 }
 
-/* 非 error：聚焦外圈改为 1px 浅蓝，去掉 Daisy 2px 深色 outline（与边框叠成「粗黑双边」） */
 .input:not(.input-error):focus,
 .input:not(.input-error):focus-within,
 .select:not(.select-error):focus,
@@ -64,10 +118,9 @@
   outline-width: 1px !important;
   outline-style: solid !important;
   outline-offset: 1px !important;
-  outline-color: rgb(59 130 246 / 0.38) !important;
+  outline-color: rgb(99 102 241 / 0.35) !important;
 }
 
-/* 默认 bordered 输入：聚焦时边框不要拉满 base-content（仅无颜色变体时） */
 .input:not(.input-error):not(.input-primary):not(.input-secondary):not(.input-accent):not(.input-info):not(.input-success):not(.input-warning):not(.input-neutral):focus,
 .input:not(.input-error):not(.input-primary):not(.input-secondary):not(.input-accent):not(.input-info):not(.input-success):not(.input-warning):not(.input-neutral):focus-within,
 .select:not(.select-error):not(.select-primary):not(.select-secondary):not(.select-accent):not(.select-info):not(.select-success):not(.select-warning):not(.select-neutral):focus,
@@ -80,13 +133,11 @@
     0 -1px oklch(100% 0 0 / calc(var(--depth) * 0.1)) inset !important;
 }
 
-/* 线框按钮聚焦：避免沿用 base-content 的深色 outline */
 .btn-outline:focus-visible,
 .btn-ghost:focus-visible {
-  outline-color: rgb(59 130 246 / 0.38) !important;
+  outline-color: rgb(99 102 241 / 0.35) !important;
 }
 
-/* 原生 select 统一样式：自定义下拉箭头（与 §1 控件规范一致，替代浏览器默认三角） */
 .lantu-select {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
 }
@@ -94,53 +145,20 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
 }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 10px;
-}
-
-*:hover::-webkit-scrollbar-thumb {
-  background: rgba(156, 163, 175, 0.3);
-}
-
-.dark *:hover::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(156, 163, 175, 0.5) !important;
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2) !important;
-}
-
-/* Firefox */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-}
-
-*:hover {
-  scrollbar-color: rgba(156, 163, 175, 0.3) transparent;
-}
+/* Scrollbar — hidden until hover */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: transparent; border-radius: 10px; }
+*:hover::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.25); }
+[data-theme="dark"] *:hover::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.08); }
+::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.4) !important; }
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.15) !important; }
+* { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+*:hover { scrollbar-color: rgba(148, 163, 184, 0.25) transparent; }
 
 @keyframes glow {
-  0% { box-shadow: 0 0 5px rgba(59, 130, 246, 0.2); }
-  50% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.4); }
-  100% { box-shadow: 0 0 5px rgba(59, 130, 246, 0.2); }
+  0% { box-shadow: 0 0 5px rgba(99, 102, 241, 0.15); }
+  50% { box-shadow: 0 0 20px rgba(99, 102, 241, 0.3); }
+  100% { box-shadow: 0 0 5px rgba(99, 102, 241, 0.15); }
 }
-
-.animate-glow {
-  animation: glow 2s ease-in-out infinite;
-}
+.animate-glow { animation: glow 2s ease-in-out infinite; }

@@ -1,29 +1,24 @@
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
-import { Theme, FontSize } from '../../types';
-import { MgmtPageShell } from './MgmtPageShell';
+import { motion } from 'framer-motion';
+import { Plus, Copy, Check, Ban, Zap, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import type { Theme, FontSize } from '../../types';
 import { nativeInputClass } from '../../utils/formFieldClasses';
-import { TOOLBAR_ROW, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
-import { Search, Plus, Copy, Check, Ban, Zap, Loader2 } from 'lucide-react';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
-import { Pagination } from '../../components/common/Pagination';
+import { Modal } from '../../components/common/Modal';
+import { AnimatedList } from '../../components/common/AnimatedList';
+import { SearchInput } from '../../components/common';
 import { userMgmtService } from '../../api/services/user-mgmt.service';
 import type { ApiKeyRecord } from '../../types/dto/user-mgmt';
+import {
+  pageBg, bentoCard, bentoCardHover, btnPrimary, btnSecondary, btnGhost,
+  textPrimary, textSecondary, textMuted,
+} from '../../utils/uiClasses';
 
-interface ApiKeyListPageProps {
-  theme: Theme;
-  fontSize: FontSize;
-  showMessage: (msg: string, type?: 'success' | 'error' | 'info') => void;
-  breadcrumbSegments: string[];
-}
+interface ApiKeyListPageProps { theme: Theme; fontSize: FontSize; showMessage: (msg: string, type?: 'success' | 'error' | 'info') => void; breadcrumbSegments: string[]; }
 
 const PAGE_SIZE = 20;
 
-export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({
-  theme,
-  fontSize,
-  showMessage,
-  breadcrumbSegments,
-}) => {
+export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, showMessage }) => {
   const isDark = theme === 'dark';
   const [keys, setKeys] = useState<ApiKeyRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,191 +30,104 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({
   const [page, setPage] = useState(1);
   const [revokeTarget, setRevokeTarget] = useState<string | null>(null);
 
-  const fetchKeys = useCallback(async () => {
-    setLoading(true);
-    try {
-      const result = await userMgmtService.listApiKeys();
-      setKeys(result.list);
-    } catch (err) {
-      console.error('Failed to load API keys:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
+  const fetchKeys = useCallback(async () => { setLoading(true); try { setKeys((await userMgmtService.listApiKeys()).list); } catch (err) { console.error(err); } finally { setLoading(false); } }, []);
   useEffect(() => { fetchKeys(); }, [fetchKeys]);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return keys.filter((k) => {
-      if (!q) return true;
-      return k.name.toLowerCase().includes(q) || k.prefix.toLowerCase().includes(q);
-    });
-  }, [keys, search]);
+  const filtered = useMemo(() => { const q = search.trim().toLowerCase(); return keys.filter((k) => !q || k.name.toLowerCase().includes(q) || k.prefix.toLowerCase().includes(q)); }, [keys, search]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated = useMemo(() => { const s = (page - 1) * PAGE_SIZE; return filtered.slice(s, s + PAGE_SIZE); }, [filtered, page]);
 
-  const paginated = useMemo(() => {
-    const start = (page - 1) * PAGE_SIZE;
-    return filtered.slice(start, start + PAGE_SIZE);
-  }, [filtered, page]);
-
-  const closeReveal = useCallback(() => {
-    setRevealedOnce(null);
-    setNewName('');
-    setCopied(false);
-    setCreateOpen(false);
-  }, []);
+  const closeReveal = useCallback(() => { setRevealedOnce(null); setNewName(''); setCopied(false); setCreateOpen(false); }, []);
 
   const createKey = useCallback(async () => {
-    if (!newName.trim()) {
-      showMessage('请填写密钥名称', 'error');
-      return;
-    }
-    try {
-      const result = await userMgmtService.createApiKey({
-        name: newName.trim(),
-        scopes: ['*'],
-      });
-      setRevealedOnce({ full: result.plainKey, prefix: result.prefix });
-      setCopied(false);
-      showMessage('密钥已生成，请立即复制保存', 'success');
-      await fetchKeys();
-    } catch (err) {
-      console.error(err);
-      showMessage('创建失败', 'error');
-    }
+    if (!newName.trim()) { showMessage('请填写密钥名称', 'error'); return; }
+    try { const r = await userMgmtService.createApiKey({ name: newName.trim(), scopes: ['*'] }); setRevealedOnce({ full: r.plainKey, prefix: r.prefix }); setCopied(false); showMessage('密钥已生成', 'success'); await fetchKeys(); }
+    catch { showMessage('创建失败', 'error'); }
   }, [newName, showMessage, fetchKeys]);
 
-  const copyFull = useCallback(async () => {
-    if (!revealedOnce) return;
-    try {
-      await navigator.clipboard.writeText(revealedOnce.full);
-      setCopied(true);
-      showMessage('已复制到剪贴板', 'success');
-    } catch {
-      showMessage('复制失败，请手动选择复制', 'error');
-    }
-  }, [revealedOnce, showMessage]);
+  const copyFull = useCallback(async () => { if (!revealedOnce) return; try { await navigator.clipboard.writeText(revealedOnce.full); setCopied(true); showMessage('已复制到剪贴板', 'success'); } catch { showMessage('复制失败', 'error'); } }, [revealedOnce, showMessage]);
 
-  const handleRevoke = useCallback(async () => {
-    if (!revokeTarget) return;
-    try {
-      await userMgmtService.revokeApiKey(revokeTarget);
-      showMessage('API Key 已撤销', 'info');
-      setRevokeTarget(null);
-      setPage(1);
-      await fetchKeys();
-    } catch (err) {
-      console.error(err);
-      showMessage('撤销失败', 'error');
-    }
-  }, [revokeTarget, showMessage, fetchKeys]);
-
-  const inputCls = nativeInputClass(theme);
+  const handleRevoke = useCallback(async () => { if (!revokeTarget) return; try { await userMgmtService.revokeApiKey(revokeTarget); showMessage('API Key 已撤销', 'info'); setRevokeTarget(null); setPage(1); await fetchKeys(); } catch { showMessage('撤销失败', 'error'); } }, [revokeTarget, showMessage, fetchKeys]);
 
   return (
-    <MgmtPageShell
-      theme={theme}
-      fontSize={fontSize}
-      breadcrumbSegments={breadcrumbSegments}
-      titleIcon={Zap}
-      description="创建与撤销调用密钥；列表仅展示前缀，完整密钥仅在创建时显示一次"
-      toolbar={
-        <div className={TOOLBAR_ROW}>
-          <div className="relative flex-1 min-w-0 sm:max-w-md">
-            <Search className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${isDark ? 'text-slate-500' : 'text-slate-400'}`} size={16} />
-            <input type="search" placeholder="搜索名称或前缀…" value={search} onChange={(e) => setSearch(e.target.value)} className={toolbarSearchInputClass(theme)} />
-          </div>
-          <button type="button" onClick={() => { setCreateOpen(true); setNewName(''); setRevealedOnce(null); setCopied(false); }} className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 min-h-[2.5rem] shrink-0">
-            <Plus size={16} />
-            创建 API Key
-          </button>
-        </div>
-      }
-    >
-      <div className="relative min-w-0 px-4 sm:px-6 pb-6 pt-1">
-        {(createOpen || revealedOnce) && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true" onClick={(e) => e.target === e.currentTarget && !revealedOnce && closeReveal()}>
-            <div className={`w-full max-w-md rounded-2xl border shadow-xl p-5 ${isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200'}`} onClick={(e) => e.stopPropagation()}>
-              {!revealedOnce ? (
-                <>
-                  <h3 className={`text-base font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>新建 API Key</h3>
-                  <p className={`text-xs mt-1 mb-4 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>生成后完整密钥仅展示一次，请妥善保存。</p>
-                  <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>名称</label>
-                  <input className={inputCls} value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="如：教务中台-生产" autoFocus />
-                  <div className="flex justify-end gap-2 mt-5">
-                    <button type="button" onClick={closeReveal} className={`px-3 py-2 rounded-xl text-sm border ${isDark ? 'border-white/10 text-slate-200 hover:bg-white/5' : 'border-slate-200 text-slate-700 hover:bg-slate-50'}`}>取消</button>
-                    <button type="button" onClick={createKey} className="px-3 py-2 rounded-xl text-sm font-medium bg-blue-600 text-white hover:bg-blue-700">生成密钥</button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <h3 className={`text-base font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>请保存您的密钥</h3>
-                  <p className={`text-xs mt-1 mb-3 ${isDark ? 'text-amber-200/90' : 'text-amber-800'}`}>关闭此窗口后将无法再次查看完整密钥。</p>
-                  <div className={`rounded-xl border p-3 font-mono text-xs break-all ${isDark ? 'bg-[#2C2C2E] border-white/10 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>{revealedOnce.full}</div>
-                  <div className="flex flex-wrap gap-2 mt-4">
-                    <button type="button" onClick={copyFull} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium bg-blue-600 text-white hover:bg-blue-700">
-                      {copied ? <Check size={16} /> : <Copy size={16} />}
-                      {copied ? '已复制' : '复制完整密钥'}
-                    </button>
-                    <button type="button" onClick={closeReveal} className={`px-3 py-2 rounded-xl text-sm border ${isDark ? 'border-white/10 text-slate-200 hover:bg-white/5' : 'border-slate-200 text-slate-700 hover:bg-slate-50'}`}>我已保存</button>
-                  </div>
-                </>
-              )}
+    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-colors duration-300 ${pageBg(theme)}`}>
+      <div className="w-full flex-1 min-h-0 flex flex-col px-2 sm:px-3 lg:px-4 py-2 sm:py-3">
+        <div className={`${bentoCard(theme)} overflow-hidden flex-1 min-h-0 flex flex-col`}>
+          <div className={`flex items-center justify-between px-6 py-4 border-b shrink-0 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-xl ${isDark ? 'bg-amber-500/15' : 'bg-amber-50'}`}><Zap size={20} className={isDark ? 'text-amber-400' : 'text-amber-600'} /></div>
+              <div>
+                <h1 className={`text-lg font-bold ${textPrimary(theme)}`}>API Key 管理</h1>
+                <span className={`text-xs ${textMuted(theme)}`}>完整密钥仅在创建时显示一次</span>
+              </div>
             </div>
+            <button type="button" onClick={() => { setCreateOpen(true); setNewName(''); setRevealedOnce(null); setCopied(false); }} className={btnPrimary}><Plus size={15} /> 创建 API Key</button>
           </div>
-        )}
-
-        {loading && keys.length === 0 ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 size={24} className="animate-spin text-slate-400" />
+          <div className={`px-4 py-3 border-b shrink-0 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+            <SearchInput value={search} onChange={setSearch} placeholder="搜索名称或前缀…" theme={theme} />
           </div>
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm min-w-[720px]">
-                <thead>
-                  <tr className={`border-b ${isDark ? 'border-white/10 bg-[#2C2C2E]/80' : 'border-slate-200 bg-slate-50'}`}>
-                    <th className={`px-4 py-3 font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>名称</th>
-                    <th className={`px-4 py-3 font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>密钥前缀（脱敏）</th>
-                    <th className={`px-4 py-3 font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>创建时间</th>
-                    <th className={`px-4 py-3 font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>最近使用</th>
-                    <th className={`px-4 py-3 font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>状态</th>
-                    <th className={`px-4 py-3 font-semibold text-right ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginated.map((k, i) => (
-                    <tr key={k.id} className={`border-b transition-colors ${isDark ? `border-white/5 ${i % 2 === 0 ? 'bg-[#1C1C1E]' : 'bg-[#2C2C2E]/40'} hover:bg-white/5` : `border-slate-100 ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50/80'} hover:bg-slate-100/80`}`}>
-                      <td className={`px-4 py-3 font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>{k.name}</td>
-                      <td className={`px-4 py-3 font-mono text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{k.prefix}<span className="opacity-60">••••••••</span></td>
-                      <td className={`px-4 py-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{k.createdAt}</td>
-                      <td className={`px-4 py-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{k.lastUsedAt ?? '—'}</td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${k.status === 'active' ? isDark ? 'bg-emerald-500/20 text-emerald-300' : 'bg-emerald-100 text-emerald-800' : isDark ? 'bg-red-500/20 text-red-300' : 'bg-red-100 text-red-800'}`}>
+          <div className="flex-1 min-h-0 overflow-auto">
+            {loading && keys.length === 0 ? (
+              <div className="flex items-center justify-center py-12"><Loader2 size={24} className="animate-spin text-slate-400" /></div>
+            ) : paginated.length === 0 ? (
+              <div className={`text-center py-12 text-sm ${textMuted(theme)}`}>暂无 API Key</div>
+            ) : (
+              <AnimatedList className="p-3 space-y-2">
+                {paginated.map((k) => (
+                  <motion.div key={k.id} whileHover={{ y: -2 }} transition={{ type: 'spring', stiffness: 400, damping: 30 }} className={`${bentoCardHover(theme)} p-4 flex items-center gap-4`}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`font-semibold ${textPrimary(theme)}`}>{k.name}</span>
+                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${k.status === 'active' ? (isDark ? 'bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20' : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/60') : (isDark ? 'bg-rose-500/10 text-rose-400 ring-1 ring-rose-500/20' : 'bg-rose-50 text-rose-700 ring-1 ring-rose-200/60')}`}>
                           {k.status === 'active' ? '有效' : '已撤销'}
                         </span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {k.status === 'active' ? (
-                          <button type="button" onClick={() => setRevokeTarget(k.id)} className={`inline-flex items-center gap-1 px-2 py-1 rounded-xl text-xs font-medium ${isDark ? 'text-amber-400 hover:bg-white/10' : 'text-amber-700 hover:bg-amber-50'}`}>
-                            <Ban size={14} />
-                            撤销
-                          </button>
-                        ) : (
-                          <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>—</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </div>
+                      <div className={`text-xs mt-0.5 font-mono ${textMuted(theme)}`}>{k.prefix}<span className="opacity-50">••••••••</span> · 创建于 {k.createdAt}</div>
+                    </div>
+                    {k.status === 'active' && (
+                      <button type="button" onClick={() => setRevokeTarget(k.id)} className={`${btnGhost(theme)} !text-amber-500`}><Ban size={14} /> 撤销</button>
+                    )}
+                  </motion.div>
+                ))}
+              </AnimatedList>
+            )}
+          </div>
+          {totalPages > 1 && (
+            <div className={`px-4 py-3 border-t shrink-0 flex items-center justify-between ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+              <span className={`text-sm ${textMuted(theme)}`}>共 {filtered.length} 条</span>
+              <div className="flex items-center gap-2">
+                <button type="button" disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className={`p-2 rounded-xl transition-colors ${page <= 1 ? (isDark ? 'text-slate-600' : 'text-slate-300') : (isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-600 hover:bg-slate-100')}`}><ChevronLeft size={16} /></button>
+                <span className={`text-xs font-medium ${textSecondary(theme)}`}>{page} / {totalPages}</span>
+                <button type="button" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)} className={`p-2 rounded-xl transition-colors ${page >= totalPages ? (isDark ? 'text-slate-600' : 'text-slate-300') : (isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-600 hover:bg-slate-100')}`}><ChevronRight size={16} /></button>
+              </div>
             </div>
-            {filtered.length === 0 && <p className={`text-center py-12 text-sm ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>暂无 API Key</p>}
-            {filtered.length > 0 && <Pagination page={page} pageSize={PAGE_SIZE} total={filtered.length} onChange={setPage} />}
+          )}
+        </div>
+      </div>
+
+      {/* Create / Reveal Modal */}
+      <Modal open={createOpen || !!revealedOnce} onClose={revealedOnce ? () => {} : closeReveal} title={revealedOnce ? '请保存您的密钥' : '新建 API Key'} theme={theme} size="sm" closeOnBackdrop={!revealedOnce} footer={
+        revealedOnce ? (
+          <><button type="button" className={btnPrimary} onClick={copyFull}>{copied ? <><Check size={14} /> 已复制</> : <><Copy size={14} /> 复制密钥</>}</button><button type="button" className={btnSecondary(theme)} onClick={closeReveal}>我已保存</button></>
+        ) : (
+          <><button type="button" className={btnSecondary(theme)} onClick={closeReveal}>取消</button><button type="button" className={btnPrimary} onClick={createKey}>生成密钥</button></>
+        )
+      }>
+        {revealedOnce ? (
+          <>
+            <p className="text-xs text-amber-500 font-medium mb-3">关闭此窗口后将无法再次查看完整密钥。</p>
+            <div className={`rounded-xl border p-3 font-mono text-xs break-all ${isDark ? 'bg-white/[0.03] border-white/[0.06] text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>{revealedOnce.full}</div>
+          </>
+        ) : (
+          <>
+            <p className={`text-xs mb-3 ${textMuted(theme)}`}>生成后完整密钥仅展示一次，请妥善保存。</p>
+            <label className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>名称</label>
+            <input className={nativeInputClass(theme)} value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="如：教务中台-生产" autoFocus />
           </>
         )}
-      </div>
+      </Modal>
+
       <ConfirmDialog open={!!revokeTarget} title="撤销 API Key" message="撤销后该 Key 将不可用，确定继续？" confirmText="撤销" variant="warning" onConfirm={handleRevoke} onCancel={() => setRevokeTarget(null)} />
-    </MgmtPageShell>
+    </div>
   );
 };

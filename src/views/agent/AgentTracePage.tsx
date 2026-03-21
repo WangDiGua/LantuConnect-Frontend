@@ -1,10 +1,14 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { GitBranch, Search, ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
-import { Theme, FontSize } from '../../types';
-import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
-import { TOOLBAR_ROW, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
+import { GitBranch, ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
+import type { Theme, FontSize } from '../../types';
+import { BentoCard } from '../../components/common/BentoCard';
+import { GlassPanel } from '../../components/common/GlassPanel';
+import { SearchInput } from '../../components/common';
 import { monitoringService } from '../../api/services/monitoring.service';
 import type { TraceSpan as TraceSpanDTO } from '../../types/dto/monitoring';
+import {
+  pageBg, bentoCard, textPrimary, textSecondary, textMuted,
+} from '../../utils/uiClasses';
 
 interface AgentTracePageProps {
   theme: Theme;
@@ -30,32 +34,16 @@ interface TraceListItem {
 
 function dtoToDisplaySpan(dto: TraceSpanDTO): DisplaySpan {
   return {
-    id: dto.id,
-    name: dto.operationName,
-    service: dto.serviceName || dto.service,
-    durationMs: dto.duration,
-    status: dto.status,
-    children: dto.children?.map(dtoToDisplaySpan),
+    id: dto.id, name: dto.operationName, service: dto.serviceName || dto.service,
+    durationMs: dto.duration, status: dto.status, children: dto.children?.map(dtoToDisplaySpan),
   };
 }
 
 function dtoToListItem(dto: TraceSpanDTO): TraceListItem {
-  return {
-    traceId: dto.traceId,
-    startedAt: dto.startTime,
-    durationMs: dto.duration,
-    status: dto.status,
-    route: dto.operationName,
-  };
+  return { traceId: dto.traceId, startedAt: dto.startTime, durationMs: dto.duration, status: dto.status, route: dto.operationName };
 }
 
-type SpanTreeProps = {
-  span: DisplaySpan;
-  depth: number;
-  theme: Theme;
-  expanded: Set<string>;
-  toggle: (id: string) => void;
-};
+type SpanTreeProps = { span: DisplaySpan; depth: number; theme: Theme; expanded: Set<string>; toggle: (id: string) => void };
 
 const SpanTree: React.FC<SpanTreeProps> = ({ span, depth, theme, expanded, toggle }) => {
   const isDark = theme === 'dark';
@@ -63,7 +51,7 @@ const SpanTree: React.FC<SpanTreeProps> = ({ span, depth, theme, expanded, toggl
   const open = expanded.has(span.id);
 
   return (
-    <div className={depth > 0 ? 'ml-4 border-l border-dashed pl-3 border-slate-300 dark:border-white/15' : ''}>
+    <div className={depth > 0 ? `ml-4 border-l border-dashed pl-3 ${isDark ? 'border-white/10' : 'border-slate-200'}` : ''}>
       <button
         type="button"
         onClick={() => hasChildren && toggle(span.id)}
@@ -76,10 +64,10 @@ const SpanTree: React.FC<SpanTreeProps> = ({ span, depth, theme, expanded, toggl
         )}
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className={`font-mono text-xs ${isDark ? 'text-slate-300' : 'text-slate-800'}`}>{span.name}</span>
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200/80 dark:bg-white/10 text-slate-600 dark:text-slate-400">{span.service}</span>
-            <span className="text-xs tabular-nums text-slate-500">{span.durationMs} ms</span>
-            {span.status === 'error' && <span className="text-[10px] font-bold text-red-500">error</span>}
+            <span className={`font-mono text-xs ${textPrimary(theme)}`}>{span.name}</span>
+            <span className={`text-[10px] px-1.5 py-0.5 rounded ${isDark ? 'bg-white/5 text-slate-500' : 'bg-slate-50 text-slate-400'}`}>{span.service}</span>
+            <span className={`text-xs tabular-nums ${textMuted(theme)}`}>{span.durationMs} ms</span>
+            {span.status === 'error' && <span className="text-[10px] font-bold text-rose-500">error</span>}
           </div>
         </div>
       </button>
@@ -94,7 +82,7 @@ const SpanTree: React.FC<SpanTreeProps> = ({ span, depth, theme, expanded, toggl
   );
 };
 
-export const AgentTracePage: React.FC<AgentTracePageProps> = ({ theme, fontSize }) => {
+export const AgentTracePage: React.FC<AgentTracePageProps> = ({ theme }) => {
   const isDark = theme === 'dark';
   const [q, setQ] = useState('');
   const [traceList, setTraceList] = useState<TraceListItem[]>([]);
@@ -139,72 +127,77 @@ export const AgentTracePage: React.FC<AgentTracePageProps> = ({ theme, fontSize 
   const toggle = (id: string) => {
     setExpanded((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
   };
 
   return (
-    <MgmtPageShell
-      theme={theme}
-      fontSize={fontSize}
-      breadcrumbSegments={['Agent 管理', 'Trace追踪']}
-      titleIcon={GitBranch}
-      description="按 Trace ID 查看调用链路与各阶段耗时"
-      toolbar={
-        <div className={TOOLBAR_ROW}>
-          <div className="relative flex-1 min-w-0 sm:max-w-md">
-            <Search className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${isDark ? 'text-slate-500' : 'text-slate-400'}`} size={16} />
-            <input type="search" placeholder="Trace ID 或路由…" value={q} onChange={(e) => setQ(e.target.value)} className={toolbarSearchInputClass(theme)} />
+    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-colors duration-300 ${pageBg(theme)}`}>
+      <div className="w-full flex-1 min-h-0 overflow-y-auto px-2 sm:px-3 lg:px-4 py-2 sm:py-3 space-y-4">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={`p-2 rounded-xl ${isDark ? 'bg-emerald-500/15' : 'bg-emerald-50'}`}>
+              <GitBranch size={20} className={isDark ? 'text-emerald-400' : 'text-emerald-600'} />
+            </div>
+            <div>
+              <h1 className={`text-lg font-bold ${textPrimary(theme)}`}>Trace 追踪</h1>
+              <p className={`text-xs ${textMuted(theme)}`}>按 Trace ID 查看调用链路与各阶段耗时</p>
+            </div>
+          </div>
+          <div className="w-full sm:max-w-xs">
+            <SearchInput value={q} onChange={setQ} placeholder="Trace ID 或路由…" theme={theme} />
           </div>
         </div>
-      }
-    >
-      <div className="min-w-0 px-4 sm:px-6 pb-6 pt-1">
+
         {loading ? (
           <div className="flex items-center justify-center py-16">
             <Loader2 size={24} className="animate-spin text-slate-400" />
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,320px)_1fr] gap-6">
-            <div className={`rounded-2xl border overflow-hidden max-h-[520px] flex flex-col ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200/80 bg-white'}`}>
-              <div className={`px-4 py-2.5 text-xs font-bold border-b ${isDark ? 'border-white/10 text-slate-400' : 'border-slate-200 text-slate-600'}`}>最近 Trace</div>
-              <ul className="overflow-y-auto custom-scrollbar flex-1">
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,320px)_1fr] gap-4">
+            {/* Trace List */}
+            <GlassPanel theme={theme} padding="sm" className="max-h-[520px] flex flex-col overflow-hidden">
+              <div className={`px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider border-b shrink-0 ${isDark ? 'border-white/[0.06] text-slate-500' : 'border-slate-100 text-slate-400'}`}>
+                最近 Trace
+              </div>
+              <ul className="overflow-y-auto flex-1">
                 {list.map((item) => (
-                  <li key={item.traceId} className={`border-b last:border-0 ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
+                  <li key={item.traceId} className={`border-b last:border-0 ${isDark ? 'border-white/[0.04]' : 'border-slate-100'}`}>
                     <button
                       type="button"
                       onClick={() => setSelectedId(item.traceId)}
-                      className={`w-full text-left px-4 py-3 transition-colors ${selectedId === item.traceId ? isDark ? 'bg-blue-500/15' : 'bg-blue-50' : isDark ? 'hover:bg-white/[0.04]' : 'hover:bg-slate-50'}`}
+                      className={`w-full text-left px-4 py-3 transition-colors ${selectedId === item.traceId ? (isDark ? 'bg-indigo-500/10' : 'bg-indigo-50/60') : (isDark ? 'hover:bg-white/[0.04]' : 'hover:bg-slate-50')}`}
                     >
-                      <div className="font-mono text-xs truncate">{item.traceId}</div>
-                      <div className="text-[11px] text-slate-500 mt-1">{item.route}</div>
+                      <div className={`font-mono text-xs truncate ${textPrimary(theme)}`}>{item.traceId}</div>
+                      <div className={`text-[11px] mt-1 ${textMuted(theme)}`}>{item.route}</div>
                       <div className="flex justify-between mt-1.5 text-[11px]">
-                        <span className="text-slate-500">{item.startedAt}</span>
-                        <span className="tabular-nums">{item.durationMs} ms</span>
-                        <span className={item.status === 'error' ? 'text-red-500 font-semibold' : 'text-emerald-600'}>{item.status}</span>
+                        <span className={textMuted(theme)}>{item.startedAt}</span>
+                        <span className={`tabular-nums ${textSecondary(theme)}`}>{item.durationMs} ms</span>
+                        <span className={item.status === 'error' ? 'text-rose-500 font-semibold' : 'text-emerald-500'}>{item.status}</span>
                       </div>
                     </button>
                   </li>
                 ))}
               </ul>
-            </div>
+            </GlassPanel>
 
-            <div className={`rounded-2xl border p-4 sm:p-5 min-h-[320px] ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200/80 bg-white'}`}>
-              <h3 className={`text-sm font-bold mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+            {/* Trace Detail */}
+            <BentoCard theme={theme} className="min-h-[320px]">
+              <h3 className={`text-sm font-bold mb-4 ${textPrimary(theme)}`}>
                 调用链
-                {selectedId && <span className="ml-2 font-mono text-xs font-normal text-slate-500">{selectedId}</span>}
+                {selectedId && <span className={`ml-2 font-mono text-xs font-normal ${textMuted(theme)}`}>{selectedId}</span>}
               </h3>
               {selectedSpan ? (
                 <SpanTree span={selectedSpan} depth={0} theme={theme} expanded={expanded} toggle={toggle} />
               ) : (
-                <p className={`text-sm ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>暂无 Trace 数据</p>
+                <p className={`text-sm ${textMuted(theme)}`}>暂无 Trace 数据</p>
               )}
-            </div>
+            </BentoCard>
           </div>
         )}
       </div>
-    </MgmtPageShell>
+    </div>
   );
 };

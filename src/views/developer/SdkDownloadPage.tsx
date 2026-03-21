@@ -1,75 +1,21 @@
 import React, { useState } from 'react';
-import { Download, FileText, Copy, Check, ExternalLink, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Download, FileText, Copy, Check, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { Theme, FontSize } from '../../types';
+import type { Theme, FontSize } from '../../types';
 import { buildPath } from '../../constants/consoleRoutes';
+import { BentoCard } from '../../components/common/BentoCard';
+import { Modal } from '../../components/common/Modal';
+import {
+  pageBg, btnPrimary, btnSecondary, textPrimary, textSecondary, textMuted,
+} from '../../utils/uiClasses';
 
-interface SdkInfo {
-  id: string;
-  language: string;
-  letter: string;
-  color: string;
-  darkColor: string;
-  name: string;
-  version: string;
-  badge?: string;
-  description: string;
-  installCmd: string;
-}
+interface SdkInfo { id: string; language: string; letter: string; color: string; name: string; version: string; badge?: string; description: string; installCmd: string; }
 
 const SDK_LIST: SdkInfo[] = [
-  {
-    id: 'java',
-    language: 'Java',
-    letter: 'J',
-    color: 'bg-orange-500',
-    darkColor: 'bg-orange-600',
-    name: 'Java SDK',
-    version: '1.0.0',
-    badge: '推荐',
-    description: '适用于 Spring Boot / Maven 项目，支持同步和异步调用，内置连接池和重试机制。',
-    installCmd: `<!-- Maven -->
-<dependency>
-  <groupId>com.lantuconnect</groupId>
-  <artifactId>lantu-sdk-java</artifactId>
-  <version>1.0.0</version>
-</dependency>`,
-  },
-  {
-    id: 'python',
-    language: 'Python',
-    letter: 'P',
-    color: 'bg-blue-500',
-    darkColor: 'bg-blue-600',
-    name: 'Python SDK',
-    version: '1.0.0',
-    description: '支持 Python 3.8+，提供同步和 asyncio 两种调用方式，兼容 FastAPI、Django。',
-    installCmd: 'pip install lantuconnect',
-  },
-  {
-    id: 'javascript',
-    language: 'JavaScript',
-    letter: 'JS',
-    color: 'bg-yellow-500',
-    darkColor: 'bg-yellow-600',
-    name: 'JavaScript/Node.js SDK',
-    version: '1.0.0',
-    description: '支持 Node.js 16+ 和浏览器环境，TypeScript 类型完备，支持 ESM 和 CJS。',
-    installCmd: 'npm install @lantuconnect/sdk',
-  },
-  {
-    id: 'go',
-    language: 'Go',
-    letter: 'Go',
-    color: 'bg-cyan-500',
-    darkColor: 'bg-cyan-600',
-    name: 'Go SDK',
-    version: '0.9.0',
-    badge: 'Beta',
-    description: '支持 Go 1.20+，提供 context 原生支持，并发安全，适合微服务场景。',
-    installCmd: 'go get github.com/lantuconnect/sdk-go@v0.9.0',
-  },
+  { id: 'java', language: 'Java', letter: 'J', color: 'bg-orange-500', name: 'Java SDK', version: '1.0.0', badge: '推荐', description: '适用于 Spring Boot / Maven 项目，支持同步和异步调用，内置连接池和重试机制。', installCmd: `<!-- Maven -->\n<dependency>\n  <groupId>com.lantuconnect</groupId>\n  <artifactId>lantu-sdk-java</artifactId>\n  <version>1.0.0</version>\n</dependency>` },
+  { id: 'python', language: 'Python', letter: 'P', color: 'bg-blue-500', name: 'Python SDK', version: '1.0.0', description: '支持 Python 3.8+，提供同步和 asyncio 两种调用方式。', installCmd: 'pip install lantuconnect' },
+  { id: 'javascript', language: 'JavaScript', letter: 'JS', color: 'bg-yellow-500', name: 'JavaScript/Node.js SDK', version: '1.0.0', description: '支持 Node.js 16+ 和浏览器环境，TypeScript 类型完备。', installCmd: 'npm install @lantuconnect/sdk' },
+  { id: 'go', language: 'Go', letter: 'Go', color: 'bg-cyan-500', name: 'Go SDK', version: '0.9.0', badge: 'Beta', description: '支持 Go 1.20+，提供 context 原生支持，并发安全。', installCmd: 'go get github.com/lantuconnect/sdk-go@v0.9.0' },
 ];
 
 const QUICK_START_CODE = `import { LantuClient } from '@lantuconnect/sdk';
@@ -79,200 +25,101 @@ const client = new LantuClient({
   apiKey: 'your_api_key_here',
 });
 
-// 调用 Agent
 const result = await client.agents.invoke(1, {
   input: '帮我查询本学期课表',
   stream: false,
 });
 
-console.log(result.data.output);
-// => "您本学期共选修 6 门课程..."`;
+console.log(result.data.output);`;
 
 function CopyBtn({ text, isDark }: { text: string; isDark: boolean }) {
   const [copied, setCopied] = useState(false);
   return (
-    <button
-      type="button"
-      onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
-      className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs transition-colors ${
-        isDark ? 'hover:bg-white/10 text-slate-400' : 'hover:bg-slate-200 text-slate-500'
-      }`}
-      title="复制"
-    >
+    <button type="button" onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1500); }} className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs transition-colors ${isDark ? 'hover:bg-white/10 text-slate-400' : 'hover:bg-slate-200 text-slate-500'}`} title="复制">
       {copied ? <><Check size={12} className="text-emerald-500" /> 已复制</> : <><Copy size={12} /> 复制</>}
     </button>
   );
 }
 
-export interface SdkDownloadPageProps {
-  theme: Theme;
-  fontSize: FontSize;
-}
+export interface SdkDownloadPageProps { theme: Theme; fontSize: FontSize; }
 
-export const SdkDownloadPage: React.FC<SdkDownloadPageProps> = ({ theme, fontSize }) => {
+export const SdkDownloadPage: React.FC<SdkDownloadPageProps> = ({ theme }) => {
   const isDark = theme === 'dark';
   const navigate = useNavigate();
   const [downloadSdk, setDownloadSdk] = useState<SdkInfo | null>(null);
 
   return (
-    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${isDark ? 'bg-[#000000]' : 'bg-[#F2F2F7]'}`}>
-      <div className="w-full flex-1 min-h-0 flex flex-col px-2 sm:px-3 lg:px-4 py-2 sm:py-3 overflow-y-auto custom-scrollbar">
+    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-colors duration-300 ${pageBg(theme)}`}>
+      <div className="w-full flex-1 min-h-0 overflow-y-auto px-2 sm:px-3 lg:px-4 py-2 sm:py-3 space-y-4">
         {/* Header */}
-        <div className="flex items-center gap-3 mb-4 shrink-0">
-          <div className={`p-2 rounded-xl ${isDark ? 'bg-white/10' : 'bg-white border border-slate-200/80'}`}>
-            <Download size={22} className="text-violet-500" />
+        <div className="flex items-center gap-3">
+          <div className={`p-2 rounded-xl ${isDark ? 'bg-violet-500/15' : 'bg-violet-50'}`}>
+            <Download size={20} className={isDark ? 'text-violet-400' : 'text-violet-600'} />
           </div>
           <div>
-            <h1 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>SDK 下载</h1>
-            <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-              选择适合你的语言 SDK，快速集成 LantuConnect 开放接口
-            </p>
+            <h1 className={`text-lg font-bold ${textPrimary(theme)}`}>SDK 下载</h1>
+            <p className={`text-xs ${textMuted(theme)}`}>选择适合你的语言 SDK，快速集成</p>
           </div>
         </div>
 
         {/* SDK Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {SDK_LIST.map((sdk) => (
-            <div
-              key={sdk.id}
-              className={`rounded-2xl border p-5 flex flex-col transition-colors ${
-                isDark ? 'bg-[#1C1C1E] border-white/10 hover:border-white/20' : 'bg-white border-slate-200/80 hover:border-slate-300'
-              }`}
-            >
-              {/* Icon + Name */}
+            <BentoCard key={sdk.id} theme={theme} hover glow="indigo" className="flex flex-col">
               <div className="flex items-start gap-4 mb-4">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold text-sm shrink-0 ${sdk.color}`}>
-                  {sdk.letter}
-                </div>
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold text-sm shrink-0 ${sdk.color}`}>{sdk.letter}</div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className={`font-bold ${fontSize === 'small' ? 'text-sm' : 'text-base'} ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                      {sdk.name}
-                    </h3>
-                    <span className={`text-[11px] px-2 py-0.5 rounded-md font-medium ${isDark ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
-                      v{sdk.version}
-                    </span>
+                    <h3 className={`font-bold ${textPrimary(theme)}`}>{sdk.name}</h3>
+                    <span className={`text-[11px] px-2 py-0.5 rounded-md font-medium ${isDark ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>v{sdk.version}</span>
                     {sdk.badge && (
-                      <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold ${
-                        sdk.badge === '推荐'
-                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400'
-                          : 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400'
-                      } ${isDark ? (sdk.badge === '推荐' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400') : ''}`}>
-                        {sdk.badge}
-                      </span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold ${sdk.badge === '推荐' ? (isDark ? 'bg-emerald-500/15 text-emerald-400' : 'bg-emerald-50 text-emerald-700') : (isDark ? 'bg-amber-500/15 text-amber-400' : 'bg-amber-50 text-amber-700')}`}>{sdk.badge}</span>
                     )}
                   </div>
-                  <p className={`text-xs mt-1 leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                    {sdk.description}
-                  </p>
+                  <p className={`text-xs mt-1 leading-relaxed ${textMuted(theme)}`}>{sdk.description}</p>
                 </div>
               </div>
-
-              {/* Install command */}
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className={`text-[10px] font-semibold uppercase tracking-wider ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                    安装命令
-                  </span>
+                  <span className={`text-[10px] font-semibold uppercase tracking-wider ${textMuted(theme)}`}>安装命令</span>
                   <CopyBtn text={sdk.installCmd} isDark={isDark} />
                 </div>
-                <pre className={`text-xs font-mono p-3 rounded-xl overflow-x-auto ${isDark ? 'bg-black/40 text-slate-300' : 'bg-slate-900 text-slate-300'}`}>
-                  {sdk.installCmd}
-                </pre>
+                <pre className={`text-xs font-mono p-3 rounded-xl overflow-x-auto ${isDark ? 'bg-black/40 text-slate-300' : 'bg-slate-900 text-slate-300'}`}>{sdk.installCmd}</pre>
               </div>
-
-              {/* Buttons */}
-              <div className={`flex items-center gap-2 mt-4 pt-3 border-t border-dashed ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
-                <button
-                  type="button"
-                  onClick={() => setDownloadSdk(sdk)}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors"
-                >
-                  <Download size={14} />
-                  下载
-                </button>
-                <button
-                  type="button"
-                  onClick={() => navigate(buildPath('admin', 'api-docs'))}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-colors ${
-                    isDark ? 'bg-white/10 text-slate-300 hover:bg-white/15' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                  }`}
-                >
-                  <FileText size={14} />
-                  文档
-                </button>
+              <div className={`flex items-center gap-2 mt-4 pt-3 border-t border-dashed ${isDark ? 'border-white/[0.06]' : 'border-slate-200'}`}>
+                <button type="button" onClick={() => setDownloadSdk(sdk)} className={btnPrimary}><Download size={14} /> 下载</button>
+                <button type="button" onClick={() => navigate(buildPath('admin', 'api-docs'))} className={btnSecondary(theme)}><FileText size={14} /> 文档</button>
               </div>
-            </div>
+            </BentoCard>
           ))}
         </div>
 
         {/* Quick Start */}
-        <div className={`rounded-2xl border p-6 ${isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200/80'}`}>
+        <BentoCard theme={theme}>
           <div className="flex items-center gap-2 mb-4">
-            <ExternalLink size={18} className="text-blue-500" />
-            <h2 className={`font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>快速开始</h2>
-            <span className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>— 以 JavaScript SDK 为例</span>
+            <ExternalLink size={18} className={isDark ? 'text-indigo-400' : 'text-indigo-600'} />
+            <h2 className={`font-bold ${textPrimary(theme)}`}>快速开始</h2>
+            <span className={`text-xs ${textMuted(theme)}`}>— 以 JavaScript SDK 为例</span>
           </div>
           <div className="relative">
-            <div className="absolute top-3 right-3 z-10">
-              <CopyBtn text={QUICK_START_CODE} isDark={isDark} />
-            </div>
-            <pre className={`text-xs font-mono p-4 rounded-xl overflow-x-auto leading-relaxed ${isDark ? 'bg-black/40 text-slate-300' : 'bg-slate-900 text-slate-300'}`}>
-              {QUICK_START_CODE}
-            </pre>
+            <div className="absolute top-3 right-3 z-10"><CopyBtn text={QUICK_START_CODE} isDark={isDark} /></div>
+            <pre className={`text-xs font-mono p-4 rounded-xl overflow-x-auto leading-relaxed ${isDark ? 'bg-black/40 text-slate-300' : 'bg-slate-900 text-slate-300'}`}>{QUICK_START_CODE}</pre>
           </div>
-        </div>
+        </BentoCard>
       </div>
 
-      {/* SDK 下载弹窗 */}
-      <AnimatePresence>
+      {/* Download Modal */}
+      <Modal open={!!downloadSdk} onClose={() => setDownloadSdk(null)} title={downloadSdk ? `${downloadSdk.name} v${downloadSdk.version}` : ''} theme={theme} size="sm" footer={<button type="button" className={btnSecondary(theme)} onClick={() => setDownloadSdk(null)}>关闭</button>}>
         {downloadSdk && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50"
-            onClick={() => setDownloadSdk(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 20 }}
-              className={`w-full max-w-md rounded-2xl border p-6 ${
-                isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200'
-              }`}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className={`text-base font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                  {downloadSdk.name} v{downloadSdk.version}
-                </h3>
-                <button type="button" onClick={() => setDownloadSdk(null)} className="btn btn-ghost btn-sm btn-circle">
-                  <X size={18} />
-                </button>
-              </div>
-              <p className={`text-sm mb-4 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                SDK 包尚未发布，请通过包管理器安装：
-              </p>
-              <div className="relative">
-                <pre className={`text-xs font-mono p-4 rounded-xl overflow-x-auto ${
-                  isDark ? 'bg-black/40 text-slate-300' : 'bg-slate-900 text-slate-300'
-                }`}>
-                  {downloadSdk.installCmd}
-                </pre>
-                <div className="absolute top-2 right-2">
-                  <CopyBtn text={downloadSdk.installCmd} isDark={isDark} />
-                </div>
-              </div>
-              <div className="flex justify-end mt-4">
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setDownloadSdk(null)}>
-                  关闭
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
+          <>
+            <p className={`text-sm mb-4 ${textSecondary(theme)}`}>SDK 包尚未发布，请通过包管理器安装：</p>
+            <div className="relative">
+              <pre className={`text-xs font-mono p-4 rounded-xl overflow-x-auto ${isDark ? 'bg-black/40 text-slate-300' : 'bg-slate-900 text-slate-300'}`}>{downloadSdk.installCmd}</pre>
+              <div className="absolute top-2 right-2"><CopyBtn text={downloadSdk.installCmd} isDark={isDark} /></div>
+            </div>
+          </>
         )}
-      </AnimatePresence>
+      </Modal>
     </div>
   );
 };

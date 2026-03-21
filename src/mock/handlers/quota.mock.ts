@@ -1,6 +1,6 @@
 import type MockAdapter from 'axios-mock-adapter';
-import type { QuotaItem, RateLimitItem } from '../../../types/dto/quota';
-import { mockOk } from '../mockAdapter';
+import type { QuotaItem, RateLimitItem } from '../../types/dto/quota';
+import { mockOk } from '..';
 
 const quotas: QuotaItem[] = [
   {

@@ -1,6 +1,6 @@
 import type MockAdapter from 'axios-mock-adapter';
-import type { Category } from '../../../types/dto/category';
-import { mockOk } from '../mockAdapter';
+import type { Category } from '../../types/dto/category';
+import { mockOk } from '..';
 
 const now = new Date().toISOString();
 

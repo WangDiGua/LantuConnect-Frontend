@@ -1,6 +1,6 @@
 import type MockAdapter from 'axios-mock-adapter';
-import type { AgentVersion } from '../../../types/dto/agent';
-import { mockOk } from '../mockAdapter';
+import type { AgentVersion } from '../../types/dto/agent';
+import { mockOk } from '..';
 
 const versions: AgentVersion[] = [
   {

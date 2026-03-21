@@ -1,6 +1,6 @@
 import type MockAdapter from 'axios-mock-adapter';
-import type { UserInfo, LoginResponse } from '../../../types/dto/auth';
-import { mockOk } from '../mockAdapter';
+import type { UserInfo, LoginResponse } from '../../types/dto/auth';
+import { mockOk } from '..';
 
 const mockUser: UserInfo = {
   id: 'u_001',

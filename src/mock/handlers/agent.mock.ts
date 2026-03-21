@@ -1,6 +1,6 @@
 import type MockAdapter from 'axios-mock-adapter';
-import type { Agent } from '../../../types/dto/agent';
-import { mockOk, paginate } from '../mockAdapter';
+import type { Agent } from '../../types/dto/agent';
+import { mockOk, paginate } from '..';
 
 const agents: Agent[] = [
   {

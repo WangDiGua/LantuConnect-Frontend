@@ -288,7 +288,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
 
   return (
     <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${isDark ? 'bg-[#000000]' : 'bg-[#F2F2F7]'}`}>
-      <div className="w-full flex-1 min-h-0 flex flex-col px-2 sm:px-3 lg:px-4 py-2 sm:py-3 overflow-hidden">
+      <div className="w-full flex-1 min-h-0 flex flex-col px-2 sm:px-3 lg:px-4 py-2 sm:py-3 overflow-y-auto custom-scrollbar">
         {/* Header */}
         <div className="flex items-center gap-3 mb-4 shrink-0">
           <div className={`p-2 rounded-xl ${isDark ? 'bg-white/10' : 'bg-white border border-slate-200/80'}`}>

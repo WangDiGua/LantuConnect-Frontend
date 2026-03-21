@@ -6,8 +6,8 @@ import type {
   UsageStatsData,
   UsageStatsPoint,
   DataReportsData,
-} from '../../../types/dto/dashboard';
-import { mockOk } from '../mockAdapter';
+} from '../../types/dto/dashboard';
+import { mockOk } from '..';
 
 const adminOverview: AdminOverview = {
   kpis: [

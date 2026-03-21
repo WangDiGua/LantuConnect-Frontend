@@ -5,8 +5,8 @@ import type {
   AuditLogEntry,
   SystemParam,
   SecuritySetting,
-} from '../../../types/dto/system-config';
-import { mockOk, paginate } from '../mockAdapter';
+} from '../../types/dto/system-config';
+import { mockOk, paginate } from '..';
 
 function ts(daysAgo: number): string {
   const d = new Date();

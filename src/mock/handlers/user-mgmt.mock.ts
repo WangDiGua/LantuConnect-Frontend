@@ -1,6 +1,6 @@
 import type MockAdapter from 'axios-mock-adapter';
-import { mockOk, paginate } from '../mockAdapter';
-import { MOCK_USERS, MOCK_ROLES, MOCK_API_KEYS, MOCK_TOKENS } from '../../../constants/userMgmt';
+import { mockOk, paginate } from '..';
+import { MOCK_USERS, MOCK_ROLES, MOCK_API_KEYS, MOCK_TOKENS } from '../../constants/userMgmt';
 
 let users = [...MOCK_USERS];
 let roles = [...MOCK_ROLES];

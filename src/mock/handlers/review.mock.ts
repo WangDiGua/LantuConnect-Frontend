@@ -1,6 +1,6 @@
 import type MockAdapter from 'axios-mock-adapter';
-import type { Review, ReviewSummary } from '../../../types/dto/review';
-import { mockOk } from '../mockAdapter';
+import type { Review, ReviewSummary } from '../../types/dto/review';
+import { mockOk } from '..';
 
 const reviews: Review[] = [
   {

@@ -6,8 +6,8 @@ import type {
   AlertRule,
   TraceSpan,
   PerformanceMetric,
-} from '../../../types/dto/monitoring';
-import { mockOk, paginate } from '../mockAdapter';
+} from '../../types/dto/monitoring';
+import { mockOk, paginate } from '..';
 
 function ts(daysAgo: number, h = 10, m = 0): string {
   const d = new Date();

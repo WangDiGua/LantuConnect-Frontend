@@ -1,6 +1,6 @@
 import type MockAdapter from 'axios-mock-adapter';
-import type { TagItem } from '../../../types/dto/tag';
-import { mockOk } from '../mockAdapter';
+import type { TagItem } from '../../types/dto/tag';
+import { mockOk } from '..';
 
 const tags: TagItem[] = [
   { id: 1, name: 'AI生成', category: '技术', usageCount: 45, createTime: '2025-06-01T08:00:00Z' },

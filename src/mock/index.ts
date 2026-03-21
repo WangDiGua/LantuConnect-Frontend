@@ -1,7 +1,7 @@
 import MockAdapter from 'axios-mock-adapter';
 import type { AxiosInstance } from 'axios';
-import { env } from '../../config/env';
-import type { ApiResponse, PaginatedData } from '../../types/api';
+import { env } from '../config/env';
+import type { ApiResponse, PaginatedData } from '../types/api';
 import { registerAllHandlers } from './handlers';
 
 export function mockOk<T>(data: T): [number, ApiResponse<T>] {

@@ -1,6 +1,6 @@
 import type MockAdapter from 'axios-mock-adapter';
-import type { AuditItem } from '../../../types/dto/audit';
-import { mockOk, paginate } from '../mockAdapter';
+import type { AuditItem } from '../../types/dto/audit';
+import { mockOk, paginate } from '..';
 
 const pendingAgents: AuditItem[] = [
   {

@@ -1,6 +1,6 @@
 import type MockAdapter from 'axios-mock-adapter';
-import type { SmartApp } from '../../../types/dto/smart-app';
-import { mockOk, paginate } from '../mockAdapter';
+import type { SmartApp } from '../../types/dto/smart-app';
+import { mockOk, paginate } from '..';
 
 const apps: SmartApp[] = [
   {

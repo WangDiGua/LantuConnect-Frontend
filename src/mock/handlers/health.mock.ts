@@ -1,6 +1,6 @@
 import type MockAdapter from 'axios-mock-adapter';
-import type { HealthConfigItem, CircuitBreakerItem } from '../../../types/dto/health';
-import { mockOk } from '../mockAdapter';
+import type { HealthConfigItem, CircuitBreakerItem } from '../../types/dto/health';
+import { mockOk } from '..';
 
 const healthConfigs: HealthConfigItem[] = [
   {

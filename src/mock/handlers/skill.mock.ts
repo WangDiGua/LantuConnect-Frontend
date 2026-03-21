@@ -1,6 +1,6 @@
 import type MockAdapter from 'axios-mock-adapter';
-import type { Skill, McpServer } from '../../../types/dto/skill';
-import { mockOk, paginate } from '../mockAdapter';
+import type { Skill, McpServer } from '../../types/dto/skill';
+import { mockOk, paginate } from '..';
 
 const mcpServers: McpServer[] = [
   {

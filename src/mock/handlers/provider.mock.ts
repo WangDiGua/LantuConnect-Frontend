@@ -1,6 +1,6 @@
 import type MockAdapter from 'axios-mock-adapter';
-import type { Provider } from '../../../types/dto/provider';
-import { mockOk, paginate } from '../mockAdapter';
+import type { Provider } from '../../types/dto/provider';
+import { mockOk, paginate } from '..';
 
 const providers: Provider[] = [
   {

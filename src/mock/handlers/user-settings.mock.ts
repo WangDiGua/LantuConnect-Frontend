@@ -1,6 +1,6 @@
 import type MockAdapter from 'axios-mock-adapter';
-import type { UserWorkspace, UserApiKey, UserStats } from '../../../types/dto/user-settings';
-import { mockOk } from '../mockAdapter';
+import type { UserWorkspace, UserApiKey, UserStats } from '../../types/dto/user-settings';
+import { mockOk } from '..';
 
 function ts(daysAgo: number): string {
   const d = new Date();

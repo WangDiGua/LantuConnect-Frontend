@@ -1,6 +1,6 @@
 import type MockAdapter from 'axios-mock-adapter';
-import type { Dataset } from '../../../types/dto/dataset';
-import { mockOk, paginate } from '../mockAdapter';
+import type { Dataset } from '../../types/dto/dataset';
+import { mockOk, paginate } from '..';
 
 const datasets: Dataset[] = [
   {

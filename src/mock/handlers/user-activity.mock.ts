@@ -4,8 +4,8 @@ import type {
   FavoriteItem,
   UserUsageStats,
   MyPublishItem,
-} from '../../../types/dto/user-activity';
-import { mockOk, paginate } from '../mockAdapter';
+} from '../../types/dto/user-activity';
+import { mockOk, paginate } from '..';
 
 const usageRecords: UsageRecord[] = [
   {

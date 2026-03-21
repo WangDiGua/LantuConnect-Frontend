@@ -2620,6 +2620,59 @@ stateDiagram-v2
 
 **实现**：使用 AOP（`@AuditLog` 注解）自动拦截并记录。
 
+### 4.9 定时任务清单
+
+使用 Spring `@Scheduled` 实现，统一在 `task` 包下管理。
+
+| 任务名 | Cron 表达式 | 说明 |
+|--------|------------|------|
+| QuotaDailyResetTask | `0 0 0 * * ?` | 每日 00:00 重置 `t_quota.daily_used` 为 0 |
+| QuotaMonthlyResetTask | `0 0 0 1 * ?` | 每月 1 日 00:00 重置 `t_quota.monthly_used` 为 0 |
+| QuotaSyncTask | `0 */5 * * * ?` | 每 5 分钟将 Redis 中的配额计数同步到 `t_quota` 表 |
+| KpiCacheRefreshTask | `0 */5 * * * ?` | 每 5 分钟刷新监控 KPI 聚合数据到 Redis 缓存 |
+| AgentMetricsAggTask | `0 */10 * * * ?` | 每 10 分钟从 `t_call_log` 聚合更新 `t_agent` / `t_skill` 的 `avg_latency_ms`、`success_rate`、`call_count` |
+| HealthCheckTask | `0 */1 * * * ?` | 每分钟执行一轮健康检查，按 `t_health_config.interval_sec` 判断是否该检查，更新 `health_status` 和 `last_check_time` |
+| CircuitBreakerStateTask | `0 */1 * * * ?` | 每分钟扫描 `t_circuit_breaker`，OPEN 状态超过 `open_duration_sec` 的自动转为 HALF_OPEN |
+| SoftDeleteCleanupTask | `0 0 3 * * ?` | 每日凌晨 3:00 物理清理 `deleted=1` 超过 30 天的记录及其级联关联数据 |
+| ExpiredTokenCleanupTask | `0 0 2 * * ?` | 每日凌晨 2:00 清理 `t_access_token` 和 `t_api_key` 中已过期的记录 |
+| AuditLogArchiveTask | `0 0 4 1 * ?` | 每月 1 日凌晨 4:00 将 90 天前的审计日志归档（转移到归档表或导出） |
+| CallLogPartitionTask | `0 0 1 1 * ?` | 每月 1 日凌晨 1:00 创建下月分区表（如用分区），清理超过保留期的历史数据 |
+| OrgSyncTask | `0 0 5 * * ?` | 每日凌晨 5:00 从高校统一身份系统全量同步组织架构到 `t_org_menu` |
+| UserRoleCountSyncTask | `0 30 * * * ?` | 每小时 30 分同步 `t_platform_role.user_count` 冗余计数 |
+| ProviderCountSyncTask | `0 30 * * * ?` | 每小时 30 分同步 `t_provider.agent_count` / `skill_count` 冗余计数 |
+| TagUsageCountSyncTask | `0 0 6 * * ?` | 每日凌晨 6:00 重新统计 `t_tag.usage_count` |
+
+**实现要点**：
+
+- 配置 `@EnableScheduling`，启动类上开启定时任务
+- 多实例部署时使用分布式锁（Redis `SETNX`）防止任务重复执行
+- 耗时任务使用 `@Async` 配合线程池，避免阻塞调度线程
+- 任务执行结果记入 `t_audit_log`（action = `scheduled_task`），便于排查
+
+```java
+@Component
+@RequiredArgsConstructor
+public class QuotaDailyResetTask {
+
+    private final QuotaMapper quotaMapper;
+    private final StringRedisTemplate redis;
+
+    @Scheduled(cron = "0 0 0 * * ?")
+    public void resetDailyUsed() {
+        // 分布式锁防重
+        Boolean locked = redis.opsForValue()
+            .setIfAbsent("lock:quota:daily_reset", "1", Duration.ofMinutes(10));
+        if (Boolean.TRUE.equals(locked)) {
+            try {
+                quotaMapper.resetAllDailyUsed();
+            } finally {
+                redis.delete("lock:quota:daily_reset");
+            }
+        }
+    }
+}
+```
+
 ---
 
 ## 第5章 前后端对齐注意事项

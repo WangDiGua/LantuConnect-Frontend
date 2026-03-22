@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MessageSquare,
@@ -11,6 +11,8 @@ import {
   Info,
 } from 'lucide-react';
 import { Theme } from '../../types';
+import { notificationService } from '../../api/services/notification.service';
+import type { Notification } from '../../types/dto/notification';
 
 export interface MessageItem {
   id: string;
@@ -21,15 +23,18 @@ export interface MessageItem {
   read: boolean;
 }
 
-const MOCK_MESSAGES: MessageItem[] = [
-  { id: '1', type: 'system', title: '系统维护通知', body: '本周日 00:00–02:00 进行例行维护，期间部分接口可能短暂不可用。', time: '10 分钟前', read: false },
-  { id: '2', type: 'notice', title: 'API 配额即将用尽', body: '当前项目本月调用量已达 90%，请关注用量或申请扩容。', time: '1 小时前', read: false },
-  { id: '3', type: 'alert', title: '告警：接口延迟偏高', body: '监控中心检测到 /v1/chat 接口 P99 延迟超过阈值，请查看调用日志。', time: '2 小时前', read: true },
-  { id: '4', type: 'system', title: '知识库导入完成', body: '「教务政策知识库」批量导入已完成，共 120 条文档。', time: '昨天 15:30', read: true },
-  { id: '5', type: 'notice', title: '新版本功能说明', body: '监控中心支持告警确认与订阅，详见文档与教程。', time: '昨天 09:00', read: true },
-];
+function mapNotification(n: Notification): MessageItem {
+  return {
+    id: String(n.id),
+    type: n.type,
+    title: n.title,
+    body: n.body,
+    time: n.createTime,
+    read: n.isRead,
+  };
+}
 
-export const INITIAL_MESSAGE_UNREAD_COUNT = MOCK_MESSAGES.filter((m) => !m.read).length;
+export const INITIAL_MESSAGE_UNREAD_COUNT = 0;
 
 type TabId = 'all' | 'unread';
 
@@ -48,21 +53,34 @@ const typeConfig = {
 export const MessagePanel: React.FC<MessagePanelProps> = ({ theme, onClose, onUnreadChange }) => {
   const isDark = theme === 'dark';
   const [tab, setTab] = useState<TabId>('all');
-  const [items, setItems] = useState<MessageItem[]>(() => [...MOCK_MESSAGES]);
+  const [items, setItems] = useState<MessageItem[]>([]);
   const [detailMessage, setDetailMessage] = useState<MessageItem | null>(null);
 
   const unreadCount = items.filter((m) => !m.read).length;
   const filtered = tab === 'unread' ? items.filter((m) => !m.read) : items;
 
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const page = await notificationService.list({ page: 1, pageSize: 50 });
+      setItems((page.records ?? []).map(mapNotification));
+    } catch {
+      /* 静默失败，保持空列表 */
+    }
+  }, []);
+
+  useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
+
   useEffect(() => {
     onUnreadChange?.(unreadCount);
   }, [unreadCount, onUnreadChange]);
 
-  const markAllRead = () => {
+  const markAllRead = async () => {
+    try { await notificationService.markAllRead(); } catch { /* ignore */ }
     setItems((prev) => prev.map((m) => ({ ...m, read: true })));
   };
 
-  const markRead = (id: string) => {
+  const markRead = async (id: string) => {
+    try { await notificationService.markRead(Number(id)); } catch { /* ignore */ }
     setItems((prev) => prev.map((m) => (m.id === id ? { ...m, read: true } : m)));
   };
 

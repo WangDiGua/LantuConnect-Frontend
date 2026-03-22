@@ -6,38 +6,34 @@ export type DatasetStatus = 'draft' | 'published' | 'testing' | 'deprecated';
 
 export interface Dataset {
   id: number;
-  datasetName: string;
-  displayName: string;
+  name: string;
+  code?: string;
   description: string;
-  sourceType: DatasetSourceType;
-  dataType: DatasetDataType;
-  format: string;
-  recordCount: number;
-  fileSize: number;
+  providerId: number | null;
   categoryId: number | null;
   categoryName?: string;
   status: DatasetStatus;
-  tags: string[];
+  publishStatus?: string;
+  tags?: string[];
   isPublic: boolean;
-  allowedDepartments: number[];
-  relatedAgentIds: number[];
+  createdBy?: number;
   createTime: string;
   updateTime: string;
+  deleted?: number;
 }
 
 export interface DatasetCreatePayload {
-  datasetName: string;
-  displayName: string;
-  description: string;
-  sourceType: DatasetSourceType;
-  dataType: DatasetDataType;
-  format: string;
-  recordCount?: number;
-  fileSize?: number;
+  name: string;
+  code?: string;
+  description?: string;
+  providerId: number;
   categoryId?: number;
-  tags?: string[];
-  isPublic?: boolean;
-  allowedDepartments?: number[];
+  status?: DatasetStatus;
+  publishStatus?: string;
+  createdBy?: number;
+  deptIds?: number[];
+  agentIds?: number[];
+  tagIds?: number[];
 }
 
 export interface DatasetUpdatePayload extends Partial<DatasetCreatePayload> {
@@ -47,9 +43,9 @@ export interface DatasetUpdatePayload extends Partial<DatasetCreatePayload> {
 export interface DatasetListQuery {
   page?: number;
   pageSize?: number;
-  keyword?: string;
-  status?: DatasetStatus;
-  sourceType?: DatasetSourceType;
-  dataType?: DatasetDataType;
+  name?: string;
   categoryId?: number;
+  providerId?: number;
+  status?: DatasetStatus;
+  publishStatus?: string;
 }

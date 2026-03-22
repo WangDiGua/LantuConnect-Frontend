@@ -8,21 +8,26 @@ import axios, {
 import { env } from '../config/env';
 import { setupMockAdapter } from '../mock';
 import { ApiException, ApiResponse } from '../types/api';
-import { getCsrfToken } from './security';
 
 let getToken: () => string | null = () => localStorage.getItem(env.VITE_TOKEN_KEY);
 let getRefreshToken: () => string | null = () => localStorage.getItem(env.VITE_REFRESH_TOKEN_KEY);
+let getUserId: () => string | null = () => null;
+let getLoginName: () => string | null = () => null;
 let onLogout: () => void = () => {};
 let onRefreshSuccess: (token: string, refresh: string) => void = () => {};
 
 export function bindAuthCallbacks(cbs: {
   getToken: () => string | null;
   getRefreshToken: () => string | null;
+  getUserId?: () => string | null;
+  getLoginName?: () => string | null;
   onLogout: () => void;
   onRefreshSuccess: (token: string, refresh: string) => void;
 }) {
   getToken = cbs.getToken;
   getRefreshToken = cbs.getRefreshToken;
+  if (cbs.getUserId) getUserId = cbs.getUserId;
+  if (cbs.getLoginName) getLoginName = cbs.getLoginName;
   onLogout = cbs.onLogout;
   onRefreshSuccess = cbs.onRefreshSuccess;
 }
@@ -40,11 +45,11 @@ instance.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  const userId = getUserId();
+  if (userId) config.headers['X-User-Id'] = userId;
+  const loginName = getLoginName();
+  if (loginName) config.headers['X-Username'] = loginName;
   config.headers['X-Request-Id'] = crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  config.headers['X-Request-Time'] = new Date().toISOString();
-  if (config.method !== 'get') {
-    config.headers['X-CSRF-Token'] = getCsrfToken();
-  }
   (config as any).__startTime = Date.now();
   return config;
 });

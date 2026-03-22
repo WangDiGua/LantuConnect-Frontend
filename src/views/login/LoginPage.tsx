@@ -49,9 +49,9 @@ export const LoginPage: React.FC = () => {
         password: values.password,
         remember: values.remember,
       });
-      login(res.token, res.refreshToken, res.user);
+      login(res.token, res.refreshToken, res.user, values.username);
       showMessage('登录成功，欢迎回来', 'success');
-      const isAdmin = res.user.role === 'admin';
+      const isAdmin = res.user.role === 'platform_admin' || res.user.role === 'dept_admin';
       navigate(defaultPath(isAdmin ? 'admin' : 'user'), { replace: true });
     } catch (err) {
       const errorMsg = err instanceof ApiException ? err.message : '登录失败，请稍后重试';
@@ -228,7 +228,7 @@ export const LoginPage: React.FC = () => {
               <code className={`px-1.5 py-0.5 rounded text-xs font-mono ${
                 isDark ? 'bg-white/[0.06] text-indigo-300' : 'bg-indigo-50 text-indigo-600'
               }`}>
-                123456
+                Admin123
               </code>
             </p>
           </div>

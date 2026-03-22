@@ -3,10 +3,49 @@
 > 本文档基于前端代码逆向分析自动生成，覆盖 19 个 API 服务模块、31 张数据库表、100+ 个 API 端点。
 > 生成日期：2026-03-21
 
+**与实现、联调的关系**：后端按本文进行设计与实现；**当前可联调的 URL/请求头/分页/响应等契约**以 **[frontend-alignment-handbook.md](frontend-alignment-handbook.md)**（及 Swagger）为准，避免仅依赖本文与真实接口不一致。实现过程中的问题见 **[bug-fixes.md](bug-fixes.md)**。三份文档在仓库 [README.md](../README.md) 中有统一说明。
+
+---
+
+## 后端实现状态说明（相对本文目标的差距）
+
+> **快照日期**：2026-03-22（**2026-03-22 三次修订**：JWT 过滤器、角色切面、技能真实调用、短信 mock、定时任务实现、统计聚合、Resilience4j 注解、登录历史等已补全，详见 [remaining-work.md](remaining-work.md) 与 [bug-fixes.md](bug-fixes.md) IMPL-002/IMPL-003）。本节描述 **Java 代码实际能力** 与本文「目标架构」差异；**接口契约**以 **[frontend-alignment-handbook.md](frontend-alignment-handbook.md)** 为准。
+
+### 已大体实现（可与前端联调）
+
+- **单体 Spring Boot**：Auth（含登录历史）、Agent（含版本发布/回滚）、Skill（含 MCP 根列表、**invoke 真实 HTTP 调用**）、App、Dataset、Provider、Category、Tag、用户管理、监控（KPI/调用日志/告警记录/追踪/告警规则 CRUD）、健康与熔断配置、系统参数与安全项、审计日志查询、配额与两套限流接口、审核流、评论、收藏与使用记录分页、通知分页、文件本地上传等 **REST 接口均已暴露**。
+- **数据层**：以 `sql/schema.sql` 为主；种子数据见 `sql/seed-data.sql`。
+- **Redis**：Token 黑名单（写入 **并在请求链由 `JwtAuthenticationFilter` 校验**）、Refresh 防重放、用户偏好（`language`/`twoStep`）、短信频控等。
+- **JWT 过滤器**：`JwtAuthenticationFilter` 解析 `Authorization: Bearer`，校验黑名单，注入 `X-User-Id`；可通过 `lantu.security.allow-header-user-id-fallback` 渐进关闭裸 `X-User-Id` 回退。
+- **RBAC**：`@RequireRole` 注解 + `RequireRoleAspect` 切面，已挂 `UserMgmtController`、`SystemParamController`、`HealthController`（写操作）、`MonitoringController`（告警规则写）、`ReviewController`（审核写）。
+- **Resilience4j**：`@RateLimiter("authLogin")` 挂登录接口；`@CircuitBreaker("skillInvoke")` 挂技能出站调用；`GlobalExceptionHandler` 捕获 `RequestNotPermitted` 返回 429。
+
+### 未完全实现、占位或返回空数据（前端勿当完整业务）
+
+| 领域 | 现状（代码依据） |
+|------|------------------|
+| **认证扩展** | `POST /auth/send-sms`、`/auth/bind-phone` 已实现 **mock 阶段**（验证码写入 `t_sms_verify_code` + Redis 60s 频控，验证码打日志，**未对接真实短信商**）。 |
+| **JWT 全局鉴权** | **已实现** `JwtAuthenticationFilter`（Bearer 解析 + 黑名单 + `X-User-Id` 回退）。Spring Security 仍为 `permitAll`（JWT 校验由独立 Servlet 过滤器完成）。生产建议设 `allow-header-user-id-fallback: false`。 |
+| **Resilience4j** | **部分已挂注解**：登录接口 `@RateLimiter`、技能出站 `@CircuitBreaker`；其余外部 HTTP/文件/邮件等尚未统一限流/熔断。 |
+| **Skill 调用** | **已实现**：`POST /v1/skills/{id}/invoke` 读取 `spec_json.url` 发起真实 HTTP POST，写入 `t_call_log`（含 token 估算），异常/超时/熔断均记录。 |
+| **监控性能接口** | **已实现**：`GET /monitoring/performance` 基于 `t_call_log` **近 24 小时按小时**聚合 `avgLatencyMs` / `requestCount`（MySQL `DATE_FORMAT`）。无数据时为空数组。 |
+| **系统配置** | `POST /system-config/network/apply`、`/acl/publish` 返回带 `mock` 标识的 JSON（受 `lantu.system.integration-mock` 开关控制），无真实网络/ACL 下发。 |
+| **仪表盘** | **已实现（聚合版）**：`admin-overview` 汇总用户数/Agent/Skill/App/Dataset/当日调用/待审数 + 近 7 日调用趋势；`user-workspace` 拉用户基本信息、最近使用记录、收藏数与未读通知数；`health-summary` 健康配置数量与 OPEN 熔断器数；`usage-stats` / `data-reports` 基于 `t_call_log` 按日/路径聚合。**仍非**架构文中全部图表与运营大屏能力。 |
+| **用户活动** | **已实现**：`my-agents` / `my-skills` 按 `created_by = userId`；`usage-stats` 按使用记录聚合（含按 `target_type`、近 7 日按天）。 |
+| **用户设置** | **已实现**：`PUT/GET /user-settings/workspace` 使用 **Redis** 键 `lantu:usersettings:workspace:{userId}`（JSON，TTL 365 天），无独立 workspace 表；`GET .../stats` 中 `totalAgents`/`totalWorkflows`/`totalApiCalls` 为真实统计，`tokenUsage` 由 `t_call_log` 近 30 天 token 汇总（依赖调用方写入 token 数），`storageUsedMb` 由用户数据集 `file_size` 汇总，`activeSessions` 为近 24h 调用条数（代理指标）。 |
+| **定时任务** | **`QuotaDailyResetTask`、`QuotaMonthlyResetTask`、`CircuitBreakerStateTask`** 等已接库表逻辑；**`UserRoleCountSyncTask`**（同步 `t_platform_role.user_count`）、**`ProviderCountSyncTask`**（同步 `agent_count`/`skill_count`）、**`HealthCheckTask`**（HTTP 探测 `t_health_config.check_url`）、**`ExpiredTokenCleanupTask`**（清理孤立黑名单键）**均已实现真实逻辑**。 |
+| **Profile 持久化** | `PUT /auth/profile`：`avatar` 写入 `t_user`；`language`/`twoStep` 持久化到 Redis `lantu:user:pref:{userId}`；`/auth/me` 返回合并后的字段。 |
+
+### 与本文第 1 章图述的差异（摘要）
+
+- 架构图中的 **「JWT 校验 / 限流」在 Filter 层完整生效** → **JWT 过滤器已实现**（`JwtAuthenticationFilter`），限流部分已挂 `@RateLimiter`；完整 `permissions` 细粒度鉴权仍以后续增强为主。
+- **CAS/OAuth2**：接口形态未在本文档单独章节与当前代码一一对应，仍以平台账号密码登录为主。
+
 ---
 
 ## 目录
 
+- [后端实现状态说明（相对本文目标的差距）](#后端实现状态说明相对本文目标的差距)
 - [第1章 架构推演与技术选型](#第1章-架构推演与技术选型)
 - [第2章 数据库设计](#第2章-数据库设计)
 - [第3章 API 接口文档](#第3章-api-接口文档)

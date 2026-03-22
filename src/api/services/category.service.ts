@@ -6,15 +6,15 @@ import type {
 } from '../../types/dto/category';
 
 export const categoryService = {
-  list: () => http.get<Category[]>('/api/v1/categories'),
+  list: () => http.get<Category[]>('/v1/categories'),
 
   create: (payload: CategoryCreatePayload) =>
-    http.post<Category>('/api/v1/categories', payload),
+    http.post<Category>('/v1/categories', payload),
 
   update: (id: number, payload: CategoryUpdatePayload) =>
-    http.put<Category>(`/api/v1/categories/${id}`, payload),
+    http.put<Category>(`/v1/categories/${id}`, payload),
 
-  remove: (id: number) => http.delete(`/api/v1/categories/${id}`),
+  remove: (id: number) => http.delete(`/v1/categories/${id}`),
 };
 
 export function buildCategoryTree(flatList: Category[]): Category[] {

@@ -1,6 +1,11 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
+import type { PlatformRoleCode } from '../types/dto/auth';
 
 export type UserRole = 'admin' | 'user';
+
+export function platformRoleToConsoleRole(platformRole?: PlatformRoleCode | null): UserRole {
+  return platformRole === 'platform_admin' || platformRole === 'dept_admin' ? 'admin' : 'user';
+}
 
 interface UserRoleContextType {
   role: UserRole;
@@ -12,7 +17,6 @@ const UserRoleContext = createContext<UserRoleContextType | undefined>(undefined
 
 export const UserRoleProvider: React.FC<{ children: ReactNode; initialRole?: UserRole }> = ({
   children,
-  /** 对接登录/人员信息前：默认超级管理员（全站管理菜单） */
   initialRole = 'admin',
 }) => {
   const [role, setRole] = useState<UserRole>(initialRole);

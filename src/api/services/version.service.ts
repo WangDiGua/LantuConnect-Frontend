@@ -5,8 +5,8 @@ export const versionService = {
   list: (agentId: number) =>
     http.get<AgentVersion[]>(`/agents/${agentId}/versions`),
 
-  create: (agentId: number, payload: { version: string; changelog: string }) =>
-    http.post<AgentVersion>(`/agents/${agentId}/versions`, payload),
+  create: (agentId: number, payload: { version: string; changelog: string }, username?: string) =>
+    http.post<AgentVersion>(`/agents/${agentId}/versions`, payload, username ? { headers: { 'X-Username': username } } : undefined),
 
   publish: (versionId: number) =>
     http.post<void>(`/versions/${versionId}/publish`),

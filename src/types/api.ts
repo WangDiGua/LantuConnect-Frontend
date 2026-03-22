@@ -14,6 +14,14 @@ export interface PaginatedData<T> {
 
 export type PaginatedResponse<T> = ApiResponse<PaginatedData<T>>;
 
+export interface MpPageData<T> {
+  records: T[];
+  total: number;
+  current: number;
+  size: number;
+  pages: number;
+}
+
 export interface PaginationParams {
   page?: number;
   pageSize?: number;

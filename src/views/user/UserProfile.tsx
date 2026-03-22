@@ -25,7 +25,13 @@ export const UserProfile: React.FC<UserProfileProps> = ({ theme }) => {
   const user = useAuthStore((s) => s.user);
   const displayName = user?.nickname || user?.username || 'User Name';
   const displayEmail = user?.email || 'user@lantuconnect.com';
-  const displayRole = user?.role === 'admin' ? '超级管理员' : '普通用户';
+  const roleLabels: Record<string, string> = {
+    platform_admin: '平台管理员',
+    dept_admin: '部门管理员',
+    developer: '开发者',
+    user: '普通用户',
+  };
+  const displayRole = roleLabels[user?.role ?? 'user'] ?? '普通用户';
   const displayDept = user?.department || '未设置';
   const avatarInitial = displayName.charAt(0).toUpperCase();
 

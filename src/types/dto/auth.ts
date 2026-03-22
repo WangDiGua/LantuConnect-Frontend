@@ -1,3 +1,5 @@
+export type PlatformRoleCode = 'platform_admin' | 'dept_admin' | 'developer' | 'user';
+
 export interface UserInfo {
   id: string;
   username: string;
@@ -5,12 +7,12 @@ export interface UserInfo {
   phone?: string;
   avatar?: string;
   nickname?: string;
-  role: 'admin' | 'user';
+  role: PlatformRoleCode;
   status: 'active' | 'disabled' | 'locked';
   department?: string;
   lastLoginAt?: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface LoginRequest {

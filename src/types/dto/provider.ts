@@ -37,7 +37,7 @@ export interface ProviderUpdatePayload extends Partial<ProviderCreatePayload> {
 export interface ProviderListQuery {
   page?: number;
   pageSize?: number;
-  keyword?: string;
-  providerType?: ProviderType;
+  name?: string;
+  type?: ProviderType;
   status?: ProviderStatus;
 }

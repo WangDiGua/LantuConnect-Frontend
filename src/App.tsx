@@ -31,12 +31,14 @@ const queryClient = new QueryClient({
 });
 
 function AuthBinder() {
-  const { token, refreshToken, setTokens, logout } = useAuthStore();
+  const { token, refreshToken, user, loginName, setTokens, logout } = useAuthStore();
 
   useEffect(() => {
     bindAuthCallbacks({
       getToken: () => tokenStorage.get(env.VITE_TOKEN_KEY) || token,
       getRefreshToken: () => tokenStorage.get(env.VITE_REFRESH_TOKEN_KEY) || refreshToken,
+      getUserId: () => user?.id ?? null,
+      getLoginName: () => loginName ?? null,
       onLogout: () => {
         logout();
         window.location.hash = '#/login';
@@ -45,7 +47,7 @@ function AuthBinder() {
         setTokens(newToken, newRefresh);
       },
     });
-  }, [token, refreshToken, setTokens, logout]);
+  }, [token, refreshToken, user, loginName, setTokens, logout]);
 
   return null;
 }

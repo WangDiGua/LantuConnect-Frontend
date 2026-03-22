@@ -10,23 +10,23 @@ import type {
 
 export const skillService = {
   list: (params?: SkillListQuery) =>
-    http.get<PaginatedData<Skill>>('/api/v1/skills', { params }),
+    http.get<PaginatedData<Skill>>('/v1/skills', { params }),
 
   getById: (id: number) =>
-    http.get<Skill>(`/api/v1/skills/${id}`),
+    http.get<Skill>(`/v1/skills/${id}`),
 
   create: (data: SkillCreatePayload) =>
-    http.post<Skill>('/api/v1/skills', data),
+    http.post<Skill>('/v1/skills', data),
 
   update: (id: number, data: SkillUpdatePayload) =>
-    http.put<Skill>(`/api/v1/skills/${id}`, data),
+    http.put<Skill>(`/v1/skills/${id}`, data),
 
   remove: (id: number) =>
-    http.delete(`/api/v1/skills/${id}`),
+    http.delete(`/v1/skills/${id}`),
 
   listMcpServers: () =>
-    http.get<McpServer[]>('/api/v1/mcp-servers'),
+    http.get<McpServer[]>('/v1/mcp-servers'),
 
   invoke: (id: number, params: Record<string, unknown>) =>
-    http.post<{ result: string; latencyMs: number }>(`/api/v1/skills/${id}/invoke`, params),
+    http.post<{ result: string; latencyMs: number }>(`/v1/skills/${id}/invoke`, params),
 };

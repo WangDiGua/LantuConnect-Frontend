@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import type { LucideIcon } from 'lucide-react';
 import {
   Bot, Wrench, Cpu, AppWindow, Database, BookOpen, Users, Hexagon,
   Activity, Flame, ChevronRight, Award, Megaphone, ArrowRight, Loader2,
@@ -69,6 +70,73 @@ const SectionTitle: React.FC<{ title: string; action?: string; icon?: React.Comp
     )}
   </div>
 );
+
+/** 探索页顶部 8 宫格指标：固定尺寸 + 巨型水印悬浮动效（对齐设计稿） */
+const HubStatCard: React.FC<{
+  icon: LucideIcon;
+  value: string;
+  label: string;
+  clickable: boolean;
+  onClick?: () => void;
+  isDark: boolean;
+}> = ({ icon: Icon, value, label, clickable, onClick, isDark }) => {
+  const shell = [
+    'group relative w-[140px] h-[156px] shrink-0 rounded-[20px] border flex flex-col items-center justify-center overflow-hidden',
+    'transition-all duration-500 ease-out hover:-translate-y-2',
+    isDark
+      ? 'bg-[#171b22] border-white/10 shadow-[0_2px_10px_rgba(0,0,0,0.2)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.45)] hover:border-white/20 hover:bg-gradient-to-br hover:from-[#171b22] hover:to-[#1e2433]'
+      : 'bg-white border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] hover:border-gray-200 hover:bg-gradient-to-br hover:from-white hover:to-gray-50',
+  ].join(' ');
+
+  const watermarkCls = [
+    'absolute -bottom-2 -right-2 w-32 h-32 transform translate-y-12 translate-x-12 rotate-[30deg] scale-50',
+    'transition-all duration-500 cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+    'opacity-0 pointer-events-none z-0 flex items-center justify-center',
+    'group-hover:opacity-[0.08] group-hover:translate-y-4 group-hover:translate-x-4 group-hover:rotate-[-10deg] group-hover:scale-[2.5]',
+    isDark ? 'text-white' : 'text-gray-900',
+  ].join(' ');
+
+  const iconBoxCls = [
+    'w-12 h-12 mb-4 rounded-[14px] flex items-center justify-center',
+    'transition-all duration-500 ease-out',
+    'group-hover:scale-110 group-hover:-rotate-3 group-hover:shadow-[0_8px_20px_rgba(0,0,0,0.15)]',
+    isDark
+      ? 'bg-white/10 text-slate-300 group-hover:bg-white group-hover:text-slate-900'
+      : 'bg-slate-50 text-slate-600 group-hover:bg-[#09090b] group-hover:text-white',
+  ].join(' ');
+
+  const body = (
+    <>
+      <div className={watermarkCls}>
+        <Icon className="h-full w-full" strokeWidth={0.5} />
+      </div>
+      <div className="relative z-10 flex flex-col items-center transition-transform duration-500 ease-out group-hover:-translate-y-1">
+        <div className={iconBoxCls}>
+          <Icon size={22} strokeWidth={2} />
+        </div>
+        <div className={`mb-1.5 text-[2rem] font-black leading-none tracking-tight font-sans transition-colors duration-300 ${
+          isDark ? 'text-slate-100' : 'text-gray-900'
+        }`}>
+          {value}
+        </div>
+        <div className={`text-[11px] font-medium transition-colors duration-300 ${
+          isDark ? 'text-slate-400 group-hover:text-slate-200' : 'text-slate-500 group-hover:text-slate-800'
+        }`}>
+          {label}
+        </div>
+      </div>
+    </>
+  );
+
+  if (clickable) {
+    return (
+      <button type="button" onClick={onClick} className={`${shell} cursor-pointer text-left`}>
+        {body}
+      </button>
+    );
+  }
+  return <div className={`${shell} cursor-default`}>{body}</div>;
+};
 
 const HERO_TERMINAL_CODE = `import { Nexus } from '@campus/ai';
 
@@ -352,32 +420,18 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
         </div>
 
         <main className={`${pageContainer} mt-10 space-y-12`}>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
-            {statsData.map((stat) => {
-              const clickable = Boolean(stat.page);
-              const Node = clickable ? 'button' : 'div';
-              return (
-                <Node
-                  key={stat.id}
-                  {...(clickable ? { onClick: () => navigate(buildPath('user', stat.page || 'hub')), type: 'button' as const } : {})}
-                  className={`rounded-2xl border transition-all duration-200 p-5 flex flex-col items-center justify-center text-center group cursor-pointer ${
-                    isDark
-                      ? 'bg-[#171b22] border-white/10 hover:border-white/20 shadow-[0_12px_30px_-24px_rgba(0,0,0,0.7)]'
-                      : 'bg-white border-slate-200/80 shadow-sm hover:shadow-md hover:border-slate-900/35'
-                  }`}
-                >
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 transition-colors duration-300 ${
-                    isDark
-                      ? 'bg-white/10 text-slate-300 group-hover:bg-white/15 group-hover:text-white'
-                      : 'bg-slate-100 text-slate-600 group-hover:bg-slate-900 group-hover:text-white'
-                  }`}>
-                    <stat.icon size={20} strokeWidth={2} />
-                  </div>
-                  <span className={`text-3xl font-bold leading-none mb-1 tracking-tight ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{stat.value}</span>
-                  <span className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{stat.label}</span>
-                </Node>
-              );
-            })}
+          <div className="mx-auto flex w-full max-w-[1300px] flex-row flex-wrap justify-center gap-4 md:gap-5 xl:flex-nowrap xl:justify-between">
+            {statsData.map((stat) => (
+              <HubStatCard
+                key={stat.id}
+                icon={stat.icon}
+                value={formatCount(stat.value)}
+                label={stat.label}
+                clickable={Boolean(stat.page)}
+                onClick={stat.page ? () => navigate(buildPath('user', stat.page)) : undefined}
+                isDark={isDark}
+              />
+            ))}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">

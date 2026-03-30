@@ -237,7 +237,7 @@ export const ProviderManagementPage: React.FC<Props> = ({
             )}
           </div>
           <div className={`border-t px-4 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-            <Pagination page={page} pageSize={pageSize} total={total} onChange={setPage} />
+            <Pagination theme={theme} page={page} pageSize={pageSize} total={total} onChange={setPage} />
           </div>
         </div>
       </div>

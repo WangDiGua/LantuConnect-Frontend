@@ -157,7 +157,7 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, showMessa
             )}
           </div>
           <div className={`px-4 border-t shrink-0 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-            <Pagination page={page} pageSize={PAGE_SIZE} total={filtered.length} onChange={setPage} />
+            <Pagination theme={theme} page={page} pageSize={PAGE_SIZE} total={filtered.length} onChange={setPage} />
           </div>
         </div>
       </div>

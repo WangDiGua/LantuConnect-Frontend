@@ -11,7 +11,17 @@ import { PageError } from '../../components/common/PageError';
 import { EmptyState } from '../../components/common/EmptyState';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { BentoCard } from '../../components/common/BentoCard';
-import { btnPrimary, btnSecondary, tableHeadCell, tableBodyRow, tableCell, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import { MgmtDataTable } from '../../components/management/MgmtDataTable';
+import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
+import {
+  btnPrimary,
+  btnSecondary,
+  mgmtTableActionDanger,
+  mgmtTableActionGhost,
+  textPrimary,
+  textSecondary,
+  textMuted,
+} from '../../utils/uiClasses';
 import type { RateLimitRule, CreateRateLimitDTO } from '../../types/dto/system-config';
 
 interface RateLimitPageProps {
@@ -194,7 +204,7 @@ export const RateLimitPage: React.FC<RateLimitPageProps> = ({
       titleIcon={Sliders}
       description="配置限流策略，保护核心接口"
       toolbar={
-        <div className={TOOLBAR_ROW}>
+        <div className={`${TOOLBAR_ROW} justify-between`}>
           <div className="relative flex-1 min-w-0 sm:max-w-md">
             <Search className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${textMuted(theme)}`} size={16} />
             <input type="search" placeholder="搜索策略名或目标…" value={search} onChange={(e) => setSearch(e.target.value)} className={toolbarSearchInputClass(theme)} />
@@ -212,42 +222,80 @@ export const RateLimitPage: React.FC<RateLimitPageProps> = ({
           {filtered.length === 0 ? (
             <EmptyState title="无匹配项" description="调整搜索或新建策略" />
           ) : (
-            <BentoCard theme={theme} padding="sm" className="overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm min-w-[800px]">
-                  <thead>
-                    <tr>
-                      {['名称', '目标', '窗口', '最大请求', '状态', '操作'].map((h, i) => (
-                        <th key={h} className={`${tableHeadCell(theme)} ${i === 5 ? 'text-right' : ''}`}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map((r, i) => (
-                      <tr key={r.id} className={tableBodyRow(theme, i)}>
-                        <td className={`${tableCell()} font-medium ${textPrimary(theme)}`}>{r.name}</td>
-                        <td className={`${tableCell()} font-mono text-xs ${textMuted(theme)}`}>{r.target}{r.targetValue ? `: ${r.targetValue}` : ''}</td>
-                        <td className={`${tableCell()} ${textSecondary(theme)}`}>{(r.windowMs / 1000).toFixed(0)}s</td>
-                        <td className={`${tableCell()} ${textSecondary(theme)}`}>{r.maxRequests}</td>
-                        <td className={tableCell()}>
-                          <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${r.enabled ? (isDark ? 'bg-emerald-500/20 text-emerald-300' : 'bg-emerald-100 text-emerald-800') : (isDark ? 'bg-slate-600/40 text-slate-300' : 'bg-slate-200 text-slate-700')}`}>
-                            {r.enabled ? '启用' : '停用'}
-                          </span>
-                        </td>
-                        <td className={`${tableCell()} text-right`}>
-                          <div className="inline-flex gap-1 justify-end">
-                            <button type="button" onClick={() => startEdit(r)} className={`px-2 py-1 rounded-xl text-xs font-medium ${isDark ? 'text-neutral-300 hover:bg-white/10' : 'text-neutral-900 hover:bg-neutral-100'}`}>编辑</button>
-                            <button type="button" onClick={() => setDeleteTarget(r)} className={`p-1.5 rounded-xl ${isDark ? 'text-red-400 hover:bg-white/10' : 'text-red-600 hover:bg-red-50'}`}>
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </BentoCard>
+            (() => {
+              const rateColumns: MgmtDataTableColumn<RateLimitRule>[] = [
+                {
+                  id: 'name',
+                  header: '名称',
+                  cellClassName: `align-middle font-medium ${textPrimary(theme)}`,
+                  cell: (r) => r.name,
+                },
+                {
+                  id: 'target',
+                  header: '目标',
+                  cellClassName: `align-middle font-mono text-xs ${textMuted(theme)}`,
+                  cell: (r) => `${r.target}${r.targetValue ? `: ${r.targetValue}` : ''}`,
+                },
+                {
+                  id: 'window',
+                  header: '窗口',
+                  cellClassName: `align-middle ${textSecondary(theme)}`,
+                  cell: (r) => `${(r.windowMs / 1000).toFixed(0)}s`,
+                },
+                {
+                  id: 'max',
+                  header: '最大请求',
+                  cellClassName: `align-middle ${textSecondary(theme)}`,
+                  cell: (r) => r.maxRequests,
+                },
+                {
+                  id: 'enabled',
+                  header: '状态',
+                  cellClassName: 'align-middle',
+                  cell: (r) => (
+                    <span
+                      className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
+                        r.enabled
+                          ? isDark
+                            ? 'bg-emerald-500/20 text-emerald-300'
+                            : 'bg-emerald-100 text-emerald-800'
+                          : isDark
+                            ? 'bg-slate-600/40 text-slate-300'
+                            : 'bg-slate-200 text-slate-700'
+                      }`}
+                    >
+                      {r.enabled ? '启用' : '停用'}
+                    </span>
+                  ),
+                },
+                {
+                  id: 'actions',
+                  header: '操作',
+                  headerClassName: 'text-right',
+                  cellClassName: 'text-right align-middle',
+                  cell: (r) => (
+                    <div className="inline-flex flex-wrap items-center justify-end gap-1 h-8">
+                      <button type="button" onClick={() => startEdit(r)} className={mgmtTableActionGhost(theme)}>
+                        编辑
+                      </button>
+                      <button type="button" onClick={() => setDeleteTarget(r)} className={mgmtTableActionDanger}>
+                        <Trash2 size={13} /> 删除
+                      </button>
+                    </div>
+                  ),
+                },
+              ];
+              return (
+                <MgmtDataTable
+                  theme={theme}
+                  columns={rateColumns}
+                  rows={filtered}
+                  getRowKey={(r) => r.id}
+                  minWidth="50rem"
+                  surface="plain"
+                />
+              );
+            })()
           )}
         </div>
       </ContentLoader>

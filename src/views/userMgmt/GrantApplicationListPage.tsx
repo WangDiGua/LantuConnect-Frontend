@@ -253,7 +253,7 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, showMessage }
             )}
           </div>
           <div className={`px-4 border-t ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-            <Pagination page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} />
+            <Pagination theme={theme} page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} />
           </div>
         </div>
       </div>

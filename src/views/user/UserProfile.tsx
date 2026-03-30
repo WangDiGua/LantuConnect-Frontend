@@ -288,6 +288,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ theme }) => {
           )}
           {!historyError && !historyLoading && (
             <Pagination
+              theme={theme}
               page={historyPage}
               pageSize={historyPageSize}
               total={historyTotal}
@@ -360,6 +361,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ theme }) => {
           )}
           {!sessionsError && !sessionsLoading && (
             <Pagination
+              theme={theme}
               page={sessionPage}
               pageSize={sessionPageSize}
               total={sessionTotal}

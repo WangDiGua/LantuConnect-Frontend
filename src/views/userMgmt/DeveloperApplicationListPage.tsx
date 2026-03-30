@@ -1,17 +1,28 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Loader2, CheckCircle2, XCircle, ClipboardList } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from './MgmtPageShell';
 import { developerApplicationService } from '../../api/services/developer-application.service';
 import type { DeveloperApplicationVO } from '../../types/dto/developer-application';
 import type { PaginatedData } from '../../types/api';
-import { BentoCard } from '../../components/common/BentoCard';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { EmptyState } from '../../components/common/EmptyState';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { Modal } from '../../components/common/Modal';
-import { nativeInputClass } from '../../utils/formFieldClasses';
-import { btnPrimary, btnSecondary, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import { SearchInput } from '../../components/common/SearchInput';
+import { Pagination } from '../../components/common/Pagination';
+import { MgmtDataTable } from '../../components/management/MgmtDataTable';
+import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
+import { TOOLBAR_ROW } from '../../utils/toolbarFieldClasses';
+import {
+  btnPrimary,
+  btnSecondary,
+  mgmtTableActionDanger,
+  mgmtTableActionPositive,
+  textPrimary,
+  textSecondary,
+  textMuted,
+} from '../../utils/uiClasses';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
 
@@ -21,7 +32,10 @@ interface Props {
   showMessage: (msg: string, type?: 'success' | 'error' | 'info') => void;
 }
 
-function statusBadge(status: string, isDark: boolean) {
+const PAGE_SIZE = 20;
+const PAGE_DESCRIPTION = '审核开发者入驻申请，支持通过或驳回';
+
+function statusBadge(status: string) {
   const map: Record<string, string> = {
     pending: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
     approved: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
@@ -37,23 +51,29 @@ export const DeveloperApplicationListPage: React.FC<Props> = ({ theme, fontSize,
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [data, setData] = useState<PaginatedData<DeveloperApplicationVO> | null>(null);
+  const [search, setSearch] = useState('');
   const [actionTarget, setActionTarget] = useState<{ app: DeveloperApplicationVO; action: 'approve' | 'reject' } | null>(null);
   const [rejectComment, setRejectComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchList = useCallback(async (p: number) => {
-    setLoading(true);
-    try {
-      const res = await developerApplicationService.list({ page: p, pageSize: 20 });
-      setData(res);
-    } catch (e) {
-      showMessage(e instanceof Error ? e.message : '加载失败', 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [showMessage]);
+  const fetchList = useCallback(
+    async (p: number) => {
+      setLoading(true);
+      try {
+        const res = await developerApplicationService.list({ page: p, pageSize: PAGE_SIZE });
+        setData(res);
+      } catch (e) {
+        showMessage(e instanceof Error ? e.message : '加载失败', 'error');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [showMessage],
+  );
 
-  useEffect(() => { fetchList(page); }, [page, fetchList]);
+  useEffect(() => {
+    void fetchList(page);
+  }, [page, fetchList]);
 
   const handleAction = async () => {
     if (!actionTarget) return;
@@ -73,7 +93,7 @@ export const DeveloperApplicationListPage: React.FC<Props> = ({ theme, fontSize,
       }
       setActionTarget(null);
       setRejectComment('');
-      fetchList(page);
+      void fetchList(page);
     } catch (e) {
       showMessage(e instanceof Error ? e.message : '操作失败', 'error');
     } finally {
@@ -81,91 +101,159 @@ export const DeveloperApplicationListPage: React.FC<Props> = ({ theme, fontSize,
     }
   };
 
+  const list = data?.list ?? [];
+
+  const filteredList = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter((app) => {
+      const person = `${app.userName ?? ''} ${app.username ?? ''} ${app.userId ?? ''}`.toLowerCase();
+      const mail = (app.contactEmail ?? '').toLowerCase();
+      const company = (app.companyName ?? '').toLowerCase();
+      return person.includes(q) || mail.includes(q) || company.includes(q);
+    });
+  }, [list, search]);
+
+  const columns = useMemo<MgmtDataTableColumn<DeveloperApplicationVO>[]>(
+    () => [
+      {
+        id: 'applicant',
+        header: '申请人',
+        cellClassName: 'align-middle',
+        cell: (app) => (
+          <span className={textPrimary(theme)}>
+            {resolvePersonDisplay({
+              names: [app.userName],
+              usernames: [app.username],
+              ids: [app.userId ?? app.id],
+            })}
+          </span>
+        ),
+      },
+      {
+        id: 'email',
+        header: '邮箱',
+        cellClassName: `align-middle ${textMuted(theme)}`,
+        cell: (app) => (
+          <div>
+            <div>{app.contactEmail}</div>
+            {app.contactPhone ? <div className="text-[11px] mt-0.5">{app.contactPhone}</div> : null}
+          </div>
+        ),
+      },
+      {
+        id: 'company',
+        header: '单位',
+        cellClassName: `align-middle ${textMuted(theme)}`,
+        cell: (app) => app.companyName || '—',
+      },
+      {
+        id: 'status',
+        header: '状态',
+        cellClassName: 'align-middle',
+        cell: (app) => statusBadge(app.status),
+      },
+      {
+        id: 'time',
+        header: '申请时间',
+        cellClassName: `align-middle ${textMuted(theme)}`,
+        cell: (app) => (
+          <div>
+            <div>{formatDateTime(app.createTime, '-')}</div>
+            {app.applyReason ? (
+              <div className={`text-[11px] mt-0.5 line-clamp-1 max-w-[200px]`} title={app.applyReason}>
+                原因: {app.applyReason}
+              </div>
+            ) : null}
+            {app.reviewComment ? (
+              <div className="text-[11px] mt-0.5 line-clamp-1 max-w-[200px] text-amber-500" title={app.reviewComment}>
+                意见: {app.reviewComment}
+              </div>
+            ) : null}
+          </div>
+        ),
+      },
+      {
+        id: 'actions',
+        header: '操作',
+        headerClassName: 'text-right',
+        cellClassName: 'text-right align-middle',
+        cell: (app) =>
+          app.status === 'pending' ? (
+            <div className="inline-flex flex-wrap items-center justify-end gap-1 h-8">
+              <button
+                type="button"
+                className={mgmtTableActionPositive(theme)}
+                onClick={() => setActionTarget({ app, action: 'approve' })}
+              >
+                <CheckCircle2 size={13} /> 通过
+              </button>
+              <button
+                type="button"
+                className={mgmtTableActionDanger}
+                onClick={() => setActionTarget({ app, action: 'reject' })}
+              >
+                <XCircle size={13} /> 驳回
+              </button>
+            </div>
+          ) : (
+            <span className={`text-xs ${textMuted(theme)}`}>—</span>
+          ),
+      },
+    ],
+    [theme],
+  );
+
   if (loading && !data) {
     return (
-      <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={ClipboardList} breadcrumbSegments={['用户与权限', '入驻审批']}>
+      <MgmtPageShell
+        theme={theme}
+        fontSize={fontSize}
+        titleIcon={ClipboardList}
+        breadcrumbSegments={['用户与权限', '入驻审批']}
+        description={PAGE_DESCRIPTION}
+      >
         <PageSkeleton type="table" />
       </MgmtPageShell>
     );
   }
 
-  const list = data?.list ?? [];
-
   return (
-    <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={ClipboardList} breadcrumbSegments={['用户与权限', '入驻审批']}>
-      <div className="px-4 sm:px-6 pb-6">
+    <MgmtPageShell
+      theme={theme}
+      fontSize={fontSize}
+      titleIcon={ClipboardList}
+      breadcrumbSegments={['用户与权限', '入驻审批']}
+      description={PAGE_DESCRIPTION}
+      toolbar={
+        <div className={`${TOOLBAR_ROW} justify-between`}>
+          <div className="flex-1 min-w-0 sm:max-w-md">
+            <SearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder="申请人、邮箱、单位…"
+              theme={theme}
+            />
+          </div>
+        </div>
+      }
+    >
+      <div className="px-4 sm:px-6 pb-6 flex flex-col min-h-0">
         {list.length === 0 ? (
           <EmptyState title="暂无入驻申请" description="目前没有待处理的开发者入驻申请" />
+        ) : filteredList.length === 0 ? (
+          <EmptyState title="无匹配申请" description="请调整搜索关键词或切换页码" />
         ) : (
-          <>
-            <BentoCard theme={theme} padding="sm">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className={`border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-                    <th className={`px-4 py-3 text-left font-medium ${textSecondary(theme)}`}>申请人</th>
-                    <th className={`px-4 py-3 text-left font-medium ${textSecondary(theme)}`}>邮箱</th>
-                    <th className={`px-4 py-3 text-left font-medium ${textSecondary(theme)}`}>单位</th>
-                    <th className={`px-4 py-3 text-left font-medium ${textSecondary(theme)}`}>状态</th>
-                    <th className={`px-4 py-3 text-left font-medium ${textSecondary(theme)}`}>申请时间</th>
-                    <th className={`px-4 py-3 text-right font-medium ${textSecondary(theme)}`}>操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {list.map((app) => (
-                    <tr key={app.id} className={`border-b last:border-0 ${isDark ? 'border-white/[0.04]' : 'border-slate-50'}`}>
-                      <td className={`px-4 py-3 ${textPrimary(theme)}`}>
-                        {resolvePersonDisplay({
-                          names: [app.userName],
-                          usernames: [app.username],
-                          ids: [app.userId ?? app.id],
-                        })}
-                      </td>
-                      <td className={`px-4 py-3 ${textMuted(theme)}`}>
-                        <div>{app.contactEmail}</div>
-                        {app.contactPhone && <div className="text-[11px] mt-0.5">{app.contactPhone}</div>}
-                      </td>
-                      <td className={`px-4 py-3 ${textMuted(theme)}`}>{app.companyName || '-'}</td>
-                      <td className="px-4 py-3">{statusBadge(app.status, isDark)}</td>
-                      <td className={`px-4 py-3 ${textMuted(theme)}`}>
-                        <div>{formatDateTime(app.createTime, '-')}</div>
-                        {app.applyReason && <div className={`text-[11px] mt-0.5 line-clamp-1 max-w-[200px] ${textMuted(theme)}`} title={app.applyReason}>原因: {app.applyReason}</div>}
-                        {app.reviewComment && <div className={`text-[11px] mt-0.5 line-clamp-1 max-w-[200px] text-amber-500`} title={app.reviewComment}>意见: {app.reviewComment}</div>}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {app.status === 'pending' && (
-                          <div className="inline-flex gap-2">
-                            <button
-                              type="button"
-                              className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/10 px-2.5 py-1.5 text-xs font-medium text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400"
-                              onClick={() => setActionTarget({ app, action: 'approve' })}
-                            >
-                              <CheckCircle2 size={13} /> 通过
-                            </button>
-                            <button
-                              type="button"
-                              className="inline-flex items-center gap-1 rounded-lg bg-rose-500/10 px-2.5 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-500/20 dark:text-rose-400"
-                              onClick={() => setActionTarget({ app, action: 'reject' })}
-                            >
-                              <XCircle size={13} /> 驳回
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </BentoCard>
-
-            {(data?.total ?? 0) > 20 && (
-              <div className="flex justify-center gap-2 mt-4">
-                <button type="button" className={btnSecondary(theme)} disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>上一页</button>
-                <span className={`flex items-center text-sm ${textMuted(theme)}`}>第 {page} 页</span>
-                <button type="button" className={btnSecondary(theme)} disabled={list.length < 20} onClick={() => setPage((p) => p + 1)}>下一页</button>
-              </div>
-            )}
-          </>
+          <MgmtDataTable
+            theme={theme}
+            columns={columns}
+            rows={filteredList}
+            getRowKey={(app) => app.id}
+            minWidth="72rem"
+            surface="plain"
+          />
         )}
+        <Pagination theme={theme} page={page} pageSize={PAGE_SIZE} total={data?.total ?? 0} onChange={setPage} />
       </div>
 
       <ConfirmDialog
@@ -181,20 +269,41 @@ export const DeveloperApplicationListPage: React.FC<Props> = ({ theme, fontSize,
         confirmText="通过"
         loading={submitting}
         onConfirm={handleAction}
-        onCancel={() => { setActionTarget(null); setRejectComment(''); }}
+        onCancel={() => {
+          setActionTarget(null);
+          setRejectComment('');
+        }}
       />
 
       <Modal
         open={actionTarget?.action === 'reject'}
-        onClose={() => { setActionTarget(null); setRejectComment(''); }}
+        onClose={() => {
+          setActionTarget(null);
+          setRejectComment('');
+        }}
         title="驳回入驻申请"
         theme={theme}
         size="sm"
         footer={
           <div className="flex justify-end gap-2">
-            <button type="button" className={btnSecondary(theme)} onClick={() => { setActionTarget(null); setRejectComment(''); }}>取消</button>
+            <button
+              type="button"
+              className={btnSecondary(theme)}
+              onClick={() => {
+                setActionTarget(null);
+                setRejectComment('');
+              }}
+            >
+              取消
+            </button>
             <button type="button" className={`${btnPrimary} disabled:opacity-50`} disabled={submitting} onClick={handleAction}>
-              {submitting ? <><Loader2 size={14} className="animate-spin" /> 驳回中…</> : '驳回'}
+              {submitting ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" /> 驳回中…
+                </>
+              ) : (
+                '驳回'
+              )}
             </button>
           </div>
         }

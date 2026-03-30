@@ -137,6 +137,24 @@ export function tableCell() {
   return 'px-6 py-4 text-[13px]';
 }
 
+/** 管理列表行内「查看 / 编辑」等次要操作（与平台公告列表一致） */
+export function mgmtTableActionGhost(theme: Theme) {
+  return `inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md font-medium ${
+    D(theme) ? 'text-slate-300 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100'
+  }`;
+}
+
+/** 行内正向操作（通过、启用等），尺寸与幽灵按钮一致 */
+export function mgmtTableActionPositive(theme: Theme) {
+  return `inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md font-medium ${
+    D(theme) ? 'text-emerald-400 hover:bg-emerald-500/10' : 'text-emerald-700 hover:bg-emerald-50'
+  }`;
+}
+
+/** 行内危险操作（删除、驳回等），与平台公告列表一致 */
+export const mgmtTableActionDanger =
+  'inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md font-medium text-rose-500 hover:bg-rose-50/60 dark:hover:bg-rose-500/10';
+
 /* ═══════════════════════════════════════════
    Status Badges
    ═══════════════════════════════════════════ */

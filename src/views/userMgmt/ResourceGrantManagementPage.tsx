@@ -282,7 +282,7 @@ export const ResourceGrantManagementPage: React.FC<Props> = ({ theme, fontSize, 
             )}
           </div>
           <div className={`px-4 border-t ${isDark ? 'border-white/10' : 'border-slate-100'}`}>
-            <Pagination page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} />
+            <Pagination theme={theme} page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} />
           </div>
         </section>
       </div>

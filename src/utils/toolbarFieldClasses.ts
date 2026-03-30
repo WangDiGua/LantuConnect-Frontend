@@ -1,6 +1,7 @@
 import { Theme } from '../types';
 
-export const TOOLBAR_ROW = 'flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3';
+/** 管理列表工具栏：横向排列、窄屏自动换行（不再大屏才把按钮并到一行） */
+export const TOOLBAR_ROW = 'flex w-full flex-row flex-wrap items-center gap-2 sm:gap-3';
 
 export function toolbarSearchInputClass(theme: Theme): string {
   const d = theme === 'dark';

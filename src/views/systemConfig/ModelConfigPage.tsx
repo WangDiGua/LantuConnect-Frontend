@@ -7,9 +7,18 @@ import { TOOLBAR_ROW, toolbarSearchInputClass } from '../../utils/toolbarFieldCl
 import { Search, Plus, Save, Trash2, Cpu, Power, Loader2 } from 'lucide-react';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { Modal } from '../../components/common/Modal';
-import { BentoCard } from '../../components/common/BentoCard';
+import { MgmtDataTable } from '../../components/management/MgmtDataTable';
+import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
 import { PageError } from '../../components/common/PageError';
-import { btnPrimary, btnSecondary, tableHeadCell, tableBodyRow, tableCell, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import {
+  btnPrimary,
+  btnSecondary,
+  mgmtTableActionDanger,
+  mgmtTableActionGhost,
+  textPrimary,
+  textSecondary,
+  textMuted,
+} from '../../utils/uiClasses';
 import { systemConfigService } from '../../api/services/system-config.service';
 import type { ModelConfig, CreateModelConfigDTO } from '../../types/dto/system-config';
 
@@ -144,7 +153,7 @@ export const ModelConfigPage: React.FC<ModelConfigPageProps> = ({
       titleIcon={Cpu}
       description="管理大模型接入点、模型标识与启用状态"
       toolbar={
-        <div className={TOOLBAR_ROW}>
+        <div className={`${TOOLBAR_ROW} justify-between`}>
           <div className="relative flex-1 min-w-0 sm:max-w-md">
             <Search className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${textMuted(theme)}`} size={16} />
             <input type="search" placeholder="搜索名称、提供方、模型 ID…" value={search} onChange={(e) => setSearch(e.target.value)} className={toolbarSearchInputClass(theme)} />
@@ -166,56 +175,109 @@ export const ModelConfigPage: React.FC<ModelConfigPageProps> = ({
         ) : filtered.length === 0 ? (
           <p className={`text-center py-12 text-sm ${textMuted(theme)}`}>暂无匹配模型配置</p>
         ) : (
-          <BentoCard theme={theme} padding="sm" className="overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm min-w-[960px]">
-                <thead>
-                  <tr>
-                    {['模型名称', '提供商', '模型 ID', '类型', '状态', '操作'].map((h, i) => (
-                      <th key={h} className={`${tableHeadCell(theme)} ${i === 5 ? 'text-right' : ''}`}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((r, i) => {
-                    const mt = modelType(r);
-                    return (
-                      <tr key={r.id} className={tableBodyRow(theme, i)}>
-                        <td className={`${tableCell()} font-medium ${textPrimary(theme)}`}>{r.name}</td>
-                        <td className={`${tableCell()} ${textSecondary(theme)}`}>{r.provider}</td>
-                        <td className={`${tableCell()} font-mono text-xs ${textMuted(theme)}`}>{r.modelId}</td>
-                        <td className={tableCell()}>
-                          <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
-                            mt === 'chat' ? (isDark ? 'bg-blue-500/15 text-blue-400' : 'bg-blue-100 text-blue-700')
-                            : mt === 'embedding' ? (isDark ? 'bg-neutral-500/15 text-neutral-300' : 'bg-neutral-100 text-neutral-800')
-                            : (isDark ? 'bg-amber-500/15 text-amber-400' : 'bg-amber-100 text-amber-700')
-                          }`}>
-                            {MODEL_TYPE_LABEL[mt] ?? mt}
-                          </span>
-                        </td>
-                        <td className={tableCell()}>
-                          <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${r.enabled ? (isDark ? 'bg-emerald-500/20 text-emerald-300' : 'bg-emerald-100 text-emerald-800') : (isDark ? 'bg-slate-600/40 text-slate-300' : 'bg-slate-200 text-slate-700')}`}>
-                            {r.enabled ? '启用' : '停用'}
-                          </span>
-                        </td>
-                        <td className={`${tableCell()} text-right`}>
-                          <div className="inline-flex flex-wrap justify-end gap-1">
-                            <button type="button" onClick={() => toggleEnabled(r.id)} className={`p-1.5 rounded-xl ${isDark ? 'text-slate-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'}`} title={r.enabled ? '停用' : '启用'}>
-                              <Power size={16} />
-                            </button>
-                            <button type="button" onClick={() => openEdit(r)} className={`px-2 py-1 rounded-xl text-xs font-medium ${isDark ? 'text-neutral-300 hover:bg-white/10' : 'text-neutral-900 hover:bg-neutral-100'}`}>编辑</button>
-                            <button type="button" onClick={() => setDeleteTarget(r)} className={`p-1.5 rounded-xl ${isDark ? 'text-red-400 hover:bg-white/10' : 'text-red-600 hover:bg-red-50'}`}>
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </BentoCard>
+          (() => {
+            const modelColumns: MgmtDataTableColumn<ModelConfig>[] = [
+                  {
+                    id: 'name',
+                    header: '模型名称',
+                    cellClassName: `align-middle font-medium ${textPrimary(theme)}`,
+                    cell: (r) => r.name,
+                  },
+                  {
+                    id: 'provider',
+                    header: '提供商',
+                    cellClassName: `align-middle ${textSecondary(theme)}`,
+                    cell: (r) => r.provider,
+                  },
+                  {
+                    id: 'modelId',
+                    header: '模型 ID',
+                    cellClassName: `align-middle font-mono text-xs ${textMuted(theme)}`,
+                    cell: (r) => r.modelId,
+                  },
+                  {
+                    id: 'type',
+                    header: '类型',
+                    cellClassName: 'align-middle',
+                    cell: (r) => {
+                      const mt = modelType(r);
+                      return (
+                        <span
+                          className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
+                            mt === 'chat'
+                              ? isDark
+                                ? 'bg-blue-500/15 text-blue-400'
+                                : 'bg-blue-100 text-blue-700'
+                              : mt === 'embedding'
+                                ? isDark
+                                  ? 'bg-neutral-500/15 text-neutral-300'
+                                  : 'bg-neutral-100 text-neutral-800'
+                                : isDark
+                                  ? 'bg-amber-500/15 text-amber-400'
+                                  : 'bg-amber-100 text-amber-700'
+                          }`}
+                        >
+                          {MODEL_TYPE_LABEL[mt] ?? mt}
+                        </span>
+                      );
+                    },
+                  },
+                  {
+                    id: 'enabled',
+                    header: '状态',
+                    cellClassName: 'align-middle',
+                    cell: (r) => (
+                      <span
+                        className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
+                          r.enabled
+                            ? isDark
+                              ? 'bg-emerald-500/20 text-emerald-300'
+                              : 'bg-emerald-100 text-emerald-800'
+                            : isDark
+                              ? 'bg-slate-600/40 text-slate-300'
+                              : 'bg-slate-200 text-slate-700'
+                        }`}
+                      >
+                        {r.enabled ? '启用' : '停用'}
+                      </span>
+                    ),
+                  },
+                  {
+                    id: 'actions',
+                    header: '操作',
+                    headerClassName: 'text-right',
+                    cellClassName: 'text-right align-middle',
+                    cell: (r) => (
+                      <div className="inline-flex flex-wrap items-center justify-end gap-1 h-8">
+                        <button
+                          type="button"
+                          onClick={() => toggleEnabled(r.id)}
+                          className={mgmtTableActionGhost(theme)}
+                          title={r.enabled ? '停用' : '启用'}
+                        >
+                          <Power size={13} />
+                        </button>
+                        <button type="button" onClick={() => openEdit(r)} className={mgmtTableActionGhost(theme)}>
+                          编辑
+                        </button>
+                        <button type="button" onClick={() => setDeleteTarget(r)} className={mgmtTableActionDanger}>
+                          <Trash2 size={13} /> 删除
+                        </button>
+                      </div>
+                    ),
+                  },
+                ];
+            return (
+              <MgmtDataTable
+                theme={theme}
+                columns={modelColumns}
+                rows={filtered}
+                getRowKey={(r) => r.id}
+                minWidth="60rem"
+                surface="plain"
+              />
+            );
+          })()
         )}
       </div>
 

@@ -244,7 +244,7 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
 
           {/* Pagination */}
           <div className={`px-4 border-t shrink-0 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-            <Pagination page={page} pageSize={PAGE_SIZE} total={totalUsers} onChange={setPage} />
+            <Pagination theme={theme} page={page} pageSize={PAGE_SIZE} total={totalUsers} onChange={setPage} />
           </div>
         </div>
       </div>

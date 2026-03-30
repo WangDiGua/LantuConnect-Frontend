@@ -15,7 +15,8 @@ import { Modal } from '../../components/common/Modal';
 import { LantuSelect } from '../../components/common/LantuSelect';
 import { MarkdownView } from '../../components/common/MarkdownView';
 import { nativeInputClass } from '../../utils/formFieldClasses';
-import { btnPrimary, btnSecondary, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import { btnPrimary, btnSecondary, mgmtTableActionDanger, mgmtTableActionGhost, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import { TOOLBAR_ROW } from '../../utils/toolbarFieldClasses';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { PageError } from '../../components/common/PageError';
 import { Pagination } from '../../components/common/Pagination';
@@ -245,27 +246,15 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
         cellClassName: 'text-right align-middle',
         cell: (a: AnnouncementItem) => (
           <div className="inline-flex flex-wrap items-center justify-end gap-1 h-8">
-            <button
-              type="button"
-              onClick={() => setDetailAnnouncement(a)}
-              className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md ${isDark ? 'text-slate-300 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100'}`}
-            >
+            <button type="button" onClick={() => setDetailAnnouncement(a)} className={mgmtTableActionGhost(theme)}>
               <Eye size={13} />
               查看
             </button>
-            <button
-              type="button"
-              onClick={() => openEditModal(a)}
-              className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md ${isDark ? 'text-slate-300 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100'}`}
-            >
+            <button type="button" onClick={() => openEditModal(a)} className={mgmtTableActionGhost(theme)}>
               <Edit2 size={13} />
               编辑
             </button>
-            <button
-              type="button"
-              onClick={() => setDeleteTarget(a)}
-              className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md text-rose-500 hover:bg-rose-50/60 dark:hover:bg-rose-500/10"
-            >
+            <button type="button" onClick={() => setDeleteTarget(a)} className={mgmtTableActionDanger}>
               <Trash2 size={13} />
               删除
             </button>
@@ -273,7 +262,7 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
         ),
       },
     ],
-    [isDark, theme],
+    [theme],
   );
 
   if (loading) {
@@ -312,15 +301,16 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
       breadcrumbSegments={['系统配置', '平台公告']}
       description={PAGE_DESCRIPTION}
       toolbar={
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
-          <div className="flex flex-wrap items-center gap-2 min-w-0">
+        <div className={`${TOOLBAR_ROW} justify-between`}>
+          <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1">
             <input
               type="search"
-              className={`${inputCls} w-full min-w-0 sm:max-w-[14rem]`}
+              className={`${inputCls} w-[min(100%,14rem)] min-w-0 shrink-0`}
               placeholder="关键词（标题/摘要）"
               value={filterKeyword}
               onChange={(e) => setFilterKeyword(e.target.value)}
               aria-label="按标题或摘要筛选"
+              title="当前为前端筛选，仅在本页数据中过滤；全量检索待接口支持 keyword、type。底部分页条数为服务端总数。"
             />
             <LantuSelect
               theme={theme}
@@ -328,13 +318,13 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
               onChange={setFilterType}
               options={TYPE_FILTER_OPTIONS}
               placeholder="类型"
-              triggerClassName="!min-w-[7rem]"
+              triggerClassName="!min-w-[7rem] shrink-0"
             />
-            <p className={`m-0 text-xs max-w-xl ${textMuted(theme)}`}>
-              当前为前端筛选，仅在本页数据中过滤；全量检索待接口支持 keyword、type。底部分页条数为服务端总数。
+            <p className={`m-0 text-xs max-w-md min-w-0 hidden md:block ${textMuted(theme)}`} title="当前为前端筛选，仅在本页数据中过滤；全量检索待接口支持 keyword、type">
+              本页前端筛选；分页总数来自服务端。
             </p>
           </div>
-          <button type="button" className={`${btnPrimary} shrink-0 self-start lg:self-center`} onClick={openCreateModal}>
+          <button type="button" className={`${btnPrimary} shrink-0`} onClick={openCreateModal}>
             <Plus size={14} /> 发布公告
           </button>
         </div>
@@ -355,12 +345,7 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
             surface="plain"
           />
         )}
-        <Pagination
-          page={page}
-          pageSize={ANNOUNCEMENT_PAGE_SIZE}
-          total={total}
-          onChange={setPage}
-        />
+        <Pagination theme={theme} page={page} pageSize={ANNOUNCEMENT_PAGE_SIZE} total={total} onChange={setPage} />
       </div>
 
       <Modal open={showCreate} onClose={() => { setShowCreate(false); setEditing(null); }} title={editing ? '编辑平台公告' : '发布平台公告'} theme={theme} size="md"

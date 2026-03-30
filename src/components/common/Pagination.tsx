@@ -1,7 +1,9 @@
 import React, { useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import type { Theme } from '../../types';
 
 export interface PaginationProps {
+  theme: Theme;
   page: number;
   pageSize: number;
   total: number;
@@ -28,17 +30,31 @@ function buildPageNumbers(current: number, totalPages: number): (number | 'ellip
   return pages;
 }
 
-const navBtn =
-  'inline-flex items-center justify-center w-8 h-8 rounded-lg text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-white/5 text-slate-600 dark:text-slate-300';
-
-const pageBtn = (active: boolean) =>
-  `inline-flex items-center justify-center w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
-    active
-      ? 'bg-blue-600 text-white shadow-sm'
-      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5'
+function navBtnClass(theme: Theme) {
+  const d = theme === 'dark';
+  return `inline-flex items-center justify-center w-8 h-8 rounded-lg text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+    d ? 'text-slate-300 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100'
   }`;
+}
+
+function pageBtnClass(active: boolean, theme: Theme) {
+  const d = theme === 'dark';
+  if (active) {
+    return `inline-flex items-center justify-center w-8 h-8 rounded-lg text-sm font-semibold transition-colors shadow-sm ${
+      d ? 'bg-white text-neutral-900' : 'bg-neutral-900 text-white'
+    }`;
+  }
+  return `inline-flex items-center justify-center w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
+    d ? 'text-slate-300 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100'
+  }`;
+}
+
+function metaTextClass(theme: Theme) {
+  return theme === 'dark' ? 'text-slate-400' : 'text-slate-500';
+}
 
 export const Pagination: React.FC<PaginationProps> = ({
+  theme,
   page,
   pageSize,
   total,
@@ -53,7 +69,7 @@ export const Pagination: React.FC<PaginationProps> = ({
   if (total === 0) return null;
 
   return (
-    <div className="flex items-center justify-between gap-4 px-1 py-3 text-xs text-slate-500 dark:text-slate-400">
+    <div className={`flex items-center justify-between gap-4 px-1 py-3 text-xs ${metaTextClass(theme)}`}>
       <span>
         第 {rangeStart}–{rangeEnd} 条，共 {total} 条
       </span>
@@ -64,7 +80,7 @@ export const Pagination: React.FC<PaginationProps> = ({
           aria-label="上一页"
           disabled={page <= 1}
           onClick={() => onChange(page - 1)}
-          className={navBtn}
+          className={navBtnClass(theme)}
         >
           <ChevronLeft size={16} />
         </button>
@@ -73,7 +89,7 @@ export const Pagination: React.FC<PaginationProps> = ({
           p === 'ellipsis' ? (
             <span
               key={`e-${idx}`}
-              className="w-8 text-center text-slate-400 dark:text-slate-500 select-none"
+              className={`w-8 text-center select-none ${theme === 'dark' ? 'text-slate-500' : 'text-slate-400'}`}
             >
               …
             </span>
@@ -84,7 +100,7 @@ export const Pagination: React.FC<PaginationProps> = ({
               aria-label={`第 ${p} 页`}
               aria-current={p === page ? 'page' : undefined}
               onClick={() => onChange(p)}
-              className={pageBtn(p === page)}
+              className={pageBtnClass(p === page, theme)}
             >
               {p}
             </button>
@@ -96,7 +112,7 @@ export const Pagination: React.FC<PaginationProps> = ({
           aria-label="下一页"
           disabled={page >= totalPages}
           onClick={() => onChange(page + 1)}
-          className={navBtn}
+          className={navBtnClass(theme)}
         >
           <ChevronRight size={16} />
         </button>

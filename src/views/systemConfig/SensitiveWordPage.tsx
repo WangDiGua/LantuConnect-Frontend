@@ -14,7 +14,8 @@ import { Pagination } from '../../components/common/Pagination';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { Modal } from '../../components/common/Modal';
 import { nativeInputClass } from '../../utils/formFieldClasses';
-import { btnPrimary, btnSecondary, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import { btnPrimary, btnSecondary, mgmtTableActionDanger, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import { TOOLBAR_ROW } from '../../utils/toolbarFieldClasses';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
 
 interface Props {
@@ -25,6 +26,7 @@ interface Props {
 
 const INPUT_FOCUS = 'focus:ring-2 focus:ring-neutral-900/20 focus:border-neutral-900/35';
 const SENSITIVE_PAGE_SIZE = 20;
+const PAGE_DESCRIPTION = '维护平台敏感词规则，支持批量导入与启用控制';
 
 function parseBatchJson(input: string): string[] | null {
   try {
@@ -188,16 +190,19 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
       {
         id: 'word',
         header: '敏感词',
+        cellClassName: 'align-middle',
         cell: (item) => <span className={`font-mono ${textPrimary(theme)}`}>{item.word}</span>,
       },
       {
         id: 'category',
         header: '分类',
+        cellClassName: 'align-middle',
         cell: (item) => <span className={textMuted(theme)}>{item.category}</span>,
       },
       {
         id: 'enabled',
         header: '状态',
+        cellClassName: 'align-middle',
         cell: (item) => (
           <button
             type="button"
@@ -215,6 +220,7 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
       {
         id: 'creator',
         header: '创建人',
+        cellClassName: 'align-middle',
         cell: (item) => (
           <span className={textMuted(theme)}>
             {resolvePersonDisplay({ names: [item.createdByName], usernames: [item.createdBy] })}
@@ -227,13 +233,11 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
         headerClassName: 'text-right',
         cellClassName: 'text-right align-middle',
         cell: (item) => (
-          <button
-            type="button"
-            className="inline-flex items-center gap-1 h-8 rounded-lg bg-rose-500/10 px-2 py-1 text-xs font-medium text-rose-600 hover:bg-rose-500/20 dark:text-rose-400"
-            onClick={() => setDeleteTarget(item)}
-          >
-            <Trash2 size={13} /> 删除
-          </button>
+          <div className="inline-flex items-center justify-end h-8">
+            <button type="button" className={mgmtTableActionDanger} onClick={() => setDeleteTarget(item)}>
+              <Trash2 size={13} /> 删除
+            </button>
+          </div>
         ),
       },
     ],
@@ -242,7 +246,13 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
 
   if (loading && !data) {
     return (
-      <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={ShieldAlert} breadcrumbSegments={['系统配置', '敏感词管理']}>
+      <MgmtPageShell
+        theme={theme}
+        fontSize={fontSize}
+        titleIcon={ShieldAlert}
+        breadcrumbSegments={['系统配置', '敏感词管理']}
+        description={PAGE_DESCRIPTION}
+      >
         <PageSkeleton type="table" />
       </MgmtPageShell>
     );
@@ -256,17 +266,22 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
       fontSize={fontSize}
       titleIcon={ShieldAlert}
       breadcrumbSegments={['系统配置', '敏感词管理']}
-      toolbar={<div className="flex items-center gap-2">
-        <button type="button" className={btnSecondary(theme)} onClick={() => setShowBatch(true)}>
-          <Braces size={14} /> JSON 批量新增
-        </button>
-        <button type="button" className={btnSecondary(theme)} onClick={() => setShowImport(true)}>
-          <Upload size={14} /> 文件导入
-        </button>
-        <button type="button" className={btnPrimary} onClick={() => setShowAdd(true)}>
-          <Plus size={14} /> 单条新增
-        </button>
-      </div>}
+      description={PAGE_DESCRIPTION}
+      toolbar={
+        <div className={`${TOOLBAR_ROW} justify-end`}>
+          <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
+            <button type="button" className={btnSecondary(theme)} onClick={() => setShowBatch(true)}>
+              <Braces size={14} /> JSON 批量新增
+            </button>
+            <button type="button" className={btnSecondary(theme)} onClick={() => setShowImport(true)}>
+              <Upload size={14} /> 文件导入
+            </button>
+            <button type="button" className={btnPrimary} onClick={() => setShowAdd(true)}>
+              <Plus size={14} /> 单条新增
+            </button>
+          </div>
+        </div>
+      }
     >
       <div className="px-4 sm:px-6 pb-6">
         {latestImportResult && (
@@ -293,12 +308,7 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
           />
         )}
 
-        <Pagination
-          page={page}
-          pageSize={SENSITIVE_PAGE_SIZE}
-          total={data?.total ?? 0}
-          onChange={setPage}
-        />
+        <Pagination theme={theme} page={page} pageSize={SENSITIVE_PAGE_SIZE} total={data?.total ?? 0} onChange={setPage} />
       </div>
 
       <Modal

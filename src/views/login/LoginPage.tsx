@@ -104,15 +104,17 @@ export const LoginPage: React.FC = () => {
   const inputCls = 'w-full pl-10 pr-4 py-2.5 bg-neutral-50/50 border border-neutral-200 rounded-xl text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-4 focus:ring-neutral-900/5 focus:border-neutral-900 focus:bg-white transition-all duration-300';
   const inputErrorCls = '!border-rose-400 focus:!border-rose-500 focus:!ring-rose-500/10';
 
-  const eclipseSize = 'min(500px, min(85vw, 50vh))';
+  /** 左栏日食尺寸：随视口高度收紧，保证 lg+ 一屏内无需滚动 */
+  const eclipseSize =
+    'min(500px, 85vw, 32dvh, max(160px, calc((100dvh - 260px) * 0.44)))';
 
   return (
-    <div className="h-[100dvh] min-h-0 overflow-y-auto overscroll-contain">
-      <div className="min-h-full flex flex-col lg:flex-row font-sans bg-white selection:bg-neutral-900 selection:text-white">
+    <div className="h-[100dvh] min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain lg:overflow-hidden">
+      <div className="min-h-0 h-full lg:h-full flex flex-col lg:flex-row font-sans bg-white selection:bg-neutral-900 selection:text-white max-lg:min-h-min">
 
-        {/* Left: Eclipse Quantum Core */}
+        {/* Left: Eclipse Quantum Core — lg+ 整栏锁在一屏内 */}
         <div
-          className="hidden lg:flex lg:w-1/2 relative bg-[#020202] overflow-x-hidden flex-col shrink-0"
+          className="hidden lg:flex lg:w-1/2 relative bg-[#020202] overflow-x-hidden flex-col shrink-0 lg:h-full lg:min-h-0"
           onMouseMove={handleMouseMove}
           onMouseLeave={() => setMousePos({ x: -1000, y: -1000 })}
         >
@@ -136,7 +138,7 @@ export const LoginPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="relative z-10 flex-1 flex items-center justify-center min-h-0 py-4 lg:py-6 xl:-mt-10">
+          <div className="relative z-10 flex-1 flex items-center justify-center min-h-0 py-2 lg:py-3 [@media(min-width:1024px)_and_(max-height:780px)]:lg:py-1 [@media(min-width:1024px)_and_(max-height:680px)]:lg:py-0 xl:-mt-4 xl:[@media(min-height:860px)]:-mt-8 xl:[@media(min-height:960px)]:-mt-10">
             <div
               className="relative flex items-center justify-center mx-auto"
               style={{ width: eclipseSize, height: eclipseSize }}
@@ -155,19 +157,19 @@ export const LoginPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="relative z-20 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between p-6 sm:p-8 lg:p-10 xl:p-12 mt-auto">
+          <div className="relative z-20 shrink-0 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between p-6 sm:p-8 lg:p-10 xl:p-12 mt-auto [@media(min-width:1024px)_and_(max-height:780px)]:lg:gap-3 [@media(min-width:1024px)_and_(max-height:780px)]:lg:p-5 [@media(min-width:1024px)_and_(max-height:680px)]:lg:p-4 [@media(min-width:1024px)_and_(max-height:680px)]:lg:gap-2">
             <div className="min-w-0">
-              <h1 className="font-medium tracking-tighter text-white leading-[1.05] mb-3 sm:mb-5 text-[clamp(1.75rem,2.5vw+0.75rem,3.75rem)] xl:text-[clamp(2rem,3vw+1rem,3.75rem)]">
+              <h1 className="font-medium tracking-tighter text-white leading-[1.05] mb-2 sm:mb-4 [@media(min-width:1024px)_and_(max-height:780px)]:lg:!text-[clamp(1.25rem,2vw+0.5rem,2.75rem)] [@media(min-width:1024px)_and_(max-height:680px)]:lg:!mb-1 text-[clamp(1.75rem,2.5vw+0.75rem,3.75rem)] xl:text-[clamp(2rem,3vw+1rem,3.75rem)]">
                 Intelligence,<br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-neutral-300 to-neutral-700">
                   Orchestrated.
                 </span>
               </h1>
-              <p className="text-neutral-500 max-w-sm text-[13px] leading-relaxed font-light tracking-wide">
+              <p className="text-neutral-500 max-w-sm text-[13px] leading-relaxed font-light tracking-wide [@media(min-width:1024px)_and_(max-height:720px)]:lg:text-xs [@media(min-width:1024px)_and_(max-height:640px)]:lg:hidden">
                 构建企业级智能体协同中枢。<br />优雅、强大、深不可测。
               </p>
             </div>
-            <div className="text-left sm:text-right space-y-4 shrink-0">
+            <div className="text-left sm:text-right space-y-3 shrink-0 [@media(min-width:1024px)_and_(max-height:680px)]:lg:space-y-2">
               <div>
                 <div className="text-[10px] font-mono text-neutral-600 mb-1 tracking-widest uppercase">Node.Latency</div>
                 <div className="text-[11px] font-mono text-neutral-300 tracking-wider">{latency} ms</div>
@@ -180,17 +182,17 @@ export const LoginPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Right: Clean Form */}
-        <div className="w-full lg:w-1/2 flex min-h-min lg:min-h-full flex-col items-center justify-center bg-white px-6 pt-20 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-12 sm:pt-20 sm:pb-10 lg:px-16 lg:py-12 xl:p-24 relative">
+        {/* Right: Clean Form — lg+ 与左栏同高裁切在一屏内；移动端允许整页滚动 */}
+        <div className="w-full lg:w-1/2 flex min-h-min lg:min-h-0 lg:h-full lg:flex-1 flex-col items-center justify-center bg-white px-6 pt-20 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-12 sm:pt-20 sm:pb-10 lg:overflow-hidden lg:px-14 lg:py-6 xl:px-16 xl:py-10 2xl:p-24 relative [@media(min-width:1024px)_and_(max-height:780px)]:lg:py-5 [@media(min-width:1024px)_and_(max-height:680px)]:lg:py-4 [@media(min-width:1024px)_and_(max-height:780px)]:lg:px-10">
           <div className="absolute top-6 left-6 sm:top-8 sm:left-8 flex lg:hidden items-center gap-2 text-neutral-900">
             <Command className="w-6 h-6" />
             <span className="text-lg font-semibold tracking-tight">NEXUS</span>
           </div>
 
-          <div className="w-full max-w-[380px] space-y-8 sm:space-y-10 pb-6">
-          <div className="space-y-2">
-            <h2 className="text-3xl font-semibold tracking-tight text-neutral-900">Sign in</h2>
-            <p className="text-sm text-neutral-500">输入学工号进入您的智能工作空间</p>
+          <div className="w-full max-w-[380px] space-y-8 sm:space-y-10 pb-6 [@media(min-width:1024px)_and_(max-height:820px)]:lg:space-y-5 [@media(min-width:1024px)_and_(max-height:720px)]:lg:space-y-4 [@media(min-width:1024px)_and_(max-height:820px)]:lg:pb-3">
+          <div className="space-y-1.5 sm:space-y-2 [@media(min-width:1024px)_and_(max-height:720px)]:lg:space-y-1">
+            <h2 className="text-3xl font-semibold tracking-tight text-neutral-900 [@media(min-width:1024px)_and_(max-height:760px)]:lg:text-2xl">Sign in</h2>
+            <p className="text-sm text-neutral-500 [@media(min-width:1024px)_and_(max-height:680px)]:lg:text-xs">输入学工号进入您的智能工作空间</p>
           </div>
 
           {serverError && (
@@ -200,8 +202,8 @@ export const LoginPage: React.FC = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            <div className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 [@media(min-width:1024px)_and_(max-height:820px)]:lg:space-y-4 [@media(min-width:1024px)_and_(max-height:720px)]:lg:space-y-3">
+            <div className="space-y-4 [@media(min-width:1024px)_and_(max-height:780px)]:lg:space-y-3 [@media(min-width:1024px)_and_(max-height:680px)]:lg:space-y-2.5">
               <div className="space-y-2">
                 <label className="text-[13px] font-medium text-neutral-700">学工号 (ID)</label>
                 <div className="relative">
@@ -298,7 +300,7 @@ export const LoginPage: React.FC = () => {
               <span className="ml-2.5 text-[13px] text-neutral-600 group-hover:text-neutral-900 transition-colors select-none">保持会话 (Keep me signed in)</span>
             </label>
 
-            <div className="space-y-3 pt-2">
+            <div className="space-y-3 pt-2 [@media(min-width:1024px)_and_(max-height:780px)]:lg:space-y-2 [@media(min-width:1024px)_and_(max-height:780px)]:lg:pt-1">
               <button
                 type="submit"
                 disabled={isSubmitting}
@@ -314,7 +316,7 @@ export const LoginPage: React.FC = () => {
                 </span>
               </button>
 
-              <div className="relative flex items-center py-3">
+              <div className="relative flex items-center py-3 [@media(min-width:1024px)_and_(max-height:760px)]:lg:py-2 [@media(min-width:1024px)_and_(max-height:660px)]:lg:py-1.5">
                 <div className="flex-grow border-t border-neutral-100" />
                 <span className="flex-shrink-0 mx-4 text-[11px] text-neutral-400 uppercase tracking-widest font-mono">Alternative</span>
                 <div className="flex-grow border-t border-neutral-100" />
@@ -331,7 +333,7 @@ export const LoginPage: React.FC = () => {
             </div>
           </form>
 
-          <div className="flex items-center justify-between text-xs text-neutral-400 pt-8 border-t border-neutral-100">
+          <div className="flex items-center justify-between text-xs text-neutral-400 pt-8 border-t border-neutral-100 [@media(min-width:1024px)_and_(max-height:800px)]:lg:pt-4 [@media(min-width:1024px)_and_(max-height:680px)]:lg:pt-3 [@media(min-width:1024px)_and_(max-height:800px)]:lg:text-[11px]">
             <span>&copy; 2026 Nexus AI</span>
             <div className="flex gap-4">
               <a href="#" className="hover:text-neutral-900 transition-colors">Privacy</a>

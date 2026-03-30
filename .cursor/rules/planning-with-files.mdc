@@ -1,0 +1,16 @@
+---
+description: 复杂多步任务时使用 planning-with-files：持久化 task_plan / findings / progress，并通过 Cursor hooks 在改文件前后与结束前对齐计划。上游见 third-party/planning-with-files；技能正文在 .cursor/skills/planning-with-files/SKILL.md。
+alwaysApply: false
+---
+
+# Planning with Files（项目内路径）
+
+上游仓库：<https://github.com/OthmanAdi/planning-with-files>
+
+- **子模块**：`third-party/planning-with-files/`（便于 `git submodule update --remote` 拉 upstream）。
+- **Cursor 技能目录**：`.cursor/skills/planning-with-files/`（含 `SKILL.md`、模板与示例）。
+- **Hooks**：`.cursor/hooks.json` + `.cursor/hooks/`（Windows 使用 PowerShell 脚本，与上游 `hooks.windows.json` 一致）。
+
+在适合「多步规划、研究、长会话」的任务中，应先阅读 `.cursor/skills/planning-with-files/SKILL.md`，按三文件模式维护工作目录下的 `task_plan.md`、`findings.md`、`progress.md`（由代理按模板创建），并与本仓库其他规则（如 `data-models.mdc`、`github.mdc`）一并遵守。
+
+**更新子模块**：`git submodule update --remote third-party/planning-with-files`

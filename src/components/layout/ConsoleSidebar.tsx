@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { ChevronDown, Box, Cpu, MoreVertical, LogOut, Search, Command } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Theme } from '../../types';
+import { mainScrollCompositorClass } from '../../utils/uiClasses';
 import type { ConsoleRole } from '../../constants/consoleRoutes';
 import type { PlatformRoleCode } from '../../types/dto/auth';
 import { Logo } from '../common/Logo';
@@ -283,7 +284,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto space-y-1 custom-scrollbar pr-1 pb-4">
+      <nav className={`flex-1 overflow-y-auto space-y-1 custom-scrollbar pr-1 pb-4 ${mainScrollCompositorClass}`}>
         {navItems.map(({ item, hasChildren, visibleChildren: children }) => {
           const isExpanded = normalizedQuery ? true : expandedGroups.includes(item.id);
           const isChildActive = hasChildren && activeSidebar === item.id;

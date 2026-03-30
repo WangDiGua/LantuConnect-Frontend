@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback, Suspense, lazy, useSyncExternalStore } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import {
   Palette,
   Bell,
@@ -95,7 +95,7 @@ import {
 import { PageSkeleton } from '../components/common/PageSkeleton';
 import { ConsoleSidebar } from '../components/layout/ConsoleSidebar';
 import { Tooltip } from '../components/common/Tooltip';
-import { contentMaxWidth } from '../utils/uiClasses';
+import { contentMaxWidth, mainScrollCompositorClass } from '../utils/uiClasses';
 
 const springTransition = { type: 'spring' as const, stiffness: 300, damping: 30 };
 
@@ -441,6 +441,31 @@ const MainContent = React.memo<{
 });
 
 MainContent.displayName = 'MainContent';
+
+/** 按路由 key 独立状态：退场结束后不再常驻 will-change，减轻滚动期合成层开销 */
+const RouteContentMotion: React.FC<{
+  animationVariants: Variants;
+  children: React.ReactNode;
+}> = ({ animationVariants, children }) => {
+  const [routeLayerWillChange, setRouteLayerWillChange] = React.useState<'opacity, transform' | 'auto'>(
+    'opacity, transform',
+  );
+  return (
+    <motion.div
+      variants={animationVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      transition={springTransition}
+      className="flex min-h-0 flex-1 flex-col pb-8"
+      style={{ willChange: routeLayerWillChange }}
+      onAnimationStart={() => setRouteLayerWillChange('opacity, transform')}
+      onAnimationComplete={() => setRouteLayerWillChange('auto')}
+    >
+      {children}
+    </motion.div>
+  );
+};
 
 export const MainLayout: React.FC = () => {
   const [themePreference, setThemePreference] = useState<ThemeMode>(() => readAppearanceState().themePreference);
@@ -1128,17 +1153,11 @@ const MainLayoutContent: React.FC<{
           </header>
 
           {/* Scrollable content */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar">
+          <div className={`flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass}`}>
             <AnimatePresence mode="wait">
-              <motion.div
+              <RouteContentMotion
                 key={contentKey}
-                variants={animationVariants}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-                transition={springTransition}
-                className="flex min-h-0 flex-1 flex-col pb-8"
-                style={{ willChange: 'opacity, transform' }}
+                animationVariants={animationVariants}
               >
                 <div className={`mx-auto w-full ${contentMaxWidth}`}>
                   <MainContent
@@ -1156,7 +1175,7 @@ const MainLayoutContent: React.FC<{
                     setShowAppearanceMenu={setShowAppearanceMenu}
                   />
                 </div>
-              </motion.div>
+              </RouteContentMotion>
             </AnimatePresence>
           </div>
         </main>

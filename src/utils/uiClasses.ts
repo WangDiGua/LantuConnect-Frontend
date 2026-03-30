@@ -12,6 +12,8 @@ export function pageBg(theme: Theme) {
 
 export const mainScrollPadX = 'px-4 sm:px-5 lg:px-6';
 export const mainScrollPadBottom = 'pb-6 sm:pb-8';
+/** 主滚动容器：GPU 合成层 + flex 子项收缩 + 限制滚动链（无视觉变化） */
+export const mainScrollCompositorClass = 'transform-gpu min-h-0 overscroll-y-contain';
 /** 主内容区在侧栏与画布内横向占满，不再用 1400px 人为缩窄；可读性由内部卡片/栅格控制 */
 export const contentMaxWidth = 'max-w-none';
 export const contentPaddingX = 'px-3 sm:px-4 lg:px-6';

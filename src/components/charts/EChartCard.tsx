@@ -123,10 +123,10 @@ export const EChartCard: React.FC<EChartCardProps> = (props) => {
 
   const isDark = theme === 'dark';
   const shell = useHubStatSurface
-    ? `rounded-[24px] border overflow-hidden transition-all duration-500 ease-out ${
+    ? `rounded-[24px] border overflow-hidden ${
         isDark
-          ? 'border-white/10 bg-[#171b22] shadow-[0_2px_10px_rgba(0,0,0,0.2)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.45)] hover:border-white/20 hover:bg-gradient-to-br hover:from-[#171b22] hover:to-[#1e2433]'
-          : 'border-gray-100 bg-white shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] hover:border-gray-200 hover:bg-gradient-to-br hover:from-white hover:to-gray-50'
+          ? 'border-white/10 bg-[#171b22] shadow-[0_2px_10px_rgba(0,0,0,0.2)]'
+          : 'border-gray-100 bg-white shadow-[0_2px_10px_rgba(0,0,0,0.02)]'
       }`
     : `rounded-[24px] border shadow-none overflow-hidden ${
         isDark ? 'border-white/10 bg-[#1C1C1E]' : 'border-slate-200/80 bg-white'

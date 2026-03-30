@@ -45,16 +45,19 @@ const ANNOUNCEMENT_LABEL: Record<string, string> = {
   notice: '系统通知',
 };
 
-/** HubStatCard 基准：本页其余卡片边框与阴影与之对齐 */
-const HUB_STAT_SURFACE_LIGHT =
-  'border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] hover:border-gray-200 hover:bg-gradient-to-br hover:from-white hover:to-gray-50';
-const HUB_STAT_SURFACE_DARK =
-  'border-white/10 shadow-[0_2px_10px_rgba(0,0,0,0.2)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.45)] hover:border-white/20 hover:bg-gradient-to-br hover:from-[#171b22] hover:to-[#1e2433]';
+/** 与 HubStatCard 同系边框与阴影（静态，无整卡悬停放大/抬起） */
+const HUB_STAT_BASE_LIGHT = 'border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)]';
+const HUB_STAT_BASE_DARK = 'border-white/10 shadow-[0_2px_10px_rgba(0,0,0,0.2)]';
+/** 仅 HubStatCard：悬停阴影与渐变（配合 translate，不做在其他卡片上） */
+const HUB_STAT_HOVER_LIGHT =
+  'hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] hover:border-gray-200 hover:bg-gradient-to-br hover:from-white hover:to-gray-50';
+const HUB_STAT_HOVER_DARK =
+  'hover:shadow-[0_20px_50px_rgba(0,0,0,0.45)] hover:border-white/20 hover:bg-gradient-to-br hover:from-[#171b22] hover:to-[#1e2433]';
 
 const Card: React.FC<{ children: React.ReactNode; className?: string; isDark?: boolean }> = ({ children, className = '', isDark = false }) => (
   <div
-    className={`rounded-2xl border overflow-hidden transition-all duration-500 ease-out ${
-      isDark ? `bg-[#171b22] ${HUB_STAT_SURFACE_DARK}` : `bg-white ${HUB_STAT_SURFACE_LIGHT}`
+    className={`rounded-2xl border overflow-hidden ${
+      isDark ? `bg-[#171b22] ${HUB_STAT_BASE_DARK}` : `bg-white ${HUB_STAT_BASE_LIGHT}`
     } ${className}`}
   >
     {children}
@@ -89,7 +92,9 @@ const HubStatCard: React.FC<{
   const shell = [
     'group relative w-full min-w-0 h-[156px] rounded-[20px] border flex flex-col items-center justify-center overflow-hidden',
     'transition-all duration-500 ease-out hover:-translate-y-2',
-    isDark ? `bg-[#171b22] ${HUB_STAT_SURFACE_DARK}` : `bg-white ${HUB_STAT_SURFACE_LIGHT}`,
+    isDark
+      ? `bg-[#171b22] ${HUB_STAT_BASE_DARK} ${HUB_STAT_HOVER_DARK}`
+      : `bg-white ${HUB_STAT_BASE_LIGHT} ${HUB_STAT_HOVER_LIGHT}`,
   ].join(' ');
 
   const watermarkCls = [
@@ -448,8 +453,8 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
                       key={`${res.resourceType}-${res.resourceId}`}
                       type="button"
                       onClick={() => navigateToResource(res)}
-                      className={`rounded-2xl border transition-all duration-500 ease-out px-6 pt-6 pb-8 flex flex-col h-full hover:-translate-y-2 text-left cursor-pointer ${
-                        isDark ? `bg-[#171b22] ${HUB_STAT_SURFACE_DARK}` : `bg-white ${HUB_STAT_SURFACE_LIGHT}`
+                      className={`rounded-2xl border px-6 pt-6 pb-8 flex flex-col h-full text-left cursor-pointer ${
+                        isDark ? `bg-[#171b22] ${HUB_STAT_BASE_DARK}` : `bg-white ${HUB_STAT_BASE_LIGHT}`
                       }`}
                     >
                       <div className="flex items-start justify-between mb-4">
@@ -555,10 +560,10 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
                 {contributors.length > 0 ? (
                   <>
                     <div
-                      className={`rounded-2xl p-6 flex flex-col items-center justify-center text-center border mt-2 transition-all duration-500 ease-out ${
+                      className={`rounded-2xl p-6 flex flex-col items-center justify-center text-center border mt-2 ${
                         isDark
-                          ? 'bg-white/[0.03] border-white/10 shadow-[0_2px_10px_rgba(0,0,0,0.2)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.45)] hover:border-white/20'
-                          : 'bg-[#F8F9FA] border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] hover:border-gray-200'
+                          ? 'bg-white/[0.03] border-white/10 shadow-[0_2px_10px_rgba(0,0,0,0.2)]'
+                          : 'bg-[#F8F9FA] border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)]'
                       }`}
                     >
                       <div className="relative mb-4">

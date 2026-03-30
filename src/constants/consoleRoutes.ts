@@ -64,13 +64,15 @@ export function parseRoute(pathname: string): { role: ConsoleRole; page: string;
 const ADMIN_SIDEBAR_PAGES: Record<string, string[]> = {
   'overview': ['dashboard', 'health-check', 'usage-statistics', 'data-reports'],
   'resource-management': [
-    'agent-list', 'agent-register', 'agent-monitoring', 'agent-trace', 'agent-detail',
-    'skill-list', 'skill-register',
-    'mcp-server-list', 'mcp-register',
-    'app-list', 'app-register',
-    'dataset-list', 'dataset-register',
+    'resource-catalog',
+    'agent-register', 'agent-monitoring', 'agent-trace', 'agent-detail',
+    'skill-register', 'mcp-register', 'app-register', 'dataset-register',
+    'agent-list', 'skill-list', 'mcp-server-list', 'app-list', 'dataset-list',
   ],
-  'audit-center': ['agent-audit', 'skill-audit', 'mcp-audit', 'app-audit', 'dataset-audit'],
+  'audit-center': [
+    'resource-audit',
+    'agent-audit', 'skill-audit', 'mcp-audit', 'app-audit', 'dataset-audit',
+  ],
   'provider-management': ['provider-list', 'provider-create'],
   'user-management': ['user-list', 'role-management', 'organization', 'api-key-management', 'resource-grant-management', 'grant-applications', 'developer-applications'],
   'monitoring': ['monitoring-overview', 'call-logs', 'performance-analysis', 'alert-management', 'alert-rules', 'health-config', 'circuit-breaker'],

@@ -71,7 +71,7 @@ const SectionTitle: React.FC<{ title: string; action?: string; icon?: React.Comp
   </div>
 );
 
-/** 探索页顶部 8 宫格指标：固定尺寸 + 巨型水印悬浮动效（对齐设计稿） */
+/** 探索页顶部 8 宫格指标：网格内等分变宽 + 巨型水印悬浮动效 */
 const HubStatCard: React.FC<{
   icon: LucideIcon;
   value: string;
@@ -81,7 +81,7 @@ const HubStatCard: React.FC<{
   isDark: boolean;
 }> = ({ icon: Icon, value, label, clickable, onClick, isDark }) => {
   const shell = [
-    'group relative w-[140px] h-[156px] shrink-0 rounded-[20px] border flex flex-col items-center justify-center overflow-hidden',
+    'group relative w-full min-w-0 h-[156px] rounded-[20px] border flex flex-col items-center justify-center overflow-hidden',
     'transition-all duration-500 ease-out hover:-translate-y-2',
     isDark
       ? 'bg-[#171b22] border-white/10 shadow-[0_2px_10px_rgba(0,0,0,0.2)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.45)] hover:border-white/20 hover:bg-gradient-to-br hover:from-[#171b22] hover:to-[#1e2433]'
@@ -420,7 +420,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
         </div>
 
         <main className={`${pageContainer} mt-10 space-y-12`}>
-          <div className="flex w-full min-w-0 flex-row flex-wrap justify-center gap-4 md:gap-5 xl:flex-nowrap xl:justify-between">
+          <div className="grid w-full min-w-0 grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-3 sm:gap-3 md:gap-4">
             {statsData.map((stat) => (
               <HubStatCard
                 key={stat.id}

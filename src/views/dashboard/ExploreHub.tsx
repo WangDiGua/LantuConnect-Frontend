@@ -536,7 +536,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
                   minHeight={230}
                   className="px-4 pt-3 pb-5"
                   aria-label="探索页近7天调用趋势图"
-                  hubStatSurface
+                  hubStatSurface={true}
                 />
               )}
               {(stats?.newResourcesTrend7d?.length ?? 0) > 0 && (
@@ -546,6 +546,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
                   minHeight={230}
                   className="px-4 pt-3 pb-5"
                   aria-label="探索页近7天新增资源图"
+                  hubStatSurface={true}
                 />
               )}
 

@@ -41,7 +41,9 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
           </div>
 
           <div className="space-y-1.5">
-            <p className="text-6xl font-black text-slate-200 dark:text-white/10 tracking-tight">500</p>
+            <p className="text-6xl font-black text-slate-200 dark:text-white/10 tracking-tight select-none" aria-hidden>
+              !
+            </p>
             <h2 className="text-lg font-bold text-slate-800 dark:text-white">页面出现错误</h2>
             <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{errMsg}</p>
           </div>

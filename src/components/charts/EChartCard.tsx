@@ -67,14 +67,16 @@ export interface EChartCardProps {
 /**
  * 可复用 ECharts 卡片：自动 resize、dispose，符合 §1 圆角 Surface。
  */
-export const EChartCard: React.FC<EChartCardProps> = ({
-  theme,
-  option,
-  className = '',
-  minHeight = 220,
-  'aria-label': ariaLabel,
-  hubStatSurface = false,
-}) => {
+export const EChartCard: React.FC<EChartCardProps> = (props) => {
+  const {
+    theme,
+    option,
+    className = '',
+    minHeight = 220,
+    'aria-label': ariaLabel,
+  } = props;
+  const useHubStatSurface = props.hubStatSurface === true;
+
   const hostRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<EChartsType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -120,7 +122,7 @@ export const EChartCard: React.FC<EChartCardProps> = ({
   }, []);
 
   const isDark = theme === 'dark';
-  const shell = hubStatSurface
+  const shell = useHubStatSurface
     ? `rounded-[24px] border overflow-hidden transition-all duration-500 ease-out ${
         isDark
           ? 'border-white/10 bg-[#171b22] shadow-[0_2px_10px_rgba(0,0,0,0.2)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.45)] hover:border-white/20 hover:bg-gradient-to-br hover:from-[#171b22] hover:to-[#1e2433]'

@@ -25,14 +25,21 @@ export const MgmtPageShell: React.FC<MgmtPageShellProps> = ({
   children,
 }) => {
   const isDark = theme === 'dark';
-  const { hasSecondarySidebar } = useLayoutChrome();
+  const { hasSecondarySidebar, chromePageTitle } = useLayoutChrome();
   const outerPad = hasSecondarySidebar
     ? 'px-2 sm:px-3 lg:px-4 py-2 sm:py-3'
     : 'px-1.5 sm:px-2 lg:px-3 py-2 sm:py-3';
 
   const pageTitle = breadcrumbSegments[breadcrumbSegments.length - 1] ?? '';
 
-  const showCompactChrome = hasSecondarySidebar && (TitleIcon || description);
+  /** 顶栏 MainLayout 已显示同款标题时，正文区不再重复粗体标题，只展示 description（与 PageTitleTagline subtitleOnly 一致） */
+  const titleDupesChrome =
+    hasSecondarySidebar && Boolean(chromePageTitle) && chromePageTitle === pageTitle;
+  const showCompactChrome = hasSecondarySidebar &&
+    (titleDupesChrome ? Boolean(description?.trim()) : Boolean(TitleIcon || description));
+
+  const a11yPageHeading =
+    description?.trim() ? `${pageTitle} / ${description.trim()}` : pageTitle;
 
   return (
     <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden bg-transparent">
@@ -52,6 +59,7 @@ export const MgmtPageShell: React.FC<MgmtPageShellProps> = ({
                     isDark ? 'border-white/10' : 'border-slate-200'
                   }`}
                 >
+                  {titleDupesChrome ? <h1 className="sr-only">{a11yPageHeading}</h1> : null}
                   <div className="flex min-w-0 items-start gap-3">
                     {TitleIcon ? (
                       <span
@@ -62,34 +70,44 @@ export const MgmtPageShell: React.FC<MgmtPageShellProps> = ({
                         <TitleIcon size={18} strokeWidth={2} aria-hidden />
                       </span>
                     ) : null}
-                    <h1
-                      className={`m-0 flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-1 ${
-                        isDark ? 'text-white' : 'text-slate-900'
-                      }`}
-                    >
-                      <span className="shrink-0 text-lg font-bold tracking-tight sm:text-xl">{pageTitle}</span>
-                      {description ? (
-                        <>
-                          <span
-                            className={`shrink-0 select-none text-base font-light leading-none ${
-                              isDark ? 'text-slate-500' : 'text-slate-300'
-                            }`}
-                            aria-hidden
-                          >
-                            /
-                          </span>
-                          <span
-                            className={`min-w-0 text-sm font-normal ${isDark ? 'text-slate-400' : 'text-slate-500'}`}
-                          >
-                            {description}
-                          </span>
-                        </>
-                      ) : null}
-                    </h1>
+                    {titleDupesChrome ? (
+                      <p
+                        className={`m-0 flex-1 min-w-0 text-sm font-normal leading-snug ${
+                          isDark ? 'text-slate-400' : 'text-slate-500'
+                        }`}
+                      >
+                        {description}
+                      </p>
+                    ) : (
+                      <h1
+                        className={`m-0 flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-1 ${
+                          isDark ? 'text-white' : 'text-slate-900'
+                        }`}
+                      >
+                        <span className="shrink-0 text-lg font-bold tracking-tight sm:text-xl">{pageTitle}</span>
+                        {description ? (
+                          <>
+                            <span
+                              className={`shrink-0 select-none text-base font-light leading-none ${
+                                isDark ? 'text-slate-500' : 'text-slate-300'
+                              }`}
+                              aria-hidden
+                            >
+                              /
+                            </span>
+                            <span
+                              className={`min-w-0 text-sm font-normal ${isDark ? 'text-slate-400' : 'text-slate-500'}`}
+                            >
+                              {description}
+                            </span>
+                          </>
+                        ) : null}
+                      </h1>
+                    )}
                   </div>
                 </div>
               ) : (
-                <h1 className="sr-only">{pageTitle}</h1>
+                <h1 className="sr-only">{a11yPageHeading}</h1>
               )}
             </>
           ) : (

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Loader2, Plus, Trash2, ShieldAlert, Braces, Upload } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
@@ -7,6 +7,8 @@ import type { SensitiveWord, SensitiveWordImportResult } from '../../types/dto/s
 import type { PaginatedData } from '../../types/api';
 import { BentoCard } from '../../components/common/BentoCard';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
+import { MgmtDataTable } from '../../components/management/MgmtDataTable';
+import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
 import { EmptyState } from '../../components/common/EmptyState';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { Modal } from '../../components/common/Modal';
@@ -169,7 +171,7 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
     }
   };
 
-  const handleToggle = async (item: SensitiveWord) => {
+  const handleToggle = useCallback(async (item: SensitiveWord) => {
     try {
       await sensitiveWordService.update(item.id, { enabled: !item.enabled });
       showMessage(item.enabled ? '已禁用' : '已启用', 'success');
@@ -177,7 +179,64 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
     } catch (e) {
       showMessage(e instanceof Error ? e.message : '操作失败', 'error');
     }
-  };
+  }, [fetchList, page, showMessage]);
+
+  const sensitiveColumns = useMemo<MgmtDataTableColumn<SensitiveWord>[]>(
+    () => [
+      {
+        id: 'word',
+        header: '敏感词',
+        cell: (item) => <span className={`font-mono ${textPrimary(theme)}`}>{item.word}</span>,
+      },
+      {
+        id: 'category',
+        header: '分类',
+        cell: (item) => <span className={textMuted(theme)}>{item.category}</span>,
+      },
+      {
+        id: 'enabled',
+        header: '状态',
+        cell: (item) => (
+          <button
+            type="button"
+            onClick={() => void handleToggle(item)}
+            className={`rounded-full px-2.5 py-0.5 text-xs font-medium cursor-pointer ${
+              item.enabled
+                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                : 'bg-slate-500/10 text-slate-500'
+            }`}
+          >
+            {item.enabled ? '启用' : '禁用'}
+          </button>
+        ),
+      },
+      {
+        id: 'creator',
+        header: '创建人',
+        cell: (item) => (
+          <span className={textMuted(theme)}>
+            {resolvePersonDisplay({ names: [item.createdByName], usernames: [item.createdBy] })}
+          </span>
+        ),
+      },
+      {
+        id: 'actions',
+        header: '操作',
+        headerClassName: 'text-right',
+        cellClassName: 'text-right',
+        cell: (item) => (
+          <button
+            type="button"
+            className="inline-flex items-center gap-1 rounded-lg bg-rose-500/10 px-2 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-500/20 dark:text-rose-400"
+            onClick={() => setDeleteTarget(item)}
+          >
+            <Trash2 size={13} /> 删除
+          </button>
+        ),
+      },
+    ],
+    [theme, handleToggle],
+  );
 
   if (loading && !data) {
     return (
@@ -220,54 +279,15 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
           </BentoCard>
         )}
         {list.length === 0 && !showAdd ? (
-          <EmptyState title="暂无敏感词" description={'点击「新增」添加敏感词规则'} />
+          <EmptyState title="暂无敏感词" description="点击「新增」添加敏感词规则" />
         ) : (
-          <BentoCard theme={theme} padding="sm">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className={`border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-                  <th className={`px-4 py-3 text-left font-medium ${textSecondary(theme)}`}>敏感词</th>
-                  <th className={`px-4 py-3 text-left font-medium ${textSecondary(theme)}`}>分类</th>
-                  <th className={`px-4 py-3 text-left font-medium ${textSecondary(theme)}`}>状态</th>
-                  <th className={`px-4 py-3 text-left font-medium ${textSecondary(theme)}`}>创建人</th>
-                  <th className={`px-4 py-3 text-right font-medium ${textSecondary(theme)}`}>操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {list.map((item) => (
-                  <tr key={item.id} className={`border-b last:border-0 ${isDark ? 'border-white/[0.04]' : 'border-slate-50'}`}>
-                    <td className={`px-4 py-3 font-mono ${textPrimary(theme)}`}>{item.word}</td>
-                    <td className={`px-4 py-3 ${textMuted(theme)}`}>{item.category}</td>
-                    <td className="px-4 py-3">
-                      <button
-                        type="button"
-                        onClick={() => handleToggle(item)}
-                        className={`rounded-full px-2.5 py-0.5 text-xs font-medium cursor-pointer ${
-                          item.enabled
-                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                            : 'bg-slate-500/10 text-slate-500'
-                        }`}
-                      >
-                        {item.enabled ? '启用' : '禁用'}
-                      </button>
-                    </td>
-                    <td className={`px-4 py-3 ${textMuted(theme)}`}>
-                      {resolvePersonDisplay({ names: [item.createdByName], usernames: [item.createdBy] })}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        type="button"
-                        className="inline-flex items-center gap-1 rounded-lg bg-rose-500/10 px-2 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-500/20 dark:text-rose-400"
-                        onClick={() => setDeleteTarget(item)}
-                      >
-                        <Trash2 size={13} /> 删除
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </BentoCard>
+          <MgmtDataTable
+            theme={theme}
+            columns={sensitiveColumns}
+            rows={list}
+            getRowKey={(item) => item.id}
+            minWidth="40rem"
+          />
         )}
 
         {(data?.total ?? 0) > 20 && (

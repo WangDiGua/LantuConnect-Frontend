@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Loader2, Plus, Trash2, Edit2, Megaphone, Eye } from 'lucide-react';
 import { Editor } from '@bytemd/react';
 import gfm from '@bytemd/plugin-gfm';
@@ -8,8 +8,8 @@ import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { systemConfigService } from '../../api/services/system-config.service';
 import type { AnnouncementItem, AnnouncementCreateRequest } from '../../types/dto/explore';
-import { BentoCard } from '../../components/common/BentoCard';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
+import { MgmtDataTable } from '../../components/management/MgmtDataTable';
 import { EmptyState } from '../../components/common/EmptyState';
 import { Modal } from '../../components/common/Modal';
 import { LantuSelect } from '../../components/common/LantuSelect';
@@ -50,6 +50,8 @@ const MD_LOCALE = {
   words: '字数',
   lines: '行数',
 };
+
+const PAGE_DESCRIPTION = '发布与维护面向师生的平台公告与通知';
 
 export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage }) => {
   const isDark = theme === 'dark';
@@ -130,71 +132,159 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
     } catch (e) { showMessage(e instanceof Error ? e.message : '删除失败', 'error'); }
   };
 
-  if (loading) return <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={Megaphone} breadcrumbSegments={['系统配置', '平台公告']}><PageSkeleton type="table" /></MgmtPageShell>;
-
-  if (loadError) return (
-    <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={Megaphone} breadcrumbSegments={['系统配置', '平台公告']}>
-      <PageError error={loadError} onRetry={fetchList} retryLabel="重试加载公告" />
-    </MgmtPageShell>
+  const announcementColumns = useMemo(
+    () => [
+      {
+        id: 'type',
+        header: '类型',
+        cellClassName: 'align-top',
+        cell: (a: AnnouncementItem) => (
+          <span className={`inline-flex text-xs font-medium px-2 py-0.5 rounded-full ${TYPE_BADGE[a.type ?? ''] ?? TYPE_BADGE.notice}`}>
+            {TYPE_OPTIONS.find((o) => o.value === a.type)?.label ?? a.type}
+          </span>
+        ),
+      },
+      {
+        id: 'title',
+        header: '标题',
+        cellClassName: 'align-top max-w-[14rem]',
+        cell: (a: AnnouncementItem) => (
+          <span className={`font-semibold text-[13px] ${textPrimary(theme)}`}>{a.title}</span>
+        ),
+      },
+      {
+        id: 'summary',
+        header: '摘要',
+        cellClassName: `align-top max-w-[18rem] ${textMuted(theme)}`,
+        cell: (a: AnnouncementItem) => (
+          <p className="m-0 text-xs line-clamp-2">{a.summary || '—'}</p>
+        ),
+      },
+      {
+        id: 'id',
+        header: 'ID',
+        cellClassName: `align-top text-xs ${textMuted(theme)}`,
+        cell: (a: AnnouncementItem) => String(a.id ?? '—'),
+      },
+      {
+        id: 'flags',
+        header: '标记',
+        cellClassName: `align-top text-xs ${textMuted(theme)}`,
+        cell: (a: AnnouncementItem) => (
+          <div className="space-y-0.5 whitespace-nowrap">
+            <div>置顶：{a.pinned ? '是' : '否'}</div>
+            <div>启用：{a.enabled == null ? '—' : a.enabled ? '是' : '否'}</div>
+            <div>删除：{a.deleted == null ? '—' : String(a.deleted)}</div>
+          </div>
+        ),
+      },
+      {
+        id: 'creator',
+        header: '创建人',
+        cellClassName: `align-top text-xs ${textMuted(theme)}`,
+        cell: (a: AnnouncementItem) => resolvePersonDisplay({ names: [a.createdByName], ids: [a.createdBy] }),
+      },
+      {
+        id: 'times',
+        header: '时间',
+        cellClassName: `align-top text-xs ${textMuted(theme)}`,
+        cell: (a: AnnouncementItem) => (
+          <div className="space-y-0.5 whitespace-nowrap">
+            <div>创建 {formatDateTime(a.createdAt)}</div>
+            <div>更新 {formatDateTime(a.updatedAt)}</div>
+          </div>
+        ),
+      },
+      {
+        id: 'actions',
+        header: '操作',
+        headerClassName: 'text-right',
+        cellClassName: 'text-right align-top',
+        cell: (a: AnnouncementItem) => (
+          <div className="inline-flex flex-wrap items-center justify-end gap-1">
+            <button
+              type="button"
+              onClick={() => setDetailAnnouncement(a)}
+              className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md ${isDark ? 'text-slate-300 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100'}`}
+            >
+              <Eye size={13} />
+              查看
+            </button>
+            <button
+              type="button"
+              onClick={() => openEditModal(a)}
+              className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md ${isDark ? 'text-slate-300 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100'}`}
+            >
+              <Edit2 size={13} />
+              编辑
+            </button>
+            <button
+              type="button"
+              onClick={() => setDeleteTarget(a)}
+              className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md text-rose-500 hover:bg-rose-50/60 dark:hover:bg-rose-500/10"
+            >
+              <Trash2 size={13} />
+              删除
+            </button>
+          </div>
+        ),
+      },
+    ],
+    [isDark, theme],
   );
 
+  if (loading) {
+    return (
+      <MgmtPageShell
+        theme={theme}
+        fontSize={fontSize}
+        titleIcon={Megaphone}
+        breadcrumbSegments={['系统配置', '平台公告']}
+        description={PAGE_DESCRIPTION}
+      >
+        <PageSkeleton type="table" />
+      </MgmtPageShell>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <MgmtPageShell
+        theme={theme}
+        fontSize={fontSize}
+        titleIcon={Megaphone}
+        breadcrumbSegments={['系统配置', '平台公告']}
+        description={PAGE_DESCRIPTION}
+      >
+        <PageError error={loadError} onRetry={fetchList} retryLabel="重试加载公告" />
+      </MgmtPageShell>
+    );
+  }
+
   return (
-    <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={Megaphone} breadcrumbSegments={['系统配置', '平台公告']}
-      toolbar={<button type="button" className={btnPrimary} onClick={openCreateModal}><Plus size={14} /> 发布公告</button>}>
+    <MgmtPageShell
+      theme={theme}
+      fontSize={fontSize}
+      titleIcon={Megaphone}
+      breadcrumbSegments={['系统配置', '平台公告']}
+      description={PAGE_DESCRIPTION}
+      toolbar={
+        <button type="button" className={btnPrimary} onClick={openCreateModal}>
+          <Plus size={14} /> 发布公告
+        </button>
+      }
+    >
       <div className="px-4 sm:px-6 pb-6">
         {list.length === 0 ? (
-          <EmptyState title="暂无公告" description={'点击「发布公告」创建第一条平台公告'} />
+          <EmptyState title="暂无公告" description="点击「发布公告」创建第一条平台公告" />
         ) : (
-          <BentoCard theme={theme} padding="sm">
-            {list.map((a) => (
-              <div key={a.id} className={`px-4 py-3.5 flex items-start justify-between gap-3 border-b last:border-0 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${TYPE_BADGE[a.type] ?? TYPE_BADGE.notice}`}>
-                      {TYPE_OPTIONS.find(o => o.value === a.type)?.label ?? a.type}
-                    </span>
-                    <span className={`font-bold text-sm ${textPrimary(theme)}`}>{a.title}</span>
-                  </div>
-                  <p className={`text-xs mb-2 line-clamp-2 ${textMuted(theme)}`}>{a.summary || '—'}</p>
-                  <div className={`flex flex-wrap gap-x-4 gap-y-1 text-[11px] ${textMuted(theme)}`}>
-                    <span>ID：{String(a.id ?? '—')}</span>
-                    <span>置顶：{a.pinned ? '是' : '否'}</span>
-                    <span>启用：{a.enabled == null ? '—' : (a.enabled ? '是' : '否')}</span>
-                    <span>删除标记：{a.deleted == null ? '—' : String(a.deleted)}</span>
-                    <span>创建人：{resolvePersonDisplay({ names: [a.createdByName], ids: [a.createdBy] })}</span>
-                    <span>创建时间：{formatDateTime(a.createdAt)}</span>
-                    <span>更新时间：{formatDateTime(a.updatedAt)}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => setDetailAnnouncement(a)}
-                    className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md ${isDark ? 'text-slate-300 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100'}`}
-                  >
-                    <Eye size={13} />
-                    查看
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => openEditModal(a)}
-                    className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md ${isDark ? 'text-slate-300 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100'}`}
-                  >
-                    <Edit2 size={13} />
-                    编辑
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDeleteTarget(a)}
-                    className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-md text-rose-500 hover:bg-rose-50/60 dark:hover:bg-rose-500/10"
-                  >
-                    <Trash2 size={13} />
-                    删除
-                  </button>
-                </div>
-              </div>
-            ))}
-          </BentoCard>
+          <MgmtDataTable
+            theme={theme}
+            columns={announcementColumns}
+            rows={list}
+            getRowKey={(a) => String(a.id)}
+            minWidth="72rem"
+          />
         )}
       </div>
 

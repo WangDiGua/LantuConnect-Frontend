@@ -253,7 +253,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
     { id: 'mcp', label: '服务 MCP', value: Number(stats?.totalMcps ?? byTypeMap.mcp ?? 0), icon: Cpu, page: 'mcp-market' },
     { id: 'app', label: '应用 App', value: Number(stats?.totalApps ?? byTypeMap.app ?? 0), icon: AppWindow, page: 'app-market' },
     { id: 'dataset', label: '数据集 Data', value: Number(stats?.totalDatasets ?? byTypeMap.dataset ?? 0), icon: Database, page: 'dataset-market' },
-    { id: 'total', label: '知识库 Wiki', value: totalResources, icon: BookOpen, page: null },
+    { id: 'total', label: '总资源数', value: totalResources, icon: BookOpen, page: null },
     { id: 'users', label: '活跃师生', value: Number(stats?.totalUsers ?? 0), icon: Users, page: null },
     { id: 'calls', label: '今日调用', value: Number(stats?.totalCallsToday ?? 0), icon: Activity, page: null },
   ], [byTypeMap.agent, byTypeMap.app, byTypeMap.dataset, byTypeMap.mcp, byTypeMap.skill, stats?.totalAgents, stats?.totalApps, stats?.totalCallsToday, stats?.totalDatasets, stats?.totalMcps, stats?.totalSkills, stats?.totalUsers, totalResources]);

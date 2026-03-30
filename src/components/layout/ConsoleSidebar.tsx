@@ -357,8 +357,8 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
                                 <span
                                   className={`shrink-0 text-[10px] font-bold px-1.5 py-px rounded-md ${
                                     isDark
-                                      ? 'bg-blue-500/15 text-blue-200 border border-blue-400/35'
-                                      : 'bg-blue-50 text-blue-800 border border-blue-200/90'
+                                      ? 'bg-white/[0.08] text-slate-200 border border-white/[0.12]'
+                                      : 'bg-[#F2F4F7] text-[#111827] border border-slate-400/40'
                                   }`}
                                 >
                                   {subItem.tag}
@@ -464,8 +464,8 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
                   <span
                     className={`text-[9px] px-1.5 py-0.5 rounded-md font-bold whitespace-nowrap ${
                       isDark
-                        ? 'bg-blue-500/15 text-blue-200 border border-blue-400/35'
-                        : 'bg-blue-50 text-blue-800 border border-blue-200/90'
+                        ? 'bg-white/[0.08] text-slate-200 border border-white/[0.12]'
+                        : 'bg-[#F2F4F7] text-[#111827] border border-slate-400/40'
                     }`}
                   >
                     {layoutIsAdmin ? '管理端' : '应用端'}

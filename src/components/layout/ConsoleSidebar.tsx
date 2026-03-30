@@ -151,7 +151,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
   }, [menuQuery]);
 
   return (
-    <>
+    <React.Fragment>
       {/* Logo */}
       <div className="px-2 mt-2 mb-6">
         {onLogoClick ? (
@@ -382,52 +382,8 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
         )}
       </nav>
 
-      {/* 底部：端切换（在用户信息上方）+ 用户卡片 */}
-      <div className="mt-auto pt-3 shrink-0 flex flex-col gap-2">
-        {canAccessAdmin && (
-          <button
-            type="button"
-            onClick={() => onSwitchMode(layoutIsAdmin ? 'user' : 'admin')}
-            aria-label={layoutIsAdmin ? '切换到应用端' : '切换到管理端'}
-            className={[
-              'group/mode w-full rounded-[16px] px-3 py-2.5 flex items-center gap-3',
-              'transition-all duration-200 active:scale-[0.98]',
-              'focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-              isDark
-                ? 'bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.09] hover:border-white/15 shadow-[0_2px_10px_rgba(0,0,0,0.2)] focus-visible:ring-blue-400/50 focus-visible:ring-offset-[#0f1117]'
-                : 'bg-white/90 border border-slate-200/60 hover:bg-white hover:border-slate-300/80 shadow-[0_2px_10px_rgba(15,23,42,0.06)] focus-visible:ring-slate-400/40 focus-visible:ring-offset-[#EFEFF1]',
-            ].join(' ')}
-          >
-            <div
-              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
-                layoutIsAdmin
-                  ? isDark
-                    ? 'bg-violet-500/20 text-violet-200'
-                    : 'bg-violet-100 text-violet-700'
-                  : isDark
-                    ? 'bg-sky-500/20 text-sky-200'
-                    : 'bg-sky-100 text-sky-700'
-              }`}
-            >
-              {layoutIsAdmin ? <Cpu size={17} strokeWidth={2} /> : <Box size={17} strokeWidth={2} />}
-            </div>
-            <div className="flex-1 min-w-0 text-left">
-              <div className={`text-[13px] font-bold leading-tight ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
-                {layoutIsAdmin ? '管理端' : '应用端'}
-              </div>
-              <div className={`text-[10px] font-medium mt-0.5 truncate ${isDark ? 'text-slate-500 group-hover/mode:text-slate-400' : 'text-slate-500 group-hover/mode:text-slate-600'}`}>
-                {layoutIsAdmin ? '点击切换到应用端' : '点击切换到管理端'}
-              </div>
-            </div>
-            <ArrowLeftRight
-              size={15}
-              className={`shrink-0 transition-transform duration-200 group-hover/mode:translate-x-0.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}
-              aria-hidden
-            />
-          </button>
-        )}
-
-        <div className="relative" ref={userMenuRef}>
+      {/* 底部：用户卡片（端切换在 ⋮ 展开菜单内） */}
+      <div className="mt-auto pt-3 shrink-0 relative" ref={userMenuRef}>
           <AnimatePresence>
             {showUserMenu && (
               <motion.div
@@ -439,6 +395,26 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
                   isDark ? 'border-white/10 bg-[#1C1C1E]' : 'border-slate-200 bg-white'
                 }`}
               >
+                {canAccessAdmin && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        onSwitchMode(layoutIsAdmin ? 'user' : 'admin');
+                      }}
+                      className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-colors ${
+                        isDark
+                          ? 'text-slate-200 hover:bg-white/[0.08]'
+                          : 'text-slate-800 hover:bg-slate-100'
+                      }`}
+                    >
+                      {layoutIsAdmin ? <Box size={15} className="shrink-0 opacity-90" /> : <Cpu size={15} className="shrink-0 opacity-90" />}
+                      <span className="min-w-0">{layoutIsAdmin ? '切换到应用端' : '切换到管理端'}</span>
+                    </button>
+                    <div className={`mx-2 my-1 h-px ${isDark ? 'bg-white/[0.08]' : 'bg-slate-200/80'}`} aria-hidden />
+                  </>
+                )}
                 <button
                   type="button"
                   onClick={() => { setShowUserMenu(false); onLogout(); }}
@@ -474,7 +450,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
               >
                 {displayUserName}
               </div>
-              <div className="flex items-center gap-1.5 mt-1">
+              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                 <span
                   className={`text-[9px] px-1.5 py-0.5 rounded-md font-bold whitespace-nowrap ${
                     isDark
@@ -484,6 +460,21 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
                 >
                   {ROLE_LABELS[platformRole]}
                 </span>
+                {canAccessAdmin && (
+                  <span
+                    className={`text-[9px] px-1.5 py-0.5 rounded-md font-bold whitespace-nowrap ${
+                      layoutIsAdmin
+                        ? isDark
+                          ? 'bg-violet-500/15 text-violet-200 border border-violet-400/25'
+                          : 'bg-violet-100 text-violet-800 border border-violet-200/80'
+                        : isDark
+                          ? 'bg-sky-500/15 text-sky-200 border border-sky-400/25'
+                          : 'bg-sky-100 text-sky-800 border border-sky-200/80'
+                    }`}
+                  >
+                    {layoutIsAdmin ? '管理端' : '应用端'}
+                  </span>
+                )}
               </div>
             </div>
             <MoreVertical
@@ -495,8 +486,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
               }
             />
           </button>
-        </div>
       </div>
-    </>
+    </React.Fragment>
   );
 };

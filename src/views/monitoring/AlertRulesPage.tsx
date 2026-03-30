@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { Bell, Plus } from 'lucide-react';
+import React, { useCallback, useMemo, useState } from 'react';
+import { Bell, Plus, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { Theme, FontSize } from '../../types';
-import { useAlertRules, useCreateAlertRule } from '../../hooks/queries/useMonitoring';
+import { useAlertRules, useCreateAlertRule, useUpdateAlertRule, useDeleteAlertRule } from '../../hooks/queries/useMonitoring';
 import { createAlertRuleSchema, type CreateAlertRuleFormValues } from '../../schemas/monitoring.schema';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { PageError } from '../../components/common/PageError';
@@ -19,8 +19,10 @@ import { nativeInputClass } from '../../utils/formFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
 import {
   canvasBodyBg, bentoCardHover, btnPrimary, btnSecondary, btnGhost,
+  mgmtTableActionDanger, mgmtTableActionGhost,
   textPrimary, textSecondary, textMuted,
 } from '../../utils/uiClasses';
+import { TOOLBAR_ROW_LIST, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
 
@@ -62,6 +64,8 @@ const SEV_STYLE: Record<string, { light: string; dark: string }> = {
 
 const SEV_LABEL: Record<string, string> = { critical: '严重', warning: '警告', info: '通知' };
 
+const SEVERITY_FILTER_OPTIONS = [{ value: '', label: '全部级别' }, ...SEVERITY_OPTIONS];
+
 function ruleSummary(r: AlertRule) {
   const op = r.operator === 'gt' ? '>' : r.operator === 'lt' ? '<' : '=';
   const ch = (r.notifyChannels ?? []).join('、') || '—';
@@ -73,8 +77,14 @@ export const AlertRulesPage: React.FC<Props> = ({ theme, showMessage }) => {
   const isDark = theme === 'dark';
   const rulesQ = useAlertRules();
   const createM = useCreateAlertRule();
+  const updateM = useUpdateAlertRule();
+  const deleteM = useDeleteAlertRule();
   const [dryRunRule, setDryRunRule] = useState<AlertRule | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AlertRule | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [ruleSearch, setRuleSearch] = useState('');
+  const [severityFilter, setSeverityFilter] = useState<string>('');
+  const [editingRule, setEditingRule] = useState<AlertRule | null>(null);
 
   const form = useForm<CreateAlertRuleFormValues>({
     resolver: zodResolver(createAlertRuleSchema),
@@ -84,23 +94,36 @@ export const AlertRulesPage: React.FC<Props> = ({ theme, showMessage }) => {
     },
   });
 
-  if (rulesQ.isLoading) {
-    return (
-      <div className={`flex-1 flex flex-col min-h-0 ${canvasBodyBg(theme)}`}>
-        <div className="p-4"><PageSkeleton type="form" /></div>
-      </div>
-    );
-  }
-
-  if (rulesQ.isError) {
-    return (
-      <div className={`flex-1 flex flex-col min-h-0 ${canvasBodyBg(theme)}`}>
-        <PageError error={rulesQ.error as Error} onRetry={() => rulesQ.refetch()} />
-      </div>
-    );
-  }
+  const editForm = useForm<CreateAlertRuleFormValues>({
+    resolver: zodResolver(createAlertRuleSchema),
+    defaultValues: {
+      name: '', metric: 'http_5xx_rate', operator: 'gt',
+      threshold: 1, severity: 'warning', notifyChannels: [],
+    },
+  });
 
   const rules = Array.isArray(rulesQ.data) ? rulesQ.data : [];
+
+  const filteredRules = useMemo(() => {
+    const q = ruleSearch.trim().toLowerCase();
+    return rules.filter((r) => {
+      if (severityFilter && r.severity !== severityFilter) return false;
+      if (!q) return true;
+      return (
+        r.name.toLowerCase().includes(q)
+        || r.metric.toLowerCase().includes(q)
+        || ruleSummary(r).toLowerCase().includes(q)
+      );
+    });
+  }, [rules, ruleSearch, severityFilter]);
+
+  const metricOptionsForEdit = useMemo(() => {
+    const base = [...METRIC_OPTIONS];
+    if (editingRule && !base.some((o) => o.value === editingRule.metric)) {
+      base.unshift({ value: editingRule.metric, label: editingRule.metric });
+    }
+    return base;
+  }, [editingRule]);
 
   const onSubmit = form.handleSubmit((values) => {
     createM.mutate(
@@ -122,36 +145,128 @@ export const AlertRulesPage: React.FC<Props> = ({ theme, showMessage }) => {
     );
   });
 
+  const openEdit = useCallback(
+    (r: AlertRule) => {
+      setEditingRule(r);
+      const op = r.operator;
+      const safeOp: CreateAlertRuleFormValues['operator'] = op === 'gt' || op === 'lt' || op === 'eq' ? op : 'gt';
+      const ch = r.notifyChannels?.length ? r.notifyChannels : r.channels ?? [];
+      editForm.reset({
+        name: r.name,
+        metric: r.metric || 'http_5xx_rate',
+        operator: safeOp,
+        threshold: r.threshold,
+        severity: r.severity,
+        notifyChannels: [...ch],
+      });
+    },
+    [editForm],
+  );
+
+  const onEditSubmit = editForm.handleSubmit((values) => {
+    if (!editingRule) return;
+    updateM.mutate(
+      {
+        id: editingRule.id,
+        data: {
+          name: values.name.trim(),
+          metric: values.metric,
+          operator: values.operator,
+          threshold: values.threshold,
+          severity: values.severity,
+          notifyChannels: [...values.notifyChannels],
+        },
+      },
+      {
+        onSuccess: () => {
+          setEditingRule(null);
+          editForm.reset();
+          showMessage('规则已更新', 'success');
+        },
+        onError: (e) => {
+          showMessage(e instanceof ApiException ? e.message : '更新失败', 'error');
+        },
+      },
+    );
+  });
+
+  if (rulesQ.isLoading) {
+    return (
+      <div className={`flex-1 flex flex-col min-h-0 ${canvasBodyBg(theme)}`}>
+        <div className="p-4"><PageSkeleton type="form" /></div>
+      </div>
+    );
+  }
+
+  if (rulesQ.isError) {
+    return (
+      <div className={`flex-1 flex flex-col min-h-0 ${canvasBodyBg(theme)}`}>
+        <PageError error={rulesQ.error as Error} onRetry={() => rulesQ.refetch()} />
+      </div>
+    );
+  }
+
   return (
     <div className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-colors duration-300 ${canvasBodyBg(theme)}`}>
       <div className="w-full flex-1 min-h-0 overflow-y-auto px-2 sm:px-3 lg:px-4 py-2 sm:py-3 space-y-4">
         {/* Header */}
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-3">
             <div className={`shrink-0 rounded-xl p-2 ${isDark ? 'bg-amber-500/15' : 'bg-amber-50'}`}>
               <Bell size={20} className={isDark ? 'text-amber-400' : 'text-amber-600'} />
             </div>
             <PageTitleTagline subtitleOnly theme={theme} title={chromePageTitle || '告警规则'} tagline="配置告警阈值与通知渠道" />
           </div>
-          <button type="button" onClick={() => { form.reset(); setShowCreateModal(true); }} className={btnPrimary}>
+          <button type="button" onClick={() => { form.reset(); setShowCreateModal(true); }} className={`${btnPrimary} shrink-0 self-start sm:self-auto`}>
             <Plus size={15} />
             添加规则
           </button>
         </div>
+
+        {rules.length > 0 && (
+          <div className={`${TOOLBAR_ROW_LIST} justify-between min-w-0`}>
+            <div className={`${TOOLBAR_ROW_LIST} min-w-0 flex-1`}>
+              <div className="relative min-w-[8rem] shrink-0 sm:max-w-[14rem]">
+                <Search className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${textMuted(theme)}`} size={16} />
+                <input
+                  type="search"
+                  value={ruleSearch}
+                  onChange={(e) => setRuleSearch(e.target.value)}
+                  placeholder="搜索规则名、指标…"
+                  className={toolbarSearchInputClass(theme)}
+                  aria-label="搜索告警规则"
+                />
+              </div>
+              <LantuSelect
+                theme={theme}
+                value={severityFilter}
+                onChange={setSeverityFilter}
+                options={SEVERITY_FILTER_OPTIONS}
+                placeholder="级别"
+                className="!w-36 shrink-0"
+                triggerClassName="w-full !min-w-0"
+              />
+            </div>
+          </div>
+        )}
 
         {/* Rules list */}
         {rules.length === 0 ? (
           <BentoCard theme={theme}>
             <EmptyState title="暂无告警规则" description="创建规则后，将按阈值与渠道进行通知。" />
           </BentoCard>
+        ) : filteredRules.length === 0 ? (
+          <BentoCard theme={theme}>
+            <EmptyState title="无匹配规则" description="请调整关键词或级别筛选。" />
+          </BentoCard>
         ) : (
           <AnimatedList className="space-y-2">
-            {rules.map((r) => {
+            {filteredRules.map((r) => {
               const sev = SEV_STYLE[r.severity] ?? SEV_STYLE.info;
               return (
                 <motion.div
                   key={r.id}
-                  className={`${bentoCardHover(theme)} p-4 flex items-center gap-4`}
+                  className={`${bentoCardHover(theme)} p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4`}
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -165,9 +280,17 @@ export const AlertRulesPage: React.FC<Props> = ({ theme, showMessage }) => {
                     </div>
                     <div className={`text-xs mt-0.5 ${textMuted(theme)}`}>{ruleSummary(r)}</div>
                   </div>
-                  <button type="button" onClick={() => setDryRunRule(r)} className={btnGhost(theme)}>
-                    试跑
-                  </button>
+                  <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
+                    <button type="button" onClick={() => openEdit(r)} className={mgmtTableActionGhost(theme)}>
+                      编辑
+                    </button>
+                    <button type="button" onClick={() => setDeleteTarget(r)} className={mgmtTableActionDanger}>
+                      删除
+                    </button>
+                    <button type="button" onClick={() => setDryRunRule(r)} className={btnGhost(theme)}>
+                      试跑
+                    </button>
+                  </div>
                 </motion.div>
               );
             })}
@@ -266,6 +389,114 @@ export const AlertRulesPage: React.FC<Props> = ({ theme, showMessage }) => {
           )}
         </form>
       </Modal>
+
+      <Modal
+        open={!!editingRule}
+        onClose={() => { setEditingRule(null); editForm.reset(); }}
+        title="编辑告警规则"
+        theme={theme}
+        size="md"
+        footer={
+          <>
+            <button type="button" className={btnSecondary(theme)} onClick={() => { setEditingRule(null); editForm.reset(); }}>取消</button>
+            <button type="button" className={btnPrimary} onClick={onEditSubmit} disabled={updateM.isPending}>
+              {updateM.isPending ? '保存中…' : '保存'}
+            </button>
+          </>
+        }
+      >
+        <form onSubmit={onEditSubmit} className="space-y-4">
+          <div>
+            <label className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>规则名称</label>
+            <input className={nativeInputClass(theme)} placeholder="规则名称" {...editForm.register('name')} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>指标</label>
+              <Controller
+                name="metric"
+                control={editForm.control}
+                render={({ field }) => (
+                  <LantuSelect theme={theme} value={field.value} onChange={field.onChange} options={metricOptionsForEdit} />
+                )}
+              />
+            </div>
+            <div>
+              <label className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>运算符</label>
+              <Controller
+                name="operator"
+                control={editForm.control}
+                render={({ field }) => (
+                  <LantuSelect theme={theme} value={field.value} onChange={field.onChange} options={OPERATOR_OPTIONS} />
+                )}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>阈值</label>
+              <input type="number" step="any" className={nativeInputClass(theme)} {...editForm.register('threshold', { valueAsNumber: true })} />
+            </div>
+            <div>
+              <label className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>级别</label>
+              <Controller
+                name="severity"
+                control={editForm.control}
+                render={({ field }) => (
+                  <LantuSelect theme={theme} value={field.value} onChange={field.onChange} options={SEVERITY_OPTIONS} />
+                )}
+              />
+            </div>
+          </div>
+          <div>
+            <label className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>通知渠道</label>
+            <Controller
+              name="notifyChannels"
+              control={editForm.control}
+              render={({ field }) => (
+                <div className="flex flex-wrap gap-3">
+                  {CHANNEL_OPTIONS.map((c) => {
+                    const checked = field.value.includes(c.id);
+                    return (
+                      <label key={c.id} className="inline-flex items-center gap-1.5 text-sm cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => field.onChange(checked ? field.value.filter((x) => x !== c.id) : [...field.value, c.id])}
+                          className="toggle toggle-primary toggle-sm"
+                        />
+                        <span className={textSecondary(theme)}>{c.label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            />
+          </div>
+        </form>
+      </Modal>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="删除告警规则"
+        message={deleteTarget ? `确定删除规则「${deleteTarget.name}」？此操作不可撤销。` : ''}
+        variant="danger"
+        confirmText="删除"
+        loading={deleteM.isPending}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={() => {
+          if (!deleteTarget) return;
+          deleteM.mutate(deleteTarget.id, {
+            onSuccess: () => {
+              setDeleteTarget(null);
+              showMessage('规则已删除', 'success');
+            },
+            onError: (e) => {
+              showMessage(e instanceof ApiException ? e.message : '删除失败', 'error');
+            },
+          });
+        }}
+      />
 
       <ConfirmDialog
         open={!!dryRunRule}

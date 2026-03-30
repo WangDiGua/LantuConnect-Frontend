@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { KeyRound, Plus, RefreshCw, ShieldCheck } from 'lucide-react';
+import { KeyRound, Plus, RefreshCw, Search, ShieldCheck } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from './MgmtPageShell';
 import { nativeInputClass } from '../../utils/formFieldClasses';
+import { TOOLBAR_ROW_LIST, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
 import { btnGhost, btnPrimary, btnSecondary, mgmtTableActionDanger, textMuted, textPrimary, textSecondary } from '../../utils/uiClasses';
 import { resourceGrantService } from '../../api/services/resource-grant.service';
@@ -61,9 +62,20 @@ export const ResourceGrantManagementPage: React.FC<Props> = ({ theme, fontSize, 
   const [total, setTotal] = useState(0);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<Error | null>(null);
+  const [granteeKeyword, setGranteeKeyword] = useState('');
   const PAGE_SIZE = 20;
 
   const canQuery = useMemo(() => resourceId.trim().length > 0, [resourceId]);
+
+  const displayRows = useMemo(() => {
+    const q = granteeKeyword.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter((row) => {
+      const id = String(row.granteeApiKeyId ?? '').toLowerCase();
+      const pre = String(row.granteeApiKeyPrefix ?? '').toLowerCase();
+      return id.includes(q) || pre.includes(q);
+    });
+  }, [rows, granteeKeyword]);
 
   const fetchRows = useCallback(async () => {
     if (!resourceId.trim()) return;
@@ -251,9 +263,26 @@ export const ResourceGrantManagementPage: React.FC<Props> = ({ theme, fontSize, 
         </section>
 
         <section className={`rounded-2xl border overflow-hidden ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-white'}`}>
-          <div className={`px-4 py-3 border-b ${isDark ? 'border-white/10' : 'border-slate-100'}`}>
-            <p className={`text-sm font-semibold ${textPrimary(theme)}`}>授权列表</p>
-            <p className={`text-xs ${textMuted(theme)}`}>resourceType={resourceType} / resourceId={resourceId || '-'}</p>
+          <div className={`px-4 py-3 border-b space-y-2 ${isDark ? 'border-white/10' : 'border-slate-100'}`}>
+            <div>
+              <p className={`text-sm font-semibold ${textPrimary(theme)}`}>授权列表</p>
+              <p className={`text-xs ${textMuted(theme)}`}>resourceType={resourceType} / resourceId={resourceId || '-'}</p>
+            </div>
+            {rows.length > 0 && (
+              <div className={`${TOOLBAR_ROW_LIST} min-w-0`}>
+                <div className="relative min-w-0 flex-1 sm:max-w-xs">
+                  <Search size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${textMuted(theme)}`} />
+                  <input
+                    type="search"
+                    value={granteeKeyword}
+                    onChange={(e) => setGranteeKeyword(e.target.value)}
+                    placeholder="筛选 Key ID 或前缀（当前页）"
+                    className={toolbarSearchInputClass(theme)}
+                    aria-label="筛选被授权方"
+                  />
+                </div>
+              </div>
+            )}
           </div>
           <div className="divide-y divide-dashed divide-slate-200/60">
             {loading ? (
@@ -264,8 +293,10 @@ export const ResourceGrantManagementPage: React.FC<Props> = ({ theme, fontSize, 
               <div className="p-4">
                 <EmptyState title="暂无授权记录" description="输入资源 ID 后可查询授权记录，或先创建新的授权。" />
               </div>
+            ) : displayRows.length === 0 ? (
+              <div className={`px-4 py-8 text-sm text-center ${textMuted(theme)}`}>当前页无匹配的 Key ID 或前缀</div>
             ) : (
-              rows.map((row) => (
+              displayRows.map((row) => (
                 <div key={row.id} className="px-4 py-3 flex items-center gap-3">
                   <div className="flex-1 min-w-0">
                     <p className={`text-sm font-medium truncate ${textPrimary(theme)}`}>{row.granteeApiKeyPrefix || '未返回 Key 前缀'}</p>

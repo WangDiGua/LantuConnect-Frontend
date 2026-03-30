@@ -32,7 +32,7 @@
 
 | 路由 page | 主要组件 | 列表/数据 API | 数据流 | 备注 |
 |-----------|----------|---------------|--------|------|
-| user-list / role-management / api-key-management / resource-grant-management | UserManagementModule | `userMgmtService` | serverPaged | Token 页见下行 |
+| user-list / role-management / api-key-management / resource-grant-management | UserManagementModule | `userMgmtService` 等 | serverPaged | 资源授权列表：**grantee 关键词仅筛当前页**；全库需后端 query |
 | organization | OrgStructurePage | `getOrgTree` + `createOrg` / `updateOrg` / `deleteOrg` | 树 CRUD | 表单 Modal 改善父节点选择 |
 | grant-applications | GrantApplicationListPage | `grantApplicationService.listPending` + **`keyword`** | serverPaged | 应与后端 query 一致 |
 | developer-applications | DeveloperApplicationListPage | `developerApplicationService.list` + **`keyword`** | serverPaged | 防抖请求 |
@@ -47,9 +47,9 @@
 | call-logs | CallLogPage | `listCallLogs` + **keyword/status** | serverPaged | 筛选项透传 query |
 | performance-analysis | PerformanceAnalysisPage | `getPerformanceMetrics` | serverPaged | `PerformanceMetric.service` 优先分桶 |
 | alert-management | AlertMgmtPage | `listAlerts` + **keyword/severity/status** | serverPaged | 同上 |
-| alert-rules | AlertRulesPage | `listAlertRules` + mutations | CRUD | — |
+| alert-rules | AlertRulesPage | `listAlertRules` + **create / update / delete** | clientFilter | 列表关键词+级别筛为客户端；编辑/删除已接线 |
 | health-config | HealthConfigPage | `healthService` | CRUD | — |
-| circuit-breaker | CircuitBreakerPage | `healthService` | CRUD | — |
+| circuit-breaker | CircuitBreakerPage | `healthService` | CRUD | 工具栏检索+状态筛（客户端） |
 
 ---
 
@@ -57,11 +57,11 @@
 
 | 路由 page | 主要组件 | 列表/数据 API | 数据流 | 备注 |
 |-----------|----------|---------------|--------|------|
-| category-management | CategoryManagement | `categoryService` | CRUD | — |
+| category-management | CategoryManagement | `categoryService` | CRUD | 工具栏树检索（客户端） |
 | tag-management | TagManagementPage | `tagService` | CRUD | — |
 | model-config / rate-limit-policy | ModelConfigPage / RateLimitPage | `systemConfigService` | CRUD | — |
 | security-settings / 系统参数 | SystemConfigExtraPages | `getSecurity` / `getParams` | CRUD | — |
-| quota-management | **QuotaManagementPage**（完整列表+弹窗） | `quotaService` | CRUD | **菜单已指向此页** |
+| quota-management | **QuotaManagementPage** | `quotaService`（配额 **update**、限流 **delete**） | clientFilter | 工具栏 keyword + 范围/目标类型；限流无 update API |
 | access-control | AccessControlPage | **`getAclRules`** + `publishAcl` | serverPaged + 写 | 曾用本地假数据初始化，已改为拉取 `/system-config/acl` |
 | audit-log | AuditLogPage | `listAuditLogs` + **keyword / action / result** | serverPaged | 导出 CSV 为当前页数据 |
 | sensitive-words | SensitiveWordPage | `sensitiveWordService` + **keyword / category / enabled** | serverPaged | 行内编辑（分类/severity/启停）；词面改需后端扩展 PUT |
@@ -101,3 +101,4 @@
 | 日期 | 说明 |
 |------|------|
 | 2026-03-30 | 已接线：公告/授权/入驻/审计关键词与筛选；监控调用日志与告警 query；Token 分页与撤销；ACL GET；性能指标 `service` 字段优先；组织架构 Modal 创建/编辑。 |
+| 2026-03-30 | 配额/限流工具栏与配额编辑、限流删除；熔断/分类/标签/告警规则检索与规则改删；资源授权 grantee 当前页筛选；健康检查/熔断行内「编辑」胶囊。 |

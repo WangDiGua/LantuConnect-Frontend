@@ -180,20 +180,20 @@ export const TagManagementPage: React.FC<Props> = ({ theme, fontSize, showMessag
         </div>
 
         <BentoCard theme={theme} padding="sm" className="mb-5">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="relative flex-1 min-w-[200px]">
+          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative w-full min-w-[8rem] sm:max-w-[16rem] shrink-0">
               <Search size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${textMuted(theme)}`} />
-              <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="搜索标签…" className={`${inputCls} !pl-9`} />
+              <input type="search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="搜索标签…" className={`${inputCls} !pl-9`} aria-label="搜索标签" />
             </div>
-            <div className="flex flex-wrap gap-1.5">
-              <button type="button" onClick={() => setFilterCategory('all')} className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${filterCategory === 'all' ? 'bg-neutral-900 text-white' : isDark ? 'bg-white/5 text-slate-300 hover:bg-white/10' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <button type="button" onClick={() => setFilterCategory('all')} className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors shrink-0 ${filterCategory === 'all' ? 'bg-neutral-900 text-white' : isDark ? 'bg-white/5 text-slate-300 hover:bg-white/10' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
                 全部 ({tags.length})
               </button>
               {TAG_CATEGORIES.map((cat) => {
                 const count = tags.filter((t) => t.category === cat).length;
                 const CatIcon = CATEGORY_ICON[cat];
                 return (
-                  <button key={cat} type="button" onClick={() => setFilterCategory(cat)} className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1 ${filterCategory === cat ? 'bg-neutral-900 text-white' : isDark ? 'bg-white/5 text-slate-300 hover:bg-white/10' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                  <button key={cat} type="button" onClick={() => setFilterCategory(cat)} className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1 shrink-0 ${filterCategory === cat ? 'bg-neutral-900 text-white' : isDark ? 'bg-white/5 text-slate-300 hover:bg-white/10' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
                     <CatIcon size={12} />
                     {cat} ({count})
                   </button>

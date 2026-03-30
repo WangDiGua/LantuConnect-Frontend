@@ -12,6 +12,7 @@ import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
 import { btnPrimary, btnSecondary, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import { TOOLBAR_ROW_LIST, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { Modal } from '../../components/common/Modal';
 import { BentoCard } from '../../components/common/BentoCard';
@@ -33,6 +34,20 @@ function getIcon(name: string | null): LucideIcon {
 }
 
 const INPUT_FOCUS = 'focus:ring-2 focus:ring-neutral-900/20 focus:border-neutral-900/35';
+
+function filterCategoryTree(nodes: Category[], term: string): Category[] {
+  const t = term.trim().toLowerCase();
+  if (!t) return nodes;
+  const walk = (n: Category): Category | null => {
+    const match = n.categoryName.toLowerCase().includes(t) || n.categoryCode.toLowerCase().includes(t);
+    const rawKids = n.children ?? [];
+    const kids = rawKids.map(walk).filter((x): x is Category => x !== null);
+    if (match) return { ...n, children: n.children };
+    if (kids.length) return { ...n, children: kids };
+    return null;
+  };
+  return nodes.map(walk).filter((x): x is Category => x !== null);
+}
 
 interface CategoryManagementProps {
   theme: Theme;
@@ -74,6 +89,7 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [categorySearch, setCategorySearch] = useState('');
 
   const fetchCategories = useCallback(async () => {
     setLoading(true);
@@ -90,7 +106,10 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
 
   useEffect(() => { fetchCategories(); }, [fetchCategories]);
 
-  const tree = useMemo(() => buildCategoryTree(flatList), [flatList]);
+  const tree = useMemo(
+    () => filterCategoryTree(buildCategoryTree(flatList), categorySearch),
+    [flatList, categorySearch],
+  );
 
   const toggleExpand = (id: number) =>
     setExpanded((prev) => {
@@ -119,7 +138,7 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
 
   const handleSave = async () => {
     if (!form.categoryName.trim() || !form.categoryCode.trim()) {
-      showMessage('分类名称和编码不能为�?, 'error');
+      showMessage('分类名称和编码不能为空', 'error');
       return;
     }
     setSaving(true);
@@ -158,7 +177,7 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
     if (!deleteTarget) return;
     const hasChildren = flatList.some((c) => c.parentId === deleteTarget.id);
     if (hasChildren) {
-      showMessage('请先删除子分�?, 'error');
+      showMessage('请先删除子分类', 'error');
       setDeleteTarget(null);
       return;
     }
@@ -182,7 +201,7 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
 
   const parentSelectOptions = useMemo(
     () => [
-      { value: '', label: '无（顶级分类�? },
+      { value: '', label: '无（顶级分类）' },
       ...topLevelCategories.map((c) => ({ value: String(c.id), label: c.name })),
     ],
     [topLevelCategories],
@@ -240,7 +259,7 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
             {node.parentId === null && (
               <button
                 onClick={() => openCreate(node.id)}
-                title="添加子分�?
+                title="添加子分类"
                 className={`p-1.5 rounded-lg transition-colors ${
                   isDark ? 'text-slate-400 hover:bg-white/10 hover:text-white' : 'text-slate-400 hover:bg-slate-200 hover:text-slate-700'
                 }`}
@@ -277,8 +296,21 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
   };
 
   const toolbar = (
-    <div className="flex items-center gap-2">
-      <button onClick={() => openCreate(null)} className={`${btnPrimary} gap-1.5`}>
+    <div className={`${TOOLBAR_ROW_LIST} justify-between min-w-0`}>
+      <div className={`${TOOLBAR_ROW_LIST} min-w-0 flex-1`}>
+        <div className="relative min-w-[8rem] shrink-0 sm:max-w-[14rem]">
+          <Search size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${textMuted(theme)}`} />
+          <input
+            type="search"
+            value={categorySearch}
+            onChange={(e) => setCategorySearch(e.target.value)}
+            placeholder="搜索名称或编码…"
+            className={toolbarSearchInputClass(theme)}
+            aria-label="筛选分类树"
+          />
+        </div>
+      </div>
+      <button type="button" onClick={() => openCreate(null)} className={`${btnPrimary} gap-1.5 shrink-0`}>
         <Plus size={15} />
         添加顶级分类
       </button>
@@ -297,10 +329,15 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
         <div className="flex-1 flex items-center justify-center min-h-[300px]">
           <Loader2 className="animate-spin text-slate-400" size={24} />
         </div>
-      ) : tree.length === 0 ? (
+      ) : flatList.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-3 py-16">
           <FolderTree size={40} className={textMuted(theme)} />
           <p className={`text-sm ${textSecondary(theme)}`}>暂无分类</p>
+        </div>
+      ) : tree.length === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center gap-3 py-16">
+          <FolderTree size={40} className={textMuted(theme)} />
+          <p className={`text-sm ${textSecondary(theme)}`}>无匹配分类，请调整搜索词</p>
         </div>
       ) : (
         <BentoCard theme={theme} padding="md" className="mx-4 sm:mx-6 mb-6">
@@ -377,7 +414,7 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
           </div>
 
           <div>
-            <label className={`${labelCls} mb-1.5 block`}>排序�?/label>
+            <label className={`${labelCls} mb-1.5 block`}>排序</label>
             <input type="number" className={inputCls} value={form.sortOrder} min={0} onChange={(e) => setForm((p) => ({ ...p, sortOrder: Number(e.target.value) || 0 }))} />
           </div>
         </div>
@@ -386,7 +423,7 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
       <ConfirmDialog
         open={!!deleteTarget}
         title="删除分类"
-        message={`确定要删除分类�?{deleteTarget?.categoryName}」吗？此操作不可撤销。`}
+        message={`确定要删除分类「${deleteTarget?.categoryName}」吗？此操作不可撤销。`}
         confirmText="删除"
         variant="danger"
         loading={deleting}

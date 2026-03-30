@@ -56,3 +56,20 @@ export function useCreateAlertRule() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: monitoringKeys.alertRules }); },
   });
 }
+
+export function useUpdateAlertRule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<CreateAlertRulePayload> }) =>
+      monitoringService.updateAlertRule(id, data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: monitoringKeys.alertRules }); },
+  });
+}
+
+export function useDeleteAlertRule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => monitoringService.deleteAlertRule(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: monitoringKeys.alertRules }); },
+  });
+}

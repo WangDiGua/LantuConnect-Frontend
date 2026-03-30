@@ -1,11 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { CreditCard, Plus, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { CreditCard, Plus, Loader2, Search } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
-import { btnPrimary, btnSecondary, tableHeadCell, tableBodyRow, tableCell, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import {
+  btnPrimary, btnSecondary, mgmtTableActionDanger, mgmtTableActionGhost,
+  tableHeadCell, tableBodyRow, tableCell, textPrimary, textSecondary, textMuted,
+} from '../../utils/uiClasses';
+import { TOOLBAR_ROW_LIST, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
 import { Modal } from '../../components/common/Modal';
+import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { BentoCard } from '../../components/common/BentoCard';
 import { PageError } from '../../components/common/PageError';
 import { quotaService } from '../../api/services/quota.service';
@@ -24,6 +29,15 @@ const QUOTA_TARGET_TYPE_OPTIONS = [
   { value: 'global', label: '全局' },
   { value: 'department', label: '部门' },
   { value: 'user', label: '用户' },
+];
+
+const QUOTA_SCOPE_FILTER_OPTIONS = [{ value: '', label: '全部范围' }, ...QUOTA_TARGET_TYPE_OPTIONS];
+
+const RL_TARGET_FILTER_OPTIONS = [
+  { value: '', label: '全部目标' },
+  { value: 'global', label: '全局' },
+  { value: 'agent', label: 'Agent' },
+  { value: 'skill', label: 'Skill' },
 ];
 
 const SCOPE_CFG: Record<string, { label: string; light: string; dark: string }> = {
@@ -74,6 +88,15 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
   const [showRLModal, setShowRLModal] = useState(false);
   const [rlDraft, setRlDraft] = useState<{ name: string; targetType: string; targetName: string; maxRequestsPerMin: number; maxRequestsPerHour: number; maxConcurrent: number }>({ name: '', targetType: 'global', targetName: '全局', maxRequestsPerMin: 60, maxRequestsPerHour: 1000, maxConcurrent: 10 });
 
+  const [listKeyword, setListKeyword] = useState('');
+  const [quotaScopeFilter, setQuotaScopeFilter] = useState('');
+  const [rlTargetFilter, setRlTargetFilter] = useState('');
+  const [editingQuota, setEditingQuota] = useState<QuotaItem | null>(null);
+  const [editQuotaDraft, setEditQuotaDraft] = useState({ targetName: '', dailyLimit: 0, monthlyLimit: 0 });
+  const [savingQuotaEdit, setSavingQuotaEdit] = useState(false);
+  const [deleteRlId, setDeleteRlId] = useState<number | null>(null);
+  const [deletingRl, setDeletingRl] = useState(false);
+
   const fetchQuotas = useCallback(async () => {
     const res = await quotaService.listQuotas();
     setQuotas(res?.list ?? (Array.isArray(res) ? res as unknown as QuotaItem[] : []));
@@ -97,6 +120,68 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
   }, [fetchQuotas, fetchRateLimits]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  const filteredQuotas = useMemo(() => {
+    let list = quotas;
+    if (quotaScopeFilter) list = list.filter((r) => r.targetType === quotaScopeFilter);
+    const q = listKeyword.trim().toLowerCase();
+    if (q) list = list.filter((r) => r.targetName.toLowerCase().includes(q));
+    return list;
+  }, [quotas, listKeyword, quotaScopeFilter]);
+
+  const filteredRateLimits = useMemo(() => {
+    let list = rateLimits;
+    if (rlTargetFilter) list = list.filter((r) => r.targetType === rlTargetFilter);
+    const q = listKeyword.trim().toLowerCase();
+    if (q) list = list.filter((r) => r.name.toLowerCase().includes(q) || r.targetName.toLowerCase().includes(q));
+    return list;
+  }, [rateLimits, listKeyword, rlTargetFilter]);
+
+  const openQuotaEdit = (r: QuotaItem) => {
+    setEditingQuota(r);
+    setEditQuotaDraft({
+      targetName: r.targetType === 'global' ? '全平台' : r.targetName,
+      dailyLimit: r.dailyLimit,
+      monthlyLimit: r.monthlyLimit,
+    });
+  };
+
+  const saveQuotaEdit = async () => {
+    if (!editingQuota) return;
+    setSavingQuotaEdit(true);
+    try {
+      await quotaService.updateQuota({
+        id: editingQuota.id,
+        targetType: editingQuota.targetType,
+        targetId: editingQuota.targetId ?? undefined,
+        targetName: editingQuota.targetType === 'global' ? '全平台' : editQuotaDraft.targetName.trim(),
+        dailyLimit: editQuotaDraft.dailyLimit,
+        monthlyLimit: editQuotaDraft.monthlyLimit,
+      });
+      showMessage('配额已更新', 'success');
+      setEditingQuota(null);
+      await fetchQuotas();
+    } catch {
+      showMessage('保存失败', 'error');
+    } finally {
+      setSavingQuotaEdit(false);
+    }
+  };
+
+  const deleteRateLimitRow = async () => {
+    if (deleteRlId == null) return;
+    setDeletingRl(true);
+    try {
+      await quotaService.deleteRateLimit(deleteRlId);
+      showMessage('限流规则已删除', 'success');
+      setDeleteRlId(null);
+      await fetchRateLimits();
+    } catch {
+      showMessage('删除失败', 'error');
+    } finally {
+      setDeletingRl(false);
+    }
+  };
 
   const addQuota = async () => {
     try {
@@ -174,8 +259,30 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
         <>
           {tab === 'quota' && (
             <div className="min-w-0 px-4 sm:px-6 pb-6 pt-3">
-              <div className="flex justify-end mb-3">
-                <button type="button" onClick={() => setShowQuotaModal(true)} className={`${btnPrimary} gap-1.5`}>
+              <div className={`${TOOLBAR_ROW_LIST} justify-between min-w-0 mb-3`}>
+                <div className={`${TOOLBAR_ROW_LIST} min-w-0 flex-1`}>
+                  <div className="relative min-w-[8rem] shrink-0 sm:max-w-[14rem]">
+                    <Search className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${textMuted(theme)}`} size={16} />
+                    <input
+                      type="search"
+                      value={listKeyword}
+                      onChange={(e) => setListKeyword(e.target.value)}
+                      placeholder="搜索名称…"
+                      className={toolbarSearchInputClass(theme)}
+                      aria-label="筛选配额名称"
+                    />
+                  </div>
+                  <LantuSelect
+                    theme={theme}
+                    value={quotaScopeFilter}
+                    onChange={setQuotaScopeFilter}
+                    options={QUOTA_SCOPE_FILTER_OPTIONS}
+                    placeholder="范围"
+                    className="!w-36 shrink-0"
+                    triggerClassName="w-full !min-w-0"
+                  />
+                </div>
+                <button type="button" onClick={() => setShowQuotaModal(true)} className={`${btnPrimary} gap-1.5 shrink-0`}>
                   <Plus size={15} />
                   新增配额
                 </button>
@@ -191,7 +298,7 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
                       </tr>
                     </thead>
                     <tbody>
-                      {quotas.map((r, i) => {
+                      {filteredQuotas.map((r, i) => {
                         const sc = SCOPE_CFG[r.targetType] ?? SCOPE_CFG.global;
                         return (
                           <tr key={r.id} className={tableBodyRow(theme, i)}>
@@ -214,7 +321,16 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
                             </td>
                             <td className={`${tableCell()} text-xs ${textMuted(theme)}`}>{formatDateTime(r.createTime)}</td>
                             <td className={tableCell()}>
-                              <button type="button" onClick={async () => { if (!confirm(`确定删除配额「${r.targetName}」？`)) return; try { await quotaService.deleteQuota(r.id); showMessage('已删除', 'success'); await fetchQuotas(); } catch { showMessage('删除失败', 'error'); } }} className="text-xs text-rose-500 hover:text-rose-600">删除</button>
+                              <div className="inline-flex flex-wrap items-center justify-end gap-2">
+                                <button type="button" className={mgmtTableActionGhost(theme)} onClick={() => openQuotaEdit(r)}>编辑</button>
+                                <button
+                                  type="button"
+                                  className={mgmtTableActionDanger}
+                                  onClick={async () => { if (!confirm(`确定删除配额「${r.targetName}」？`)) return; try { await quotaService.deleteQuota(r.id); showMessage('已删除', 'success'); await fetchQuotas(); } catch { showMessage('删除失败', 'error'); } }}
+                                >
+                                  删除
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         );
@@ -228,24 +344,46 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
 
           {tab === 'rate-limit' && (
             <div className="min-w-0 px-4 sm:px-6 pb-6 pt-3">
-              <div className="flex justify-end mb-3">
-                <button type="button" onClick={() => setShowRLModal(true)} className={`${btnPrimary} gap-1.5`}>
+              <div className={`${TOOLBAR_ROW_LIST} justify-between min-w-0 mb-3`}>
+                <div className={`${TOOLBAR_ROW_LIST} min-w-0 flex-1`}>
+                  <div className="relative min-w-[8rem] shrink-0 sm:max-w-[14rem]">
+                    <Search className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${textMuted(theme)}`} size={16} />
+                    <input
+                      type="search"
+                      value={listKeyword}
+                      onChange={(e) => setListKeyword(e.target.value)}
+                      placeholder="搜索规则或目标…"
+                      className={toolbarSearchInputClass(theme)}
+                      aria-label="筛选限流规则"
+                    />
+                  </div>
+                  <LantuSelect
+                    theme={theme}
+                    value={rlTargetFilter}
+                    onChange={setRlTargetFilter}
+                    options={RL_TARGET_FILTER_OPTIONS}
+                    placeholder="目标类型"
+                    className="!w-36 shrink-0"
+                    triggerClassName="w-full !min-w-0"
+                  />
+                </div>
+                <button type="button" onClick={() => setShowRLModal(true)} className={`${btnPrimary} gap-1.5 shrink-0`}>
                   <Plus size={15} />
                   新增规则
                 </button>
               </div>
               <BentoCard theme={theme} padding="sm" className="overflow-hidden">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm min-w-[700px]">
+                  <table className="w-full text-left text-sm min-w-[820px]">
                     <thead>
                       <tr>
-                        {['规则名称', '目标', '请求/分', '请求/时', '状态'].map((h) => (
+                        {['规则名称', '目标', '请求/分', '请求/时', '状态', '操作'].map((h) => (
                           <th key={h} className={tableHeadCell(theme)}>{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
-                      {rateLimits.map((r, i) => (
+                      {filteredRateLimits.map((r, i) => (
                         <tr key={r.id} className={tableBodyRow(theme, i)}>
                           <td className={`${tableCell()} font-medium ${textPrimary(theme)}`}>{r.name}</td>
                           <td className={`${tableCell()} ${textSecondary(theme)}`}>{r.targetName}</td>
@@ -260,6 +398,11 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
                               aria-checked={r.enabled}
                             >
                               <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${r.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                            </button>
+                          </td>
+                          <td className={tableCell()}>
+                            <button type="button" className={mgmtTableActionDanger} onClick={() => setDeleteRlId(r.id)}>
+                              删除
                             </button>
                           </td>
                         </tr>
@@ -303,6 +446,57 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
           </div>
         </div>
       </Modal>
+
+      <Modal
+        open={!!editingQuota}
+        onClose={() => { setEditingQuota(null); }}
+        title="编辑配额"
+        theme={theme}
+        size="md"
+        footer={
+          <>
+            <button type="button" className={btnSecondary(theme)} onClick={() => setEditingQuota(null)}>取消</button>
+            <button type="button" className={`${btnPrimary} disabled:opacity-50`} disabled={savingQuotaEdit} onClick={() => void saveQuotaEdit()}>
+              {savingQuotaEdit ? '保存中…' : '保存'}
+            </button>
+          </>
+        }
+      >
+        {editingQuota && (
+          <div className="space-y-4">
+            <p className={`text-xs ${textMuted(theme)}`}>
+              范围：{editingQuota.targetType} · 用量为只读；可调整日/月配额上限与非全局时的对象名称。
+            </p>
+            {editingQuota.targetType !== 'global' && (
+              <div>
+                <label className={`${labelCls} mb-1.5 block`}>对象名称</label>
+                <input className={inputCls} value={editQuotaDraft.targetName} onChange={(e) => setEditQuotaDraft((p) => ({ ...p, targetName: e.target.value }))} />
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={`${labelCls} mb-1.5 block`}>日配额上限</label>
+                <input type="number" className={inputCls} value={editQuotaDraft.dailyLimit} onChange={(e) => setEditQuotaDraft((p) => ({ ...p, dailyLimit: Number(e.target.value) }))} />
+              </div>
+              <div>
+                <label className={`${labelCls} mb-1.5 block`}>月配额上限</label>
+                <input type="number" className={inputCls} value={editQuotaDraft.monthlyLimit} onChange={(e) => setEditQuotaDraft((p) => ({ ...p, monthlyLimit: Number(e.target.value) }))} />
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <ConfirmDialog
+        open={deleteRlId != null}
+        title="删除限流规则"
+        message="确定删除该限流规则？"
+        variant="danger"
+        confirmText="删除"
+        loading={deletingRl}
+        onCancel={() => setDeleteRlId(null)}
+        onConfirm={() => void deleteRateLimitRow()}
+      />
 
       <Modal open={showRLModal} onClose={() => setShowRLModal(false)} title="新增限流规则" theme={theme} size="md" footer={<><button type="button" onClick={() => setShowRLModal(false)} className={btnSecondary(theme)}>取消</button><button type="button" onClick={addRateLimit} className={btnPrimary}>添加</button></>}>
         <div className="space-y-4">

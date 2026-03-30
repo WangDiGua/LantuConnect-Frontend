@@ -5,7 +5,7 @@ import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
 import { TOOLBAR_ROW_LIST, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
-import { btnPrimary, btnSecondary, btnGhost, tableHeadCell, tableBodyRow, tableCell, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import { btnPrimary, btnSecondary, mgmtTableActionGhost, tableHeadCell, tableBodyRow, tableCell, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
 import { Modal } from '../../components/common/Modal';
 import { BentoCard } from '../../components/common/BentoCard';
 import { healthService } from '../../api/services/health.service';
@@ -164,7 +164,7 @@ export const HealthConfigPage: React.FC<Props> = ({ theme, fontSize, showMessage
                           </td>
                           <td className={`${tableCell()} text-xs whitespace-nowrap ${textMuted(theme)}`}>{r.lastCheckTime?.slice(11) ?? '—'}</td>
                           <td className={tableCell()}>
-                            <button type="button" onClick={() => openEdit(r)} className={btnGhost(theme)}>配置</button>
+                            <button type="button" onClick={() => openEdit(r)} className={mgmtTableActionGhost(theme)}>编辑</button>
                           </td>
                         </tr>
                       );

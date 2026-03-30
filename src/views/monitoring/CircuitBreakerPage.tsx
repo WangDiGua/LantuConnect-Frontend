@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { AlertTriangle, Zap, RotateCcw, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { AlertTriangle, Zap, RotateCcw, Loader2, Search } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { nativeInputClass } from '../../utils/formFieldClasses';
-import { btnPrimary, btnSecondary, btnGhost, tableHeadCell, tableBodyRow, tableCell, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import { btnPrimary, btnSecondary, btnGhost, mgmtTableActionGhost, tableHeadCell, tableBodyRow, tableCell, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import { TOOLBAR_ROW_LIST, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
+import { LantuSelect } from '../../components/common/LantuSelect';
 import { Modal } from '../../components/common/Modal';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { BentoCard } from '../../components/common/BentoCard';
@@ -27,6 +29,13 @@ const STATE_CFG: Record<CBState, { label: string; light: string; dark: string }>
   HALF_OPEN: { label: '探测中', light: 'bg-amber-100 text-amber-800',     dark: 'bg-amber-500/20 text-amber-300' },
 };
 
+const CB_STATE_FILTER_OPTIONS = [
+  { value: 'all', label: '全部状态' },
+  { value: 'CLOSED', label: '正常' },
+  { value: 'OPEN', label: '已熔断' },
+  { value: 'HALF_OPEN', label: '探测中' },
+];
+
 export const CircuitBreakerPage: React.FC<Props> = ({ theme, fontSize, showMessage }) => {
   const isDark = theme === 'dark';
   const inputCls = `${nativeInputClass(theme)} ${INPUT_FOCUS}`;
@@ -37,6 +46,8 @@ export const CircuitBreakerPage: React.FC<Props> = ({ theme, fontSize, showMessa
   const [editingId, setEditingId] = useState<number | null>(null);
   const [draft, setDraft] = useState<Partial<CircuitBreakerItem>>({});
   const [confirmAction, setConfirmAction] = useState<{ id: number; action: 'trip' | 'reset' } | null>(null);
+  const [listQ, setListQ] = useState('');
+  const [stateFilter, setStateFilter] = useState('all');
 
   const fetchData = useCallback(() => {
     setLoading(true);
@@ -78,8 +89,45 @@ export const CircuitBreakerPage: React.FC<Props> = ({ theme, fontSize, showMessa
 
   const confirmItem = confirmAction ? data.find((r) => r.id === confirmAction.id) : null;
 
+  const filteredRows = useMemo(() => {
+    let list = data;
+    if (stateFilter !== 'all') list = list.filter((r) => r.currentState === stateFilter);
+    const term = listQ.trim().toLowerCase();
+    if (term) {
+      list = list.filter(
+        (r) => r.displayName.toLowerCase().includes(term) || String(r.fallbackAgentName ?? '').toLowerCase().includes(term),
+      );
+    }
+    return list;
+  }, [data, listQ, stateFilter]);
+
+  const toolbar = (
+    <div className={`${TOOLBAR_ROW_LIST} min-w-0`}>
+      <div className="relative min-w-0 flex-1 shrink sm:max-w-md">
+        <Search className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${textMuted(theme)}`} size={16} />
+        <input
+          type="search"
+          placeholder="搜索名称或降级 Agent…"
+          value={listQ}
+          onChange={(e) => setListQ(e.target.value)}
+          className={toolbarSearchInputClass(theme)}
+          aria-label="筛选熔断策略"
+        />
+      </div>
+      <LantuSelect
+        theme={theme}
+        value={stateFilter}
+        onChange={setStateFilter}
+        options={CB_STATE_FILTER_OPTIONS}
+        placeholder="状态"
+        className="!w-36 shrink-0"
+        triggerClassName={`w-full !min-w-0 ${INPUT_FOCUS}`}
+      />
+    </div>
+  );
+
   return (
-    <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={AlertTriangle} breadcrumbSegments={['监控中心', '熔断降级']} description="配置 Agent / Skill 的熔断策略，支持手动熔断与恢复">
+    <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={AlertTriangle} breadcrumbSegments={['监控中心', '熔断降级']} description="配置 Agent / Skill 的熔断策略，支持手动熔断与恢复" toolbar={toolbar}>
       <div className="min-w-0 px-4 sm:px-6 pb-6 pt-4">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-16">
@@ -89,7 +137,7 @@ export const CircuitBreakerPage: React.FC<Props> = ({ theme, fontSize, showMessa
         ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
-              {([['CLOSED', '正常运行'], ['OPEN', '已熔断'], ['HALF_OPEN', '探测中']] as [CBState, string][]).map(([state, label]) => {
+                {([['CLOSED', '正常运行'], ['OPEN', '已熔断'], ['HALF_OPEN', '探测中']] as [CBState, string][]).map(([state, label]) => {
                 const count = data.filter((r) => r.currentState === state).length;
                 const cfg = STATE_CFG[state];
                 return (
@@ -115,7 +163,7 @@ export const CircuitBreakerPage: React.FC<Props> = ({ theme, fontSize, showMessa
                     </tr>
                   </thead>
                   <tbody>
-                    {data.map((r, i) => {
+                    {filteredRows.map((r, i) => {
                       const stCfg = STATE_CFG[r.currentState];
                       return (
                         <tr key={r.id} className={tableBodyRow(theme, i)}>
@@ -140,7 +188,7 @@ export const CircuitBreakerPage: React.FC<Props> = ({ theme, fontSize, showMessa
                           </td>
                           <td className={tableCell()}>
                             <div className="flex items-center gap-2">
-                              <button type="button" onClick={() => openEdit(r)} className={btnGhost(theme)}>配置</button>
+                              <button type="button" onClick={() => openEdit(r)} className={mgmtTableActionGhost(theme)}>编辑</button>
                               {r.currentState !== 'OPEN' ? (
                                 <button type="button" onClick={() => setConfirmAction({ id: r.id, action: 'trip' })} className="p-1.5 rounded-xl text-red-500 hover:bg-red-500/10 transition-colors" title="手动熔断">
                                   <Zap size={15} />
@@ -159,6 +207,9 @@ export const CircuitBreakerPage: React.FC<Props> = ({ theme, fontSize, showMessa
                 </table>
               </div>
             </BentoCard>
+            {data.length > 0 && filteredRows.length === 0 && (
+              <p className={`text-center py-8 text-sm ${textMuted(theme)}`}>无匹配项，请调整搜索或状态筛选</p>
+            )}
           </>
         )}
       </div>

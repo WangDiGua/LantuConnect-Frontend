@@ -30,12 +30,26 @@
 
 ---
 
-## 3. 全站管理页：仍建议巡检的类别（不含本文件逐条实现）
+## 2.1 其他列表页（同轮已补前端交互）
 
-以下在 [功能缺口矩阵](./frontend-feature-gap-matrix.md) 或 [巡检文档](./frontend-management-ui-audit-and-backend-api-requests.md) 中已有说明，后续排期可按「缺检索 / 缺行内编辑」逐项勾选：
+| 页面 | 检索 / 筛选 | 行内 / 弹窗 CRUD 说明 |
+|------|-------------|----------------------|
+| **配额管理** `QuotaManagementPage` | 配额 tab / 限流 tab 各一套工具栏：`keyword` 本地筛名称；配额加「范围」下拉；限流加「目标类型」下拉 | 配额行 **编辑**（`PUT /quotas` 已有 `updateQuota`: 日/月上限、非全局对象名）；限流行 **删除**（`DELETE /rate-limits/{id}`）+ 原有启停开关 |
+| **熔断降级** `CircuitBreakerPage` | `MgmtPageShell` 工具栏：名称/降级 Agent 搜索 + 状态下拉（客户端过滤） | **编辑** 胶囊（原「配置」）；手动熔断/恢复仍为图标快捷按钮 |
+| **健康检查** `HealthConfigPage` | 已有工具栏 | 行内 **编辑** 胶囊（原「配置」文案） |
+| **告警规则** `AlertRulesPage` | 规则名/指标关键词 + 严重级别筛选（客户端） | **编辑** 弹窗（`PUT /monitoring/alert-rules/{id}`）、**删除**（`DELETE`）、保留 **试跑** |
+| **分类管理** `CategoryManagement` | 工具栏搜索：树剪枝过滤（名称/编码） | 顺带修复若干乱码提示文案 |
+| **标签管理** `TagManagementPage` | 搜索框与分类 chips 单行/窄屏可横滑 | 原有增删与筛选逻辑不变 |
+| **资源授权** `ResourceGrantManagementPage` | 列表区：按 grantee **Key ID / 前缀** 筛选（**仅当前页**数据；全库检索需后端 `keyword` query） | 原有撤销不变 |
 
-- 工具栏仍为 `flex-wrap` 或未带搜索的列表页（如部分监控、Token、用户权限大图）。
-- 控制台资源列表（Agent/App/Dataset/Skill）行内操作仍为图标态，若需与管理配置页完全统一，需产品确认后改 UI。
+**说明**：上述除资源授权外，筛选均在 **已拉取列表** 上做客户端过滤；数据量大时请后端为对应 `GET` 增加 query，并把筛选迁到服务端以保证分页 `total` 一致。
+
+---
+
+## 3. 全站管理页：仍建议巡检的类别
+
+- **用户控制台** 大图列表（`UserListPage` / `TokenListPage` / `ApiKeyListPage` / `RoleListPage`）：已有搜索或过滤，与管理壳 `TOOLBAR_ROW_LIST` 未强制统一。
+- **控制台资源列表**（Agent/App/Dataset/Skill 与双审核台）：列表级 `keyword` 已接后端；行内仍以 **图标** 为主，若需与 Mgmt 胶囊统一需单独立项。
 
 ---
 
@@ -44,3 +58,4 @@
 | 日期 | 说明 |
 |------|------|
 | 2026-03-30 | 新增：敏感词页工具栏检索 + 分类/状态筛选 + 编辑弹窗；`list` 增加 `keyword` query；本整合文档首版。 |
+| 2026-03-30 | 扩容：配额/限流、熔断、健康检查、告警规则、分类、标签、资源授权等列表检索或 CRUD 补全；`useMonitoring` 增加告警规则更新/删除 mutations。 |

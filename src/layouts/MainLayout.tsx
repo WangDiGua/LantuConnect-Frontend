@@ -83,6 +83,8 @@ import {
   getDefaultPage,
   subItemToPage,
   pageToSubItem,
+  ADMIN_LEGACY_RESOURCE_LIST_PAGES,
+  ADMIN_LEGACY_AUDIT_PAGE_DEFAULT_TYPE,
   type ConsoleRole,
 } from '../constants/consoleRoutes';
 import type { ResourceType } from '../types/dto/catalog';
@@ -125,11 +127,6 @@ function normalizeDeprecatedPage(page: string): string {
 }
 
 const SUB_ITEM_PERM_MAP: Record<string, string> = {
-  'agent-audit': 'agent:audit',
-  'skill-audit': 'skill:audit',
-  'mcp-audit': 'resource:audit',
-  'app-audit': 'resource:audit',
-  'dataset-audit': 'resource:audit',
   'provider-list': 'provider:view',
   'provider-create': 'provider:manage',
   'role-management': 'role:manage',
@@ -220,43 +217,46 @@ const MainContent = React.memo<{
         case 'data-reports':
           return <DataReportsPage theme={t} fontSize={fs} />;
 
-        case 'agent-list':
-          return renderResourceList('agent');
+        case 'resource-catalog':
+          return (
+            <ResourceCenterManagementPage
+              theme={t}
+              fontSize={fs}
+              showMessage={msg}
+              resourceType={typeQuery ?? 'agent'}
+              allowTypeSwitch
+              onTypeChange={(nextType) => nav('resource-catalog', nextType)}
+              onNavigateRegister={(type, id) => nav(RESOURCE_TYPE_REGISTER_PAGE[type], id)}
+            />
+          );
         case 'agent-register':
           return renderResourceRegister('agent');
         case 'agent-detail':
-          return <AgentDetail agentId={rid ?? ''} theme={t} fontSize={fs} onBack={() => nav('agent-list')} />;
-        case 'agent-audit':
-          return <ResourceAuditList theme={t} fontSize={fs} showMessage={msg} defaultType="agent" />;
+          return (
+            <AgentDetail
+              agentId={rid ?? ''}
+              theme={t}
+              fontSize={fs}
+              onBack={() => nav('resource-catalog', 'agent')}
+            />
+          );
         case 'agent-monitoring':
           return <AgentMonitoringPage theme={t} fontSize={fs} />;
         case 'agent-trace':
           return <AgentTracePage theme={t} fontSize={fs} />;
 
-        case 'skill-list':
-          return renderResourceList('skill');
-        case 'mcp-server-list':
-          return renderResourceList('mcp');
         case 'skill-register':
           return renderResourceRegister('skill');
         case 'mcp-register':
           return renderResourceRegister('mcp');
-        case 'skill-audit':
-          return <ResourceAuditList theme={t} fontSize={fs} showMessage={msg} defaultType="skill" />;
-        case 'mcp-audit':
-          return <ResourceAuditList theme={t} fontSize={fs} showMessage={msg} defaultType="mcp" />;
-        case 'app-audit':
-          return <ResourceAuditList theme={t} fontSize={fs} showMessage={msg} defaultType="app" />;
-        case 'dataset-audit':
-          return <ResourceAuditList theme={t} fontSize={fs} showMessage={msg} defaultType="dataset" />;
+        case 'resource-audit':
+          return (
+            <ResourceAuditList theme={t} fontSize={fs} showMessage={msg} defaultType={typeQuery} />
+          );
 
-        case 'app-list':
-          return renderResourceList('app');
         case 'app-register':
           return renderResourceRegister('app');
 
-        case 'dataset-list':
-          return renderResourceList('dataset');
         case 'dataset-register':
           return renderResourceRegister('dataset');
 
@@ -547,8 +547,22 @@ const MainLayoutContent: React.FC<{
   const routeValid = !!(routeRole && normalizedRoutePage && (findSidebarForPage(routeRole, normalizedRoutePage) || isStandaloneUserSettingsPage));
 
   const consoleRole: ConsoleRole = routeRole ?? (ctxAdmin ? 'admin' : 'user');
-  const page = normalizedRoutePage ?? (consoleRole === 'admin' ? 'dashboard' : 'workspace');
   const layoutIsAdmin = consoleRole === 'admin';
+  const basePage = normalizedRoutePage ?? (consoleRole === 'admin' ? 'dashboard' : 'workspace');
+  let page = basePage;
+  let resourceTypeQuery = queryType;
+  if (layoutIsAdmin && normalizedRoutePage) {
+    if (ADMIN_LEGACY_RESOURCE_LIST_PAGES.has(normalizedRoutePage)) {
+      page = 'resource-catalog';
+      resourceTypeQuery = LEGACY_PAGE_TO_TYPE[normalizedRoutePage];
+    } else if (ADMIN_LEGACY_AUDIT_PAGE_DEFAULT_TYPE[normalizedRoutePage]) {
+      page = 'resource-audit';
+      resourceTypeQuery = queryType ?? ADMIN_LEGACY_AUDIT_PAGE_DEFAULT_TYPE[normalizedRoutePage];
+    }
+  }
+  if (layoutIsAdmin && page === 'resource-catalog') {
+    resourceTypeQuery = resourceTypeQuery ?? 'agent';
+  }
 
   const activeSidebar = findSidebarForPage(consoleRole, page)
     ?? (layoutIsAdmin ? 'overview' : 'workspace');
@@ -654,6 +668,28 @@ const MainLayoutContent: React.FC<{
       navigate(`${buildPath('user', 'resource-center')}?type=agent`, { replace: true });
       return;
     }
+    if (routeRole === 'admin' && normalizedRoutePage === 'resource-catalog' && !queryType) {
+      navigate(`${buildPath('admin', 'resource-catalog')}?type=agent`, { replace: true });
+      return;
+    }
+    if (routeRole === 'admin' && normalizedRoutePage) {
+      if (ADMIN_LEGACY_RESOURCE_LIST_PAGES.has(normalizedRoutePage)) {
+        const t = LEGACY_PAGE_TO_TYPE[normalizedRoutePage];
+        const next = `${buildPath('admin', 'resource-catalog')}?type=${t}`;
+        if (`${location.pathname}${location.search}` !== next) {
+          navigate(next, { replace: true });
+        }
+        return;
+      }
+      const auditDef = ADMIN_LEGACY_AUDIT_PAGE_DEFAULT_TYPE[normalizedRoutePage];
+      if (auditDef) {
+        const t = queryType ?? auditDef;
+        const next = `${buildPath('admin', 'resource-audit')}?type=${t}`;
+        if (`${location.pathname}${location.search}` !== next) {
+          navigate(next, { replace: true });
+        }
+      }
+    }
     if (
       routeRole === 'user' &&
       normalizedRoutePage &&
@@ -683,7 +719,7 @@ const MainLayoutContent: React.FC<{
       navigate(buildPath('user', 'hub'), { replace: true });
       showMessage('当前账号暂无统一资源发布权限', 'info');
     }
-  }, [routeValid, routeRole, routePage, normalizedRoutePage, routeId, queryType, consoleRole, platformRole, navigate, layoutIsAdmin, page, canPublishResources, showMessage, hasPermission]);
+  }, [routeValid, routeRole, routePage, normalizedRoutePage, routeId, queryType, consoleRole, platformRole, navigate, layoutIsAdmin, page, canPublishResources, showMessage, hasPermission, location.pathname, location.search]);
 
   useEffect(() => {
     const wantRole = consoleRole === 'admin' ? 'admin' : 'user';
@@ -777,6 +813,14 @@ const MainLayoutContent: React.FC<{
   const handleSubItemClick = (subItemId: string, parentSidebarId: string) => {
     setMobileNavOpen(false);
     const pageName = subItemToPage(parentSidebarId, subItemId, layoutIsAdmin);
+    if (layoutIsAdmin && pageName === 'resource-catalog') {
+      navigate(`${buildPath(consoleRole, 'resource-catalog')}?type=agent`);
+      return;
+    }
+    if (layoutIsAdmin && pageName === 'resource-audit') {
+      navigate(buildPath(consoleRole, 'resource-audit'));
+      return;
+    }
     navigate(buildPath(consoleRole, pageName));
   };
 
@@ -895,13 +939,20 @@ const MainLayoutContent: React.FC<{
       );
       return;
     }
+    if (targetPage === 'resource-catalog') {
+      const type = typeof id === 'string' ? parseResourceType(id) : undefined;
+      navigate(`${buildPath('admin', 'resource-catalog')}?type=${type ?? 'agent'}`);
+      return;
+    }
     navigate(buildPath(consoleRole, targetPage, id));
   }, [navigate, consoleRole]);
 
   const contentKey = useMemo(() => {
     if (page === 'resource-center') return `${page}?type=${queryType ?? 'agent'}`;
+    if (page === 'resource-catalog') return `${page}?type=${resourceTypeQuery ?? 'agent'}`;
+    if (page === 'resource-audit') return `${page}?type=${resourceTypeQuery ?? 'all'}`;
     return routeId ? `${page}/${routeId}` : page;
-  }, [page, routeId, queryType]);
+  }, [page, routeId, queryType, resourceTypeQuery]);
 
   const displayUserName = authUser?.nickname || authUser?.username || '用户';
 
@@ -1164,7 +1215,13 @@ const MainLayoutContent: React.FC<{
                     <MainContent
                       page={page}
                       routeId={routeId}
-                      resourceTypeFromQuery={queryType}
+                      resourceTypeFromQuery={
+                        page === 'resource-center'
+                          ? queryType
+                          : page === 'resource-catalog' || page === 'resource-audit'
+                            ? resourceTypeQuery
+                            : queryType
+                      }
                       layoutIsAdmin={layoutIsAdmin}
                       theme={theme}
                       themePreference={themePreference}

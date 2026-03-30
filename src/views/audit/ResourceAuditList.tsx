@@ -45,6 +45,11 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, showMessage, default
   const [items, setItems] = useState<ResourceAuditItemVO[]>([]);
   const [resourceType, setResourceType] = useState<ResourceType | ''>(defaultType ?? '');
   const [statusFilter, setStatusFilter] = useState<'all' | ResourceAuditItemVO['status']>('pending_review');
+
+  useEffect(() => {
+    setResourceType(defaultType ?? '');
+    setPage(1);
+  }, [defaultType]);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);

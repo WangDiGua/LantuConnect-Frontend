@@ -1,4 +1,48 @@
+import type { ResourceType } from '../types/dto/catalog';
+
 export type ConsoleRole = 'admin' | 'user';
+
+/** 管理端旧版「五入口」列表页，重定向至 resource-catalog?type= */
+export const ADMIN_LEGACY_RESOURCE_LIST_PAGES = new Set([
+  'agent-list',
+  'skill-list',
+  'mcp-server-list',
+  'app-list',
+  'dataset-list',
+]);
+
+/** 管理端旧版审核子路由 → 默认筛选类型 */
+export const ADMIN_LEGACY_AUDIT_PAGE_DEFAULT_TYPE: Partial<Record<string, ResourceType>> = {
+  'agent-audit': 'agent',
+  'skill-audit': 'skill',
+  'mcp-audit': 'mcp',
+  'app-audit': 'app',
+  'dataset-audit': 'dataset',
+};
+
+const ADMIN_RESOURCE_CATALOG_PAGES = new Set([
+  'resource-catalog',
+  'agent-list',
+  'skill-list',
+  'mcp-server-list',
+  'app-list',
+  'dataset-list',
+  'agent-register',
+  'skill-register',
+  'mcp-register',
+  'app-register',
+  'dataset-register',
+  'agent-detail',
+]);
+
+const ADMIN_RESOURCE_AUDIT_PAGES = new Set([
+  'resource-audit',
+  'agent-audit',
+  'skill-audit',
+  'mcp-audit',
+  'app-audit',
+  'dataset-audit',
+]);
 
 export function buildPath(role: ConsoleRole, page: string, id?: string | number): string {
   const base = `/${role}/${page}`;
@@ -78,5 +122,11 @@ export function subItemToPage(sidebarId: string, subItemId: string, isAdmin: boo
 export function pageToSubItem(page: string, sidebarId: string | null, isAdmin: boolean): string {
   if (isAdmin && page === 'dashboard' && sidebarId === 'overview') return 'overview';
   if (!isAdmin && page === 'workspace' && sidebarId === 'workspace') return 'overview';
+  if (isAdmin && sidebarId === 'resource-management' && ADMIN_RESOURCE_CATALOG_PAGES.has(page)) {
+    return 'resource-catalog';
+  }
+  if (isAdmin && sidebarId === 'audit-center' && ADMIN_RESOURCE_AUDIT_PAGES.has(page)) {
+    return 'resource-audit';
+  }
   return page;
 }

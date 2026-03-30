@@ -44,7 +44,6 @@ import {
   Tag,
   Heart,
   Cpu,
-  CheckCircle2,
   ClipboardCheck,
   Code2,
   Terminal,
@@ -99,11 +98,7 @@ export const ADMIN_RESOURCE_MANAGEMENT_GROUPS = [
   {
     title: '资源目录',
     items: [
-      { id: 'agent-list', icon: Bot, label: 'Agent' },
-      { id: 'skill-list', icon: Wrench, label: 'Skill' },
-      { id: 'mcp-server-list', icon: Puzzle, label: 'MCP' },
-      { id: 'app-list', icon: AppWindow, label: '应用' },
-      { id: 'dataset-list', icon: Database, label: '数据集' },
+      { id: 'resource-catalog', icon: Boxes, label: '统一资源中心' },
     ],
   },
   {
@@ -126,11 +121,7 @@ export const ADMIN_AUDIT_CENTER_GROUPS = [
   {
     title: '待审核资源',
     items: [
-      { id: 'agent-audit', icon: CheckCircle2, label: 'Agent 审核' },
-      { id: 'skill-audit', icon: CheckCircle2, label: 'Skill 审核' },
-      { id: 'mcp-audit', icon: CheckCircle2, label: 'MCP 审核' },
-      { id: 'app-audit', icon: CheckCircle2, label: '应用审核' },
-      { id: 'dataset-audit', icon: CheckCircle2, label: '数据集审核' },
+      { id: 'resource-audit', icon: ClipboardCheck, label: '资源审核' },
     ],
   },
 ];

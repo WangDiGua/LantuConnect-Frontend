@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Ban, Shield, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
@@ -29,26 +29,48 @@ export const TokenListPage: React.FC<TokenListPageProps> = ({ theme, showMessage
   const { chromePageTitle } = useLayoutChrome();
   const isDark = theme === 'dark';
   const [tokens, setTokens] = useState<TokenRecord[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | TokenRecord['status']>('all');
   const [page, setPage] = useState(1);
   const [revokeTarget, setRevokeTarget] = useState<string | null>(null);
 
-  const fetchTokens = useCallback(async () => { setLoading(true); try { setTokens((await userMgmtService.listTokens()).list); } catch (err) { console.error(err); } finally { setLoading(false); } }, []);
-  useEffect(() => { fetchTokens(); }, [fetchTokens]);
+  useEffect(() => {
+    const id = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => window.clearTimeout(id);
+  }, [search]);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return tokens.filter((t) => {
-      if (statusFilter !== 'all' && t.status !== statusFilter) return false;
-      if (!q) return true;
-      return t.name.toLowerCase().includes(q) || t.scopes.join(' ').toLowerCase().includes(q) || t.createdBy.toLowerCase().includes(q);
-    });
-  }, [tokens, search, statusFilter]);
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, statusFilter]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paginated = useMemo(() => { const s = (page - 1) * PAGE_SIZE; return filtered.slice(s, s + PAGE_SIZE); }, [filtered, page]);
+  const fetchTokens = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await userMgmtService.listTokens({
+        page,
+        pageSize: PAGE_SIZE,
+        ...(debouncedSearch ? { keyword: debouncedSearch } : {}),
+        ...(statusFilter !== 'all' ? { status: statusFilter } : {}),
+      });
+      setTokens(res.list);
+      setTotal(Number.isFinite(res.total) ? res.total : 0);
+    } catch (err) {
+      showMessage(err instanceof Error ? err.message : '加载 Token 列表失败', 'error');
+      setTokens([]);
+      setTotal(0);
+    } finally {
+      setLoading(false);
+    }
+  }, [page, debouncedSearch, statusFilter, showMessage]);
+
+  useEffect(() => {
+    void fetchTokens();
+  }, [fetchTokens]);
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const handleRevoke = async () => {
     if (!revokeTarget) return;
@@ -77,11 +99,13 @@ export const TokenListPage: React.FC<TokenListPageProps> = ({ theme, showMessage
           <div className="flex-1 min-h-0 overflow-auto">
             {loading && tokens.length === 0 ? (
               <div className="flex items-center justify-center py-12"><Loader2 size={24} className="animate-spin text-slate-400" /></div>
-            ) : paginated.length === 0 ? (
-              <div className={`text-center py-12 text-sm ${textMuted(theme)}`}>暂无 Token</div>
+            ) : tokens.length === 0 ? (
+              <div className={`text-center py-12 text-sm ${textMuted(theme)}`}>
+                {debouncedSearch || statusFilter !== 'all' ? '无匹配 Token' : '暂无 Token'}
+              </div>
             ) : (
               <AnimatedList className="p-3 space-y-2">
-                {paginated.map((t) => {
+                {tokens.map((t) => {
                   const ss = STATUS_STYLE[t.status] ?? STATUS_STYLE.expired;
                   return (
                     <motion.div key={t.id} className={`${bentoCardHover(theme)} p-4 flex items-center gap-4`}>
@@ -109,7 +133,7 @@ export const TokenListPage: React.FC<TokenListPageProps> = ({ theme, showMessage
           </div>
           {totalPages > 1 && (
             <div className={`px-4 py-3 border-t shrink-0 flex items-center justify-between ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-              <span className={`text-sm ${textMuted(theme)}`}>共 {filtered.length} 条</span>
+              <span className={`text-sm ${textMuted(theme)}`}>共 {total} 条</span>
               <div className="flex items-center gap-2">
                 <button type="button" disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className={`p-2 rounded-xl transition-colors ${page <= 1 ? (isDark ? 'text-slate-600' : 'text-slate-300') : (isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-600 hover:bg-slate-100')}`}><ChevronLeft size={16} /></button>
                 <span className={`text-xs font-medium ${textSecondary(theme)}`}>{page} / {totalPages}</span>

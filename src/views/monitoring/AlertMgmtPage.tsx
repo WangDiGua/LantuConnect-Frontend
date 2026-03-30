@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Shield, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
@@ -43,24 +43,34 @@ export const AlertMgmtPage: React.FC<AlertMgmtPageProps> = ({ theme }) => {
   const { chromePageTitle } = useLayoutChrome();
   const isDark = theme === 'dark';
   const [q, setQ] = useState('');
+  const [debouncedQ, setDebouncedQ] = useState('');
   const [severity, setSeverity] = useState<string>('all');
   const [statusF, setStatusF] = useState<string>('all');
   const [page, setPage] = useState(1);
 
-  const alertsQ = useAlerts({ page, pageSize: PAGE_SIZE });
+  useEffect(() => {
+    const id = window.setTimeout(() => setDebouncedQ(q.trim()), 300);
+    return () => window.clearTimeout(id);
+  }, [q]);
 
-  const rows = useMemo(() => {
-    const list = alertsQ.data?.list ?? [];
-    const term = q.trim().toLowerCase();
-    return list.filter((r) => {
-      if (severity !== 'all' && r.severity !== severity) return false;
-      if (statusF !== 'all' && r.status !== statusF) return false;
-      if (!term) return true;
-      return safeText(r.ruleName).toLowerCase().includes(term)
-        || safeText(r.message).toLowerCase().includes(term)
-        || safeText(r.source).toLowerCase().includes(term);
-    });
-  }, [alertsQ.data, q, severity, statusF]);
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedQ, severity, statusF]);
+
+  const alertParams = useMemo(
+    () => ({
+      page,
+      pageSize: PAGE_SIZE,
+      ...(debouncedQ ? { keyword: debouncedQ } : {}),
+      ...(severity !== 'all' ? { severity } : {}),
+      alertStatus: statusF,
+    }),
+    [page, debouncedQ, severity, statusF],
+  );
+
+  const alertsQ = useAlerts(alertParams);
+
+  const rows = alertsQ.data?.list ?? [];
 
   const total = alertsQ.data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -103,7 +113,7 @@ export const AlertMgmtPage: React.FC<AlertMgmtPageProps> = ({ theme }) => {
             {alertsQ.isLoading ? (
               <div className="p-4"><PageSkeleton type="table" rows={6} /></div>
             ) : rows.length === 0 ? (
-              <EmptyState title={q || severity !== 'all' || statusF !== 'all' ? '无匹配告警' : '暂无告警'} description="系统运行正常。" icon={<Shield size={24} />} />
+              <EmptyState title={debouncedQ || severity !== 'all' || statusF !== 'all' ? '无匹配告警' : '暂无告警'} description="系统运行正常。" icon={<Shield size={24} />} />
             ) : (
               <AnimatedList className="p-3 space-y-2">
                 {rows.map((r) => {

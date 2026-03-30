@@ -270,6 +270,8 @@ const QUOTA_POLICY_OPTIONS = [
   { value: '硬拒绝', label: '硬拒绝' },
 ];
 
+/** @deprecated 未被路由引用；配额请使用 {@link QuotaManagementPage}（`quota-management`）。保留便于历史对照。 */
+/** 未被路由引用；菜单「配额管理」指向 `QuotaManagementPage`（`quota-management`）。 */
 export const SystemQuotaPage: React.FC<PageProps> = ({ theme, fontSize, showMessage }) => {
   const inputCls = `${nativeInputClass(theme)} ${INPUT_FOCUS}`;
   const labelCls = `text-sm font-medium ${textSecondary(theme)}`;
@@ -324,11 +326,29 @@ export const AccessControlPage: React.FC<PageProps> = ({ theme, fontSize, showMe
   const [rules, setRules] = useState<{ id: string; path: string; roles: string }[]>([]);
   const [publishing, setPublishing] = useState(false);
   const [loadingRules, setLoadingRules] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    setRules([{ id: '1', path: '/admin/**', roles: 'super_admin' }]);
-    setLoadingRules(false);
-  }, []);
+    let cancelled = false;
+    setLoadingRules(true);
+    setLoadError(null);
+    void (async () => {
+      try {
+        const list = await systemConfigService.getAclRules();
+        if (!cancelled) setRules(list);
+      } catch (e) {
+        if (!cancelled) {
+          const msg = e instanceof Error ? e.message : '加载 ACL 失败';
+          setLoadError(msg);
+          setRules([]);
+          showMessage(msg, 'error');
+        }
+      } finally {
+        if (!cancelled) setLoadingRules(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [showMessage]);
 
   const handlePublish = async () => {
     setPublishing(true);
@@ -349,9 +369,18 @@ export const AccessControlPage: React.FC<PageProps> = ({ theme, fontSize, showMe
   return (
     <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={Lock} breadcrumbSegments={['系统配置', '访问控制']}>
       <div className="px-4 sm:px-6 pb-6">
+        {loadingRules ? (
+          <div className={`flex items-center gap-2 py-8 text-sm ${textMuted(theme)}`}>
+            <Loader2 size={18} className="animate-spin" /> 加载 ACL 规则…
+          </div>
+        ) : null}
+        {!loadingRules && loadError && rules.length === 0 ? (
+          <p className={`text-sm mb-4 ${textMuted(theme)}`}>无法拉取规则，可点击下方新增后发布，或稍后重试。</p>
+        ) : null}
         <button
           type="button"
           className={`${btnPrimary} mb-4`}
+          disabled={loadingRules}
           onClick={() => {
             setRules((prev) => [...prev, { id: `${Date.now()}`, path: '/api/**', roles: 'authenticated' }]);
             showMessage('已添加规则草稿', 'success');
@@ -360,6 +389,9 @@ export const AccessControlPage: React.FC<PageProps> = ({ theme, fontSize, showMe
           新增规则
         </button>
         <BentoCard theme={theme} padding="sm">
+          {!loadingRules && rules.length === 0 ? (
+            <div className={`px-4 py-8 text-center text-sm ${textMuted(theme)}`}>暂无规则，请新增或检查 GET /system-config/acl</div>
+          ) : null}
           {rules.map((r) => (
             <div key={r.id} className={`px-4 py-3.5 flex flex-wrap items-center justify-between gap-2 border-b last:border-0 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
               <input

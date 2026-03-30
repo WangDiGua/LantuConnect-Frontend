@@ -97,6 +97,8 @@ export interface TraceSpan {
 }
 
 export interface PerformanceMetric {
+  /** 可选；与页签 gateway / inference / worker 对齐；缺省时前端按历史兼容逻辑分桶 */
+  service?: string;
   timestamp: string;
   cpu: number;
   memory: number;

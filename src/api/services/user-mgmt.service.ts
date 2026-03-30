@@ -61,6 +61,37 @@ function normalizeApiKeyStatus(raw: unknown): ApiKeyRecord['status'] {
   return 'active';
 }
 
+function normalizeTokenStatus(raw: unknown): TokenRecord['status'] {
+  const s = String(raw ?? '').toLowerCase();
+  if (s === 'expired' || s === 'revoked' || s === 'active') return s;
+  return 'active';
+}
+
+function mapTokenRecord(raw: unknown): TokenRecord {
+  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const typeRaw = String(o.type ?? 'access').toLowerCase();
+  const type: TokenRecord['type'] =
+    typeRaw === 'service' || typeRaw === 'temporary' ? typeRaw : 'access';
+  const scopesRaw = o.scopes;
+  const scopes = Array.isArray(scopesRaw)
+    ? scopesRaw.map((x) => String(x))
+    : typeof scopesRaw === 'string' && scopesRaw.trim()
+      ? scopesRaw.split(/[\s,]+/).filter(Boolean)
+      : [];
+  return {
+    id: String(o.id ?? ''),
+    name: String(o.name ?? '未命名'),
+    type,
+    maskedToken: String(o.maskedToken ?? o.masked ?? ''),
+    status: normalizeTokenStatus(o.status),
+    scopes,
+    expiresAt: String(o.expiresAt ?? ''),
+    lastUsedAt: o.lastUsedAt ? String(o.lastUsedAt) : undefined,
+    createdBy: String(o.createdBy ?? ''),
+    createdAt: String(o.createdAt ?? ''),
+  };
+}
+
 function mapApiKeyRecord(raw: unknown): ApiKeyRecord {
   const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
   const scopesRaw = o.scopes;
@@ -201,14 +232,10 @@ export const userMgmtService = {
   revokeApiKey: (id: string) =>
     http.patch<void>(`/user-mgmt/api-keys/${id}/revoke`),
 
-  listTokens: (_params?: PaginationParams) =>
-    Promise.reject(
-      new ApiException({
-        code: 1004,
-        status: 410,
-        message: '接口已下线，请迁移到统一网关接口',
-      }),
-    ) as Promise<PaginatedData<TokenRecord>>,
+  listTokens: async (params?: PaginationParams & { keyword?: string; status?: string }) => {
+    const raw = await http.get<unknown>('/user-mgmt/tokens', { params });
+    return normalizePaginated<TokenRecord>(raw, mapTokenRecord);
+  },
 
   createToken: (_data: { name: string; type: TokenRecord['type']; scopes: string[]; expiresAt?: string }) =>
     Promise.reject(
@@ -219,14 +246,7 @@ export const userMgmtService = {
       }),
     ) as Promise<TokenRecord & { plainToken: string }>,
 
-  revokeToken: (_id: string) =>
-    Promise.reject(
-      new ApiException({
-        code: 1004,
-        status: 410,
-        message: '接口已下线，请迁移到统一网关接口',
-      }),
-    ) as Promise<void>,
+  revokeToken: (id: string) => http.patch<void>(`/user-mgmt/tokens/${id}/revoke`),
 
   getOrgTree: async () => {
     const raw = await http.get<unknown>('/user-mgmt/org-tree');

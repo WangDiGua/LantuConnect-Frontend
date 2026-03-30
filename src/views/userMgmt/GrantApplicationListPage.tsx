@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import type { Theme, FontSize } from '../../types';
 import type { GrantApplicationVO } from '../../types/dto/grant-application';
 import { grantApplicationService } from '../../api/services/grant-application.service';
@@ -47,6 +47,7 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, showMessage }
   const [items, setItems] = useState<GrantApplicationVO[]>([]);
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [rejectTarget, setRejectTarget] = useState<GrantApplicationVO | null>(null);
@@ -54,6 +55,15 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, showMessage }
   const [loadError, setLoadError] = useState<Error | null>(null);
   const [runningActionId, setRunningActionId] = useState<string | null>(null);
   const PAGE_SIZE = 20;
+
+  useEffect(() => {
+    const id = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => window.clearTimeout(id);
+  }, [search]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, statusFilter]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -63,6 +73,7 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, showMessage }
         status: statusFilter === 'all' ? undefined : statusFilter,
         page,
         pageSize: PAGE_SIZE,
+        ...(debouncedSearch ? { keyword: debouncedSearch } : {}),
       });
       setItems(pageData.list);
       setTotal(pageData.total);
@@ -75,31 +86,13 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, showMessage }
     } finally {
       setLoading(false);
     }
-  }, [page, showMessage, statusFilter]);
+  }, [page, showMessage, statusFilter, debouncedSearch]);
 
   useEffect(() => {
     void fetchData();
   }, [fetchData]);
 
-  const filteredRows = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return items;
-    return items.filter((row) => {
-      const hay = [
-        String(row.id),
-        row.resourceType,
-        String(row.resourceId),
-        row.apiKeyId,
-        ...(row.actions ?? []),
-        row.useCase ?? '',
-      ]
-        .join(' ')
-        .toLowerCase();
-      return hay.includes(q);
-    });
-  }, [items, search]);
-
-  const rows = filteredRows;
+  const rows = items;
 
   const runAction = async (actionKey: string, action: () => Promise<void>, okMsg: string) => {
     setRunningActionId(actionKey);
@@ -149,10 +142,7 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, showMessage }
               <div className="min-w-0 flex-1 shrink">
                 <SearchInput
                   value={search}
-                  onChange={(value) => {
-                    setSearch(value);
-                    setPage(1);
-                  }}
+                  onChange={setSearch}
                   placeholder="搜索 ID、资源、API Key、权限、场景…"
                   theme={theme}
                 />
@@ -164,13 +154,12 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, showMessage }
               <div className={`py-10 text-center text-sm ${textMuted(theme)}`}>加载中…</div>
             ) : loadError ? (
               <PageError error={loadError} onRetry={() => void fetchData()} retryLabel="重试加载列表" />
-            ) : items.length === 0 ? (
-              <div className="p-4">
-                <EmptyState title="暂无授权申请" description="当前筛选条件下没有申请记录，可切换筛选后重试。" />
-              </div>
             ) : rows.length === 0 ? (
               <div className="p-4">
-                <EmptyState title="无匹配结果" description="请调整本页搜索关键词或清空搜索。" />
+                <EmptyState
+                  title={debouncedSearch || statusFilter !== 'all' ? '无匹配申请' : '暂无授权申请'}
+                  description={debouncedSearch || statusFilter !== 'all' ? '请调整关键词或状态筛选。' : '当前筛选条件下没有申请记录，可切换筛选后重试。'}
+                />
               </div>
             ) : (
               <table className="w-full min-w-[1100px] text-sm">

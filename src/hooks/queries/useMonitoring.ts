@@ -1,14 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { monitoringService } from '../../api/services/monitoring.service';
 import type { PaginationParams } from '../../types/api';
+import type { AlertListParams, CallLogListParams } from '../../api/services/monitoring.service';
 import type { CreateAlertRulePayload } from '../../types/dto/monitoring';
 
 export const monitoringKeys = {
   kpis: ['monitoring', 'kpis'] as const,
   performance: ['monitoring', 'performance'] as const,
   traces: (p?: PaginationParams) => ['monitoring', 'traces', p] as const,
-  callLogs: (p?: PaginationParams) => ['monitoring', 'callLogs', p] as const,
-  alerts: (p?: PaginationParams) => ['monitoring', 'alerts', p] as const,
+  callLogs: (p?: CallLogListParams) => ['monitoring', 'callLogs', p] as const,
+  alerts: (p?: AlertListParams) => ['monitoring', 'alerts', p] as const,
   alertRules: ['monitoring', 'alertRules'] as const,
 };
 
@@ -30,14 +31,14 @@ export function useTraces(params?: PaginationParams) {
   });
 }
 
-export function useCallLogs(params?: PaginationParams) {
+export function useCallLogs(params?: CallLogListParams) {
   return useQuery({
     queryKey: monitoringKeys.callLogs(params),
     queryFn: () => monitoringService.listCallLogs(params),
   });
 }
 
-export function useAlerts(params?: PaginationParams) {
+export function useAlerts(params?: AlertListParams) {
   return useQuery({
     queryKey: monitoringKeys.alerts(params),
     queryFn: () => monitoringService.listAlerts(params),

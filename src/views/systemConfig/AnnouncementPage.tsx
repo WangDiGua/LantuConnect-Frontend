@@ -68,6 +68,7 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [filterKeyword, setFilterKeyword] = useState('');
+  const [debouncedKeyword, setDebouncedKeyword] = useState('');
   const [filterType, setFilterType] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [editing, setEditing] = useState<AnnouncementItem | null>(null);
@@ -76,6 +77,15 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<AnnouncementItem | null>(null);
 
+  useEffect(() => {
+    const id = window.setTimeout(() => setDebouncedKeyword(filterKeyword.trim()), 300);
+    return () => window.clearTimeout(id);
+  }, [filterKeyword]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedKeyword, filterType]);
+
   const fetchList = useCallback(async () => {
     setLoadError(null);
     setLoading(true);
@@ -83,6 +93,8 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
       const res = await systemConfigService.listAnnouncements({
         page,
         pageSize: ANNOUNCEMENT_PAGE_SIZE,
+        ...(debouncedKeyword ? { keyword: debouncedKeyword } : {}),
+        ...(filterType ? { type: filterType } : {}),
       });
       setList(res.list ?? []);
       setTotal(Number.isFinite(res.total) ? res.total : 0);
@@ -93,23 +105,11 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
     } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [page, debouncedKeyword, filterType]);
 
   useEffect(() => {
     void fetchList();
   }, [fetchList]);
-
-  /** 关键词与类型仅过滤当前页 `list`；底部分页 total 来自服务端全库分页，二者可能不一致（见 UI 说明）。 */
-  const filteredRows = useMemo(() => {
-    const kw = filterKeyword.trim().toLowerCase();
-    return list.filter((a) => {
-      if (filterType && a.type !== filterType) return false;
-      if (!kw) return true;
-      const title = (a.title ?? '').toLowerCase();
-      const summary = (a.summary ?? '').toLowerCase();
-      return title.includes(kw) || summary.includes(kw);
-    });
-  }, [list, filterKeyword, filterType]);
 
   const openCreateModal = () => {
     setEditing(null);
@@ -307,7 +307,7 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
               value={filterKeyword}
               onChange={(e) => setFilterKeyword(e.target.value)}
               aria-label="按标题或摘要筛选"
-              title="当前为前端筛选，仅在本页数据中过滤；全量检索待接口支持 keyword、type。底部分页条数为服务端总数。"
+              title="关键词与类型由服务端筛选；分页总数与列表一致。"
             />
             <LantuSelect
               theme={theme}
@@ -327,14 +327,16 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
     >
       <div className="px-4 sm:px-6 pb-6 flex flex-col min-h-0">
         {list.length === 0 ? (
-          <EmptyState title="暂无公告" description="点击「发布公告」创建第一条平台公告" />
-        ) : filteredRows.length === 0 ? (
-          <EmptyState title="本页无匹配结果" description="请调整关键词或类型，或切换页码查看其它数据。" />
+          total === 0 && !debouncedKeyword && !filterType ? (
+            <EmptyState title="暂无公告" description="点击「发布公告」创建第一条平台公告" />
+          ) : (
+            <EmptyState title="无匹配公告" description="请调整关键词或类型筛选条件。" />
+          )
         ) : (
           <MgmtDataTable
             theme={theme}
             columns={announcementColumns}
-            rows={filteredRows}
+            rows={list}
             getRowKey={(a) => String(a.id)}
             minWidth="96rem"
             surface="plain"

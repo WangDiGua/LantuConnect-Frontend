@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { TOOLBAR_ROW_LIST } from '../../utils/toolbarFieldClasses';
@@ -31,33 +31,30 @@ export const AuditLogPage: React.FC<AuditLogPageProps> = ({
   const [onlyFail, setOnlyFail] = useState(false);
   const [page, setPage] = useState(1);
 
-  const { data, isLoading, isError, error, refetch } = useSysAuditLogs({
-    page,
-    pageSize: PAGE_SIZE,
-    ...(actionFilter !== '全部' ? { action: actionFilter } : {}),
-  });
+  const auditQuery = useMemo(
+    () => ({
+      page,
+      pageSize: PAGE_SIZE,
+      ...(actionFilter !== '全部' ? { action: actionFilter } : {}),
+      ...(search.trim() ? { keyword: search.trim() } : {}),
+      ...(onlyFail ? { result: 'failure' as const } : {}),
+    }),
+    [page, actionFilter, search, onlyFail],
+  );
+
+  const { data, isLoading, isError, error, refetch } = useSysAuditLogs(auditQuery);
 
   const logs: AuditLogEntry[] = data?.list ?? [];
   const total = data?.total ?? 0;
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return logs.filter((row) => {
-      if (onlyFail && row.result !== 'failure') return false;
-      if (!q) return true;
-      return (
-        row.operator.toLowerCase().includes(q) ||
-        row.action.toLowerCase().includes(q) ||
-        row.resource.toLowerCase().includes(q) ||
-        row.ip.toLowerCase().includes(q)
-      );
-    });
-  }, [logs, search, onlyFail]);
+  useEffect(() => {
+    setPage(1);
+  }, [search, actionFilter, onlyFail]);
 
   const exportCsv = () => {
     const header = ['time', 'operator', 'action', 'resource', 'ip', 'result'];
     const lines = [header.join(',')].concat(
-      filtered.map((r) =>
+      logs.map((r) =>
         [r.time, r.operator, r.action, r.resource, r.ip, r.result]
           .map((c) => `"${String(c).replace(/"/g, '""')}"`)
           .join(',')
@@ -70,7 +67,7 @@ export const AuditLogPage: React.FC<AuditLogPageProps> = ({
     a.download = `audit-${Date.now()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    showMessage('已导出当前筛选结果', 'success');
+    showMessage('已导出当前页数据（CSV）', 'success');
   };
 
   if (isError) {
@@ -122,7 +119,7 @@ export const AuditLogPage: React.FC<AuditLogPageProps> = ({
     >
       <ContentLoader loading={isLoading}>
         <div className="min-w-0 px-4 sm:px-6 pb-2 pt-1">
-          {filtered.length === 0 ? (
+          {logs.length === 0 ? (
             <EmptyState title="无匹配日志" description="调整搜索条件或筛选器" />
           ) : (
             <DataTable<AuditLogEntry>
@@ -172,7 +169,7 @@ export const AuditLogPage: React.FC<AuditLogPageProps> = ({
                   ),
                 },
               ]}
-              data={filtered}
+              data={logs}
               theme={theme}
               pagination={
                 total > 0

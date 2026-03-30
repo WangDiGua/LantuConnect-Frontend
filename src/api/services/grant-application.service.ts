@@ -37,7 +37,7 @@ export const grantApplicationService = {
     return normalizePaginated<GrantApplicationVO>(raw, (row) => normalizeVO(row));
   },
 
-  listPending: async (query?: { status?: string; page?: number; pageSize?: number }): Promise<PaginatedData<GrantApplicationVO>> => {
+  listPending: async (query?: { status?: string; page?: number; pageSize?: number; keyword?: string }): Promise<PaginatedData<GrantApplicationVO>> => {
     const raw = await http.get<unknown>('/grant-applications/pending', { params: query });
     return normalizePaginated<GrantApplicationVO>(raw, (row) => normalizeVO(row));
   },

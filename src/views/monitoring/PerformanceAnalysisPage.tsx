@@ -35,6 +35,9 @@ export const PerformanceAnalysisPage: React.FC<Props> = ({ theme, showMessage })
   const rows = useMemo(() => {
     const list = perfQ.data ?? [];
     if (list.length === 0) return [];
+    const key = (svc === 'gateway' ? 'gateway' : svc === 'inference' ? 'inference' : 'worker').toLowerCase();
+    const byService = list.filter((m) => m.service && String(m.service).toLowerCase() === key);
+    if (byService.length > 0) return byService;
     const bucket = svc === 'gateway' ? 0 : svc === 'inference' ? 1 : 2;
     return list.filter((_, i) => i % 3 === bucket);
   }, [perfQ.data, svc]);

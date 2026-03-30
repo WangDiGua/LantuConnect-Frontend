@@ -1,5 +1,27 @@
 import { http } from '../../lib/http';
 import type { PaginatedData, PaginationParams } from '../../types/api';
+
+/** 审计日志列表 query（与网关约定：未支持时由后端忽略） */
+export type AuditLogQueryParams = PaginationParams & {
+  action?: string;
+  keyword?: string;
+  /** 仅失败或仅成功；不传表示全部 */
+  result?: 'success' | 'failure';
+};
+
+export type AclRuleRow = { id: string; path: string; roles: string };
+
+function mapAclRuleRow(raw: unknown): AclRuleRow {
+  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const path = String(o.path ?? o.pattern ?? '');
+  const roles = String(o.roles ?? o.role ?? '');
+  const idRaw = String(o.id ?? '').trim();
+  return {
+    id: idRaw || `r-${path}-${roles}`,
+    path,
+    roles,
+  };
+}
 import { extractArray, normalizePaginated } from '../../utils/normalizeApiPayload';
 import type {
   AuditLogEntry,
@@ -139,7 +161,7 @@ export const systemConfigService = {
   getRateLimitById: (id: string) =>
     http.get<RateLimitRule>(`/system-config/rate-limits/${id}`),
 
-  listAuditLogs: async (params?: PaginationParams) => {
+  listAuditLogs: async (params?: AuditLogQueryParams) => {
     const raw = await http.get<unknown>('/system-config/audit-logs', { params });
     return normalizePaginated<AuditLogEntry>(raw);
   },
@@ -162,6 +184,20 @@ export const systemConfigService = {
 
   applyNetworkWhitelist: (rules: string[]) =>
     http.post<void>('/system-config/network/apply', { rules }),
+
+  /** GET：返回规则数组或 `{ rules: [...] }` */
+  getAclRules: async (): Promise<AclRuleRow[]> => {
+    const raw = await http.get<unknown>('/system-config/acl');
+    if (Array.isArray(raw)) return raw.map(mapAclRuleRow);
+    if (raw && typeof raw === 'object') {
+      const o = raw as Record<string, unknown>;
+      const inner = (Array.isArray(o.rules) ? o.rules : null)
+        ?? (Array.isArray(o.list) ? o.list : null)
+        ?? (Array.isArray(o.data) ? o.data : null);
+      if (Array.isArray(inner)) return inner.map(mapAclRuleRow);
+    }
+    return [];
+  },
 
   publishAcl: (rules: unknown[]) =>
     http.post<void>('/system-config/acl/publish', { rules }),

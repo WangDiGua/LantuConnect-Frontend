@@ -1,5 +1,18 @@
 import { http } from '../../lib/http';
 import type { PaginationParams } from '../../types/api';
+
+export type CallLogListParams = PaginationParams & {
+  keyword?: string;
+  /** success | error | timeout；不传表示全部 */
+  status?: string;
+};
+
+export type AlertListParams = PaginationParams & {
+  keyword?: string;
+  severity?: string;
+  /** firing | resolved | silenced；不传表示全部 */
+  alertStatus?: string;
+};
 import { extractArray, normalizePaginated } from '../../utils/normalizeApiPayload';
 import type {
   AlertRecord,
@@ -86,13 +99,20 @@ export const monitoringService = {
     return extractArray<KpiMetric>(raw);
   },
 
-  listCallLogs: async (params?: PaginationParams) => {
+  listCallLogs: async (params?: CallLogListParams) => {
     const raw = await http.get<unknown>('/monitoring/call-logs', { params });
     return normalizePaginated<CallLogEntry>(raw);
   },
 
-  listAlerts: async (params?: PaginationParams) => {
-    const raw = await http.get<unknown>('/monitoring/alerts', { params });
+  listAlerts: async (params?: AlertListParams) => {
+    const { alertStatus, ...rest } = params ?? {};
+    const statusFilter = alertStatus && alertStatus !== 'all' ? alertStatus : undefined;
+    const raw = await http.get<unknown>('/monitoring/alerts', {
+      params: {
+        ...rest,
+        ...(statusFilter ? { status: statusFilter } : {}),
+      },
+    });
     return normalizePaginated<AlertRecord>(raw);
   },
 

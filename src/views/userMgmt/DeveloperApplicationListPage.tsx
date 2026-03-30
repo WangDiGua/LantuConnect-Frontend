@@ -52,15 +52,29 @@ export const DeveloperApplicationListPage: React.FC<Props> = ({ theme, fontSize,
   const [page, setPage] = useState(1);
   const [data, setData] = useState<PaginatedData<DeveloperApplicationVO> | null>(null);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [actionTarget, setActionTarget] = useState<{ app: DeveloperApplicationVO; action: 'approve' | 'reject' } | null>(null);
   const [rejectComment, setRejectComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const id = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => window.clearTimeout(id);
+  }, [search]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
 
   const fetchList = useCallback(
     async (p: number) => {
       setLoading(true);
       try {
-        const res = await developerApplicationService.list({ page: p, pageSize: PAGE_SIZE });
+        const res = await developerApplicationService.list({
+          page: p,
+          pageSize: PAGE_SIZE,
+          ...(debouncedSearch ? { keyword: debouncedSearch } : {}),
+        });
         setData(res);
       } catch (e) {
         showMessage(e instanceof Error ? e.message : '加载失败', 'error');
@@ -68,7 +82,7 @@ export const DeveloperApplicationListPage: React.FC<Props> = ({ theme, fontSize,
         setLoading(false);
       }
     },
-    [showMessage],
+    [showMessage, debouncedSearch],
   );
 
   useEffect(() => {
@@ -102,17 +116,7 @@ export const DeveloperApplicationListPage: React.FC<Props> = ({ theme, fontSize,
   };
 
   const list = data?.list ?? [];
-
-  const filteredList = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return list;
-    return list.filter((app) => {
-      const person = `${app.userName ?? ''} ${app.username ?? ''} ${app.userId ?? ''}`.toLowerCase();
-      const mail = (app.contactEmail ?? '').toLowerCase();
-      const company = (app.companyName ?? '').toLowerCase();
-      return person.includes(q) || mail.includes(q) || company.includes(q);
-    });
-  }, [list, search]);
+  const filteredList = list;
 
   const columns = useMemo<MgmtDataTableColumn<DeveloperApplicationVO>[]>(
     () => [

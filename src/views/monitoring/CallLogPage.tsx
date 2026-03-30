@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import { useCallLogs } from '../../hooks/queries/useMonitoring';
@@ -36,29 +36,34 @@ export const CallLogPage: React.FC<CallLogPageProps> = ({ theme }) => {
   const { chromePageTitle } = useLayoutChrome();
   const isDark = theme === 'dark';
   const [q, setQ] = useState('');
+  const [debouncedQ, setDebouncedQ] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [page, setPage] = useState(1);
 
-  const logsQ = useCallLogs({ page, pageSize: PAGE_SIZE });
+  useEffect(() => {
+    const id = window.setTimeout(() => setDebouncedQ(q.trim()), 300);
+    return () => window.clearTimeout(id);
+  }, [q]);
 
-  const rows = useMemo(() => {
-    const list = logsQ.data?.list ?? [];
-    const term = q.trim().toLowerCase();
-    return list.filter((r) => {
-      if (statusFilter !== 'all' && r.status !== statusFilter) return false;
-      if (!term) return true;
-      return (
-        safeText(r.method).toLowerCase().includes(term)
-        || safeText(r.agentName).toLowerCase().includes(term)
-        || safeText(r.traceId).toLowerCase().includes(term)
-        || safeText(r.model).toLowerCase().includes(term)
-        || String(safeNumber(r.statusCode)).includes(term)
-      );
-    });
-  }, [logsQ.data, q, statusFilter]);
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedQ, statusFilter]);
+
+  const callLogParams = useMemo(
+    () => ({
+      page,
+      pageSize: PAGE_SIZE,
+      ...(debouncedQ ? { keyword: debouncedQ } : {}),
+      ...(statusFilter !== 'all' ? { status: statusFilter } : {}),
+    }),
+    [page, debouncedQ, statusFilter],
+  );
+
+  const logsQ = useCallLogs(callLogParams);
+
+  const rows = logsQ.data?.list ?? [];
 
   const total = logsQ.data?.total ?? 0;
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   if (logsQ.isError) {
     return (
@@ -108,7 +113,7 @@ export const CallLogPage: React.FC<CallLogPageProps> = ({ theme }) => {
             {logsQ.isLoading ? (
               <div className="p-4"><PageSkeleton type="table" rows={8} /></div>
             ) : rows.length === 0 ? (
-              <EmptyState title={q || statusFilter !== 'all' ? '无匹配记录' : '暂无调用记录'} description="请调整搜索条件或确认采集服务已启动。" />
+              <EmptyState title={debouncedQ || statusFilter !== 'all' ? '无匹配记录' : '暂无调用记录'} description="请调整搜索条件或确认采集服务已启动。" />
             ) : (
               <table className="w-full min-w-[1350px] text-sm">
                 <thead className={`border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>

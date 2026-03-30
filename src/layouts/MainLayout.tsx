@@ -442,30 +442,22 @@ const MainContent = React.memo<{
 
 MainContent.displayName = 'MainContent';
 
-/** 按路由 key 独立状态：退场结束后不再常驻 will-change，减轻滚动期合成层开销 */
+/** 路由切换动画；省略 will-change，避免与嵌套 overflow 滚动抢事件 */
 const RouteContentMotion: React.FC<{
   animationVariants: Variants;
   children: React.ReactNode;
-}> = ({ animationVariants, children }) => {
-  const [routeLayerWillChange, setRouteLayerWillChange] = React.useState<'opacity, transform' | 'auto'>(
-    'opacity, transform',
-  );
-  return (
-    <motion.div
-      variants={animationVariants}
-      initial="initial"
-      animate="animate"
-      exit="exit"
-      transition={springTransition}
-      className="flex min-h-0 flex-1 flex-col pb-8"
-      style={{ willChange: routeLayerWillChange }}
-      onAnimationStart={() => setRouteLayerWillChange('opacity, transform')}
-      onAnimationComplete={() => setRouteLayerWillChange('auto')}
-    >
-      {children}
-    </motion.div>
-  );
-};
+}> = ({ animationVariants, children }) => (
+  <motion.div
+    variants={animationVariants}
+    initial="initial"
+    animate="animate"
+    exit="exit"
+    transition={springTransition}
+    className="flex min-h-0 w-full flex-col pb-8"
+  >
+    {children}
+  </motion.div>
+);
 
 export const MainLayout: React.FC = () => {
   const [themePreference, setThemePreference] = useState<ThemeMode>(() => readAppearanceState().themePreference);

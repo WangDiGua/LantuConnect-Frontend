@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, LogIn, ShieldAlert } from 'lucide-react';
+import { LogIn, ShieldAlert } from 'lucide-react';
 
 /**
  * 401 会话失效 / 未授权页：与站点首页卡片风格一致的左右分栏 + 终端动效
@@ -84,23 +84,14 @@ export const UnauthorizedPage: React.FC = () => {
               请重新登录 Nexus 平台以继续进行您的开发与发布工作。
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col">
               <button
                 type="button"
                 onClick={() => navigate('/login')}
-                className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-black text-white font-medium hover:bg-gray-800 transition-colors duration-200"
+                className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-black text-white font-medium hover:bg-gray-800 transition-colors duration-200 w-fit"
               >
                 重新登录
                 <LogIn size={18} />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => navigate(-1)}
-                className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-white text-gray-700 font-medium border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
-              >
-                返回控制台
-                <ArrowRight size={18} className="text-gray-400" />
               </button>
             </div>
 

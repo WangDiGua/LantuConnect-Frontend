@@ -173,7 +173,7 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
                   const h = Math.max((point.calls / max) * 100, 2);
                   const axisLabel = formatTrendAxisLabel(point.hour);
                   return (
-                    <div key={idx} className="flex-1 flex flex-col items-center gap-1">
+                    <div key={`call-trend-${String(point.hour)}-${idx}`} className="flex-1 flex flex-col items-center gap-1">
                       <div className={`w-full rounded-t transition-all ${isDark ? 'bg-neutral-900/40' : 'bg-neutral-200'}`}
                         style={{ height: `${h}%` }} title={`${axisLabel}: ${point.calls} 次调用`} />
                       {idx % 4 === 0 && <span className={`text-[9px] ${tm} tabular-nums`}>{axisLabel}</span>}
@@ -195,8 +195,8 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
             </div>
             {rt?.systemHealth && rt.systemHealth.length > 0 ? (
               <div className="space-y-2">
-                {rt.systemHealth.map((item) => (
-                  <div key={item.component} className="flex items-center justify-between">
+                {rt.systemHealth.map((item, idx) => (
+                  <div key={`${item.component}-${idx}`} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Server size={14} className={tm} />
                       <span className={`text-sm ${tp}`}>{item.component}</span>
@@ -230,7 +230,7 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
             </div>
             <div className="space-y-2">
               {rt.topResourcesByCall.slice(0, 8).map((item, idx) => (
-                <div key={item.name} className={`flex items-center gap-3 py-2 ${idx > 0 ? `border-t ${isDark ? 'border-white/[0.04]' : 'border-slate-50'}` : ''}`}>
+                <div key={`${item.type}-${item.name}-${idx}`} className={`flex items-center gap-3 py-2 ${idx > 0 ? `border-t ${isDark ? 'border-white/[0.04]' : 'border-slate-50'}` : ''}`}>
                   <span className={`w-6 text-center text-xs font-bold ${idx < 3 ? 'text-neutral-800' : tm}`}>#{idx + 1}</span>
                   <div className="flex-1 min-w-0">
                     <span className={`text-sm font-medium ${tp}`}>{item.name}</span>

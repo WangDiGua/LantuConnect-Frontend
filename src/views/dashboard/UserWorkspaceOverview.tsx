@@ -7,9 +7,8 @@ import {
 } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import type { UserWorkspace } from '../../types/dto/dashboard';
-import type { UserDashboardData, AnnouncementItem } from '../../types/dto/explore';
+import type { UserDashboardData } from '../../types/dto/explore';
 import { dashboardService } from '../../api/services/dashboard.service';
-import { systemConfigService } from '../../api/services/system-config.service';
 import { useAuthStore } from '../../stores/authStore';
 import { bentoCard, bentoCardHover, canvasBodyBg, mainScrollCompositorClass, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
 import { PageError } from '../../components/common/PageError';
@@ -44,23 +43,17 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
   const [loadError, setLoadError] = useState<Error | null>(null);
   const [workspace, setWorkspace] = useState<UserWorkspace | null>(null);
   const [dashboard, setDashboard] = useState<UserDashboardData | null>(null);
-  const [announcements, setAnnouncements] = useState<AnnouncementItem[]>([]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
     try {
-      const [ws, db, ann] = await Promise.allSettled([
+      const [ws, db] = await Promise.allSettled([
         dashboardService.getUserWorkspace(),
         dashboardService.getUserDashboard(),
-        systemConfigService.listAnnouncements({ page: 1, pageSize: 3 }),
       ]);
       if (ws.status === 'fulfilled') setWorkspace(ws.value);
       if (db.status === 'fulfilled') setDashboard(db.value);
-      if (ann.status === 'fulfilled') {
-        const annData = ann.value;
-        setAnnouncements(annData?.list ?? (Array.isArray(annData) ? annData as any : []));
-      }
       if (ws.status === 'rejected' && db.status === 'rejected') {
         setLoadError(ws.reason instanceof Error ? ws.reason : new Error('加载工作台数据失败'));
       }
@@ -125,37 +118,6 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
               Nexus AI 智能体协同平台为你提供 AI 智能体、技能与智能应用服务。
             </p>
           </BentoCard>
-        </motion.div>
-
-        {/* Announcements：始终展示区域，避免无数据时误以为未实现 */}
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={spring}
-          className={`${bentoCard(theme)} p-4`}>
-          <div className="flex items-center gap-2 mb-2">
-            <Bell size={16} className={ts} />
-            <h2 className={`font-bold text-sm ${tp}`}>平台公告</h2>
-          </div>
-          {announcements.length > 0 ? (
-            <div className="space-y-2">
-              {announcements.map((a) => {
-                const blurb = cleanAnnouncementSummary(a.summary);
-                return (
-                  <div key={a.id} className={`flex items-start gap-2 text-sm ${ts}`}>
-                    <span>{a.type === 'feature' ? '🚀' : a.type === 'maintenance' ? '🔧' : a.type === 'update' ? '📦' : '📢'}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="min-w-0">
-                        <span className={`font-medium ${tp}`}>{a.title}</span>
-                        <span className="mx-1">·</span>
-                        <span className={tm}>{formatDateTime(a.createdAt)}</span>
-                      </div>
-                      {blurb ? <p className={`text-xs mt-0.5 ${tm} line-clamp-2`}>{blurb}</p> : null}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <p className={`text-sm ${tm}`}>暂无平台公告。</p>
-          )}
         </motion.div>
 
         {/* KPI + Quota Row */}

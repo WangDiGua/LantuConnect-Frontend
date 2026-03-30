@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Activity, AlertTriangle, Bell, CheckCircle2, Clock, Loader2,
   TrendingUp, Users, Zap, Shield, ArrowUpRight, RefreshCw,
-  Server, BarChart3, Megaphone,
+  Server, BarChart3,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -11,12 +11,10 @@ import { bentoCard, bentoCardHover, canvasBodyBg, mainScrollCompositorClass, tex
 import { PageError } from '../../components/common/PageError';
 import { buildPath } from '../../constants/consoleRoutes';
 import { dashboardService } from '../../api/services/dashboard.service';
-import { systemConfigService } from '../../api/services/system-config.service';
-import type { AdminRealtimeData, AnnouncementItem } from '../../types/dto/explore';
+import type { AdminRealtimeData } from '../../types/dto/explore';
 import type { AdminOverview } from '../../types/dto/dashboard';
-import type { PaginatedData } from '../../types/api';
 import { DashboardLayout } from '../../components/layout/PageLayouts';
-import { cleanAnnouncementSummary, formatDateTime } from '../../utils/formatDateTime';
+import { formatDateTime } from '../../utils/formatDateTime';
 
 interface OverviewProps { theme: Theme; fontSize: FontSize; }
 
@@ -48,25 +46,17 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
   const [loadError, setLoadError] = useState<Error | null>(null);
   const [overview, setOverview] = useState<AdminOverview | null>(null);
   const [realtime, setRealtime] = useState<AdminRealtimeData | null>(null);
-  const [announcements, setAnnouncements] = useState<AnnouncementItem[]>([]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
     try {
-      const [ov, rt, ann] = await Promise.allSettled([
+      const [ov, rt] = await Promise.allSettled([
         dashboardService.getAdminOverview(),
         dashboardService.getAdminRealtime(),
-        systemConfigService.listAnnouncements({ page: 1, pageSize: 5 }),
       ]);
       if (ov.status === 'fulfilled') setOverview(ov.value);
       if (rt.status === 'fulfilled') setRealtime(rt.value);
-      if (ann.status === 'fulfilled') {
-        const d = ann.value as PaginatedData<AnnouncementItem>;
-        setAnnouncements(d?.list ?? []);
-      } else {
-        setAnnouncements([]);
-      }
       if (ov.status === 'rejected' && rt.status === 'rejected') {
         setLoadError(ov.reason instanceof Error ? ov.reason : new Error('加载管理概览失败'));
       }
@@ -166,52 +156,6 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
             </motion.div>
           ))}
         </div>
-
-        {/* Platform announcements (手册：面向所有角色的公告展示；管理端可跳转维护) */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ ...spring, delay: 0.16 }}
-          className={`${cardStatic} p-5`}
-        >
-          <div className="flex items-center justify-between gap-3 mb-3">
-            <div className="flex items-center gap-2 min-w-0">
-              <Megaphone size={18} className={ts} />
-              <h2 className={`font-bold text-sm ${tp}`}>平台公告</h2>
-            </div>
-            <button
-              type="button"
-              onClick={() => navigate(buildPath('admin', 'announcements'))}
-              className={`shrink-0 text-xs font-semibold ${isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`}
-            >
-              管理公告
-            </button>
-          </div>
-          {announcements.length > 0 ? (
-            <div className="space-y-2">
-              {announcements.map((a) => {
-                const blurb = cleanAnnouncementSummary(a.summary);
-                return (
-                  <div key={a.id} className={`flex items-start gap-2 text-sm ${ts}`}>
-                    <span aria-hidden>
-                      {a.type === 'feature' ? '🚀' : a.type === 'maintenance' ? '🔧' : a.type === 'update' ? '📦' : '📢'}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <div className="min-w-0">
-                        <span className={`font-medium ${tp}`}>{a.title}</span>
-                        <span className="mx-1">·</span>
-                        <span className={tm}>{formatDateTime(a.createdAt)}</span>
-                      </div>
-                      {blurb ? <p className={`text-xs mt-0.5 ${tm} line-clamp-2`}>{blurb}</p> : null}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <p className={`text-sm ${tm}`}>暂无公告。可在「系统配置 → 平台公告」发布。</p>
-          )}
-        </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 

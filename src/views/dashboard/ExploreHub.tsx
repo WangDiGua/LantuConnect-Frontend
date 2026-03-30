@@ -126,7 +126,7 @@ const HeroCodeTerminal: React.FC = () => {
         <div className="mx-auto text-xs text-gray-500 font-mono">agent-deploy.ts</div>
       </div>
 
-      <div className="p-5 font-mono text-sm leading-relaxed overflow-hidden overflow-x-hidden h-[220px] min-w-0">
+      <div className="p-5 font-mono text-sm leading-relaxed overflow-y-auto overflow-x-hidden h-[220px] min-h-0 min-w-0 custom-scrollbar">
         <pre className="text-gray-300 whitespace-pre-wrap break-words min-w-0">
           <code dangerouslySetInnerHTML={{ __html: highlightTerminalCode(typedCode) }} />
           <span className="inline-block w-2 h-4 bg-blue-400 ml-1 animate-pulse" aria-hidden />

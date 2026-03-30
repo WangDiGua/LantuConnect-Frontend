@@ -1,0 +1,214 @@
+---
+description: 前端 DTO 类型定义规范，基于实际数据库表结构，指导 Mock 数据构造和 API 对接
+alwaysApply: true
+---
+
+# 前端数据模型（DTO）规范
+
+所有前端类型定义在 `src/types/dto/` 下，Mock 数据和 API 服务必须遵循这些类型。
+
+## User（映射 t_user，不可改字段名）
+
+```typescript
+interface User {
+  userId: number;            // t_user.user_id
+  username: string;          // t_user.username (学工号)
+  realName: string;          // t_user.real_name
+  sex: number;               // 1男 2女 0未知
+  schoolId: number;          // t_user.school_id
+  menuId: number;            // t_user.menu_id (主组织架构ID)
+  major: string | null;      // 专业（学生）
+  class: string | null;      // 班级（学生）
+  role: number;              // 学校身份（不是平台角色）
+  mobile: string | null;
+  mail: string | null;
+  headImage: string | null;
+  zw: string | null;         // 职务
+  zc: string | null;         // 职称
+  platformRoles: PlatformRole[];  // 接入平台叠加的角色
+}
+```
+
+## OrgNode（映射 t_menu，树形组织架构）
+
+```typescript
+interface OrgNode {
+  menuId: number;
+  menuName: string;
+  menuParentId: number;      // 0=顶级
+  menuLevel: number;
+  ifXy: number;              // 1=学院 0=非学院
+  children?: OrgNode[];
+}
+```
+
+## PlatformRole（新增角色体系）
+
+```typescript
+interface PlatformRole {
+  id: number;
+  roleCode: 'platform_admin' | 'dept_admin' | 'developer' | 'user';
+  roleName: string;
+  permissions: string[];
+}
+// 权限标识：agent:view/create/edit/delete/publish/audit, skill:*, app:*, dataset:*, provider:manage, user:manage, system:config, monitor:view
+```
+
+## Agent（genie_external_agent 中 mode=SUBAGENT）
+
+```typescript
+interface Agent {
+  id: number;
+  agentName: string;         // 唯一标识
+  displayName: string;
+  description: string;
+  agentType: 'mcp' | 'http_api' | 'builtin';
+  mode: 'SUBAGENT' | 'ALL';
+  sourceType: 'internal' | 'partner' | 'cloud';
+  categoryId: number | null;
+  status: 'draft' | 'pending_review' | 'testing' | 'published' | 'rejected' | 'deprecated';
+  specJson: object;          // 连接配置 {url, api_key, headers, timeout}
+  isPublic: boolean;
+  icon: string | null;
+  sortOrder: number;
+  // 运行参数
+  maxConcurrency: number;
+  maxSteps: number | null;
+  temperature: number | null;
+  systemPrompt: string | null;
+  // 指标
+  qualityScore: number;
+  avgLatencyMs: number;
+  successRate: number;
+  avgTokenCost: number;
+  callCount: number;
+  // 时间
+  createTime: string;
+  updateTime: string;
+}
+```
+
+## Skill（genie_external_agent 中 mode=TOOL）
+
+```typescript
+interface Skill {
+  id: number;
+  agentName: string;
+  displayName: string;
+  description: string;
+  agentType: 'mcp' | 'http_api' | 'builtin';
+  mode: 'TOOL';
+  parentId: number | null;   // 所属 MCP Server 的 id
+  sourceType: 'internal' | 'partner' | 'cloud';
+  categoryId: number | null;
+  status: 'draft' | 'pending_review' | 'testing' | 'published' | 'rejected' | 'deprecated';
+  displayTemplate: string | null;  // file/image/audio/video/app/answer 等
+  specJson: object;
+  parametersSchema: object | null; // 工具参数 JSON Schema
+  isPublic: boolean;
+  icon: string | null;
+  sortOrder: number;
+  // 指标
+  qualityScore: number;
+  avgLatencyMs: number;
+  successRate: number;
+  callCount: number;
+  createTime: string;
+  updateTime: string;
+}
+```
+
+## SmartApp（智能应用）
+
+```typescript
+interface SmartApp {
+  id: number;
+  appName: string;
+  displayName: string;
+  description: string;
+  appUrl: string;
+  embedType: 'iframe' | 'micro_frontend' | 'redirect';
+  icon: string | null;
+  screenshots: string[];
+  categoryId: number | null;
+  sourceType: 'internal' | 'partner';
+  status: 'draft' | 'published' | 'deprecated';
+  isPublic: boolean;
+  createTime: string;
+  updateTime: string;
+}
+```
+
+## Dataset（数据集）
+
+```typescript
+interface Dataset {
+  id: number;
+  datasetName: string;
+  displayName: string;
+  description: string;
+  sourceType: 'department' | 'knowledge' | 'third_party';
+  dataType: 'document' | 'structured' | 'image' | 'audio' | 'video' | 'mixed';
+  format: string;            // csv/json/pdf/docx/parquet...
+  recordCount: number;
+  fileSize: number;          // bytes
+  categoryId: number | null;
+  status: 'draft' | 'published' | 'deprecated';
+  tags: string[];
+  isPublic: boolean;
+  allowedDepartments: number[];  // 允许访问的组织 menu_id 列表
+  relatedAgentIds: number[];
+  createTime: string;
+  updateTime: string;
+}
+```
+
+## Provider（服务提供商）
+
+```typescript
+interface Provider {
+  id: number;
+  providerCode: string;
+  providerName: string;
+  providerType: 'internal' | 'partner' | 'cloud';
+  description: string | null;
+  authType: 'api_key' | 'oauth2' | 'basic' | 'none';
+  authConfig: object | null; // {api_key, client_id, client_secret...}
+  baseUrl: string | null;
+  status: 'active' | 'inactive';
+  createTime: string;
+  updateTime: string;
+}
+```
+
+## Category（分类，树形）
+
+```typescript
+interface Category {
+  id: number;
+  categoryCode: string;
+  categoryName: string;
+  parentId: number | null;   // null=顶级
+  icon: string | null;
+  sortOrder: number;
+  children?: Category[];
+}
+// 预设分类：校园业务、教学科研、办公效率、数据分析、生活服务
+```
+
+## API 响应统一格式
+
+```typescript
+interface ApiResponse<T> {
+  code: number;              // 0=成功
+  message: string;
+  data: T;
+}
+
+interface PageResponse<T> {
+  records: T[];
+  total: number;
+  pageNum: number;
+  pageSize: number;
+}
+```

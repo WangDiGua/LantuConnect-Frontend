@@ -1,0 +1,77 @@
+import { http } from '../../lib/http';
+import { DEFAULT_USER_API_KEY_SCOPES } from '../../utils/apiKeyScopes';
+import { extractArray } from '../../utils/normalizeApiPayload';
+import type {
+  CreateUserApiKeyPayload,
+  UserApiKey,
+  UserStats,
+  UserWorkspace,
+} from '../../types/dto/user-settings';
+
+function numPg(v: unknown, fallback = 0): number {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function normalizeUserApiKeyStatus(raw: unknown): UserApiKey['status'] {
+  const s = String(raw ?? '').toLowerCase();
+  if (s === 'expired' || s === 'revoked' || s === 'active') return s;
+  return 'active';
+}
+
+/** 与 /user-mgmt 列表一致：后端可能返回 apiKeyId、keyName、masked 等别名 */
+function mapUserApiKeyRecord(raw: unknown): UserApiKey {
+  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const scopesRaw = o.scopes;
+  const scopes = Array.isArray(scopesRaw)
+    ? scopesRaw.map((x) => String(x))
+    : typeof scopesRaw === 'string' && scopesRaw.trim()
+      ? scopesRaw.split(/[\s,]+/).filter(Boolean)
+      : [];
+  return {
+    id: String(o.id ?? o.apiKeyId ?? o.keyId ?? '').trim(),
+    name: String(o.name ?? o.keyName ?? '未命名'),
+    prefix: String(o.prefix ?? o.keyPrefix ?? ''),
+    maskedKey: String(o.maskedKey ?? o.masked ?? ''),
+    scopes,
+    status: normalizeUserApiKeyStatus(o.status),
+    expiresAt: o.expiresAt ? String(o.expiresAt) : undefined,
+    lastUsedAt: o.lastUsedAt ? String(o.lastUsedAt) : undefined,
+    lastUsed: o.lastUsed ? String(o.lastUsed) : undefined,
+    callCount: numPg(o.callCount ?? o.invokeCount),
+    createdAt: String(o.createdAt ?? o.createTime ?? ''),
+  };
+}
+
+export const userSettingsService = {
+  getWorkspace: () =>
+    http.get<UserWorkspace>('/user-settings/workspace'),
+
+  updateWorkspace: (data: Partial<Omit<UserWorkspace, 'id' | 'createdAt' | 'updatedAt'>>) =>
+    http.put<UserWorkspace>('/user-settings/workspace', data),
+
+  listApiKeys: async () => {
+    const raw = await http.get<unknown>('/user-settings/api-keys');
+    return extractArray<unknown>(raw)
+      .map(mapUserApiKeyRecord)
+      /** DELETE 多为软撤销：接口仍可能返回 status=revoked 行，列表仅展示仍可用密钥 */
+      .filter((k) => k.status !== 'revoked');
+  },
+
+  createApiKey: async (data: CreateUserApiKeyPayload) => {
+    const scopes =
+      Array.isArray(data.scopes) && data.scopes.length > 0 ? data.scopes : [...DEFAULT_USER_API_KEY_SCOPES];
+    const raw = await http.post<UserApiKey & { plainKey?: string; secretPlain?: string }>(
+      '/user-settings/api-keys',
+      { ...data, scopes },
+    );
+    const plain = (raw as { secretPlain?: string; plainKey?: string }).secretPlain ?? raw.plainKey ?? '';
+    const base = mapUserApiKeyRecord(raw);
+    return { ...base, plainKey: plain };
+  },
+
+  deleteApiKey: (id: string) =>
+    http.delete(`/user-settings/api-keys/${id}`),
+
+  getStats: () => http.get<UserStats>('/user-settings/stats'),
+};

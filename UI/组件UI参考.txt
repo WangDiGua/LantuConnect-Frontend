@@ -1,0 +1,906 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Command, ArrowRight, Search, Mail, Settings, Bell, 
+  CheckCircle2, AlertCircle, Info, ChevronDown, MoreHorizontal, 
+  Plus, Activity, Box, Cpu, Users, FileText, Trash2, Edit2, 
+  X, AlertTriangle, Check, CreditCard, Layout, ChevronRight,
+  Loader2, Home, HelpCircle, DownloadCloud, UploadCloud,
+  Terminal, Copy, ChevronLeft, Zap, Database, Globe,
+  Send, Paperclip, Mic, User, Eye, EyeOff, GripVertical,
+  Star, Calendar, Palette, Clock, ThumbsUp, ThumbsDown, LogOut, UserCircle
+} from 'lucide-react';
+
+// ==========================================
+// 1. Typography & Layout (排版与布局) 1-9
+// ==========================================
+const Heading = ({ children, level = 1, className = '' }) => {
+  const tags = { 1: 'h1', 2: 'h2', 3: 'h3', 4: 'h4', 5: 'h5', 6: 'h6' };
+  const sizes = { 1: 'text-4xl font-semibold tracking-tight', 2: 'text-3xl font-semibold tracking-tight', 3: 'text-2xl font-semibold tracking-tight', 4: 'text-xl font-semibold tracking-tight', 5: 'text-lg font-semibold tracking-tight', 6: 'text-base font-semibold text-neutral-900 tracking-tight' };
+  const Tag = tags[level];
+  return <Tag className={`text-neutral-900 ${sizes[level]} ${className}`}>{children}</Tag>;
+};
+const Text = ({ children, variant = 'body', className = '' }) => {
+  const variants = { body: 'text-[14px] text-neutral-600 leading-relaxed', muted: 'text-[13px] text-neutral-500 leading-relaxed', small: 'text-[12px] text-neutral-500 leading-relaxed' };
+  return <p className={`${variants[variant]} ${className}`}>{children}</p>;
+};
+const Link = ({ children, href = '#', className = '' }) => (
+  <a href={href} className={`text-[14px] font-medium text-neutral-900 hover:text-neutral-600 underline underline-offset-4 decoration-neutral-300 hover:decoration-neutral-900 transition-all ${className}`}>{children}</a>
+);
+const Label = ({ children, className = '', required }) => (
+  <label className={`text-[13px] font-medium text-neutral-700 block mb-1.5 ${className}`}>{children} {required && <span className="text-red-500">*</span>}</label>
+);
+const Divider = ({ className = '', orientation = 'horizontal' }) => (
+  <div className={`${orientation === 'horizontal' ? 'w-full h-px' : 'h-full w-px'} bg-neutral-200/60 ${className}`} />
+);
+const Section = ({ children, title, description, className = '' }) => (
+  <section className={`space-y-6 ${className}`}>
+    {(title || description) && (
+      <div className="border-b border-neutral-200/80 pb-3">
+        {title && <Heading level={3} className="mb-1">{title}</Heading>}
+        {description && <Text variant="muted">{description}</Text>}
+      </div>
+    )}
+    <div>{children}</div>
+  </section>
+);
+const Blockquote = ({ children, className = '' }) => (
+  <blockquote className={`border-l-4 border-neutral-200 pl-4 py-1 text-[14px] text-neutral-600 italic ${className}`}>{children}</blockquote>
+);
+const List = ({ children, ordered = false, className = '' }) => {
+  const Tag = ordered ? 'ol' : 'ul';
+  return <Tag className={`space-y-2 text-[14px] text-neutral-600 ${ordered ? 'list-decimal pl-5' : 'list-none'} ${className}`}>{children}</Tag>;
+};
+const ListItem = ({ children, className = '' }) => (
+  <li className={`flex items-start gap-2 ${className}`}><span className="w-1.5 h-1.5 rounded-full bg-neutral-300 mt-2 shrink-0 hidden [.list-none_&]:block"></span>{children}</li>
+);
+
+// ==========================================
+// 2. Actions (按钮与操作) 10-14
+// ==========================================
+const Button = ({ children, variant = 'primary', size = 'md', className = '', icon: Icon, iconPosition = 'left', disabled, isLoading, onClick }) => {
+  const base = "relative inline-flex items-center justify-center gap-2 font-medium transition-all duration-200 overflow-hidden active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none disabled:active:scale-100";
+  const variants = { primary: "bg-neutral-900 text-white hover:bg-neutral-800 shadow-sm", secondary: "bg-neutral-100 text-neutral-900 hover:bg-neutral-200/80", outline: "bg-white border border-neutral-200 text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900 shadow-sm", ghost: "bg-transparent text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900", danger: "bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700" };
+  const sizes = { sm: "h-8 px-3 text-xs rounded-lg", md: "h-10 px-4 text-[13px] rounded-xl", lg: "h-12 px-6 text-[15px] rounded-xl" };
+  return (
+    <button className={`${base} ${variants[variant]} ${sizes[size]} ${className}`} disabled={disabled || isLoading} onClick={onClick}>
+      {isLoading ? <Loader2 className="animate-spin w-4 h-4" /> : (Icon && iconPosition === 'left' && <Icon className="w-4 h-4" />)}
+      {!isLoading && children}
+      {Icon && iconPosition === 'right' && !isLoading && <Icon className="w-4 h-4" />}
+      {variant === 'primary' && !disabled && !isLoading && <div className="absolute inset-0 bg-white/20 translate-y-full hover:translate-y-0 transition-transform duration-300 ease-out pointer-events-none"></div>}
+    </button>
+  );
+};
+const IconButton = ({ icon: Icon, variant = 'ghost', size = 'md', className = '', ...props }) => {
+  const sizes = { sm: "h-8 w-8 rounded-lg", md: "h-10 w-10 rounded-xl", lg: "h-12 w-12 rounded-xl" };
+  return <Button variant={variant} className={`!px-0 flex items-center justify-center ${sizes[size]} ${className}`} {...props}><Icon className="w-4 h-4" /></Button>;
+};
+const ButtonGroup = ({ children, className = '' }) => (
+  <div className={`inline-flex rounded-xl overflow-hidden border border-neutral-200 shadow-sm [&>button]:border-0 [&>button]:rounded-none [&>button]:border-r [&>button]:border-neutral-200 last:[&>button]:border-r-0 ${className}`}>{children}</div>
+);
+const CopyButton = ({ value, className = '' }) => {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => { navigator.clipboard.writeText(value); setCopied(true); setTimeout(() => setCopied(false), 2000); };
+  return <IconButton icon={copied ? Check : Copy} variant="ghost" size="sm" onClick={handleCopy} className={className} />;
+};
+const Toggle = ({ active, onChange, icon: Icon, label, className = '' }) => (
+  <button onClick={() => onChange(!active)} className={`h-10 px-4 text-[13px] font-medium rounded-xl flex items-center gap-2 transition-colors border ${active ? 'bg-neutral-900 text-white border-neutral-900 shadow-sm' : 'bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-50 hover:text-neutral-900'} ${className}`}>
+    {Icon && <Icon className="w-4 h-4" />}{label}
+  </button>
+);
+
+// ==========================================
+// 3. Forms & Inputs (数据录入) 15-31
+// ==========================================
+const Input = ({ label, icon: Icon, rightIcon: RightIcon, error, helperText, className = '', required, ...props }) => (
+  <div className={`w-full ${className}`}>
+    {label && <Label required={required}>{label}</Label>}
+    <div className="relative">
+      {Icon && <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none"><Icon className="w-4 h-4 text-neutral-400" /></div>}
+      {/* Updated to perfectly match Login focus state: ring-4, border-neutral-900 */}
+      <input className={`w-full py-2.5 bg-neutral-50/50 border rounded-xl text-[13px] text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-4 focus:bg-white transition-all duration-300 shadow-sm ${Icon ? 'pl-10' : 'pl-4'} ${RightIcon ? 'pr-10' : 'pr-4'} ${error ? 'border-red-300 focus:ring-red-500/10 focus:border-red-500' : 'border-neutral-200 focus:ring-neutral-900/5 focus:border-neutral-900 hover:border-neutral-300'}`} {...props} />
+      {RightIcon && <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center"><RightIcon className="w-4 h-4 text-neutral-400 cursor-pointer hover:text-neutral-600 transition-colors" /></div>}
+    </div>
+    {error && <p className="text-[12px] text-red-500 font-medium mt-1.5">{error}</p>}
+    {helperText && !error && <p className="text-[12px] text-neutral-500 mt-1.5">{helperText}</p>}
+  </div>
+);
+const PasswordInput = ({ label, ...props }) => {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="w-full">
+      {label && <Label>{label}</Label>}
+      <div className="relative">
+        <input type={show ? "text" : "password"} className="w-full py-2.5 pl-4 pr-10 bg-neutral-50/50 border border-neutral-200 rounded-xl text-[13px] text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-4 focus:bg-white focus:ring-neutral-900/5 focus:border-neutral-900 transition-all shadow-sm" {...props} />
+        <button type="button" onClick={() => setShow(!show)} className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-neutral-400 hover:text-neutral-900 transition-colors">{show ? <EyeOff className="w-4 h-4"/> : <Eye className="w-4 h-4"/>}</button>
+      </div>
+    </div>
+  );
+};
+const SearchInput = (props) => <Input icon={Search} placeholder="Search..." {...props} />;
+const NumberInput = (props) => <Input type="number" {...props} />;
+const PinInput = ({ length = 6, value = '', onChange }) => (
+  <div className="flex gap-2">
+    {Array.from({ length }).map((_, i) => (
+      <input key={i} type="text" maxLength={1} className="w-10 h-12 text-center text-lg font-mono font-medium bg-neutral-50/50 border border-neutral-200 rounded-xl focus:bg-white focus:border-neutral-900 focus:ring-4 focus:ring-neutral-900/5 transition-all shadow-sm" value={value[i] || ''} onChange={(e) => { const newVal = value.split(''); newVal[i] = e.target.value; onChange(newVal.join('')); }} />
+    ))}
+  </div>
+);
+const Textarea = ({ label, error, helperText, className = '', required, ...props }) => (
+  <div className={`w-full ${className}`}>
+    {label && <Label required={required}>{label}</Label>}
+    <textarea className={`w-full p-4 bg-neutral-50/50 border rounded-xl text-[13px] text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:bg-white focus:ring-4 transition-all duration-300 shadow-sm resize-y min-h-[100px] ${error ? 'border-red-300 focus:ring-red-500/10 focus:border-red-500' : 'border-neutral-200 focus:ring-neutral-900/5 focus:border-neutral-900 hover:border-neutral-300'}`} {...props} />
+    {error && <p className="text-[12px] text-red-500 font-medium mt-1.5">{error}</p>}
+    {helperText && !error && <p className="text-[12px] text-neutral-500 mt-1.5">{helperText}</p>}
+  </div>
+);
+const TagInput = ({ label, tags = [], onChange, placeholder = "Add tag..." }) => {
+  const [input, setInput] = useState('');
+  const handleKeyDown = (e) => { if (e.key === 'Enter' && input.trim()) { e.preventDefault(); if (!tags.includes(input.trim())) onChange([...tags, input.trim()]); setInput(''); } };
+  return (
+    <div className="w-full">
+      {label && <Label>{label}</Label>}
+      <div className="flex flex-wrap gap-2 p-2 bg-neutral-50/50 border border-neutral-200 rounded-xl focus-within:bg-white focus-within:ring-4 focus-within:ring-neutral-900/5 focus-within:border-neutral-900 transition-all shadow-sm min-h-[44px]">
+        {tags.map(t => <Tag key={t} onRemove={() => onChange(tags.filter(tag => tag !== t))}>{t}</Tag>)}
+        <input type="text" value={input} onChange={e=>setInput(e.target.value)} onKeyDown={handleKeyDown} placeholder={tags.length === 0 ? placeholder : ''} className="flex-1 min-w-[120px] bg-transparent outline-none text-[13px] text-neutral-900 placeholder:text-neutral-400 px-2" />
+      </div>
+    </div>
+  );
+};
+const ColorPicker = ({ label, value, onChange }) => (
+  <div className="w-full">
+    {label && <Label>{label}</Label>}
+    <div className="flex items-center gap-3">
+      <div className="w-10 h-10 rounded-xl shadow-sm border border-neutral-200 flex-shrink-0" style={{ backgroundColor: value }}></div>
+      <Input value={value} onChange={e=>onChange(e.target.value)} placeholder="#000000" className="flex-1" />
+    </div>
+  </div>
+);
+const DatePicker = ({ label, value, placeholder = "Select date" }) => (
+  <div className="w-full">
+    {label && <Label>{label}</Label>}
+    <button className="w-full py-2.5 pl-4 pr-4 bg-neutral-50/50 border border-neutral-200 rounded-xl text-[13px] text-left hover:border-neutral-300 hover:bg-white transition-all shadow-sm flex items-center gap-2">
+      <Calendar className="w-4 h-4 text-neutral-400" />
+      <span className={value ? "text-neutral-900" : "text-neutral-400"}>{value || placeholder}</span>
+    </button>
+  </div>
+);
+const Select = ({ label, options = [], value, onChange, placeholder = "Select...", className = '', required }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedOption = options.find(opt => opt.value === value);
+  return (
+    <div className={`w-full relative ${className}`}>
+      {label && <Label required={required}>{label}</Label>}
+      <div className={`w-full py-2.5 pl-4 pr-10 bg-neutral-50/50 border rounded-xl text-[13px] cursor-pointer shadow-sm transition-all duration-300 flex items-center justify-between ${isOpen ? 'bg-white border-neutral-900 ring-4 ring-neutral-900/5' : 'border-neutral-200 hover:border-neutral-300 hover:bg-white'}`} onClick={() => setIsOpen(!isOpen)}>
+        <span className={selectedOption ? "text-neutral-900" : "text-neutral-400"}>{selectedOption ? selectedOption.label : placeholder}</span>
+        <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none"><ChevronDown className={`w-4 h-4 text-neutral-400 transition-transform duration-200 ${isOpen ? 'rotate-180 text-neutral-900' : ''}`} /></div>
+      </div>
+      {isOpen && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
+          <div className="absolute z-50 w-full mt-2 bg-white border border-neutral-200 rounded-xl shadow-xl shadow-neutral-900/5 overflow-hidden py-1.5 animate-in fade-in zoom-in-95 duration-200">
+            {options.map((opt) => (
+              <div key={opt.value} className={`px-4 py-2.5 text-[13px] cursor-pointer flex items-center justify-between hover:bg-neutral-50 transition-colors ${value === opt.value ? 'bg-neutral-50/80 font-medium text-neutral-900' : 'text-neutral-600'}`} onClick={() => { onChange(opt.value); setIsOpen(false); }}>
+                {opt.label} {value === opt.value && <Check className="w-4 h-4 text-neutral-900" />}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+const Checkbox = ({ checked, onChange, label, description }) => (
+  <label className="flex items-start cursor-pointer group w-fit">
+    <div className="relative flex items-center justify-center mt-0.5">
+      <input type="checkbox" className="peer sr-only" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <div className="w-4 h-4 rounded-[4px] border border-neutral-300 bg-white peer-checked:bg-neutral-900 peer-checked:border-neutral-900 peer-focus-visible:ring-4 peer-focus-visible:ring-neutral-900/10 transition-all duration-200 group-hover:border-neutral-400 shadow-sm"></div>
+      <Check className="absolute w-3 h-3 text-white pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity duration-200" strokeWidth={3} />
+    </div>
+    {(label || description) && (
+      <div className="ml-2.5">
+        {label && <span className="block text-[13px] font-medium text-neutral-800 select-none">{label}</span>}
+        {description && <span className="block text-[12px] text-neutral-500 mt-0.5 leading-relaxed select-none">{description}</span>}
+      </div>
+    )}
+  </label>
+);
+const Radio = ({ checked, onChange, label, description, name, value }) => (
+  <label className="flex items-start cursor-pointer group w-fit">
+    <div className="relative flex items-center justify-center mt-0.5">
+      <input type="radio" name={name} value={value} className="peer sr-only" checked={checked} onChange={() => onChange(value)} />
+      <div className="w-4 h-4 rounded-full border border-neutral-300 bg-white peer-checked:border-neutral-900 peer-focus-visible:ring-4 peer-focus-visible:ring-neutral-900/10 transition-all duration-200 group-hover:border-neutral-400 shadow-sm"></div>
+      <div className="absolute w-1.5 h-1.5 rounded-full bg-neutral-900 pointer-events-none scale-0 peer-checked:scale-100 transition-transform duration-200"></div>
+    </div>
+    {(label || description) && (
+      <div className="ml-2.5">
+        {label && <span className="block text-[13px] font-medium text-neutral-800 select-none">{label}</span>}
+        {description && <span className="block text-[12px] text-neutral-500 mt-0.5 leading-relaxed select-none">{description}</span>}
+      </div>
+    )}
+  </label>
+);
+const Switch = ({ checked, onChange, label, description }) => (
+  <label className="flex items-start cursor-pointer group w-fit">
+    <div className="relative flex items-center h-5 mt-0.5">
+      <input type="checkbox" className="peer sr-only" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <div className={`w-9 h-5 rounded-full transition-colors duration-200 ease-in-out shadow-inner ${checked ? 'bg-neutral-900' : 'bg-neutral-200 group-hover:bg-neutral-300'}`}></div>
+      <div className={`absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ease-in-out ${checked ? 'translate-x-4' : 'translate-x-0'}`}></div>
+    </div>
+    {(label || description) && (
+      <div className="ml-3">
+        {label && <span className="block text-[13px] font-medium text-neutral-800 select-none">{label}</span>}
+        {description && <span className="block text-[12px] text-neutral-500 mt-0.5 leading-relaxed select-none">{description}</span>}
+      </div>
+    )}
+  </label>
+);
+const SegmentedControl = ({ options, value, onChange, className = '' }) => (
+  <div className={`flex p-1 bg-neutral-100/80 rounded-xl overflow-hidden ${className}`}>
+    {options.map((opt) => (
+      <button key={opt.value} onClick={() => onChange(opt.value)} className={`flex-1 py-1.5 px-3 text-[13px] font-medium rounded-lg transition-all duration-200 ${value === opt.value ? 'bg-white text-neutral-900 shadow-sm border border-neutral-200/50' : 'text-neutral-500 hover:text-neutral-900'}`}>{opt.label}</button>
+    ))}
+  </div>
+);
+const Slider = ({ value, onChange, min = 0, max = 100, step = 1, label, className = '' }) => (
+  <div className={`w-full ${className}`}>
+    {(label || value !== undefined) && (
+      <div className="flex justify-between items-center mb-2.5">
+        {label && <span className="text-[13px] font-medium text-neutral-700">{label}</span>}
+        <span className="text-[12px] text-neutral-500 font-mono px-2 py-0.5 bg-neutral-100 rounded-md">{value}</span>
+      </div>
+    )}
+    <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(parseFloat(e.target.value))} className="w-full h-1.5 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-neutral-900" />
+  </div>
+);
+const FileInput = ({ label, onChange, className = '' }) => (
+  <div className={`w-full ${className}`}>
+    {label && <Label>{label}</Label>}
+    <div className="relative border border-neutral-200 rounded-xl bg-neutral-50/50 hover:bg-white shadow-sm flex items-center px-3 py-2 transition-all duration-200">
+      <input type="file" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onChange={onChange} />
+      <Button variant="secondary" size="sm" className="pointer-events-none mr-3">Browse</Button>
+      <span className="text-[13px] text-neutral-500 truncate">No file selected</span>
+    </div>
+  </div>
+);
+
+// ==========================================
+// 4. Data Display (数据展示) 32-50
+// ==========================================
+const Badge = ({ children, variant = 'neutral', size = 'md', className = '' }) => {
+  const variants = { neutral: "bg-neutral-100 text-neutral-700 border-neutral-200/60", brand: "bg-violet-50 text-violet-700 border-violet-200/60", success: "bg-emerald-50 text-emerald-700 border-emerald-200/60", warning: "bg-amber-50 text-amber-700 border-amber-200/60", error: "bg-red-50 text-red-700 border-red-200/60", outline: "bg-transparent text-neutral-600 border-neutral-200" };
+  const sizes = { sm: "px-2 py-0.5 text-[10px]", md: "px-2.5 py-1 text-[11px]" };
+  return <span className={`inline-flex items-center justify-center rounded-md font-mono tracking-wider uppercase font-medium border ${variants[variant]} ${sizes[size]} ${className}`}>{children}</span>;
+};
+const StatusDot = ({ status = 'neutral' }) => {
+  const colors = { neutral: "bg-neutral-400", brand: "bg-violet-500", success: "bg-emerald-500", warning: "bg-amber-500", error: "bg-red-500" };
+  return <span className="relative flex h-2 w-2"><span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${colors[status]}`}></span><span className={`relative inline-flex rounded-full h-2 w-2 ${colors[status]}`}></span></span>;
+};
+const Tag = ({ children, onRemove, className = '' }) => (
+  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 bg-neutral-100 border border-neutral-200/60 rounded-lg text-[13px] font-medium text-neutral-700 ${className}`}>
+    {children} {onRemove && <button onClick={onRemove} className="text-neutral-400 hover:text-neutral-900 focus:outline-none"><X className="w-3.5 h-3.5" /></button>}
+  </span>
+);
+const Avatar = ({ src, fallback, size = 'md', className = '' }) => {
+  const sizes = { sm: "w-8 h-8 text-xs", md: "w-10 h-10 text-[13px]", lg: "w-12 h-12 text-base", xl: "w-16 h-16 text-lg" };
+  return <div className={`relative flex items-center justify-center rounded-full overflow-hidden bg-neutral-100 border border-neutral-200/80 shrink-0 ${sizes[size]} ${className}`}>{src ? <img src={src} alt="avatar" className="w-full h-full object-cover" /> : <span className="font-medium text-neutral-600 uppercase">{fallback?.substring(0, 2)}</span>}</div>;
+};
+const AvatarGroup = ({ avatars = [], max = 3 }) => {
+  const visible = avatars.slice(0, max); const extra = avatars.length - max;
+  return (
+    <div className="flex items-center -space-x-3">
+      {visible.map((av, i) => <Avatar key={i} {...av} className="border-2 border-white shadow-sm" />)}
+      {extra > 0 && <div className="w-10 h-10 rounded-full bg-neutral-50 border-2 border-white flex items-center justify-center text-xs font-medium text-neutral-500 shadow-sm">+{extra}</div>}
+    </div>
+  );
+};
+const Kbd = ({ children, className = '' }) => <kbd className={`inline-flex items-center justify-center px-1.5 py-0.5 text-[11px] font-mono font-medium text-neutral-500 bg-neutral-100 border border-neutral-200 rounded-md shadow-[0_1px_0_rgba(0,0,0,0.05)] ${className}`}>{children}</kbd>;
+const KeyboardShortcut = ({ keys }) => <div className="flex items-center gap-1">{keys.map((k, i) => <Kbd key={i}>{k}</Kbd>)}</div>;
+const InlineCode = ({ children }) => <code className="px-1.5 py-0.5 text-[13px] font-mono text-neutral-700 bg-neutral-100 rounded-md border border-neutral-200/60">{children}</code>;
+const CodeBlock = ({ code, language = 'json', className = '' }) => {
+  return (
+    <div className={`relative rounded-xl overflow-hidden bg-[#0A0A0A] border border-neutral-800 shadow-xl ${className}`}>
+      <div className="flex items-center justify-between px-4 py-2 bg-[#111] border-b border-neutral-800/80">
+        <span className="text-[11px] font-mono text-neutral-500 uppercase tracking-widest">{language}</span>
+        <CopyButton value={code} className="text-neutral-500 hover:text-white" />
+      </div>
+      <div className="p-5 overflow-x-auto"><pre className="text-[13px] leading-relaxed font-mono text-neutral-300"><code>{code}</code></pre></div>
+    </div>
+  );
+};
+const EmptyState = ({ icon: Icon = Box, title, description, action }) => (
+  <div className="flex flex-col items-center justify-center p-12 text-center border-2 border-dashed border-neutral-200 rounded-3xl bg-neutral-50/50">
+    <div className="w-12 h-12 bg-white rounded-2xl shadow-sm border border-neutral-100 flex items-center justify-center mb-5"><Icon className="w-6 h-6 text-neutral-400" strokeWidth={1.5} /></div>
+    <Heading level={4} className="mb-2">{title}</Heading>
+    <Text variant="muted" className="max-w-[280px] mb-6">{description}</Text>
+    {action}
+  </div>
+);
+const Stat = ({ label, value, trend, trendValue }) => (
+  <div className="p-5 bg-white border border-neutral-200 rounded-2xl shadow-sm">
+    <div className="text-[13px] font-medium text-neutral-500 mb-2">{label}</div>
+    <div className="flex items-end justify-between">
+      <div className="text-3xl font-semibold text-neutral-900 tracking-tight">{value}</div>
+      {trend && <div className={`flex items-center text-[13px] font-medium mb-1 ${trend === 'up' ? 'text-emerald-600' : 'text-red-600'}`}>{trend === 'up' ? '↑' : '↓'} {trendValue}</div>}
+    </div>
+  </div>
+);
+const KeyValue = ({ label, value }) => (
+  <div className="flex flex-col sm:flex-row sm:items-center justify-between py-3 border-b border-neutral-100 last:border-0">
+    <span className="text-[13px] text-neutral-500">{label}</span>
+    <span className="text-[13px] font-medium text-neutral-900">{value}</span>
+  </div>
+);
+const Timeline = ({ children, className = '' }) => (
+  <div className={`relative border-l border-neutral-200 ml-3 space-y-6 py-2 ${className}`}>{children}</div>
+);
+const TimelineItem = ({ title, description, time, status = 'neutral' }) => {
+  const colors = { neutral: "bg-neutral-300 ring-white", success: "bg-emerald-500 ring-emerald-50", error: "bg-red-500 ring-red-50" };
+  return (
+    <div className="relative pl-6">
+      <div className={`absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full ring-4 ${colors[status]}`}></div>
+      <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between mb-1">
+        <h4 className="text-[14px] font-medium text-neutral-900">{title}</h4>
+        {time && <span className="text-[12px] text-neutral-400 font-mono">{time}</span>}
+      </div>
+      {description && <p className="text-[13px] text-neutral-500 mt-1 leading-relaxed">{description}</p>}
+    </div>
+  );
+};
+
+// ==========================================
+// 5. Tables (表格体系) 51-56
+// ==========================================
+const Table = ({ children, className = '' }) => <div className={`w-full overflow-auto rounded-2xl border border-neutral-200 shadow-sm bg-white ${className}`}><table className="w-full text-left text-sm whitespace-nowrap">{children}</table></div>;
+const TableHeader = ({ children }) => <thead className="bg-neutral-50/80 border-b border-neutral-200">{children}</thead>;
+const TableBody = ({ children }) => <tbody className="divide-y divide-neutral-100">{children}</tbody>;
+const TableRow = ({ children, className = '' }) => <tr className={`hover:bg-neutral-50/50 transition-colors ${className}`}>{children}</tr>;
+const TableHead = ({ children, className = '' }) => <th className={`px-6 py-3.5 text-[12px] font-medium text-neutral-500 uppercase tracking-wider ${className}`}>{children}</th>;
+const TableCell = ({ children, className = '' }) => <td className={`px-6 py-4 text-[13px] text-neutral-700 ${className}`}>{children}</td>;
+
+// ==========================================
+// 6. Navigation (导航) 57-65
+// ==========================================
+const Tabs = ({ items, activeId, onChange, className = '' }) => (
+  <div className={`flex items-center gap-8 border-b border-neutral-200 px-2 overflow-x-auto no-scrollbar ${className}`}>
+    {items.map((item) => (
+      <button key={item.id} onClick={() => onChange(item.id)} className={`relative py-3.5 text-[14px] font-medium transition-colors duration-200 outline-none whitespace-nowrap ${activeId === item.id ? 'text-neutral-900' : 'text-neutral-500 hover:text-neutral-800'}`}>
+        {item.label}
+        {activeId === item.id && <div className="absolute bottom-[-1px] left-0 w-full h-[2px] bg-neutral-900 rounded-t-full" />}
+      </button>
+    ))}
+  </div>
+);
+const Breadcrumb = ({ items, className = '' }) => (
+  <nav className={`flex items-center space-x-1.5 text-[13px] text-neutral-500 ${className}`}>
+    {items.map((item, index) => (
+      <React.Fragment key={index}>
+        <a href={item.href || '#'} className={`px-2 py-1.5 rounded-md hover:bg-neutral-100 hover:text-neutral-900 transition-colors flex items-center ${index === items.length - 1 ? 'font-medium text-neutral-900 pointer-events-none bg-neutral-50' : ''}`}>
+          {item.icon && <item.icon className="w-3.5 h-3.5 inline-block mr-1.5" />}{item.label}
+        </a>
+        {index < items.length - 1 && <ChevronRight className="w-3.5 h-3.5 text-neutral-300" />}
+      </React.Fragment>
+    ))}
+  </nav>
+);
+const Steps = ({ steps, currentStep, className = '' }) => (
+  <div className={`flex items-center w-full ${className}`}>
+    {steps.map((step, index) => {
+      const isCompleted = index < currentStep; const isCurrent = index === currentStep;
+      return (
+        <div key={index} className="flex items-center flex-1 last:flex-none">
+          <div className="flex flex-col items-center gap-2 relative z-10">
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-medium transition-all duration-300 border-[2px] ${isCompleted ? 'bg-neutral-900 border-neutral-900 text-white' : isCurrent ? 'bg-white border-neutral-900 text-neutral-900 ring-4 ring-neutral-900/10' : 'bg-white border-neutral-200 text-neutral-400'}`}>
+              {isCompleted ? <Check className="w-4 h-4" strokeWidth={3} /> : index + 1}
+            </div>
+            <span className={`absolute top-10 w-max text-[12px] font-medium ${isCurrent ? 'text-neutral-900' : 'text-neutral-400'}`}>{step}</span>
+          </div>
+          {index < steps.length - 1 && <div className={`flex-1 h-[2px] mx-3 transition-colors duration-300 ${isCompleted ? 'bg-neutral-900' : 'bg-neutral-200'}`}></div>}
+        </div>
+      );
+    })}
+  </div>
+);
+const Pagination = ({ current, total, className = '' }) => (
+  <div className={`flex items-center justify-between text-sm ${className}`}>
+    <span className="text-neutral-500 text-[13px]">Page {current} of {total}</span>
+    <div className="flex items-center gap-1">
+      <Button variant="outline" size="icon" className="h-8 w-8" disabled={current === 1}><ChevronLeft className="w-4 h-4" /></Button>
+      {[1, 2, 3, '...', total].map((page, i) => (
+        <button key={i} className={`h-8 min-w-[32px] px-2 rounded-lg text-[13px] font-medium transition-colors ${page === current ? 'bg-neutral-100 text-neutral-900' : 'text-neutral-500 hover:bg-neutral-50'} ${page === '...' && 'pointer-events-none'}`}>{page}</button>
+      ))}
+      <Button variant="outline" size="icon" className="h-8 w-8"><ChevronRight className="w-4 h-4" /></Button>
+    </div>
+  </div>
+);
+const Accordion = ({ items, className = '' }) => {
+  const [openIndex, setOpenIndex] = useState(0);
+  return (
+    <div className={`border border-neutral-200 rounded-2xl overflow-hidden ${className}`}>
+      {items.map((item, index) => {
+        const isOpen = openIndex === index;
+        return (
+          <div key={index} className="border-b border-neutral-200 last:border-0 bg-white">
+            <button className="w-full px-5 py-4 flex items-center justify-between focus:outline-none hover:bg-neutral-50/50 transition-colors" onClick={() => setOpenIndex(isOpen ? -1 : index)}>
+              <span className="text-[14px] font-medium text-neutral-900">{item.title}</span>
+              <ChevronDown className={`w-4 h-4 text-neutral-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {isOpen && <div className="px-5 pb-5 text-[13px] text-neutral-600 leading-relaxed animate-in slide-in-from-top-2 fade-in duration-200">{item.content}</div>}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+const Sidebar = ({ children, className = '' }) => (
+  <aside className={`w-64 border-r border-neutral-200 h-full bg-[#FDFDFD] flex flex-col ${className}`}>{children}</aside>
+);
+const SidebarItem = ({ icon: Icon, label, active, badge }) => (
+  <button className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] font-medium transition-colors ${active ? 'bg-white text-neutral-900 shadow-sm border border-neutral-200/60' : 'text-neutral-600 hover:bg-neutral-100/80 hover:text-neutral-900'}`}>
+    <div className="flex items-center gap-2.5">{Icon && <Icon className="w-4 h-4" />}{label}</div>
+    {badge && <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-neutral-200/50 text-neutral-600">{badge}</span>}
+  </button>
+);
+const DropdownMenu = ({ trigger, items, align = 'right' }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  return (
+    <div className="relative inline-block">
+      <div onClick={() => setIsOpen(!isOpen)}>{trigger}</div>
+      {isOpen && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
+          <div className={`absolute z-50 mt-2 w-48 bg-white border border-neutral-200 rounded-xl shadow-xl shadow-neutral-900/5 overflow-hidden py-1.5 animate-in fade-in zoom-in-95 duration-200 ${align === 'right' ? 'right-0' : 'left-0'}`}>
+            {items.map((item, i) => item.divider ? <Divider key={i} className="my-1.5" /> : (
+              <button key={i} onClick={() => { item.onClick?.(); setIsOpen(false); }} className={`w-full text-left px-4 py-2 text-[13px] flex items-center gap-2 hover:bg-neutral-50 transition-colors ${item.danger ? 'text-red-600 hover:bg-red-50' : 'text-neutral-700'}`}>
+                {item.icon && <item.icon className="w-4 h-4" />}{item.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+// ==========================================
+// 7. Feedback & Layout (反馈与局部布局) 66-74
+// ==========================================
+const Card = ({ children, className = '', title, subtitle, action, footer }) => (
+  <div className={`bg-white border border-neutral-200 rounded-3xl shadow-sm overflow-hidden flex flex-col ${className}`}>
+    {(title || subtitle || action) && (
+      <div className="px-6 py-5 border-b border-neutral-100 flex items-center justify-between bg-neutral-50/30">
+        <div>{title && <h3 className="text-[15px] font-semibold text-neutral-900 tracking-tight">{title}</h3>}{subtitle && <p className="text-[13px] text-neutral-500 mt-1">{subtitle}</p>}</div>
+        {action && <div>{action}</div>}
+      </div>
+    )}
+    <div className="p-6 flex-1">{children}</div>
+    {footer && <div className="px-6 py-4 bg-neutral-50/80 border-t border-neutral-100 mt-auto">{footer}</div>}
+  </div>
+);
+const Alert = ({ title, description, variant = 'info', icon: CustomIcon, className = '' }) => {
+  const variants = { info: { w: "bg-blue-50/30 border-blue-200/50 text-blue-800", i: Info, c: "text-blue-500" }, success: { w: "bg-emerald-50/30 border-emerald-200/50 text-emerald-800", i: CheckCircle2, c: "text-emerald-500" }, warning: { w: "bg-amber-50/30 border-amber-200/50 text-amber-800", i: AlertTriangle, c: "text-amber-500" }, error: { w: "bg-red-50/30 border-red-200/50 text-red-800", i: AlertCircle, c: "text-red-500" } };
+  const s = variants[variant]; const Icon = CustomIcon || s.i;
+  return (
+    <div className={`p-4 border rounded-2xl flex gap-3 ${s.w} ${className}`}>
+      <Icon className={`w-5 h-5 shrink-0 mt-0.5 ${s.c}`} />
+      <div><h4 className="text-[14px] font-semibold tracking-tight">{title}</h4>{description && <p className="text-[13px] mt-1 opacity-80 leading-relaxed">{description}</p>}</div>
+    </div>
+  );
+};
+const Callout = ({ children, icon: Icon = Info, className = '' }) => (
+  <div className={`flex gap-3 p-4 rounded-2xl border border-neutral-200 bg-neutral-50/50 ${className}`}>
+    <Icon className="w-5 h-5 text-neutral-400 shrink-0" />
+    <div className="text-[13px] text-neutral-600 leading-relaxed">{children}</div>
+  </div>
+);
+const Note = ({ children, className = '' }) => <p className={`text-[12px] text-neutral-500 italic flex items-center gap-1.5 ${className}`}><Info className="w-3.5 h-3.5 inline" /> {children}</p>;
+const Progress = ({ value = 0, label, showValue = true, className = '' }) => (
+  <div className={`w-full ${className}`}>
+    {(label || showValue) && (
+      <div className="flex justify-between text-[13px] font-medium text-neutral-700 mb-2">
+        {label && <span>{label}</span>}{showValue && <span className="text-neutral-500">{Math.min(100, Math.max(0, value))}%</span>}
+      </div>
+    )}
+    <div className="h-2 w-full bg-neutral-100 rounded-full overflow-hidden border border-neutral-200/50">
+      <div className="h-full bg-neutral-900 rounded-full transition-all duration-500 ease-out" style={{ width: `${Math.min(100, Math.max(0, value))}%` }} />
+    </div>
+  </div>
+);
+const CircularProgress = ({ value = 0, size = 40, strokeWidth = 4, className = '' }) => {
+  const radius = (size - strokeWidth) / 2; const circumference = radius * 2 * Math.PI; const offset = circumference - (value / 100) * circumference;
+  return (
+    <div className={`relative inline-flex items-center justify-center ${className}`} style={{ width: size, height: size }}>
+      <svg className="transform -rotate-90 w-full h-full"><circle cx={size/2} cy={size/2} r={radius} fill="transparent" stroke="currentColor" strokeWidth={strokeWidth} className="text-neutral-100" /><circle cx={size/2} cy={size/2} r={radius} fill="transparent" stroke="currentColor" strokeWidth={strokeWidth} strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" className="text-neutral-900 transition-all duration-500" /></svg>
+      <span className="absolute text-[10px] font-medium font-mono text-neutral-700">{value}%</span>
+    </div>
+  );
+};
+const Spinner = ({ size = 'md', className = '' }) => <Loader2 className={`animate-spin text-neutral-400 ${size === 'sm' ? 'w-4 h-4' : size === 'lg' ? 'w-8 h-8' : 'w-6 h-6'} ${className}`} />;
+const Skeleton = ({ className = '', rounded = 'rounded-md' }) => <div className={`animate-pulse bg-neutral-200/80 ${rounded} ${className}`} />;
+const Pulse = ({ color = 'bg-emerald-500' }) => <span className="relative flex h-2.5 w-2.5"><span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${color}`}></span><span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${color}`}></span></span>;
+
+// ==========================================
+// 8. Overlays & Specialized (浮层与特殊业务组件) 75-84
+// ==========================================
+const Modal = ({ isOpen, onClose, title, description, children, footer, size = 'md' }) => {
+  if (!isOpen) return null;
+  const maxWidth = { sm: 'max-w-sm', md: 'max-w-md', lg: 'max-w-2xl' }[size];
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+      <div className="absolute inset-0 bg-neutral-900/30 backdrop-blur-[2px] transition-opacity" onClick={onClose}></div>
+      <div className={`relative w-full ${maxWidth} bg-white rounded-[2rem] shadow-2xl border border-neutral-200/60 overflow-hidden animate-in fade-in zoom-in-95 duration-200`}>
+        <div className="px-6 py-5 flex items-start justify-between">
+          <div><h3 className="text-xl font-semibold text-neutral-900 tracking-tight">{title}</h3>{description && <p className="text-sm text-neutral-500 mt-1.5">{description}</p>}</div>
+          <button onClick={onClose} className="p-2 -mr-2 rounded-full text-neutral-400 hover:bg-neutral-100 transition-colors"><X className="w-5 h-5" /></button>
+        </div>
+        <div className="px-6 pb-6">{children}</div>
+        {footer && <div className="px-6 py-4 bg-neutral-50/80 border-t border-neutral-100 flex items-center justify-end gap-3">{footer}</div>}
+      </div>
+    </div>
+  );
+};
+const Drawer = ({ isOpen, onClose, title, children, footer }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end">
+      <div className="absolute inset-0 bg-neutral-900/20 backdrop-blur-[2px] transition-opacity" onClick={onClose}></div>
+      <div className="relative w-full max-w-sm h-full bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 ease-out border-l border-neutral-200">
+        <div className="px-6 py-5 border-b border-neutral-100 flex items-center justify-between"><h3 className="text-lg font-semibold text-neutral-900 tracking-tight">{title}</h3><button onClick={onClose} className="p-1.5 rounded-full text-neutral-400 hover:bg-neutral-100 transition-colors"><X className="w-5 h-5" /></button></div>
+        <div className="p-6 flex-1 overflow-y-auto">{children}</div>
+        {footer && <div className="p-6 border-t border-neutral-100 bg-neutral-50 mt-auto">{footer}</div>}
+      </div>
+    </div>
+  );
+};
+const Tooltip = ({ children, content, position = 'top' }) => {
+  const positions = { top: "bottom-full left-1/2 -translate-x-1/2 mb-2", bottom: "top-full left-1/2 -translate-x-1/2 mt-2", right: "left-full top-1/2 -translate-y-1/2 ml-2" };
+  return (
+    <div className="relative inline-block group">
+      {children}
+      <div className={`absolute z-50 px-2.5 py-1.5 text-xs font-medium text-white bg-neutral-900 rounded-lg shadow-xl whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-200 ${positions[position]}`}>
+        {content}<div className={`absolute w-2 h-2 bg-neutral-900 rotate-45 ${position === 'top' ? 'left-1/2 -translate-x-1/2 -bottom-1' : position === 'right' ? 'top-1/2 -translate-y-1/2 -left-1' : 'left-1/2 -translate-x-1/2 -top-1'}`}></div>
+      </div>
+    </div>
+  );
+};
+const Dropzone = ({ label = "Upload Data", hint = "Drag and drop, or click to browse" }) => (
+  <div className="w-full border-2 border-dashed border-neutral-300 rounded-3xl p-10 hover:bg-neutral-50 hover:border-neutral-400 transition-colors cursor-pointer flex flex-col items-center justify-center text-center group">
+    <div className="w-14 h-14 rounded-full bg-white shadow-sm border border-neutral-100 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300"><UploadCloud className="w-6 h-6 text-neutral-500" /></div>
+    <span className="text-[15px] font-semibold text-neutral-900 tracking-tight">{label}</span>
+    <span className="text-[13px] text-neutral-500 mt-1.5">{hint}</span>
+  </div>
+);
+const ChatBubble = ({ message, isUser, timestamp, showRating }) => (
+  <div className={`flex w-full mb-6 ${isUser ? 'justify-end' : 'justify-start'}`}>
+    {!isUser && <Avatar fallback="AI" className="mr-3 w-8 h-8 bg-violet-100 text-violet-700" />}
+    <div className={`max-w-[80%] flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
+      <div className={`px-5 py-3.5 rounded-2xl text-[14px] leading-relaxed shadow-sm ${isUser ? 'bg-neutral-900 text-white rounded-br-sm' : 'bg-white border border-neutral-200 text-neutral-800 rounded-bl-sm'}`}>
+        {message}
+      </div>
+      <div className="flex items-center gap-3 mt-1.5 px-1">
+        {timestamp && <span className="text-[11px] text-neutral-400">{timestamp}</span>}
+        {showRating && !isUser && <FeedbackRating />}
+      </div>
+    </div>
+  </div>
+);
+const PromptArea = ({ placeholder = "Type your instruction...", onSubmit }) => (
+  <div className="relative border border-neutral-200 bg-white rounded-2xl shadow-sm focus-within:ring-4 focus-within:ring-neutral-900/5 focus-within:border-neutral-900 transition-all p-2 flex items-end gap-2">
+    <div className="flex flex-col gap-2 pb-1">
+      <IconButton icon={Paperclip} variant="ghost" size="sm" className="text-neutral-400" />
+      <IconButton icon={Mic} variant="ghost" size="sm" className="text-neutral-400" />
+    </div>
+    <textarea placeholder={placeholder} className="w-full min-h-[44px] max-h-[200px] resize-none py-3 text-[14px] text-neutral-900 placeholder:text-neutral-400 focus:outline-none bg-transparent" rows={1} />
+    <Button size="icon" className="mb-1 rounded-xl shrink-0" icon={Send} onClick={onSubmit} />
+  </div>
+);
+const TypingIndicator = () => (
+  <div className="flex items-center gap-1.5 px-4 py-3 bg-neutral-100 rounded-2xl rounded-bl-sm w-fit border border-neutral-200/50">
+    <span className="w-1.5 h-1.5 bg-neutral-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+    <span className="w-1.5 h-1.5 bg-neutral-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+    <span className="w-1.5 h-1.5 bg-neutral-400 rounded-full animate-bounce"></span>
+  </div>
+);
+const FeedbackRating = () => (
+  <div className="flex gap-1">
+    <button className="text-neutral-400 hover:text-emerald-500 transition-colors"><ThumbsUp className="w-3.5 h-3.5" /></button>
+    <button className="text-neutral-400 hover:text-red-500 transition-colors"><ThumbsDown className="w-3.5 h-3.5" /></button>
+  </div>
+);
+const PricingCard = ({ title, price, features, isPopular, actionText = "Subscribe" }) => (
+  <Card className={`relative flex flex-col ${isPopular ? 'border-neutral-900 shadow-md scale-105 z-10' : ''}`}>
+    {isPopular && <div className="absolute top-0 left-1/2 -translate-x-1/2 bg-neutral-900 text-white text-[10px] font-bold uppercase tracking-wider py-1 px-3 rounded-b-lg">Most Popular</div>}
+    <div className="text-center mb-6 mt-4">
+      <h4 className="text-[15px] font-semibold text-neutral-500 mb-2">{title}</h4>
+      <div className="flex items-end justify-center gap-1">
+        <span className="text-4xl font-semibold tracking-tight text-neutral-900">${price}</span>
+        <span className="text-[13px] text-neutral-500 mb-1">/mo</span>
+      </div>
+    </div>
+    <ul className="space-y-3 mb-8 flex-1">
+      {features.map((f, i) => (
+        <li key={i} className="flex items-center gap-2 text-[13px] text-neutral-600"><Check className="w-4 h-4 text-neutral-900 shrink-0" />{f}</li>
+      ))}
+    </ul>
+    <Button variant={isPopular ? 'primary' : 'outline'} className="w-full mt-auto">{actionText}</Button>
+  </Card>
+);
+
+
+// ==========================================
+// Showcase 展示页面
+// ==========================================
+export default function ComponentShowcase() {
+  const [modalOpen, setModalOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [tags, setTags] = useState(['AI', 'Enterprise']);
+  const [formState, setFormState] = useState({ select: 'opt1', check: true, radio: 'a', switch: true, seg: 'preview', slider: 50, pin: '123', color: '#8B5CF6' });
+
+  return (
+    <div className="min-h-screen bg-[#FAFAFA] font-sans selection:bg-neutral-900 selection:text-white pb-32">
+      
+      {/* Top Navigation */}
+      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-neutral-200/80 px-8 h-16 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-3 text-neutral-900">
+          <div className="w-8 h-8 bg-neutral-900 rounded-lg flex items-center justify-center shadow-md"><Command className="w-4 h-4 text-white" /></div>
+          <span className="text-[15px] font-semibold tracking-wide">Nexus Core UI</span>
+          <Badge variant="outline" className="ml-2 hidden sm:inline-flex border-neutral-300">v6.0</Badge>
+        </div>
+        <div className="flex items-center gap-4">
+          <SearchInput placeholder="Quick search..." className="hidden md:block w-64" />
+          <div className="w-px h-4 bg-neutral-200"></div>
+          <DropdownMenu align="right" trigger={<Avatar fallback="CX" size="sm" className="cursor-pointer" />} items={[
+            { icon: UserCircle, label: 'Profile' },
+            { icon: Settings, label: 'Settings' },
+            { divider: true },
+            { icon: LogOut, label: 'Logout', danger: true }
+          ]} />
+        </div>
+      </header>
+
+      <div className="max-w-[1400px] mx-auto flex">
+        
+        {/* Sidebar Layout Example */}
+        <Sidebar className="hidden lg:flex fixed top-16 bottom-0 left-0 pt-8 pb-4">
+           <div className="px-4 space-y-1 mb-8">
+              <SidebarItem icon={Home} label="Dashboard" active />
+              <SidebarItem icon={Activity} label="Analytics" badge="New" />
+              <SidebarItem icon={Database} label="Vector Stores" />
+           </div>
+           <div className="px-4 space-y-1 mt-auto">
+              <SidebarItem icon={HelpCircle} label="Documentation" />
+              <SidebarItem icon={Settings} label="Settings" />
+           </div>
+        </Sidebar>
+
+        <main className="flex-1 lg:ml-64 px-6 sm:px-10 pt-12 space-y-20 pb-20">
+          
+          <Section title="Design System" description="An exhaustively complete collection of 80+ React components designed for enterprise applications.">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+              <Stat label="Total Components" value="84" trend="up" trendValue="+20 New" />
+              <Stat label="Design Language" value="Vercel/Linear" />
+              <Stat label="Lines of Code" value="~1000" />
+              <Stat label="Dependencies" value="1 (Lucide)" />
+            </div>
+          </Section>
+
+          {/* --- 1. Typography & Buttons --- */}
+          <Section title="1. Foundations & Actions" description="Typography, basic layout elements, and button variants.">
+            <Card className="p-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                <div className="space-y-6">
+                  <div>
+                    <Heading level={2} className="mb-2">Typography & Content</Heading>
+                    <Text variant="muted" className="mb-4">The quick brown fox jumps over the lazy dog.</Text>
+                    <Blockquote>Simplicity is the ultimate sophistication. — Leonardo da Vinci</Blockquote>
+                    <div className="mt-4 flex gap-8">
+                       <List>
+                          <ListItem>Frontend Framework</ListItem>
+                          <ListItem>State Management</ListItem>
+                       </List>
+                       <List ordered>
+                          <ListItem>Initialize</ListItem>
+                          <ListItem>Deploy</ListItem>
+                       </List>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-6">
+                  <Label>Button Variants</Label>
+                  <div className="flex flex-wrap gap-3">
+                    <Button variant="primary">Primary</Button>
+                    <Button variant="secondary">Secondary</Button>
+                    <Button variant="outline">Outline</Button>
+                    <Button variant="ghost">Ghost</Button>
+                  </div>
+                  
+                  <Label className="mt-6">Button Groups & Dropdowns</Label>
+                  <div className="flex flex-wrap items-center gap-4">
+                    <ButtonGroup>
+                      <Button variant="outline">List</Button>
+                      <Button variant="outline">Board</Button>
+                    </ButtonGroup>
+                    <DropdownMenu trigger={<Button variant="outline" icon={ChevronDown} iconPosition="right">Options</Button>} items={[{label: 'Edit'}, {label: 'Duplicate'}, {divider: true}, {label: 'Delete', danger: true}]} />
+                    <CopyButton value="123" />
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </Section>
+
+          {/* --- 2. Advanced Forms --- */}
+          <Section title="2. Advanced Data Entry" description="Comprehensive form controls including tags, passwords, colors, and dates.">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <Card title="Specialized Inputs" className="lg:col-span-2 space-y-6">
+                <div className="grid grid-cols-2 gap-5">
+                  <PasswordInput label="Database Password" placeholder="••••••••" />
+                  <TagInput label="Deployment Tags" tags={tags} onChange={setTags} />
+                  <ColorPicker label="Brand Primary Color" value={formState.color} onChange={v=>setFormState({...formState, color:v})} />
+                  <DatePicker label="Schedule Deployment" />
+                  <PinInput length={4} value="1234" onChange={()=>{}} />
+                </div>
+              </Card>
+              
+              <Card title="Controls" className="space-y-6">
+                <SegmentedControl options={[{value:'preview', label:'Preview'}, {value:'code', label:'Code'}]} value={formState.seg} onChange={v=>setFormState({...formState, seg:v})} />
+                <Divider />
+                <div className="space-y-4">
+                  <Switch checked={formState.switch} onChange={v=>setFormState({...formState, switch:v})} label="Auto-deploy" />
+                  <Checkbox checked={formState.check} onChange={v=>setFormState({...formState, check:v})} label="Analytics Tracking" />
+                  <div className="pt-2"><Label>Plan tier</Label>
+                    <div className="space-y-2 mt-2">
+                      <Radio name="plan" value="a" checked={formState.radio==='a'} onChange={v=>setFormState({...formState, radio:v})} label="Hobby" />
+                      <Radio name="plan" value="b" checked={formState.radio==='b'} onChange={v=>setFormState({...formState, radio:v})} label="Pro" />
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          </Section>
+
+          {/* --- 3. Data Display & Timelines --- */}
+          <Section title="3. Data Display & Logs" description="Tables, Timelines, Badges, Avatars, and Metrics.">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+              <Card title="Deployment History" className="lg:col-span-1">
+                <Timeline>
+                  <TimelineItem title="Deployment Successful" time="14:32" status="success" description="Commit 8f2a9bc deployed to production." />
+                  <TimelineItem title="Build Started" time="14:28" status="neutral" />
+                  <TimelineItem title="Tests Failed" time="12:05" status="error" description="2 unit tests failed in core module." />
+                </Timeline>
+              </Card>
+              
+              <div className="lg:col-span-2 space-y-6">
+                <Card title="Key-Value & Stats" className="p-0 overflow-hidden">
+                   <div className="grid grid-cols-2 p-6 pb-0 gap-6">
+                     <Stat label="Total Tokens" value="2.4M" trend="up" trendValue="12%" />
+                     <Stat label="Avg Latency" value="142ms" trend="down" trendValue="8ms" />
+                   </div>
+                   <div className="p-6">
+                     <div className="border border-neutral-200 rounded-xl p-4 bg-neutral-50/50">
+                        <KeyValue label="Model Architecture" value="Transformer-XL" />
+                        <KeyValue label="Context Window" value="128K Tokens" />
+                        <KeyValue label="Fine-tuning" value="Enabled" />
+                     </div>
+                   </div>
+                </Card>
+              </div>
+            </div>
+
+            <Card className="p-0 overflow-hidden" title="API Keys" action={<Button size="sm" icon={Plus}>Create Key</Button>}>
+               <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Key Name</TableHead>
+                      <TableHead>Secret</TableHead>
+                      <TableHead>Created</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell className="font-medium text-neutral-900">Production Key</TableCell>
+                      <TableCell><Kbd>sk_prod_...8f2a</Kbd></TableCell>
+                      <TableCell>Oct 12, 2026</TableCell>
+                      <TableCell><Badge variant="success" dot>Active</Badge></TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="font-medium text-neutral-900">Staging Key</TableCell>
+                      <TableCell><Kbd>sk_test_...1b9c</Kbd></TableCell>
+                      <TableCell>Sep 04, 2026</TableCell>
+                      <TableCell><Badge variant="neutral" dot>Revoked</Badge></TableCell>
+                    </TableRow>
+                  </TableBody>
+               </Table>
+               <div className="p-4 border-t border-neutral-100"><Pagination current={1} total={5} /></div>
+            </Card>
+          </Section>
+
+          {/* --- 4. Navigation, Layout & Commerce --- */}
+          <Section title="4. Navigation & Commerce" description="Pricing tables, Accordions, and Step Wizards.">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+               <PricingCard title="Hobby" price="0" features={["10k tokens/mo", "Community Support", "1 Workspace"]} actionText="Get Started" />
+               <PricingCard title="Pro" price="49" isPopular features={["Unlimited tokens", "Priority Support", "10 Workspaces", "Custom Models"]} />
+               <PricingCard title="Enterprise" price="299" features={["Dedicated VPC", "SLA Guarantee", "Unlimited Workspaces", "Account Manager"]} actionText="Contact Sales" />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card title="Wizards & Routing" className="space-y-8">
+                <Breadcrumb items={[{label:'Home'}, {label:'Settings'}, {label:'Security'}]} />
+                <Divider />
+                <Tabs items={[{id:'1', label:'General'}, {id:'2', label:'Integrations'}]} activeId="1" onChange={()=>{}} />
+                <Divider />
+                <Steps steps={['Build', 'Test', 'Deploy']} currentStep={1} />
+              </Card>
+
+              <Card className="p-0 overflow-hidden border-0">
+                 <Accordion items={[
+                   { title: "How does the pricing work?", content: "You are billed based on token usage. 1M tokens = $0.50." },
+                   { title: "Can I self-host?", content: "Yes, enterprise customers get access to Docker images." }
+                 ]} />
+              </Card>
+            </div>
+          </Section>
+
+          {/* --- 5. Overlays, Feedback & AI --- */}
+          <Section title="5. Overlays & AI Components" description="Modals, Chat Bubbles, Ratings, and Status Indicators.">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+              <Card title="Dialogs" className="space-y-4">
+                <Button className="w-full" onClick={() => setModalOpen(true)}>Open Modal</Button>
+                <Button variant="secondary" className="w-full" onClick={() => setDrawerOpen(true)}>Open Drawer</Button>
+                <div className="pt-4 text-center">
+                  <Tooltip content="Provides extra context" position="right">
+                    <span className="text-[13px] text-neutral-500 underline decoration-dashed cursor-help">Hover me for Tooltip</span>
+                  </Tooltip>
+                </div>
+              </Card>
+              
+              <Card title="Feedback & Alerts" className="lg:col-span-2 space-y-4">
+                <Alert variant="info" title="Update Available" description="Nexus OS v3 is now available." />
+                <Callout icon={AlertTriangle}>Please ensure your billing details are up to date to avoid service interruption.</Callout>
+                <div className="flex items-center gap-8 mt-4 pt-4 border-t border-neutral-100">
+                   <CircularProgress value={75} />
+                   <div className="flex-1 space-y-3"><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-4/5" /></div>
+                </div>
+              </Card>
+            </div>
+
+            <Card title="AI Interface Components" className="bg-[#FAFAFA]">
+              <div className="max-w-2xl mx-auto space-y-6 bg-white p-6 border border-neutral-200 rounded-3xl shadow-sm">
+                 <ChatBubble isUser={true} message="Can you analyze this log file?" />
+                 <ChatBubble isUser={false} timestamp="Just now" showRating message={
+                   <div className="space-y-4">
+                     <p>I found 3 errors in the sequence. Here is the stack trace:</p>
+                     <CodeBlock language="bash" code={`Error: connection refused at 10.0.0.1\n    at TCPConnectWrap.afterConnect`} />
+                   </div>
+                 } />
+                 <div className="flex items-center gap-2 mb-2">
+                    <Avatar fallback="AI" size="sm" className="bg-violet-100 text-violet-700 w-8 h-8" />
+                    <TypingIndicator />
+                 </div>
+                 <PromptArea />
+              </div>
+            </Card>
+          </Section>
+
+        </main>
+      </div>
+
+      {/* --- Overlay Renderers --- */}
+      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="New Resource" description="Deploy a new service to the cluster." footer={<><Button variant="ghost" onClick={() => setModalOpen(false)}>Cancel</Button><Button onClick={() => setModalOpen(false)}>Deploy</Button></>}>
+        <Input label="Service Name" placeholder="my-app" className="mt-2" />
+      </Modal>
+
+      <Drawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} title="Workspace Settings" footer={<Button className="w-full" onClick={() => setDrawerOpen(false)}>Save Changes</Button>}>
+        <div className="space-y-6">
+          <Input label="Organization Name" defaultValue="Nexus Global" />
+          <Divider />
+          <div className="space-y-4">
+            <Label>Theme Preference</Label>
+            <SegmentedControl options={[{value:'light', label:'Light'}, {value:'dark', label:'Dark'}]} value="light" onChange={()=>{}} />
+          </div>
+        </div>
+      </Drawer>
+
+    </div>
+  );
+}

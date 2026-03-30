@@ -1,0 +1,61 @@
+import { FontSize, FontFamily, ThemeColor } from '../types';
+
+/** 同步到 `document.documentElement.style.fontSize`，使全站 rem 字号随外观设置变化 */
+export function getRootFontSizePx(fontSize: FontSize): string {
+  switch (fontSize) {
+    case 'small':
+      return '14px';
+    case 'large':
+      return '17px';
+    default:
+      return '15px';
+  }
+}
+
+/** @deprecated 优先使用根字号 `getRootFontSizePx`；保留供少数需固定档位的场景 */
+export const FONT_SIZE_CLASSES: Record<FontSize, string> = {
+  small: 'text-[14px]',
+  medium: 'text-[15px]',
+  large: 'text-[17px]',
+};
+
+export const TITLE_SIZE_CLASSES: Record<FontSize, string> = {
+  small: 'text-2xl',
+  medium: 'text-3xl',
+  large: 'text-4xl'
+};
+
+export const FONT_FAMILY_CLASSES: Record<FontFamily, string> = {
+  sans: 'font-sans',
+  space: 'font-space',
+  serif: 'font-serif',
+  mono: 'font-mono',
+  outfit: 'font-outfit',
+  garamond: 'font-garamond',
+  anton: 'font-anton'
+};
+
+/** 与主按钮 `btnPrimary`（neutral-900）一致的全局强调色；外观「主题色」各选项共用同一视觉。 */
+const BRAND_NEUTRAL_ACCENT: {
+  text: string;
+  bg: string;
+  border: string;
+  ring: string;
+  shadow: string;
+} = {
+  text: 'text-neutral-900 dark:text-neutral-200',
+  /** 与主按钮一致：深浅色模式下均为深色底，便于配 `text-white`。 */
+  bg: 'bg-neutral-900 hover:bg-neutral-800',
+  border: 'border-neutral-900',
+  ring: 'ring-neutral-900/30',
+  shadow: 'shadow-neutral-900/15',
+};
+
+export const THEME_COLOR_CLASSES: Record<ThemeColor, typeof BRAND_NEUTRAL_ACCENT> = {
+  blue: BRAND_NEUTRAL_ACCENT,
+  purple: BRAND_NEUTRAL_ACCENT,
+  green: BRAND_NEUTRAL_ACCENT,
+  orange: BRAND_NEUTRAL_ACCENT,
+  red: BRAND_NEUTRAL_ACCENT,
+  pink: BRAND_NEUTRAL_ACCENT,
+};

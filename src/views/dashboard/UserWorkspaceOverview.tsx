@@ -1,0 +1,318 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import {
+  Bot, Zap, Cpu, Clock, ChevronRight, Sparkles, Loader2,
+  FileText, Rocket, Heart, BarChart3, Bell,
+} from 'lucide-react';
+import { Theme, FontSize } from '../../types';
+import type { UserWorkspace } from '../../types/dto/dashboard';
+import type { UserDashboardData, AnnouncementItem } from '../../types/dto/explore';
+import { dashboardService } from '../../api/services/dashboard.service';
+import { systemConfigService } from '../../api/services/system-config.service';
+import { useAuthStore } from '../../stores/authStore';
+import { bentoCard, bentoCardHover, canvasBodyBg, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import { PageError } from '../../components/common/PageError';
+import { BentoCard } from '../../components/common/BentoCard';
+import { KpiCard } from '../../components/common/KpiCard';
+import { AnimatedList } from '../../components/common/AnimatedList';
+import { buildPath } from '../../constants/consoleRoutes';
+import { DashboardLayout } from '../../components/layout/PageLayouts';
+import { cleanAnnouncementSummary, formatDateTime } from '../../utils/formatDateTime';
+
+interface Props { theme: Theme; fontSize: FontSize; }
+
+const spring = { type: 'spring' as const, stiffness: 300, damping: 30 };
+
+const ACTIVITY_ICON: Record<string, React.ReactNode> = {
+  invoke: <Zap size={14} />,
+  publish: <Rocket size={14} />,
+  favorite: <Heart size={14} />,
+  review: <FileText size={14} />,
+};
+
+const ACTIVITY_LABEL: Record<string, string> = {
+  invoke: '调用了', publish: '发布了', favorite: '收藏了', review: '评价了',
+};
+
+export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontSize }) => {
+  const isDark = theme === 'dark';
+  const navigate = useNavigate();
+  const user = useAuthStore((s) => s.user);
+
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<Error | null>(null);
+  const [workspace, setWorkspace] = useState<UserWorkspace | null>(null);
+  const [dashboard, setDashboard] = useState<UserDashboardData | null>(null);
+  const [announcements, setAnnouncements] = useState<AnnouncementItem[]>([]);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const [ws, db, ann] = await Promise.allSettled([
+        dashboardService.getUserWorkspace(),
+        dashboardService.getUserDashboard(),
+        systemConfigService.listAnnouncements({ page: 1, pageSize: 3 }),
+      ]);
+      if (ws.status === 'fulfilled') setWorkspace(ws.value);
+      if (db.status === 'fulfilled') setDashboard(db.value);
+      if (ann.status === 'fulfilled') {
+        const annData = ann.value;
+        setAnnouncements(annData?.list ?? (Array.isArray(annData) ? annData as any : []));
+      }
+      if (ws.status === 'rejected' && db.status === 'rejected') {
+        setLoadError(ws.reason instanceof Error ? ws.reason : new Error('加载工作台数据失败'));
+      }
+    } catch (err) {
+      setLoadError(err instanceof Error ? err : new Error('加载工作台数据失败'));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const tp = textPrimary(theme);
+  const ts = textSecondary(theme);
+  const tm = textMuted(theme);
+
+  const displayName = user?.nickname || user?.username || '用户';
+  const quota = dashboard?.quotaUsage;
+  const myRes = dashboard?.myResources;
+  const activities = dashboard?.recentActivity ?? [];
+
+  const recentItems = workspace
+    ? [
+        ...workspace.recentAgents.map((a) => ({ id: a.id, name: a.displayName, type: '智能体' as const, time: formatDateTime(a.lastUsedTime), icon: a.icon, marketPage: 'agent-market' })),
+        ...workspace.recentSkills.map((s) => ({ id: s.id, name: s.displayName, type: '技能' as const, time: formatDateTime(s.lastUsedTime), icon: s.icon, marketPage: 'skill-market' })),
+      ].slice(0, 5)
+    : [];
+
+  if (loading) {
+    return (
+      <div className={`flex-1 flex items-center justify-center ${canvasBodyBg(theme)}`}>
+        <Loader2 size={28} className="animate-spin text-slate-400" />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className={`flex-1 ${canvasBodyBg(theme)}`}>
+        <PageError error={loadError} onRetry={fetchData} retryLabel="重试加载工作台" />
+      </div>
+    );
+  }
+
+  return (
+    <div className={`flex-1 overflow-y-auto custom-scrollbar ${canvasBodyBg(theme)}`}>
+      <DashboardLayout className="space-y-5">
+
+        {/* Welcome */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={spring}>
+          <BentoCard theme={theme} padding="lg">
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles size={18} className={isDark ? 'text-blue-400' : 'text-blue-500'} />
+              <span className="text-sm font-semibold uppercase tracking-wider text-slate-400">工作台</span>
+            </div>
+            <h1 className={`text-2xl sm:text-3xl font-bold tracking-tight mb-2 bg-gradient-to-r ${
+              isDark ? 'from-white via-blue-200 to-neutral-300' : 'from-slate-900 via-blue-800 to-neutral-800'
+            } bg-clip-text text-transparent`}>
+              欢迎回来，{displayName}
+            </h1>
+            <p className={`text-sm ${ts}`}>
+              Nexus AI 智能体协同平台为你提供 AI 智能体、技能与智能应用服务。
+            </p>
+          </BentoCard>
+        </motion.div>
+
+        {/* Announcements：始终展示区域，避免无数据时误以为未实现 */}
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={spring}
+          className={`${bentoCard(theme)} p-4`}>
+          <div className="flex items-center gap-2 mb-2">
+            <Bell size={16} className={ts} />
+            <h2 className={`font-bold text-sm ${tp}`}>平台公告</h2>
+          </div>
+          {announcements.length > 0 ? (
+            <div className="space-y-2">
+              {announcements.map((a) => {
+                const blurb = cleanAnnouncementSummary(a.summary);
+                return (
+                  <div key={a.id} className={`flex items-start gap-2 text-sm ${ts}`}>
+                    <span>{a.type === 'feature' ? '🚀' : a.type === 'maintenance' ? '🔧' : a.type === 'update' ? '📦' : '📢'}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="min-w-0">
+                        <span className={`font-medium ${tp}`}>{a.title}</span>
+                        <span className="mx-1">·</span>
+                        <span className={tm}>{formatDateTime(a.createdAt)}</span>
+                      </div>
+                      {blurb ? <p className={`text-xs mt-0.5 ${tm} line-clamp-2`}>{blurb}</p> : null}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className={`text-sm ${tm}`}>暂无平台公告。</p>
+          )}
+        </motion.div>
+
+        {/* KPI + Quota Row */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <KpiCard theme={theme} label="最近智能体" value={workspace?.recentAgents?.length ?? 0} icon={<Bot size={16} />} glow="indigo" delay={0.05} />
+          <KpiCard theme={theme} label="最近技能" value={workspace?.recentSkills?.length ?? 0} icon={<Zap size={16} />} glow="emerald" delay={0.08} />
+          <KpiCard theme={theme} label="今日使用" value={workspace?.totalUsageToday ?? 0} icon={<Cpu size={16} />} glow="amber" delay={0.11} />
+          <KpiCard theme={theme} label="未读通知" value={dashboard?.unreadNotifications ?? 0} icon={<Bell size={16} />} glow="rose" delay={0.14} />
+        </div>
+
+        {/* Quota Usage */}
+        {quota && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring, delay: 0.15 }}
+            className={`${bentoCard(theme)} p-5`}>
+            <h2 className={`font-bold text-sm mb-4 ${tp}`}>调用配额</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {[
+                { label: '日配额', used: quota.dailyUsed, limit: quota.dailyLimit },
+                { label: '月配额', used: quota.monthlyUsed, limit: quota.monthlyLimit },
+              ].map((q) => {
+                const pct = q.limit > 0 ? Math.min((q.used / q.limit) * 100, 100) : 0;
+                const barColor = pct > 80 ? 'bg-rose-500' : pct > 50 ? 'bg-amber-500' : 'bg-emerald-500';
+                return (
+                  <div key={q.label}>
+                    <div className="flex justify-between mb-1.5">
+                      <span className={`text-xs font-medium ${ts}`}>{q.label}</span>
+                      <span className={`text-xs font-bold ${tp}`}>{q.used.toLocaleString()} / {q.limit.toLocaleString()}</span>
+                    </div>
+                    <div className={`h-2 rounded-full ${isDark ? 'bg-white/[0.06]' : 'bg-slate-100'}`}>
+                      <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+          {/* My Resources Status */}
+          {myRes && (
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring, delay: 0.18 }}
+              className={`${bentoCard(theme)} p-5`}>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className={`font-bold text-sm ${tp}`}>我的资源</h2>
+                <button type="button" onClick={() => navigate(buildPath('user', 'resource-center'))}
+                  className={`text-xs font-medium ${ts} hover:text-neutral-800 transition-colors`}>
+                  管理 →
+                </button>
+              </div>
+              <div className="grid grid-cols-4 gap-3 text-center">
+                {[
+                  { label: '草稿', value: myRes.draft, color: 'text-slate-500' },
+                  { label: '审核中', value: myRes.pendingReview, color: 'text-amber-500' },
+                  { label: '已发布', value: myRes.published, color: 'text-emerald-500' },
+                  { label: '总计', value: myRes.total, color: isDark ? 'text-neutral-300' : 'text-neutral-900' },
+                ].map((s) => (
+                  <div key={s.label}>
+                    <div className={`text-xl font-black ${s.color}`}>{s.value}</div>
+                    <div className={`text-xs mt-0.5 ${tm}`}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Recent Activity Timeline */}
+          {activities.length > 0 && (
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring, delay: 0.2 }}
+              className={`${bentoCard(theme)} p-5`}>
+              <h2 className={`font-bold text-sm mb-4 ${tp}`}>最近动态</h2>
+              <div className="space-y-3">
+                {activities.slice(0, 6).map((a, idx) => (
+                  <div key={idx} className="flex items-start gap-3">
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                      isDark ? 'bg-neutral-900/10 text-neutral-300' : 'bg-neutral-100 text-neutral-900'
+                    }`}>
+                      {ACTIVITY_ICON[a.type] ?? <Zap size={14} />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className={`text-sm ${tp}`}>
+                        <span className={tm}>{ACTIVITY_LABEL[a.type] ?? '操作了'}</span>{' '}
+                        <span className="font-medium">{a.resourceName}</span>
+                      </div>
+                      <div className={`text-xs ${tm}`}>{formatDateTime(a.timestamp)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </div>
+
+        {/* Recent Usage List */}
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring, delay: 0.22 }}>
+          <BentoCard theme={theme} padding="sm" className="!p-0">
+            <div className={`flex items-center justify-between px-5 py-3.5 border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+              <div className="flex items-center gap-2">
+                <Clock size={15} className={tm} />
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">最近使用</h2>
+              </div>
+              <button type="button" onClick={() => navigate(buildPath('user', 'usage-records'))}
+                className={`text-xs font-medium ${ts} hover:text-neutral-800 transition-colors`}>
+                查看全部 →
+              </button>
+            </div>
+            <AnimatedList className={`divide-y ${isDark ? 'divide-white/[0.04]' : 'divide-slate-100'}`}>
+              {recentItems.length === 0 ? [
+                <div key="empty" className={`px-5 py-8 text-center text-sm ${tm}`}>暂无使用记录</div>,
+              ] : recentItems.map((r) => (
+                <div key={r.name + r.type}
+                  onClick={() => navigate(buildPath('user', r.marketPage))}
+                  className={`flex items-center gap-4 px-5 py-3.5 transition-colors cursor-pointer ${isDark ? 'hover:bg-white/[0.04]' : 'hover:bg-slate-50'}`}>
+                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                    r.type === '智能体' ? 'bg-blue-500/10 text-blue-500' : 'bg-neutral-900/10 text-neutral-800'
+                  }`}>
+                    {r.icon ? <span className="text-base">{r.icon}</span> : r.type === '智能体' ? <Bot size={16} /> : <Zap size={16} />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[13px] font-medium truncate ${tp}`}>{r.name}</span>
+                      <span className={`text-xs px-1.5 py-0.5 rounded shrink-0 ${
+                        r.type === '智能体'
+                          ? isDark ? 'bg-blue-500/15 text-blue-400' : 'bg-blue-50 text-blue-700'
+                          : isDark ? 'bg-neutral-900/10 text-neutral-300' : 'bg-neutral-100 text-neutral-800'
+                      }`}>{r.type}</span>
+                    </div>
+                  </div>
+                  <span className={`text-[11px] whitespace-nowrap shrink-0 ${tm}`}>{r.time}</span>
+                  <ChevronRight size={14} className={tm} />
+                </div>
+              ))}
+            </AnimatedList>
+          </BentoCard>
+        </motion.div>
+
+        {/* Quick Actions */}
+        <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { label: '智能体市场', icon: Bot, page: 'agent-market' },
+            { label: '技能市场', icon: Zap, page: 'skill-market' },
+            { label: '我的发布', icon: Rocket, page: 'my-agents-pub' },
+            { label: '使用统计', icon: BarChart3, page: 'usage-stats' },
+          ].map((action, i) => (
+            <motion.div key={action.label} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ ...spring, delay: 0.25 + i * 0.03 }}>
+              <button type="button" onClick={() => navigate(buildPath('user', action.page))}
+                className={`w-full p-4 flex items-center gap-3 text-left ${bentoCardHover(theme)}`}>
+                <action.icon size={18} className={ts} />
+                <span className={`text-sm font-bold ${tp}`}>{action.label}</span>
+              </button>
+            </motion.div>
+          ))}
+        </section>
+
+      </DashboardLayout>
+    </div>
+  );
+};

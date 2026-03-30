@@ -1,0 +1,23 @@
+.markdown-view .bytemd {
+  border: 0;
+}
+
+.markdown-view .markdown-body {
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  line-height: 1.6;
+  padding: 0;
+}
+
+.markdown-view .markdown-body > :first-child {
+  margin-top: 0;
+}
+
+.markdown-view .markdown-body > :last-child {
+  margin-bottom: 0;
+}
+
+.markdown-view.compact .markdown-body {
+  font-size: 11px;
+}

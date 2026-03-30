@@ -1,0 +1,310 @@
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Check, Send, X } from 'lucide-react';
+import type { Theme, FontSize } from '../../types';
+import type { GrantApplicationVO } from '../../types/dto/grant-application';
+import { grantApplicationService } from '../../api/services/grant-application.service';
+import {
+  bentoCard,
+  btnGhost,
+  btnPrimary,
+  canvasBodyBg,
+  statusBadgeClass,
+  statusDot,
+  statusLabel,
+  textMuted,
+  textPrimary,
+  textSecondary,
+  tableBodyRow,
+  tableCell,
+  tableHeadCell,
+  type DomainStatus,
+} from '../../utils/uiClasses';
+import { FilterSelect, Pagination, SearchInput } from '../../components/common';
+import { EmptyState } from '../../components/common/EmptyState';
+import { PageError } from '../../components/common/PageError';
+import { nullDisplay } from '../../utils/errorHandler';
+import { formatDateTime } from '../../utils/formatDateTime';
+import { resolvePersonDisplay } from '../../utils/personDisplay';
+
+interface Props {
+  theme: Theme;
+  fontSize: FontSize;
+  showMessage: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void;
+}
+
+function grantToDomainStatus(status: GrantApplicationVO['status']): DomainStatus {
+  if (status === 'pending') return 'pending_review';
+  if (status === 'approved') return 'published';
+  return 'rejected';
+}
+
+export const GrantApplicationListPage: React.FC<Props> = ({ theme, showMessage }) => {
+  const isDark = theme === 'dark';
+  const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState<GrantApplicationVO[]>([]);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [rejectTarget, setRejectTarget] = useState<GrantApplicationVO | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [loadError, setLoadError] = useState<Error | null>(null);
+  const [runningActionId, setRunningActionId] = useState<string | null>(null);
+  const PAGE_SIZE = 20;
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const pageData = await grantApplicationService.listPending({
+        status: statusFilter === 'all' ? undefined : statusFilter,
+        page,
+        pageSize: PAGE_SIZE,
+      });
+      setItems(pageData.list);
+      setTotal(pageData.total);
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('加载授权申请列表失败');
+      setLoadError(error);
+      setItems([]);
+      setTotal(0);
+      showMessage(error.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [page, showMessage, statusFilter]);
+
+  useEffect(() => {
+    void fetchData();
+  }, [fetchData]);
+
+  const filteredRows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter((row) => {
+      const hay = [
+        String(row.id),
+        row.resourceType,
+        String(row.resourceId),
+        row.apiKeyId,
+        ...(row.actions ?? []),
+        row.useCase ?? '',
+      ]
+        .join(' ')
+        .toLowerCase();
+      return hay.includes(q);
+    });
+  }, [items, search]);
+
+  const rows = filteredRows;
+
+  const runAction = async (actionKey: string, action: () => Promise<void>, okMsg: string) => {
+    setRunningActionId(actionKey);
+    try {
+      await action();
+      showMessage(okMsg, 'success');
+      await fetchData();
+    } catch (err) {
+      showMessage(err instanceof Error ? err.message : '操作失败', 'error');
+    } finally {
+      setRunningActionId(null);
+    }
+  };
+
+  return (
+    <div className={`flex-1 overflow-y-auto custom-scrollbar ${canvasBodyBg(theme)}`}>
+      <div className="px-3 py-4 sm:px-4 lg:px-5">
+        <div className={`${bentoCard(theme)} overflow-hidden`}>
+          <div className={`flex items-center justify-between border-b px-6 py-4 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+            <div>
+              <h2 className={`text-lg font-bold ${textPrimary(theme)}`}>授权申请审批</h2>
+              <p className={`mt-0.5 text-xs ${textMuted(theme)}`}>审批用户对资源的 API Key 授权申请</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={() => void fetchData()} className={btnGhost(theme)}>
+                <Send size={14} />
+                刷新
+              </button>
+            </div>
+          </div>
+          <div className={`px-4 py-3 border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+            <div className="flex flex-wrap items-center gap-2">
+              <FilterSelect
+                value={statusFilter}
+                onChange={(v) => {
+                  setStatusFilter(v as typeof statusFilter);
+                  setPage(1);
+                }}
+                options={[
+                  { value: 'all', label: '全部状态' },
+                  { value: 'pending', label: '待审批' },
+                  { value: 'approved', label: '已通过' },
+                  { value: 'rejected', label: '已驳回' },
+                ]}
+                theme={theme}
+                className="w-36"
+              />
+              <div className="flex-1 min-w-[min(100%,220px)]">
+                <SearchInput
+                  value={search}
+                  onChange={(value) => {
+                    setSearch(value);
+                    setPage(1);
+                  }}
+                  placeholder="搜索 ID、资源、API Key、权限、场景…"
+                  theme={theme}
+                />
+              </div>
+            </div>
+          </div>
+          <div className="overflow-auto">
+            {loading ? (
+              <div className={`py-10 text-center text-sm ${textMuted(theme)}`}>加载中…</div>
+            ) : loadError ? (
+              <PageError error={loadError} onRetry={() => void fetchData()} retryLabel="重试加载列表" />
+            ) : items.length === 0 ? (
+              <div className="p-4">
+                <EmptyState title="暂无授权申请" description="当前筛选条件下没有申请记录，可切换筛选后重试。" />
+              </div>
+            ) : rows.length === 0 ? (
+              <div className="p-4">
+                <EmptyState title="无匹配结果" description="请调整本页搜索关键词或清空搜索。" />
+              </div>
+            ) : (
+              <table className="w-full min-w-[1100px] text-sm">
+                <thead className={`border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+                  <tr>
+                    <th className={tableHeadCell(theme)}>ID</th>
+                    <th className={tableHeadCell(theme)}>资源类型</th>
+                    <th className={tableHeadCell(theme)}>资源ID</th>
+                    <th className={tableHeadCell(theme)}>API Key</th>
+                    <th className={tableHeadCell(theme)}>操作权限</th>
+                    <th className={tableHeadCell(theme)}>使用场景</th>
+                    <th className={tableHeadCell(theme)}>状态</th>
+                    <th className={tableHeadCell(theme)}>申请人 / 审核人</th>
+                    <th className={tableHeadCell(theme)}>申请时间</th>
+                    <th className={`${tableHeadCell(theme)} text-right`}>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((item, idx) => {
+                    const domainStatus = grantToDomainStatus(item.status);
+                    return (
+                      <tr key={item.id} className={tableBodyRow(theme, idx)}>
+                        <td className={`${tableCell()} font-medium ${textPrimary(theme)}`}>{item.id}</td>
+                        <td className={`${tableCell()} ${textSecondary(theme)}`}>{nullDisplay(item.resourceType)}</td>
+                        <td className={`${tableCell()} ${textSecondary(theme)}`}>{item.resourceId}</td>
+                        <td className={`${tableCell()} ${textSecondary(theme)}`}>{nullDisplay(item.apiKeyId)}</td>
+                        <td className={`${tableCell()} ${textSecondary(theme)}`}>
+                          {item.actions?.length ? item.actions.join(', ') : nullDisplay(undefined)}
+                        </td>
+                        <td className={`${tableCell()} ${textSecondary(theme)}`}>{nullDisplay(item.useCase)}</td>
+                        <td className={tableCell()}>
+                          <span className={statusBadgeClass(domainStatus, theme)}>
+                            <span className={statusDot(domainStatus)} />
+                            {statusLabel(domainStatus)}
+                          </span>
+                        </td>
+                        <td className={`${tableCell()} ${textSecondary(theme)}`}>
+                          <div>申请：{resolvePersonDisplay({ names: [item.applicantName], ids: [item.applicantId] })}</div>
+                          <div className={`text-[11px] ${textMuted(theme)}`}>
+                            审核：{resolvePersonDisplay({ names: [item.reviewerName], ids: [item.reviewerId] })}
+                          </div>
+                        </td>
+                        <td className={`${tableCell()} ${textSecondary(theme)}`}>
+                          {nullDisplay(formatDateTime(item.createTime))}
+                        </td>
+                        <td className={`${tableCell()} text-right`}>
+                          <div className="inline-flex items-center gap-1">
+                            {item.status === 'pending' ? (
+                              <>
+                                <button
+                                  type="button"
+                                  className={btnGhost(theme)}
+                                  disabled={runningActionId === `approve-${item.id}`}
+                                  onClick={() =>
+                                    void runAction(`approve-${item.id}`, () => grantApplicationService.approve(item.id), '已通过该授权申请')
+                                  }
+                                >
+                                  <Check size={14} />
+                                  {runningActionId === `approve-${item.id}` ? '处理中…' : '通过'}
+                                </button>
+                                <button
+                                  type="button"
+                                  className={btnGhost(theme)}
+                                  disabled={!!runningActionId}
+                                  onClick={() => setRejectTarget(item)}
+                                >
+                                  <X size={14} />
+                                  驳回
+                                </button>
+                              </>
+                            ) : (
+                              <span className={`text-xs ${textMuted(theme)}`}>无可执行动作</span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+          <div className={`px-4 border-t ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+            <Pagination page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} />
+          </div>
+        </div>
+      </div>
+
+      {rejectTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" onClick={() => setRejectTarget(null)}>
+          <div className={`${bentoCard(theme)} w-full max-w-lg p-4`} onClick={(e) => e.stopPropagation()}>
+            <h3 className={`text-base font-semibold ${textPrimary(theme)}`}>
+              驳回授权申请 · ID {rejectTarget.id}
+            </h3>
+            <textarea
+              rows={4}
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              className={`mt-3 w-full rounded-xl border px-3 py-2 text-sm ${
+                isDark ? 'border-white/10 bg-white/[0.04] text-slate-200' : 'border-slate-200 bg-white text-slate-700'
+              }`}
+              placeholder="请输入驳回原因（reason）"
+            />
+            <div className="mt-3 flex justify-end gap-2">
+              <button type="button" className={btnGhost(theme)} onClick={() => setRejectTarget(null)}>
+                取消
+              </button>
+              <button
+                type="button"
+                className={btnPrimary}
+                disabled={runningActionId === `reject-${rejectTarget.id}`}
+                onClick={async () => {
+                  if (!rejectReason.trim()) {
+                    showMessage('驳回原因不能为空', 'warning');
+                    return;
+                  }
+                  setRunningActionId(`reject-${rejectTarget.id}`);
+                  try {
+                    await grantApplicationService.reject(rejectTarget.id, { reason: rejectReason.trim() });
+                    showMessage('已驳回', 'success');
+                    setRejectReason('');
+                    setRejectTarget(null);
+                    await fetchData();
+                  } catch (err) {
+                    showMessage(err instanceof Error ? err.message : '驳回失败', 'error');
+                  } finally {
+                    setRunningActionId(null);
+                  }
+                }}
+              >
+                {runningActionId === `reject-${rejectTarget.id}` ? '提交中…' : '确认驳回'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

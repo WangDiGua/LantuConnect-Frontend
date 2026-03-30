@@ -1,0 +1,48 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false,
+    "module": "ESNext",
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "allowJs": true,
+    "jsx": "react-jsx",
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    },
+    "allowImportingTsExtensions": true,
+    "noEmit": true
+  },
+  "include": ["src"],
+  "exclude": [
+    "src/views/agent/AgentList.tsx",
+    "src/views/agent/AgentCreate.tsx",
+    "src/views/agent/AgentAuditList.tsx",
+    "src/views/agent/AgentVersionPage.tsx",
+    "src/views/skill/SkillList.tsx",
+    "src/views/skill/SkillCreate.tsx",
+    "src/views/skill/SkillDetail.tsx",
+    "src/views/skill/SkillAuditList.tsx",
+    "src/views/apps/AppList.tsx",
+    "src/views/apps/AppCreate.tsx",
+    "src/views/apps/AppDetail.tsx",
+    "src/views/dataset/DatasetList.tsx",
+    "src/views/dataset/DatasetCreate.tsx",
+    "src/views/dataset/DatasetDetail.tsx",
+    "src/views/provider/ProviderList.tsx",
+    "src/views/provider/ProviderCreate.tsx",
+    "src/views/systemConfig/CategoryManagement.tsx",
+    "src/views/publish/SubmitAgent.tsx",
+    "src/views/publish/SubmitSkill.tsx"
+  ]
+}

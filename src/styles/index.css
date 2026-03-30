@@ -1,0 +1,188 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=JetBrains+Mono:wght@300;400;500;600&family=Outfit:wght@300;400;500;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&family=Anton&display=swap');
+@import "tailwindcss";
+@plugin "daisyui";
+
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#pre-splash {
+  transition: opacity 0.3s ease-out, visibility 0.3s ease-out;
+}
+#pre-splash.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-space: "Space Grotesk", sans-serif;
+  --font-serif: "Playfair Display", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-outfit: "Outfit", sans-serif;
+  --font-garamond: "Cormorant Garamond", serif;
+  --font-anton: "Anton", sans-serif;
+}
+
+/* ═══════════════════════════════════════════════════
+   Design Tokens — Bento / Glassmorphism / Diffused
+   ═══════════════════════════════════════════════════ */
+
+@layer base {
+  :root {
+    --radius-field: 0.75rem;
+    --radius-box: 1rem;
+    --radius-selector: 0.75rem;
+
+    /* Canvas layout */
+    --canvas-bg: #FAFAFA;
+    --canvas-card-bg: #ffffff;
+    --canvas-card-radius: 1rem;
+
+    /* Surface & Background */
+    --bg-page-from: #FAFAFA;
+    --bg-page-to: #FAFAFA;
+    --bg-surface: #ffffff;
+    --bg-card: #ffffff;
+    --bg-card-hover: #fafafa;
+    --bg-subtle: #fafafa;
+
+    /* Glass */
+    --glass-bg: rgba(255, 255, 255, 0.55);
+    --glass-border: rgba(163, 163, 163, 0.18);
+    --glass-blur: 24px;
+
+    /* Shadows */
+    --shadow-card: 0 1px 2px rgba(0,0,0,0.04), 0 1px 4px rgba(0,0,0,0.02);
+    --shadow-card-hover: 0 2px 8px rgba(0,0,0,0.06);
+    --shadow-glow-indigo: 0 4px 24px rgba(23,23,23,0.08);
+    --shadow-glow-emerald: 0 4px 24px rgba(16,185,129,0.10);
+    --shadow-glow-amber: 0 4px 24px rgba(245,158,11,0.10);
+    --shadow-glow-rose: 0 4px 24px rgba(244,63,94,0.10);
+    --shadow-glow-violet: 0 4px 24px rgba(23,23,23,0.08);
+
+    /* Text */
+    --text-primary: #171717;
+    --text-secondary: #525252;
+    --text-muted: #a3a3a3;
+    --text-on-glass: #404040;
+
+    /* Border */
+    --border-default: #e5e5e5;
+    --border-subtle: #f5f5f5;
+  }
+
+  [data-theme="dark"] {
+    --canvas-bg: #0f1117;
+    --canvas-card-bg: #1a1f2e;
+
+    --bg-page-from: #0f1117;
+    --bg-page-to: #0f1117;
+    --bg-surface: #141820;
+    --bg-card: #1a1f2e;
+    --bg-card-hover: #1f2537;
+    --bg-subtle: #111827;
+
+    --glass-bg: rgba(20, 24, 32, 0.65);
+    --glass-border: rgba(255, 255, 255, 0.06);
+
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.15);
+    --shadow-card-hover: 0 2px 8px rgba(0,0,0,0.25), 0 8px 32px rgba(0,0,0,0.2);
+    --shadow-glow-indigo: 0 4px 24px rgba(255,255,255,0.06);
+    --shadow-glow-emerald: 0 4px 24px rgba(16,185,129,0.2);
+    --shadow-glow-amber: 0 4px 24px rgba(245,158,11,0.2);
+    --shadow-glow-rose: 0 4px 24px rgba(244,63,94,0.2);
+    --shadow-glow-violet: 0 4px 24px rgba(255,255,255,0.06);
+
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --text-on-glass: #cbd5e1;
+
+    --border-default: rgba(255, 255, 255, 0.08);
+    --border-subtle: rgba(255, 255, 255, 0.04);
+  }
+}
+
+/* Brand logo home：仅导航，不要点击/聚焦时的外框或阴影 */
+@layer utilities {
+  .logo-nav-btn {
+    -webkit-tap-highlight-color: transparent;
+    box-shadow: none !important;
+  }
+  .logo-nav-btn:focus,
+  .logo-nav-btn:focus-visible,
+  .logo-nav-btn:active {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+}
+
+/* Focus — subtle ring, never thick DaisyUI outline */
+@layer utilities {
+  .btn:focus-visible {
+    outline-width: 1px !important;
+    outline-style: solid !important;
+    outline-offset: 1px !important;
+    outline-color: rgb(23 23 23 / 0.15) !important;
+  }
+  .join .btn:focus-visible {
+    outline-offset: 0 !important;
+  }
+}
+
+.input:not(.input-error):focus,
+.input:not(.input-error):focus-within,
+.select:not(.select-error):focus,
+.select:not(.select-error):focus-within,
+.textarea:not(.textarea-error):focus,
+.textarea:not(.textarea-error):focus-within {
+  outline-width: 1px !important;
+  outline-style: solid !important;
+  outline-offset: 1px !important;
+  outline-color: rgb(23 23 23 / 0.12) !important;
+}
+
+.input:not(.input-error):not(.input-primary):not(.input-secondary):not(.input-accent):not(.input-info):not(.input-success):not(.input-warning):not(.input-neutral):focus,
+.input:not(.input-error):not(.input-primary):not(.input-secondary):not(.input-accent):not(.input-info):not(.input-success):not(.input-warning):not(.input-neutral):focus-within,
+.select:not(.select-error):not(.select-primary):not(.select-secondary):not(.select-accent):not(.select-info):not(.select-success):not(.select-warning):not(.select-neutral):focus,
+.select:not(.select-error):not(.select-primary):not(.select-secondary):not(.select-accent):not(.select-info):not(.select-success):not(.select-warning):not(.select-neutral):focus-within,
+.textarea:not(.textarea-error):not(.textarea-primary):not(.textarea-secondary):not(.textarea-accent):not(.textarea-info):not(.textarea-success):not(.textarea-warning):not(.textarea-neutral):focus,
+.textarea:not(.textarea-error):not(.textarea-primary):not(.textarea-secondary):not(.textarea-accent):not(.textarea-info):not(.textarea-success):not(.textarea-warning):not(.textarea-neutral):focus-within {
+  --input-color: color-mix(in oklab, var(--color-primary) 40%, var(--color-base-300) 60%) !important;
+  box-shadow:
+    0 1px color-mix(in oklab, var(--input-color) calc(var(--depth) * 10%), #0000) inset,
+    0 -1px oklch(100% 0 0 / calc(var(--depth) * 0.1)) inset !important;
+}
+
+.btn-outline:focus-visible,
+.btn-ghost:focus-visible {
+  outline-color: rgb(23 23 23 / 0.12) !important;
+}
+
+.lantu-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+}
+[data-theme="dark"] .lantu-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+}
+
+/* Scrollbar — hidden globally, scroll still available */
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+@keyframes glow {
+  0% { box-shadow: 0 0 5px rgba(23, 23, 23, 0.08); }
+  50% { box-shadow: 0 0 20px rgba(23, 23, 23, 0.15); }
+  100% { box-shadow: 0 0 5px rgba(23, 23, 23, 0.08); }
+}
+.animate-glow { animation: glow 2s ease-in-out infinite; }

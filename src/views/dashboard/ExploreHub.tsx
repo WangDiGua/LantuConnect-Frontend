@@ -45,12 +45,18 @@ const ANNOUNCEMENT_LABEL: Record<string, string> = {
   notice: '系统通知',
 };
 
+/** HubStatCard 基准：本页其余卡片边框与阴影与之对齐 */
+const HUB_STAT_SURFACE_LIGHT =
+  'border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] hover:border-gray-200 hover:bg-gradient-to-br hover:from-white hover:to-gray-50';
+const HUB_STAT_SURFACE_DARK =
+  'border-white/10 shadow-[0_2px_10px_rgba(0,0,0,0.2)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.45)] hover:border-white/20 hover:bg-gradient-to-br hover:from-[#171b22] hover:to-[#1e2433]';
+
 const Card: React.FC<{ children: React.ReactNode; className?: string; isDark?: boolean }> = ({ children, className = '', isDark = false }) => (
-  <div className={`rounded-2xl border transition-all duration-200 ${
-    isDark
-      ? 'bg-[#171b22] border-white/10 shadow-[0_12px_30px_-24px_rgba(0,0,0,0.7)] hover:shadow-[0_18px_34px_-22px_rgba(0,0,0,0.75)]'
-      : 'bg-white border-slate-200/80 shadow-sm hover:shadow-md'
-  } ${className}`}>
+  <div
+    className={`rounded-2xl border overflow-hidden transition-all duration-500 ease-out ${
+      isDark ? `bg-[#171b22] ${HUB_STAT_SURFACE_DARK}` : `bg-white ${HUB_STAT_SURFACE_LIGHT}`
+    } ${className}`}
+  >
     {children}
   </div>
 );
@@ -81,11 +87,9 @@ const HubStatCard: React.FC<{
   isDark: boolean;
 }> = ({ icon: Icon, value, label, clickable, onClick, isDark }) => {
   const shell = [
-    'group relative w-full min-w-0 h-[156px] rounded-2xl border flex flex-col items-center justify-center overflow-hidden',
-    'transition-all duration-200 ease-out hover:-translate-y-1',
-    isDark
-      ? 'bg-[#171b22] border-white/10 hover:border-white/20 shadow-[0_12px_30px_-24px_rgba(0,0,0,0.7)] hover:shadow-[0_18px_34px_-22px_rgba(0,0,0,0.75)]'
-      : 'bg-white border-slate-200/80 shadow-sm hover:shadow-md',
+    'group relative w-full min-w-0 h-[156px] rounded-[20px] border flex flex-col items-center justify-center overflow-hidden',
+    'transition-all duration-500 ease-out hover:-translate-y-2',
+    isDark ? `bg-[#171b22] ${HUB_STAT_SURFACE_DARK}` : `bg-white ${HUB_STAT_SURFACE_LIGHT}`,
   ].join(' ');
 
   const watermarkCls = [
@@ -444,10 +448,8 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
                       key={`${res.resourceType}-${res.resourceId}`}
                       type="button"
                       onClick={() => navigateToResource(res)}
-                      className={`rounded-2xl border transition-all duration-200 px-6 pt-6 pb-8 flex flex-col h-full hover:-translate-y-1 text-left cursor-pointer ${
-                        isDark
-                          ? 'bg-[#171b22] border-white/10 hover:border-white/20 shadow-[0_12px_30px_-24px_rgba(0,0,0,0.7)]'
-                          : 'bg-white border-slate-200/80 shadow-sm hover:shadow-md'
+                      className={`rounded-2xl border transition-all duration-500 ease-out px-6 pt-6 pb-8 flex flex-col h-full hover:-translate-y-2 text-left cursor-pointer ${
+                        isDark ? `bg-[#171b22] ${HUB_STAT_SURFACE_DARK}` : `bg-white ${HUB_STAT_SURFACE_LIGHT}`
                       }`}
                     >
                       <div className="flex items-start justify-between mb-4">
@@ -534,6 +536,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
                   minHeight={230}
                   className="px-4 pt-3 pb-5"
                   aria-label="探索页近7天调用趋势图"
+                  hubStatSurface
                 />
               )}
               {(stats?.newResourcesTrend7d?.length ?? 0) > 0 && (
@@ -550,9 +553,13 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
                 <SectionTitle title="杰出贡献者" icon={Award} isDark={isDark} />
                 {contributors.length > 0 ? (
                   <>
-                    <div className={`rounded-2xl p-6 flex flex-col items-center justify-center text-center border mt-2 ${
-                      isDark ? 'bg-white/[0.03] border-white/10' : 'bg-[#F8F9FA] border-slate-100'
-                    }`}>
+                    <div
+                      className={`rounded-2xl p-6 flex flex-col items-center justify-center text-center border mt-2 transition-all duration-500 ease-out ${
+                        isDark
+                          ? 'bg-white/[0.03] border-white/10 shadow-[0_2px_10px_rgba(0,0,0,0.2)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.45)] hover:border-white/20'
+                          : 'bg-[#F8F9FA] border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] hover:border-gray-200'
+                      }`}
+                    >
                       <div className="relative mb-4">
                         <div className={`w-20 h-20 rounded-full border-4 shadow-sm overflow-hidden flex items-center justify-center ${
                           isDark ? 'bg-white/10 border-white/20' : 'bg-white border-white'

@@ -166,7 +166,13 @@ export const systemConfigService = {
   publishAcl: (rules: unknown[]) =>
     http.post<void>('/system-config/acl/publish', { rules }),
 
-  listAnnouncements: async (params?: { page?: number; pageSize?: number }) => {
+  listAnnouncements: async (params?: {
+    page?: number;
+    pageSize?: number;
+    /** 后端就绪后透传；当前文档未保证，未实现时由服务端忽略 */
+    keyword?: string;
+    type?: string;
+  }) => {
     const raw = await http.get<unknown>('/system-config/announcements', { params });
     const pageData = normalizePaginated<AnnouncementItem>(raw);
     return {

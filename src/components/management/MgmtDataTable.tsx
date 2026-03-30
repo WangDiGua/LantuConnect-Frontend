@@ -20,10 +20,15 @@ export interface MgmtDataTableProps<T> {
   empty?: React.ReactNode;
   /** table min-width，宽表格便于横向滚动 */
   minWidth?: string;
+  /**
+   * `plain`：仅横向滚动 + 表（适合已包在 MgmtPageShell 大卡片内，避免套 Bento）。
+   * `card`：外层 BentoCard，用于未包壳的独立列表块。
+   */
+  surface?: 'plain' | 'card';
 }
 
 /**
- * 管理端列表统一表格：BentoCard + 横向滚动 + tableHeadCell/tableBodyRow/tableCell
+ * 管理端列表统一表格：默认 plain（壳内列表）；可选 BentoCard 包裹。
  */
 export function MgmtDataTable<T>({
   theme,
@@ -32,6 +37,7 @@ export function MgmtDataTable<T>({
   getRowKey,
   empty,
   minWidth = '56rem',
+  surface = 'plain',
 }: MgmtDataTableProps<T>): ReactElement | null {
   const isDark = theme === 'dark';
 
@@ -39,38 +45,46 @@ export function MgmtDataTable<T>({
     return empty ? <>{empty}</> : null;
   }
 
-  return (
-    <BentoCard theme={theme} padding="sm" className="overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm" style={{ minWidth }}>
-          <thead className={`border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-            <tr>
+  const tableBlock = (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm" style={{ minWidth }}>
+        <thead className={`border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+          <tr>
+            {columns.map((col) => (
+              <th
+                key={col.id}
+                className={[tableHeadCell(theme), col.headerClassName ?? ''].filter(Boolean).join(' ')}
+              >
+                {col.header}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, idx) => (
+            <tr key={getRowKey(row)} className={tableBodyRow(theme, idx)}>
               {columns.map((col) => (
-                <th
+                <td
                   key={col.id}
-                  className={[tableHeadCell(theme), col.headerClassName ?? ''].filter(Boolean).join(' ')}
+                  className={[tableCell(), col.cellClassName ?? ''].filter(Boolean).join(' ')}
                 >
-                  {col.header}
-                </th>
+                  {col.cell(row)}
+                </td>
               ))}
             </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, idx) => (
-              <tr key={getRowKey(row)} className={tableBodyRow(theme, idx)}>
-                {columns.map((col) => (
-                  <td
-                    key={col.id}
-                    className={[tableCell(), col.cellClassName ?? ''].filter(Boolean).join(' ')}
-                  >
-                    {col.cell(row)}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </BentoCard>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
+
+  if (surface === 'card') {
+    return (
+      <BentoCard theme={theme} padding="sm" className="overflow-hidden">
+        {tableBlock}
+      </BentoCard>
+    );
+  }
+
+  return tableBlock;
 }

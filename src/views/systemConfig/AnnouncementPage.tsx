@@ -18,10 +18,13 @@ import { nativeInputClass } from '../../utils/formFieldClasses';
 import { btnPrimary, btnSecondary, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { PageError } from '../../components/common/PageError';
+import { Pagination } from '../../components/common/Pagination';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
 
 interface Props { theme: Theme; fontSize: FontSize; showMessage: (msg: string, type?: 'success' | 'error' | 'info') => void; }
+
+const ANNOUNCEMENT_PAGE_SIZE = 20;
 
 const TYPE_OPTIONS = [
   { value: 'feature', label: '新功能' },
@@ -29,6 +32,8 @@ const TYPE_OPTIONS = [
   { value: 'update', label: '更新' },
   { value: 'notice', label: '公告' },
 ];
+
+const TYPE_FILTER_OPTIONS = [{ value: '', label: '全部' }, ...TYPE_OPTIONS];
 
 const TYPE_BADGE: Record<string, string> = {
   feature: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
@@ -59,6 +64,10 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<Error | null>(null);
   const [list, setList] = useState<AnnouncementItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [filterKeyword, setFilterKeyword] = useState('');
+  const [filterType, setFilterType] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [editing, setEditing] = useState<AnnouncementItem | null>(null);
   const [detailAnnouncement, setDetailAnnouncement] = useState<AnnouncementItem | null>(null);
@@ -70,15 +79,36 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
     setLoadError(null);
     setLoading(true);
     try {
-      const res = await systemConfigService.listAnnouncements({ page: 1, pageSize: 50 });
-      setList(res?.list ?? (Array.isArray(res) ? res as any : []));
+      const res = await systemConfigService.listAnnouncements({
+        page,
+        pageSize: ANNOUNCEMENT_PAGE_SIZE,
+      });
+      setList(res.list ?? []);
+      setTotal(Number.isFinite(res.total) ? res.total : 0);
     } catch (err) {
       setList([]);
+      setTotal(0);
       setLoadError(err instanceof Error ? err : new Error('加载公告列表失败'));
-    } finally { setLoading(false); }
-  }, []);
+    } finally {
+      setLoading(false);
+    }
+  }, [page]);
 
-  useEffect(() => { fetchList(); }, [fetchList]);
+  useEffect(() => {
+    void fetchList();
+  }, [fetchList]);
+
+  /** 关键词与类型仅过滤当前页 `list`；底部分页 total 来自服务端全库分页，二者可能不一致（见 UI 说明）。 */
+  const filteredRows = useMemo(() => {
+    const kw = filterKeyword.trim().toLowerCase();
+    return list.filter((a) => {
+      if (filterType && a.type !== filterType) return false;
+      if (!kw) return true;
+      const title = (a.title ?? '').toLowerCase();
+      const summary = (a.summary ?? '').toLowerCase();
+      return title.includes(kw) || summary.includes(kw);
+    });
+  }, [list, filterKeyword, filterType]);
 
   const openCreateModal = () => {
     setEditing(null);
@@ -137,7 +167,7 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
       {
         id: 'type',
         header: '类型',
-        cellClassName: 'align-top',
+        cellClassName: 'align-middle whitespace-nowrap',
         cell: (a: AnnouncementItem) => (
           <span className={`inline-flex text-xs font-medium px-2 py-0.5 rounded-full ${TYPE_BADGE[a.type ?? ''] ?? TYPE_BADGE.notice}`}>
             {TYPE_OPTIONS.find((o) => o.value === a.type)?.label ?? a.type}
@@ -147,61 +177,74 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
       {
         id: 'title',
         header: '标题',
-        cellClassName: 'align-top max-w-[14rem]',
+        cellClassName: `align-middle max-w-[12rem] ${textPrimary(theme)}`,
         cell: (a: AnnouncementItem) => (
-          <span className={`font-semibold text-[13px] ${textPrimary(theme)}`}>{a.title}</span>
+          <span className="font-semibold text-[13px] line-clamp-2">{a.title}</span>
         ),
       },
       {
         id: 'summary',
         header: '摘要',
-        cellClassName: `align-top max-w-[18rem] ${textMuted(theme)}`,
+        cellClassName: `align-middle max-w-[14rem] ${textMuted(theme)}`,
         cell: (a: AnnouncementItem) => (
-          <p className="m-0 text-xs line-clamp-2">{a.summary || '—'}</p>
+          <span className="text-xs line-clamp-2">{a.summary || '—'}</span>
         ),
       },
       {
         id: 'id',
         header: 'ID',
-        cellClassName: `align-top text-xs ${textMuted(theme)}`,
+        cellClassName: `align-middle text-xs whitespace-nowrap ${textMuted(theme)}`,
         cell: (a: AnnouncementItem) => String(a.id ?? '—'),
       },
       {
-        id: 'flags',
-        header: '标记',
-        cellClassName: `align-top text-xs ${textMuted(theme)}`,
-        cell: (a: AnnouncementItem) => (
-          <div className="space-y-0.5 whitespace-nowrap">
-            <div>置顶：{a.pinned ? '是' : '否'}</div>
-            <div>启用：{a.enabled == null ? '—' : a.enabled ? '是' : '否'}</div>
-            <div>删除：{a.deleted == null ? '—' : String(a.deleted)}</div>
-          </div>
-        ),
+        id: 'pinned',
+        header: '置顶',
+        cellClassName: `align-middle text-xs whitespace-nowrap ${textMuted(theme)}`,
+        cell: (a: AnnouncementItem) => (a.pinned ? '是' : '否'),
+      },
+      {
+        id: 'enabled',
+        header: '启用',
+        cellClassName: `align-middle text-xs whitespace-nowrap ${textMuted(theme)}`,
+        cell: (a: AnnouncementItem) => (a.enabled == null ? '—' : a.enabled ? '是' : '否'),
+      },
+      {
+        id: 'deleted',
+        header: '删除标记',
+        cellClassName: `align-middle text-xs whitespace-nowrap ${textMuted(theme)}`,
+        cell: (a: AnnouncementItem) => {
+          const d = a.deleted;
+          if (d == null) return '—';
+          if (typeof d === 'boolean') return d ? '是' : '否';
+          if (typeof d === 'number') return d === 1 ? '是' : d === 0 ? '否' : String(d);
+          return String(d);
+        },
       },
       {
         id: 'creator',
         header: '创建人',
-        cellClassName: `align-top text-xs ${textMuted(theme)}`,
+        cellClassName: `align-middle text-xs ${textMuted(theme)}`,
         cell: (a: AnnouncementItem) => resolvePersonDisplay({ names: [a.createdByName], ids: [a.createdBy] }),
       },
       {
-        id: 'times',
-        header: '时间',
-        cellClassName: `align-top text-xs ${textMuted(theme)}`,
-        cell: (a: AnnouncementItem) => (
-          <div className="space-y-0.5 whitespace-nowrap">
-            <div>创建 {formatDateTime(a.createdAt)}</div>
-            <div>更新 {formatDateTime(a.updatedAt)}</div>
-          </div>
-        ),
+        id: 'createdAt',
+        header: '创建时间',
+        cellClassName: `align-middle text-xs whitespace-nowrap ${textMuted(theme)}`,
+        cell: (a: AnnouncementItem) => formatDateTime(a.createdAt),
+      },
+      {
+        id: 'updatedAt',
+        header: '更新时间',
+        cellClassName: `align-middle text-xs whitespace-nowrap ${textMuted(theme)}`,
+        cell: (a: AnnouncementItem) => (a.updatedAt ? formatDateTime(a.updatedAt) : '—'),
       },
       {
         id: 'actions',
         header: '操作',
         headerClassName: 'text-right',
-        cellClassName: 'text-right align-top',
+        cellClassName: 'text-right align-middle',
         cell: (a: AnnouncementItem) => (
-          <div className="inline-flex flex-wrap items-center justify-end gap-1">
+          <div className="inline-flex flex-wrap items-center justify-end gap-1 h-8">
             <button
               type="button"
               onClick={() => setDetailAnnouncement(a)}
@@ -269,23 +312,55 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
       breadcrumbSegments={['系统配置', '平台公告']}
       description={PAGE_DESCRIPTION}
       toolbar={
-        <button type="button" className={btnPrimary} onClick={openCreateModal}>
-          <Plus size={14} /> 发布公告
-        </button>
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
+          <div className="flex flex-wrap items-center gap-2 min-w-0">
+            <input
+              type="search"
+              className={`${inputCls} w-full min-w-0 sm:max-w-[14rem]`}
+              placeholder="关键词（标题/摘要）"
+              value={filterKeyword}
+              onChange={(e) => setFilterKeyword(e.target.value)}
+              aria-label="按标题或摘要筛选"
+            />
+            <LantuSelect
+              theme={theme}
+              value={filterType}
+              onChange={setFilterType}
+              options={TYPE_FILTER_OPTIONS}
+              placeholder="类型"
+              triggerClassName="!min-w-[7rem]"
+            />
+            <p className={`m-0 text-xs max-w-xl ${textMuted(theme)}`}>
+              当前为前端筛选，仅在本页数据中过滤；全量检索待接口支持 keyword、type。底部分页条数为服务端总数。
+            </p>
+          </div>
+          <button type="button" className={`${btnPrimary} shrink-0 self-start lg:self-center`} onClick={openCreateModal}>
+            <Plus size={14} /> 发布公告
+          </button>
+        </div>
       }
     >
-      <div className="px-4 sm:px-6 pb-6">
+      <div className="px-4 sm:px-6 pb-6 flex flex-col min-h-0">
         {list.length === 0 ? (
           <EmptyState title="暂无公告" description="点击「发布公告」创建第一条平台公告" />
+        ) : filteredRows.length === 0 ? (
+          <EmptyState title="本页无匹配结果" description="请调整关键词或类型，或切换页码查看其它数据。" />
         ) : (
           <MgmtDataTable
             theme={theme}
             columns={announcementColumns}
-            rows={list}
+            rows={filteredRows}
             getRowKey={(a) => String(a.id)}
-            minWidth="72rem"
+            minWidth="96rem"
+            surface="plain"
           />
         )}
+        <Pagination
+          page={page}
+          pageSize={ANNOUNCEMENT_PAGE_SIZE}
+          total={total}
+          onChange={setPage}
+        />
       </div>
 
       <Modal open={showCreate} onClose={() => { setShowCreate(false); setEditing(null); }} title={editing ? '编辑平台公告' : '发布平台公告'} theme={theme} size="md"

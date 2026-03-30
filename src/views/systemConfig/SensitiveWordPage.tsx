@@ -10,6 +10,7 @@ import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { MgmtDataTable } from '../../components/management/MgmtDataTable';
 import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
 import { EmptyState } from '../../components/common/EmptyState';
+import { Pagination } from '../../components/common/Pagination';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { Modal } from '../../components/common/Modal';
 import { nativeInputClass } from '../../utils/formFieldClasses';
@@ -23,6 +24,7 @@ interface Props {
 }
 
 const INPUT_FOCUS = 'focus:ring-2 focus:ring-neutral-900/20 focus:border-neutral-900/35';
+const SENSITIVE_PAGE_SIZE = 20;
 
 function parseBatchJson(input: string): string[] | null {
   try {
@@ -72,7 +74,7 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
   const fetchList = useCallback(async (p: number) => {
     setLoading(true);
     try {
-      const res = await sensitiveWordService.list({ page: p, pageSize: 20 });
+      const res = await sensitiveWordService.list({ page: p, pageSize: SENSITIVE_PAGE_SIZE });
       setData(res);
     } catch (e) {
       showMessage(e instanceof Error ? e.message : '加载失败', 'error');
@@ -223,11 +225,11 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
         id: 'actions',
         header: '操作',
         headerClassName: 'text-right',
-        cellClassName: 'text-right',
+        cellClassName: 'text-right align-middle',
         cell: (item) => (
           <button
             type="button"
-            className="inline-flex items-center gap-1 rounded-lg bg-rose-500/10 px-2 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-500/20 dark:text-rose-400"
+            className="inline-flex items-center gap-1 h-8 rounded-lg bg-rose-500/10 px-2 py-1 text-xs font-medium text-rose-600 hover:bg-rose-500/20 dark:text-rose-400"
             onClick={() => setDeleteTarget(item)}
           >
             <Trash2 size={13} /> 删除
@@ -287,16 +289,16 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
             rows={list}
             getRowKey={(item) => item.id}
             minWidth="40rem"
+            surface="plain"
           />
         )}
 
-        {(data?.total ?? 0) > 20 && (
-          <div className="flex justify-center gap-2 mt-4">
-            <button type="button" className={btnSecondary(theme)} disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>上一页</button>
-            <span className={`flex items-center text-sm ${textMuted(theme)}`}>第 {page} 页</span>
-            <button type="button" className={btnSecondary(theme)} disabled={list.length < 20} onClick={() => setPage((p) => p + 1)}>下一页</button>
-          </div>
-        )}
+        <Pagination
+          page={page}
+          pageSize={SENSITIVE_PAGE_SIZE}
+          total={data?.total ?? 0}
+          onChange={setPage}
+        />
       </div>
 
       <Modal

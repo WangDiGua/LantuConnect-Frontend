@@ -60,10 +60,10 @@ export const MgmtPageShell: React.FC<MgmtPageShellProps> = ({
                   }`}
                 >
                   {titleDupesChrome ? <h1 className="sr-only">{a11yPageHeading}</h1> : null}
-                  <div className="flex min-w-0 items-start gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
                     {TitleIcon ? (
                       <span
-                        className={`inline-flex shrink-0 items-center justify-center w-8 h-8 rounded-xl mt-0.5 ${
+                        className={`inline-flex shrink-0 items-center justify-center w-8 h-8 rounded-xl self-center ${
                           isDark ? 'bg-white/10 text-slate-200' : 'bg-slate-100 text-slate-700'
                         }`}
                       >

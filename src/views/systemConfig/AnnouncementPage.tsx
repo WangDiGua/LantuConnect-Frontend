@@ -315,7 +315,8 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
               onChange={setFilterType}
               options={TYPE_FILTER_OPTIONS}
               placeholder="类型"
-              triggerClassName="!min-w-[7rem] shrink-0"
+              className="!w-36 shrink-0"
+              triggerClassName="w-full !min-w-0"
             />
           </div>
           <button type="button" className={`${btnPrimary} shrink-0`} onClick={openCreateModal}>

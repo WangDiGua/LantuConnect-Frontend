@@ -16,7 +16,7 @@ type IconComponent = React.ComponentType<{
 
 interface SubGroup {
   title: string;
-  items: Array<{ id: string; label: string; icon: IconComponent }>;
+  items: Array<{ id: string; label: string; icon: IconComponent; tag?: string }>;
 }
 
 export interface ConsoleSidebarProps {
@@ -170,46 +170,21 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
         )}
       </div>
 
-      {/* Mode Switcher */}
+      {/* Mode Switcher：单按钮，展示当前端，点击切换另一端 */}
       {canAccessAdmin && (
-        <div
-          className={`p-1 rounded-[14px] flex mb-6 shrink-0 ${
-            isDark ? 'bg-white/[0.06]' : 'bg-slate-200/60'
+        <button
+          type="button"
+          onClick={() => onSwitchMode(layoutIsAdmin ? 'user' : 'admin')}
+          aria-label={layoutIsAdmin ? '切换到应用端' : '切换到管理端'}
+          className={`w-full flex items-center justify-center gap-1.5 py-2.5 mb-6 shrink-0 text-[13px] font-semibold rounded-[14px] transition-all duration-300 ${
+            isDark
+              ? 'bg-white/[0.08] text-slate-200 shadow-sm border border-white/[0.06] hover:bg-white/[0.12]'
+              : 'bg-white text-slate-800 shadow-sm border border-slate-200/70 hover:bg-slate-50'
           }`}
         >
-          <button
-            type="button"
-            onClick={() => onSwitchMode('user')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-[13px] font-semibold rounded-[10px] transition-all duration-300 ${
-              !layoutIsAdmin
-                ? isDark
-                  ? 'bg-white/10 text-neutral-300 shadow-sm'
-                  : 'bg-white text-neutral-800 shadow-sm'
-                : isDark
-                  ? 'text-slate-500 hover:text-slate-300'
-                  : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            <Box size={14} />
-            <span>应用端</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => onSwitchMode('admin')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-[13px] font-semibold rounded-[10px] transition-all duration-300 ${
-              layoutIsAdmin
-                ? isDark
-                  ? 'bg-white/10 text-slate-200 shadow-sm'
-                  : 'bg-white text-slate-800 shadow-sm'
-                : isDark
-                  ? 'text-slate-500 hover:text-slate-300'
-                  : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            <Cpu size={14} />
-            <span>管理端</span>
-          </button>
-        </div>
+          {layoutIsAdmin ? <Cpu size={14} /> : <Box size={14} />}
+          <span>{layoutIsAdmin ? '管理端' : '应用端'}</span>
+        </button>
       )}
 
       {/* Menu Search：微凹底 + 聚焦抬亮与环，快捷键 Chip 非聚焦显示 */}
@@ -393,7 +368,20 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
                                 }`}
                               />
                             )}
-                            {subItem.label}
+                            <span className="inline-flex items-center gap-1.5 flex-wrap">
+                              <span>{subItem.label}</span>
+                              {subItem.tag && (
+                                <span
+                                  className={`shrink-0 text-[10px] font-bold px-1.5 py-px rounded-md ${
+                                    isDark
+                                      ? 'bg-amber-500/15 text-amber-300 border border-amber-400/25'
+                                      : 'bg-amber-50 text-amber-800 border border-amber-200/80'
+                                  }`}
+                                >
+                                  {subItem.tag}
+                                </span>
+                              )}
+                            </span>
                           </button>
                         ))}
                       </div>

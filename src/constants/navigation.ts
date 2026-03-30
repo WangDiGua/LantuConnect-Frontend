@@ -98,7 +98,7 @@ export const ADMIN_RESOURCE_MANAGEMENT_GROUPS = [
   {
     title: '资源目录',
     items: [
-      { id: 'resource-catalog', icon: Boxes, label: '统一资源中心' },
+      { id: 'resource-catalog', icon: Boxes, label: '统一资源中心', tag: '审核' },
     ],
   },
   {

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { ChevronDown, Box, Cpu, MoreVertical, LogOut, Search, Command } from 'lucide-react';
+import { ChevronDown, Box, Cpu, MoreVertical, LogOut, Search, Command, ArrowLeftRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Theme } from '../../types';
 import { mainScrollCompositorClass } from '../../utils/uiClasses';
@@ -153,7 +153,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
   return (
     <>
       {/* Logo */}
-      <div className="px-2 mt-2 mb-8">
+      <div className="px-2 mt-2 mb-6">
         {onLogoClick ? (
           <button
             type="button"
@@ -169,23 +169,6 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
           <Logo followSystemColorScheme={false} theme={theme} />
         )}
       </div>
-
-      {/* Mode Switcher：单按钮，展示当前端，点击切换另一端 */}
-      {canAccessAdmin && (
-        <button
-          type="button"
-          onClick={() => onSwitchMode(layoutIsAdmin ? 'user' : 'admin')}
-          aria-label={layoutIsAdmin ? '切换到应用端' : '切换到管理端'}
-          className={`w-full flex items-center justify-center gap-1.5 py-2.5 mb-6 shrink-0 text-[13px] font-semibold rounded-[14px] transition-all duration-300 ${
-            isDark
-              ? 'bg-white/[0.08] text-slate-200 shadow-sm border border-white/[0.06] hover:bg-white/[0.12]'
-              : 'bg-white text-slate-800 shadow-sm border border-slate-200/70 hover:bg-slate-50'
-          }`}
-        >
-          {layoutIsAdmin ? <Cpu size={14} /> : <Box size={14} />}
-          <span>{layoutIsAdmin ? '管理端' : '应用端'}</span>
-        </button>
-      )}
 
       {/* Menu Search：微凹底 + 聚焦抬亮与环，快捷键 Chip 非聚焦显示 */}
       <div className="mb-4 shrink-0">
@@ -399,75 +382,120 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
         )}
       </nav>
 
-      {/* User Card with popup menu */}
-      <div className="mt-auto pt-2 shrink-0 relative" ref={userMenuRef}>
-        <AnimatePresence>
-          {showUserMenu && (
-            <motion.div
-              initial={{ opacity: 0, y: 8, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 8, scale: 0.96 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-              className={`absolute bottom-full left-0 right-0 mb-2 rounded-xl border p-1.5 shadow-xl z-50 ${
-                isDark ? 'border-white/10 bg-[#1C1C1E]' : 'border-slate-200 bg-white'
-              }`}
-            >
-              <button
-                type="button"
-                onClick={() => { setShowUserMenu(false); onLogout(); }}
-                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium text-red-500 hover:bg-red-500/10 transition-colors"
-              >
-                <LogOut size={15} />
-                退出登录
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-        <button
-          type="button"
-          onClick={() => setShowUserMenu((v) => !v)}
-          className={`w-full rounded-[16px] p-2.5 flex items-center gap-3 transition-all group/user ${
-            isDark
-              ? 'bg-white/[0.06] shadow-[0_2px_12px_rgba(0,0,0,0.15)] border border-white/10 hover:bg-white/[0.1]'
-              : 'bg-white shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-slate-200/50 hover:shadow-md'
-          }`}
-        >
-          <MultiAvatar
-            seed={avatarSeed}
-            alt={displayUserName}
-            className="w-9 h-9 rounded-xl border border-white/10 shrink-0"
-          />
-          <div className="flex-1 text-left overflow-hidden">
+      {/* 底部：端切换（在用户信息上方）+ 用户卡片 */}
+      <div className="mt-auto pt-3 shrink-0 flex flex-col gap-2">
+        {canAccessAdmin && (
+          <button
+            type="button"
+            onClick={() => onSwitchMode(layoutIsAdmin ? 'user' : 'admin')}
+            aria-label={layoutIsAdmin ? '切换到应用端' : '切换到管理端'}
+            className={[
+              'group/mode w-full rounded-[16px] px-3 py-2.5 flex items-center gap-3',
+              'transition-all duration-200 active:scale-[0.98]',
+              'focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+              isDark
+                ? 'bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.09] hover:border-white/15 shadow-[0_2px_10px_rgba(0,0,0,0.2)] focus-visible:ring-blue-400/50 focus-visible:ring-offset-[#0f1117]'
+                : 'bg-white/90 border border-slate-200/60 hover:bg-white hover:border-slate-300/80 shadow-[0_2px_10px_rgba(15,23,42,0.06)] focus-visible:ring-slate-400/40 focus-visible:ring-offset-[#EFEFF1]',
+            ].join(' ')}
+          >
             <div
-              className={`text-[13px] font-bold truncate leading-tight transition-colors ${
-                isDark
-                  ? 'text-slate-200 group-hover/user:text-neutral-300'
-                  : 'text-slate-800 group-hover/user:text-neutral-800'
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                layoutIsAdmin
+                  ? isDark
+                    ? 'bg-violet-500/20 text-violet-200'
+                    : 'bg-violet-100 text-violet-700'
+                  : isDark
+                    ? 'bg-sky-500/20 text-sky-200'
+                    : 'bg-sky-100 text-sky-700'
               }`}
             >
-              {displayUserName}
+              {layoutIsAdmin ? <Cpu size={17} strokeWidth={2} /> : <Box size={17} strokeWidth={2} />}
             </div>
-            <div className="flex items-center gap-1.5 mt-1">
-              <span
-                className={`text-[9px] px-1.5 py-0.5 rounded-md font-bold whitespace-nowrap ${
-                  isDark
-                    ? 'bg-neutral-900/10 text-neutral-300 border border-neutral-900/20'
-                    : 'bg-neutral-100 text-neutral-900 border border-neutral-200/80'
+            <div className="flex-1 min-w-0 text-left">
+              <div className={`text-[13px] font-bold leading-tight ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
+                {layoutIsAdmin ? '管理端' : '应用端'}
+              </div>
+              <div className={`text-[10px] font-medium mt-0.5 truncate ${isDark ? 'text-slate-500 group-hover/mode:text-slate-400' : 'text-slate-500 group-hover/mode:text-slate-600'}`}>
+                {layoutIsAdmin ? '点击切换到应用端' : '点击切换到管理端'}
+              </div>
+            </div>
+            <ArrowLeftRight
+              size={15}
+              className={`shrink-0 transition-transform duration-200 group-hover/mode:translate-x-0.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}
+              aria-hidden
+            />
+          </button>
+        )}
+
+        <div className="relative" ref={userMenuRef}>
+          <AnimatePresence>
+            {showUserMenu && (
+              <motion.div
+                initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                className={`absolute bottom-full left-0 right-0 mb-2 rounded-xl border p-1.5 shadow-xl z-50 ${
+                  isDark ? 'border-white/10 bg-[#1C1C1E]' : 'border-slate-200 bg-white'
                 }`}
               >
-                {ROLE_LABELS[platformRole]}
-              </span>
-            </div>
-          </div>
-          <MoreVertical
-            size={16}
-            className={
+                <button
+                  type="button"
+                  onClick={() => { setShowUserMenu(false); onLogout(); }}
+                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium text-red-500 hover:bg-red-500/10 transition-colors"
+                >
+                  <LogOut size={15} />
+                  退出登录
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <button
+            type="button"
+            onClick={() => setShowUserMenu((v) => !v)}
+            className={`w-full rounded-[16px] p-2.5 flex items-center gap-3 transition-all group/user ${
               isDark
-                ? 'text-slate-500 group-hover/user:text-slate-300'
-                : 'text-slate-400 group-hover/user:text-slate-600'
-            }
-          />
-        </button>
+                ? 'bg-white/[0.06] shadow-[0_2px_12px_rgba(0,0,0,0.15)] border border-white/10 hover:bg-white/[0.1]'
+                : 'bg-white shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-slate-200/50 hover:shadow-md'
+            }`}
+          >
+            <MultiAvatar
+              seed={avatarSeed}
+              alt={displayUserName}
+              className="w-9 h-9 rounded-xl border border-white/10 shrink-0"
+            />
+            <div className="flex-1 text-left overflow-hidden">
+              <div
+                className={`text-[13px] font-bold truncate leading-tight transition-colors ${
+                  isDark
+                    ? 'text-slate-200 group-hover/user:text-neutral-300'
+                    : 'text-slate-800 group-hover/user:text-neutral-800'
+                }`}
+              >
+                {displayUserName}
+              </div>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span
+                  className={`text-[9px] px-1.5 py-0.5 rounded-md font-bold whitespace-nowrap ${
+                    isDark
+                      ? 'bg-neutral-900/10 text-neutral-300 border border-neutral-900/20'
+                      : 'bg-neutral-100 text-neutral-900 border border-neutral-200/80'
+                  }`}
+                >
+                  {ROLE_LABELS[platformRole]}
+                </span>
+              </div>
+            </div>
+            <MoreVertical
+              size={16}
+              className={
+                isDark
+                  ? 'text-slate-500 group-hover/user:text-slate-300'
+                  : 'text-slate-400 group-hover/user:text-slate-600'
+              }
+            />
+          </button>
+        </div>
       </div>
     </>
   );

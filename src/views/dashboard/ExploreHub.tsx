@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
-  Bot, Wrench, Cpu, AppWindow, Database, BookOpen, Users, Hexagon,
+  Bot, Wrench, Cpu, AppWindow, Database, BookOpen, Users, Sparkles,
   Activity, Flame, ChevronRight, Award, Megaphone, ArrowRight, Loader2,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -388,9 +388,19 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
 
             <div className="relative z-10 w-full lg:flex lg:items-center lg:justify-between lg:gap-10">
               <div className="w-full lg:max-w-[58%]">
-                <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mb-6 backdrop-blur-md shadow-lg">
-                  <Hexagon className="text-white/80" size={24} strokeWidth={1.5} />
-                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate(buildPath('user', 'resource-center'))}
+                  className="group mb-6 inline-flex max-w-full items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.07] px-4 py-2.5 text-left shadow-lg backdrop-blur-md transition-colors hover:bg-white/[0.1]"
+                >
+                  <Sparkles className="h-4 w-4 shrink-0 text-sky-400" strokeWidth={2} aria-hidden />
+                  <span className="text-sm font-medium text-white">Nexus Pro 2.0 现已发布</span>
+                  <ChevronRight
+                    className="ml-0.5 h-4 w-4 shrink-0 text-white/45 transition-transform group-hover:translate-x-0.5"
+                    strokeWidth={2}
+                    aria-hidden
+                  />
+                </button>
 
                 <h1 className="text-5xl md:text-[6rem] font-bold text-white tracking-tighter leading-[0.95] mb-6">
                   Build the future<br />of campus AI.

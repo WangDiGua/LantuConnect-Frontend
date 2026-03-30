@@ -196,7 +196,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
         top: 6,
         textStyle: { fontSize: 13, fontWeight: 600, color: c.text },
       },
-      grid: { ...baseGrid(), top: 46, left: '6%', right: '6%', bottom: '5%' },
+      grid: { ...baseGrid(), top: 46, left: '6%', right: '6%', bottom: '14%' },
       tooltip: baseTooltip(theme),
       xAxis: {
         ...axis.category,
@@ -240,7 +240,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
         top: 6,
         textStyle: { fontSize: 13, fontWeight: 600, color: c.text },
       },
-      grid: { ...baseGrid(), top: 46, left: '6%', right: '6%', bottom: '5%' },
+      grid: { ...baseGrid(), top: 46, left: '6%', right: '6%', bottom: '14%' },
       tooltip: baseTooltip(theme),
       xAxis: {
         ...axis.category,
@@ -390,7 +390,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
                       key={`${res.resourceType}-${res.resourceId}`}
                       type="button"
                       onClick={() => navigateToResource(res)}
-                      className={`rounded-2xl border transition-all duration-200 p-6 flex flex-col h-full hover:-translate-y-1 text-left cursor-pointer ${
+                      className={`rounded-2xl border transition-all duration-200 px-6 pt-6 pb-8 flex flex-col h-full hover:-translate-y-1 text-left cursor-pointer ${
                         isDark
                           ? 'bg-[#171b22] border-white/10 hover:border-white/20 shadow-[0_12px_30px_-24px_rgba(0,0,0,0.7)]'
                           : 'bg-white border-slate-200/80 shadow-sm hover:shadow-md'
@@ -474,10 +474,22 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
 
             <div className="lg:col-span-4 space-y-10">
               {(stats?.callsTrend7d?.length ?? 0) > 0 && (
-                <EChartCard theme={theme} option={callsTrendOption} minHeight={230} aria-label="探索页近7天调用趋势图" />
+                <EChartCard
+                  theme={theme}
+                  option={callsTrendOption}
+                  minHeight={230}
+                  className="px-4 pt-3 pb-5"
+                  aria-label="探索页近7天调用趋势图"
+                />
               )}
               {(stats?.newResourcesTrend7d?.length ?? 0) > 0 && (
-                <EChartCard theme={theme} option={newResourcesTrendOption} minHeight={230} aria-label="探索页近7天新增资源图" />
+                <EChartCard
+                  theme={theme}
+                  option={newResourcesTrendOption}
+                  minHeight={230}
+                  className="px-4 pt-3 pb-5"
+                  aria-label="探索页近7天新增资源图"
+                />
               )}
 
               <Card className="p-6" isDark={isDark}>

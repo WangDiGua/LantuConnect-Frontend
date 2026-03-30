@@ -95,7 +95,7 @@ import {
 import { PageSkeleton } from '../components/common/PageSkeleton';
 import { ConsoleSidebar } from '../components/layout/ConsoleSidebar';
 import { Tooltip } from '../components/common/Tooltip';
-import { contentMaxWidth, mainScrollCompositorClass } from '../utils/uiClasses';
+import { chromeGpuLayerClass, contentMaxWidth, mainScrollCompositorClass } from '../utils/uiClasses';
 
 const springTransition = { type: 'spring' as const, stiffness: 300, damping: 30 };
 
@@ -442,22 +442,30 @@ const MainContent = React.memo<{
 
 MainContent.displayName = 'MainContent';
 
-/** 路由切换动画；省略 will-change，避免与嵌套 overflow 滚动抢事件 */
+/** 路由切换动画：动画期短时 will-change；节点无 overflow-y-auto，与主滚动根分离 */
 const RouteContentMotion: React.FC<{
   animationVariants: Variants;
   children: React.ReactNode;
-}> = ({ animationVariants, children }) => (
-  <motion.div
-    variants={animationVariants}
-    initial="initial"
-    animate="animate"
-    exit="exit"
-    transition={springTransition}
-    className="flex min-h-0 w-full flex-col pb-8"
-  >
-    {children}
-  </motion.div>
-);
+}> = ({ animationVariants, children }) => {
+  const [routeLayerWillChange, setRouteLayerWillChange] = React.useState<'opacity, transform' | 'auto'>(
+    'opacity, transform',
+  );
+  return (
+    <motion.div
+      variants={animationVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      transition={springTransition}
+      className="flex min-h-0 w-full flex-col pb-8"
+      style={{ willChange: routeLayerWillChange }}
+      onAnimationStart={() => setRouteLayerWillChange('opacity, transform')}
+      onAnimationComplete={() => setRouteLayerWillChange('auto')}
+    >
+      {children}
+    </motion.div>
+  );
+};
 
 export const MainLayout: React.FC = () => {
   const [themePreference, setThemePreference] = useState<ThemeMode>(() => readAppearanceState().themePreference);
@@ -936,7 +944,7 @@ const MainLayoutContent: React.FC<{
 
         {/* Floating Sidebar */}
         <aside
-          className={`fixed inset-y-0 left-0 z-50 flex h-full w-[240px] shrink-0 flex-col px-3 py-2 transition-transform duration-200 ease-out lg:static lg:z-auto lg:translate-x-0 ${
+          className={`${chromeGpuLayerClass} fixed inset-y-0 left-0 z-50 flex h-full w-[240px] shrink-0 flex-col px-3 py-2 transition-transform duration-200 ease-out lg:static lg:z-auto lg:translate-x-0 ${
             isDark ? 'bg-[#0f1117]' : 'bg-[#EFEFF1]'
           } lg:bg-transparent ${
             mobileNavOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
@@ -985,7 +993,7 @@ const MainLayoutContent: React.FC<{
 
         {/* Main Canvas Card */}
         <main
-          className={`flex-1 overflow-hidden flex flex-col relative ${
+          className={`${chromeGpuLayerClass} flex-1 overflow-hidden flex flex-col relative ${
             isDark
               ? 'bg-[#1a1f2e] rounded-[24px] md:rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-white/[0.06]'
               : 'bg-slate-50 rounded-[24px] md:rounded-[32px] shadow-[0_8px_30px_rgb(15,23,42,0.05)] border border-slate-200/45'

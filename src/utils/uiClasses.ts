@@ -14,6 +14,8 @@ export const mainScrollPadX = 'px-4 sm:px-5 lg:px-6';
 export const mainScrollPadBottom = 'pb-6 sm:pb-8';
 /** flex 滚动区需要 min-h-0；勿在业务页根再套 overscroll-y-contain（会阻断滚轮到 MainLayout 主滚动） */
 export const mainScrollCompositorClass = 'min-h-0';
+/** 布局壳层 GPU 合成；勿与同一节点的 overflow-y-auto 主滚动根混用 */
+export const chromeGpuLayerClass = 'transform-gpu';
 /** 主内容区在侧栏与画布内横向占满，不再用 1400px 人为缩窄；可读性由内部卡片/栅格控制 */
 export const contentMaxWidth = 'max-w-none';
 export const contentPaddingX = 'px-3 sm:px-4 lg:px-6';

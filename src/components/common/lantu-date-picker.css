@@ -105,3 +105,179 @@
   border-left-color: rgba(255, 255, 255, 0.08);
 }
 
+/* ── 月/年：scroll 模式（div 列表），避免原生 <select> ───────────────────── */
+.lantu-datepicker-panel .react-datepicker__year-dropdown-container--scroll,
+.lantu-datepicker-panel .react-datepicker__month-dropdown-container--scroll {
+  display: inline-block;
+  margin: 0 6px;
+  vertical-align: middle;
+  position: relative;
+}
+
+.lantu-datepicker-panel .react-datepicker__month-read-view,
+.lantu-datepicker-panel .react-datepicker__year-read-view {
+  appearance: none;
+  margin: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 4px 8px 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.lantu-datepicker-panel-light .react-datepicker__month-read-view,
+.lantu-datepicker-panel-light .react-datepicker__year-read-view {
+  background: #fff;
+  border-color: #e2e8f0;
+  color: #0f172a;
+}
+
+.lantu-datepicker-panel-light .react-datepicker__month-read-view:hover,
+.lantu-datepicker-panel-light .react-datepicker__year-read-view:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.lantu-datepicker-panel-dark .react-datepicker__month-read-view,
+.lantu-datepicker-panel-dark .react-datepicker__year-read-view {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #e2e8f0;
+}
+
+.lantu-datepicker-panel-dark .react-datepicker__month-read-view:hover,
+.lantu-datepicker-panel-dark .react-datepicker__year-read-view:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.lantu-datepicker-panel .react-datepicker__month-read-view--down-arrow,
+.lantu-datepicker-panel .react-datepicker__year-read-view--down-arrow {
+  position: static;
+  transform: rotate(135deg);
+  border-width: 2px 2px 0 0;
+  width: 5px;
+  height: 5px;
+  margin: 0 2px 0 0;
+  flex-shrink: 0;
+}
+
+.lantu-datepicker-panel-light .react-datepicker__month-read-view--down-arrow,
+.lantu-datepicker-panel-light .react-datepicker__year-read-view--down-arrow {
+  border-color: #64748b;
+}
+
+.lantu-datepicker-panel-dark .react-datepicker__month-read-view--down-arrow,
+.lantu-datepicker-panel-dark .react-datepicker__year-read-view--down-arrow {
+  border-color: #94a3b8;
+}
+
+.lantu-datepicker-panel .react-datepicker__year-dropdown,
+.lantu-datepicker-panel .react-datepicker__month-dropdown {
+  width: max-content;
+  min-width: 7rem;
+  max-width: min(16rem, 85vw);
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  top: calc(100% + 6px);
+  margin-top: 0;
+  z-index: 30;
+  border-radius: 10px;
+  padding: 4px;
+  text-align: left;
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.15);
+}
+
+.lantu-datepicker-panel-dark .react-datepicker__year-dropdown,
+.lantu-datepicker-panel-dark .react-datepicker__month-dropdown {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+.lantu-datepicker-panel-light .react-datepicker__year-dropdown,
+.lantu-datepicker-panel-light .react-datepicker__month-dropdown {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+}
+
+.lantu-datepicker-panel-dark .react-datepicker__year-dropdown,
+.lantu-datepicker-panel-dark .react-datepicker__month-dropdown {
+  background: #252836;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.lantu-datepicker-panel .react-datepicker__year-dropdown--scrollable {
+  max-height: 200px;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.lantu-datepicker-panel .react-datepicker__year-dropdown--scrollable::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.lantu-datepicker-panel-light .react-datepicker__year-option,
+.lantu-datepicker-panel-light .react-datepicker__month-option {
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin: 1px 0;
+  color: #334155;
+}
+
+.lantu-datepicker-panel-light .react-datepicker__year-option:hover,
+.lantu-datepicker-panel-light .react-datepicker__month-option:hover {
+  background: rgba(37, 99, 235, 0.1);
+}
+
+.lantu-datepicker-panel-light .react-datepicker__year-option--selected_year,
+.lantu-datepicker-panel-light .react-datepicker__month-option--selected_month {
+  background: rgba(37, 99, 235, 0.14);
+  font-weight: 600;
+  color: #1d4ed8;
+}
+
+.lantu-datepicker-panel-dark .react-datepicker__year-option,
+.lantu-datepicker-panel-dark .react-datepicker__month-option {
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin: 1px 0;
+  color: #cbd5e1;
+}
+
+.lantu-datepicker-panel-dark .react-datepicker__year-option:hover,
+.lantu-datepicker-panel-dark .react-datepicker__month-option:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.lantu-datepicker-panel-dark .react-datepicker__year-option--selected_year,
+.lantu-datepicker-panel-dark .react-datepicker__month-option--selected_month {
+  background: rgba(37, 99, 235, 0.35);
+  color: #fff;
+}
+
+.lantu-datepicker-panel .react-datepicker__year-option--selected {
+  position: static;
+  display: inline;
+  margin-left: 6px;
+  color: inherit;
+  font-size: 11px;
+}
+
+.lantu-datepicker-panel .react-datepicker__header__dropdown {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px 2px;
+  margin-bottom: 6px;
+}
+

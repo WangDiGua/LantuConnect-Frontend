@@ -84,7 +84,9 @@ export const LantuDateTimePicker: React.FC<LantuDateTimePickerProps> = ({
         todayButton="今天"
         showMonthDropdown
         showYearDropdown
-        dropdownMode="select"
+        dropdownMode="scroll"
+        scrollableYearDropdown
+        yearDropdownItemNumber={18}
         className={`${nativeInputClass(theme)} ${compact ? 'min-h-[2rem] px-2.5 py-1.5 text-xs' : ''} pr-9`}
         calendarClassName={`lantu-datepicker-panel ${isDark ? 'lantu-datepicker-panel-dark' : 'lantu-datepicker-panel-light'}`}
         popperClassName="lantu-datepicker-popper"

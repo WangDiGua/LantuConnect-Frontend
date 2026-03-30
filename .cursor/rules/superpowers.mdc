@@ -1,0 +1,20 @@
+---
+description: 本仓库已内嵌 Superpowers 技能库（ obra/superpowers ）。在功能规划、写实现方案、TDD、系统调试、代码评审、Git worktree 等场景下，应读取 third-party/superpowers/skills 下对应目录的 SKILL.md 并按其流程执行。
+alwaysApply: false
+---
+
+# Superpowers 技能库（项目内路径）
+
+上游仓库：<https://github.com/obra/superpowers>
+
+本地克隆位置：`third-party/superpowers/`（git submodule）。
+
+每个技能入口一般为：
+
+`third-party/superpowers/skills/<技能目录名>/SKILL.md`
+
+常见目录名包括：`using-superpowers`、`brainstorming`、`writing-plans`、`executing-plans`、`test-driven-development`、`systematic-debugging`、`verification-before-completion`、`requesting-code-review`、`using-git-worktrees`、`subagent-driven-development`、`finishing-a-development-branch` 等。
+
+**用法**：在任务匹配某类工作流时，先 `Read` 对应 `SKILL.md`，再行动；并与本仓库其他规则（如 `data-models.mdc`、`github.mdc`、UI 规范）一并遵守。
+
+**更新子模块**（获取上游新技能）：在项目根目录执行 `git submodule update --remote third-party/superpowers`。

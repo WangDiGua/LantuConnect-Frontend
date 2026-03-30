@@ -1,0 +1,12 @@
+﻿---
+description: 用户想找「有没有现成 skill、怎么装」时使用：通过 npx skills find/add 与 skills.sh 发现生态技能。技能正文在 .agents/skills/find-skills/SKILL.md；锁文件为 skills-lock.json。
+alwaysApply: false
+---
+
+# find-skills（项目内路径）
+
+- **技能**：`.agents/skills/find-skills/SKILL.md`（由 `npx skills add vercel-labs/skills --skill find-skills` 安装，来源 [skills.sh](https://skills.sh/vercel-labs/skills/find-skills)）。
+- **锁文件**：`skills-lock.json`（便于 `npx skills check` / `update`）。
+
+在用户询问「有没有能做 X 的 skill」「帮我找一个 skill」等场景，先读上述 `SKILL.md`，再按需执行其中的 CLI 步骤并与本仓库 `github.mdc`（大改动需中文提交说明）等规则一并遵守。
+

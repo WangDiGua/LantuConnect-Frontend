@@ -442,7 +442,7 @@ const MainContent = React.memo<{
 
 MainContent.displayName = 'MainContent';
 
-/** 路由切换动画：动画期短时 will-change；节点无 overflow-y-auto，与主滚动根分离 */
+/** 路由切换动画：动画期 will-change；合成层由主滚动区内层 div 承担，避免与 overflow-y-auto 同节点 */
 const RouteContentMotion: React.FC<{
   animationVariants: Variants;
   children: React.ReactNode;
@@ -1001,7 +1001,7 @@ const MainLayoutContent: React.FC<{
         >
           {/* Header inside canvas */}
           <header
-            className={`h-[72px] flex items-center justify-between px-4 sm:px-5 lg:px-6 shrink-0 z-10 sticky top-0 border-b ${
+            className={`${chromeGpuLayerClass} h-[72px] flex items-center justify-between px-4 sm:px-5 lg:px-6 shrink-0 z-10 sticky top-0 border-b ${
               isDark
                 ? 'bg-[#1a1f2e]/80 backdrop-blur-md border-white/[0.06]'
                 : 'bg-slate-50/90 backdrop-blur-md border-slate-200/35'
@@ -1152,31 +1152,33 @@ const MainLayoutContent: React.FC<{
             </div>
           </header>
 
-          {/* Scrollable content */}
+          {/* Scrollable content：GPU 加在滚动条内的子层，避免与 overflow-y-auto 同节点（防第一版滚不动） */}
           <div className={`flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass}`}>
-            <AnimatePresence mode="wait">
-              <RouteContentMotion
-                key={contentKey}
-                animationVariants={animationVariants}
-              >
-                <div className={`mx-auto w-full ${contentMaxWidth}`}>
-                  <MainContent
-                    page={page}
-                    routeId={routeId}
-                    resourceTypeFromQuery={queryType}
-                    layoutIsAdmin={layoutIsAdmin}
-                    theme={theme}
-                    themePreference={themePreference}
-                    themeColor={themeColor}
-                    fontSize={fontSize}
-                    showMessage={showMessage}
-                    navigateTo={navigateTo}
-                    setShowUserMenu={setShowUserMenu}
-                    setShowAppearanceMenu={setShowAppearanceMenu}
-                  />
-                </div>
-              </RouteContentMotion>
-            </AnimatePresence>
+            <div className={`w-full ${chromeGpuLayerClass}`}>
+              <AnimatePresence mode="wait">
+                <RouteContentMotion
+                  key={contentKey}
+                  animationVariants={animationVariants}
+                >
+                  <div className={`mx-auto w-full ${contentMaxWidth}`}>
+                    <MainContent
+                      page={page}
+                      routeId={routeId}
+                      resourceTypeFromQuery={queryType}
+                      layoutIsAdmin={layoutIsAdmin}
+                      theme={theme}
+                      themePreference={themePreference}
+                      themeColor={themeColor}
+                      fontSize={fontSize}
+                      showMessage={showMessage}
+                      navigateTo={navigateTo}
+                      setShowUserMenu={setShowUserMenu}
+                      setShowAppearanceMenu={setShowAppearanceMenu}
+                    />
+                  </div>
+                </RouteContentMotion>
+              </AnimatePresence>
+            </div>
           </div>
         </main>
       </div>

@@ -74,6 +74,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
   const isDark = theme === 'dark';
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [menuQuery, setMenuQuery] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const isMac = useMemo(
@@ -210,35 +211,74 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
         </div>
       )}
 
-      {/* Menu Search */}
+      {/* Menu Search：微凹底 + 聚焦抬亮与环，快捷键 Chip 非聚焦显示 */}
       <div className="mb-4 shrink-0">
         <div
-          className={`relative rounded-xl border px-2.5 py-2 ${
-            isDark ? 'border-white/10 bg-white/[0.04]' : 'border-slate-200 bg-white/80'
-          } group`}
+          className={[
+            'relative flex h-[38px] w-full items-center rounded-[10px] px-3',
+            'transition-all duration-200 ease-out group',
+            searchFocused
+              ? isDark
+                ? 'border border-transparent bg-white/10 shadow-[0_0_0_2px_rgba(96,165,250,0.35)]'
+                : 'border border-transparent bg-white shadow-[0_0_0_2px_rgba(9,9,11,0.1)]'
+              : isDark
+                ? 'border border-transparent bg-white/[0.06] shadow-[inset_0_1px_2px_rgba(0,0,0,0.35)] hover:bg-white/[0.09]'
+                : 'border border-transparent bg-gray-100/80 shadow-inner hover:bg-gray-200/50',
+          ].join(' ')}
         >
           <Search
-            size={14}
-            className={`pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}
+            size={15}
+            className={[
+              'flex-shrink-0 transition-colors duration-200',
+              searchFocused
+                ? isDark
+                  ? 'text-slate-100'
+                  : 'text-gray-900'
+                : isDark
+                  ? 'text-slate-500 group-hover:text-slate-400'
+                  : 'text-gray-400 group-hover:text-gray-600',
+            ].join(' ')}
+            aria-hidden
           />
           <input
             ref={searchInputRef}
+            type="text"
             value={menuQuery}
             onChange={(e) => setMenuQuery(e.target.value)}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setSearchFocused(false)}
             placeholder="搜索菜单..."
-            className={`w-full bg-transparent pl-6 pr-12 text-[13px] outline-none ${isDark ? 'text-slate-200 placeholder:text-slate-500' : 'text-slate-700 placeholder:text-slate-400'}`}
+            className={[
+              'flex-1 min-w-0 border-none bg-transparent px-2.5 text-[13px] font-medium outline-none',
+              isDark ? 'text-slate-200 placeholder:text-slate-500' : 'text-gray-700 placeholder-gray-400',
+            ].join(' ')}
+            aria-label="搜索菜单"
           />
-          <span
-            className={`pointer-events-none absolute right-2 top-1/2 inline-flex -translate-y-1/2 items-center gap-0.5 rounded-md border px-1.5 py-0.5 text-[10px] font-medium opacity-65 transition-opacity group-focus-within:opacity-100 ${
-              isDark
-                ? 'border-white/15 bg-white/[0.03] text-slate-400'
-                : 'border-slate-300 bg-slate-50 text-slate-500'
-            }`}
+          <div
+            className={[
+              'flex flex-shrink-0 select-none items-center justify-center rounded-[5px] px-1.5 py-0.5 text-[10px] font-semibold tracking-wider',
+              'transition-all duration-200',
+              searchFocused
+                ? 'pointer-events-none scale-90 opacity-0'
+                : [
+                    'scale-100 opacity-100',
+                    isDark
+                      ? 'border border-white/15 bg-white/10 text-slate-400 shadow-[0_1px_2px_rgba(0,0,0,0.25),0_1px_0_rgba(0,0,0,0.12)]'
+                      : 'border border-gray-200/80 bg-white text-gray-500 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_1px_0_rgba(0,0,0,0.02)]',
+                  ].join(' '),
+            ].join(' ')}
+            aria-hidden
             title={isMac ? '⌘K' : 'Ctrl+K'}
           >
-            {isMac ? <Command size={10} /> : 'Ctrl'}
-            <span>K</span>
-          </span>
+            {isMac ? (
+              <span className="flex items-center gap-0.5">
+                <Command size={10} strokeWidth={2.5} className="opacity-90" />
+                <span>K</span>
+              </span>
+            ) : (
+              <span>Ctrl K</span>
+            )}
+          </div>
         </div>
       </div>
 

@@ -180,6 +180,27 @@
   height: 0;
 }
 
+/* ExploreHub Hero 终端：全局隐藏滚动条后仍显示细条，避免误以为内容被裁切 */
+.hero-code-terminal-body {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgb(100 116 139 / 0.55) transparent !important;
+  -ms-overflow-style: auto !important;
+}
+.hero-code-terminal-body::-webkit-scrollbar {
+  display: block !important;
+  width: 6px !important;
+}
+.hero-code-terminal-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+.hero-code-terminal-body::-webkit-scrollbar-thumb {
+  background-color: rgb(100 116 139 / 0.45);
+  border-radius: 4px;
+}
+.hero-code-terminal-body:hover::-webkit-scrollbar-thumb {
+  background-color: rgb(148 163 184 / 0.65);
+}
+
 @keyframes glow {
   0% { box-shadow: 0 0 5px rgba(23, 23, 23, 0.08); }
   50% { box-shadow: 0 0 20px rgba(23, 23, 23, 0.15); }

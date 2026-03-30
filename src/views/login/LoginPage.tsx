@@ -104,84 +104,90 @@ export const LoginPage: React.FC = () => {
   const inputCls = 'w-full pl-10 pr-4 py-2.5 bg-neutral-50/50 border border-neutral-200 rounded-xl text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-4 focus:ring-neutral-900/5 focus:border-neutral-900 focus:bg-white transition-all duration-300';
   const inputErrorCls = '!border-rose-400 focus:!border-rose-500 focus:!ring-rose-500/10';
 
+  const eclipseSize = 'min(500px, min(85vw, 50vh))';
+
   return (
-    <div className="min-h-screen flex font-sans bg-white selection:bg-neutral-900 selection:text-white">
+    <div className="h-[100dvh] min-h-0 overflow-y-auto overscroll-contain">
+      <div className="min-h-full flex flex-col lg:flex-row font-sans bg-white selection:bg-neutral-900 selection:text-white">
 
-      {/* Left: Eclipse Quantum Core */}
-      <div
-        className="hidden lg:flex lg:w-1/2 relative bg-[#020202] overflow-hidden flex-col"
-        onMouseMove={handleMouseMove}
-        onMouseLeave={() => setMousePos({ x: -1000, y: -1000 })}
-      >
-        <div className="absolute inset-0 opacity-30" style={{ backgroundSize: '24px 24px', backgroundImage: 'radial-gradient(rgba(255,255,255,0.1) 1px, transparent 1px)' }} />
+        {/* Left: Eclipse Quantum Core */}
         <div
-          className="absolute inset-0 z-0 pointer-events-none transition-opacity duration-500 ease-out"
-          style={{ background: `radial-gradient(600px circle at ${mousePos.x}px ${mousePos.y}px, rgba(255,255,255,0.06), transparent 40%)` }}
-        />
+          className="hidden lg:flex lg:w-1/2 relative bg-[#020202] overflow-x-hidden flex-col shrink-0"
+          onMouseMove={handleMouseMove}
+          onMouseLeave={() => setMousePos({ x: -1000, y: -1000 })}
+        >
+          <div className="absolute inset-0 opacity-30" style={{ backgroundSize: '24px 24px', backgroundImage: 'radial-gradient(rgba(255,255,255,0.1) 1px, transparent 1px)' }} />
+          <div
+            className="absolute inset-0 z-0 pointer-events-none transition-opacity duration-500 ease-out"
+            style={{ background: `radial-gradient(600px circle at ${mousePos.x}px ${mousePos.y}px, rgba(255,255,255,0.06), transparent 40%)` }}
+          />
 
-        <div className="relative z-20 flex items-center justify-between p-12">
-          <div className="flex items-center gap-3 text-white">
+          <div className="relative z-20 flex items-center justify-between p-6 sm:p-8 lg:p-10 xl:p-12">
+            <div className="flex items-center gap-3 text-white">
+              <Command className="w-6 h-6" />
+              <span className="text-lg font-medium tracking-wide">NEXUS</span>
+            </div>
+            <div className="text-right shrink-0">
+              <div className="text-[10px] font-mono text-neutral-600 mb-1 tracking-widest uppercase">System.Status</div>
+              <div className="flex items-center justify-end gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[11px] font-mono text-neutral-300 tracking-wider">OPTIMAL</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="relative z-10 flex-1 flex items-center justify-center min-h-0 py-4 lg:py-6 xl:-mt-10">
+            <div
+              className="relative flex items-center justify-center mx-auto"
+              style={{ width: eclipseSize, height: eclipseSize }}
+            >
+              <div className="absolute inset-[3%] rounded-full bg-gradient-to-tr from-neutral-800/40 via-blue-500/20 to-neutral-700/40 animate-spin blur-[40px] mix-blend-screen opacity-70" style={{ animationDuration: '10s' }} />
+              <div className="absolute inset-[12%] rounded-full bg-gradient-to-bl from-cyan-400/30 via-neutral-700/30 to-emerald-400/20 blur-[30px] mix-blend-screen opacity-50" style={{ animation: 'spin 15s linear infinite reverse' }} />
+              <div className="absolute inset-[10.5%] rounded-full bg-[#020202] shadow-[inset_0_0_80px_rgba(0,0,0,1)] border border-white/[0.03] z-10 flex items-center justify-center">
+                <div className="absolute w-2 h-2 rounded-full bg-white/20 blur-[2px]" />
+                <Fingerprint className="w-8 h-8 text-white/[0.05] z-20" strokeWidth={1} />
+              </div>
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[92%] h-[92%] border border-white/[0.04] rounded-full z-0" style={{ animation: 'spin 60s linear infinite' }} />
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[72%] h-[72%] border border-white/[0.06] border-dashed rounded-full z-20 flex items-start justify-center" style={{ animation: 'spin 40s linear infinite reverse' }}>
+                <div className="w-1.5 h-1.5 rounded-full bg-neutral-400 blur-[1px] -mt-[3px] shadow-[0_0_10px_rgba(23,23,23,0.5)]" />
+              </div>
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[52%] h-[52%] border border-white/[0.03] rounded-full z-20 border-t-white/[0.15] border-r-white/[0.05]" style={{ animation: 'spin 20s linear infinite' }} />
+            </div>
+          </div>
+
+          <div className="relative z-20 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between p-6 sm:p-8 lg:p-10 xl:p-12 mt-auto">
+            <div className="min-w-0">
+              <h1 className="font-medium tracking-tighter text-white leading-[1.05] mb-3 sm:mb-5 text-[clamp(1.75rem,2.5vw+0.75rem,3.75rem)] xl:text-[clamp(2rem,3vw+1rem,3.75rem)]">
+                Intelligence,<br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-neutral-300 to-neutral-700">
+                  Orchestrated.
+                </span>
+              </h1>
+              <p className="text-neutral-500 max-w-sm text-[13px] leading-relaxed font-light tracking-wide">
+                构建企业级智能体协同中枢。<br />优雅、强大、深不可测。
+              </p>
+            </div>
+            <div className="text-left sm:text-right space-y-4 shrink-0">
+              <div>
+                <div className="text-[10px] font-mono text-neutral-600 mb-1 tracking-widest uppercase">Node.Latency</div>
+                <div className="text-[11px] font-mono text-neutral-300 tracking-wider">{latency} ms</div>
+              </div>
+              <div>
+                <div className="text-[10px] font-mono text-neutral-600 mb-1 tracking-widest uppercase">Sync.Hash</div>
+                <div className="text-[11px] font-mono text-neutral-400 tracking-wider">{hash}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Clean Form */}
+        <div className="w-full lg:w-1/2 flex min-h-min lg:min-h-full flex-col items-center justify-center bg-white px-6 pt-20 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-12 sm:pt-20 sm:pb-10 lg:px-16 lg:py-12 xl:p-24 relative">
+          <div className="absolute top-6 left-6 sm:top-8 sm:left-8 flex lg:hidden items-center gap-2 text-neutral-900">
             <Command className="w-6 h-6" />
-            <span className="text-lg font-medium tracking-wide">NEXUS</span>
+            <span className="text-lg font-semibold tracking-tight">NEXUS</span>
           </div>
-          <div className="text-right">
-            <div className="text-[10px] font-mono text-neutral-600 mb-1 tracking-widest uppercase">System.Status</div>
-            <div className="flex items-center justify-end gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[11px] font-mono text-neutral-300 tracking-wider">OPTIMAL</span>
-            </div>
-          </div>
-        </div>
 
-        <div className="relative z-10 flex-1 flex items-center justify-center -mt-10">
-          <div className="relative w-[500px] h-[500px] flex items-center justify-center">
-            <div className="absolute inset-4 rounded-full bg-gradient-to-tr from-neutral-800/40 via-blue-500/20 to-neutral-700/40 animate-spin blur-[40px] mix-blend-screen opacity-70" style={{ animationDuration: '10s' }} />
-            <div className="absolute inset-16 rounded-full bg-gradient-to-bl from-cyan-400/30 via-neutral-700/30 to-emerald-400/20 blur-[30px] mix-blend-screen opacity-50" style={{ animation: 'spin 15s linear infinite reverse' }} />
-            <div className="absolute inset-14 rounded-full bg-[#020202] shadow-[inset_0_0_80px_rgba(0,0,0,1)] border border-white/[0.03] z-10 flex items-center justify-center">
-              <div className="absolute w-2 h-2 rounded-full bg-white/20 blur-[2px]" />
-              <Fingerprint className="w-8 h-8 text-white/[0.05] z-20" strokeWidth={1} />
-            </div>
-            <div className="absolute w-[460px] h-[460px] border border-white/[0.04] rounded-full z-0" style={{ animation: 'spin 60s linear infinite' }} />
-            <div className="absolute w-[360px] h-[360px] border border-white/[0.06] border-dashed rounded-full z-20 flex items-start justify-center" style={{ animation: 'spin 40s linear infinite reverse' }}>
-              <div className="w-1.5 h-1.5 rounded-full bg-neutral-400 blur-[1px] -mt-[3px] shadow-[0_0_10px_rgba(23,23,23,0.5)]" />
-            </div>
-            <div className="absolute w-[260px] h-[260px] border border-white/[0.03] rounded-full z-20 border-t-white/[0.15] border-r-white/[0.05]" style={{ animation: 'spin 20s linear infinite' }} />
-          </div>
-        </div>
-
-        <div className="relative z-20 flex items-end justify-between p-12 mt-auto">
-          <div>
-            <h1 className="text-5xl xl:text-6xl font-medium tracking-tighter text-white leading-[1.05] mb-5">
-              Intelligence,<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-neutral-300 to-neutral-700">
-                Orchestrated.
-              </span>
-            </h1>
-            <p className="text-neutral-500 max-w-sm text-[13px] leading-relaxed font-light tracking-wide">
-              构建企业级智能体协同中枢。<br />优雅、强大、深不可测。
-            </p>
-          </div>
-          <div className="text-right space-y-4">
-            <div>
-              <div className="text-[10px] font-mono text-neutral-600 mb-1 tracking-widest uppercase">Node.Latency</div>
-              <div className="text-[11px] font-mono text-neutral-300 tracking-wider">{latency} ms</div>
-            </div>
-            <div>
-              <div className="text-[10px] font-mono text-neutral-600 mb-1 tracking-widest uppercase">Sync.Hash</div>
-              <div className="text-[11px] font-mono text-neutral-400 tracking-wider">{hash}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Right: Clean Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center bg-white p-6 sm:p-12 lg:p-24 relative overflow-y-auto">
-        <div className="absolute top-8 left-8 flex lg:hidden items-center gap-2 text-neutral-900">
-          <Command className="w-6 h-6" />
-          <span className="text-lg font-semibold tracking-tight">NEXUS</span>
-        </div>
-
-        <div className="w-full max-w-[380px] space-y-10">
+          <div className="w-full max-w-[380px] space-y-8 sm:space-y-10 pb-6">
           <div className="space-y-2">
             <h2 className="text-3xl font-semibold tracking-tight text-neutral-900">Sign in</h2>
             <p className="text-sm text-neutral-500">输入学工号进入您的智能工作空间</p>
@@ -332,6 +338,7 @@ export const LoginPage: React.FC = () => {
               <a href="#" className="hover:text-neutral-900 transition-colors">Terms</a>
             </div>
           </div>
+        </div>
         </div>
       </div>
     </div>

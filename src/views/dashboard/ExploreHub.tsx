@@ -81,11 +81,11 @@ const HubStatCard: React.FC<{
   isDark: boolean;
 }> = ({ icon: Icon, value, label, clickable, onClick, isDark }) => {
   const shell = [
-    'group relative w-full min-w-0 h-[156px] rounded-[20px] border flex flex-col items-center justify-center overflow-hidden',
-    'transition-all duration-500 ease-out hover:-translate-y-2',
+    'group relative w-full min-w-0 h-[156px] rounded-2xl border flex flex-col items-center justify-center overflow-hidden',
+    'transition-all duration-200 ease-out hover:-translate-y-1',
     isDark
-      ? 'bg-[#171b22] border-white/10 shadow-[0_2px_10px_rgba(0,0,0,0.2)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.45)] hover:border-white/20 hover:bg-gradient-to-br hover:from-[#171b22] hover:to-[#1e2433]'
-      : 'bg-white border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] hover:border-gray-200 hover:bg-gradient-to-br hover:from-white hover:to-gray-50',
+      ? 'bg-[#171b22] border-white/10 hover:border-white/20 shadow-[0_12px_30px_-24px_rgba(0,0,0,0.7)] hover:shadow-[0_18px_34px_-22px_rgba(0,0,0,0.75)]'
+      : 'bg-white border-slate-200/80 shadow-sm hover:shadow-md',
   ].join(' ');
 
   const watermarkCls = [

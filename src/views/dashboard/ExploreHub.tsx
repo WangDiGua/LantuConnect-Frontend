@@ -420,7 +420,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
         </div>
 
         <main className={`${pageContainer} mt-10 space-y-12`}>
-          <div className="mx-auto flex w-full max-w-[1300px] flex-row flex-wrap justify-center gap-4 md:gap-5 xl:flex-nowrap xl:justify-between">
+          <div className="flex w-full min-w-0 flex-row flex-wrap justify-center gap-4 md:gap-5 xl:flex-nowrap xl:justify-between">
             {statsData.map((stat) => (
               <HubStatCard
                 key={stat.id}

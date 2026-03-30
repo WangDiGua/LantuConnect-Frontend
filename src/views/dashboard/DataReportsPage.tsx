@@ -133,6 +133,7 @@ export const DataReportsPage: React.FC<DataReportsPageProps> = ({ theme, fontSiz
                   value={customStart}
                   onChange={(next) => { setCustomStart(next); setTimeRange('custom'); }}
                   className="w-[160px]"
+                  placeholder="开始日期"
                   ariaLabel="开始日期"
                 />
                 <span className={`text-xs ${textMuted(theme)}`}>至</span>
@@ -142,6 +143,7 @@ export const DataReportsPage: React.FC<DataReportsPageProps> = ({ theme, fontSiz
                   value={customEnd}
                   onChange={(next) => { setCustomEnd(next); setTimeRange('custom'); }}
                   className="w-[160px]"
+                  placeholder="结束日期"
                   ariaLabel="结束日期"
                 />
               </div>

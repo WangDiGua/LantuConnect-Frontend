@@ -59,6 +59,8 @@ export const LantuDateTimePicker: React.FC<LantuDateTimePickerProps> = ({
   const minDate = useMemo(() => parseValue(min ?? '', mode), [min, mode]);
   const maxDate = useMemo(() => parseValue(max ?? '', mode), [max, mode]);
   const isDark = theme === 'dark';
+  const placeholderText =
+    placeholder ?? (mode === 'datetime' ? 'yyyy-MM-dd HH:mm' : 'yyyy-MM-dd');
 
   return (
     <div className={`lantu-datepicker-wrap relative ${className}`}>
@@ -78,7 +80,7 @@ export const LantuDateTimePicker: React.FC<LantuDateTimePickerProps> = ({
         timeFormat="HH:mm"
         timeCaption="时间"
         dateFormat={mode === 'datetime' ? 'yyyy-MM-dd HH:mm' : 'yyyy-MM-dd'}
-        placeholderText={placeholder}
+        placeholderText={placeholderText}
         disabled={disabled}
         showPopperArrow={false}
         todayButton="今天"

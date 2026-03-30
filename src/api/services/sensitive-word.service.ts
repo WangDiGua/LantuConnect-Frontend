@@ -12,7 +12,13 @@ import type {
 } from '../../types/dto/sensitive-word';
 
 export const sensitiveWordService = {
-  list: async (params?: { page?: number; pageSize?: number; category?: string; enabled?: boolean }) => {
+  list: async (params?: {
+    page?: number;
+    pageSize?: number;
+    keyword?: string;
+    category?: string;
+    enabled?: boolean;
+  }) => {
     const raw = await http.get<unknown>('/sensitive-words', { params });
     return normalizePaginated<SensitiveWord>(raw, (row: any) => ({
       ...row,

@@ -64,7 +64,7 @@
 | quota-management | **QuotaManagementPage**（完整列表+弹窗） | `quotaService` | CRUD | **菜单已指向此页** |
 | access-control | AccessControlPage | **`getAclRules`** + `publishAcl` | serverPaged + 写 | 曾用本地假数据初始化，已改为拉取 `/system-config/acl` |
 | audit-log | AuditLogPage | `listAuditLogs` + **keyword / action / result** | serverPaged | 导出 CSV 为当前页数据 |
-| sensitive-words | SensitiveWordPage | `sensitiveWordService` | serverPaged | 可扩展 keyword |
+| sensitive-words | SensitiveWordPage | `sensitiveWordService` + **keyword / category / enabled** | serverPaged | 行内编辑（分类/severity/启停）；词面改需后端扩展 PUT |
 | announcements | AnnouncementPage | `listAnnouncements` + **keyword / type** | serverPaged | — |
 
 **未接入路由的组件**：`SystemConfigExtraPages.tsx` 内 `SystemQuotaPage` 为简化单表单，**未被** `SystemConfigModule` 引用；避免与 `QuotaManagementPage` 混淆。

@@ -1,6 +1,6 @@
 # 管理端列表 UI 巡检与后端接口补充建议
 
-**前端接线状态（持续更新）**：公告、授权审批、入驻申请、审计日志等列表筛选已透传服务端 query；监控日志/告警、ACL 拉取、Token 分页等见 **[功能缺口矩阵](./frontend-feature-gap-matrix.md)**。仅后端升级而不同步前端时，仍可能表现为检索无效。
+**前端接线状态（持续更新）**：公告、授权审批、入驻申请、审计日志等列表筛选已透传服务端 query；**敏感词** 见 **[前端补全与后端分工](./frontend-completion-before-backend.md)**（keyword + 编辑弹窗）；监控日志/告警、ACL 拉取、Token 分页等见 **[功能缺口矩阵](./frontend-feature-gap-matrix.md)**。仅后端升级而不同步前端时，仍可能表现为检索无效。
 
 本文档基于 2026-03 前后对「管理列表：双标题、胶囊行内操作、工具栏单行」相关改动的**全面代码巡检**结果整理，供后端评估接口与检索能力是否需要补强。
 
@@ -114,13 +114,15 @@
 
 ### 2.5 敏感词列表 `GET /sensitive-words`
 
-**现状**
+**现状（前端，2026-03-30）**
 
-- Service 已支持 `category`、`enabled` 等（`sensitive-word.service.ts`）。列表以分页拉取为主。
+- `SensitiveWordPage` 工具栏：`keyword`（防抖）、`category`、`enabled` 已通过 `sensitiveWordService.list` 透传；工具栏使用 `TOOLBAR_ROW_LIST` + `LantuSelect` 固定宽（`!w-36 shrink-0`）。
+- 行内 **编辑** 弹窗：可改分类、severity、启用状态；词面修改依赖后端在 PUT 体中是否支持 `word`（当前 DTO 未含，见 [frontend-completion-before-backend.md](./frontend-completion-before-backend.md)）。
 
-**可选增强**
+**建议后端**
 
-- 若管理端需「全文检索词面」，可增加 `keyword` 参数；前端表格列多时可减少全量拉取压力。
+- 实现或确认 `keyword`：对敏感词 `word`（及必要时 `category`）做模糊匹配；**分页 `total` 为筛选后总数**。
+- 若产品要求运维改词：扩展 `PUT /sensitive-words/{id}` 的 UpdateRequest，与前端 DTO 同步。
 
 ---
 
@@ -141,6 +143,7 @@
 | 日期 | 说明 |
 |------|------|
 | 2026-03-30 | 初版：UI 巡检结果 + 公告 / 授权申请 / 入驻 / 审计 等后端检索建议；健康检查工具栏与 `TOOLBAR_ROW_LIST`、`LantuSelect` 宽度对齐。 |
+| 2026-03-30 | 敏感词页：检索与分类/状态筛选、编辑弹窗；新增 [frontend-completion-before-backend.md](./frontend-completion-before-backend.md) 整合说明；更新 §2.5。 |
 
 ---
 

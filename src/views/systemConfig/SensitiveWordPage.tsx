@@ -3,9 +3,10 @@ import { Loader2, Plus, ShieldAlert, Braces, Upload } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { sensitiveWordService } from '../../api/services/sensitive-word.service';
-import type { SensitiveWord, SensitiveWordImportResult } from '../../types/dto/sensitive-word';
+import type { SensitiveWord, SensitiveWordCategoryCount, SensitiveWordImportResult } from '../../types/dto/sensitive-word';
 import type { PaginatedData } from '../../types/api';
 import { BentoCard } from '../../components/common/BentoCard';
+import { LantuSelect } from '../../components/common/LantuSelect';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { MgmtDataTable } from '../../components/management/MgmtDataTable';
 import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
@@ -36,6 +37,12 @@ interface Props {
 const INPUT_FOCUS = 'focus:ring-2 focus:ring-neutral-900/20 focus:border-neutral-900/35';
 const SENSITIVE_PAGE_SIZE = 20;
 const PAGE_DESCRIPTION = '维护平台敏感词规则，支持批量导入与启用控制';
+
+const ENABLED_FILTER_OPTIONS = [
+  { value: '', label: '全部状态' },
+  { value: 'true', label: '启用' },
+  { value: 'false', label: '禁用' },
+];
 
 function parseBatchJson(input: string): string[] | null {
   try {
@@ -82,19 +89,65 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
   const [importing, setImporting] = useState(false);
   const [latestImportResult, setLatestImportResult] = useState<SensitiveWordImportResult | null>(null);
 
-  const fetchList = useCallback(async (p: number) => {
+  const [filterKeyword, setFilterKeyword] = useState('');
+  const [debouncedKeyword, setDebouncedKeyword] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [filterEnabled, setFilterEnabled] = useState('');
+  const [categoryOptions, setCategoryOptions] = useState<SensitiveWordCategoryCount[]>([]);
+
+  const [editingItem, setEditingItem] = useState<SensitiveWord | null>(null);
+  const [editCategory, setEditCategory] = useState('');
+  const [editSeverity, setEditSeverity] = useState(1);
+  const [editEnabled, setEditEnabled] = useState(true);
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  useEffect(() => {
+    const id = window.setTimeout(() => setDebouncedKeyword(filterKeyword.trim()), 300);
+    return () => window.clearTimeout(id);
+  }, [filterKeyword]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedKeyword, filterCategory, filterEnabled]);
+
+  const categoryFilterSelectOptions = useMemo(
+    () => [
+      { value: '', label: '全部分类' },
+      ...categoryOptions.map((c) => ({
+        value: c.category,
+        label: c.count > 0 ? `${c.category}（${c.count}）` : c.category,
+      })),
+    ],
+    [categoryOptions],
+  );
+
+  const fetchList = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await sensitiveWordService.list({ page: p, pageSize: SENSITIVE_PAGE_SIZE });
+      const enabledParam =
+        filterEnabled === 'true' ? true : filterEnabled === 'false' ? false : undefined;
+      const res = await sensitiveWordService.list({
+        page,
+        pageSize: SENSITIVE_PAGE_SIZE,
+        ...(debouncedKeyword ? { keyword: debouncedKeyword } : {}),
+        ...(filterCategory ? { category: filterCategory } : {}),
+        ...(enabledParam !== undefined ? { enabled: enabledParam } : {}),
+      });
       setData(res);
+      void sensitiveWordService
+        .categories()
+        .then((rows) => setCategoryOptions(rows ?? []))
+        .catch(() => {});
     } catch (e) {
       showMessage(e instanceof Error ? e.message : '加载失败', 'error');
     } finally {
       setLoading(false);
     }
-  }, [showMessage]);
+  }, [page, debouncedKeyword, filterCategory, filterEnabled, showMessage]);
 
-  useEffect(() => { fetchList(page); }, [page, fetchList]);
+  useEffect(() => {
+    void fetchList();
+  }, [fetchList]);
 
   const handleAdd = async () => {
     if (!addWord.trim()) { showMessage('请填写敏感词', 'error'); return; }
@@ -112,7 +165,7 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
       setAddCategory('');
       setAddSeverity(1);
       setAddSource('manual');
-      fetchList(page);
+      void fetchList();
     } catch (e) {
       showMessage(e instanceof Error ? e.message : '添加失败', 'error');
     } finally {
@@ -137,7 +190,7 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
       setLatestImportResult(result);
       showMessage(`批量新增完成，新增 ${result.added} 条`, 'success');
       setShowBatch(false);
-      await fetchList(page);
+      await fetchList();
     } catch (e) {
       showMessage(e instanceof Error ? e.message : '批量新增失败', 'error');
     } finally {
@@ -161,7 +214,7 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
       showMessage(`导入完成，新增 ${result.added} 条`, 'success');
       setShowImport(false);
       setImportFile(null);
-      await fetchList(page);
+      await fetchList();
     } catch (e) {
       showMessage(e instanceof Error ? e.message : '文件导入失败', 'error');
     } finally {
@@ -176,7 +229,7 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
       await sensitiveWordService.remove(deleteTarget.id);
       showMessage('已删除', 'success');
       setDeleteTarget(null);
-      fetchList(page);
+      void fetchList();
     } catch (e) {
       showMessage(e instanceof Error ? e.message : '删除失败', 'error');
     } finally {
@@ -188,11 +241,42 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
     try {
       await sensitiveWordService.update(item.id, { enabled: !item.enabled });
       showMessage(item.enabled ? '已禁用' : '已启用', 'success');
-      fetchList(page);
+      void fetchList();
     } catch (e) {
       showMessage(e instanceof Error ? e.message : '操作失败', 'error');
     }
-  }, [fetchList, page, showMessage]);
+  }, [fetchList, showMessage]);
+
+  const openEditModal = useCallback((item: SensitiveWord) => {
+    setEditingItem(item);
+    setEditCategory(item.category ?? '');
+    setEditSeverity(Math.max(1, item.severity ?? 1));
+    setEditEnabled(item.enabled);
+  }, []);
+
+  const closeEditModal = () => {
+    setEditingItem(null);
+    setSavingEdit(false);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingItem) return;
+    setSavingEdit(true);
+    try {
+      await sensitiveWordService.update(editingItem.id, {
+        category: editCategory.trim() || undefined,
+        severity: editSeverity,
+        enabled: editEnabled,
+      });
+      showMessage('已保存', 'success');
+      closeEditModal();
+      void fetchList();
+    } catch (e) {
+      showMessage(e instanceof Error ? e.message : '保存失败', 'error');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
 
   const sensitiveColumns = useMemo<MgmtDataTableColumn<SensitiveWord>[]>(
     () => [
@@ -238,7 +322,10 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
         headerClassName: 'text-right',
         cellClassName: 'text-right align-middle',
         cell: (item) => (
-          <div className="inline-flex items-center justify-end h-8">
+          <div className="inline-flex items-center justify-end gap-2 min-h-8 flex-wrap sm:flex-nowrap">
+            <button type="button" className={mgmtTableActionGhost(theme)} onClick={() => openEditModal(item)}>
+              编辑
+            </button>
             <button type="button" className={mgmtTableActionDanger} onClick={() => setDeleteTarget(item)}>
               删除
             </button>
@@ -246,7 +333,7 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
         ),
       },
     ],
-    [theme, handleToggle],
+    [theme, handleToggle, openEditModal],
   );
 
   if (loading && !data) {
@@ -273,7 +360,36 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
       breadcrumbSegments={['系统配置', '敏感词管理']}
       description={PAGE_DESCRIPTION}
       toolbar={
-        <div className={`${TOOLBAR_ROW_LIST} justify-end min-w-0`}>
+        <div className={`${TOOLBAR_ROW_LIST} justify-between min-w-0`}>
+          <div className={`${TOOLBAR_ROW_LIST} min-w-0 flex-1`}>
+            <input
+              type="search"
+              className={`${inputCls} w-[min(14rem,30vw)] min-w-[8rem] max-w-[14rem] shrink`}
+              placeholder="关键词（敏感词）"
+              value={filterKeyword}
+              onChange={(e) => setFilterKeyword(e.target.value)}
+              aria-label="按敏感词检索"
+              title="关键词、分类与状态将随列表请求传给后端；分页 total 应与筛选结果一致。"
+            />
+            <LantuSelect
+              theme={theme}
+              value={filterCategory}
+              onChange={setFilterCategory}
+              options={categoryFilterSelectOptions}
+              placeholder="分类"
+              className="!w-36 shrink-0"
+              triggerClassName="w-full !min-w-0"
+            />
+            <LantuSelect
+              theme={theme}
+              value={filterEnabled}
+              onChange={setFilterEnabled}
+              options={ENABLED_FILTER_OPTIONS}
+              placeholder="状态"
+              className="!w-36 shrink-0"
+              triggerClassName="w-full !min-w-0"
+            />
+          </div>
           <div className="flex flex-nowrap items-center justify-end gap-2 shrink-0">
             <button type="button" className={btnSecondary(theme)} onClick={() => setShowBatch(true)}>
               <Braces size={14} /> JSON 批量新增
@@ -301,7 +417,11 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
           </BentoCard>
         )}
         {list.length === 0 && !showAdd ? (
-          <EmptyState title="暂无敏感词" description="点击「新增」添加敏感词规则" />
+          debouncedKeyword || filterCategory || filterEnabled ? (
+            <EmptyState title="无匹配敏感词" description="请调整关键词、分类或状态筛选。" />
+          ) : (
+            <EmptyState title="暂无敏感词" description="点击「单条新增」或批量导入添加敏感词规则" />
+          )
         ) : (
           <MgmtDataTable
             theme={theme}
@@ -347,6 +467,50 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
           <div>
             <label className={`text-sm font-medium ${textSecondary(theme)} mb-1 block`}>来源（source）</label>
             <input className={inputCls} value={addSource} onChange={(e) => setAddSource(e.target.value)} placeholder="manual" />
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={!!editingItem}
+        onClose={closeEditModal}
+        title="编辑敏感词"
+        theme={theme}
+        size="sm"
+        footer={
+          <div className="flex justify-end gap-2">
+            <button type="button" className={btnSecondary(theme)} onClick={closeEditModal}>取消</button>
+            <button type="button" className={`${btnPrimary} disabled:opacity-50`} disabled={savingEdit} onClick={() => void handleSaveEdit()}>
+              {savingEdit ? <><Loader2 size={14} className="animate-spin" /> 保存中…</> : '保存'}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          <div>
+            <label className={`text-sm font-medium ${textSecondary(theme)} mb-1 block`}>敏感词</label>
+            <p className={`font-mono text-sm ${textPrimary(theme)}`}>{editingItem?.word ?? '—'}</p>
+            <p className={`mt-1 text-[11px] ${textMuted(theme)}`}>
+              词面修改需后端在 PUT 请求体中支持 `word` 字段后，再扩展前端 DTO 与表单。
+            </p>
+          </div>
+          <div>
+            <label className={`text-sm font-medium ${textSecondary(theme)} mb-1 block`}>分类</label>
+            <input className={inputCls} value={editCategory} onChange={(e) => setEditCategory(e.target.value)} placeholder="默认" />
+          </div>
+          <div>
+            <label className={`text-sm font-medium ${textSecondary(theme)} mb-1 block`}>严重级别（severity）</label>
+            <input type="number" min={1} max={10} className={inputCls} value={editSeverity} onChange={(e) => setEditSeverity(Math.max(1, Number(e.target.value) || 1))} />
+          </div>
+          <div>
+            <label className={`text-sm font-medium ${textSecondary(theme)} mb-1 block`}>状态</label>
+            <button
+              type="button"
+              onClick={() => setEditEnabled((v) => !v)}
+              className={`${editEnabled ? mgmtTableActionPositive(theme) : mgmtTableActionGhost(theme)} cursor-pointer`}
+            >
+              {editEnabled ? '启用' : '禁用'}
+            </button>
           </div>
         </div>
       </Modal>

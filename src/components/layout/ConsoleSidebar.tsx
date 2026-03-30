@@ -151,7 +151,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
   }, [menuQuery]);
 
   return (
-    <React.Fragment>
+    <div className="flex h-full min-h-0 flex-1 flex-col">
       {/* Logo */}
       <div className="px-2 mt-2 mb-6">
         {onLogoClick ? (
@@ -357,8 +357,8 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
                                 <span
                                   className={`shrink-0 text-[10px] font-bold px-1.5 py-px rounded-md ${
                                     isDark
-                                      ? 'bg-amber-500/15 text-amber-300 border border-amber-400/25'
-                                      : 'bg-amber-50 text-amber-800 border border-amber-200/80'
+                                      ? 'bg-blue-500/15 text-blue-200 border border-blue-400/35'
+                                      : 'bg-blue-50 text-blue-800 border border-blue-200/90'
                                   }`}
                                 >
                                   {subItem.tag}
@@ -396,7 +396,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
                 }`}
               >
                 {canAccessAdmin && (
-                  <>
+                  <div className="flex flex-col">
                     <button
                       type="button"
                       onClick={() => {
@@ -413,7 +413,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
                       <span className="min-w-0">{layoutIsAdmin ? '切换到应用端' : '切换到管理端'}</span>
                     </button>
                     <div className={`mx-2 my-1 h-px ${isDark ? 'bg-white/[0.08]' : 'bg-slate-200/80'}`} aria-hidden />
-                  </>
+                  </div>
                 )}
                 <button
                   type="button"
@@ -463,13 +463,9 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
                 {canAccessAdmin && (
                   <span
                     className={`text-[9px] px-1.5 py-0.5 rounded-md font-bold whitespace-nowrap ${
-                      layoutIsAdmin
-                        ? isDark
-                          ? 'bg-violet-500/15 text-violet-200 border border-violet-400/25'
-                          : 'bg-violet-100 text-violet-800 border border-violet-200/80'
-                        : isDark
-                          ? 'bg-sky-500/15 text-sky-200 border border-sky-400/25'
-                          : 'bg-sky-100 text-sky-800 border border-sky-200/80'
+                      isDark
+                        ? 'bg-blue-500/15 text-blue-200 border border-blue-400/35'
+                        : 'bg-blue-50 text-blue-800 border border-blue-200/90'
                     }`}
                   >
                     {layoutIsAdmin ? '管理端' : '应用端'}
@@ -487,6 +483,6 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
             />
           </button>
       </div>
-    </React.Fragment>
+    </div>
   );
 };

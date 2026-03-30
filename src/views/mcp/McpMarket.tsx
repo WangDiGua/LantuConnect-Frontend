@@ -23,6 +23,7 @@ import {
   btnPrimary,
   btnSecondary,
   canvasBodyBg,
+  mainScrollCompositorClass,
   statusLabel,
   textMuted,
   textPrimary,
@@ -530,7 +531,7 @@ export const McpMarket: React.FC<Props> = ({ theme, showMessage }) => {
   };
 
   return (
-    <div className={`flex-1 overflow-y-auto custom-scrollbar ${canvasBodyBg(theme)}`}>
+    <div className={`flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${canvasBodyBg(theme)}`}>
       <div className="px-3 py-4 sm:px-4 lg:px-5">
         <div className={`${bentoCard(theme)} overflow-hidden p-4 sm:p-6 lg:p-8`}>
           <div className="mb-5 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">

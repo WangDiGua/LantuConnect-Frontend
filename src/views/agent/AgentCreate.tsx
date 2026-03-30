@@ -18,7 +18,7 @@ import { Theme, FontSize, ThemeColor } from '../../types';
 import type { Agent, AgentType } from '../../types/dto/agent';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
-import { btnPrimary, btnSecondary, btnGhost, canvasBodyBg, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import { btnPrimary, btnSecondary, btnGhost, canvasBodyBg, mainScrollCompositorClass, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
 import { useCreateAgent, useUpdateAgent } from '../../hooks/queries/useAgent';
 import { useMessage } from '../../components/common/Message';
 import { z } from 'zod';
@@ -627,7 +627,7 @@ export const AgentCreate: React.FC<AgentCreateProps> = ({ theme, fontSize, theme
         <h2 className={`text-lg font-bold ${textPrimary(theme)}`}>{isEditMode ? '编辑 Agent' : '创建�?Agent'}</h2>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-2 sm:px-3 lg:px-4 py-4 sm:py-6">
+      <div className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar px-2 sm:px-3 lg:px-4 py-4 sm:py-6 ${mainScrollCompositorClass}`}>
         <div className="w-full max-w-2xl mx-auto">
           {renderStepIndicator()}
 

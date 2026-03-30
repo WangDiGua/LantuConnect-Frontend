@@ -17,6 +17,7 @@ import type { Notification } from '../../types/dto/notification';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { LantuDateTimePicker } from '../common/LantuDateTimePicker';
 import { LantuSelect } from '../common/LantuSelect';
+import { mainScrollCompositorClass } from '../../utils/uiClasses';
 
 export interface MessageItem {
   id: string;
@@ -349,7 +350,7 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
           </div>
         </div>
 
-        <div className="max-h-[min(70vh,360px)] overflow-y-auto custom-scrollbar">
+        <div className={`max-h-[min(70vh,360px)] overflow-y-auto custom-scrollbar ${mainScrollCompositorClass}`}>
           {filtered.length === 0 ? (
             <div className={`flex flex-col items-center justify-center py-12 px-4 ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
               <Mail size={32} className="opacity-50 mb-3" />

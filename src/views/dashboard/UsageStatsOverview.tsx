@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import type { Theme, FontSize } from '../../types';
-import { canvasBodyBg, textPrimary, textSecondary, textMuted, tableHeadCell, tableBodyRow, tableCell } from '../../utils/uiClasses';
+import { canvasBodyBg, mainScrollCompositorClass, textPrimary, textSecondary, textMuted, tableHeadCell, tableBodyRow, tableCell } from '../../utils/uiClasses';
 import { BarChart3, Zap, Users, Clock, TrendingUp, Loader2 } from 'lucide-react';
 import { dashboardService } from '../../api/services/dashboard.service';
 import type { UsageStatsData } from '../../types/dto/dashboard';
@@ -60,7 +60,7 @@ export const UsageStatsOverview: React.FC<Props> = ({ theme }) => {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4 sm:px-6 py-5 space-y-5">
+      <div className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4 sm:px-6 py-5 space-y-5 ${mainScrollCompositorClass}`}>
         {loading && !data ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 size={24} className="animate-spin text-slate-400" />

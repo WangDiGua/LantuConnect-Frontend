@@ -7,7 +7,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import type { EChartsOption } from 'echarts';
 import type { Theme, FontSize } from '../../types';
-import { mainScrollPadBottom, canvasBodyBg } from '../../utils/uiClasses';
+import { mainScrollPadBottom, mainScrollCompositorClass, canvasBodyBg } from '../../utils/uiClasses';
 import { buildPath } from '../../constants/consoleRoutes';
 import { dashboardService } from '../../api/services/dashboard.service';
 import type { ExploreHubData, ExploreResourceItem, AnnouncementItem } from '../../types/dto/explore';
@@ -373,7 +373,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
   const pageContainer = 'w-full px-4 sm:px-5 lg:px-6 xl:px-8';
 
   return (
-    <div className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar ${mainScrollPadBottom}`}>
+    <div className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${mainScrollPadBottom}`}>
       <div className={`min-h-screen pt-2 sm:pt-3 pb-20 ${canvasBodyBg(theme)}`}>
         <div className={pageContainer}>
           <div

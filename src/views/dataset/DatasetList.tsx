@@ -19,7 +19,8 @@ import { PortalDropdown } from '../../components/common/PortalDropdown';
 import { DatasetCreate } from './DatasetCreate';
 import { DatasetDetail } from './DatasetDetail';
 import {
-  canvasBodyBg, bentoCard, bentoCardHover, btnPrimary, btnGhost, btnSecondary,
+  canvasBodyBg,
+  mainScrollCompositorClass, bentoCard, bentoCardHover, btnPrimary, btnGhost, btnSecondary,
   statusBadgeClass, statusDot, statusLabel,
   textPrimary, textSecondary, textMuted, techBadge,
 } from '../../utils/uiClasses';
@@ -90,7 +91,7 @@ export const DatasetList: React.FC<Props> = ({ theme, fontSize, showMessage }) =
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
-    <div className={`flex-1 flex flex-col min-h-0 overflow-y-auto custom-scrollbar transition-colors duration-300 ${canvasBodyBg(theme)}`}>
+    <div className={`flex-1 flex flex-col min-h-0 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} transition-colors duration-300 ${canvasBodyBg(theme)}`}>
       <div className="w-full flex flex-col px-3 sm:px-4 lg:px-5 py-4 gap-4">
         <div className={`${bentoCard(theme)} overflow-hidden shrink-0 flex flex-col`}>
           {/* Header */}

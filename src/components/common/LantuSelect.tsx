@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { Theme } from '../../types';
 import { nativeSelectTriggerClass } from '../../utils/formFieldClasses';
-import { textMuted } from '../../utils/uiClasses';
+import { textMuted, mainScrollCompositorClass } from '../../utils/uiClasses';
 import { PortalDropdown } from './PortalDropdown';
 
 export interface LantuSelectOption {
@@ -106,7 +106,7 @@ export const LantuSelect: React.FC<LantuSelectProps> = ({
           id={listboxId}
           role="listbox"
           aria-labelledby={`${listboxId}-trigger`}
-          className="max-h-60 overflow-y-auto overscroll-contain custom-scrollbar"
+          className={`max-h-60 overflow-y-auto overscroll-contain custom-scrollbar ${mainScrollCompositorClass}`}
           style={{
             WebkitOverflowScrolling: 'touch',
             maxHeight: 'min(15rem, var(--portal-dropdown-max-height, 15rem))',

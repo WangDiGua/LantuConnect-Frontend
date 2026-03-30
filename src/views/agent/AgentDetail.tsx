@@ -18,7 +18,8 @@ import { PageError } from '../../components/common/PageError';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { DetailLayout } from '../../components/layout/PageLayouts';
 import {
-  canvasBodyBg, bentoCard, btnGhost, btnDanger,
+  canvasBodyBg,
+  mainScrollCompositorClass, bentoCard, btnGhost, btnDanger,
   textPrimary, textSecondary, textMuted, contentMaxWidth, contentPaddingX,
   statusBadgeClass, statusDot, statusLabel,
 } from '../../utils/uiClasses';
@@ -118,7 +119,7 @@ export const AgentDetail: React.FC<AgentDetailProps> = ({ agentId, theme, fontSi
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+      <div className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass}`}>
         <DetailLayout className="items-start">
           <div className="space-y-4">
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }} className={`${bentoCard(theme)} p-6`}>

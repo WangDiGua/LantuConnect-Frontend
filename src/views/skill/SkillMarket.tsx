@@ -14,7 +14,7 @@ import { invokeService } from '../../api/services/invoke.service';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { mapInvokeFlowError } from '../../utils/invokeError';
 import {
-  canvasBodyBg, bentoCard, btnPrimary, btnSecondary,
+  canvasBodyBg, mainScrollCompositorClass, bentoCard, btnPrimary, btnSecondary,
   textPrimary, textSecondary, textMuted, techBadge,
 } from '../../utils/uiClasses';
 import { BentoCard } from '../../components/common/BentoCard';
@@ -195,7 +195,7 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, theme
   }, [skills, keyword]);
 
   return (
-    <div className={`flex-1 overflow-y-auto custom-scrollbar ${canvasBodyBg(theme)}`}>
+    <div className={`flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${canvasBodyBg(theme)}`}>
       <MarketLayout>
         <div className={`${bentoCard(theme)} overflow-hidden p-4 sm:p-6 lg:p-8`}>
         {/* Header */}

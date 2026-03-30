@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { Theme, FontSize } from '../../types';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
-import { btnPrimary, btnSecondary, canvasBodyBg, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import { btnPrimary, btnSecondary, canvasBodyBg, mainScrollCompositorClass, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
 import { Modal } from '../../components/common/Modal';
 import { BentoCard } from '../../components/common/BentoCard';
 import { PortalDropdown } from '../../components/common/PortalDropdown';
@@ -159,7 +159,7 @@ export const TagManagementPage: React.FC<Props> = ({ theme, fontSize, showMessag
 
   return (
     <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${canvasBodyBg(theme)}`}>
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-2 sm:px-3 lg:px-4 py-4 sm:py-6">
+      <div className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar px-2 sm:px-3 lg:px-4 py-4 sm:py-6 ${mainScrollCompositorClass}`}>
         <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
           <div className="flex min-w-0 items-center gap-3">
             <div className={`shrink-0 rounded-xl p-2.5 ${isDark ? 'bg-white/10' : 'bg-white border border-slate-200/40'}`}>

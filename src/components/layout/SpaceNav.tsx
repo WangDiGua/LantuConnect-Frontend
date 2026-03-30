@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Space, SpaceNavItem } from '../../constants/spaces';
+import { mainScrollCompositorClass } from '../../utils/uiClasses';
 
 export interface SpaceNavProps {
   space: Space;
@@ -75,7 +76,7 @@ export const SpaceNav: React.FC<SpaceNavProps> = ({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -6 }}
           transition={{ duration: 0.22, ease: 'easeOut' }}
-          className="flex-1 overflow-y-auto px-2.5 pb-4 custom-scrollbar"
+          className={`flex-1 overflow-y-auto px-2.5 pb-4 custom-scrollbar ${mainScrollCompositorClass}`}
         >
           {space.sections.map((section) => (
             <div key={`${section.sidebarId}-${section.title}`} className="mb-2.5">

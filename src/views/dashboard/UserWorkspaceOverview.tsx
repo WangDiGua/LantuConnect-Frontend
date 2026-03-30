@@ -11,7 +11,7 @@ import type { UserDashboardData, AnnouncementItem } from '../../types/dto/explor
 import { dashboardService } from '../../api/services/dashboard.service';
 import { systemConfigService } from '../../api/services/system-config.service';
 import { useAuthStore } from '../../stores/authStore';
-import { bentoCard, bentoCardHover, canvasBodyBg, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import { bentoCard, bentoCardHover, canvasBodyBg, mainScrollCompositorClass, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
 import { PageError } from '../../components/common/PageError';
 import { BentoCard } from '../../components/common/BentoCard';
 import { KpiCard } from '../../components/common/KpiCard';
@@ -106,7 +106,7 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
   }
 
   return (
-    <div className={`flex-1 overflow-y-auto custom-scrollbar ${canvasBodyBg(theme)}`}>
+    <div className={`flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${canvasBodyBg(theme)}`}>
       <DashboardLayout className="space-y-5">
 
         {/* Welcome */}

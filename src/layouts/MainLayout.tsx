@@ -993,7 +993,7 @@ const MainLayoutContent: React.FC<{
 
         {/* Main Canvas Card */}
         <main
-          className={`flex-1 overflow-hidden flex flex-col relative ${
+          className={`isolate flex-1 overflow-hidden flex flex-col relative ${
             isDark
               ? 'bg-[#1a1f2e] rounded-[24px] md:rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-white/[0.06]'
               : 'bg-slate-50 rounded-[24px] md:rounded-[32px] shadow-[0_8px_30px_rgb(15,23,42,0.05)] border border-slate-200/45'
@@ -1039,7 +1039,7 @@ const MainLayoutContent: React.FC<{
                       }`}
                     >
                       <div
-                        className={`max-h-[min(80vh,36rem)] overflow-y-auto overflow-x-hidden custom-scrollbar px-0.5 pb-1 pt-1`}
+                        className={`max-h-[min(80vh,36rem)] overflow-y-auto overflow-x-hidden custom-scrollbar px-0.5 pb-1 pt-1 ${mainScrollCompositorClass}`}
                       >
                         <AppearanceMenu
                           embedded

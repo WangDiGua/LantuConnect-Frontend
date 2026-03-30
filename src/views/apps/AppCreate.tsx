@@ -7,7 +7,7 @@ import type { SourceType } from '../../types/dto/agent';
 import { smartAppService } from '../../api/services/smart-app.service';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
-import { btnPrimary, btnSecondary, btnGhost, canvasBodyBg, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import { btnPrimary, btnSecondary, btnGhost, canvasBodyBg, mainScrollCompositorClass, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
 import { GlassPanel } from '../../components/common/GlassPanel';
 import { BentoCard } from '../../components/common/BentoCard';
 
@@ -116,7 +116,7 @@ export const AppCreate: React.FC<AppCreateProps> = ({ theme, onBack, onSuccess, 
         <h2 className={`text-lg font-bold ${textPrimary(theme)}`}>{isEditMode ? '编辑智能应用' : '注册智能应用'}</h2>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-2 sm:px-3 lg:px-4 py-4 sm:py-6">
+      <div className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar px-2 sm:px-3 lg:px-4 py-4 sm:py-6 ${mainScrollCompositorClass}`}>
         <div className="w-full max-w-2xl mx-auto">
           <GlassPanel theme={theme} padding="lg">
             <div className="space-y-6">

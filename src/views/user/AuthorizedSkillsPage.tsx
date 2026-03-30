@@ -7,6 +7,7 @@ import { PageError } from '../../components/common/PageError';
 import { formatDateTime } from '../../utils/formatDateTime';
 import {
   canvasBodyBg,
+  mainScrollCompositorClass,
   bentoCard,
   bentoCardHover,
   btnGhost,
@@ -47,7 +48,7 @@ export const AuthorizedSkillsPage: React.FC<Props> = ({ theme }) => {
   }, [fetchData]);
 
   return (
-    <div className={`flex-1 overflow-y-auto custom-scrollbar ${canvasBodyBg(theme)}`}>
+    <div className={`flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${canvasBodyBg(theme)}`}>
       <div className="px-3 py-4 sm:px-4 lg:px-5">
         <div className={`${bentoCard(theme)} overflow-hidden`}>
           <div className={`flex items-center justify-between border-b px-6 py-4 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>

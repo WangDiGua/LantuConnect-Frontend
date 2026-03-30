@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, XCircle, Eye, X, Clock, User, Loader2 } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import {
-  canvasBodyBg, bentoCard, bentoCardHover, btnSecondary,
+  canvasBodyBg, mainScrollCompositorClass, bentoCard, bentoCardHover, btnSecondary,
   statusBadgeClass, statusDot, statusLabel,
   techBadge,
   textPrimary, textSecondary, textMuted,
@@ -92,7 +92,7 @@ export const SkillAuditList: React.FC<Props> = ({ theme, fontSize, showMessage }
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4 sm:px-6 py-4">
+      <div className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4 sm:px-6 py-4 ${mainScrollCompositorClass}`}>
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <Loader2 size={32} className={`animate-spin ${textMuted(theme)}`} />

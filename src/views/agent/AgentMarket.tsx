@@ -9,7 +9,7 @@ import { Theme, FontSize, ThemeColor } from '../../types';
 import { THEME_COLOR_CLASSES } from '../../constants/theme';
 import { LantuSelect } from '../../components/common/LantuSelect';
 import {
-  canvasBodyBg, bentoCard, bentoCardHover, btnPrimary, btnSecondary,
+  canvasBodyBg, mainScrollCompositorClass, bentoCard, bentoCardHover, btnPrimary, btnSecondary,
   textPrimary, textSecondary, textMuted, techBadge, glowIndigo,
 } from '../../utils/uiClasses';
 import { BentoCard } from '../../components/common/BentoCard';
@@ -240,7 +240,7 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
   };
 
   return (
-    <div className={`flex-1 overflow-y-auto custom-scrollbar ${canvasBodyBg(theme)}`}>
+    <div className={`flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${canvasBodyBg(theme)}`}>
       <MarketLayout className="space-y-4">
         {/* Top bar */}
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4 shrink-0">

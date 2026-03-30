@@ -10,7 +10,8 @@ import { PageError } from '../../components/common/PageError';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { formatDateTime } from '../../utils/formatDateTime';
 import {
-  canvasBodyBg, bentoCard, btnGhost, btnDanger,
+  canvasBodyBg,
+  mainScrollCompositorClass, bentoCard, btnGhost, btnDanger,
   textPrimary, textSecondary, textMuted,
   statusBadgeClass, statusDot, statusLabel,
 } from '../../utils/uiClasses';
@@ -58,7 +59,7 @@ export const AppDetail: React.FC<AppDetailProps> = ({ appId, theme, onBack, show
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-2 sm:px-3 lg:px-4 py-3 grid grid-cols-1 lg:grid-cols-3 gap-4 content-start">
+      <div className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar px-2 sm:px-3 lg:px-4 py-3 grid grid-cols-1 lg:grid-cols-3 gap-4 content-start ${mainScrollCompositorClass}`}>
         <div className="lg:col-span-2 space-y-4">
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 30 }} className={`${bentoCard(theme)} p-6`}>
             <h3 className={`text-sm font-bold mb-4 flex items-center gap-2 ${textPrimary(theme)}`}><FileText size={18} className="text-blue-500" /> 基本信息</h3>

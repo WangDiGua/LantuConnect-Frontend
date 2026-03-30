@@ -6,7 +6,7 @@ import type { Theme, FontSize } from '../../types';
 import type { AgentType } from '../../types/dto/agent';
 import { agentService } from '../../api/services/agent.service';
 import { nativeInputClass } from '../../utils/formFieldClasses';
-import { btnPrimary, btnSecondary, canvasBodyBg, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import { btnPrimary, btnSecondary, canvasBodyBg, mainScrollCompositorClass, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
 import { GlassPanel } from '../../components/common/GlassPanel';
 import { BentoCard } from '../../components/common/BentoCard';
 
@@ -190,7 +190,7 @@ export const SubmitAgent: React.FC<Props> = ({ theme, fontSize }) => {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-2 sm:px-3 lg:px-4 py-4 sm:py-6">
+      <div className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar px-2 sm:px-3 lg:px-4 py-4 sm:py-6 ${mainScrollCompositorClass}`}>
         <div className="w-full max-w-2xl mx-auto">
           {renderStepIndicator()}
 

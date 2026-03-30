@@ -6,7 +6,7 @@ import { Theme, FontSize } from '../../types';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { developerStatsService } from '../../api/services/developer-stats.service';
 import type { DeveloperStatistics } from '../../types/dto/explore';
-import { bentoCard, canvasBodyBg, textPrimary, textMuted } from '../../utils/uiClasses';
+import { bentoCard, canvasBodyBg, mainScrollCompositorClass, textPrimary, textMuted } from '../../utils/uiClasses';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { EmptyState } from '../../components/common/EmptyState';
 import { PageError } from '../../components/common/PageError';
@@ -128,7 +128,7 @@ export const DeveloperStatsPage: React.FC<Props> = ({ theme }) => {
   if (!data) return <div className={`flex-1 ${canvasBodyBg(theme)} ${outerPad} py-6`}><EmptyState title="暂无统计数据" description="开始使用 API 后，统计数据将在此展示" /></div>;
 
   return (
-    <div className={`flex-1 overflow-y-auto custom-scrollbar ${outerPad} py-4 sm:py-6 ${canvasBodyBg(theme)}`}>
+    <div className={`flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${outerPad} py-4 sm:py-6 ${canvasBodyBg(theme)}`}>
       <div className="w-full space-y-5">
         <div className="flex items-center justify-between">
           <div>

@@ -4,6 +4,7 @@ import { Bell } from 'lucide-react';
 import { Logo } from '../common/Logo';
 import { MultiAvatar } from '../common/MultiAvatar';
 import type { Space } from '../../constants/spaces';
+import { mainScrollCompositorClass } from '../../utils/uiClasses';
 
 export interface SpaceDockProps {
   spaces: Space[];
@@ -56,7 +57,7 @@ export const SpaceDock: React.FC<SpaceDockProps> = ({
       />
 
       {/* Space Icons */}
-      <div className="flex-1 flex flex-col items-center gap-1.5 overflow-y-auto custom-scrollbar">
+      <div className={`flex-1 flex flex-col items-center gap-1.5 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass}`}>
         {spaces.map((space) => {
           const isActive = space.id === activeSpaceId;
           const Icon = space.icon;

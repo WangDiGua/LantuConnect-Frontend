@@ -7,7 +7,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Theme, FontSize } from '../../types';
-import { bentoCard, bentoCardHover, canvasBodyBg, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import { bentoCard, bentoCardHover, canvasBodyBg, mainScrollCompositorClass, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
 import { PageError } from '../../components/common/PageError';
 import { buildPath } from '../../constants/consoleRoutes';
 import { dashboardService } from '../../api/services/dashboard.service';
@@ -104,7 +104,7 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
   const rt = realtime;
 
   return (
-    <div className={`flex-1 overflow-y-auto custom-scrollbar ${canvasBodyBg(theme)}`}>
+    <div className={`flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${canvasBodyBg(theme)}`}>
       <DashboardLayout className="space-y-5">
 
         {/* Header */}

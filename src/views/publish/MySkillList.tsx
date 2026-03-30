@@ -5,6 +5,7 @@ import { Wrench, X, Loader2 } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import {
   canvasBodyBg,
+  mainScrollCompositorClass,
   bentoCard,
   btnPrimary,
   btnSecondary,
@@ -84,7 +85,7 @@ export const MySkillList: React.FC<Props> = ({ theme }) => {
         </span>
       </div>
 
-      <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
+      <div className={`custom-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 ${mainScrollCompositorClass}`}>
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <Loader2 size={32} className={`animate-spin ${textMuted(theme)}`} />

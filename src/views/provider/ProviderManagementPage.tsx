@@ -13,6 +13,7 @@ import {
   btnPrimary,
   btnSecondary,
   canvasBodyBg,
+  mainScrollCompositorClass,
   textMuted,
   textPrimary,
   textSecondary,
@@ -135,7 +136,7 @@ export const ProviderManagementPage: React.FC<Props> = ({
 
   if (mode === 'create') {
     return (
-      <div className={`flex-1 overflow-y-auto custom-scrollbar ${canvasBodyBg(theme)}`}>
+      <div className={`flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${canvasBodyBg(theme)}`}>
         <div className="px-3 py-4 sm:px-4 lg:px-5">
           <div className={`${bentoCard(theme)} overflow-hidden p-6`}>
             <h2 className={`text-lg font-bold ${textPrimary(theme)}`}>新建 Provider</h2>
@@ -167,7 +168,7 @@ export const ProviderManagementPage: React.FC<Props> = ({
   }
 
   return (
-    <div className={`flex-1 overflow-y-auto custom-scrollbar ${canvasBodyBg(theme)}`}>
+    <div className={`flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${canvasBodyBg(theme)}`}>
       <div className="px-3 py-4 sm:px-4 lg:px-5">
         <div className={`${bentoCard(theme)} overflow-hidden`}>
           <div className={`flex items-center justify-between border-b px-6 py-4 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>

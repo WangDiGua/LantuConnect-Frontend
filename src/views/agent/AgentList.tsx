@@ -35,6 +35,7 @@ import { agentService } from '../../api/services/agent.service';
 import { AgentCreate } from './AgentCreate';
 import {
   canvasBodyBg,
+  mainScrollCompositorClass,
   bentoCard,
   bentoCardHover,
   btnPrimary,
@@ -168,7 +169,7 @@ export const AgentList: React.FC<AgentListProps> = ({
   }
 
   return (
-    <div className={`flex-1 flex flex-col min-h-0 overflow-y-auto custom-scrollbar transition-colors duration-300 ${canvasBodyBg(theme)}`}>
+    <div className={`flex-1 flex flex-col min-h-0 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} transition-colors duration-300 ${canvasBodyBg(theme)}`}>
       <div className="w-full flex flex-col px-3 sm:px-4 lg:px-5 py-4 gap-4">
         <div className={`${bentoCard(theme)} overflow-hidden shrink-0 flex flex-col`}>
           {/* Header */}

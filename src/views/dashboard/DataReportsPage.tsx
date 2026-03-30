@@ -4,7 +4,7 @@ import { BarChart3, Download, Users, Zap, CheckCircle2, Bot, Clock, Loader2 } fr
 import { Theme, FontSize } from '../../types';
 import { dashboardService } from '../../api/services/dashboard.service';
 import type { DataReportsData } from '../../types/dto/dashboard';
-import { canvasBodyBg, textPrimary, textSecondary, textMuted, tableHeadCell, tableBodyRow, tableCell, btnSecondary } from '../../utils/uiClasses';
+import { canvasBodyBg, mainScrollCompositorClass, textPrimary, textSecondary, textMuted, tableHeadCell, tableBodyRow, tableCell, btnSecondary } from '../../utils/uiClasses';
 import { BentoCard } from '../../components/common/BentoCard';
 import { KpiCard } from '../../components/common/KpiCard';
 import { PageError } from '../../components/common/PageError';
@@ -82,7 +82,7 @@ export const DataReportsPage: React.FC<DataReportsPageProps> = ({ theme, fontSiz
 
   return (
     <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${canvasBodyBg(theme)}`}>
-      <div className="w-full flex-1 min-h-0 flex flex-col px-2 sm:px-3 lg:px-4 py-4 sm:py-6 overflow-y-auto custom-scrollbar">
+      <div className={`w-full flex-1 min-h-0 flex flex-col px-2 sm:px-3 lg:px-4 py-4 sm:py-6 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass}`}>
 
         {/* Header */}
         <motion.div

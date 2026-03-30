@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Eye, Edit2, Trash2, MoreHorizontal, ChevronLeft, ChevronRight, Server } from 'lucide-react';
+import { Plus, MoreHorizontal, ChevronLeft, ChevronRight, Server } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { Provider, ProviderType, ProviderStatus } from '../../types/dto/provider';
 import { providerService } from '../../api/services/provider.service';
@@ -9,6 +9,8 @@ import { LantuSelect } from '../../components/common/LantuSelect';
 import {
   canvasBodyBg,
   mainScrollCompositorClass, bentoCard, bentoCardHover, btnPrimary, btnGhost,
+  mgmtTableActionDanger,
+  mgmtTableActionGhost,
   statusBadgeClass, statusDot, statusLabel,
   textPrimary, textSecondary, textMuted, techBadge,
 } from '../../utils/uiClasses';
@@ -170,18 +172,24 @@ export const ProviderList: React.FC<Props> = ({ theme, fontSize, showMessage }) 
                         </div>
                       </div>
                       {/* Desktop actions */}
-                      <div className="hidden sm:flex items-center gap-1 shrink-0">
-                        <button type="button" className={btnGhost(theme)} onClick={() => handleView(pv)} title="查看"><Eye size={15} /></button>
-                        <button type="button" className={btnGhost(theme)} onClick={() => handleEdit(pv)} title="编辑"><Edit2 size={15} /></button>
-                        <button type="button" onClick={() => setDeleteTarget({ id: pv.id, name: pv.providerName })} className={`p-2 rounded-xl transition-colors ${isDark ? 'text-rose-400 hover:bg-rose-500/10' : 'text-rose-500 hover:bg-rose-50'}`} title="删除"><Trash2 size={15} /></button>
+                      <div className="hidden sm:flex items-center gap-1.5 shrink-0">
+                        <button type="button" className={mgmtTableActionGhost(theme)} onClick={() => handleView(pv)} title="查看">
+                          查看
+                        </button>
+                        <button type="button" className={mgmtTableActionGhost(theme)} onClick={() => handleEdit(pv)} title="编辑">
+                          编辑
+                        </button>
+                        <button type="button" className={mgmtTableActionDanger} onClick={() => setDeleteTarget({ id: pv.id, name: pv.providerName })} title="删除">
+                          删除
+                        </button>
                       </div>
                       {/* Mobile menu */}
                       <div className="sm:hidden shrink-0">
                         <button type="button" ref={(el) => { if (el) menuTriggerRefs.current.set(pv.id, el); }} onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === pv.id ? null : pv.id); }} className={btnGhost(theme)}><MoreHorizontal size={16} /></button>
                         <PortalDropdown open={openMenuId === pv.id} onClose={() => setOpenMenuId(null)} anchorEl={menuTriggerRefs.current.get(pv.id) ?? null} className={`w-32 rounded-xl border shadow-xl py-1 ${isDark ? 'bg-[#1a1f2e] border-white/10' : 'bg-white border-slate-200'}`}>
-                          <button type="button" onClick={() => { handleView(pv); setOpenMenuId(null); }} className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 ${isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`}><Eye size={14} /> 查看</button>
-                          <button type="button" onClick={() => { handleEdit(pv); setOpenMenuId(null); }} className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 ${isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`}><Edit2 size={14} /> 编辑</button>
-                          <button type="button" onClick={() => { setDeleteTarget({ id: pv.id, name: pv.providerName }); setOpenMenuId(null); }} className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 ${isDark ? 'text-rose-400 hover:bg-rose-500/10' : 'text-rose-500 hover:bg-rose-50'}`}><Trash2 size={14} /> 删除</button>
+                          <button type="button" onClick={() => { handleView(pv); setOpenMenuId(null); }} className={`w-full px-3 py-2 text-left text-sm ${isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`}>查看</button>
+                          <button type="button" onClick={() => { handleEdit(pv); setOpenMenuId(null); }} className={`w-full px-3 py-2 text-left text-sm ${isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`}>编辑</button>
+                          <button type="button" onClick={() => { setDeleteTarget({ id: pv.id, name: pv.providerName }); setOpenMenuId(null); }} className={`w-full px-3 py-2 text-left text-sm ${isDark ? 'text-rose-400 hover:bg-rose-500/10' : 'text-rose-500 hover:bg-rose-50'}`}>删除</button>
                         </PortalDropdown>
                       </div>
                     </motion.div>

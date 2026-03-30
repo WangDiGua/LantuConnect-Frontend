@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Check, Rocket, Send, X } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { ResourceType } from '../../types/dto/catalog';
 import type { ResourceAuditItemVO } from '../../types/dto/resource-center';
@@ -11,6 +10,8 @@ import {
   btnPrimary,
   canvasBodyBg,
   mainScrollCompositorClass,
+  mgmtTableActionDanger,
+  mgmtTableActionPositive,
   statusBadgeClass,
   statusDot,
   statusLabel,
@@ -21,6 +22,7 @@ import {
   tableCell,
   tableHeadCell,
 } from '../../utils/uiClasses';
+import { TOOLBAR_ROW_LIST } from '../../utils/toolbarFieldClasses';
 import { FilterSelect, Pagination, SearchInput } from '../../components/common';
 import { EmptyState } from '../../components/common/EmptyState';
 import { PageError } from '../../components/common/PageError';
@@ -122,13 +124,12 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, showMessage, default
                 className="w-36"
               />
               <button type="button" onClick={() => void fetchData()} className={btnGhost(theme)}>
-                <Send size={14} />
                 刷新
               </button>
             </div>
           </div>
           <div className={`px-4 py-3 border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className={`${TOOLBAR_ROW_LIST} min-w-0`}>
               <FilterSelect
                 value={statusFilter}
                 onChange={(v) => { setStatusFilter(v as typeof statusFilter); setPage(1); }}
@@ -140,9 +141,9 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, showMessage, default
                   { value: 'published', label: '已发布' },
                 ]}
                 theme={theme}
-                className="w-36"
+                className="w-36 shrink-0"
               />
-              <div className="flex-1 min-w-[min(100%,220px)]">
+              <div className="min-w-0 flex-1 shrink">
                 <SearchInput
                   value={search}
                   onChange={(value) => {
@@ -198,20 +199,18 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, showMessage, default
                       <td className={`${tableCell()} ${textSecondary(theme)}`}>{nullDisplay(item.reason)}</td>
                       <td className={`${tableCell()} ${textSecondary(theme)}`}>{nullDisplay(item.description, '暂无描述')}</td>
                       <td className={`${tableCell()} text-right`}>
-                        <div className="inline-flex items-center gap-1">
+                        <div className="inline-flex flex-wrap items-center justify-end gap-1">
                           {item.status === 'pending_review' && (
                             <>
                               <button
                                 type="button"
-                                className={btnGhost(theme)}
+                                className={mgmtTableActionPositive(theme)}
                                 disabled={runningActionId === `approve-${item.id}`}
                                 onClick={() => void runAction(`approve-${item.id}`, () => resourceAuditService.approve(item.id), '已通过审核，状态进入 testing')}
                               >
-                                <Check size={14} />
                                 {runningActionId === `approve-${item.id}` ? '处理中…' : '通过'}
                               </button>
-                              <button type="button" className={btnGhost(theme)} disabled={!!runningActionId} onClick={() => setRejectTarget(item)}>
-                                <X size={14} />
+                              <button type="button" className={mgmtTableActionDanger} disabled={!!runningActionId} onClick={() => setRejectTarget(item)}>
                                 驳回
                               </button>
                             </>
@@ -221,18 +220,16 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, showMessage, default
                               {canPublish ? (
                                 <button
                                   type="button"
-                                  className={btnGhost(theme)}
+                                  className={mgmtTableActionPositive(theme)}
                                   disabled={runningActionId === `publish-${item.id}`}
                                   onClick={() => void runAction(`publish-${item.id}`, () => resourceAuditService.publish(item.id), '已发布，状态进入 published')}
                                 >
-                                  <Rocket size={14} />
                                   {runningActionId === `publish-${item.id}` ? '发布中…' : '发布'}
                                 </button>
                               ) : (
                                 <span className={`text-xs ${textMuted(theme)}`}>待平台管理员发布</span>
                               )}
-                              <button type="button" className={btnGhost(theme)} disabled={!!runningActionId} onClick={() => setRejectTarget(item)}>
-                                <X size={14} />
+                              <button type="button" className={mgmtTableActionDanger} disabled={!!runningActionId} onClick={() => setRejectTarget(item)}>
                                 驳回
                               </button>
                             </>

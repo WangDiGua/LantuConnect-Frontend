@@ -3,8 +3,8 @@ import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
-import { TOOLBAR_ROW, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
-import { Search, Plus, Save, Trash2, Sliders, Loader2 } from 'lucide-react';
+import { TOOLBAR_ROW_LIST, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
+import { Search, Plus, Save, Sliders, Loader2 } from 'lucide-react';
 import { useRateLimits, useCreateRateLimit, useUpdateRateLimit, useDeleteRateLimit } from '../../hooks/queries/useSystemConfig';
 import { ContentLoader } from '../../components/common/ContentLoader';
 import { PageError } from '../../components/common/PageError';
@@ -204,7 +204,7 @@ export const RateLimitPage: React.FC<RateLimitPageProps> = ({
       titleIcon={Sliders}
       description="配置限流策略，保护核心接口"
       toolbar={
-        <div className={`${TOOLBAR_ROW} justify-between`}>
+        <div className={`${TOOLBAR_ROW_LIST} justify-between`}>
           <div className="relative flex-1 min-w-0 sm:max-w-md">
             <Search className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${textMuted(theme)}`} size={16} />
             <input type="search" placeholder="搜索策略名或目标…" value={search} onChange={(e) => setSearch(e.target.value)} className={toolbarSearchInputClass(theme)} />
@@ -274,12 +274,12 @@ export const RateLimitPage: React.FC<RateLimitPageProps> = ({
                   headerClassName: 'text-right',
                   cellClassName: 'text-right align-middle',
                   cell: (r) => (
-                    <div className="inline-flex flex-wrap items-center justify-end gap-1 h-8">
+                    <div className="inline-flex flex-nowrap items-center justify-end gap-2">
                       <button type="button" onClick={() => startEdit(r)} className={mgmtTableActionGhost(theme)}>
                         编辑
                       </button>
                       <button type="button" onClick={() => setDeleteTarget(r)} className={mgmtTableActionDanger}>
-                        <Trash2 size={13} /> 删除
+                        删除
                       </button>
                     </div>
                   ),

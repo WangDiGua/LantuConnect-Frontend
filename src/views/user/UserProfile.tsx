@@ -14,6 +14,7 @@ import type { SessionItem } from '../../types/dto/explore';
 import {
   canvasBodyBg, textPrimary, textSecondary, textMuted,
   mainScrollPadBottom, mainScrollPadX,
+  mgmtTableActionDanger,
 } from '../../utils/uiClasses';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { Pagination } from '../../components/common/Pagination';
@@ -347,7 +348,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ theme }) => {
                             type="button"
                             disabled={revokingSessionId !== null}
                             onClick={() => handleRevokeSession(s)}
-                            className="text-xs px-2.5 py-1 rounded-lg bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 transition-colors disabled:opacity-50"
+                            className={`${mgmtTableActionDanger} disabled:opacity-50 disabled:pointer-events-none`}
                           >
                             {revokingSessionId === s.id ? '撤销中…' : '撤销'}
                           </button>

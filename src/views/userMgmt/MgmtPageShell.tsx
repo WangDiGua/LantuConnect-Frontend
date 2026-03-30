@@ -25,18 +25,18 @@ export const MgmtPageShell: React.FC<MgmtPageShellProps> = ({
   children,
 }) => {
   const isDark = theme === 'dark';
-  const { hasSecondarySidebar, chromePageTitle } = useLayoutChrome();
+  const { hasSecondarySidebar } = useLayoutChrome();
   const outerPad = hasSecondarySidebar
     ? 'px-2 sm:px-3 lg:px-4 py-2 sm:py-3'
     : 'px-1.5 sm:px-2 lg:px-3 py-2 sm:py-3';
 
   const pageTitle = breadcrumbSegments[breadcrumbSegments.length - 1] ?? '';
 
-  /** 顶栏 MainLayout 已显示同款标题时，正文区不再重复粗体标题，只展示 description（与 PageTitleTagline subtitleOnly 一致） */
-  const titleDupesChrome =
-    hasSecondarySidebar && Boolean(chromePageTitle) && chromePageTitle === pageTitle;
-  const showCompactChrome = hasSecondarySidebar &&
-    (titleDupesChrome ? Boolean(description?.trim()) : Boolean(TitleIcon || description));
+  /**
+   * 有二级侧栏时：顶栏 h2 已是当前页标题，壳内绝不渲染可见粗体 pageTitle，避免与 chrome 更新不同步造成「双标题闪烁」。
+   * 可见区仅图标 + 描述（无描述可仅图标）；h1 仅用 sr-only 承载完整语义。
+   */
+  const showCompactChrome = hasSecondarySidebar && Boolean(TitleIcon || description?.trim());
 
   const a11yPageHeading =
     description?.trim() ? `${pageTitle} / ${description.trim()}` : pageTitle;
@@ -59,7 +59,7 @@ export const MgmtPageShell: React.FC<MgmtPageShellProps> = ({
                     isDark ? 'border-white/10' : 'border-slate-200'
                   }`}
                 >
-                  {titleDupesChrome ? <h1 className="sr-only">{a11yPageHeading}</h1> : null}
+                  <h1 className="sr-only">{a11yPageHeading}</h1>
                   <div className="flex min-w-0 items-center gap-3">
                     {TitleIcon ? (
                       <span
@@ -70,7 +70,7 @@ export const MgmtPageShell: React.FC<MgmtPageShellProps> = ({
                         <TitleIcon size={18} strokeWidth={2} aria-hidden />
                       </span>
                     ) : null}
-                    {titleDupesChrome ? (
+                    {description?.trim() ? (
                       <p
                         className={`m-0 flex-1 min-w-0 text-sm font-normal leading-snug ${
                           isDark ? 'text-slate-400' : 'text-slate-500'
@@ -78,32 +78,7 @@ export const MgmtPageShell: React.FC<MgmtPageShellProps> = ({
                       >
                         {description}
                       </p>
-                    ) : (
-                      <h1
-                        className={`m-0 flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-1 ${
-                          isDark ? 'text-white' : 'text-slate-900'
-                        }`}
-                      >
-                        <span className="shrink-0 text-lg font-bold tracking-tight sm:text-xl">{pageTitle}</span>
-                        {description ? (
-                          <>
-                            <span
-                              className={`shrink-0 select-none text-base font-light leading-none ${
-                                isDark ? 'text-slate-500' : 'text-slate-300'
-                              }`}
-                              aria-hidden
-                            >
-                              /
-                            </span>
-                            <span
-                              className={`min-w-0 text-sm font-normal ${isDark ? 'text-slate-400' : 'text-slate-500'}`}
-                            >
-                              {description}
-                            </span>
-                          </>
-                        ) : null}
-                      </h1>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               ) : (

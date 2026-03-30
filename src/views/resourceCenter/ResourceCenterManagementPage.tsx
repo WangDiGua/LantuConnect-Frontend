@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Plus, RefreshCw, Send, Rocket, Archive, Trash2, GitBranch } from 'lucide-react';
+import { Plus, RefreshCw } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { ResourceType } from '../../types/dto/catalog';
 import type { ResourceCenterItemVO, ResourceStatus, ResourceVersionVO } from '../../types/dto/resource-center';
@@ -17,6 +17,9 @@ import {
   bentoCardHover,
   btnGhost,
   btnPrimary,
+  mgmtTableActionDanger,
+  mgmtTableActionGhost,
+  mgmtTableActionPositive,
   canvasBodyBg,
   mainScrollCompositorClass,
   statusBadgeClass,
@@ -256,13 +259,12 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
                         {(item.status === 'draft' || item.status === 'rejected') && (
-                          <button type="button" onClick={() => onNavigateRegister(item.resourceType, item.id)} className={btnGhost(theme)}>
+                          <button type="button" onClick={() => onNavigateRegister(item.resourceType, item.id)} className={mgmtTableActionGhost(theme)}>
                             编辑
                           </button>
                         )}
                         {item.status !== 'pending_review' && (
-                          <button type="button" onClick={() => void openVersions(item)} className={btnGhost(theme)}>
-                            <GitBranch size={14} />
+                          <button type="button" onClick={() => void openVersions(item)} className={mgmtTableActionGhost(theme)}>
                             版本
                           </button>
                         )}
@@ -271,9 +273,8 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                             type="button"
                             disabled={runningActionKey === `submit-${item.id}`}
                             onClick={() => void runAction(`submit-${item.id}`, () => resourceCenterService.submit(item.id), '已提交审核')}
-                            className={btnGhost(theme)}
+                            className={mgmtTableActionPositive(theme)}
                           >
-                            <Send size={14} />
                             {runningActionKey === `submit-${item.id}` ? '提交中…' : (item.status === 'rejected' || item.status === 'deprecated' ? '重新提交审核' : '提交审核')}
                           </button>
                         )}
@@ -282,7 +283,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                             type="button"
                             disabled={runningActionKey === `withdraw-${item.id}`}
                             onClick={() => void runAction(`withdraw-${item.id}`, () => resourceCenterService.withdraw(item.id), '已撤回到草稿')}
-                            className={btnGhost(theme)}
+                            className={mgmtTableActionGhost(theme)}
                           >
                             {runningActionKey === `withdraw-${item.id}` ? '撤回中…' : '撤回审核'}
                           </button>
@@ -292,9 +293,8 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                             type="button"
                             disabled={runningActionKey === `deprecate-${item.id}`}
                             onClick={() => setConfirmAction({ id: item.id, type: 'deprecate' })}
-                            className={btnGhost(theme)}
+                            className={mgmtTableActionGhost(theme)}
                           >
-                            <Archive size={14} />
                             {runningActionKey === `deprecate-${item.id}` ? '下线中…' : '下线'}
                           </button>
                         )}
@@ -303,9 +303,8 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                             type="button"
                             disabled={runningActionKey === `remove-${item.id}`}
                             onClick={() => setConfirmAction({ id: item.id, type: 'remove' })}
-                            className={btnGhost(theme)}
+                            className={mgmtTableActionDanger}
                           >
-                            <Trash2 size={14} />
                             {runningActionKey === `remove-${item.id}` ? '删除中…' : '删除'}
                           </button>
                         )}
@@ -314,9 +313,8 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                             type="button"
                             disabled={runningActionKey === `publish-${item.id}`}
                             onClick={() => void runAction(`publish-${item.id}`, () => resourceAuditService.publish(item.id), '已发布上架')}
-                            className={btnGhost(theme)}
+                            className={mgmtTableActionPositive(theme)}
                           >
-                            <Rocket size={14} />
                             {runningActionKey === `publish-${item.id}` ? '发布中…' : '发布上架'}
                           </button>
                         )}

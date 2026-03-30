@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Loader2, Plus, Trash2, Edit2, Megaphone, Eye } from 'lucide-react';
+import { Loader2, Plus, Megaphone } from 'lucide-react';
 import { Editor } from '@bytemd/react';
 import gfm from '@bytemd/plugin-gfm';
 import 'bytemd/dist/index.css';
@@ -16,7 +16,7 @@ import { LantuSelect } from '../../components/common/LantuSelect';
 import { MarkdownView } from '../../components/common/MarkdownView';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { btnPrimary, btnSecondary, mgmtTableActionDanger, mgmtTableActionGhost, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
-import { TOOLBAR_ROW } from '../../utils/toolbarFieldClasses';
+import { TOOLBAR_ROW_LIST } from '../../utils/toolbarFieldClasses';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { PageError } from '../../components/common/PageError';
 import { Pagination } from '../../components/common/Pagination';
@@ -245,17 +245,14 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
         headerClassName: 'text-right',
         cellClassName: 'text-right align-middle',
         cell: (a: AnnouncementItem) => (
-          <div className="inline-flex flex-wrap items-center justify-end gap-1 h-8">
+          <div className="inline-flex flex-nowrap items-center justify-end gap-2">
             <button type="button" onClick={() => setDetailAnnouncement(a)} className={mgmtTableActionGhost(theme)}>
-              <Eye size={13} />
               查看
             </button>
             <button type="button" onClick={() => openEditModal(a)} className={mgmtTableActionGhost(theme)}>
-              <Edit2 size={13} />
               编辑
             </button>
             <button type="button" onClick={() => setDeleteTarget(a)} className={mgmtTableActionDanger}>
-              <Trash2 size={13} />
               删除
             </button>
           </div>
@@ -301,11 +298,11 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
       breadcrumbSegments={['系统配置', '平台公告']}
       description={PAGE_DESCRIPTION}
       toolbar={
-        <div className={`${TOOLBAR_ROW} justify-between`}>
-          <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1">
+        <div className={`${TOOLBAR_ROW_LIST} justify-between`}>
+          <div className={`${TOOLBAR_ROW_LIST} min-w-0 flex-1`}>
             <input
               type="search"
-              className={`${inputCls} w-[min(100%,14rem)] min-w-0 shrink-0`}
+              className={`${inputCls} w-[min(14rem,30vw)] min-w-[8rem] max-w-[14rem] shrink`}
               placeholder="关键词（标题/摘要）"
               value={filterKeyword}
               onChange={(e) => setFilterKeyword(e.target.value)}
@@ -320,9 +317,6 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
               placeholder="类型"
               triggerClassName="!min-w-[7rem] shrink-0"
             />
-            <p className={`m-0 text-xs max-w-md min-w-0 hidden md:block ${textMuted(theme)}`} title="当前为前端筛选，仅在本页数据中过滤；全量检索待接口支持 keyword、type">
-              本页前端筛选；分页总数来自服务端。
-            </p>
           </div>
           <button type="button" className={`${btnPrimary} shrink-0`} onClick={openCreateModal}>
             <Plus size={14} /> 发布公告

@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Check, Send, X } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { GrantApplicationVO } from '../../types/dto/grant-application';
 import { grantApplicationService } from '../../api/services/grant-application.service';
@@ -18,8 +17,11 @@ import {
   tableBodyRow,
   tableCell,
   tableHeadCell,
+  mgmtTableActionDanger,
+  mgmtTableActionPositive,
   type DomainStatus,
 } from '../../utils/uiClasses';
+import { TOOLBAR_ROW_LIST } from '../../utils/toolbarFieldClasses';
 import { FilterSelect, Pagination, SearchInput } from '../../components/common';
 import { EmptyState } from '../../components/common/EmptyState';
 import { PageError } from '../../components/common/PageError';
@@ -123,13 +125,12 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, showMessage }
             </div>
             <div className="flex items-center gap-2">
               <button type="button" onClick={() => void fetchData()} className={btnGhost(theme)}>
-                <Send size={14} />
                 刷新
               </button>
             </div>
           </div>
           <div className={`px-4 py-3 border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className={`${TOOLBAR_ROW_LIST} min-w-0`}>
               <FilterSelect
                 value={statusFilter}
                 onChange={(v) => {
@@ -143,9 +144,9 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, showMessage }
                   { value: 'rejected', label: '已驳回' },
                 ]}
                 theme={theme}
-                className="w-36"
+                className="w-36 shrink-0"
               />
-              <div className="flex-1 min-w-[min(100%,220px)]">
+              <div className="min-w-0 flex-1 shrink">
                 <SearchInput
                   value={search}
                   onChange={(value) => {
@@ -221,22 +222,20 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, showMessage }
                               <>
                                 <button
                                   type="button"
-                                  className={btnGhost(theme)}
+                                  className={mgmtTableActionPositive(theme)}
                                   disabled={runningActionId === `approve-${item.id}`}
                                   onClick={() =>
                                     void runAction(`approve-${item.id}`, () => grantApplicationService.approve(item.id), '已通过该授权申请')
                                   }
                                 >
-                                  <Check size={14} />
                                   {runningActionId === `approve-${item.id}` ? '处理中…' : '通过'}
                                 </button>
                                 <button
                                   type="button"
-                                  className={btnGhost(theme)}
+                                  className={mgmtTableActionDanger}
                                   disabled={!!runningActionId}
                                   onClick={() => setRejectTarget(item)}
                                 >
-                                  <X size={14} />
                                   驳回
                                 </button>
                               </>

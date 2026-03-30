@@ -1,7 +1,13 @@
 import { Theme } from '../types';
 
-/** 管理列表工具栏：横向排列、窄屏自动换行（不再大屏才把按钮并到一行） */
+/** 管理列表工具栏：横向基础排布（可与 justify-between 组合） */
 export const TOOLBAR_ROW = 'flex w-full flex-row flex-wrap items-center gap-2 sm:gap-3';
+
+/**
+ * 列表页筛选行：强制单行，极窄时横向滚动（搜索 + 下拉 + 主按钮同排）
+ */
+export const TOOLBAR_ROW_LIST =
+  'flex w-full min-h-[2.5rem] flex-row flex-nowrap items-center gap-2 sm:gap-3 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
 
 export function toolbarSearchInputClass(theme: Theme): string {
   const d = theme === 'dark';

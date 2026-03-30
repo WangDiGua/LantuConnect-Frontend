@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Loader2, CheckCircle2, XCircle, ClipboardList } from 'lucide-react';
+import { Loader2, ClipboardList } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from './MgmtPageShell';
 import { developerApplicationService } from '../../api/services/developer-application.service';
@@ -13,7 +13,7 @@ import { SearchInput } from '../../components/common/SearchInput';
 import { Pagination } from '../../components/common/Pagination';
 import { MgmtDataTable } from '../../components/management/MgmtDataTable';
 import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
-import { TOOLBAR_ROW } from '../../utils/toolbarFieldClasses';
+import { TOOLBAR_ROW_LIST } from '../../utils/toolbarFieldClasses';
 import {
   btnPrimary,
   btnSecondary,
@@ -186,14 +186,14 @@ export const DeveloperApplicationListPage: React.FC<Props> = ({ theme, fontSize,
                 className={mgmtTableActionPositive(theme)}
                 onClick={() => setActionTarget({ app, action: 'approve' })}
               >
-                <CheckCircle2 size={13} /> 通过
+                通过
               </button>
               <button
                 type="button"
                 className={mgmtTableActionDanger}
                 onClick={() => setActionTarget({ app, action: 'reject' })}
               >
-                <XCircle size={13} /> 驳回
+                驳回
               </button>
             </div>
           ) : (
@@ -226,8 +226,8 @@ export const DeveloperApplicationListPage: React.FC<Props> = ({ theme, fontSize,
       breadcrumbSegments={['用户与权限', '入驻审批']}
       description={PAGE_DESCRIPTION}
       toolbar={
-        <div className={`${TOOLBAR_ROW} justify-between`}>
-          <div className="flex-1 min-w-0 sm:max-w-md">
+        <div className={`${TOOLBAR_ROW_LIST} justify-between min-w-0`}>
+          <div className="min-w-0 flex-1 shrink sm:max-w-md">
             <SearchInput
               value={search}
               onChange={setSearch}

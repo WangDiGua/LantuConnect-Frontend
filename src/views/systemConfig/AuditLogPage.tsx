@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
-import { TOOLBAR_ROW } from '../../utils/toolbarFieldClasses';
+import { TOOLBAR_ROW_LIST } from '../../utils/toolbarFieldClasses';
 import { Download, History } from 'lucide-react';
 import { useSysAuditLogs } from '../../hooks/queries/useSystemConfig';
 import { ContentLoader } from '../../components/common/ContentLoader';
@@ -89,8 +89,8 @@ export const AuditLogPage: React.FC<AuditLogPageProps> = ({
       titleIcon={History}
       description="检索关键操作记录，支持按动作筛选与导出"
       toolbar={
-        <div className={TOOLBAR_ROW}>
-          <div className="flex-1 min-w-0 sm:max-w-md">
+        <div className={`${TOOLBAR_ROW_LIST} min-w-0`}>
+          <div className="min-w-0 flex-1 shrink sm:max-w-md">
             <SearchInput value={search} onChange={setSearch} placeholder="操作者、动作、资源、IP…" theme={theme} />
           </div>
           <FilterSelect

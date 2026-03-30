@@ -3,8 +3,8 @@ import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
-import { TOOLBAR_ROW, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
-import { Search, Plus, Save, Trash2, Cpu, Power, Loader2 } from 'lucide-react';
+import { TOOLBAR_ROW_LIST, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
+import { Search, Plus, Save, Cpu, Loader2 } from 'lucide-react';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { Modal } from '../../components/common/Modal';
 import { MgmtDataTable } from '../../components/management/MgmtDataTable';
@@ -153,7 +153,7 @@ export const ModelConfigPage: React.FC<ModelConfigPageProps> = ({
       titleIcon={Cpu}
       description="管理大模型接入点、模型标识与启用状态"
       toolbar={
-        <div className={`${TOOLBAR_ROW} justify-between`}>
+        <div className={`${TOOLBAR_ROW_LIST} justify-between`}>
           <div className="relative flex-1 min-w-0 sm:max-w-md">
             <Search className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${textMuted(theme)}`} size={16} />
             <input type="search" placeholder="搜索名称、提供方、模型 ID…" value={search} onChange={(e) => setSearch(e.target.value)} className={toolbarSearchInputClass(theme)} />
@@ -248,20 +248,20 @@ export const ModelConfigPage: React.FC<ModelConfigPageProps> = ({
                     headerClassName: 'text-right',
                     cellClassName: 'text-right align-middle',
                     cell: (r) => (
-                      <div className="inline-flex flex-wrap items-center justify-end gap-1 h-8">
+                      <div className="inline-flex flex-nowrap items-center justify-end gap-2">
                         <button
                           type="button"
                           onClick={() => toggleEnabled(r.id)}
                           className={mgmtTableActionGhost(theme)}
-                          title={r.enabled ? '停用' : '启用'}
+                          title={r.enabled ? '点击停用' : '点击启用'}
                         >
-                          <Power size={13} />
+                          {r.enabled ? '停用' : '启用'}
                         </button>
                         <button type="button" onClick={() => openEdit(r)} className={mgmtTableActionGhost(theme)}>
                           编辑
                         </button>
                         <button type="button" onClick={() => setDeleteTarget(r)} className={mgmtTableActionDanger}>
-                          <Trash2 size={13} /> 删除
+                          删除
                         </button>
                       </div>
                     ),

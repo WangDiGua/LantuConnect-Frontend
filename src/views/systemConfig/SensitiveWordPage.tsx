@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Loader2, Plus, Trash2, ShieldAlert, Braces, Upload } from 'lucide-react';
+import { Loader2, Plus, ShieldAlert, Braces, Upload } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { sensitiveWordService } from '../../api/services/sensitive-word.service';
@@ -14,8 +14,17 @@ import { Pagination } from '../../components/common/Pagination';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { Modal } from '../../components/common/Modal';
 import { nativeInputClass } from '../../utils/formFieldClasses';
-import { btnPrimary, btnSecondary, mgmtTableActionDanger, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
-import { TOOLBAR_ROW } from '../../utils/toolbarFieldClasses';
+import {
+  btnPrimary,
+  btnSecondary,
+  mgmtTableActionDanger,
+  mgmtTableActionGhost,
+  mgmtTableActionPositive,
+  textPrimary,
+  textSecondary,
+  textMuted,
+} from '../../utils/uiClasses';
+import { TOOLBAR_ROW_LIST } from '../../utils/toolbarFieldClasses';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
 
 interface Props {
@@ -207,11 +216,7 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
           <button
             type="button"
             onClick={() => void handleToggle(item)}
-            className={`rounded-full px-2.5 py-0.5 text-xs font-medium cursor-pointer ${
-              item.enabled
-                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                : 'bg-slate-500/10 text-slate-500'
-            }`}
+            className={`${item.enabled ? mgmtTableActionPositive(theme) : mgmtTableActionGhost(theme)} cursor-pointer`}
           >
             {item.enabled ? '启用' : '禁用'}
           </button>
@@ -235,7 +240,7 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
         cell: (item) => (
           <div className="inline-flex items-center justify-end h-8">
             <button type="button" className={mgmtTableActionDanger} onClick={() => setDeleteTarget(item)}>
-              <Trash2 size={13} /> 删除
+              删除
             </button>
           </div>
         ),
@@ -268,8 +273,8 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
       breadcrumbSegments={['系统配置', '敏感词管理']}
       description={PAGE_DESCRIPTION}
       toolbar={
-        <div className={`${TOOLBAR_ROW} justify-end`}>
-          <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
+        <div className={`${TOOLBAR_ROW_LIST} justify-end min-w-0`}>
+          <div className="flex flex-nowrap items-center justify-end gap-2 shrink-0">
             <button type="button" className={btnSecondary(theme)} onClick={() => setShowBatch(true)}>
               <Braces size={14} /> JSON 批量新增
             </button>

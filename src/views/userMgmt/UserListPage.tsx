@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, ArrowLeft, Save, Trash2, Users, Edit2, Loader2 } from 'lucide-react';
+import { Plus, ArrowLeft, Save, Users, Loader2 } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
@@ -11,6 +11,7 @@ import { userMgmtService } from '../../api/services/user-mgmt.service';
 import type { UserRecord, RoleRecord } from '../../types/dto/user-mgmt';
 import {
   canvasBodyBg, bentoCard, bentoCardHover, btnPrimary, btnSecondary, btnGhost,
+  mgmtTableActionDanger, mgmtTableActionGhost,
   textPrimary, textSecondary, textMuted, tableHeadCell, tableBodyRow, tableCell,
 } from '../../utils/uiClasses';
 import { PageError } from '../../components/common/PageError';
@@ -230,9 +231,9 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
                       <td className={`${tableCell()} ${textSecondary(theme)}`}>{formatDateTime(u.lastLoginAt)}</td>
                       <td className={`${tableCell()} ${textSecondary(theme)}`}>{formatDateTime(u.createdAt)}</td>
                       <td className={`${tableCell()} text-right`}>
-                        <div className="inline-flex items-center gap-1">
-                          <button type="button" onClick={() => openEdit(u)} className={btnGhost(theme)} title="编辑"><Edit2 size={15} /></button>
-                          <button type="button" onClick={() => setDeleteTarget(u.id)} className={`p-2 rounded-xl transition-colors ${isDark ? 'text-rose-400 hover:bg-rose-500/10' : 'text-rose-500 hover:bg-rose-50'}`} title="删除"><Trash2 size={15} /></button>
+                        <div className="inline-flex flex-nowrap items-center justify-end gap-2">
+                          <button type="button" onClick={() => openEdit(u)} className={mgmtTableActionGhost(theme)} title="编辑">编辑</button>
+                          <button type="button" onClick={() => setDeleteTarget(u.id)} className={mgmtTableActionDanger} title="删除">删除</button>
                         </div>
                       </td>
                     </tr>

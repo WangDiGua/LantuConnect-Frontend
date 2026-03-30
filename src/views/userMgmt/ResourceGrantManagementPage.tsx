@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { KeyRound, Plus, RefreshCw, ShieldCheck, Trash2 } from 'lucide-react';
+import { KeyRound, Plus, RefreshCw, ShieldCheck } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from './MgmtPageShell';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
-import { btnGhost, btnPrimary, btnSecondary, textMuted, textPrimary, textSecondary } from '../../utils/uiClasses';
+import { btnGhost, btnPrimary, btnSecondary, mgmtTableActionDanger, textMuted, textPrimary, textSecondary } from '../../utils/uiClasses';
 import { resourceGrantService } from '../../api/services/resource-grant.service';
 import { nullDisplay } from '../../utils/errorHandler';
 import type { ResourceType } from '../../types/dto/catalog';
@@ -273,8 +273,7 @@ export const ResourceGrantManagementPage: React.FC<Props> = ({ theme, fontSize, 
                       keyId: {nullDisplay(row.granteeApiKeyId)} · actions: {row.actions && row.actions.length > 0 ? row.actions.join(', ') : '--'} · status: {nullDisplay(row.status)} · grantedBy: {resolvePersonDisplay({ names: [row.grantedByName], ids: [row.grantedBy] })} · expiresAt: {formatDateTime(row.expiresAt)} · createdAt: {formatDateTime(row.createdAt)}
                     </p>
                   </div>
-                  <button type="button" className={btnGhost(theme)} onClick={() => setDeleteId(row.id)}>
-                    <Trash2 size={14} />
+                  <button type="button" className={mgmtTableActionDanger} onClick={() => setDeleteId(row.id)}>
                     撤销
                   </button>
                 </div>

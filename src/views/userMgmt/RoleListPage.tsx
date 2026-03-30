@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, ArrowLeft, Save, Trash2, Fingerprint, Edit2, Loader2 } from 'lucide-react';
+import { Plus, ArrowLeft, Save, Fingerprint, Loader2 } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import { PERMISSION_PRESETS } from '../../constants/userMgmt';
 import { nativeInputClass } from '../../utils/formFieldClasses';
@@ -11,6 +11,7 @@ import { userMgmtService } from '../../api/services/user-mgmt.service';
 import type { RoleRecord } from '../../types/dto/user-mgmt';
 import {
   canvasBodyBg, bentoCard, bentoCardHover, btnPrimary, btnSecondary, btnGhost,
+  mgmtTableActionDanger, mgmtTableActionGhost,
   textPrimary, textSecondary, textMuted, tableHeadCell, tableBodyRow, tableCell,
 } from '../../utils/uiClasses';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
@@ -220,24 +221,24 @@ export const RoleListPage: React.FC<RoleListPageProps> = ({ theme }) => {
                       </td>
                       <td className={`${tableCell()} ${textSecondary(theme)}`}>{formatDateTime(r.createdAt)}</td>
                       <td className={`${tableCell()} text-right`}>
-                        <div className="inline-flex items-center gap-1">
+                        <div className="inline-flex flex-nowrap items-center justify-end gap-2">
                           <button
                             type="button"
                             onClick={() => openEdit(r)}
                             disabled={r.isSystem}
-                            className={btnGhost(theme)}
+                            className={`${mgmtTableActionGhost(theme)} disabled:opacity-40 disabled:pointer-events-none`}
                             title={r.isSystem ? '系统内置角色不可编辑' : '编辑'}
                           >
-                            <Edit2 size={15} />
+                            编辑
                           </button>
                           <button
                             type="button"
                             onClick={() => setDeleteTarget(r.id)}
                             disabled={r.isSystem}
-                            className={`p-2 rounded-xl transition-colors ${isDark ? 'text-rose-400 hover:bg-rose-500/10' : 'text-rose-500 hover:bg-rose-50'} disabled:opacity-40 disabled:cursor-not-allowed`}
+                            className={`${mgmtTableActionDanger} disabled:opacity-40 disabled:pointer-events-none`}
                             title={r.isSystem ? '系统内置角色不可删除' : '删除'}
                           >
-                            <Trash2 size={15} />
+                            删除
                           </button>
                         </div>
                       </td>

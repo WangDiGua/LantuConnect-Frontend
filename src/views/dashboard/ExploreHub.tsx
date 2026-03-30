@@ -292,7 +292,8 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
     );
   }
 
-  const pageContainer = 'w-full px-2 sm:px-3 lg:px-4';
+  /** 与主画布（MainLayout 圆角卡片）留出足够内边距，避免区块贴边 */
+  const pageContainer = 'w-full px-4 sm:px-5 lg:px-6 xl:px-8';
 
   return (
     <div className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar ${mainScrollPadBottom}`}>

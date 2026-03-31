@@ -22,15 +22,17 @@ async function loadECharts() {
       RadarComponent,
     },
     { CanvasRenderer },
+    { LegacyGridContainLabel },
   ] = await Promise.all([
     import('echarts/core'),
     import('echarts/charts'),
     import('echarts/components'),
     import('echarts/renderers'),
+    import('echarts/features'),
   ]);
 
   const echarts = echartsCore as any;
-  
+
   if (!echartsInitialized) {
     echarts.use([
       LineChart,
@@ -45,6 +47,7 @@ async function loadECharts() {
       DataZoomComponent,
       RadarComponent,
       CanvasRenderer,
+      LegacyGridContainLabel,
     ]);
     echartsInitialized = true;
   }

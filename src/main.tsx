@@ -15,8 +15,13 @@ document.documentElement.style.fontSize = getRootFontSizePx(appearance.fontSize)
 
 const root = document.getElementById('root')!;
 
+/** `npm run dev:stable`（mode=no-strict）时关闭 StrictMode，避免开发态接口被请求两次 */
+const strictOff = import.meta.env.VITE_DISABLE_STRICT_MODE === 'true';
+
 createRoot(root).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
+  strictOff ? <App /> : (
+    <StrictMode>
+      <App />
+    </StrictMode>
+  ),
 );

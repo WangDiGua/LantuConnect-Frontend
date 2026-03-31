@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --mode development --port=3000 --host=0.0.0.0",
+    "dev:stable": "vite --mode no-strict --port=3000 --host=0.0.0.0",
     "build": "vite build --mode production",
     "preview": "vite preview",
     "clean": "rm -rf dist",

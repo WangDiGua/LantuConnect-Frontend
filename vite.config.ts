@@ -43,10 +43,15 @@ function contentSecurityPolicyPlugin(mode: string, env: Record<string, string>):
 }
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, '.', '');
+  /** no-strict：仍用 development 的 .env（API 代理等）；关闭 StrictMode 见下方 define */
+  const env = mode === 'no-strict' ? loadEnv('development', '.', '') : loadEnv(mode, '.', '');
   const proxyTarget = env.VITE_API_PROXY_TARGET || 'http://localhost:8080';
 
   return {
+    define:
+      mode === 'no-strict'
+        ? { 'import.meta.env.VITE_DISABLE_STRICT_MODE': JSON.stringify('true') }
+        : undefined,
     plugins: [react(), tailwindcss(), contentSecurityPolicyPlugin(mode, env)],
     resolve: {
       alias: {

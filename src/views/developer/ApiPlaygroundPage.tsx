@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { Terminal, Send, Copy, Check, Clock, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Terminal, Send, Copy, Check, Clock, ChevronDown, ChevronUp, Trash2, BookOpen } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import { ApiException, type ApiResponse } from '../../types/api';
 import { http } from '../../lib/http';
@@ -12,6 +13,7 @@ import {
 } from '../../utils/uiClasses';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
+import { buildPath } from '../../constants/consoleRoutes';
 
 interface HeaderPair { key: string; value: string; }
 interface HistoryEntry { method: string; url: string; status: number; time: number; body: string; responseBody: string; }
@@ -48,14 +50,15 @@ export interface ApiPlaygroundPageProps { theme: Theme; fontSize: FontSize; }
 
 export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme }) => {
   const { chromePageTitle } = useLayoutChrome();
+  const navigate = useNavigate();
   const isDark = theme === 'dark';
   const [method, setMethod] = useState('GET');
   const [url, setUrl] = useState('/api/catalog/resources?page=1&pageSize=20&resourceType=agent');
   const [headers, setHeaders] = useState<HeaderPair[]>([
-    { key: 'Authorization', value: 'Bearer <access_token>' },
-    { key: 'X-User-Id', value: '<user_id>' },
-    { key: 'X-Api-Key', value: '<创建 Key 时 data.secretPlain，sk_… 完整明文>' },
-    { key: 'X-Trace-Id', value: '<trace_id_optional>' },
+    { key: 'Authorization', value: '' },
+    { key: 'X-User-Id', value: '' },
+    { key: 'X-Api-Key', value: '' },
+    { key: 'X-Trace-Id', value: '' },
     { key: 'Content-Type', value: 'application/json' },
   ]);
   const [body, setBody] = useState('{\n  "resourceType": "agent",\n  "resourceId": "1",\n  "payload": {\n    "input": "hello"\n  }\n}');
@@ -145,11 +148,23 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme }) =
     <div className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-colors duration-300 ${canvasBodyBg(theme)}`}>
       <div className="w-full flex-1 min-h-0 flex flex-col px-2 sm:px-3 lg:px-4 py-2 sm:py-3">
         {/* Header */}
-        <div className="flex min-w-0 items-center gap-3 mb-4 shrink-0">
+        <div className="flex min-w-0 flex-wrap items-center gap-3 mb-4 shrink-0">
           <div className={`shrink-0 rounded-xl p-2 ${isDark ? 'bg-emerald-500/15' : 'bg-emerald-50'}`}>
             <Terminal size={20} className={isDark ? 'text-emerald-400' : 'text-emerald-600'} />
           </div>
-          <PageTitleTagline subtitleOnly theme={theme} title={chromePageTitle || 'API Playground'} tagline="在线测试 API 接口" />
+          <div className="min-w-0 flex-1 flex flex-wrap items-center gap-x-3 gap-y-2">
+            <PageTitleTagline subtitleOnly theme={theme} title={chromePageTitle || 'API Playground'} tagline="调试请求；鉴权与路径说明见接入指南" />
+            <button
+              type="button"
+              className={`inline-flex items-center gap-1 rounded-xl border px-3 py-1.5 text-xs font-medium ${
+                isDark ? 'border-white/15 text-slate-200 hover:bg-white/5' : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+              }`}
+              onClick={() => navigate(buildPath('user', 'api-docs'))}
+            >
+              <BookOpen size={14} />
+              接入指南
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 min-h-0 flex flex-col lg:flex-row gap-4 overflow-hidden">
@@ -166,7 +181,7 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme }) =
                   onChange={setMethod}
                   options={HTTP_METHOD_OPTIONS}
                 />
-                <input type="text" value={url} onChange={(e) => setUrl(e.target.value)} className={nativeInputClass(theme)} placeholder="/api/catalog/resources or /api/invoke" />
+                <input type="text" value={url} onChange={(e) => setUrl(e.target.value)} className={nativeInputClass(theme)} placeholder="/api/catalog/resources 或 /api/invoke" />
               </div>
               <div>
                 <div className="flex items-center justify-between mb-2">
@@ -176,8 +191,8 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme }) =
                 <div className="space-y-2">
                   {headers.map((h, i) => (
                     <div key={i} className="flex gap-2">
-                      <input type="text" value={h.key} onChange={(e) => updateHeader(i, 'key', e.target.value)} className={`${nativeInputClass(theme)} w-2/5`} placeholder="Key" />
-                      <input type="text" value={h.value} onChange={(e) => updateHeader(i, 'value', e.target.value)} className={`${nativeInputClass(theme)} flex-1`} placeholder="Value" />
+                      <input type="text" value={h.key} onChange={(e) => updateHeader(i, 'key', e.target.value)} className={`${nativeInputClass(theme)} w-2/5`} placeholder="如 X-Api-Key" />
+                      <input type="text" value={h.value} onChange={(e) => updateHeader(i, 'value', e.target.value)} className={`${nativeInputClass(theme)} flex-1`} placeholder="见接入指南" />
                       <button type="button" onClick={() => removeHeader(i)} className={`p-2 rounded-xl transition-colors shrink-0 ${isDark ? 'hover:bg-white/10 text-slate-500' : 'hover:bg-slate-100 text-slate-400'}`}><Trash2 size={14} /></button>
                     </div>
                   ))}

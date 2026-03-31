@@ -1,5 +1,6 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, ChevronDown, Save, Send } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, BookOpen, ChevronDown, Save, Send, Upload } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { ResourceType } from '../../types/dto/catalog';
 import type { ResourceUpsertRequest } from '../../types/dto/resource-center';
@@ -8,6 +9,7 @@ import { tagService } from '../../api/services/tag.service';
 import { useAuthStore } from '../../stores/authStore';
 import { LantuSelect } from '../../components/common/LantuSelect';
 import { filterTagsForResourceType } from '../../utils/marketTags';
+import { buildPath } from '../../constants/consoleRoutes';
 import { bentoCard, btnPrimary, btnSecondary, canvasBodyBg, mainScrollCompositorClass, textMuted, textPrimary } from '../../utils/uiClasses';
 
 interface Props {
@@ -17,6 +19,8 @@ interface Props {
   resourceType: ResourceType;
   resourceId?: number;
   onBack: () => void;
+  /** 首次仅通过 zip 创建 skill 草稿后，跳转到带 id 的编辑路由以便继续填写 */
+  onAfterSkillPackCreated?: (id: number) => void;
 }
 
 const TYPE_LABEL: Record<ResourceType, string> = {
@@ -28,18 +32,50 @@ const TYPE_LABEL: Record<ResourceType, string> = {
 };
 
 const DEFAULT_MCP_AUTH_CONFIG_JSON = '{\n  "method": "tools/call"\n}';
-type McpRegisterMode = 'http_json' | 'http_sse' | 'websocket';
+type McpRegisterMode = 'http_json' | 'http_sse' | 'websocket' | 'stdio_sidecar';
 const DEFAULT_AGENT_SPEC_JSON = '{\n  "url": "http://localhost:8000/agent/invoke",\n  "timeout": 30\n}';
-const DEFAULT_SKILL_SPEC_JSON = '{\n  "url": "http://localhost:7000/skill/execute",\n  "protocol": "rest",\n  "timeout": 30\n}';
+const DEFAULT_SKILL_SPEC_JSON = '{}';
 const DEFAULT_SKILL_PARAMS_SCHEMA_JSON = '{\n  "type": "object",\n  "properties": {\n    "city": { "type": "string" }\n  },\n  "required": ["city"]\n}';
 
-const TYPE_GUIDE: Record<ResourceType, string> = {
-  agent: '用于注册可执行任务的智能体，建议先填写基础信息，再补充 spec 和系统提示词。',
-  skill: '用于注册可复用能力组件，spec 和参数结构建议直接粘贴标准 JSON，便于后续调用。',
-  mcp: '登记 MCP 接入信息并保存；提审与发布流程见操作手册 §3.1.1。',
-  app: '用于注册外部应用入口，建议优先提供可直接访问的 URL，并选择正确的打开方式。',
-  dataset: '用于登记数据资产，请尽量填写数据格式、规模和标签，方便检索与治理。',
+const TYPE_GUIDE_ONE_LINE: Record<ResourceType, string> = {
+  agent: '填写基础信息与运行地址后即可保存。',
+  skill: '技能请先上传 zip；远程 HTTP 工具请走 MCP。',
+  mcp: '填写接入地址与鉴权即可。',
+  app: '填写可访问 URL 与打开方式。',
+  dataset: '填写类型与格式等元数据。',
 };
+
+const DATASET_DATA_TYPE_OPTIONS = [
+  { value: 'structured', label: '结构化' },
+  { value: 'document', label: '文档' },
+  { value: 'image', label: '图像' },
+  { value: 'audio', label: '音频' },
+  { value: 'video', label: '视频' },
+  { value: 'mixed', label: '混合' },
+];
+const DATASET_FORMAT_OPTIONS = [
+  { value: 'json', label: 'JSON' },
+  { value: 'csv', label: 'CSV' },
+  { value: 'parquet', label: 'Parquet' },
+  { value: 'pdf', label: 'PDF' },
+  { value: 'docx', label: 'DOCX' },
+  { value: 'xlsx', label: 'XLSX' },
+];
+const AGENT_TYPE_OPTIONS = [
+  { value: 'http_api', label: 'HTTP API' },
+  { value: 'mcp', label: 'MCP' },
+  { value: 'builtin', label: '内置' },
+];
+const AGENT_MODE_OPTIONS = [
+  { value: 'SUBAGENT', label: 'SUBAGENT' },
+  { value: 'ALL', label: 'ALL' },
+  { value: 'TOOL', label: 'TOOL' },
+];
+const SKILL_MODE_OPTIONS = [
+  { value: 'TOOL', label: 'TOOL' },
+  { value: 'CHAT', label: 'CHAT' },
+  { value: 'SUBAGENT', label: 'SUBAGENT' },
+];
 
 function isValidUrl(value: string): boolean {
   try {
@@ -59,16 +95,25 @@ function isValidWsUrl(value: string): boolean {
   }
 }
 
-function inferMcpTransport(endpoint: string, authConfig?: Record<string, unknown>): 'http' | 'websocket' {
+function inferMcpTransport(endpoint: string, authConfig?: Record<string, unknown>): 'http' | 'websocket' | 'stdio' {
   const transport = typeof authConfig?.transport === 'string' ? authConfig.transport.toLowerCase() : '';
+  if (transport === 'stdio') return 'stdio';
   if (transport === 'websocket') return 'websocket';
   const ep = endpoint.trim().toLowerCase();
   if (ep.startsWith('ws://') || ep.startsWith('wss://')) return 'websocket';
   return 'http';
 }
 
-function modeToTransport(mode: McpRegisterMode): 'http' | 'websocket' {
-  return mode === 'websocket' ? 'websocket' : 'http';
+function modeToTransport(mode: McpRegisterMode): 'http' | 'websocket' | 'stdio' {
+  if (mode === 'websocket') return 'websocket';
+  if (mode === 'stdio_sidecar') return 'stdio';
+  return 'http';
+}
+
+function registerModeFromTransport(tr: 'http' | 'websocket' | 'stdio', prevMode: McpRegisterMode): McpRegisterMode {
+  if (tr === 'websocket') return 'websocket';
+  if (tr === 'stdio') return 'stdio_sidecar';
+  return prevMode === 'http_sse' ? 'http_sse' : 'http_json';
 }
 
 function parseJsonObject(value: string, fieldLabel: string): { ok: boolean; data?: Record<string, unknown>; message: string } {
@@ -107,11 +152,15 @@ export const ResourceRegisterPage: React.FC<Props> = ({
   resourceType,
   resourceId,
   onBack,
+  onAfterSkillPackCreated,
 }) => {
   const isDark = theme === 'dark';
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const [tagOptions, setTagOptions] = useState<{ value: string; label: string }[]>([{ value: '', label: '不选' }]);
   const [loading, setLoading] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [skillTechOpen, setSkillTechOpen] = useState(false);
   const [form, setForm] = useState({
     resourceCode: '',
     displayName: '',
@@ -121,25 +170,35 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     categoryId: '',
     endpoint: '',
     mcpRegisterMode: 'http_json' as McpRegisterMode,
-    mcpTransport: 'http',
+    mcpTransport: 'http' as 'http' | 'websocket' | 'stdio',
     protocol: 'mcp',
     authType: 'none',
     authConfigJson: DEFAULT_MCP_AUTH_CONFIG_JSON,
     appUrl: '',
     embedType: 'iframe',
+    appIcon: '',
+    appScreenshotsText: '',
+    appIsPublic: false,
     dataType: 'structured',
     format: 'json',
     recordCount: 0,
     fileSize: 0,
     tags: '',
-    skillType: 'http_api',
-    mode: 'TOOL',
+    skillType: 'anthropic_v1',
+    mode: resourceType === 'agent' ? 'SUBAGENT' : 'TOOL',
     agentType: 'http_api',
     maxConcurrency: 10,
     systemPrompt: '',
-    specJson: '{"url":"","timeout":30}',
+    specJson: resourceType === 'agent' ? DEFAULT_AGENT_SPEC_JSON : resourceType === 'skill' ? DEFAULT_SKILL_SPEC_JSON : '{}',
     paramsSchemaJson: DEFAULT_SKILL_PARAMS_SCHEMA_JSON,
     relatedResourceIds: '',
+    artifactUri: '',
+    entryDoc: 'SKILL.md',
+    manifestJson: '{}',
+    skillIsPublic: false,
+    packValidationStatus: 'none',
+    packValidationMessage: '',
+    artifactSha256: '',
   });
 
   useEffect(() => {
@@ -149,10 +208,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       .then((list) => {
         if (cancelled) return;
         const filtered = filterTagsForResourceType(Array.isArray(list) ? list : [], resourceType);
-        setTagOptions([
-          { value: '', label: '不选' },
-          ...filtered.map((t) => ({ value: String(t.id), label: `${t.name}（id=${t.id}）` })),
-        ]);
+        setTagOptions([{ value: '', label: '不选' }, ...filtered.map((t) => ({ value: String(t.id), label: t.name }))]);
       })
       .catch(() => {
         if (!cancelled) setTagOptions([{ value: '', label: '不选' }]);
@@ -169,6 +225,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     resourceCenterService.getById(resourceId)
       .then((item) => {
         if (cancelled) return;
+        if (item.sourceType && item.sourceType !== 'internal') setAdvancedOpen(true);
         setForm((prev) => ({
           ...prev,
           resourceCode: item.resourceCode || '',
@@ -180,14 +237,17 @@ export const ResourceRegisterPage: React.FC<Props> = ({
           endpoint: item.endpoint || '',
           mcpRegisterMode:
             resourceType === 'mcp'
-              ? (inferMcpTransport(
-                  item.endpoint || '',
-                  item.authConfig && typeof item.authConfig === 'object' && !Array.isArray(item.authConfig)
-                    ? (item.authConfig as Record<string, unknown>)
-                    : undefined,
-                ) === 'websocket'
-                ? 'websocket'
-                : 'http_json')
+              ? (() => {
+                  const tr = inferMcpTransport(
+                    item.endpoint || '',
+                    item.authConfig && typeof item.authConfig === 'object' && !Array.isArray(item.authConfig)
+                      ? (item.authConfig as Record<string, unknown>)
+                      : undefined,
+                  );
+                  if (tr === 'websocket') return 'websocket';
+                  if (tr === 'stdio') return 'stdio_sidecar';
+                  return 'http_json';
+                })()
               : prev.mcpRegisterMode,
           mcpTransport:
             resourceType === 'mcp'
@@ -210,11 +270,30 @@ export const ResourceRegisterPage: React.FC<Props> = ({
             : {}),
           appUrl: item.appUrl || '',
           embedType: item.embedType || 'iframe',
+          appIcon: item.icon || '',
+          appScreenshotsText:
+            Array.isArray(item.screenshots) && item.screenshots.length > 0 ? item.screenshots.join('\n') : '',
+          appIsPublic: item.isPublic === true,
           dataType: item.dataType || 'structured',
           format: item.format || 'json',
           recordCount: Number(item.recordCount ?? 0) || 0,
           fileSize: Number(item.fileSize ?? 0) || 0,
           tags: Array.isArray(item.tags) ? item.tags.join(',') : '',
+          relatedResourceIds: Array.isArray(item.relatedResourceIds) ? item.relatedResourceIds.join(', ') : '',
+          ...(resourceType === 'skill'
+            ? {
+                skillType: item.skillType || 'anthropic_v1',
+                artifactUri: item.artifactUri || '',
+                entryDoc: item.entryDoc || 'SKILL.md',
+                manifestJson: item.manifest ? JSON.stringify(item.manifest, null, 2) : '{}',
+                skillIsPublic: item.isPublic === true,
+                packValidationStatus: item.packValidationStatus || 'none',
+                packValidationMessage: item.packValidationMessage || '',
+                artifactSha256: item.artifactSha256 || '',
+                mode: item.mode || prev.mode,
+                maxConcurrency: item.maxConcurrency ?? prev.maxConcurrency,
+              }
+            : {}),
         }));
       })
       .catch(() => {
@@ -242,16 +321,39 @@ export const ResourceRegisterPage: React.FC<Props> = ({
         if (!isValidWsUrl(form.endpoint.trim())) {
           return '当 transport=websocket 时，endpoint 必须是 ws:// 或 wss:// URL';
         }
+      } else if (activeTransport === 'stdio') {
+        if (!isValidUrl(form.endpoint.trim())) {
+          return 'stdio 边车须将本机 HTTP 转发地址填入 endpoint，且须为 http:// 或 https:// URL';
+        }
       } else if (!isValidUrl(form.endpoint.trim())) {
         return '当 transport=http 时，endpoint 必须是 http:// 或 https:// URL';
       }
       if (form.protocol.trim() && form.protocol.trim().toLowerCase() !== 'mcp') {
         return 'MCP 资源 protocol 建议固定为 mcp';
       }
-      const ac = form.authConfigJson.trim();
-      if (ac) {
-        const authParsed = parseJsonObject(form.authConfigJson, '鉴权配置（authConfig JSON）');
+      const authParsed = parseJsonObject(form.authConfigJson, '鉴权配置（authConfig JSON）');
+      if (form.authConfigJson.trim()) {
         if (!authParsed.ok) return authParsed.message;
+      }
+      if (form.authType === 'oauth2_client') {
+        if (!authParsed.ok || !authParsed.data) return 'oauth2_client 须填写合法 authConfig JSON';
+        const d = authParsed.data;
+        const tokenUrl = String(d.tokenUrl ?? d.token_url ?? '').trim();
+        const clientId = String(d.clientId ?? d.client_id ?? '').trim();
+        const secret = String(d.clientSecret ?? d.client_secret ?? '').trim();
+        const secretRef = String(d.clientSecretRef ?? '').trim();
+        if (!tokenUrl) return 'oauth2_client 需要 auth_config.tokenUrl';
+        if (!clientId) return 'oauth2_client 需要 auth_config.clientId';
+        if (!secret && !secretRef) return 'oauth2_client 需要 clientSecret 或 clientSecretRef';
+      }
+      if (form.authType === 'basic') {
+        if (!authParsed.ok || !authParsed.data) return 'basic 须填写合法 authConfig JSON';
+        const d = authParsed.data;
+        const user = String(d.username ?? '').trim();
+        const password = String(d.password ?? '').trim();
+        const passwordRef = String(d.passwordSecretRef ?? '').trim();
+        if (!user) return 'basic 需要 auth_config.username';
+        if (!password && !passwordRef) return 'basic 需要 password 或 passwordSecretRef';
       }
     }
     if (resourceType === 'agent') {
@@ -270,19 +372,33 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       }
     }
     if (resourceType === 'skill') {
-      if (!form.skillType.trim()) return '请填写技能类型（skillType）';
-      const specParsed = parseJsonObject(form.specJson, '规格配置（spec JSON）');
+      if (!form.skillType.trim()) return '请选择技能包格式（skillType）';
+      const st = form.skillType.trim().toLowerCase();
+      if (!['anthropic_v1', 'folder_v1'].includes(st)) {
+        return 'skillType 须为 anthropic_v1 或 folder_v1；可远程调用的 HTTP 工具请注册为 MCP 资源';
+      }
+      const specParsed = parseJsonObject(form.specJson, '附加元数据（spec JSON，可空对象）');
       if (!specParsed.ok) return specParsed.message;
-      const specUrl = typeof specParsed.data?.url === 'string' ? specParsed.data.url.trim() : '';
-      if (!specUrl) return '技能规格配置（spec JSON）中必须包含 url';
-      if (!isValidUrl(specUrl)) return '技能规格配置中的 url 必须是有效的 http/https URL';
       const schemaParsed = parseJsonObject(form.paramsSchemaJson, '参数结构（parametersSchema JSON）');
       if (!schemaParsed.ok) return schemaParsed.message;
+      const manifestParsed = parseJsonObject(form.manifestJson, 'manifest JSON');
+      if (!manifestParsed.ok) return manifestParsed.message;
+      const uri = form.artifactUri.trim();
+      if (uri && !isValidUrl(uri) && !uri.startsWith('/uploads/')) {
+        return 'artifactUri 须为 http(s) URL 或由上传生成的 /uploads/... 路径';
+      }
     }
     if (resourceType === 'app') {
       if (!form.appUrl.trim()) return '请填写应用地址（appUrl）';
       if (!isValidUrl(form.appUrl.trim())) return '应用地址（appUrl）必须是有效的 http/https URL';
       if (!form.embedType.trim()) return '请选择嵌入方式（embedType）';
+      const appEt = form.embedType.trim().toLowerCase();
+      if (!['iframe', 'redirect', 'micro_frontend'].includes(appEt)) {
+        return 'embedType 必须是 iframe、redirect 或 micro_frontend（与后端一致）';
+      }
+      if (form.appIcon.trim() && !isValidUrl(form.appIcon.trim())) {
+        return '图标 URL（icon）必须是有效的 http/https URL';
+      }
       const related = parseRelatedIds(form.relatedResourceIds);
       if (related.invalidTokens.length > 0) {
         return `关联资源 ID 仅支持正整数（逗号分隔），非法值：${related.invalidTokens.join(', ')}`;
@@ -295,7 +411,38 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       if (Number(form.fileSize) < 0) return '文件大小（fileSize）不能小于 0';
     }
     return '';
-  }, [form.agentType, form.appUrl, form.authConfigJson, form.dataType, form.displayName, form.embedType, form.endpoint, form.fileSize, form.format, form.maxConcurrency, form.mcpRegisterMode, form.paramsSchemaJson, form.protocol, form.recordCount, form.resourceCode, form.skillType, form.specJson, resourceId, resourceType, user?.id]);
+  }, [
+    form.agentType,
+    form.appIcon,
+    form.appIsPublic,
+    form.appScreenshotsText,
+    form.appUrl,
+    form.authConfigJson,
+    form.authType,
+    form.dataType,
+    form.displayName,
+    form.embedType,
+    form.endpoint,
+    form.fileSize,
+    form.format,
+    form.maxConcurrency,
+    form.mcpRegisterMode,
+    form.paramsSchemaJson,
+    form.protocol,
+    form.recordCount,
+    form.resourceCode,
+    form.skillType,
+    form.mode,
+    form.sourceType,
+    form.categoryId,
+    form.specJson,
+    form.manifestJson,
+    form.artifactUri,
+    form.paramsSchemaJson,
+    resourceId,
+    resourceType,
+    user?.id,
+  ]);
 
   const buildPayload = (): ResourceUpsertRequest => {
     const providerIdRaw = resourceId ? (form.providerId.trim() || user?.id) : user?.id;
@@ -328,16 +475,27 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       };
     }
     if (resourceType === 'skill') {
-      const parsedSpec = parseJsonObject(form.specJson, '规格配置（spec JSON）');
+      const parsedSpec = parseJsonObject(form.specJson, '附加元数据（spec JSON）');
       const parsedSchema = parseJsonObject(form.paramsSchemaJson, '参数结构（parametersSchema JSON）');
-      if (!parsedSpec.ok || !parsedSchema.ok) throw new Error(parsedSpec.ok ? parsedSchema.message : parsedSpec.message);
+      const parsedManifest = parseJsonObject(form.manifestJson, 'manifest JSON');
+      if (!parsedSpec.ok || !parsedSchema.ok || !parsedManifest.ok) {
+        throw new Error(!parsedSpec.ok ? parsedSpec.message : !parsedSchema.ok ? parsedSchema.message : parsedManifest.message);
+      }
+      const specObj = parsedSpec.data || {};
+      const manifestObj = parsedManifest.data || {};
       return {
         ...baseFields,
         resourceType: 'skill',
         skillType: form.skillType.trim(),
         mode: form.mode,
-        spec: parsedSpec.data || {},
+        artifactUri: form.artifactUri.trim() || undefined,
+        artifactSha256: form.artifactSha256.trim() || undefined,
+        manifest: Object.keys(manifestObj).length > 0 ? manifestObj : undefined,
+        entryDoc: form.entryDoc.trim() || undefined,
+        spec: Object.keys(specObj).length > 0 ? specObj : {},
         parametersSchema: parsedSchema.data || {},
+        isPublic: form.skillIsPublic,
+        maxConcurrency: Number(form.maxConcurrency) || 10,
       };
     }
     if (resourceType === 'agent') {
@@ -357,11 +515,18 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     }
     if (resourceType === 'app') {
       const appRelated = parseRelatedIds(form.relatedResourceIds).ids;
+      const shotLines = form.appScreenshotsText
+        .split(/\r?\n/)
+        .map((s) => s.trim())
+        .filter(Boolean);
       return {
         ...baseFields,
         resourceType: 'app',
         appUrl: form.appUrl.trim(),
-        embedType: form.embedType.trim(),
+        embedType: form.embedType.trim().toLowerCase(),
+        icon: form.appIcon.trim() || undefined,
+        screenshots: shotLines.length > 0 ? shotLines : undefined,
+        isPublic: form.appIsPublic,
         relatedResourceIds: appRelated.length > 0 ? appRelated : undefined,
       };
     }
@@ -376,10 +541,58 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     };
   };
 
+  const handleSkillZipUpload: React.ChangeEventHandler<HTMLInputElement> = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setLoading(true);
+    try {
+      const vo = await resourceCenterService.uploadSkillPackage(file, resourceId);
+      setForm((prev) => ({
+        ...prev,
+        resourceCode: vo.resourceCode || prev.resourceCode,
+        displayName: vo.displayName || prev.displayName,
+        description: vo.description ?? prev.description,
+        skillType: vo.skillType || prev.skillType,
+        artifactUri: vo.artifactUri || '',
+        artifactSha256: vo.artifactSha256 || '',
+        entryDoc: vo.entryDoc || prev.entryDoc,
+        manifestJson: vo.manifest ? JSON.stringify(vo.manifest, null, 2) : prev.manifestJson,
+        packValidationStatus: String(vo.packValidationStatus || 'none'),
+        packValidationMessage: vo.packValidationMessage || '',
+        skillIsPublic: vo.isPublic === true,
+        mode: vo.mode || prev.mode,
+        maxConcurrency: vo.maxConcurrency ?? prev.maxConcurrency,
+      }));
+      if (!resourceId && vo.id) {
+        onAfterSkillPackCreated?.(vo.id);
+      }
+      const ok = String(vo.packValidationStatus).toLowerCase() === 'valid';
+      showMessage(
+        ok ? '技能包已上传并通过校验' : `已上传：${vo.packValidationMessage || '校验未通过，请检查 zip 内容'}`,
+        ok ? 'success' : 'warning',
+      );
+    } catch (err) {
+      showMessage(err instanceof Error ? err.message : '上传失败', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const save = async (submitAfterSave: boolean) => {
     if (validate) {
       showMessage(validate, 'error');
       return;
+    }
+    if (submitAfterSave && resourceType === 'skill') {
+      if (String(form.packValidationStatus).toLowerCase() !== 'valid') {
+        showMessage('提交审核前技能包须通过服务端校验（valid）。请先上传含 SKILL.md 的 zip。', 'error');
+        return;
+      }
+      if (!form.artifactUri.trim()) {
+        showMessage('提交审核前须具备技能包地址（artifactUri），请先上传 zip。', 'error');
+        return;
+      }
     }
     setLoading(true);
     try {
@@ -413,17 +626,20 @@ export const ResourceRegisterPage: React.FC<Props> = ({
           <div className={`flex items-center justify-between border-b px-6 py-4 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
             <div className="max-w-3xl">
               <h2 className={`text-lg font-bold ${textPrimary(theme)}`}>
-                {resourceId ? '编辑' : '注册'}{TYPE_LABEL[resourceType]}
+                {resourceId ? '编辑' : '注册'}
+                {TYPE_LABEL[resourceType]}
               </h2>
-              <p className={`mt-0.5 text-xs ${textMuted(theme)}`}>统一资源注册中心（/resource-center/resources）</p>
-              <p className={`mt-2 text-xs leading-5 ${textMuted(theme)}`}>{TYPE_GUIDE[resourceType]}</p>
-              {resourceType === 'mcp' && (
-                <p className={`mt-1.5 text-xs ${textMuted(theme)}`}>
-                  字段与步骤详解：
-                  <code className="mx-1 rounded px-1 py-0.5 font-mono text-[11px] opacity-90">docs/frontend-resource-registration-runbook.md</code>
-                  （§3.1）
-                </p>
-              )}
+              <div className={`mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs ${textMuted(theme)}`}>
+                <span>{TYPE_GUIDE_ONE_LINE[resourceType]}</span>
+                <button
+                  type="button"
+                  className={`inline-flex items-center gap-1 font-medium ${isDark ? 'text-sky-400 hover:text-sky-300' : 'text-sky-600 hover:text-sky-700'}`}
+                  onClick={() => navigate(buildPath('user', 'api-docs'))}
+                >
+                  <BookOpen size={12} />
+                  接入指南
+                </button>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <button type="button" className={btnSecondary(theme)} onClick={onBack}>
@@ -454,74 +670,78 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                       : 'border-emerald-300 bg-emerald-50 text-emerald-800'
                 }`}
               >
-                {validate || '表单校验通过，可直接保存或保存并提审'}
+                {validate || '校验通过'}
               </div>
             </div>
-            <Field
-              label="资源编码（resourceCode）*"
-              hint={resourceType === 'mcp' ? '3-64 位；字母/数字/下划线/短横线' : '3-64 位；字母/数字/下划线/短横线，例如：agent_weather-tool'}
-            >
-              <input value={form.resourceCode} onChange={(e) => setForm((p) => ({ ...p, resourceCode: e.target.value }))} className={inputClass(isDark)} placeholder="例如：agent-weather-tool" />
-            </Field>
-            <Field
-              label="显示名称（displayName）*"
-              hint={resourceType === 'mcp' ? '列表与详情展示名' : '面向业务用户展示，建议使用易懂中文名称。'}
-            >
-              <input value={form.displayName} onChange={(e) => setForm((p) => ({ ...p, displayName: e.target.value }))} className={inputClass(isDark)} placeholder="例如：天气查询智能体" />
-            </Field>
-            <Field label="来源类型（sourceType）" hint={resourceType === 'mcp' ? '资源来源分类' : '表示资源来源归属，用于后续权限和审计。'}>
-              <ThemedSelect
-                isDark={isDark}
-                value={form.sourceType}
-                onChange={(value) => setForm((p) => ({ ...p, sourceType: value }))}
-                options={[
-                  { value: 'internal', label: '内部（internal）' },
-                  { value: 'cloud', label: '云端（cloud）' },
-                  { value: 'partner', label: '合作方（partner）' },
-                  { value: 'department', label: '部门（department）' },
-                ]}
+            <Field label="资源编码 *">
+              <input
+                value={form.resourceCode}
+                onChange={(e) => setForm((p) => ({ ...p, resourceCode: e.target.value }))}
+                className={inputClass(isDark)}
+                title="3–64 位，字母数字下划线或短横线"
+                placeholder="唯一标识，如 weather-tool"
               />
             </Field>
-            <Field
-              label="资源描述（description）"
-              hint={resourceType === 'mcp' ? '用途与能力简述' : '说明该资源的用途、输入输出、适用场景，便于小白理解。'}
-              full
-            >
-              <textarea value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} rows={3} className={inputClass(isDark)} placeholder="例如：用于查询城市实时天气，输入城市名，返回温度和天气状态。" />
+            <Field label="显示名称 *">
+              <input
+                value={form.displayName}
+                onChange={(e) => setForm((p) => ({ ...p, displayName: e.target.value }))}
+                className={inputClass(isDark)}
+                placeholder="列表与详情中展示的名称"
+              />
             </Field>
-            <Field
-              label="资源归属（providerId）"
-              hint={resourceType === 'mcp' ? '新建时默认当前登录用户' : '文档 5.1：提供方即资源拥有者。新建时自动取当前登录用户 ID；编辑时沿用服务端记录（可与当前用户一致）。'}
-              full
-            >
-              <div
-                className={`rounded-xl border px-3 py-2 text-sm ${
-                  isDark ? 'border-white/10 bg-white/[0.03] text-slate-200' : 'border-slate-200 bg-slate-50 text-slate-800'
-                }`}
-              >
-                {resourceId ? (form.providerId || user?.id || '—') : (user?.id ?? '—')}
-              </div>
+            <Field label="描述（选填）" full>
+              <textarea
+                value={form.description}
+                onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+                rows={3}
+                className={inputClass(isDark)}
+                placeholder="用途与场景简述（选填）"
+              />
             </Field>
-            <Field
-              label={`${TYPE_LABEL[resourceType]} 标签（categoryId）`}
-              hint={
-                resourceType === 'mcp'
-                  ? '选填，标签 id'
-                  : '选填。来自标签管理（GET /tags），按资源类型筛选；提交值为标签 id，供目录 categoryId 筛选。'
-              }
-            >
+            <Field label="目录标签（选填）">
               <LantuSelect
                 theme={theme}
                 value={form.categoryId}
                 onChange={(v) => setForm((p) => ({ ...p, categoryId: v }))}
                 options={tagOptions}
-                placeholder="不选标签"
+                placeholder="不选"
               />
             </Field>
 
+            <div className="md:col-span-2">
+              <button
+                type="button"
+                className={`flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left text-xs font-medium ${
+                  isDark ? 'border-white/10 bg-white/[0.03] text-slate-200' : 'border-slate-200 bg-slate-50 text-slate-800'
+                }`}
+                onClick={() => setAdvancedOpen((o) => !o)}
+              >
+                <span>高级选项</span>
+                <ChevronDown size={16} className={advancedOpen ? 'rotate-180 transition-transform' : 'transition-transform'} />
+              </button>
+              {advancedOpen ? (
+                <div className="mt-2 rounded-xl border border-dashed px-3 py-3 md:grid md:grid-cols-2 md:gap-3">
+                  <Field label="来源类型">
+                    <ThemedSelect
+                      isDark={isDark}
+                      value={form.sourceType}
+                      onChange={(value) => setForm((p) => ({ ...p, sourceType: value }))}
+                      options={[
+                        { value: 'internal', label: '内部' },
+                        { value: 'cloud', label: '云端' },
+                        { value: 'partner', label: '合作方' },
+                        { value: 'department', label: '部门' },
+                      ]}
+                    />
+                  </Field>
+                </div>
+              ) : null}
+            </div>
+
             {resourceType === 'mcp' && (
               <>
-                <Field label="注册方式" hint="三种方式：HTTP JSON、HTTP+SSE、WebSocket">
+                <Field label="注册方式">
                   <ThemedSelect
                     isDark={isDark}
                     value={form.mcpRegisterMode}
@@ -537,42 +757,47 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                       { value: 'http_json', label: 'MCP over HTTP（JSON）' },
                       { value: 'http_sse', label: 'MCP over HTTP + SSE' },
                       { value: 'websocket', label: 'MCP over WebSocket' },
+                      { value: 'stdio_sidecar', label: 'stdio 边车（HTTP 转发）' },
                     ]}
                   />
                 </Field>
-                <Field label="传输方式（transport）" hint="提交时自动写入 authConfig.transport">
+                <Field label="传输方式">
                   <ThemedSelect
                     isDark={isDark}
                     value={modeToTransport(form.mcpRegisterMode)}
-                    onChange={(value) =>
+                    onChange={(value) => {
+                      const v = value as 'http' | 'websocket' | 'stdio';
                       setForm((p) => ({
                         ...p,
-                        mcpTransport: value as 'http' | 'websocket',
-                        mcpRegisterMode: value === 'websocket' ? 'websocket' : 'http_json',
-                      }))
-                    }
+                        mcpTransport: v,
+                        mcpRegisterMode: registerModeFromTransport(v, p.mcpRegisterMode),
+                      }));
+                    }}
                     options={[
                       { value: 'http', label: 'HTTP / SSE（http）' },
                       { value: 'websocket', label: 'WebSocket（websocket）' },
+                      { value: 'stdio', label: 'stdio 边车（stdio）' },
                     ]}
                   />
                 </Field>
-                <Field
-                  label="服务地址（endpoint）*"
-                  hint={modeToTransport(form.mcpRegisterMode) === 'websocket' ? '仅 ws:// 或 wss:// URL' : '仅 http:// 或 https:// URL'}
-                  full
-                >
+                <Field label="服务地址 *" full>
                   <input
                     value={form.endpoint}
                     onChange={(e) => setForm((p) => ({ ...p, endpoint: e.target.value }))}
                     className={inputClass(isDark)}
-                    placeholder={modeToTransport(form.mcpRegisterMode) === 'websocket' ? 'ws://localhost:5001/mcp' : 'http://localhost:5000/mcp'}
+                    placeholder={
+                      modeToTransport(form.mcpRegisterMode) === 'websocket'
+                        ? 'ws://localhost:5001/mcp'
+                        : modeToTransport(form.mcpRegisterMode) === 'stdio'
+                          ? 'https://127.0.0.1:9847/mcp 或内网边车地址'
+                          : 'http://localhost:5000/mcp'
+                    }
                   />
                 </Field>
-                <Field label="协议（protocol）" hint="对接类型，默认 mcp">
+                <Field label="协议">
                   <input value="mcp" readOnly className={inputClass(isDark)} />
                 </Field>
-                <Field label="鉴权方式（authType）" hint="默认 none">
+                <Field label="鉴权方式">
                   <ThemedSelect
                     isDark={isDark}
                     value={form.authType}
@@ -581,10 +806,16 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                       { value: 'none', label: '无鉴权（none）' },
                       { value: 'api_key', label: 'API Key（api_key）' },
                       { value: 'bearer', label: 'Bearer Token（bearer）' },
+                      { value: 'basic', label: 'HTTP Basic（basic）' },
+                      { value: 'oauth2_client', label: 'OAuth2 Client Credentials（oauth2_client）' },
                     ]}
                   />
                 </Field>
-                <Field label="鉴权配置（authConfig）" hint="JSON 对象；提交时会自动写入 transport 字段" full>
+                <Field
+                  label="鉴权配置（JSON）"
+                  full
+                >
+                  <p className={`mb-2 text-[11px] ${textMuted(theme)}`}>详见到接入指南；可点击下方模板快速填入。</p>
                   <div className="mb-2 flex flex-wrap gap-2">
                     <button
                       type="button"
@@ -595,11 +826,52 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                           authConfigJson:
                             modeToTransport(p.mcpRegisterMode) === 'websocket'
                               ? '{\n  "transport": "websocket",\n  "method": "tools/call"\n}'
-                              : '{\n  "method": "tools/call"\n}'
+                              : modeToTransport(p.mcpRegisterMode) === 'stdio'
+                                ? '{\n  "method": "tools/call"\n}'
+                                : '{\n  "method": "tools/call"\n}'
                         }))
                       }
                     >
                       一键填入推荐示例
+                    </button>
+                    <button
+                      type="button"
+                      className={btnSecondary(theme)}
+                      onClick={() =>
+                        setForm((p) => ({
+                          ...p,
+                          authType: 'oauth2_client',
+                          authConfigJson: `{\n  "method": "tools/call",\n  "tokenUrl": "https://id.example.com/oauth/token",\n  "clientId": "your-client-id",\n  "clientSecret": "your-secret",\n  "scope": "mcp.read"\n}`,
+                        }))
+                      }
+                    >
+                      OAuth2 模板
+                    </button>
+                    <button
+                      type="button"
+                      className={btnSecondary(theme)}
+                      onClick={() =>
+                        setForm((p) => ({
+                          ...p,
+                          authType: 'basic',
+                          authConfigJson: `{\n  "method": "tools/call",\n  "username": "user",\n  "password": "pass"\n}`,
+                        }))
+                      }
+                    >
+                      Basic 模板
+                    </button>
+                    <button
+                      type="button"
+                      className={btnSecondary(theme)}
+                      onClick={() =>
+                        setForm((p) => ({
+                          ...p,
+                          authType: 'api_key',
+                          authConfigJson: `{\n  "method": "tools/call",\n  "headerName": "X-Api-Key",\n  "apiKey": "sk_xxx"\n}`,
+                        }))
+                      }
+                    >
+                      Api Key 模板
                     </button>
                   </div>
                   <textarea
@@ -613,103 +885,309 @@ export const ResourceRegisterPage: React.FC<Props> = ({
               </>
             )}
 
-            {(resourceType === 'skill' || resourceType === 'agent') && (
+            {resourceType === 'agent' && (
               <>
-                <Field
-                  label={resourceType === 'skill' ? '技能类型（skillType）' : '智能体类型（agentType）'}
-                  hint="通常为 http_api、workflow 等实现类型，请与执行引擎配置一致。"
-                >
-                  <input value={resourceType === 'skill' ? form.skillType : form.agentType} onChange={(e) => setForm((p) => ({ ...p, [resourceType === 'skill' ? 'skillType' : 'agentType']: e.target.value }))} className={inputClass(isDark)} placeholder="例如：http_api" />
+                <Field label="智能体类型">
+                  <ThemedSelect
+                    isDark={isDark}
+                    value={form.agentType}
+                    onChange={(value) => setForm((p) => ({ ...p, agentType: value }))}
+                    options={AGENT_TYPE_OPTIONS}
+                  />
                 </Field>
-                <Field label="运行模式（mode）" hint="例如 TOOL、CHAT；请与平台支持模式保持一致。">
-                  <input value={form.mode} onChange={(e) => setForm((p) => ({ ...p, mode: e.target.value }))} className={inputClass(isDark)} placeholder="例如：TOOL" />
+                <Field label="运行模式">
+                  <ThemedSelect
+                    isDark={isDark}
+                    value={form.mode}
+                    onChange={(value) => setForm((p) => ({ ...p, mode: value }))}
+                    options={AGENT_MODE_OPTIONS}
+                  />
                 </Field>
-                <Field label="规格配置（spec JSON）" hint="填写有效 JSON，描述调用地址、超时、方法等运行配置。" full>
+                <Field label="规格（JSON，须含 url）" full>
                   <div className="mb-2 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      className={btnSecondary(theme)}
-                      onClick={() =>
-                        setForm((p) => ({
-                          ...p,
-                          specJson: resourceType === 'skill' ? DEFAULT_SKILL_SPEC_JSON : DEFAULT_AGENT_SPEC_JSON,
-                        }))
-                      }
-                    >
-                      一键填入示例
+                    <button type="button" className={btnSecondary(theme)} onClick={() => setForm((p) => ({ ...p, specJson: DEFAULT_AGENT_SPEC_JSON }))}>
+                      填入示例
                     </button>
                   </div>
-                  <textarea value={form.specJson} onChange={(e) => setForm((p) => ({ ...p, specJson: e.target.value }))} rows={4} className={inputClass(isDark)} placeholder='例如：{"url":"https://api.demo.com/run","timeout":30}' />
+                  <textarea
+                    value={form.specJson}
+                    onChange={(e) => setForm((p) => ({ ...p, specJson: e.target.value }))}
+                    rows={4}
+                    className={`${inputClass(isDark)} font-mono text-xs`}
+                    placeholder='{"url":"https://…","timeout":30}'
+                  />
                 </Field>
-                {resourceType === 'skill' && (
-                  <Field label="参数结构（parametersSchema JSON）" hint="建议按 JSON Schema 规范填写，方便调用方生成参数表单。" full>
-                    <div className="mb-2 flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        className={btnSecondary(theme)}
-                        onClick={() => setForm((p) => ({ ...p, paramsSchemaJson: DEFAULT_SKILL_PARAMS_SCHEMA_JSON }))}
-                      >
-                        一键填入示例
-                      </button>
+                <Field label="最大并发">
+                  <input
+                    type="number"
+                    value={form.maxConcurrency}
+                    onChange={(e) => setForm((p) => ({ ...p, maxConcurrency: Number(e.target.value) || 1 }))}
+                    className={inputClass(isDark)}
+                    placeholder="1–1000"
+                  />
+                </Field>
+                <Field label="系统提示词（选填）" full>
+                  <textarea
+                    value={form.systemPrompt}
+                    onChange={(e) => setForm((p) => ({ ...p, systemPrompt: e.target.value }))}
+                    rows={3}
+                    className={inputClass(isDark)}
+                    placeholder="角色与回答约束（选填）"
+                  />
+                </Field>
+                <Field label="关联资源 ID（选填）">
+                  <input
+                    value={form.relatedResourceIds}
+                    onChange={(e) => setForm((p) => ({ ...p, relatedResourceIds: e.target.value }))}
+                    className={inputClass(isDark)}
+                    placeholder="如 12, 34"
+                    title="逗号分隔的正整数"
+                  />
+                </Field>
+              </>
+            )}
+
+            {resourceType === 'skill' && (
+              <>
+                <div className="md:col-span-2 rounded-xl border border-dashed px-4 py-3 text-sm">
+                  <div className={`mb-2 flex flex-wrap items-center justify-between gap-2 ${textPrimary(theme)}`}>
+                    <span className="font-medium">技能包（zip，内含 SKILL.md）</span>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs ${
+                        String(form.packValidationStatus).toLowerCase() === 'valid'
+                          ? isDark
+                            ? 'bg-emerald-500/20 text-emerald-200'
+                            : 'bg-emerald-100 text-emerald-800'
+                          : String(form.packValidationStatus).toLowerCase() === 'invalid'
+                            ? isDark
+                              ? 'bg-rose-500/20 text-rose-200'
+                              : 'bg-rose-100 text-rose-800'
+                            : isDark
+                              ? 'bg-white/10 text-slate-300'
+                              : 'bg-slate-100 text-slate-600'
+                      }`}
+                    >
+                      {form.packValidationStatus || 'none'}
+                    </span>
+                  </div>
+                  {form.packValidationMessage ? (
+                    <p className={`mb-2 text-xs ${textMuted(theme)}`}>{form.packValidationMessage}</p>
+                  ) : null}
+                  <label className={`inline-flex cursor-pointer items-center gap-2 ${btnSecondary(theme)}`}>
+                    <Upload size={15} />
+                    <span>{resourceId ? '上传 / 更换 zip' : '上传 zip 创建草稿'}</span>
+                    <input type="file" accept=".zip,application/zip" className="hidden" onChange={(e) => void handleSkillZipUpload(e)} disabled={loading} />
+                  </label>
+                </div>
+                <Field label="包格式">
+                  <ThemedSelect
+                    isDark={isDark}
+                    value={form.skillType}
+                    onChange={(value) => setForm((p) => ({ ...p, skillType: value }))}
+                    options={[
+                      { value: 'anthropic_v1', label: 'anthropic_v1' },
+                      { value: 'folder_v1', label: 'folder_v1' },
+                    ]}
+                  />
+                </Field>
+                <Field label="运行模式">
+                  <ThemedSelect
+                    isDark={isDark}
+                    value={form.mode}
+                    onChange={(value) => setForm((p) => ({ ...p, mode: value }))}
+                    options={SKILL_MODE_OPTIONS}
+                  />
+                </Field>
+                <Field label="对外公开">
+                  <label className="flex cursor-pointer items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={form.skillIsPublic}
+                      onChange={(e) => setForm((p) => ({ ...p, skillIsPublic: e.target.checked }))}
+                      className="rounded border-slate-400"
+                    />
+                    <span className={textMuted(theme)}>在目录中可按公开策略展示</span>
+                  </label>
+                </Field>
+
+                <div className="md:col-span-2">
+                  <button
+                    type="button"
+                    className={`flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left text-xs font-medium ${
+                      isDark ? 'border-white/10 bg-white/[0.03] text-slate-200' : 'border-slate-200 bg-slate-50 text-slate-800'
+                    }`}
+                    onClick={() => setSkillTechOpen((o) => !o)}
+                  >
+                    <span>高级 / 技术字段（制品、manifest、JSON…）</span>
+                    <ChevronDown size={16} className={skillTechOpen ? 'rotate-180 transition-transform' : 'transition-transform'} />
+                  </button>
+                  {skillTechOpen ? (
+                    <div className="mt-2 space-y-3 md:grid md:grid-cols-2 md:gap-3 md:space-y-0">
+                      <Field label="制品地址">
+                        <input
+                          value={form.artifactUri}
+                          onChange={(e) => setForm((p) => ({ ...p, artifactUri: e.target.value }))}
+                          className={inputClass(isDark)}
+                          placeholder="上传后自动填充，或手填 URL"
+                        />
+                      </Field>
+                      <Field label="SHA-256（只读）">
+                        <input value={form.artifactSha256} readOnly className={`${inputClass(isDark)} opacity-80`} placeholder="—" />
+                      </Field>
+                      <Field label="最大并发">
+                        <input
+                          type="number"
+                          value={form.maxConcurrency}
+                          onChange={(e) => setForm((p) => ({ ...p, maxConcurrency: Number(e.target.value) || 10 }))}
+                          className={inputClass(isDark)}
+                          placeholder="默认 10"
+                        />
+                      </Field>
+                      <Field label="入口文档">
+                        <input
+                          value={form.entryDoc}
+                          onChange={(e) => setForm((p) => ({ ...p, entryDoc: e.target.value }))}
+                          className={inputClass(isDark)}
+                          placeholder="SKILL.md"
+                        />
+                      </Field>
+                      <Field label="manifest JSON" full>
+                        <textarea
+                          value={form.manifestJson}
+                          onChange={(e) => setForm((p) => ({ ...p, manifestJson: e.target.value }))}
+                          rows={4}
+                          className={`${inputClass(isDark)} font-mono text-xs`}
+                        />
+                      </Field>
+                      <Field label="spec JSON" full>
+                        <div className="mb-2 flex flex-wrap gap-2">
+                          <button type="button" className={btnSecondary(theme)} onClick={() => setForm((p) => ({ ...p, specJson: DEFAULT_SKILL_SPEC_JSON }))}>
+                            置为 {}
+                          </button>
+                        </div>
+                        <textarea value={form.specJson} onChange={(e) => setForm((p) => ({ ...p, specJson: e.target.value }))} rows={3} className={`${inputClass(isDark)} font-mono text-xs`} />
+                      </Field>
+                      <Field label="parametersSchema JSON" full>
+                        <div className="mb-2 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            className={btnSecondary(theme)}
+                            onClick={() => setForm((p) => ({ ...p, paramsSchemaJson: DEFAULT_SKILL_PARAMS_SCHEMA_JSON }))}
+                          >
+                            示例模板
+                          </button>
+                        </div>
+                        <textarea value={form.paramsSchemaJson} onChange={(e) => setForm((p) => ({ ...p, paramsSchemaJson: e.target.value }))} rows={4} className={`${inputClass(isDark)} font-mono text-xs`} />
+                      </Field>
                     </div>
-                    <textarea value={form.paramsSchemaJson} onChange={(e) => setForm((p) => ({ ...p, paramsSchemaJson: e.target.value }))} rows={4} className={inputClass(isDark)} placeholder='例如：{"type":"object","properties":{"city":{"type":"string"}}}' />
-                  </Field>
-                )}
-                {resourceType === 'agent' && (
-                  <>
-                    <Field label="最大并发（maxConcurrency）" hint="控制同一时间可并行执行的任务数，建议从 5~20 起步。">
-                      <input type="number" value={form.maxConcurrency} onChange={(e) => setForm((p) => ({ ...p, maxConcurrency: Number(e.target.value) || 1 }))} className={inputClass(isDark)} placeholder="例如：10" />
-                    </Field>
-                    <Field label="系统提示词（systemPrompt）" hint="定义该智能体的角色、边界和输出格式，影响回答质量。" full>
-                      <textarea value={form.systemPrompt} onChange={(e) => setForm((p) => ({ ...p, systemPrompt: e.target.value }))} rows={3} className={inputClass(isDark)} placeholder="例如：你是企业知识库助手，请优先返回结构化摘要和来源链接。" />
-                    </Field>
-                    <Field label="关联资源 ID" hint="可选。填写依赖的 Skill 等资源 ID，逗号分隔。">
-                      <input value={form.relatedResourceIds} onChange={(e) => setForm((p) => ({ ...p, relatedResourceIds: e.target.value }))} className={inputClass(isDark)} placeholder="例如：12, 34, 56" />
-                    </Field>
-                  </>
-                )}
+                  ) : null}
+                </div>
               </>
             )}
 
             {resourceType === 'app' && (
               <>
-                <Field label="应用地址（appUrl）" hint="填写用户可访问的页面地址，建议使用 https。">
-                  <input value={form.appUrl} onChange={(e) => setForm((p) => ({ ...p, appUrl: e.target.value }))} className={inputClass(isDark)} placeholder="例如：https://app.example.com" />
+                <Field label="应用地址 *">
+                  <input
+                    value={form.appUrl}
+                    onChange={(e) => setForm((p) => ({ ...p, appUrl: e.target.value }))}
+                    className={inputClass(isDark)}
+                    placeholder="https://…"
+                  />
                 </Field>
-                <Field label="嵌入方式（embedType）" hint="iframe 适合内嵌，redirect 适合独立跳转。">
+                <Field label="打开方式">
                   <ThemedSelect
                     isDark={isDark}
                     value={form.embedType}
                     onChange={(value) => setForm((p) => ({ ...p, embedType: value }))}
                     options={[
-                      { value: 'iframe', label: '页面内嵌（iframe）' },
-                      { value: 'redirect', label: '页面跳转（redirect）' },
-                      { value: 'micro_frontend', label: '微前端（micro_frontend）' },
+                      { value: 'iframe', label: 'iframe 内嵌' },
+                      { value: 'redirect', label: 'redirect 跳转' },
+                      { value: 'micro_frontend', label: '微前端' },
                     ]}
                   />
                 </Field>
-                <Field label="关联资源 ID" hint="可选。填写依赖的 Agent/Skill 等资源 ID，逗号分隔。">
-                  <input value={form.relatedResourceIds} onChange={(e) => setForm((p) => ({ ...p, relatedResourceIds: e.target.value }))} className={inputClass(isDark)} placeholder="例如：12, 34, 56" />
+                <Field label="图标 URL（选填）">
+                  <input
+                    value={form.appIcon}
+                    onChange={(e) => setForm((p) => ({ ...p, appIcon: e.target.value }))}
+                    className={inputClass(isDark)}
+                    placeholder="https://…"
+                  />
+                </Field>
+                <Field label="截图 URL（选填，每行一条）" full>
+                  <textarea
+                    value={form.appScreenshotsText}
+                    onChange={(e) => setForm((p) => ({ ...p, appScreenshotsText: e.target.value }))}
+                    rows={4}
+                    className={`${inputClass(isDark)} font-mono text-xs`}
+                  />
+                </Field>
+                <Field label="对外公开">
+                  <label className="flex cursor-pointer items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={form.appIsPublic}
+                      onChange={(e) => setForm((p) => ({ ...p, appIsPublic: e.target.checked }))}
+                      className="rounded border-slate-400"
+                    />
+                    <span className={textMuted(theme)}>公开可见</span>
+                  </label>
+                </Field>
+                <Field label="关联资源 ID（选填）">
+                  <input
+                    value={form.relatedResourceIds}
+                    onChange={(e) => setForm((p) => ({ ...p, relatedResourceIds: e.target.value }))}
+                    className={inputClass(isDark)}
+                    placeholder="如 12, 34"
+                  />
                 </Field>
               </>
             )}
 
             {resourceType === 'dataset' && (
               <>
-                <Field label="数据类型（dataType）" hint="例如 structured、text、image，用于分类检索。">
-                  <input value={form.dataType} onChange={(e) => setForm((p) => ({ ...p, dataType: e.target.value }))} className={inputClass(isDark)} placeholder="例如：structured" />
+                <Field label="数据类型 *">
+                  <ThemedSelect
+                    isDark={isDark}
+                    value={form.dataType}
+                    onChange={(value) => setForm((p) => ({ ...p, dataType: value }))}
+                    options={DATASET_DATA_TYPE_OPTIONS}
+                  />
                 </Field>
-                <Field label="数据格式（format）" hint="例如 json、csv、parquet。">
-                  <input value={form.format} onChange={(e) => setForm((p) => ({ ...p, format: e.target.value }))} className={inputClass(isDark)} placeholder="例如：json" />
+                <Field label="数据格式 *">
+                  <ThemedSelect
+                    isDark={isDark}
+                    value={form.format}
+                    onChange={(value) => setForm((p) => ({ ...p, format: value }))}
+                    options={DATASET_FORMAT_OPTIONS}
+                  />
                 </Field>
-                <Field label="记录数（recordCount）" hint="填写大致规模即可，便于容量评估。">
-                  <input type="number" value={form.recordCount} onChange={(e) => setForm((p) => ({ ...p, recordCount: Number(e.target.value) || 0 }))} className={inputClass(isDark)} placeholder="例如：100000" />
+                <Field label="记录数（约）">
+                  <input
+                    type="number"
+                    value={form.recordCount}
+                    onChange={(e) => setForm((p) => ({ ...p, recordCount: Number(e.target.value) || 0 }))}
+                    className={inputClass(isDark)}
+                    placeholder="0"
+                  />
                 </Field>
-                <Field label="文件大小KB（fileSize）" hint="用于评估存储与传输成本，单位为 KB。">
-                  <input type="number" value={form.fileSize} onChange={(e) => setForm((p) => ({ ...p, fileSize: Number(e.target.value) || 0 }))} className={inputClass(isDark)} placeholder="例如：2048" />
+                <Field label="体积（与后端一致的数值，见接入指南）">
+                  <input
+                    type="number"
+                    value={form.fileSize}
+                    onChange={(e) => setForm((p) => ({ ...p, fileSize: Number(e.target.value) || 0 }))}
+                    className={inputClass(isDark)}
+                    placeholder="0"
+                  />
                 </Field>
-                <Field label="标签（tags，逗号分隔）" hint="用于检索过滤，例如：客服,知识库,中文。" full>
-                  <input value={form.tags} onChange={(e) => setForm((p) => ({ ...p, tags: e.target.value }))} className={inputClass(isDark)} placeholder="例如：天气,实时,公共服务" />
+                <Field label="标签（选填，逗号分隔）" full>
+                  <input
+                    value={form.tags}
+                    onChange={(e) => setForm((p) => ({ ...p, tags: e.target.value }))}
+                    className={inputClass(isDark)}
+                    placeholder="如 教务, 公开数据"
+                  />
                 </Field>
               </>
             )}
@@ -720,11 +1198,10 @@ export const ResourceRegisterPage: React.FC<Props> = ({
   );
 };
 
-const Field: React.FC<{ label: string; hint?: string; children: React.ReactNode; full?: boolean }> = ({ label, hint, children, full }) => (
+const Field: React.FC<{ label: string; children: React.ReactNode; full?: boolean }> = ({ label, children, full }) => (
   <div className={full ? 'md:col-span-2' : ''}>
     <label className="mb-1 block text-xs font-medium text-slate-500">{label}</label>
     {children}
-    {hint ? <p className="mt-1 text-[11px] leading-5 text-slate-400">{hint}</p> : null}
   </div>
 );
 

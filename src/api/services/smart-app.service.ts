@@ -1,13 +1,14 @@
 import { ApiException } from '../../types/api';
 import type { PaginatedData } from '../../types/api';
 import type {
+  EmbedType,
   SmartApp,
   SmartAppCreatePayload,
   SmartAppUpdatePayload,
   SmartAppListQuery,
 } from '../../types/dto/smart-app';
 import { resourceCatalogService } from './resource-catalog.service';
-import type { ResourceCatalogItemVO } from '../../types/dto/catalog';
+import type { CatalogResourceDetailVO, ResourceCatalogItemVO } from '../../types/dto/catalog';
 
 function deprecatedWriteError<T>(): Promise<T> {
   return Promise.reject(
@@ -19,17 +20,37 @@ function deprecatedWriteError<T>(): Promise<T> {
   );
 }
 
-function toSmartApp(item: ResourceCatalogItemVO): SmartApp {
+function parseEmbedFromSpec(spec: Record<string, unknown> | undefined): EmbedType {
+  const raw = spec && typeof spec.embedType === 'string' ? spec.embedType.trim().toLowerCase() : '';
+  if (raw === 'iframe' || raw === 'redirect' || raw === 'micro_frontend') {
+    return raw;
+  }
+  return 'redirect';
+}
+
+function toSmartApp(item: ResourceCatalogItemVO | CatalogResourceDetailVO): SmartApp {
   const id = Number(item.resourceId) || 0;
+  const detail = item as CatalogResourceDetailVO;
+  const spec = detail.spec && typeof detail.spec === 'object' && !Array.isArray(detail.spec)
+    ? (detail.spec as Record<string, unknown>)
+    : undefined;
+  const embedType = parseEmbedFromSpec(spec);
+  const icon =
+    spec && typeof spec.icon === 'string' && spec.icon.trim()
+      ? spec.icon.trim()
+      : null;
+  const screenshots =
+    spec && Array.isArray(spec.screenshots) ? spec.screenshots.map((x) => String(x)) : [];
+  const endpointUrl = typeof detail.endpoint === 'string' && detail.endpoint.trim() ? detail.endpoint.trim() : '';
   return {
     id,
     appName: item.resourceCode || `app-${item.resourceId}`,
     displayName: item.displayName || item.resourceCode || String(item.resourceId),
     description: item.description || '',
-    appUrl: '',
-    embedType: 'redirect',
-    icon: null,
-    screenshots: [],
+    appUrl: endpointUrl,
+    embedType,
+    icon,
+    screenshots,
     categoryId: null,
     categoryName: item.categoryName,
     tags: item.tags,

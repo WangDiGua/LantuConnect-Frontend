@@ -12,6 +12,7 @@ export interface ResourceCatalogQueryRequest {
   sortOrder?: 'asc' | 'desc';
   categoryId?: string;
   tags?: string[];
+  include?: string;
 }
 
 export interface ResourceCatalogItemVO {
@@ -25,6 +26,8 @@ export interface ResourceCatalogItemVO {
   updateTime?: string;
   tags?: string[];
   categoryName?: string;
+  observability?: Record<string, unknown>;
+  quality?: Record<string, unknown>;
 }
 
 export type ResourceCatalogPage = PaginatedData<ResourceCatalogItemVO>;
@@ -33,6 +36,7 @@ export interface ResourceResolveRequest {
   resourceType: ResourceType;
   resourceId: string;
   version?: string;
+  include?: string;
 }
 
 export interface ResourceResolveVO {
@@ -46,8 +50,14 @@ export interface ResourceResolveVO {
   endpoint?: string;
   launchToken?: string;
   launchUrl?: string;
+  tags?: string[];
+  observability?: Record<string, unknown>;
+  quality?: Record<string, unknown>;
   spec?: Record<string, unknown>;
 }
+
+/** GET /catalog/resources/{type}/{id} 返回体：目录项字段 + 解析/规格字段（与后端 ResourceResolveVO 等对齐） */
+export type CatalogResourceDetailVO = ResourceCatalogItemVO & Partial<ResourceResolveVO>;
 
 export interface InvokeRequest {
   resourceType: ResourceType;

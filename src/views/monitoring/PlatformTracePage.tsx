@@ -34,7 +34,8 @@ function formatTraceTree(spans: TraceSpan[], traceId: string): string {
     return nodes.map((node, i) => {
       const isLast = i === nodes.length - 1;
       const branch = isLast ? '└─ ' : '├─ ';
-      const line = `${prefix}${branch}${node.service} · ${node.operationName} (${node.duration}ms) [${node.status}]\n`;
+      const serviceName = node.service || node.serviceName || 'unknown-service';
+      const line = `${prefix}${branch}${serviceName} · ${node.operationName} (${node.duration}ms) [${node.status}]\n`;
       const children = byParent.get(node.id) ?? [];
       const nextPrefix = prefix + (isLast ? '   ' : '│  ');
       return line + (children.length ? walk(children, nextPrefix) : '');

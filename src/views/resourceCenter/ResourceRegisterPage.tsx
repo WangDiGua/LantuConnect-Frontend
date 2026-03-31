@@ -1,6 +1,6 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, BookOpen, ChevronDown, Save, Send, Upload } from 'lucide-react';
+import { ArrowLeft, BookOpen, ChevronDown, Download, Link2, Save, Send, Upload } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { ResourceType } from '../../types/dto/catalog';
 import type { ResourceUpsertRequest } from '../../types/dto/resource-center';
@@ -161,6 +161,8 @@ export const ResourceRegisterPage: React.FC<Props> = ({
   const [loading, setLoading] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [skillTechOpen, setSkillTechOpen] = useState(false);
+  const [skillPackUrl, setSkillPackUrl] = useState('');
+  const [skillArtifactDownloading, setSkillArtifactDownloading] = useState(false);
   const [agentAdvancedOpen, setAgentAdvancedOpen] = useState(false);
   const [form, setForm] = useState({
     resourceCode: '',
@@ -636,6 +638,38 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     };
   };
 
+  const applySkillPackVoToForm = (
+    vo: Awaited<ReturnType<typeof resourceCenterService.uploadSkillPackage>>,
+    via: 'upload' | 'url',
+  ) => {
+    setForm((prev) => ({
+      ...prev,
+      resourceCode: vo.resourceCode || prev.resourceCode,
+      displayName: vo.displayName || prev.displayName,
+      description: vo.description ?? prev.description,
+      skillType: vo.skillType || prev.skillType,
+      artifactUri: vo.artifactUri || '',
+      artifactSha256: vo.artifactSha256 || '',
+      entryDoc: vo.entryDoc || prev.entryDoc,
+      manifestJson: vo.manifest ? JSON.stringify(vo.manifest, null, 2) : prev.manifestJson,
+      packValidationStatus: String(vo.packValidationStatus || 'none'),
+      packValidationMessage: vo.packValidationMessage || '',
+      skillIsPublic: vo.isPublic === true,
+      sourceType: vo.sourceType || prev.sourceType,
+      mode: vo.mode || prev.mode,
+      maxConcurrency: vo.maxConcurrency ?? prev.maxConcurrency,
+    }));
+    if (!resourceId && vo.id) {
+      onAfterSkillPackCreated?.(vo.id);
+    }
+    const ok = String(vo.packValidationStatus).toLowerCase() === 'valid';
+    const verb = via === 'url' ? '从链接导入' : '上传';
+    showMessage(
+      ok ? `技能包已${verb}并通过校验` : `已${verb}：${vo.packValidationMessage || '校验未通过，请检查 zip 内容'}`,
+      ok ? 'success' : 'warning',
+    );
+  };
+
   const handleSkillZipUpload: React.ChangeEventHandler<HTMLInputElement> = async (e) => {
     const file = e.target.files?.[0];
     e.target.value = '';
@@ -643,32 +677,27 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     setLoading(true);
     try {
       const vo = await resourceCenterService.uploadSkillPackage(file, resourceId);
-      setForm((prev) => ({
-        ...prev,
-        resourceCode: vo.resourceCode || prev.resourceCode,
-        displayName: vo.displayName || prev.displayName,
-        description: vo.description ?? prev.description,
-        skillType: vo.skillType || prev.skillType,
-        artifactUri: vo.artifactUri || '',
-        artifactSha256: vo.artifactSha256 || '',
-        entryDoc: vo.entryDoc || prev.entryDoc,
-        manifestJson: vo.manifest ? JSON.stringify(vo.manifest, null, 2) : prev.manifestJson,
-        packValidationStatus: String(vo.packValidationStatus || 'none'),
-        packValidationMessage: vo.packValidationMessage || '',
-        skillIsPublic: vo.isPublic === true,
-        mode: vo.mode || prev.mode,
-        maxConcurrency: vo.maxConcurrency ?? prev.maxConcurrency,
-      }));
-      if (!resourceId && vo.id) {
-        onAfterSkillPackCreated?.(vo.id);
-      }
-      const ok = String(vo.packValidationStatus).toLowerCase() === 'valid';
-      showMessage(
-        ok ? '技能包已上传并通过校验' : `已上传：${vo.packValidationMessage || '校验未通过，请检查 zip 内容'}`,
-        ok ? 'success' : 'warning',
-      );
+      applySkillPackVoToForm(vo, 'upload');
     } catch (err) {
       showMessage(err instanceof Error ? err.message : '上传失败', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSkillUrlImport = async () => {
+    const u = skillPackUrl.trim();
+    if (!u) {
+      showMessage('请输入可直链下载的 zip 地址（HTTPS）', 'error');
+      return;
+    }
+    setLoading(true);
+    try {
+      const vo = await resourceCenterService.importSkillPackageFromUrl(u, resourceId);
+      applySkillPackVoToForm(vo, 'url');
+      setSkillPackUrl('');
+    } catch (err) {
+      showMessage(err instanceof Error ? err.message : '从 URL 导入失败', 'error');
     } finally {
       setLoading(false);
     }
@@ -701,8 +730,8 @@ export const ResourceRegisterPage: React.FC<Props> = ({
         id = created.id;
       }
       if (submitAfterSave && id) {
-        await resourceCenterService.submit(id);
-        showMessage('保存并提审成功（状态 pending_review）', 'success');
+        const submitted = await resourceCenterService.submit(id);
+        showMessage(submitted.statusHint || '保存并提审成功（状态 pending_review）', 'success');
       } else {
         showMessage('保存成功', 'success');
       }
@@ -1124,11 +1153,55 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                   {form.packValidationMessage ? (
                     <p className={`mb-2 text-xs ${textMuted(theme)}`}>{form.packValidationMessage}</p>
                   ) : null}
-                  <label className={`inline-flex cursor-pointer items-center gap-2 ${btnSecondary(theme)}`}>
-                    <Upload size={15} />
-                    <span>{resourceId ? '上传 / 更换 zip' : '上传 zip 创建草稿'}</span>
-                    <input type="file" accept=".zip,application/zip" className="hidden" onChange={(e) => void handleSkillZipUpload(e)} disabled={loading} />
-                  </label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <label className={`inline-flex cursor-pointer items-center gap-2 ${btnSecondary(theme)}`}>
+                      <Upload size={15} />
+                      <span>{resourceId ? '上传 / 更换 zip' : '上传 zip 创建草稿'}</span>
+                      <input type="file" accept=".zip,application/zip" className="hidden" onChange={(e) => void handleSkillZipUpload(e)} disabled={loading} />
+                    </label>
+                    <div className={`mt-2 flex w-full min-w-[240px] flex-1 flex-col gap-2 sm:mt-0 sm:flex-row sm:items-center`}>
+                      <input
+                        type="url"
+                        value={skillPackUrl}
+                        onChange={(e) => setSkillPackUrl(e.target.value)}
+                        disabled={loading}
+                        className={`min-w-0 flex-1 rounded-lg border px-3 py-2 text-sm ${
+                          isDark ? 'border-white/10 bg-white/[0.04] text-slate-200 placeholder:text-slate-500' : 'border-slate-200 bg-white text-slate-900 placeholder:text-slate-400'
+                        }`}
+                        placeholder="或粘贴 zip 直链（HTTPS），服务端拉取"
+                      />
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => void handleSkillUrlImport()}
+                        className={`inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium ${btnSecondary(theme)}`}
+                      >
+                        <Download size={15} />
+                        <Link2 size={14} className="opacity-80" />
+                        从 URL 导入
+                      </button>
+                    </div>
+                    {resourceId &&
+                      String(form.packValidationStatus).toLowerCase() === 'valid' &&
+                      Boolean(form.artifactUri.trim()) && (
+                      <button
+                        type="button"
+                        disabled={loading || skillArtifactDownloading}
+                        onClick={() => {
+                          setSkillArtifactDownloading(true);
+                          void resourceCenterService
+                            .downloadSkillArtifact(resourceId, form.displayName)
+                            .then(() => showMessage('已开始下载', 'success'))
+                            .catch((e) => showMessage(e instanceof Error ? e.message : '下载失败', 'error'))
+                            .finally(() => setSkillArtifactDownloading(false));
+                        }}
+                        className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium ${btnSecondary(theme)}`}
+                      >
+                        <Download size={15} />
+                        {skillArtifactDownloading ? '下载中…' : '下载制品（skill-artifact）'}
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <Field label="包格式">
                   <ThemedSelect

@@ -463,4 +463,45 @@ export const http = {
     });
     return unwrap(res);
   },
+
+  /**
+   * 二进制下载：不走 `unwrap`。若网关以 JSON 包错误体，会解析为 `ApiException`。
+   */
+  async getBlob(url: string, config?: AxiosRequestConfig): Promise<{ blob: Blob; fileName?: string }> {
+    const res = await instance.get<Blob>(url, { ...config, responseType: 'blob' });
+    const blob = res.data;
+    const ct = String(res.headers['content-type'] ?? '').toLowerCase();
+    if (ct.includes('application/json') || blob.type === 'application/json') {
+      const text = await blob.text();
+      try {
+        const j = JSON.parse(text) as ApiResponse;
+        if (j && typeof j === 'object' && typeof j.code === 'number' && j.code !== 0) {
+          throw new ApiException({
+            code: j.code,
+            message: sanitizeUserMessage(mapErrorMessage(res.status, j.code, j.message)),
+            status: res.status,
+          });
+        }
+      } catch (e) {
+        if (e instanceof ApiException) throw e;
+      }
+    }
+    const cd = res.headers['content-disposition'] as string | undefined;
+    let fileName: string | undefined;
+    if (cd) {
+      const star = /filename\*\s*=\s*UTF-8''([^;\s]+)/i.exec(cd);
+      if (star) {
+        try {
+          fileName = decodeURIComponent(star[1]);
+        } catch {
+          fileName = star[1];
+        }
+      }
+      if (!fileName) {
+        const plain = /filename\s*=\s*("?)([^";\n]+)\1/i.exec(cd);
+        if (plain) fileName = plain[2].trim().replace(/^"|"$/g, '');
+      }
+    }
+    return { blob, fileName };
+  },
 };

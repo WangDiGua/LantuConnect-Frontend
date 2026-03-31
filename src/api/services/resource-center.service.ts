@@ -1,5 +1,7 @@
 import { http } from '../../lib/http';
 import type {
+  LifecycleTimelineVO,
+  ObservabilitySummaryVO,
   ResourceCenterItemVO,
   ResourceCenterListQuery,
   ResourceCenterPage,
@@ -70,7 +72,7 @@ function toResourceItem(raw: any): ResourceCenterItemVO {
     updateTime: raw?.updateTime ? String(raw.updateTime) : undefined,
     submitTime: raw?.submitTime ? String(raw.submitTime) : undefined,
     ownerId: raw?.ownerId ? String(raw.ownerId) : undefined,
-    ownerName: raw?.ownerName ? String(raw.ownerName) : undefined,
+    ownerName: raw?.ownerName ? String(raw.ownerName) : raw?.createdByName ? String(raw.createdByName) : undefined,
     endpoint: raw?.endpoint ? String(raw.endpoint) : undefined,
     protocol: raw?.protocol ? String(raw.protocol) : undefined,
     appUrl: raw?.appUrl ? String(raw.appUrl) : undefined,
@@ -165,6 +167,26 @@ function toResourceItem(raw: any): ResourceCenterItemVO {
           ? String(raw.display_template)
           : undefined,
     parametersSchema: asRecordObject(raw?.parametersSchema ?? raw?.parameters_schema),
+    pendingAuditItemId:
+      raw?.pendingAuditItemId != null && Number.isFinite(Number(raw.pendingAuditItemId))
+        ? Number(raw.pendingAuditItemId)
+        : undefined,
+    lastAuditStatus: raw?.lastAuditStatus != null ? String(raw.lastAuditStatus) : undefined,
+    lastRejectReason: raw?.lastRejectReason != null ? String(raw.lastRejectReason) : undefined,
+    lastReviewerId:
+      raw?.lastReviewerId != null && Number.isFinite(Number(raw.lastReviewerId))
+        ? Number(raw.lastReviewerId)
+        : undefined,
+    lastSubmitTime: raw?.lastSubmitTime != null ? String(raw.lastSubmitTime) : undefined,
+    lastReviewTime: raw?.lastReviewTime != null ? String(raw.lastReviewTime) : undefined,
+    allowedActions: Array.isArray(raw?.allowedActions) ? raw.allowedActions.map((a: unknown) => String(a)) : undefined,
+    statusHint: raw?.statusHint != null ? String(raw.statusHint) : undefined,
+    healthStatus: raw?.healthStatus != null ? String(raw.healthStatus) : undefined,
+    circuitState: raw?.circuitState != null ? String(raw.circuitState) : undefined,
+    degradationCode: raw?.degradationCode != null ? String(raw.degradationCode) : undefined,
+    degradationHint: raw?.degradationHint != null ? String(raw.degradationHint) : undefined,
+    qualityScore: raw?.qualityScore != null && Number.isFinite(Number(raw.qualityScore)) ? Number(raw.qualityScore) : undefined,
+    qualityFactors: asRecordObject(raw?.qualityFactors),
   };
 }
 
@@ -225,21 +247,38 @@ export const resourceCenterService = {
 
   remove: (id: number): Promise<void> => http.delete<void>(`/resource-center/resources/${id}`),
 
-  submit: (id: number): Promise<void> => http.post<void>(`/resource-center/resources/${id}/submit`),
+  submit: async (id: number): Promise<ResourceCenterItemVO> => {
+    const raw = await http.post<unknown>(`/resource-center/resources/${id}/submit`);
+    return toResourceItem(raw);
+  },
 
-  deprecate: (id: number): Promise<void> => http.post<void>(`/resource-center/resources/${id}/deprecate`),
+  deprecate: async (id: number): Promise<ResourceCenterItemVO> => {
+    const raw = await http.post<unknown>(`/resource-center/resources/${id}/deprecate`);
+    return toResourceItem(raw);
+  },
 
-  withdraw: (id: number): Promise<void> => http.post<void>(`/resource-center/resources/${id}/withdraw`),
+  withdraw: async (id: number): Promise<ResourceCenterItemVO> => {
+    const raw = await http.post<unknown>(`/resource-center/resources/${id}/withdraw`);
+    return toResourceItem(raw);
+  },
 
   createVersion: async (id: number, payload: ResourceVersionCreateRequest): Promise<ResourceVersionVO> => {
     const raw = await http.post<unknown>(`/resource-center/resources/${id}/versions`, payload);
     return toVersionItem(raw);
   },
 
-  switchVersion: (id: number, version: string): Promise<void> =>
-    http.post<void>(
+  switchVersion: async (id: number, version: string): Promise<ResourceCenterItemVO> => {
+    const raw = await http.post<unknown>(
       `/resource-center/resources/${id}/versions/${encodeURIComponent(version)}/switch`,
-    ),
+    );
+    return toResourceItem(raw);
+  },
+
+  getLifecycleTimeline: (id: number): Promise<LifecycleTimelineVO> =>
+    http.get<LifecycleTimelineVO>(`/resource-center/resources/${id}/lifecycle-timeline`),
+
+  getObservabilitySummary: (resourceType: string, id: number): Promise<ObservabilitySummaryVO> =>
+    http.get<ObservabilitySummaryVO>(`/resource-center/resources/${resourceType}/${id}/observability-summary`),
 
   listVersions: async (id: number): Promise<ResourceVersionVO[]> => {
     const raw = await http.get<unknown>(`/resource-center/resources/${id}/versions`);
@@ -259,5 +298,33 @@ export const resourceCenterService = {
     }
     const raw = await http.upload<unknown>('/resource-center/resources/skills/package-upload', fd);
     return toResourceItem(raw);
+  },
+
+  /** 从 HTTPS URL 拉取 zip，校验与落库与 uploadSkillPackage 一致；新建资源为 sourceType=cloud。 */
+  importSkillPackageFromUrl: async (url: string, resourceId?: number): Promise<ResourceCenterItemVO> => {
+    const raw = await http.post<unknown>('/resource-center/resources/skills/package-import-url', {
+      url: url.trim(),
+      ...(resourceId != null && Number.isFinite(resourceId) && resourceId > 0 ? { resourceId } : {}),
+    });
+    return toResourceItem(raw);
+  },
+
+  /** 受控下载技能 zip（尤其 isPublic=0、resolve 不直接返回 artifact URL 时）。 */
+  downloadSkillArtifact: async (id: number, displayName?: string): Promise<void> => {
+    const { blob, fileName } = await http.getBlob(`/resource-center/resources/${id}/skill-artifact`);
+    const safeBase = (displayName?.trim() || `skill-${id}`).replace(/[/\\?%*:|"<>]/g, '-').slice(0, 80);
+    const name = (fileName?.trim() || `${safeBase}.zip`).replace(/[/\\?%*:|"<>]/g, '-');
+    const url = URL.createObjectURL(blob);
+    try {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      a.rel = 'noopener';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } finally {
+      URL.revokeObjectURL(url);
+    }
   },
 };

@@ -2,6 +2,7 @@ import { http } from '../../lib/http';
 import type { AxiosRequestConfig } from 'axios';
 import { extractArray, normalizePaginated } from '../../utils/normalizeApiPayload';
 import type {
+  CatalogResourceDetailVO,
   ResourceCatalogItemVO,
   ResourceCatalogQueryRequest,
   ResourceResolveRequest,
@@ -36,8 +37,14 @@ export const resourceCatalogService = {
     return normalizePaginated<ResourceCatalogItemVO>(raw);
   },
 
-  getByTypeAndId: (resourceType: ResourceCatalogItemVO['resourceType'], resourceId: string | number) =>
-    http.get<ResourceCatalogItemVO>(`/catalog/resources/${resourceType}/${resourceId}`),
+  getByTypeAndId: (
+    resourceType: ResourceCatalogItemVO['resourceType'],
+    resourceId: string | number,
+    include?: string,
+  ) =>
+    http.get<CatalogResourceDetailVO>(`/catalog/resources/${resourceType}/${resourceId}`, {
+      params: include ? { include } : undefined,
+    }),
 
   resolve: (payload: ResourceResolveRequest, config?: AxiosRequestConfig) =>
     http.post<ResourceResolveVO>('/catalog/resolve', payload, config),

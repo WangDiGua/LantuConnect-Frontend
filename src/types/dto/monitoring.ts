@@ -1,13 +1,22 @@
 export interface KpiMetric {
-  id: string;
+  name: string;
   label: string;
-  value: number;
+  value: string;
   unit: string;
-  change: number;
+  previousValue?: string;
+  changePercent?: string;
   changeType: 'up' | 'down' | 'flat';
+  trend: number;
   up: boolean;
-  delta: number | string;
   sparkline?: number[];
+}
+
+export interface QualityHistoryPoint {
+  bucketTime: string;
+  callCount: number;
+  successRate: number;
+  avgLatencyMs: number;
+  qualityScore: number;
 }
 
 export interface CallLogEntry {
@@ -73,12 +82,15 @@ export interface CreateAlertRulePayload {
 }
 
 export interface AlertRuleDryRunRequest {
-  ruleId?: string;
-  metric?: string;
-  condition?: AlertRule['condition'];
-  threshold?: number;
-  duration?: string;
-  mockData?: Record<string, unknown>;
+  sampleValue: number;
+}
+
+export interface AlertRuleDryRunResult {
+  wouldFire: boolean;
+  operator: string;
+  threshold: number;
+  sampleValue: number;
+  detail: string;
 }
 
 export interface TraceSpan {

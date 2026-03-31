@@ -1,4 +1,5 @@
-import { http } from '../../lib/http';
+import { buildGatewayAuthHeaders, http } from '../../lib/http';
+import { readStreamingInvoke } from '../../lib/gatewayInvokeStream';
 import type { InvokeRequest, InvokeResponse } from '../../types/dto/catalog';
 
 export const invokeService = {
@@ -9,4 +10,19 @@ export const invokeService = {
         ...(traceId ? { 'X-Trace-Id': traceId } : {}),
       },
     }),
+
+  invokeStream: (
+    payload: InvokeRequest,
+    apiKey: string,
+    traceId: string | undefined,
+    onChunk: (delta: string) => void,
+    signal?: AbortSignal,
+  ) =>
+    readStreamingInvoke(
+      '/invoke-stream',
+      payload,
+      buildGatewayAuthHeaders({ apiKey, traceId }),
+      onChunk,
+      signal,
+    ),
 };

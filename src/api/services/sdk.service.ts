@@ -1,4 +1,5 @@
-import { http } from '../../lib/http';
+import { readStreamingInvoke } from '../../lib/gatewayInvokeStream';
+import { buildGatewayAuthHeaders, http } from '../../lib/http';
 import { normalizePaginated } from '../../utils/normalizeApiPayload';
 import type {
   InvokeRequest,
@@ -18,8 +19,9 @@ export const sdkService = {
     return normalizePaginated<ResourceCatalogItemVO>(raw);
   },
 
-  getResource: (apiKey: string, resourceType: string, resourceId: string | number) =>
-    http.get(`/sdk/v1/resources/${resourceType}/${resourceId}`, {
+  getResource: (apiKey: string, resourceType: string, resourceId: string | number, include?: string) =>
+    http.get<ResourceResolveVO>(`/sdk/v1/resources/${resourceType}/${resourceId}`, {
+      params: include ? { include } : undefined,
       headers: { 'X-Api-Key': apiKey },
     }),
 
@@ -35,4 +37,19 @@ export const sdkService = {
         ...(traceId ? { 'X-Trace-Id': traceId } : {}),
       },
     }),
+
+  invokeStream: (
+    apiKey: string,
+    payload: InvokeRequest,
+    traceId: string | undefined,
+    onChunk: (delta: string) => void,
+    signal?: AbortSignal,
+  ) =>
+    readStreamingInvoke(
+      '/sdk/v1/invoke-stream',
+      payload,
+      buildGatewayAuthHeaders({ apiKey, traceId }),
+      onChunk,
+      signal,
+    ),
 };

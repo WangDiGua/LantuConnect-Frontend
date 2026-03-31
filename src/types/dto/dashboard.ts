@@ -6,7 +6,7 @@ export interface KpiItem {
 
 export interface AdminOverview {
   kpis: KpiItem[];
-  healthSummary: { healthy: number; warning: number; down: number };
+  healthSummary: { healthy: number; warning?: number; degraded?: number; down: number };
   recentRegistrations: { name: string; type: string; status: string; time: string }[];
 }
 
@@ -14,11 +14,17 @@ export interface UserWorkspace {
   recentAgents: { id: number; displayName: string; icon: string | null; lastUsedTime: string }[];
   recentSkills: { id: number; displayName: string; icon: string | null; lastUsedTime: string }[];
   favoriteCount: number;
+  /** 后端 widgets 通常不含此项；「今日使用」以 user-dashboard.quotaUsage.dailyUsed 为准 */
   totalUsageToday: number;
+  /** 与 widgets.unreadNotifications 一致；仪表盘失败时可作未读数回退 */
+  unreadNotifications: number;
   quickActions: { label: string; route: string; icon: string }[];
 }
 
 export interface HealthSummary {
+  status?: string;
+  healthConfigCount?: number;
+  circuitBreakersOpen?: number;
   totalAgents: number;
   healthy: number;
   degraded: number;
@@ -26,6 +32,9 @@ export interface HealthSummary {
   avgLatencyMs: number;
   avgSuccessRate: number;
   recentIncidents: { agentName: string; displayName: string; issue: string; time: string }[];
+  checks?: Array<Record<string, unknown>>;
+  statusDistribution?: Record<string, number>;
+  degradedResources?: Array<Record<string, unknown>>;
 }
 
 export interface UsageStatsPoint {

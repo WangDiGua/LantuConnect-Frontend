@@ -135,7 +135,7 @@ export const CallLogPage: React.FC<CallLogPageProps> = ({ theme }) => {
                 </thead>
                 <tbody>
                   {rows.map((r, idx) => {
-                    const badge = STATUS_BADGE[r.status];
+                    const badge = STATUS_BADGE[r.status] ?? STATUS_BADGE.error;
                     return (
                       <tr key={`${r.id}-${r.createdAt}`} className={tableBodyRow(theme, idx)}>
                         <td className={`${tableCell()} ${textSecondary(theme)}`}>{formatDateTime(r.createdAt)}</td>

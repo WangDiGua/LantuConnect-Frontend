@@ -9,6 +9,8 @@ interface Props {
   label: string;
   value: string | number;
   trend?: number;
+  trendType?: 'up' | 'down' | 'flat';
+  previousValue?: string | number;
   icon?: React.ReactNode;
   glow?: 'indigo' | 'emerald' | 'amber' | 'rose';
   delay?: number;
@@ -21,9 +23,22 @@ const GLOW_MAP = {
   rose: 'hover:shadow-[var(--shadow-glow-rose)]',
 };
 
-export const KpiCard: React.FC<Props> = ({ theme, label, value, trend, icon, glow = 'indigo', delay = 0 }) => {
-  const trendColor = !trend ? 'text-slate-400' : trend > 0 ? 'text-emerald-500' : 'text-rose-500';
-  const TrendIcon = !trend ? Minus : trend > 0 ? TrendingUp : TrendingDown;
+export const KpiCard: React.FC<Props> = ({
+  theme,
+  label,
+  value,
+  trend,
+  trendType,
+  previousValue,
+  icon,
+  glow = 'indigo',
+  delay = 0,
+}) => {
+  const resolvedType =
+    trendType ?? (trend == null || trend === 0 ? 'flat' : trend > 0 ? 'up' : 'down');
+  const trendColor =
+    resolvedType === 'flat' ? 'text-slate-400' : resolvedType === 'up' ? 'text-emerald-500' : 'text-rose-500';
+  const TrendIcon = resolvedType === 'flat' ? Minus : resolvedType === 'up' ? TrendingUp : TrendingDown;
 
   return (
     <motion.div
@@ -50,6 +65,9 @@ export const KpiCard: React.FC<Props> = ({ theme, label, value, trend, icon, glo
           </span>
         )}
       </div>
+      {previousValue !== undefined && previousValue !== null && (
+        <p className={`mt-2 text-[11px] ${textSecondary(theme)}`}>前值: {String(previousValue)}</p>
+      )}
     </motion.div>
   );
 };

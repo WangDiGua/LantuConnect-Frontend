@@ -89,8 +89,9 @@ export interface UserDashboardData {
     published: number;
     total: number;
   };
+  /** 与 /dashboard/user-dashboard 一致：action 为行为；resourceType 为 agent/skill 等 */
   recentActivity: {
-    type: 'invoke' | 'publish' | 'favorite' | 'review';
+    action: 'invoke' | 'publish' | 'favorite' | 'review' | string;
     resourceName: string;
     resourceType: string;
     timestamp: string;

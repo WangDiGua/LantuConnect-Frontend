@@ -9,15 +9,6 @@ import type {
 } from '../../types/dto/dashboard';
 import type { ExploreHubData, AdminRealtimeData, UserDashboardData, AnnouncementItem } from '../../types/dto/explore';
 
-function toRecentItem(raw: any) {
-  return {
-    id: Number(raw?.id ?? raw?.resourceId ?? 0) || 0,
-    displayName: String(raw?.displayName ?? raw?.agentName ?? raw?.skillName ?? raw?.name ?? '未命名资源'),
-    icon: raw?.icon ? String(raw.icon) : null,
-    lastUsedTime: String(raw?.lastUsedTime ?? raw?.updateTime ?? raw?.createTime ?? new Date().toISOString()),
-  };
-}
-
 function num(v: unknown, fallback = 0): number {
   const n = Number(v);
   return Number.isFinite(n) ? n : fallback;
@@ -41,13 +32,35 @@ function normalizeUsageStatsData(raw: unknown): UsageStatsData {
   };
 }
 
+/** 后端 GET /dashboard/user-workspace 为 UserWorkspaceVO：profile、recent[]、widgets */
 function normalizeUserWorkspace(raw: unknown): UserWorkspace {
   const r = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const widgets = r.widgets && typeof r.widgets === 'object' ? (r.widgets as Record<string, unknown>) : {};
+  const recentRaw = extractArray(r.recent);
+
+  const resourceTypeOf = (row: Record<string, unknown>) =>
+    String(row.targetType ?? row.resourceType ?? '').toLowerCase().trim();
+
+  const mapRow = (row: Record<string, unknown>) => ({
+    id: num(row.id),
+    displayName: String(row.displayName ?? row.targetId ?? row.name ?? '未命名资源'),
+    icon: row.icon ? String(row.icon) : null,
+    lastUsedTime: String(row.createTime ?? row.lastUsedTime ?? ''),
+  });
+
+  const recentAgents = recentRaw
+    .filter((item) => resourceTypeOf(item as Record<string, unknown>) === 'agent')
+    .map((item) => mapRow(item as Record<string, unknown>));
+  const recentSkills = recentRaw
+    .filter((item) => resourceTypeOf(item as Record<string, unknown>) === 'skill')
+    .map((item) => mapRow(item as Record<string, unknown>));
+
   return {
-    recentAgents: extractArray(r.recentAgents).map(toRecentItem),
-    recentSkills: extractArray(r.recentSkills).map(toRecentItem),
-    favoriteCount: Number(r.favoriteCount ?? 0) || 0,
-    totalUsageToday: Number(r.totalUsageToday ?? r.todayCalls ?? 0) || 0,
+    recentAgents,
+    recentSkills,
+    favoriteCount: num(widgets.favoriteCount),
+    totalUsageToday: num(widgets.totalUsageToday ?? widgets.todayCalls),
+    unreadNotifications: num(widgets.unreadNotifications),
     quickActions: extractArray<{ label?: string; route?: string; icon?: string }>(r.quickActions)
       .map((item) => ({
         label: String(item?.label ?? ''),
@@ -65,7 +78,8 @@ function normalizeAdminOverview(raw: unknown): AdminOverview {
     kpis: extractArray(o.kpis),
     healthSummary: {
       healthy: num(hs.healthy),
-      warning: num(hs.warning),
+      warning: num(hs.warning ?? hs.degraded),
+      degraded: num(hs.degraded ?? hs.warning),
       down: num(hs.down),
     },
     recentRegistrations: extractArray(o.recentRegistrations),
@@ -74,14 +88,32 @@ function normalizeAdminOverview(raw: unknown): AdminOverview {
 
 function normalizeHealthSummary(raw: unknown): HealthSummary {
   const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const statusDistRaw = o.statusDistribution && typeof o.statusDistribution === 'object'
+    ? (o.statusDistribution as Record<string, unknown>)
+    : {};
+  const statusDistribution: Record<string, number> = {};
+  Object.entries(statusDistRaw).forEach(([k, v]) => {
+    statusDistribution[k] = num(v);
+  });
+  const checks = extractArray(o.checks);
+  const degradedResources = extractArray(o.degradedResources);
+  const healthy = num(statusDistRaw.healthy);
+  const degraded = num(statusDistRaw.degraded);
+  const down = num(statusDistRaw.down);
   return {
+    status: String(o.status ?? ''),
+    healthConfigCount: num(o.healthConfigCount),
+    circuitBreakersOpen: num(o.circuitBreakersOpen),
     totalAgents: num(o.totalAgents),
-    healthy: num(o.healthy),
-    degraded: num(o.degraded),
-    down: num(o.down),
+    healthy: healthy || num(o.healthy),
+    degraded: degraded || num(o.degraded),
+    down: down || num(o.down),
     avgLatencyMs: num(o.avgLatencyMs),
     avgSuccessRate: num(o.avgSuccessRate),
     recentIncidents: extractArray(o.recentIncidents),
+    checks: checks as Array<Record<string, unknown>>,
+    statusDistribution,
+    degradedResources: degradedResources as Array<Record<string, unknown>>,
   };
 }
 
@@ -166,18 +198,58 @@ function normalizeExploreHubData(raw: unknown): ExploreHubData {
 
 function normalizeAdminRealtime(raw: unknown): AdminRealtimeData {
   const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const callTrend = extractArray(o.callTrend).map((item: unknown) => {
+    const x = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+    return {
+      hour: String(x.hour ?? x.bucket ?? ''),
+      calls: num(x.calls ?? x.cnt ?? x.count),
+      errors: num(x.errors ?? x.err ?? 0),
+    };
+  });
+  const resourceTrend = extractArray(o.resourceTrend).map((item: unknown) => {
+    const x = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+    return {
+      date: String(x.date ?? x.day ?? ''),
+      registrations: num(x.registrations ?? x.cnt ?? x.count),
+    };
+  });
+  const userGrowth = extractArray(o.userGrowth).map((item: unknown) => {
+    const x = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+    return {
+      date: String(x.date ?? x.day ?? ''),
+      newUsers: num(x.newUsers ?? x.cnt ?? x.count),
+      totalUsers: num(x.totalUsers ?? x.total ?? 0),
+    };
+  });
+  const topResourcesByCall = extractArray(o.topResourcesByCall).map((item: unknown) => {
+    const x = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+    return {
+      name: String(x.name ?? x.agent_name ?? ''),
+      type: String(x.type ?? x.resource_type ?? 'resource'),
+      calls: num(x.calls ?? x.cnt ?? x.count),
+    };
+  });
+  const systemHealth = extractArray(o.systemHealth).map((item: unknown) => {
+    const x = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+    const statusRaw = String(x.status ?? x.health_status ?? '').toLowerCase();
+    const status = statusRaw === 'healthy' || statusRaw === 'degraded' || statusRaw === 'down' ? statusRaw : 'degraded';
+    return {
+      component: String(x.component ?? x.name ?? x.display_name ?? ''),
+      status: status as 'healthy' | 'degraded' | 'down',
+    };
+  });
   return {
     todayCalls: num(o.todayCalls),
     todayErrors: num(o.todayErrors),
     avgLatencyMs: num(o.avgLatencyMs),
     activeUsers: num(o.activeUsers),
-    callTrend: extractArray(o.callTrend),
-    resourceTrend: extractArray(o.resourceTrend),
-    userGrowth: extractArray(o.userGrowth),
+    callTrend,
+    resourceTrend,
+    userGrowth,
     pendingAudits: num(o.pendingAudits),
     activeAlerts: num(o.activeAlerts),
-    topResourcesByCall: extractArray(o.topResourcesByCall),
-    systemHealth: extractArray(o.systemHealth),
+    topResourcesByCall,
+    systemHealth,
   };
 }
 
@@ -185,11 +257,25 @@ function normalizeUserDashboard(raw: unknown): UserDashboardData {
   const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
   const qu = o.quotaUsage && typeof o.quotaUsage === 'object' ? (o.quotaUsage as Record<string, unknown>) : {};
   const mr = o.myResources && typeof o.myResources === 'object' ? (o.myResources as Record<string, unknown>) : {};
+  const recentActivity = extractArray(o.recentActivity).map((item: unknown) => {
+    const a = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+    const actionRaw = String(a.action ?? a.type ?? 'invoke').toLowerCase();
+    const allowed = ['invoke', 'publish', 'favorite', 'review'] as const;
+    const action = (allowed as readonly string[]).includes(actionRaw)
+      ? actionRaw
+      : 'invoke';
+    return {
+      action,
+      resourceName: String(a.resourceName ?? ''),
+      resourceType: String(a.resourceType ?? a.type ?? ''),
+      timestamp: String(a.timestamp ?? a.createTime ?? ''),
+    };
+  });
   return {
     quotaUsage: {
-      dailyLimit: num(qu.dailyLimit),
+      dailyLimit: num(qu.dailyLimit, -1),
       dailyUsed: num(qu.dailyUsed),
-      monthlyLimit: num(qu.monthlyLimit),
+      monthlyLimit: num(qu.monthlyLimit, -1),
       monthlyUsed: num(qu.monthlyUsed),
     },
     myResources: {
@@ -198,7 +284,7 @@ function normalizeUserDashboard(raw: unknown): UserDashboardData {
       published: num(mr.published),
       total: num(mr.total),
     },
-    recentActivity: extractArray(o.recentActivity),
+    recentActivity,
     unreadNotifications: num(o.unreadNotifications),
   };
 }

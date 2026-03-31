@@ -18,16 +18,43 @@ import type {
   AlertRecord,
   AlertRule,
   AlertRuleDryRunRequest,
+  AlertRuleDryRunResult,
   CallLogEntry,
   CreateAlertRulePayload,
   KpiMetric,
   PerformanceMetric,
+  QualityHistoryPoint,
   TraceSpan,
 } from '../../types/dto/monitoring';
 
 function numRule(v: unknown, fallback: number): number {
   const n = Number(v);
   return Number.isFinite(n) ? n : fallback;
+}
+
+function normalizeOperatorFromApi(raw: string): AlertRule['operator'] {
+  const s = raw.trim().toLowerCase();
+  switch (s) {
+    case '>':
+    case 'gt':
+      return 'gt';
+    case '>=':
+    case 'ge':
+    case 'gte':
+      return 'gte';
+    case '<':
+    case 'lt':
+      return 'lt';
+    case '<=':
+    case 'le':
+    case 'lte':
+      return 'lte';
+    case '=':
+    case 'eq':
+      return 'eq';
+    default:
+      return 'gte';
+  }
 }
 
 function mapAlertRuleRecord(raw: unknown): AlertRule {
@@ -50,8 +77,8 @@ function mapAlertRuleRecord(raw: unknown): AlertRule {
     };
   }
   const o = raw as Record<string, unknown>;
-  const opRaw = String(o.operator ?? o.condition ?? 'gt');
-  const operator = (['gt', 'lt', 'eq', 'gte', 'lte'].includes(opRaw) ? opRaw : 'gt') as AlertRule['operator'];
+  const opRaw = String(o.operator ?? o.condition ?? 'gte');
+  const operator = normalizeOperatorFromApi(opRaw);
   const sevRaw = String(o.severity ?? 'info');
   const severity = (['critical', 'warning', 'info'].includes(sevRaw) ? sevRaw : 'info') as AlertRule['severity'];
   const channels = Array.isArray(o.channels) ? (o.channels as string[]) : [];
@@ -76,6 +103,29 @@ function mapAlertRuleRecord(raw: unknown): AlertRule {
   };
 }
 
+function mapPerformanceMetric(raw: unknown, index: number): PerformanceMetric {
+  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const requestCount = parseNum(o.requestCount ?? o.request_rate ?? o.requests, 0);
+  const avgLatency = parseNum(o.avgLatencyMs ?? o.avg_latency_ms ?? o.latencyMs, 0);
+  const ts = String(o.timestamp ?? o.bucket ?? `bucket-${index}`);
+  return {
+    service: String(o.service ?? ''),
+    timestamp: ts,
+    cpu: parseNum(o.cpu, 0),
+    memory: parseNum(o.memory, 0),
+    disk: parseNum(o.disk, 0),
+    network: parseNum(o.network, 0),
+    requestRate: requestCount,
+    errorRate: parseNum(o.errorRate ?? o.error_rate, 0),
+    p50Latency: parseNum(o.p50Latency ?? o.latencyP50 ?? avgLatency, avgLatency),
+    p95Latency: parseNum(o.p95Latency ?? o.latencyP95 ?? avgLatency, avgLatency),
+    p99Latency: parseNum(o.p99Latency ?? o.latencyP99 ?? avgLatency, avgLatency),
+    latencyP50: parseNum(o.latencyP50 ?? o.p50Latency ?? avgLatency, avgLatency),
+    latencyP99: parseNum(o.latencyP99 ?? o.p99Latency ?? avgLatency, avgLatency),
+    throughput: parseNum(o.throughput ?? requestCount, requestCount),
+  };
+}
+
 /** 兼容裸数组、list/records/data/items 等分页包装 */
 function normalizeAlertRulesListPayload(raw: unknown): AlertRule[] {
   if (raw == null) return [];
@@ -93,10 +143,59 @@ function normalizeAlertRulesListPayload(raw: unknown): AlertRule[] {
   return [];
 }
 
+const DEFAULT_ALERT_RULE_METRICS = ['http_5xx_rate', 'latency_p99', 'error_rate'] as const;
+
+function toFixedText(value: number, fallback = '0'): string {
+  return Number.isFinite(value) ? String(value) : fallback;
+}
+
+function parseNum(value: unknown, fallback = 0): number {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function mapKpiMetric(raw: unknown): KpiMetric {
+  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const name = String(o.name ?? o.id ?? '');
+  const unit = String(o.unit ?? '');
+  const value = String(o.value ?? '0');
+  const previousValue = o.previousValue == null ? undefined : String(o.previousValue);
+  const changePercentText = o.changePercent == null ? undefined : String(o.changePercent);
+  const parsedTrend = parseNum(changePercentText, 0);
+  const rawChangeType = String(o.changeType ?? '').toLowerCase();
+  const changeType: KpiMetric['changeType'] =
+    rawChangeType === 'up' || rawChangeType === 'down' || rawChangeType === 'flat'
+      ? (rawChangeType as KpiMetric['changeType'])
+      : (parsedTrend > 0 ? 'up' : parsedTrend < 0 ? 'down' : 'flat');
+  return {
+    name,
+    label: name.replaceAll('_', ' ').toUpperCase(),
+    value: unit && String(value).endsWith(unit) ? value : value,
+    unit,
+    previousValue,
+    changePercent: changePercentText ?? toFixedText(parsedTrend),
+    changeType,
+    trend: parsedTrend,
+    up: changeType === 'up',
+    sparkline: Array.isArray(o.sparkline) ? (o.sparkline as number[]) : undefined,
+  };
+}
+
 export const monitoringService = {
+  /** 与后端 `GET /monitoring/alert-rule-metrics` 对齐；失败时回退默认三项。 */
+  listAlertRuleMetrics: async (): Promise<string[]> => {
+    try {
+      const raw = await http.get<unknown>('/monitoring/alert-rule-metrics');
+      if (Array.isArray(raw) && raw.length > 0) return raw.map((x) => String(x));
+    } catch {
+      /* fall back */
+    }
+    return [...DEFAULT_ALERT_RULE_METRICS];
+  },
+
   getKpis: async () => {
     const raw = await http.get<unknown>('/monitoring/kpis');
-    return extractArray<KpiMetric>(raw);
+    return extractArray(raw).map(mapKpiMetric);
   },
 
   listCallLogs: async (params?: CallLogListParams) => {
@@ -117,7 +216,9 @@ export const monitoringService = {
   },
 
   listAlertRules: async () => {
-    const raw = await http.get<unknown>('/monitoring/alert-rules');
+    const raw = await http.get<unknown>('/monitoring/alert-rules', {
+      params: { page: 1, pageSize: 200 },
+    });
     return normalizeAlertRulesListPayload(raw);
   },
 
@@ -134,9 +235,9 @@ export const monitoringService = {
     http.get<AlertRule>(`/monitoring/alert-rules/${id}`),
 
   dryRunAlertRule: (id: string, data?: AlertRuleDryRunRequest) =>
-    http.post<{ triggered: boolean; matchedRecords?: number; message?: string }>(
+    http.post<AlertRuleDryRunResult>(
       `/monitoring/alert-rules/${id}/dry-run`,
-      data,
+      data ?? { sampleValue: 0 },
     ),
 
   listTraces: async (params?: PaginationParams) => {
@@ -146,6 +247,20 @@ export const monitoringService = {
 
   getPerformanceMetrics: async () => {
     const raw = await http.get<unknown>('/monitoring/performance');
-    return extractArray<PerformanceMetric>(raw);
+    return extractArray(raw).map((item, idx) => mapPerformanceMetric(item, idx));
+  },
+
+  getQualityHistory: async (resourceType: string, resourceId: number, params?: { from?: string; to?: string }) => {
+    const raw = await http.get<unknown>(`/monitoring/resources/${resourceType}/${resourceId}/quality-history`, { params });
+    return extractArray(raw).map((item) => {
+      const o = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+      return {
+        bucketTime: String(o.bucketTime ?? ''),
+        callCount: parseNum(o.callCount),
+        successRate: parseNum(o.successRate),
+        avgLatencyMs: parseNum(o.avgLatencyMs),
+        qualityScore: parseNum(o.qualityScore),
+      } satisfies QualityHistoryPoint;
+    });
   },
 };

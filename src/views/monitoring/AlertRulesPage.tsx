@@ -4,7 +4,13 @@ import { motion } from 'framer-motion';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { Theme, FontSize } from '../../types';
-import { useAlertRules, useCreateAlertRule, useUpdateAlertRule, useDeleteAlertRule } from '../../hooks/queries/useMonitoring';
+import {
+  useAlertRules,
+  useAlertRuleMetrics,
+  useCreateAlertRule,
+  useUpdateAlertRule,
+  useDeleteAlertRule,
+} from '../../hooks/queries/useMonitoring';
 import { createAlertRuleSchema, type CreateAlertRuleFormValues } from '../../schemas/monitoring.schema';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { PageError } from '../../components/common/PageError';
@@ -46,7 +52,9 @@ const METRIC_OPTIONS = [
 
 const OPERATOR_OPTIONS = [
   { value: 'gt', label: '大于' },
+  { value: 'gte', label: '大于等于' },
   { value: 'lt', label: '小于' },
+  { value: 'lte', label: '小于等于' },
   { value: 'eq', label: '等于' },
 ];
 
@@ -66,8 +74,19 @@ const SEV_LABEL: Record<string, string> = { critical: '严重', warning: '警告
 
 const SEVERITY_FILTER_OPTIONS = [{ value: '', label: '全部级别' }, ...SEVERITY_OPTIONS];
 
+function opSymbol(operator: string): string {
+  switch (operator) {
+    case 'gt': return '>';
+    case 'gte': return '≥';
+    case 'lt': return '<';
+    case 'lte': return '≤';
+    case 'eq': return '=';
+    default: return operator;
+  }
+}
+
 function ruleSummary(r: AlertRule) {
-  const op = r.operator === 'gt' ? '>' : r.operator === 'lt' ? '<' : '=';
+  const op = opSymbol(r.operator);
   const ch = (r.notifyChannels ?? []).join('、') || '—';
   return `${r.metric} ${op} ${r.threshold} → ${ch}`;
 }
@@ -76,6 +95,7 @@ export const AlertRulesPage: React.FC<Props> = ({ theme, showMessage }) => {
   const { chromePageTitle } = useLayoutChrome();
   const isDark = theme === 'dark';
   const rulesQ = useAlertRules();
+  const metricsQ = useAlertRuleMetrics();
   const createM = useCreateAlertRule();
   const updateM = useUpdateAlertRule();
   const deleteM = useDeleteAlertRule();
@@ -89,7 +109,7 @@ export const AlertRulesPage: React.FC<Props> = ({ theme, showMessage }) => {
   const form = useForm<CreateAlertRuleFormValues>({
     resolver: zodResolver(createAlertRuleSchema),
     defaultValues: {
-      name: '', metric: 'http_5xx_rate', operator: 'gt',
+      name: '', metric: 'http_5xx_rate', operator: 'gte',
       threshold: 1, severity: 'warning', notifyChannels: [],
     },
   });
@@ -97,7 +117,7 @@ export const AlertRulesPage: React.FC<Props> = ({ theme, showMessage }) => {
   const editForm = useForm<CreateAlertRuleFormValues>({
     resolver: zodResolver(createAlertRuleSchema),
     defaultValues: {
-      name: '', metric: 'http_5xx_rate', operator: 'gt',
+      name: '', metric: 'http_5xx_rate', operator: 'gte',
       threshold: 1, severity: 'warning', notifyChannels: [],
     },
   });
@@ -130,7 +150,7 @@ export const AlertRulesPage: React.FC<Props> = ({ theme, showMessage }) => {
       {
         name: values.name.trim(), metric: values.metric,
         operator: values.operator, threshold: values.threshold,
-        severity: values.severity, notifyChannels: [...values.notifyChannels],
+        severity: values.severity, duration: '5m', notifyChannels: [...values.notifyChannels],
       },
       {
         onSuccess: () => {
@@ -174,6 +194,7 @@ export const AlertRulesPage: React.FC<Props> = ({ theme, showMessage }) => {
           operator: values.operator,
           threshold: values.threshold,
           severity: values.severity,
+          duration: '5m',
           notifyChannels: [...values.notifyChannels],
         },
       },
@@ -510,8 +531,10 @@ export const AlertRulesPage: React.FC<Props> = ({ theme, showMessage }) => {
           if (!dryRunRule) return;
           try {
             const { monitoringService } = await import('../../api/services/monitoring.service');
-            const result = await monitoringService.dryRunAlertRule(dryRunRule.id);
-            showMessage(result.triggered ? `试跑命中 ${result.matchedRecords ?? 0} 条记录` : '试跑未命中任何记录', result.triggered ? 'info' : 'success');
+            const result = await monitoringService.dryRunAlertRule(dryRunRule.id, {
+              sampleValue: Number(dryRunRule.threshold ?? 0),
+            });
+            showMessage(result.wouldFire ? `试跑结果：会触发（${result.detail}）` : `试跑结果：不触发（${result.detail}）`, result.wouldFire ? 'info' : 'success');
           } catch (err) {
             showMessage(err instanceof Error ? err.message : '试跑失败', 'error');
           } finally {

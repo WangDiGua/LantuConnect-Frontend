@@ -158,6 +158,20 @@ export interface ResourceCenterItemVO {
   parentResourceId?: number;
   displayTemplate?: string;
   parametersSchema?: Record<string, unknown>;
+  pendingAuditItemId?: number;
+  lastAuditStatus?: string;
+  lastRejectReason?: string;
+  lastReviewerId?: number;
+  lastSubmitTime?: string;
+  lastReviewTime?: string;
+  allowedActions?: string[];
+  statusHint?: string;
+  healthStatus?: string;
+  circuitState?: string;
+  degradationCode?: string;
+  degradationHint?: string;
+  qualityScore?: number;
+  qualityFactors?: Record<string, unknown>;
 }
 
 export type ResourceCenterPage = PaginatedData<ResourceCenterItemVO>;
@@ -208,4 +222,41 @@ export interface ResourceAuditQuery {
 
 export interface ResourceRejectRequest {
   reason: string;
+}
+
+export interface LifecycleTimelineEventVO {
+  eventType: string;
+  title: string;
+  status?: string;
+  actor?: string;
+  reason?: string;
+  eventTime?: string;
+}
+
+export interface LifecycleTimelineVO {
+  resourceId: number;
+  resourceType: ResourceType;
+  resourceCode: string;
+  displayName: string;
+  currentStatus: string;
+  events: LifecycleTimelineEventVO[];
+}
+
+export interface DegradationHintVO {
+  degradationCode: string;
+  userFacingHint: string;
+  opsHint: string;
+}
+
+export interface ObservabilitySummaryVO {
+  resourceId: number;
+  resourceType: ResourceType;
+  resourceCode: string;
+  displayName: string;
+  healthStatus: string;
+  circuitState: string;
+  qualityScore: number;
+  qualityFactors?: Record<string, unknown>;
+  degradationHint?: DegradationHintVO;
+  generatedAt?: string;
 }

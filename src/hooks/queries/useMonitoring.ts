@@ -11,6 +11,9 @@ export const monitoringKeys = {
   callLogs: (p?: CallLogListParams) => ['monitoring', 'callLogs', p] as const,
   alerts: (p?: AlertListParams) => ['monitoring', 'alerts', p] as const,
   alertRules: ['monitoring', 'alertRules'] as const,
+  alertRuleMetrics: ['monitoring', 'alertRuleMetrics'] as const,
+  qualityHistory: (resourceType: string, resourceId: number, from?: string, to?: string) =>
+    ['monitoring', 'qualityHistory', resourceType, resourceId, from, to] as const,
 };
 
 export function useMonitoringKpis() {
@@ -19,6 +22,14 @@ export function useMonitoringKpis() {
 
 export function usePerformanceMetrics() {
   return useQuery({ queryKey: monitoringKeys.performance, queryFn: () => monitoringService.getPerformanceMetrics() });
+}
+
+export function useQualityHistory(resourceType: string, resourceId: number, from?: string, to?: string) {
+  return useQuery({
+    queryKey: monitoringKeys.qualityHistory(resourceType, resourceId, from, to),
+    queryFn: () => monitoringService.getQualityHistory(resourceType, resourceId, { from, to }),
+    enabled: Boolean(resourceType?.trim()) && resourceId > 0,
+  });
 }
 
 export function useTraces(params?: PaginationParams) {
@@ -47,6 +58,14 @@ export function useAlerts(params?: AlertListParams) {
 
 export function useAlertRules() {
   return useQuery({ queryKey: monitoringKeys.alertRules, queryFn: () => monitoringService.listAlertRules() });
+}
+
+export function useAlertRuleMetrics() {
+  return useQuery({
+    queryKey: monitoringKeys.alertRuleMetrics,
+    queryFn: () => monitoringService.listAlertRuleMetrics(),
+    staleTime: 5 * 60_000,
+  });
 }
 
 export function useCreateAlertRule() {

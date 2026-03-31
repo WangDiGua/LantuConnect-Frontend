@@ -1,17 +1,30 @@
 import React, { useMemo } from 'react';
 import type { EChartsOption } from 'echarts';
 import { Theme } from '../../types';
+import type { PerformanceMetric } from '../../types/dto/monitoring';
 import { EChartCard } from './EChartCard';
 import { chartColors, baseGrid, baseTooltip, baseAxis, baseLegend } from './echartsTheme';
 
 interface MonitoringOverviewChartsProps {
   theme: Theme;
+  performance: PerformanceMetric[];
 }
 
-/** 监控概览页：多图并列（替换原 CSS 柱状示意） */
-export const MonitoringOverviewCharts: React.FC<MonitoringOverviewChartsProps> = ({ theme }) => {
+/** 监控概览页：多图并列（真实数据） */
+export const MonitoringOverviewCharts: React.FC<MonitoringOverviewChartsProps> = ({ theme, performance }) => {
   const c = chartColors(theme);
   const axis = baseAxis(theme);
+  const perf = performance ?? [];
+  const perf12 = perf.slice(-12);
+  const axisLabels = perf12.map((p, i) => {
+    const raw = String(p.timestamp ?? '').trim();
+    if (!raw) return `#${i + 1}`;
+    const dt = new Date(raw);
+    if (!Number.isNaN(dt.getTime())) {
+      return `${String(dt.getHours()).padStart(2, '0')}:00`;
+    }
+    return raw;
+  });
 
   const volumeOption = useMemo<EChartsOption>(
     () => ({
@@ -21,19 +34,19 @@ export const MonitoringOverviewCharts: React.FC<MonitoringOverviewChartsProps> =
       tooltip: baseTooltip(theme),
       xAxis: {
         ...axis.category,
-        data: Array.from({ length: 12 }, (_, i) => `${i + 1}h`),
+        data: axisLabels,
       },
       yAxis: { ...axis.value },
       series: [
         {
           type: 'bar',
-          data: [40, 65, 45, 80, 55, 90, 70, 85, 60, 95, 75, 88],
+          data: perf12.map((p) => Math.max(0, Number(p.requestRate ?? 0))),
           barMaxWidth: 14,
           itemStyle: { borderRadius: [4, 4, 0, 0] },
         },
       ],
     }),
-    [theme, c, axis]
+    [theme, c, axis, perf12, axisLabels]
   );
 
   const latencyOption = useMemo<EChartsOption>(
@@ -43,19 +56,19 @@ export const MonitoringOverviewCharts: React.FC<MonitoringOverviewChartsProps> =
       grid: baseGrid(),
       tooltip: baseTooltip(theme),
       legend: { ...baseLegend(theme), data: ['P50', 'P99'] },
-      xAxis: { ...axis.category, data: ['一', '二', '三', '四', '五', '六', '日'] },
+      xAxis: { ...axis.category, data: axisLabels },
       yAxis: { ...axis.value, name: 'ms' },
       series: [
-        { name: 'P50', type: 'line', smooth: true, data: [120, 132, 128, 140, 135, 142, 138] },
-        { name: 'P99', type: 'line', smooth: true, data: [820, 910, 780, 1020, 890, 950, 880] },
+        { name: 'P50', type: 'line', smooth: true, data: perf12.map((p) => Number(p.p50Latency ?? p.latencyP50 ?? 0)) },
+        { name: 'P99', type: 'line', smooth: true, data: perf12.map((p) => Number(p.p99Latency ?? p.latencyP99 ?? 0)) },
       ],
     }),
-    [theme, c, axis]
+    [theme, c, axis, perf12, axisLabels]
   );
 
   const statusOption = useMemo<EChartsOption>(
     () => ({
-      title: { text: '状态码占比', left: 10, top: 6, textStyle: { fontSize: 13, fontWeight: 600, color: c.text } },
+      title: { text: '请求结果占比', left: 10, top: 6, textStyle: { fontSize: 13, fontWeight: 600, color: c.text } },
       color: c.series,
       tooltip: { trigger: 'item' },
       series: [
@@ -65,14 +78,13 @@ export const MonitoringOverviewCharts: React.FC<MonitoringOverviewChartsProps> =
           center: ['50%', '56%'],
           label: { color: c.muted, fontSize: 11 },
           data: [
-            { value: 9420, name: '2xx' },
-            { value: 320, name: '4xx' },
-            { value: 48, name: '5xx' },
+            { value: perf.reduce((sum, p) => sum + Math.max(0, Number(p.requestRate ?? 0) * (1 - Number(p.errorRate ?? 0))), 0), name: '成功' },
+            { value: perf.reduce((sum, p) => sum + Math.max(0, Number(p.requestRate ?? 0) * Number(p.errorRate ?? 0)), 0), name: '失败' },
           ],
         },
       ],
     }),
-    [theme, c]
+    [theme, c, perf]
   );
 
   return (

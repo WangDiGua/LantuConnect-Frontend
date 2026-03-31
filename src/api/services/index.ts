@@ -9,10 +9,7 @@ export { userMgmtService } from './user-mgmt.service';
 export { monitoringService } from './monitoring.service';
 export { systemConfigService } from './system-config.service';
 export { userSettingsService } from './user-settings.service';
-/** @deprecated version.service is a stub — agent version management has been migrated to resource-center */
-export { versionService } from './version.service';
 export { reviewService } from './review.service';
-export { auditService } from './audit.service';
 export { healthService } from './health.service';
 export { dashboardService } from './dashboard.service';
 export { tagService } from './tag.service';
@@ -24,6 +21,7 @@ export { invokeService } from './invoke.service';
 export { sandboxService } from './sandbox.service';
 export { sdkService } from './sdk.service';
 export { resourceGrantService } from './resource-grant.service';
+export { grantApplicationService } from './grant-application.service';
 export { resourceCenterService } from './resource-center.service';
 export { resourceAuditService } from './resource-audit.service';
 export { developerApplicationService } from './developer-application.service';

@@ -370,8 +370,8 @@ export const AccessControlPage: React.FC<PageProps> = ({ theme, fontSize, showMe
     <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={Lock} breadcrumbSegments={['系统配置', '访问控制']}>
       <div className="px-4 sm:px-6 pb-6">
         {loadingRules ? (
-          <div className={`flex items-center gap-2 py-8 text-sm ${textMuted(theme)}`}>
-            <Loader2 size={18} className="animate-spin" /> 加载 ACL 规则…
+          <div className="py-4">
+            <PageSkeleton type="table" rows={5} />
           </div>
         ) : null}
         {!loadingRules && loadError && rules.length === 0 ? (

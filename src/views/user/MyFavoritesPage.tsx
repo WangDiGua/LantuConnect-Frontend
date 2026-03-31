@@ -6,6 +6,7 @@ import { userActivityService } from '../../api/services/user-activity.service';
 import type { FavoriteItem } from '../../types/dto/user-activity';
 import { BentoCard } from '../../components/common/BentoCard';
 import { PageError } from '../../components/common/PageError';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { AnimatedList } from '../../components/common/AnimatedList';
 import {
   canvasBodyBg, btnPrimary, btnSecondary, textPrimary, textSecondary, textMuted,
@@ -106,10 +107,7 @@ export const MyFavoritesPage: React.FC<MyFavoritesPageProps> = ({ theme }) => {
 
         {/* Grid */}
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <div className="w-8 h-8 border-3 border-neutral-800/25 border-t-neutral-900 rounded-full animate-spin" />
-            <p className={`mt-3 text-sm ${textMuted(theme)}`}>加载中…</p>
-          </div>
+          <PageSkeleton type="cards" />
         ) : loadError ? (
           <PageError error={loadError} onRetry={fetchData} retryLabel="重试加载收藏" />
         ) : filtered.length === 0 ? (

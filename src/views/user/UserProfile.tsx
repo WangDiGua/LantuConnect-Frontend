@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   User, Mail, Moon, Sun,
-  History, Camera, Building2, Clock, Monitor, Loader2,
+  History, Camera, Building2, Clock, Monitor,
 } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import { useAuthStore } from '../../stores/authStore';
@@ -18,6 +18,7 @@ import {
 } from '../../utils/uiClasses';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { Pagination } from '../../components/common/Pagination';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 
 interface UserProfileProps { theme: Theme; fontSize: FontSize; }
 
@@ -242,7 +243,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ theme }) => {
               <button type="button" onClick={() => loadLoginHistory(historyPage)} className="mt-2 text-xs text-neutral-800 hover:text-neutral-900">重试</button>
             </div>
           ) : historyLoading ? (
-            <div className="flex items-center gap-2 py-6 justify-center"><Loader2 size={16} className="animate-spin text-slate-400" /><span className={`text-xs ${textMuted(theme)}`}>加载中…</span></div>
+            <PageSkeleton type="table" rows={4} />
           ) : loginHistory.length === 0 ? (
             <p className={`text-xs py-4 text-center ${textMuted(theme)}`}>暂无登录记录</p>
           ) : (
@@ -309,7 +310,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ theme }) => {
               <button type="button" onClick={() => loadSessions(sessionPage)} className="mt-2 text-xs text-neutral-800 hover:text-neutral-900">重试</button>
             </div>
           ) : sessionsLoading ? (
-            <div className="flex items-center gap-2 py-6 justify-center"><Loader2 size={16} className="animate-spin text-slate-400" /><span className={`text-xs ${textMuted(theme)}`}>加载中…</span></div>
+            <PageSkeleton type="table" rows={4} />
           ) : sessions.length === 0 ? (
             <p className={`text-xs py-4 text-center ${textMuted(theme)}`}>暂无活跃会话</p>
           ) : (

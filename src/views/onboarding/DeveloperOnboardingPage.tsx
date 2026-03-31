@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Loader2, Send } from 'lucide-react';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { useAuthStore } from '../../stores/authStore';
 import { useMessage } from '../../components/common/Message';
 import { authService } from '../../api/services/auth.service';
@@ -95,9 +96,7 @@ export const DeveloperOnboardingPage: React.FC = () => {
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-white/[0.06] dark:bg-[#161b28]">
           {loadingMine ? (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 className="animate-spin text-slate-400" />
-            </div>
+            <PageSkeleton type="form" />
           ) : (
             <>
               {mine && (

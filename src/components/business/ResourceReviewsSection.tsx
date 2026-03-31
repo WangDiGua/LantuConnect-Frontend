@@ -6,6 +6,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { reviewService } from '../../api/services/review.service';
 import type { Review, ReviewSummary } from '../../types/dto/review';
 import { BentoCard } from '../common/BentoCard';
+import { PageSkeleton } from '../common/PageSkeleton';
 import { MultiAvatar } from '../common/MultiAvatar';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { btnGhost, btnPrimary, textMuted, textPrimary, textSecondary } from '../../utils/uiClasses';
@@ -168,12 +169,7 @@ export const ResourceReviewsSection: React.FC<Props> = ({ targetType, targetId, 
   };
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-10">
-        <Loader2 size={24} className={`animate-spin ${textMuted(theme)}`} />
-        <p className={`mt-2 text-sm ${textMuted(theme)}`}>加载评价...</p>
-      </div>
-    );
+    return <PageSkeleton type="table" rows={4} />;
   }
 
   return (

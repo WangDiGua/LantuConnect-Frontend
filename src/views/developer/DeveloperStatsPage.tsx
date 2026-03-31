@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { BarChart3, Zap, Clock, AlertTriangle, Key, RefreshCw, Loader2, TrendingUp } from 'lucide-react';
+import { Zap, Clock, AlertTriangle, RefreshCw, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { EChartsOption } from 'echarts';
 import { Theme, FontSize } from '../../types';

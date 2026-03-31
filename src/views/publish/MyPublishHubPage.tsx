@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, AppWindow, Bot, Database, Loader2, Puzzle, Wrench } from 'lucide-react';
+import { ArrowRight, AppWindow, Bot, Database, Puzzle, Wrench } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { ResourceType } from '../../types/dto/catalog';
 import { resourceCenterService } from '../../api/services/resource-center.service';
 import { buildPath } from '../../constants/consoleRoutes';
 import { RESOURCE_TYPES, RESOURCE_TYPE_LABEL_ZH } from '../../constants/resourceTypes';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 import {
   bentoCard,
   bentoCardHover,
@@ -91,9 +92,7 @@ export const MyPublishHubPage: React.FC<Props> = ({ theme }) => {
           </div>
 
           {loading ? (
-            <div className="py-12 flex items-center justify-center">
-              <Loader2 size={20} className={`animate-spin ${textMuted(theme)}`} />
-            </div>
+            <PageSkeleton type="cards" />
           ) : (
             <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {RESOURCE_TYPES.map((type) => {

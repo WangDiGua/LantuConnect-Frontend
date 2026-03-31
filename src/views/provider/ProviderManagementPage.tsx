@@ -4,6 +4,7 @@ import type { Theme, FontSize } from '../../types';
 import { providerService } from '../../api/services/provider.service';
 import type { ProviderType, AuthType } from '../../types/dto/provider';
 import { PageError } from '../../components/common/PageError';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { EmptyState } from '../../components/common/EmptyState';
 import { FilterSelect, SearchInput, Pagination } from '../../components/common';
 import { nativeInputClass } from '../../utils/formFieldClasses';
@@ -218,7 +219,7 @@ export const ProviderManagementPage: React.FC<Props> = ({
 
           <div className="p-4">
             {loading ? (
-              <div className={`py-10 text-center text-sm ${textMuted(theme)}`}>加载中...</div>
+              <PageSkeleton type="table" rows={8} />
             ) : error ? (
               <PageError error={error} onRetry={() => void loadData()} retryLabel="重试加载 Provider 列表" />
             ) : rows.length === 0 ? (

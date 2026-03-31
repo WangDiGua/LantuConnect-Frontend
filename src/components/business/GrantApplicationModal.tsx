@@ -1,17 +1,18 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ExternalLink, Loader2 } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import type { Theme } from '../../types';
 import { Modal } from '../common/Modal';
 import { LantuSelect } from '../common/LantuSelect';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { btnPrimary, btnSecondary, textMuted, textPrimary, textSecondary } from '../../utils/uiClasses';
-import { grantApplicationService } from '../../api/services/grant-application.service';
+import { grantApplicationService } from '../../api/services';
 import { userSettingsService } from '../../api/services/user-settings.service';
 import type { UserApiKey } from '../../types/dto/user-settings';
 import { buildPath } from '../../constants/consoleRoutes';
 import { apiKeyScopesAllowGatewayFlow } from '../../utils/apiKeyScopes';
 import { LantuDateTimePicker } from '../common/LantuDateTimePicker';
+import { PageSkeleton } from '../common/PageSkeleton';
 
 const ACTION_OPTIONS: Array<{ value: string; label: string }> = [
   { value: 'catalog', label: 'catalog（查询）' },
@@ -173,10 +174,7 @@ export const GrantApplicationModal: React.FC<Props> = ({
             </button>
           </div>
           {keysLoading ? (
-            <div className={`flex items-center gap-2 py-2 text-sm ${textMuted(theme)}`}>
-              <Loader2 size={16} className="animate-spin" />
-              正在加载您的 API Key…
-            </div>
+            <div className="py-1"><PageSkeleton type="table" rows={2} /></div>
           ) : keysError ? (
             <p className="text-xs text-rose-500 mb-2">{keysError}</p>
           ) : null}

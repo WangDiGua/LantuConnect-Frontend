@@ -4,7 +4,7 @@ import { Activity, RefreshCw, Search, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { Theme, FontSize } from '../../types';
 import { MonitoringOverviewCharts } from '../../components/charts/MonitoringOverviewCharts';
-import { useAlerts, useMonitoringKpis } from '../../hooks/queries/useMonitoring';
+import { useAlerts, useMonitoringKpis, usePerformanceMetrics } from '../../hooks/queries/useMonitoring';
 import { buildPath } from '../../constants/consoleRoutes';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { PageError } from '../../components/common/PageError';
@@ -29,12 +29,14 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ 
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
   const kpisQ = useMonitoringKpis();
+  const performanceQ = usePerformanceMetrics();
   const alertsQ = useAlerts({ page: 1, pageSize: 20 });
 
   useEffect(() => {
     if (autoRefresh) {
       const interval = setInterval(() => {
         kpisQ.refetch();
+        performanceQ.refetch();
       }, 5000);
       setRefreshInterval(interval);
       return () => clearInterval(interval);
@@ -42,7 +44,7 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ 
       clearInterval(refreshInterval);
       setRefreshInterval(null);
     }
-  }, [autoRefresh, kpisQ]);
+  }, [autoRefresh, kpisQ, performanceQ]);
 
   if (kpisQ.isLoading) {
     return (
@@ -106,7 +108,14 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ 
               />
               <span className={`text-xs font-medium ${textSecondary(theme)}`}>自动刷新</span>
             </label>
-            <button type="button" onClick={() => kpisQ.refetch()} className={btnGhost(theme)}>
+            <button
+              type="button"
+              onClick={() => {
+                void kpisQ.refetch();
+                void performanceQ.refetch();
+              }}
+              className={btnGhost(theme)}
+            >
               <RefreshCw size={15} />
             </button>
           </div>
@@ -116,11 +125,13 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {kpis.map((k, i) => (
             <KpiCard
-              key={k.id}
+              key={k.name}
               theme={theme}
               label={k.label}
-              value={k.value}
-              trend={typeof k.delta === 'number' ? k.delta : undefined}
+              value={k.unit && !String(k.value).endsWith(k.unit) ? `${k.value} ${k.unit}` : k.value}
+              trend={k.trend}
+              trendType={k.changeType}
+              previousValue={k.previousValue}
               glow={GLOW[i % 4]}
               delay={i * 0.06}
             />
@@ -129,7 +140,7 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ 
 
         {/* Charts */}
         <BentoCard theme={theme}>
-          <MonitoringOverviewCharts theme={theme} />
+          <MonitoringOverviewCharts theme={theme} performance={performanceQ.data ?? []} />
         </BentoCard>
 
         {/* Quick Links */}
@@ -159,11 +170,17 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ 
               </div>
               <div className="min-w-0">
                 <p className={`font-semibold text-sm ${textPrimary(theme)}`}>告警管理</p>
-                <p className={`text-xs mt-0.5 ${textMuted(theme)}`}>
-                  {alertsQ.isLoading
-                    ? '告警摘要加载中…'
-                    : `进行中 ${firingCount} 条 · 已恢复 ${resolvedCount} 条`}
-                </p>
+                <div className={`text-xs mt-0.5 ${textMuted(theme)}`}>
+                  {alertsQ.isLoading ? (
+                    <span
+                      className="inline-block h-3.5 w-44 max-w-full rounded-md animate-pulse bg-slate-200 dark:bg-white/10 align-middle"
+                      aria-busy="true"
+                      aria-label="加载告警摘要"
+                    />
+                  ) : (
+                    `进行中 ${firingCount} 条 · 已恢复 ${resolvedCount} 条`
+                  )}
+                </div>
               </div>
             </div>
             <button
@@ -178,7 +195,7 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ 
 
         <p className={`text-xs ${textMuted(theme)}`}>
           <Activity size={12} className="inline mr-1 opacity-70" />
-          KPI 来自监控服务；图表为示意数据，生产环境可接入 Prometheus / ELK / 云监控。
+          KPI 与图表均来自监控服务实时数据。
         </p>
       </div>
     </div>

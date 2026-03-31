@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import type { Theme, FontSize } from '../../types';
 import type { GrantApplicationVO } from '../../types/dto/grant-application';
-import { grantApplicationService } from '../../api/services/grant-application.service';
+import { grantApplicationService } from '../../api/services';
 import {
   bentoCard,
   btnGhost,
@@ -25,6 +25,7 @@ import { TOOLBAR_ROW_LIST } from '../../utils/toolbarFieldClasses';
 import { FilterSelect, Pagination, SearchInput } from '../../components/common';
 import { EmptyState } from '../../components/common/EmptyState';
 import { PageError } from '../../components/common/PageError';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { nullDisplay } from '../../utils/errorHandler';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
@@ -151,7 +152,7 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, showMessage }
           </div>
           <div className="overflow-auto">
             {loading ? (
-              <div className={`py-10 text-center text-sm ${textMuted(theme)}`}>加载中…</div>
+              <PageSkeleton type="table" rows={8} />
             ) : loadError ? (
               <PageError error={loadError} onRetry={() => void fetchData()} retryLabel="重试加载列表" />
             ) : rows.length === 0 ? (

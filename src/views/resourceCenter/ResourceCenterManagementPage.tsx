@@ -2,7 +2,13 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Download, Plus, RefreshCw } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { ResourceType } from '../../types/dto/catalog';
-import type { ResourceCenterItemVO, ResourceStatus, ResourceVersionVO } from '../../types/dto/resource-center';
+import type {
+  LifecycleTimelineVO,
+  ObservabilitySummaryVO,
+  ResourceCenterItemVO,
+  ResourceStatus,
+  ResourceVersionVO,
+} from '../../types/dto/resource-center';
 import { resourceCenterService } from '../../api/services/resource-center.service';
 import { resourceAuditService } from '../../api/services/resource-audit.service';
 import { useUserRole } from '../../context/UserRoleContext';
@@ -11,6 +17,7 @@ import { Modal } from '../../components/common/Modal';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { EmptyState } from '../../components/common/EmptyState';
 import { PageError } from '../../components/common/PageError';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { FilterSelect, Pagination, SearchInput } from '../../components/common';
 import {
   bentoCard,
@@ -44,6 +51,32 @@ function skillCanDownloadArtifact(item: ResourceCenterItemVO): boolean {
   if (item.resourceType !== 'skill') return false;
   if (String(item.packValidationStatus ?? '').toLowerCase() !== 'valid') return false;
   return Boolean(item.artifactUri?.trim());
+}
+
+function isActionAllowed(item: ResourceCenterItemVO, action: string): boolean {
+  // 后端若明确返回 []，表示当前状态无可执行动作；仅在字段缺失时回退前端兜底规则。
+  if (Array.isArray(item.allowedActions)) {
+    return item.allowedActions.includes(action);
+  }
+  const s = item.status;
+  switch (action) {
+    case 'update':
+      return s === 'draft' || s === 'rejected' || s === 'deprecated';
+    case 'submit':
+      return s === 'draft' || s === 'rejected' || s === 'deprecated';
+    case 'withdraw':
+      return s === 'pending_review' || s === 'testing';
+    case 'deprecate':
+      return s === 'testing' || s === 'published';
+    case 'delete':
+      return s === 'draft';
+    case 'createVersion':
+      return s !== 'pending_review';
+    case 'switchVersion':
+      return s === 'published';
+    default:
+      return false;
+  }
 }
 
 /** 新建版本输入框的默认建议（后端校验以 @VersionText 为准） */
@@ -103,7 +136,11 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [loadError, setLoadError] = useState<Error | null>(null);
-  const [confirmAction, setConfirmAction] = useState<{ id: number; type: 'remove' | 'deprecate' } | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{ id: number; type: 'remove' | 'deprecate' | 'withdraw' } | null>(null);
+  const [timelineTarget, setTimelineTarget] = useState<ResourceCenterItemVO | null>(null);
+  const [timelineLoading, setTimelineLoading] = useState(false);
+  const [timelineData, setTimelineData] = useState<LifecycleTimelineVO | null>(null);
+  const [observabilityData, setObservabilityData] = useState<ObservabilitySummaryVO | null>(null);
   const PAGE_SIZE = 20;
 
   useEffect(() => {
@@ -120,7 +157,6 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
         resourceType: activeType,
         keyword: keyword.trim() || undefined,
         status: statusFilter === 'all' ? undefined : statusFilter,
-        sortBy: 'updateTime',
         sortOrder: 'desc',
       });
       setItems(pageData.list);
@@ -182,6 +218,50 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
       showMessage(err instanceof Error ? err.message : '操作失败', 'error');
     } finally {
       setRunningActionKey(null);
+    }
+  };
+
+  const runMutationAction = async (
+    actionKey: string,
+    action: () => Promise<ResourceCenterItemVO>,
+    okText: string,
+  ) => {
+    setRunningActionKey(actionKey);
+    try {
+      const updated = await action();
+      setItems((prev) => prev.map((it) => (it.id === updated.id ? { ...it, ...updated } : it)));
+      showMessage(updated.statusHint || okText, 'success');
+      await fetchData();
+    } catch (err) {
+      showMessage(err instanceof Error ? err.message : '操作失败', 'error');
+    } finally {
+      setRunningActionKey(null);
+    }
+  };
+
+  const openLifecycleModal = async (item: ResourceCenterItemVO) => {
+    setTimelineTarget(item);
+    setTimelineLoading(true);
+    setTimelineData(null);
+    setObservabilityData(null);
+    try {
+      const [timelineResult, observabilityResult] = await Promise.allSettled([
+        resourceCenterService.getLifecycleTimeline(item.id),
+        resourceCenterService.getObservabilitySummary(item.resourceType, item.id),
+      ]);
+      if (timelineResult.status === 'fulfilled') {
+        setTimelineData(timelineResult.value);
+      }
+      if (observabilityResult.status === 'fulfilled') {
+        setObservabilityData(observabilityResult.value);
+      }
+      if (timelineResult.status === 'rejected' && observabilityResult.status === 'rejected') {
+        showMessage('加载生命周期失败', 'error');
+      } else if (timelineResult.status === 'rejected' || observabilityResult.status === 'rejected') {
+        showMessage('生命周期/观测数据部分加载失败，已展示可用数据', 'warning');
+      }
+    } finally {
+      setTimelineLoading(false);
     }
   };
 
@@ -259,7 +339,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                     setKeyword(value);
                     setPage(1);
                   }}
-                  placeholder="搜索名称、编码、标签..."
+                  placeholder="搜索名称、编码、描述..."
                   theme={theme}
                 />
               </div>
@@ -268,7 +348,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
 
           <div className="p-3">
             {loading ? (
-              <div className={`py-10 text-center text-sm ${textMuted(theme)}`}>加载中…</div>
+              <PageSkeleton type="table" rows={8} />
             ) : loadError ? (
               <PageError error={loadError} onRetry={() => void fetchData()} retryLabel="重试加载资源" />
             ) : items.length === 0 ? (
@@ -340,16 +420,19 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                         </div>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
-                        {(item.status === 'draft' || item.status === 'rejected') && (
+                        {isActionAllowed(item, 'update') && (
                           <button type="button" onClick={() => onNavigateRegister(item.resourceType, item.id)} className={mgmtTableActionGhost(theme)}>
                             编辑
                           </button>
                         )}
-                        {item.status !== 'pending_review' && (
+                        {isActionAllowed(item, 'createVersion') && (
                           <button type="button" onClick={() => void openVersions(item)} className={mgmtTableActionGhost(theme)}>
                             版本
                           </button>
                         )}
+                        <button type="button" onClick={() => void openLifecycleModal(item)} className={mgmtTableActionGhost(theme)}>
+                          生命周期
+                        </button>
                         {skillCanDownloadArtifact(item) && (
                           <button
                             type="button"
@@ -372,7 +455,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                             )}
                           </button>
                         )}
-                        {(item.status === 'draft' || item.status === 'rejected' || item.status === 'deprecated') && (
+                        {isActionAllowed(item, 'submit') && (
                           <button
                             type="button"
                             disabled={runningActionKey === `submit-${item.id}` || skillSubmitBlocked(item)}
@@ -381,23 +464,23 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                                 ? '技能须先上传 zip 且 pack_validation_status=valid'
                                 : undefined
                             }
-                            onClick={() => void runAction(`submit-${item.id}`, () => resourceCenterService.submit(item.id), '已提交审核')}
+                            onClick={() => void runMutationAction(`submit-${item.id}`, () => resourceCenterService.submit(item.id), '已提交审核')}
                             className={mgmtTableActionPositive(theme)}
                           >
-                            {runningActionKey === `submit-${item.id}` ? '提交中…' : (item.status === 'rejected' || item.status === 'deprecated' ? '重新提交审核' : '提交审核')}
+                            {runningActionKey === `submit-${item.id}` ? '提交中…' : '提交审核'}
                           </button>
                         )}
-                        {item.status === 'pending_review' && (
+                        {isActionAllowed(item, 'withdraw') && (
                           <button
                             type="button"
                             disabled={runningActionKey === `withdraw-${item.id}`}
-                            onClick={() => void runAction(`withdraw-${item.id}`, () => resourceCenterService.withdraw(item.id), '已撤回到草稿')}
+                            onClick={() => setConfirmAction({ id: item.id, type: 'withdraw' })}
                             className={mgmtTableActionGhost(theme)}
                           >
                             {runningActionKey === `withdraw-${item.id}` ? '撤回中…' : '撤回审核'}
                           </button>
                         )}
-                        {(item.status === 'testing' || item.status === 'published') && (
+                        {isActionAllowed(item, 'deprecate') && (
                           <button
                             type="button"
                             disabled={runningActionKey === `deprecate-${item.id}`}
@@ -407,7 +490,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                             {runningActionKey === `deprecate-${item.id}` ? '下线中…' : '下线'}
                           </button>
                         )}
-                        {item.status === 'draft' && (
+                        {isActionAllowed(item, 'delete') && (
                           <button
                             type="button"
                             disabled={runningActionKey === `remove-${item.id}`}
@@ -433,6 +516,13 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                       </div>
                     </div>
                     <p className={`mt-2 text-xs ${textSecondary(theme)}`}>{nullDisplay(item.description, '暂无描述')}</p>
+                    {(item.statusHint || item.lastRejectReason || item.degradationHint) && (
+                      <div className={`mt-2 rounded-lg px-2 py-1.5 text-[11px] ${isDark ? 'bg-white/[0.03] text-slate-300' : 'bg-slate-50 text-slate-600'}`}>
+                        {item.statusHint ? <div>提示: {item.statusHint}</div> : null}
+                        {item.lastRejectReason && item.status !== 'rejected' ? <div>驳回原因: {item.lastRejectReason}</div> : null}
+                        {item.degradationHint ? <div>降级提示: {item.degradationHint}</div> : null}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -507,7 +597,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                           type="button"
                           title="将网关解析与目录默认指向此版本（回退即切换到较早的 active 版本）"
                           onClick={async () => {
-                            await runAction(
+                            await runMutationAction(
                               `switch-version-${versionTarget.id}-${ver.version}`,
                               () => resourceCenterService.switchVersion(versionTarget.id, ver.version),
                               `已设为当前版本 ${ver.version}`,
@@ -579,23 +669,87 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
       </Modal>
       <ConfirmDialog
         open={!!confirmAction}
-        title={confirmAction?.type === 'remove' ? '删除资源' : '下线资源'}
-        message={confirmAction?.type === 'remove' ? '确认删除该草稿资源？删除后不可恢复。' : '确认将该资源下线为 deprecated 状态？'}
-        confirmText={confirmAction?.type === 'remove' ? '确认删除' : '确认下线'}
-        variant="danger"
+        title={confirmAction?.type === 'remove' ? '删除资源' : confirmAction?.type === 'deprecate' ? '下线资源' : '撤回审核'}
+        message={
+          confirmAction?.type === 'remove'
+            ? '确认删除该草稿资源？删除后不可恢复。'
+            : confirmAction?.type === 'deprecate'
+              ? '确认将该资源下线为 deprecated 状态？'
+              : '确认将该资源撤回到草稿状态？'
+        }
+        confirmText={
+          confirmAction?.type === 'remove'
+            ? '确认删除'
+            : confirmAction?.type === 'deprecate'
+              ? '确认下线'
+              : '确认撤回'
+        }
+        variant={confirmAction?.type === 'withdraw' ? 'warning' : 'danger'}
         loading={!!confirmAction && runningActionKey === `${confirmAction.type}-${confirmAction.id}`}
         onCancel={() => setConfirmAction(null)}
         onConfirm={() => {
           if (!confirmAction) return;
           const { id, type } = confirmAction;
           const actionKey = `${type}-${id}`;
-          const action = type === 'remove'
-            ? () => resourceCenterService.remove(id)
-            : () => resourceCenterService.deprecate(id);
-          const okText = type === 'remove' ? '已删除' : '已下线';
-          void runAction(actionKey, action, okText).finally(() => setConfirmAction(null));
+          if (type === 'remove') {
+            void runAction(actionKey, () => resourceCenterService.remove(id), '已删除').finally(() => setConfirmAction(null));
+            return;
+          }
+          if (type === 'deprecate') {
+            void runMutationAction(actionKey, () => resourceCenterService.deprecate(id), '已下线').finally(() => setConfirmAction(null));
+            return;
+          }
+          void runMutationAction(actionKey, () => resourceCenterService.withdraw(id), '已撤回到草稿').finally(() => setConfirmAction(null));
         }}
       />
+      <Modal
+        open={!!timelineTarget}
+        onClose={() => {
+          setTimelineTarget(null);
+          setTimelineData(null);
+          setObservabilityData(null);
+        }}
+        title={timelineTarget ? `生命周期与观测 · ${timelineTarget.displayName}` : '生命周期与观测'}
+        theme={theme}
+        size="lg"
+      >
+        {timelineLoading ? (
+          <PageSkeleton type="detail" />
+        ) : (
+          <div className="space-y-3">
+            {observabilityData && (
+              <div className={`rounded-xl border p-3 text-xs ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200 bg-slate-50'}`}>
+                <div>健康: {nullDisplay(observabilityData.healthStatus)}</div>
+                <div>熔断: {nullDisplay(observabilityData.circuitState)}</div>
+                <div>质量分: {nullDisplay(observabilityData.qualityScore)}</div>
+                {observabilityData.generatedAt ? <div>生成时间: {nullDisplay(formatDateTime(observabilityData.generatedAt))}</div> : null}
+                {observabilityData.degradationHint?.userFacingHint ? (
+                  <div>提示: {observabilityData.degradationHint.userFacingHint}</div>
+                ) : null}
+              </div>
+            )}
+            {timelineData ? (
+              <div className={`rounded-xl border p-3 text-xs ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-slate-50/70'}`}>
+                <div>当前状态: {nullDisplay(timelineData.currentStatus)}</div>
+                <div>资源编码: {nullDisplay(timelineData.resourceCode)}</div>
+              </div>
+            ) : null}
+            {timelineData?.events?.length ? (
+              timelineData.events.map((ev, idx) => (
+                <div key={`${ev.eventType}-${idx}`} className={`rounded-lg border px-3 py-2 text-xs ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
+                  <div className={`font-medium ${textPrimary(theme)}`}>{ev.title || ev.eventType}</div>
+                  <div className={textMuted(theme)}>
+                    {nullDisplay(ev.status)} · {nullDisplay(ev.actor)} · {nullDisplay(formatDateTime(ev.eventTime))}
+                  </div>
+                  {ev.reason ? <div className={`mt-1 ${textSecondary(theme)}`}>{ev.reason}</div> : null}
+                </div>
+              ))
+            ) : (
+              <p className={`text-sm ${textMuted(theme)}`}>暂无生命周期事件</p>
+            )}
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

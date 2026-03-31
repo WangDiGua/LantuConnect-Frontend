@@ -21,6 +21,7 @@ import { AnimatedList } from '../../components/common/AnimatedList';
 import { PortalDropdown } from '../../components/common/PortalDropdown';
 import { ProviderCreate } from './ProviderCreate';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 
 interface Props { theme: Theme; fontSize: FontSize; showMessage?: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void; }
 type ViewMode = 'list' | 'create' | 'edit';
@@ -136,7 +137,7 @@ export const ProviderList: React.FC<Props> = ({ theme, fontSize, showMessage }) 
           {/* Card rows */}
           <div className="p-3">
             {loading ? (
-              <div className={`text-center py-12 ${textMuted(theme)}`}>加载中…</div>
+              <PageSkeleton type="table" rows={8} />
             ) : providers.length === 0 ? (
               <div className={`text-center py-12 ${textMuted(theme)}`}>暂无数据</div>
             ) : (

@@ -4,6 +4,7 @@ import type { Theme, FontSize } from '../../types';
 import type { RecentUseItem } from '../../types/dto/user-activity';
 import { userActivityService } from '../../api/services/user-activity.service';
 import { PageError } from '../../components/common/PageError';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 import {
   bentoCard,
   btnGhost,
@@ -108,7 +109,7 @@ export const RecentUsePage: React.FC<Props> = ({ theme }) => {
           </div>
           <div className="p-3">
             {loading ? (
-              <div className={`py-10 text-center text-sm ${textMuted(theme)}`}>加载中…</div>
+              <PageSkeleton type="table" rows={8} />
             ) : loadError ? (
               <PageError error={loadError} onRetry={() => void fetchData()} retryLabel="重试加载最近使用" />
             ) : filtered.length === 0 ? (

@@ -13,6 +13,7 @@ import {
 } from '../../utils/uiClasses';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { buildPath } from '../../constants/consoleRoutes';
 import {
   MAX_PLAYGROUND_HISTORY_ITEMS,
@@ -254,8 +255,8 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme }) =
                 </div>
               )}
               {loading && (
-                <div className="flex items-center justify-center h-full p-8">
-                  <div className="w-8 h-8 border-3 border-neutral-800/25 border-t-neutral-900 rounded-full animate-spin" />
+                <div className="h-full min-h-[200px] overflow-auto p-4">
+                  <PageSkeleton type="detail" />
                 </div>
               )}
               {response && (

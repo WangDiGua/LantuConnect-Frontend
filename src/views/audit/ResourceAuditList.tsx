@@ -26,6 +26,7 @@ import { TOOLBAR_ROW_LIST } from '../../utils/toolbarFieldClasses';
 import { FilterSelect, Pagination, SearchInput } from '../../components/common';
 import { EmptyState } from '../../components/common/EmptyState';
 import { PageError } from '../../components/common/PageError';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { nullDisplay } from '../../utils/errorHandler';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
@@ -163,7 +164,7 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, showMessage, default
           </div>
           <div className="overflow-auto">
             {loading ? (
-              <div className={`py-10 text-center text-sm ${textMuted(theme)}`}>加载中…</div>
+              <PageSkeleton type="table" rows={8} />
             ) : loadError ? (
               <PageError error={loadError} onRetry={() => void fetchData()} retryLabel="重试加载审核列表" />
             ) : rows.length === 0 ? (

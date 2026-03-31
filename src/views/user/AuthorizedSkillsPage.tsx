@@ -4,6 +4,7 @@ import type { Theme, FontSize } from '../../types';
 import { userActivityService } from '../../api/services/user-activity.service';
 import type { AuthorizedSkillItem } from '../../types/dto/user-activity';
 import { PageError } from '../../components/common/PageError';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { formatDateTime } from '../../utils/formatDateTime';
 import {
   canvasBodyBg,
@@ -69,7 +70,7 @@ export const AuthorizedSkillsPage: React.FC<Props> = ({ theme }) => {
 
           <div className="p-3">
             {loading ? (
-              <div className={`py-10 text-center text-sm ${textMuted(theme)}`}>加载中…</div>
+              <PageSkeleton type="table" rows={6} />
             ) : loadError ? (
               <PageError error={loadError} onRetry={() => void fetchData()} retryLabel="重试加载已授权技能" />
             ) : items.length === 0 ? (

@@ -13,6 +13,7 @@ import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { Pagination } from '../../components/common';
 import { EmptyState } from '../../components/common/EmptyState';
 import { PageError } from '../../components/common/PageError';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
 
@@ -286,7 +287,7 @@ export const ResourceGrantManagementPage: React.FC<Props> = ({ theme, fontSize, 
           </div>
           <div className="divide-y divide-dashed divide-slate-200/60">
             {loading ? (
-              <div className={`px-4 py-8 text-sm text-center ${textMuted(theme)}`}>加载中...</div>
+              <div className="px-2 py-2"><PageSkeleton type="table" rows={8} /></div>
             ) : loadError ? (
               <PageError error={loadError} onRetry={() => void fetchRows()} retryLabel="重试加载授权列表" />
             ) : rows.length === 0 ? (

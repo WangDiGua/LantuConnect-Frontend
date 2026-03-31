@@ -219,7 +219,7 @@ export const AgentMonitoringPage: React.FC<AgentMonitoringPageProps> = ({ theme 
                 旧库中无类型字段的记录仅在类型选「Agent」时与历史行为一致一并统计。
               </p>
               {qualityQ.isLoading ? (
-                <p className={`text-xs ${textMuted(theme)}`}>加载质量历史…</p>
+                <PageSkeleton type="table" rows={3} />
               ) : qualityQ.data && qualityQ.data.length > 0 ? (
                 <div className="space-y-1">
                   {qualityQ.data.slice(-8).map((p) => (

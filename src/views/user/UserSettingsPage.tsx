@@ -21,6 +21,7 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { buildPath } from '../../constants/consoleRoutes';
 import { apiKeyScopesAllowGatewayFlow } from '../../utils/apiKeyScopes';
 
@@ -284,7 +285,7 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
                   <Toggle on={item.on} onToggle={item.toggle} theme={theme} />
                 </div>
               ))}
-              {!prefsLoaded && <p className={`text-xs ${textMuted(theme)}`}>通知偏好加载中…</p>}
+              {!prefsLoaded && <div className="mt-2"><PageSkeleton type="table" rows={2} /></div>}
             </div>
           </BentoCard>
 
@@ -394,7 +395,7 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
                 <button type="button" onClick={() => void loadApiKeys()} className="mt-2 text-xs text-neutral-800 hover:text-neutral-900">重试加载</button>
               </div>
             ) : apiKeysLoading ? (
-              <p className={`text-xs ${textMuted(theme)}`}>API Key 加载中…</p>
+              <PageSkeleton type="table" rows={3} />
             ) : apiKeys.length === 0 ? (
               <p className={`text-xs ${textMuted(theme)}`}>暂无 API Key，可先新建一个用于调用测试。</p>
             ) : (

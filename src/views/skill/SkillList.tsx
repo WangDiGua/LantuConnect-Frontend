@@ -33,6 +33,7 @@ import { SkillCreate } from './SkillCreate';
 import { SkillDetail } from './SkillDetail';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 
 interface Props {
   theme: Theme;
@@ -244,7 +245,13 @@ export const SkillList: React.FC<Props> = ({ theme, fontSize }) => {
   const renderSkillRows = (items: Skill[]) => (
     <AnimatedList className="space-y-2">
       {items.length === 0
-        ? [<div key="empty" className={`text-center py-12 ${textMuted(theme)}`}>{loading ? '加载中�? : '暂无数据'}</div>]
+        ? [
+            loading ? (
+              <PageSkeleton key="loading" type="table" rows={6} />
+            ) : (
+              <div key="empty" className={`text-center py-12 ${textMuted(theme)}`}>暂无数据</div>
+            ),
+          ]
         : items.map((skill) => renderSkillRow(skill))}
     </AnimatedList>
   );
@@ -311,9 +318,9 @@ export const SkillList: React.FC<Props> = ({ theme, fontSize }) => {
                 checked={groupByServer}
                 onChange={(e) => setGroupByServer(e.target.checked)}
               />
-              �?Server 分组
+              按 Server 分组
             </label>
-            <span className={`text-xs ${textMuted(theme)}`}>�?{total} �?/span>
+            <span className={`text-xs ${textMuted(theme)}`}>共 {total} 条</span>
           </div>
         </div>
 
@@ -338,7 +345,7 @@ export const SkillList: React.FC<Props> = ({ theme, fontSize }) => {
           {/* Pagination */}
           {totalPages > 1 && (
             <div className={`px-4 py-3 border-t shrink-0 flex items-center justify-between ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-              <span className={`text-sm ${textMuted(theme)}`}>�?{total} 条，�?{query.page}/{totalPages} �?/span>
+              <span className={`text-sm ${textMuted(theme)}`}>共 {total} 条，第 {query.page}/{totalPages} 页</span>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -365,7 +372,7 @@ export const SkillList: React.FC<Props> = ({ theme, fontSize }) => {
       <ConfirmDialog
         open={!!deleteTarget}
         title="删除 Skill"
-        message={`确定要删除�?{deleteTarget?.name ?? ''}」吗？此操作不可撤销。`}
+        message={`确定要删除「${deleteTarget?.name ?? ''}」吗？此操作不可撤销。`}
         confirmText="删除"
         variant="danger"
         loading={deleting}

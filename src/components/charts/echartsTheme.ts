@@ -14,8 +14,16 @@ export function chartColors(theme: Theme): { text: string; muted: string; border
   };
 }
 
+/** ECharts 6 替代 `grid.containLabel: true`（官方类型中的等价配置）。 */
 export function baseGrid(): EChartsOption['grid'] {
-  return { left: '3%', right: '4%', bottom: '3%', top: 48, containLabel: true };
+  return {
+    left: '3%',
+    right: '4%',
+    bottom: '3%',
+    top: 48,
+    outerBoundsMode: 'same',
+    outerBoundsContain: 'axisLabel',
+  };
 }
 
 export function baseTooltip(theme: Theme): EChartsOption['tooltip'] {

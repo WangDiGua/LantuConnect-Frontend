@@ -161,6 +161,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
   const [loading, setLoading] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [skillTechOpen, setSkillTechOpen] = useState(false);
+  const [agentAdvancedOpen, setAgentAdvancedOpen] = useState(false);
   const [form, setForm] = useState({
     resourceCode: '',
     displayName: '',
@@ -184,13 +185,20 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     recordCount: 0,
     fileSize: 0,
     tags: '',
+    datasetIsPublic: false,
     skillType: 'anthropic_v1',
     mode: resourceType === 'agent' ? 'SUBAGENT' : 'TOOL',
     agentType: 'http_api',
     maxConcurrency: 10,
     systemPrompt: '',
+    agentIsPublic: false,
+    agentHidden: false,
+    agentMaxSteps: '',
+    agentTemperature: '',
     specJson: resourceType === 'agent' ? DEFAULT_AGENT_SPEC_JSON : resourceType === 'skill' ? DEFAULT_SKILL_SPEC_JSON : '{}',
     paramsSchemaJson: DEFAULT_SKILL_PARAMS_SCHEMA_JSON,
+    parentResourceId: '',
+    displayTemplate: '',
     relatedResourceIds: '',
     artifactUri: '',
     entryDoc: 'SKILL.md',
@@ -226,6 +234,26 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       .then((item) => {
         if (cancelled) return;
         if (item.sourceType && item.sourceType !== 'internal') setAdvancedOpen(true);
+        if (
+          resourceType === 'agent' &&
+          (item.isPublic === true ||
+            item.hidden === true ||
+            item.maxSteps != null ||
+            item.temperature != null)
+        ) {
+          setAgentAdvancedOpen(true);
+        }
+        if (
+          resourceType === 'skill' &&
+          ((item.parentResourceId != null && Number(item.parentResourceId) > 0) ||
+            (item.displayTemplate != null && String(item.displayTemplate).trim() !== '') ||
+            (item.spec != null && typeof item.spec === 'object' && Object.keys(item.spec).length > 0) ||
+            (item.parametersSchema != null &&
+              typeof item.parametersSchema === 'object' &&
+              Object.keys(item.parametersSchema).length > 0))
+        ) {
+          setSkillTechOpen(true);
+        }
         setForm((prev) => ({
           ...prev,
           resourceCode: item.resourceCode || '',
@@ -280,6 +308,22 @@ export const ResourceRegisterPage: React.FC<Props> = ({
           fileSize: Number(item.fileSize ?? 0) || 0,
           tags: Array.isArray(item.tags) ? item.tags.join(',') : '',
           relatedResourceIds: Array.isArray(item.relatedResourceIds) ? item.relatedResourceIds.join(', ') : '',
+          ...(resourceType === 'agent'
+            ? {
+                agentType: item.agentType || prev.agentType,
+                mode: item.mode || prev.mode,
+                specJson:
+                  item.spec && typeof item.spec === 'object'
+                    ? JSON.stringify(item.spec, null, 2)
+                    : prev.specJson,
+                systemPrompt: item.systemPrompt ?? '',
+                maxConcurrency: item.maxConcurrency ?? prev.maxConcurrency,
+                agentIsPublic: item.isPublic === true,
+                agentHidden: item.hidden === true,
+                agentMaxSteps: item.maxSteps != null ? String(item.maxSteps) : '',
+                agentTemperature: item.temperature != null ? String(item.temperature) : '',
+              }
+            : {}),
           ...(resourceType === 'skill'
             ? {
                 skillType: item.skillType || 'anthropic_v1',
@@ -292,8 +336,19 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                 artifactSha256: item.artifactSha256 || '',
                 mode: item.mode || prev.mode,
                 maxConcurrency: item.maxConcurrency ?? prev.maxConcurrency,
+                specJson:
+                  item.spec && typeof item.spec === 'object'
+                    ? JSON.stringify(item.spec, null, 2)
+                    : prev.specJson,
+                paramsSchemaJson:
+                  item.parametersSchema && typeof item.parametersSchema === 'object'
+                    ? JSON.stringify(item.parametersSchema, null, 2)
+                    : prev.paramsSchemaJson,
+                parentResourceId: item.parentResourceId != null ? String(item.parentResourceId) : '',
+                displayTemplate: item.displayTemplate ?? '',
               }
             : {}),
+          ...(resourceType === 'dataset' ? { datasetIsPublic: item.isPublic === true } : {}),
         }));
       })
       .catch(() => {
@@ -370,6 +425,14 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       if (!Number.isFinite(Number(form.maxConcurrency)) || Number(form.maxConcurrency) < 1 || Number(form.maxConcurrency) > 1000) {
         return '最大并发（maxConcurrency）必须在 1~1000 之间';
       }
+      if (form.agentMaxSteps.trim()) {
+        const n = Number(form.agentMaxSteps.trim());
+        if (!Number.isInteger(n) || n < 1) return 'maxSteps 须为正整数或留空';
+      }
+      if (form.agentTemperature.trim()) {
+        const t = Number(form.agentTemperature.trim());
+        if (!Number.isFinite(t)) return 'temperature 须为有效数字或留空';
+      }
     }
     if (resourceType === 'skill') {
       if (!form.skillType.trim()) return '请选择技能包格式（skillType）';
@@ -386,6 +449,9 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       const uri = form.artifactUri.trim();
       if (uri && !isValidUrl(uri) && !uri.startsWith('/uploads/')) {
         return 'artifactUri 须为 http(s) URL 或由上传生成的 /uploads/... 路径';
+      }
+      if (form.parentResourceId.trim() && !/^\d+$/.test(form.parentResourceId.trim())) {
+        return '父资源 ID（parentResourceId）须为正整数或留空';
       }
     }
     if (resourceType === 'app') {
@@ -413,6 +479,9 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     return '';
   }, [
     form.agentType,
+    form.agentMaxSteps,
+    form.agentTemperature,
+    form.parentResourceId,
     form.appIcon,
     form.appIsPublic,
     form.appScreenshotsText,
@@ -483,6 +552,8 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       }
       const specObj = parsedSpec.data || {};
       const manifestObj = parsedManifest.data || {};
+      const prTrim = form.parentResourceId.trim();
+      const parentResourceIdNum = prTrim ? Number(prTrim) : NaN;
       return {
         ...baseFields,
         resourceType: 'skill',
@@ -494,6 +565,8 @@ export const ResourceRegisterPage: React.FC<Props> = ({
         entryDoc: form.entryDoc.trim() || undefined,
         spec: Object.keys(specObj).length > 0 ? specObj : {},
         parametersSchema: parsedSchema.data || {},
+        ...(Number.isFinite(parentResourceIdNum) && parentResourceIdNum > 0 ? { parentResourceId: parentResourceIdNum } : {}),
+        ...(form.displayTemplate.trim() ? { displayTemplate: form.displayTemplate.trim() } : {}),
         isPublic: form.skillIsPublic,
         maxConcurrency: Number(form.maxConcurrency) || 10,
       };
@@ -502,14 +575,22 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       const parsedSpec = parseJsonObject(form.specJson, '规格配置（spec JSON）');
       if (!parsedSpec.ok) throw new Error(parsedSpec.message);
       const agentRelated = parseRelatedIds(form.relatedResourceIds).ids;
+      const msTrim = form.agentMaxSteps.trim();
+      const maxStepsParsed = msTrim ? Number(msTrim) : NaN;
+      const tempTrim = form.agentTemperature.trim();
+      const tempParsed = tempTrim ? Number(tempTrim) : NaN;
       return {
         ...baseFields,
         resourceType: 'agent',
         agentType: form.agentType.trim(),
         mode: form.mode,
         spec: parsedSpec.data || {},
-        maxConcurrency: Number(form.maxConcurrency) || 1,
-        systemPrompt: form.systemPrompt || undefined,
+        maxConcurrency: Number(form.maxConcurrency) || 10,
+        systemPrompt: form.systemPrompt.trim() ? form.systemPrompt.trim() : undefined,
+        isPublic: form.agentIsPublic,
+        hidden: form.agentHidden,
+        ...(Number.isFinite(maxStepsParsed) && maxStepsParsed > 0 ? { maxSteps: maxStepsParsed } : {}),
+        ...(Number.isFinite(tempParsed) ? { temperature: tempParsed } : {}),
         relatedResourceIds: agentRelated.length > 0 ? agentRelated : undefined,
       };
     }
@@ -538,6 +619,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       recordCount: Number(form.recordCount) || 0,
       fileSize: Number(form.fileSize) || 0,
       tags: form.tags.split(',').map((s) => s.trim()).filter(Boolean),
+      isPublic: form.datasetIsPublic,
     };
   };
 
@@ -944,6 +1026,62 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     title="逗号分隔的正整数"
                   />
                 </Field>
+                <div className="md:col-span-2">
+                  <button
+                    type="button"
+                    className={`flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left text-xs font-medium ${
+                      isDark ? 'border-white/10 bg-white/[0.03] text-slate-200' : 'border-slate-200 bg-slate-50 text-slate-800'
+                    }`}
+                    onClick={() => setAgentAdvancedOpen((o) => !o)}
+                  >
+                    <span>高级：公开 / 隐藏 / maxSteps / temperature（与后端入参一致）</span>
+                    <ChevronDown size={16} className={agentAdvancedOpen ? 'rotate-180 transition-transform' : 'transition-transform'} />
+                  </button>
+                  {agentAdvancedOpen ? (
+                    <div className="mt-2 space-y-3 md:grid md:grid-cols-2 md:gap-3 md:space-y-0">
+                      <Field label="对外公开（isPublic）">
+                        <label className="flex cursor-pointer items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={form.agentIsPublic}
+                            onChange={(e) => setForm((p) => ({ ...p, agentIsPublic: e.target.checked }))}
+                            className="rounded border-slate-400"
+                          />
+                          <span className={textMuted(theme)}>在目录中可按公开策略展示</span>
+                        </label>
+                      </Field>
+                      <Field label="目录外隐藏（hidden）">
+                        <label className="flex cursor-pointer items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={form.agentHidden}
+                            onChange={(e) => setForm((p) => ({ ...p, agentHidden: e.target.checked }))}
+                            className="rounded border-slate-400"
+                          />
+                          <span className={textMuted(theme)}>与后端 hidden 一致</span>
+                        </label>
+                      </Field>
+                      <Field label="maxSteps（选填）">
+                        <input
+                          value={form.agentMaxSteps}
+                          onChange={(e) => setForm((p) => ({ ...p, agentMaxSteps: e.target.value }))}
+                          className={inputClass(isDark)}
+                          placeholder="正整数，留空表示不限制"
+                          inputMode="numeric"
+                        />
+                      </Field>
+                      <Field label="temperature（选填）">
+                        <input
+                          value={form.agentTemperature}
+                          onChange={(e) => setForm((p) => ({ ...p, agentTemperature: e.target.value }))}
+                          className={inputClass(isDark)}
+                          placeholder="如 0.7"
+                          inputMode="decimal"
+                        />
+                      </Field>
+                    </div>
+                  ) : null}
+                </div>
               </>
             )}
 
@@ -1041,6 +1179,23 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                           onChange={(e) => setForm((p) => ({ ...p, maxConcurrency: Number(e.target.value) || 10 }))}
                           className={inputClass(isDark)}
                           placeholder="默认 10"
+                        />
+                      </Field>
+                      <Field label="父资源 ID（parentResourceId）">
+                        <input
+                          value={form.parentResourceId}
+                          onChange={(e) => setForm((p) => ({ ...p, parentResourceId: e.target.value }))}
+                          className={inputClass(isDark)}
+                          placeholder="选填：挂载的 MCP 等资源 id"
+                          inputMode="numeric"
+                        />
+                      </Field>
+                      <Field label="展示模板（displayTemplate）">
+                        <input
+                          value={form.displayTemplate}
+                          onChange={(e) => setForm((p) => ({ ...p, displayTemplate: e.target.value }))}
+                          className={inputClass(isDark)}
+                          placeholder="选填：file / image / answer …"
                         />
                       </Field>
                       <Field label="入口文档">
@@ -1188,6 +1343,17 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     className={inputClass(isDark)}
                     placeholder="如 教务, 公开数据"
                   />
+                </Field>
+                <Field label="对外公开（isPublic）">
+                  <label className="flex cursor-pointer items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={form.datasetIsPublic}
+                      onChange={(e) => setForm((p) => ({ ...p, datasetIsPublic: e.target.checked }))}
+                      className="rounded border-slate-400"
+                    />
+                    <span className={textMuted(theme)}>与后端数据集扩展 is_public 一致</span>
+                  </label>
                 </Field>
               </>
             )}

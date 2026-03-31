@@ -39,12 +39,25 @@ export interface ResourceMcpUpsertRequest extends ResourceBaseUpsertRequest {
   authConfig?: Record<string, unknown>;
 }
 
+export type SkillPackValidationStatus = 'none' | 'pending' | 'valid' | 'invalid';
+
 export interface ResourceSkillUpsertRequest extends ResourceBaseUpsertRequest {
   resourceType: 'skill';
+  /** 技能包格式：anthropic_v1 / folder_v1（远程 HTTP 工具请注册 resourceType=mcp） */
   skillType?: string;
   mode?: string;
+  /** 草稿可空；上传 zip 后由后端写入 */
+  artifactUri?: string;
+  artifactSha256?: string;
+  manifest?: Record<string, unknown>;
+  entryDoc?: string;
   spec?: Record<string, unknown>;
   parametersSchema?: Record<string, unknown>;
+  /** 挂载的父资源（如 MCP Server） */
+  parentResourceId?: number;
+  displayTemplate?: string;
+  isPublic?: boolean;
+  maxConcurrency?: number;
 }
 
 export interface ResourceAgentUpsertRequest extends ResourceBaseUpsertRequest {
@@ -54,6 +67,10 @@ export interface ResourceAgentUpsertRequest extends ResourceBaseUpsertRequest {
   spec?: Record<string, unknown>;
   maxConcurrency?: number;
   systemPrompt?: string;
+  isPublic?: boolean;
+  hidden?: boolean;
+  maxSteps?: number;
+  temperature?: number;
   relatedResourceIds?: number[];
 }
 
@@ -61,6 +78,9 @@ export interface ResourceAppUpsertRequest extends ResourceBaseUpsertRequest {
   resourceType: 'app';
   appUrl?: string;
   embedType?: string;
+  icon?: string;
+  screenshots?: string[];
+  isPublic?: boolean;
   relatedResourceIds?: number[];
 }
 
@@ -71,6 +91,7 @@ export interface ResourceDatasetUpsertRequest extends ResourceBaseUpsertRequest 
   recordCount?: number;
   fileSize?: number;
   tags?: string[];
+  isPublic?: boolean;
 }
 
 export type ResourceUpsertRequest =
@@ -103,11 +124,40 @@ export interface ResourceCenterItemVO {
   protocol?: string;
   appUrl?: string;
   embedType?: string;
+  icon?: string;
+  screenshots?: string[];
+  isPublic?: boolean;
+  /** agent/app 关联资源 id（与后端 ResourceManageVO 一致） */
+  relatedResourceIds?: number[];
   dataType?: string;
   format?: string;
   recordCount?: number;
   fileSize?: number;
+  /** 数据集扩展表 JSON 自由标签 */
   tags?: string[];
+  /** 目录侧标签名（t_resource_tag_rel），与市场/GET catalog 的 tags 一致 */
+  catalogTagNames?: string[];
+  /** --- agent（ResourceManageVO）--- */
+  agentType?: string;
+  spec?: Record<string, unknown>;
+  systemPrompt?: string;
+  hidden?: boolean;
+  maxSteps?: number;
+  temperature?: number;
+  /** --- skill（ResourceManageVO）--- */
+  skillType?: string;
+  artifactUri?: string;
+  artifactSha256?: string;
+  manifest?: Record<string, unknown>;
+  entryDoc?: string;
+  packValidationStatus?: SkillPackValidationStatus | string;
+  packValidatedAt?: string;
+  packValidationMessage?: string;
+  mode?: string;
+  maxConcurrency?: number;
+  parentResourceId?: number;
+  displayTemplate?: string;
+  parametersSchema?: Record<string, unknown>;
 }
 
 export type ResourceCenterPage = PaginatedData<ResourceCenterItemVO>;

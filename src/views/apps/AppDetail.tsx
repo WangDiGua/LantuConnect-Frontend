@@ -16,9 +16,10 @@ import {
   statusBadgeClass, statusDot, statusLabel,
 } from '../../utils/uiClasses';
 import type { DomainStatus } from '../../utils/uiClasses';
+import { isSafeHttpOrHttpsUrl, safeOpenHttpUrl } from '../../lib/windowNavigate';
 
 interface AppDetailProps { appId: string; theme: Theme; fontSize: FontSize; onBack?: () => void; showMessage?: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void; }
-const EMBED_LABEL: Record<string, string> = { iframe: 'iFrame 嵌入', micro_frontend: '微前�?, redirect: '外链跳转' };
+const EMBED_LABEL: Record<string, string> = { iframe: 'iFrame 嵌入', micro_frontend: '微前端', redirect: '外链跳转' };
 const SOURCE_LABEL: Record<string, string> = { internal: '自研', partner: '合作伙伴', cloud: '云端' };
 
 export const AppDetail: React.FC<AppDetailProps> = ({ appId, theme, onBack, showMessage }) => {
@@ -54,7 +55,15 @@ export const AppDetail: React.FC<AppDetailProps> = ({ appId, theme, onBack, show
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <button type="button" onClick={() => window.open(app.appUrl, '_blank')} className={btnGhost(theme)}><Eye size={16} /> <span className="hidden sm:inline">预览应用</span></button>
+          <button
+            type="button"
+            onClick={() => {
+              void safeOpenHttpUrl(app.appUrl);
+            }}
+            className={btnGhost(theme)}
+          >
+            <Eye size={16} /> <span className="hidden sm:inline">预览应用</span>
+          </button>
           <button type="button" onClick={() => setDeleteOpen(true)} className={btnDanger}><Trash2 size={16} /> <span className="hidden sm:inline">删除</span></button>
         </div>
       </div>
@@ -91,7 +100,13 @@ export const AppDetail: React.FC<AppDetailProps> = ({ appId, theme, onBack, show
                 <div className={`p-2 rounded-xl shrink-0 ${isDark ? 'bg-blue-500/15 text-blue-400' : 'bg-blue-50 text-blue-600'}`}><Monitor size={18} /></div>
                 <div className="min-w-0">
                   <p className={`text-sm font-bold ${textPrimary(theme)}`}>应用地址</p>
-                  <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline break-all">{app.appUrl} <ExternalLink size={12} className="inline ml-1" /></a>
+                  {isSafeHttpOrHttpsUrl(app.appUrl) ? (
+                    <a href={app.appUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline break-all">
+                      {app.appUrl} <ExternalLink size={12} className="inline ml-1" />
+                    </a>
+                  ) : (
+                    <span className={`text-xs break-all ${textMuted(theme)}`}>{app.appUrl}</span>
+                  )}
                 </div>
               </div>
               {app.screenshots && app.screenshots.length > 0 && (

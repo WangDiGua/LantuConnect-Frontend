@@ -7,10 +7,11 @@ import axios, {
 } from 'axios';
 import { env } from '../config/env';
 import { MAX_STORED_API_KEY_LENGTH, readBoundedLocalStorage } from './safeStorage';
+import { tokenStorage } from './security';
 import { ApiException, ApiResponse } from '../types/api';
 
-let getToken: () => string | null = () => localStorage.getItem(env.VITE_TOKEN_KEY);
-let getRefreshToken: () => string | null = () => localStorage.getItem(env.VITE_REFRESH_TOKEN_KEY);
+let getToken: () => string | null = () => tokenStorage.get(env.VITE_TOKEN_KEY);
+let getRefreshToken: () => string | null = () => tokenStorage.get(env.VITE_REFRESH_TOKEN_KEY);
 let getUserId: () => string | null = () => null;
 let getLoginName: () => string | null = () => null;
 let onLogout: () => void = () => {};

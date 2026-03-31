@@ -234,6 +234,8 @@ export function getSpaceDefault(space: Space): SpaceNavItem | undefined {
 
 const SPACE_MEMORY_KEY = 'lantu-space-memory';
 
+const SPACE_ID_PATTERN = /^[a-zA-Z0-9_-]{1,64}$/;
+
 interface SpaceMemory {
   admin?: string;
   user?: string;
@@ -241,7 +243,10 @@ interface SpaceMemory {
 
 export function readSpaceMemory(): SpaceMemory {
   try {
-    return decryptStorage<SpaceMemory>(SPACE_MEMORY_KEY) || {};
+    const raw = decryptStorage<SpaceMemory>(SPACE_MEMORY_KEY) || {};
+    const admin = raw.admin && SPACE_ID_PATTERN.test(raw.admin) ? raw.admin : undefined;
+    const user = raw.user && SPACE_ID_PATTERN.test(raw.user) ? raw.user : undefined;
+    return { admin, user };
   } catch {
     return {};
   }
@@ -249,8 +254,10 @@ export function readSpaceMemory(): SpaceMemory {
 
 export function writeSpaceMemory(role: 'admin' | 'user', spaceId: string): void {
   try {
+    const id = spaceId.trim();
+    if (!SPACE_ID_PATTERN.test(id)) return;
     const prev = readSpaceMemory();
-    encryptStorage(SPACE_MEMORY_KEY, { ...prev, [role]: spaceId });
+    encryptStorage(SPACE_MEMORY_KEY, { ...prev, [role]: id });
   } catch {
     // silent
   }

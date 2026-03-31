@@ -16,26 +16,37 @@ export function sanitizeInput(input: string): string {
 
 const TOKEN_PREFIX = 'lc_enc_';
 
+/** JWT/不透明令牌体积上限，防止异常大包拖垮页面或掩盖存储污染 */
+export const MAX_TOKEN_STORAGE_CHARS = 16_384;
+
 export const tokenStorage = {
   set(key: string, value: string) {
+    if (value.length > MAX_TOKEN_STORAGE_CHARS) return;
     try {
       localStorage.setItem(key, TOKEN_PREFIX + btoa(encodeURIComponent(value)));
     } catch {
-      localStorage.setItem(key, value);
+      try {
+        localStorage.setItem(key, value);
+      } catch {
+        /* 配额等 */
+      }
     }
   },
 
   get(key: string): string | null {
     const raw = localStorage.getItem(key);
     if (!raw) return null;
+    if (raw.length > MAX_TOKEN_STORAGE_CHARS + TOKEN_PREFIX.length + 256) return null;
     if (raw.startsWith(TOKEN_PREFIX)) {
       try {
-        return decodeURIComponent(atob(raw.slice(TOKEN_PREFIX.length)));
+        const decoded = decodeURIComponent(atob(raw.slice(TOKEN_PREFIX.length)));
+        if (decoded.length > MAX_TOKEN_STORAGE_CHARS) return null;
+        return decoded;
       } catch {
-        return raw;
+        return raw.length > MAX_TOKEN_STORAGE_CHARS ? null : raw;
       }
     }
-    return raw;
+    return raw.length > MAX_TOKEN_STORAGE_CHARS ? null : raw;
   },
 
   remove(key: string) {
@@ -43,11 +54,17 @@ export const tokenStorage = {
   },
 };
 
+const MAX_CSRF_TOKEN_LEN = 128;
+
 export function getCsrfToken(): string {
   let token = sessionStorage.getItem('csrf_token');
-  if (!token) {
+  if (!token || token.length > MAX_CSRF_TOKEN_LEN) {
     token = crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2, 15)}`;
-    sessionStorage.setItem('csrf_token', token);
+    try {
+      sessionStorage.setItem('csrf_token', token);
+    } catch {
+      /* private mode 等 */
+    }
   }
   return token;
 }
@@ -69,7 +86,18 @@ export function maskSensitive(value: string, visibleChars = 4): string {
   return value.slice(0, visibleChars) + '****' + value.slice(-visibleChars);
 }
 
-const STORAGE_PREFIX = 'lc_enc_';
+/** 加密/JSON 持久化单键上限（字符），避免配额炸弹 */
+const MAX_ENCRYPTED_STORAGE_JSON_CHARS = 512_000;
+
+function safeJsonStringify(value: unknown): string | null {
+  try {
+    const s = JSON.stringify(value);
+    if (s.length > MAX_ENCRYPTED_STORAGE_JSON_CHARS) return null;
+    return s;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * 加密存储数据到localStorage
@@ -78,13 +106,16 @@ const STORAGE_PREFIX = 'lc_enc_';
  */
 export function encryptStorage(key: string, value: unknown): void {
   try {
-    const jsonStr = JSON.stringify(value);
+    const jsonStr = safeJsonStringify(value);
+    if (!jsonStr) return;
     const encoded = TOKEN_PREFIX + btoa(encodeURIComponent(jsonStr));
     localStorage.setItem(key, encoded);
   } catch (error) {
     // 如果加密失败，尝试直接存储（向后兼容）
     try {
-      localStorage.setItem(key, JSON.stringify(value));
+      const jsonStr = safeJsonStringify(value);
+      if (!jsonStr) return;
+      localStorage.setItem(key, jsonStr);
     } catch {
       // 忽略存储配额错误
     }
@@ -100,19 +131,23 @@ export function decryptStorage<T = unknown>(key: string): T | null {
   try {
     const raw = localStorage.getItem(key);
     if (!raw) return null;
-    
+    if (raw.length > MAX_ENCRYPTED_STORAGE_JSON_CHARS + TOKEN_PREFIX.length + 10_000) return null;
+
     // 检查是否是加密格式
     if (raw.startsWith(TOKEN_PREFIX)) {
       try {
         const decoded = decodeURIComponent(atob(raw.slice(TOKEN_PREFIX.length)));
+        if (decoded.length > MAX_ENCRYPTED_STORAGE_JSON_CHARS) return null;
         return JSON.parse(decoded) as T;
       } catch {
         // 如果解密失败，尝试直接解析（向后兼容）
+        if (raw.length > MAX_ENCRYPTED_STORAGE_JSON_CHARS + TOKEN_PREFIX.length) return null;
         return JSON.parse(raw) as T;
       }
     }
-    
+
     // 向后兼容：尝试直接解析
+    if (raw.length > MAX_ENCRYPTED_STORAGE_JSON_CHARS) return null;
     return JSON.parse(raw) as T;
   } catch {
     return null;

@@ -202,6 +202,7 @@ const MainContent = React.memo<{
       resourceType={type}
       resourceId={rid ? Number(rid) : undefined}
       onBack={() => nav(RESOURCE_TYPE_LIST_PAGE[type])}
+      onAfterSkillPackCreated={type === 'skill' ? (id) => nav('skill-register', id) : undefined}
     />
   );
 
@@ -480,7 +481,15 @@ export const MainLayout: React.FC = () => {
 
   // persist 异步水合、或 /auth/me 拉取完成前 user 可能为 null；勿把「暂无 user」当成未分配角色
   if (!user && isAuthenticated) {
-    return <div className="fixed inset-0 bg-slate-50 dark:bg-slate-950" aria-busy="true" aria-label="加载会话" />;
+    return (
+      <div
+        className="fixed inset-0 overflow-auto bg-slate-50 dark:bg-slate-950"
+        aria-busy="true"
+        aria-label="加载会话"
+      >
+        <PageSkeleton type="dashboard" />
+      </div>
+    );
   }
   if (!user) {
     return null;

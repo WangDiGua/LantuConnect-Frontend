@@ -14,6 +14,7 @@ import { env } from './config/env';
 import { readAppearanceState, resolveEffectiveTheme } from './utils/appearanceState';
 import type { Theme } from './types';
 import { ApiException } from './types/api';
+import { PageSkeleton } from './components/common/PageSkeleton';
 
 const MainLayout = lazy(() => import('./layouts/MainLayout').then(m => ({ default: m.MainLayout })));
 const LoginPage = lazy(() => import('./views/login/LoginPage').then(m => ({ default: m.LoginPage })));
@@ -106,7 +107,7 @@ const App: React.FC = () => {
           <HashRouter>
             <AuthBinder />
             <HttpErrorBinder />
-            <Suspense fallback={<div className="fixed inset-0" />}>
+            <Suspense fallback={<div className="fixed inset-0 overflow-auto bg-slate-50 dark:bg-slate-950"><PageSkeleton type="dashboard" /></div>}>
               <Routes>
                 <Route path="/401" element={<SessionExpiredPage />} />
                 <Route

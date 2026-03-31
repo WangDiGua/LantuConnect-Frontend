@@ -23,6 +23,7 @@ import { ResourceReviewsSection } from '../../components/business/ResourceReview
 import { GrantApplicationModal } from '../../components/business/GrantApplicationModal';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { PageError } from '../../components/common/PageError';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { MAX_STORED_API_KEY_LENGTH, readBoundedLocalStorage } from '../../lib/safeStorage';
@@ -285,7 +286,7 @@ export const AppMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, themeCo
         </div>
 
         {/* Grid */}
-        {loading ? <div className="flex items-center justify-center py-20"><span className={`text-sm ${textMuted(theme)}`}>加载中…</span></div>
+        {loading ? <PageSkeleton type="cards" />
         : loadError ? <PageError error={loadError} onRetry={() => { loadApps(); }} retryLabel="重试加载应用市场" />
         : filtered.length === 0 ? <div className="text-center py-20"><p className={`text-lg font-medium ${textMuted(theme)}`}>暂无匹配的应用</p><p className={`text-sm mt-1 ${textMuted(theme)}`}>尝试调整搜索关键词</p></div>
         : (

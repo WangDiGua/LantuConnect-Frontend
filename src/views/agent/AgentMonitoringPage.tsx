@@ -1,17 +1,19 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { LineChart, Activity, Loader2 } from 'lucide-react';
+import { LineChart, Activity } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
-import { SearchInput } from '../../components/common';
+import { FilterSelect, SearchInput } from '../../components/common';
 import { KpiCard } from '../../components/common/KpiCard';
 import { BentoCard } from '../../components/common/BentoCard';
 import { monitoringService } from '../../api/services/monitoring.service';
 import type { KpiMetric, PerformanceMetric } from '../../types/dto/monitoring';
+import { useQualityHistory } from '../../hooks/queries/useMonitoring';
 import {
   canvasBodyBg, textPrimary, textSecondary, textMuted,
   tableHeadCell, tableBodyRow, tableCell,
 } from '../../utils/uiClasses';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 
 interface AgentMonitoringPageProps {
   theme: Theme;
@@ -29,6 +31,14 @@ interface LatencyRow {
 const PAGE_SIZE = 20;
 const GLOW: Array<'indigo' | 'emerald' | 'amber' | 'rose'> = ['indigo', 'emerald', 'amber', 'rose'];
 
+const QUALITY_RESOURCE_TYPE_OPTIONS = [
+  { value: 'agent', label: 'Agent' },
+  { value: 'skill', label: 'Skill' },
+  { value: 'mcp', label: 'MCP' },
+  { value: 'app', label: 'App' },
+  { value: 'dataset', label: 'Dataset' },
+] as const;
+
 export const AgentMonitoringPage: React.FC<AgentMonitoringPageProps> = ({ theme }) => {
   const { chromePageTitle } = useLayoutChrome();
   const isDark = theme === 'dark';
@@ -37,6 +47,17 @@ export const AgentMonitoringPage: React.FC<AgentMonitoringPageProps> = ({ theme 
   const [kpis, setKpis] = useState<KpiMetric[]>([]);
   const [perfMetrics, setPerfMetrics] = useState<PerformanceMetric[]>([]);
   const [loading, setLoading] = useState(true);
+  const [qualityResourceType, setQualityResourceType] = useState<string>('agent');
+  const [qualityResourceId, setQualityResourceId] = useState('');
+  const [qualityFrom, setQualityFrom] = useState('');
+  const [qualityTo, setQualityTo] = useState('');
+  const resolvedQualityResourceId = Number(qualityResourceId);
+  const qualityQ = useQualityHistory(
+    qualityResourceType,
+    Number.isFinite(resolvedQualityResourceId) && resolvedQualityResourceId > 0 ? resolvedQualityResourceId : 0,
+    qualityFrom ? `${qualityFrom.replace('T', ' ')}:00` : undefined,
+    qualityTo ? `${qualityTo.replace('T', ' ')}:00` : undefined,
+  );
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -96,20 +117,20 @@ export const AgentMonitoringPage: React.FC<AgentMonitoringPageProps> = ({ theme 
         </div>
 
         {loading && kpis.length === 0 ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 size={24} className="animate-spin text-slate-400" />
-          </div>
+          <PageSkeleton type="chart" />
         ) : (
           <>
             {/* KPI Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               {kpis.slice(0, 4).map((k, i) => (
                 <KpiCard
-                  key={k.id}
+                  key={k.name}
                   theme={theme}
                   label={k.label}
-                  value={`${k.value}${k.unit ? ` ${k.unit}` : ''}`}
-                  trend={typeof k.delta === 'number' ? k.delta : undefined}
+                  value={k.unit && !String(k.value).endsWith(k.unit) ? `${k.value} ${k.unit}` : k.value}
+                  trend={k.trend}
+                  trendType={k.changeType}
+                  previousValue={k.previousValue}
                   glow={GLOW[i % 4]}
                   delay={i * 0.06}
                 />
@@ -159,6 +180,61 @@ export const AgentMonitoringPage: React.FC<AgentMonitoringPageProps> = ({ theme 
                   </tbody>
                 </table>
               </div>
+            </BentoCard>
+
+            <BentoCard theme={theme}>
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className={`text-sm font-bold ${textPrimary(theme)}`}>质量历史（按资源）</h3>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="w-28">
+                    <FilterSelect
+                      value={qualityResourceType}
+                      onChange={setQualityResourceType}
+                      options={[...QUALITY_RESOURCE_TYPE_OPTIONS]}
+                      theme={theme}
+                    />
+                  </div>
+                  <input
+                    className={`rounded-lg border px-2 py-1 text-xs ${theme === 'dark' ? 'border-white/10 bg-white/[0.04] text-slate-200' : 'border-slate-200 bg-white text-slate-700'}`}
+                    placeholder="资源ID"
+                    value={qualityResourceId}
+                    onChange={(e) => setQualityResourceId(e.target.value)}
+                  />
+                  <input
+                    type="datetime-local"
+                    className={`rounded-lg border px-2 py-1 text-xs ${theme === 'dark' ? 'border-white/10 bg-white/[0.04] text-slate-200' : 'border-slate-200 bg-white text-slate-700'}`}
+                    value={qualityFrom}
+                    onChange={(e) => setQualityFrom(e.target.value)}
+                  />
+                  <input
+                    type="datetime-local"
+                    className={`rounded-lg border px-2 py-1 text-xs ${theme === 'dark' ? 'border-white/10 bg-white/[0.04] text-slate-200' : 'border-slate-200 bg-white text-slate-700'}`}
+                    value={qualityTo}
+                    onChange={(e) => setQualityTo(e.target.value)}
+                  />
+                </div>
+              </div>
+              <p className={`mb-2 text-[11px] leading-relaxed ${textMuted(theme)}`}>
+                统计统一网关 invoke 写入的调用日志。迁移后新数据带 <span className="font-mono">resource_type</span>；
+                旧库中无类型字段的记录仅在类型选「Agent」时与历史行为一致一并统计。
+              </p>
+              {qualityQ.isLoading ? (
+                <p className={`text-xs ${textMuted(theme)}`}>加载质量历史…</p>
+              ) : qualityQ.data && qualityQ.data.length > 0 ? (
+                <div className="space-y-1">
+                  {qualityQ.data.slice(-8).map((p) => (
+                    <div key={p.bucketTime} className={`flex items-center justify-between text-xs ${textSecondary(theme)}`}>
+                      <span>{p.bucketTime}</span>
+                      <span>score {p.qualityScore}</span>
+                      <span>success {(p.successRate * 100).toFixed(1)}%</span>
+                      <span>latency {p.avgLatencyMs}ms</span>
+                      <span>calls {p.callCount}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className={`text-xs ${textMuted(theme)}`}>输入资源 ID 后可查看质量趋势</p>
+              )}
             </BentoCard>
           </>
         )}

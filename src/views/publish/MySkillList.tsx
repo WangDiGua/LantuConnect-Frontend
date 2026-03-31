@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Wrench, X, Loader2 } from 'lucide-react';
+import { Wrench, X } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import {
   canvasBodyBg,
@@ -21,6 +21,7 @@ import { useMessage } from '../../components/common/Message';
 import { Modal } from '../../components/common/Modal';
 import { AnimatedList } from '../../components/common/AnimatedList';
 import { EmptyState } from '../../components/common/EmptyState';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { PublishResourceCard } from '../../components/business/PublishResourceCard';
 import { userActivityService } from '../../api/services/user-activity.service';
 import type { MyPublishItem } from '../../types/dto/user-activity';
@@ -87,10 +88,7 @@ export const MySkillList: React.FC<Props> = ({ theme }) => {
 
       <div className={`custom-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 ${mainScrollCompositorClass}`}>
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 size={32} className={`animate-spin ${textMuted(theme)}`} />
-            <p className={`mt-3 text-sm ${textMuted(theme)}`}>加载中…</p>
-          </div>
+          <PageSkeleton type="cards" />
         ) : skills.length === 0 ? (
           <EmptyState
             title="暂无已提交的 Skill"

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  Bot, Zap, Cpu, Clock, ChevronRight, Sparkles, Loader2,
+  Bot, Zap, Cpu, Clock, ChevronRight, Sparkles,
   FileText, Rocket, Heart, BarChart3, Bell,
 } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
@@ -12,12 +12,13 @@ import { dashboardService } from '../../api/services/dashboard.service';
 import { useAuthStore } from '../../stores/authStore';
 import { bentoCard, bentoCardHover, canvasBodyBg, mainScrollCompositorClass, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
 import { PageError } from '../../components/common/PageError';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { BentoCard } from '../../components/common/BentoCard';
 import { KpiCard } from '../../components/common/KpiCard';
 import { AnimatedList } from '../../components/common/AnimatedList';
 import { buildPath } from '../../constants/consoleRoutes';
 import { DashboardLayout } from '../../components/layout/PageLayouts';
-import { cleanAnnouncementSummary, formatDateTime } from '../../utils/formatDateTime';
+import { formatDateTime } from '../../utils/formatDateTime';
 
 interface Props { theme: Theme; fontSize: FontSize; }
 
@@ -32,6 +33,10 @@ const ACTIVITY_ICON: Record<string, React.ReactNode> = {
 
 const ACTIVITY_LABEL: Record<string, string> = {
   invoke: '调用了', publish: '发布了', favorite: '收藏了', review: '评价了',
+};
+
+const RESOURCE_TYPE_LABEL: Record<string, string> = {
+  agent: '智能体', skill: '技能',
 };
 
 export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontSize }) => {
@@ -74,6 +79,8 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
   const quota = dashboard?.quotaUsage;
   const myRes = dashboard?.myResources;
   const activities = dashboard?.recentActivity ?? [];
+  const todayUsage = dashboard?.quotaUsage?.dailyUsed ?? workspace?.totalUsageToday ?? 0;
+  const unreadCount = dashboard?.unreadNotifications ?? workspace?.unreadNotifications ?? 0;
 
   const recentItems = workspace
     ? [
@@ -84,8 +91,8 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
 
   if (loading) {
     return (
-      <div className={`flex-1 flex items-center justify-center ${canvasBodyBg(theme)}`}>
-        <Loader2 size={28} className="animate-spin text-slate-400" />
+      <div className={`flex-1 ${canvasBodyBg(theme)}`}>
+        <PageSkeleton type="dashboard" />
       </div>
     );
   }
@@ -124,8 +131,8 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <KpiCard theme={theme} label="最近智能体" value={workspace?.recentAgents?.length ?? 0} icon={<Bot size={16} />} glow="indigo" delay={0.05} />
           <KpiCard theme={theme} label="最近技能" value={workspace?.recentSkills?.length ?? 0} icon={<Zap size={16} />} glow="emerald" delay={0.08} />
-          <KpiCard theme={theme} label="今日使用" value={workspace?.totalUsageToday ?? 0} icon={<Cpu size={16} />} glow="amber" delay={0.11} />
-          <KpiCard theme={theme} label="未读通知" value={dashboard?.unreadNotifications ?? 0} icon={<Bell size={16} />} glow="rose" delay={0.14} />
+          <KpiCard theme={theme} label="今日使用" value={todayUsage} icon={<Cpu size={16} />} glow="amber" delay={0.11} />
+          <KpiCard theme={theme} label="未读通知" value={unreadCount} icon={<Bell size={16} />} glow="rose" delay={0.14} />
         </div>
 
         {/* Quota Usage */}
@@ -138,16 +145,22 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
                 { label: '日配额', used: quota.dailyUsed, limit: quota.dailyLimit },
                 { label: '月配额', used: quota.monthlyUsed, limit: quota.monthlyLimit },
               ].map((q) => {
-                const pct = q.limit > 0 ? Math.min((q.used / q.limit) * 100, 100) : 0;
-                const barColor = pct > 80 ? 'bg-rose-500' : pct > 50 ? 'bg-amber-500' : 'bg-emerald-500';
+                const unlimited = q.limit < 0;
+                const pct = unlimited ? 0 : q.limit > 0 ? Math.min((q.used / q.limit) * 100, 100) : 0;
+                const barColor = unlimited ? 'bg-slate-400' : pct > 80 ? 'bg-rose-500' : pct > 50 ? 'bg-amber-500' : 'bg-emerald-500';
+                const limitLabel = unlimited ? '无上限' : q.limit.toLocaleString();
                 return (
                   <div key={q.label}>
                     <div className="flex justify-between mb-1.5">
                       <span className={`text-xs font-medium ${ts}`}>{q.label}</span>
-                      <span className={`text-xs font-bold ${tp}`}>{q.used.toLocaleString()} / {q.limit.toLocaleString()}</span>
+                      <span className={`text-xs font-bold ${tp}`}>
+                        {q.used.toLocaleString()} / {limitLabel}
+                      </span>
                     </div>
                     <div className={`h-2 rounded-full ${isDark ? 'bg-white/[0.06]' : 'bg-slate-100'}`}>
-                      <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
+                      {!unlimited && (
+                        <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
+                      )}
                     </div>
                   </div>
                 );
@@ -191,22 +204,32 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
               className={`${bentoCard(theme)} p-5`}>
               <h2 className={`font-bold text-sm mb-4 ${tp}`}>最近动态</h2>
               <div className="space-y-3">
-                {activities.slice(0, 6).map((a, idx) => (
-                  <div key={idx} className="flex items-start gap-3">
-                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
-                      isDark ? 'bg-neutral-900/10 text-neutral-300' : 'bg-neutral-100 text-neutral-900'
-                    }`}>
-                      {ACTIVITY_ICON[a.type] ?? <Zap size={14} />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className={`text-sm ${tp}`}>
-                        <span className={tm}>{ACTIVITY_LABEL[a.type] ?? '操作了'}</span>{' '}
-                        <span className="font-medium">{a.resourceName}</span>
+                {activities.slice(0, 6).map((a, idx) => {
+                  const act = String(a.action ?? 'invoke').toLowerCase();
+                  const rtKey = String(a.resourceType ?? '').toLowerCase();
+                  const typeBadge = RESOURCE_TYPE_LABEL[rtKey] ?? (a.resourceType || '');
+                  return (
+                    <div key={`${act}-${a.timestamp}-${idx}`} className="flex items-start gap-3">
+                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                        isDark ? 'bg-neutral-900/10 text-neutral-300' : 'bg-neutral-100 text-neutral-900'
+                      }`}>
+                        {ACTIVITY_ICON[act] ?? <Zap size={14} />}
                       </div>
-                      <div className={`text-xs ${tm}`}>{formatDateTime(a.timestamp)}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className={`text-sm ${tp} flex flex-wrap items-center gap-1.5`}>
+                          <span className={tm}>{ACTIVITY_LABEL[act] ?? '操作了'}</span>
+                          <span className="font-medium">{a.resourceName}</span>
+                          {typeBadge ? (
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                              isDark ? 'bg-white/[0.08] text-neutral-400' : 'bg-slate-100 text-slate-600'
+                            }`}>{typeBadge}</span>
+                          ) : null}
+                        </div>
+                        <div className={`text-xs ${tm}`}>{formatDateTime(a.timestamp)}</div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </motion.div>
           )}
@@ -229,7 +252,7 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
               {recentItems.length === 0 ? [
                 <div key="empty" className={`px-5 py-8 text-center text-sm ${tm}`}>暂无使用记录</div>,
               ] : recentItems.map((r) => (
-                <div key={r.name + r.type}
+                <div key={`${r.id}-${r.type}-${r.time}`}
                   onClick={() => navigate(buildPath('user', r.marketPage))}
                   className={`flex items-center gap-4 px-5 py-3.5 transition-colors cursor-pointer ${isDark ? 'hover:bg-white/[0.04]' : 'hover:bg-slate-50'}`}>
                   <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${

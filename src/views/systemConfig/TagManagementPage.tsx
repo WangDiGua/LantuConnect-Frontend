@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import {
-  Tag, Plus, Trash2, X, Search, Bot, Wrench, AppWindow, Database, Globe, FileText, Loader2, Layers,
+  Tag, Plus, Trash2, X, Search, Bot, Wrench, AppWindow, Database, Globe, FileText, Layers,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Theme, FontSize } from '../../types';
@@ -11,6 +11,7 @@ import { Modal } from '../../components/common/Modal';
 import { BentoCard } from '../../components/common/BentoCard';
 import { PortalDropdown } from '../../components/common/PortalDropdown';
 import { PageError } from '../../components/common/PageError';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { tagService } from '../../api/services/tag.service';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
@@ -238,9 +239,7 @@ export const TagManagementPage: React.FC<Props> = ({ theme, fontSize, showMessag
             <span className={`text-xs ${textMuted(theme)}`}>{filteredTags.length} 个标签</span>
           </div>
           {loading && tags.length === 0 ? (
-            <div className="flex items-center justify-center py-10">
-              <Loader2 size={24} className="animate-spin text-slate-400" />
-            </div>
+            <PageSkeleton type="table" rows={6} />
           ) : loadError ? (
             <PageError error={loadError} onRetry={fetchTags} retryLabel="重试加载标签" />
           ) : filteredTags.length === 0 ? (

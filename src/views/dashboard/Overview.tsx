@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Activity, AlertTriangle, Bell, CheckCircle2, Clock, Loader2,
+  Activity, AlertTriangle, Bell, CheckCircle2, Clock,
   TrendingUp, Users, Zap, Shield, ArrowUpRight, RefreshCw,
   Server, BarChart3,
 } from 'lucide-react';
@@ -9,25 +9,26 @@ import { motion } from 'framer-motion';
 import { Theme, FontSize } from '../../types';
 import { bentoCard, bentoCardHover, canvasBodyBg, mainScrollCompositorClass, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
 import { PageError } from '../../components/common/PageError';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { buildPath } from '../../constants/consoleRoutes';
 import { dashboardService } from '../../api/services/dashboard.service';
 import type { AdminRealtimeData } from '../../types/dto/explore';
-import type { AdminOverview } from '../../types/dto/dashboard';
+import type { AdminOverview, HealthSummary } from '../../types/dto/dashboard';
 import { DashboardLayout } from '../../components/layout/PageLayouts';
 import { formatDateTime } from '../../utils/formatDateTime';
 
 interface OverviewProps { theme: Theme; fontSize: FontSize; }
 
-function formatTrendAxisLabel(hourField: string): string {
-  const parsed = formatDateTime(hourField, '');
-  if (parsed) return parsed;
+function formatTrendAxisLabel(hourField: string | number): string {
   const n = Number(hourField);
   if (Number.isInteger(n) && n >= 0 && n <= 23) {
     const t = new Date();
     t.setHours(n, 0, 0, 0);
     return formatDateTime(t);
   }
-  return hourField.trim() || '—';
+  const parsed = formatDateTime(String(hourField), '');
+  if (parsed) return parsed;
+  return String(hourField).trim() || '—';
 }
 
 const spring = { type: 'spring' as const, stiffness: 300, damping: 30 };
@@ -46,18 +47,21 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
   const [loadError, setLoadError] = useState<Error | null>(null);
   const [overview, setOverview] = useState<AdminOverview | null>(null);
   const [realtime, setRealtime] = useState<AdminRealtimeData | null>(null);
+  const [healthSummary, setHealthSummary] = useState<HealthSummary | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
     try {
-      const [ov, rt] = await Promise.allSettled([
+      const [ov, rt, hs] = await Promise.allSettled([
         dashboardService.getAdminOverview(),
         dashboardService.getAdminRealtime(),
+        dashboardService.getHealthSummary(),
       ]);
       if (ov.status === 'fulfilled') setOverview(ov.value);
       if (rt.status === 'fulfilled') setRealtime(rt.value);
-      if (ov.status === 'rejected' && rt.status === 'rejected') {
+      if (hs.status === 'fulfilled') setHealthSummary(hs.value);
+      if (ov.status === 'rejected' && rt.status === 'rejected' && hs.status === 'rejected') {
         setLoadError(ov.reason instanceof Error ? ov.reason : new Error('加载管理概览失败'));
       }
     } catch (err) {
@@ -77,8 +81,8 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
 
   if (loading) {
     return (
-      <div className={`flex-1 flex items-center justify-center ${canvasBodyBg(theme)}`}>
-        <Loader2 size={28} className="animate-spin text-slate-400" />
+      <div className={`flex-1 ${canvasBodyBg(theme)}`}>
+        <PageSkeleton type="dashboard" />
       </div>
     );
   }
@@ -141,7 +145,7 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
           {[
             { label: '待审核', value: rt?.pendingAudits ?? 0, icon: CheckCircle2, page: 'resource-audit', color: 'amber' },
             { label: '活跃告警', value: rt?.activeAlerts ?? 0, icon: Bell, page: 'alert-management', color: 'rose' },
-            { label: '健康检查', value: `${overview?.healthSummary?.healthy ?? 0} 正常`, icon: Shield, page: 'health-config', color: 'emerald' },
+            { label: '健康检查', value: `${healthSummary?.healthy ?? overview?.healthSummary?.healthy ?? 0} 正常`, icon: Shield, page: 'health-config', color: 'emerald' },
             { label: '用户管理', value: `${rt?.activeUsers ?? 0} 活跃`, icon: Users, page: 'user-list', color: 'blue' },
           ].map((action, i) => (
             <motion.div key={action.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring, delay: 0.12 + i * 0.03 }}
@@ -156,6 +160,36 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
             </motion.div>
           ))}
         </div>
+
+        {healthSummary && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ ...spring, delay: 0.18 }}
+            className={`${cardStatic} p-5`}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className={`font-bold text-sm ${tp}`}>健康摘要增强视图</h2>
+              <Shield size={16} className={tm} />
+            </div>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              <div className={`rounded-lg p-3 ${isDark ? 'bg-white/[0.03]' : 'bg-slate-50'}`}>
+                <div className={`text-xs ${tm}`}>状态分布</div>
+                <div className={`mt-1 text-sm ${tp}`}>
+                  healthy: {healthSummary.statusDistribution?.healthy ?? healthSummary.healthy} / degraded: {healthSummary.statusDistribution?.degraded ?? healthSummary.degraded} / down: {healthSummary.statusDistribution?.down ?? healthSummary.down}
+                </div>
+              </div>
+              <div className={`rounded-lg p-3 ${isDark ? 'bg-white/[0.03]' : 'bg-slate-50'}`}>
+                <div className={`text-xs ${tm}`}>检查项</div>
+                <div className={`mt-1 text-sm ${tp}`}>{healthSummary.checks?.length ?? 0} 项</div>
+              </div>
+              <div className={`rounded-lg p-3 ${isDark ? 'bg-white/[0.03]' : 'bg-slate-50'}`}>
+                <div className={`text-xs ${tm}`}>降级资源</div>
+                <div className={`mt-1 text-sm ${tp}`}>{healthSummary.degradedResources?.length ?? 0} 个</div>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 

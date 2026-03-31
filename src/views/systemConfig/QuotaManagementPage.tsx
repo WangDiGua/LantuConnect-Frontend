@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { CreditCard, Plus, Loader2, Search } from 'lucide-react';
+import { CreditCard, Plus, Search } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { nativeInputClass } from '../../utils/formFieldClasses';
@@ -13,6 +13,7 @@ import { Modal } from '../../components/common/Modal';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { BentoCard } from '../../components/common/BentoCard';
 import { PageError } from '../../components/common/PageError';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { quotaService } from '../../api/services/quota.service';
 import type { QuotaItem, RateLimitItem } from '../../types/dto/quota';
 import { formatDateTime } from '../../utils/formatDateTime';
@@ -250,9 +251,7 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
       {tabBar}
 
       {loading && quotas.length === 0 && rateLimits.length === 0 ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 size={24} className="animate-spin text-slate-400" />
-        </div>
+        <PageSkeleton type="table" />
       ) : loadError ? (
         <PageError error={loadError} onRetry={fetchAll} retryLabel="重试加载配额" />
       ) : (

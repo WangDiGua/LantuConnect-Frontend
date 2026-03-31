@@ -16,6 +16,7 @@ import { TOOLBAR_ROW_LIST, toolbarSearchInputClass } from '../../utils/toolbarFi
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { Modal } from '../../components/common/Modal';
 import { BentoCard } from '../../components/common/BentoCard';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { categoryService, buildCategoryTree } from '../../api/services/category.service';
 import type {
   Category, CategoryCreatePayload, CategoryUpdatePayload,
@@ -326,8 +327,8 @@ export const CategoryManagement: React.FC<CategoryManagementProps> = ({
       toolbar={toolbar}
     >
       {loading ? (
-        <div className="flex-1 flex items-center justify-center min-h-[300px]">
-          <Loader2 className="animate-spin text-slate-400" size={24} />
+        <div className="flex-1 min-h-[300px]">
+          <PageSkeleton type="table" />
         </div>
       ) : flatList.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-3 py-16">

@@ -2,32 +2,33 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import type { Theme, FontSize } from '../../types';
 import { canvasBodyBg, mainScrollCompositorClass, textPrimary, textSecondary, textMuted, tableHeadCell, tableBodyRow, tableCell, btnSecondary } from '../../utils/uiClasses';
-import { Activity, CheckCircle, AlertTriangle, WifiOff, RefreshCw, Loader2 } from 'lucide-react';
+import { Activity, CheckCircle, AlertTriangle, WifiOff, RefreshCw } from 'lucide-react';
 import { healthService } from '../../api/services/health.service';
 import type { HealthConfigItem } from '../../types/dto/health';
 import { BentoCard } from '../../components/common/BentoCard';
 import { KpiCard } from '../../components/common/KpiCard';
 import { PageError } from '../../components/common/PageError';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 
 interface Props {
   theme: Theme;
   fontSize: FontSize;
 }
 
-type HealthStatus = 'healthy' | 'warning' | 'offline';
+type HealthStatus = 'healthy' | 'degraded' | 'down';
 
 const STATUS_CFG: Record<HealthStatus, { label: string; dot: string; lightBg: string; darkBg: string }> = {
   healthy: { label: '正常', dot: 'bg-emerald-400', lightBg: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/60', darkBg: 'bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20' },
-  warning: { label: '告警', dot: 'bg-amber-400', lightBg: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200/60', darkBg: 'bg-amber-500/10 text-amber-400 ring-1 ring-amber-500/20' },
-  offline: { label: '离线', dot: 'bg-red-400', lightBg: 'bg-red-50 text-red-700 ring-1 ring-red-200/60', darkBg: 'bg-red-500/10 text-red-400 ring-1 ring-red-500/20' },
+  degraded: { label: '降级', dot: 'bg-amber-400', lightBg: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200/60', darkBg: 'bg-amber-500/10 text-amber-400 ring-1 ring-amber-500/20' },
+  down: { label: '离线', dot: 'bg-red-400', lightBg: 'bg-red-50 text-red-700 ring-1 ring-red-200/60', darkBg: 'bg-red-500/10 text-red-400 ring-1 ring-red-500/20' },
 };
 
 function mapHealthStatus(s: HealthConfigItem['healthStatus']): HealthStatus {
   switch (s) {
     case 'healthy': return 'healthy';
-    case 'degraded': return 'warning';
-    case 'down': return 'offline';
-    default: return 'offline';
+    case 'degraded': return 'degraded';
+    case 'down': return 'down';
+    default: return 'down';
   }
 }
 
@@ -75,8 +76,8 @@ export const HealthCheckOverview: React.FC<Props> = ({ theme }) => {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const healthyCount = items.filter(i => i.status === 'healthy').length;
-  const warningCount = items.filter(i => i.status === 'warning').length;
-  const offlineCount = items.filter(i => i.status === 'offline').length;
+  const warningCount = items.filter(i => i.status === 'degraded').length;
+  const offlineCount = items.filter(i => i.status === 'down').length;
 
   return (
     <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${canvasBodyBg(theme)}`}>
@@ -103,9 +104,7 @@ export const HealthCheckOverview: React.FC<Props> = ({ theme }) => {
 
       <div className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4 sm:px-6 py-5 space-y-5 ${mainScrollCompositorClass}`}>
         {loading && items.length === 0 ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 size={24} className="animate-spin text-slate-400" />
-          </div>
+          <PageSkeleton type="chart" />
         ) : loadError ? (
           <PageError error={loadError} onRetry={fetchData} retryLabel="重试加载健康检查" />
         ) : (

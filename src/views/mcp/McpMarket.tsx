@@ -33,6 +33,7 @@ import {
 } from '../../utils/uiClasses';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { PageError } from '../../components/common/PageError';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
 import { ApiException } from '../../types/api';
 
@@ -667,9 +668,7 @@ export const McpMarket: React.FC<Props> = ({ theme, showMessage }) => {
           </div>
 
           {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 size={28} className="animate-spin text-slate-400" />
-            </div>
+            <PageSkeleton type="cards" />
           ) : loadError ? (
             <PageError error={loadError} onRetry={() => void load()} retryLabel="重试加载 MCP 市场" />
           ) : filtered.length === 0 ? (

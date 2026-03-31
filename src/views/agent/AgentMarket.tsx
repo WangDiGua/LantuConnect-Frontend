@@ -34,6 +34,7 @@ import { parseWorkspaceAgentIdsFromStorage } from '../../lib/safeStorage';
 import { safeOpenHttpUrl } from '../../lib/windowNavigate';
 import type { Agent } from '../../types/dto/agent';
 import { PageError } from '../../components/common/PageError';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
 
 export interface AgentMarketProps {
@@ -334,7 +335,7 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
 
           <div className="p-4 sm:p-6 lg:p-8 space-y-10">
             {loading ? (
-              <div className="flex items-center justify-center py-20"><Loader2 size={28} className="animate-spin text-slate-400" /></div>
+              <PageSkeleton type="cards" />
             ) : loadError ? (
               <PageError error={loadError} onRetry={() => void fetchAgents()} retryLabel="重试加载市场" />
             ) : (

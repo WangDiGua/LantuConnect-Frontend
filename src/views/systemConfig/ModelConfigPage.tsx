@@ -4,12 +4,13 @@ import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
 import { TOOLBAR_ROW_LIST, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
-import { Search, Plus, Save, Cpu, Loader2 } from 'lucide-react';
+import { Search, Plus, Save, Cpu } from 'lucide-react';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { Modal } from '../../components/common/Modal';
 import { MgmtDataTable } from '../../components/management/MgmtDataTable';
 import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
 import { PageError } from '../../components/common/PageError';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 import {
   btnPrimary,
   btnSecondary,
@@ -167,9 +168,7 @@ export const ModelConfigPage: React.FC<ModelConfigPageProps> = ({
     >
       <div className="min-w-0 px-4 sm:px-6 pb-6 pt-1">
         {loading && models.length === 0 ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 size={24} className="animate-spin text-slate-400" />
-          </div>
+          <PageSkeleton type="table" />
         ) : loadError ? (
           <PageError error={loadError} onRetry={fetchModels} retryLabel="重试加载模型配置" />
         ) : filtered.length === 0 ? (

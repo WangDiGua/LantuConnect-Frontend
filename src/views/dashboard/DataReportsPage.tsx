@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { BarChart3, Download, Users, Zap, CheckCircle2, Bot, Clock, Loader2 } from 'lucide-react';
+import { BarChart3, Download, Users, Zap, CheckCircle2, Bot, Clock } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { dashboardService } from '../../api/services/dashboard.service';
 import type { DataReportsData } from '../../types/dto/dashboard';
@@ -8,6 +8,7 @@ import { canvasBodyBg, mainScrollCompositorClass, textPrimary, textSecondary, te
 import { BentoCard } from '../../components/common/BentoCard';
 import { KpiCard } from '../../components/common/KpiCard';
 import { PageError } from '../../components/common/PageError';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
 import { LantuDateTimePicker } from '../../components/common/LantuDateTimePicker';
@@ -152,9 +153,7 @@ export const DataReportsPage: React.FC<DataReportsPageProps> = ({ theme, fontSiz
         </motion.div>
 
         {loading && !data ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 size={24} className="animate-spin text-slate-400" />
-          </div>
+          <PageSkeleton type="chart" />
         ) : loadError ? (
           <PageError error={loadError} onRetry={() => fetchData(timeRange)} retryLabel="重试加载数据报表" />
         ) : (

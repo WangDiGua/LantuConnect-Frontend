@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
-import { Plus, Copy, Check, Ban, Zap, Loader2 } from 'lucide-react';
+import { Plus, Copy, Check, Ban, Zap } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
@@ -12,6 +12,7 @@ import {
   textPrimary, textSecondary, textMuted, tableHeadCell, tableBodyRow, tableCell,
 } from '../../utils/uiClasses';
 import { PageError } from '../../components/common/PageError';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
 import { formatDateTime } from '../../utils/formatDateTime';
@@ -100,7 +101,7 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, showMessa
           </div>
           <div className="flex-1 min-h-0 overflow-auto">
             {loading && keys.length === 0 ? (
-              <div className="flex items-center justify-center py-12"><Loader2 size={24} className="animate-spin text-slate-400" /></div>
+              <PageSkeleton type="table" />
             ) : loadError ? (
               <PageError error={loadError} onRetry={fetchKeys} retryLabel="重试加载 API Key" />
             ) : paginated.length === 0 ? (

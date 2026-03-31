@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { AlertTriangle, Zap, RotateCcw, Loader2, Search } from 'lucide-react';
+import { AlertTriangle, Zap, RotateCcw, Search } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { nativeInputClass } from '../../utils/formFieldClasses';
@@ -9,6 +9,7 @@ import { LantuSelect } from '../../components/common/LantuSelect';
 import { Modal } from '../../components/common/Modal';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { BentoCard } from '../../components/common/BentoCard';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { healthService } from '../../api/services/health.service';
 import type { CircuitBreakerItem } from '../../types/dto/health';
 import { formatDateTime } from '../../utils/formatDateTime';
@@ -130,10 +131,7 @@ export const CircuitBreakerPage: React.FC<Props> = ({ theme, fontSize, showMessa
     <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={AlertTriangle} breadcrumbSegments={['监控中心', '熔断降级']} description="配置 Agent / Skill 的熔断策略，支持手动熔断与恢复" toolbar={toolbar}>
       <div className="min-w-0 px-4 sm:px-6 pb-6 pt-4">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-16">
-            <Loader2 size={32} className="animate-spin text-slate-400" />
-            <p className={`mt-3 text-sm ${textSecondary(theme)}`}>加载中…</p>
-          </div>
+          <PageSkeleton type="table" />
         ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">

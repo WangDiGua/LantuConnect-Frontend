@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { Clock, Loader2, RefreshCw } from 'lucide-react';
+import { Clock, RefreshCw } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import { userActivityService } from '../../api/services/user-activity.service';
 import type { UsageRecord, RecentUseItem } from '../../types/dto/user-activity';
@@ -12,6 +12,7 @@ import {
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 
 type TimeFilter = 'today' | '7d' | '30d';
 type TypeFilter = 'all' | 'agent' | 'skill' | 'app' | 'mcp' | 'dataset';
@@ -205,10 +206,7 @@ export const UsageRecordsPage: React.FC<UsageRecordsPageProps> = ({ theme, initi
         {/* Table rows */}
         {viewMode === 'records' ? (
           loading ? (
-            <div className="flex flex-col items-center justify-center py-16">
-              <Loader2 size={32} className="animate-spin text-slate-400" />
-              <p className={`mt-3 text-sm ${textMuted(theme)}`}>加载中…</p>
-            </div>
+            <PageSkeleton type="table" />
           ) : loadError ? (
             <PageError error={loadError} onRetry={fetchData} retryLabel="重试加载使用记录" />
           ) : rows.length === 0 ? (
@@ -257,10 +255,7 @@ export const UsageRecordsPage: React.FC<UsageRecordsPageProps> = ({ theme, initi
         ) : (
           <div className={`${bentoCard(theme)} overflow-hidden`}>
             {recentLoading ? (
-              <div className="flex flex-col items-center justify-center py-16">
-                <Loader2 size={32} className="animate-spin text-slate-400" />
-                <p className={`mt-3 text-sm ${textMuted(theme)}`}>加载中…</p>
-              </div>
+              <PageSkeleton type="table" />
             ) : recentError ? (
               <PageError error={recentError} onRetry={() => void fetchRecent()} retryLabel="重试加载最近使用" />
             ) : recentRows.length === 0 ? (

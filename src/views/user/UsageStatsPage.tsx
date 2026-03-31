@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { BarChart3, Zap, Coins, Bot, Star, Loader2 } from 'lucide-react';
+import { BarChart3, Zap, Coins, Bot, Star } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import { userActivityService } from '../../api/services/user-activity.service';
 import type { UserUsageStats } from '../../types/dto/user-activity';
 import { KpiCard } from '../../components/common/KpiCard';
 import { BentoCard } from '../../components/common/BentoCard';
 import { PageError } from '../../components/common/PageError';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 import {
   canvasBodyBg, textPrimary, textSecondary, textMuted,
   tableHeadCell, tableBodyRow, tableCell,
@@ -94,9 +95,8 @@ export const UsageStatsPage: React.FC<UsageStatsPageProps> = ({ theme }) => {
 
   if (loading) {
     return (
-      <div className={`flex-1 flex flex-col items-center justify-center ${canvasBodyBg(theme)}`}>
-        <Loader2 size={32} className="animate-spin text-slate-400" />
-        <p className={`mt-3 text-sm ${textMuted(theme)}`}>加载统计数据…</p>
+      <div className={`flex-1 ${canvasBodyBg(theme)}`}>
+        <PageSkeleton type="chart" />
       </div>
     );
   }

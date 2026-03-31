@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ShieldCheck, Search, Loader2 } from 'lucide-react';
+import { ShieldCheck, Search } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { nativeInputClass } from '../../utils/formFieldClasses';
@@ -8,6 +8,7 @@ import { TOOLBAR_ROW_LIST, toolbarSearchInputClass } from '../../utils/toolbarFi
 import { btnPrimary, btnSecondary, mgmtTableActionGhost, tableHeadCell, tableBodyRow, tableCell, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
 import { Modal } from '../../components/common/Modal';
 import { BentoCard } from '../../components/common/BentoCard';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { healthService } from '../../api/services/health.service';
 import type { HealthConfigItem } from '../../types/dto/health';
 
@@ -127,10 +128,7 @@ export const HealthConfigPage: React.FC<Props> = ({ theme, fontSize, showMessage
     <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={ShieldCheck} breadcrumbSegments={['监控中心', '健康检查']} description="管理 Agent / Skill 的健康检查策略，实时查看连通性状态" toolbar={toolbar}>
       <div className="min-w-0 px-4 sm:px-6 pb-6 pt-1">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-16">
-            <Loader2 size={32} className="animate-spin text-slate-400" />
-            <p className={`mt-3 text-sm ${textSecondary(theme)}`}>加载中…</p>
-          </div>
+          <PageSkeleton type="table" />
         ) : (
           <>
             <BentoCard theme={theme} padding="sm" className="overflow-hidden">

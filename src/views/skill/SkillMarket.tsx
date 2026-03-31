@@ -26,6 +26,7 @@ import { GrantApplicationModal } from '../../components/business/GrantApplicatio
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { MarketLayout } from '../../components/layout/PageLayouts';
 import { PageError } from '../../components/common/PageError';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { buildPath } from '../../constants/consoleRoutes';
@@ -242,7 +243,7 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, theme
         </div>
 
         {/* Grid */}
-        {loading ? <div className="flex items-center justify-center py-20"><Loader2 size={28} className="animate-spin text-slate-400" /></div>
+        {loading ? <PageSkeleton type="cards" />
         : loadError ? <PageError error={loadError} onRetry={() => { loadSkills(); }} retryLabel="重试加载技能市场" />
         : filtered.length === 0 ? <div className="text-center py-20"><p className={`text-lg font-medium ${textMuted(theme)}`}>暂无匹配的技能</p><p className={`text-sm mt-1 ${textMuted(theme)}`}>尝试调整搜索关键词或分类筛选</p></div>
         : (

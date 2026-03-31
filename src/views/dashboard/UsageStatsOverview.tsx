@@ -2,12 +2,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import type { Theme, FontSize } from '../../types';
 import { canvasBodyBg, mainScrollCompositorClass, textPrimary, textSecondary, textMuted, tableHeadCell, tableBodyRow, tableCell } from '../../utils/uiClasses';
-import { BarChart3, Zap, Users, Clock, TrendingUp, Loader2 } from 'lucide-react';
+import { BarChart3, Zap, Users, Clock, TrendingUp } from 'lucide-react';
 import { dashboardService } from '../../api/services/dashboard.service';
 import type { UsageStatsData } from '../../types/dto/dashboard';
 import { BentoCard } from '../../components/common/BentoCard';
 import { KpiCard } from '../../components/common/KpiCard';
 import { PageError } from '../../components/common/PageError';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 
 interface Props {
   theme: Theme;
@@ -62,9 +63,7 @@ export const UsageStatsOverview: React.FC<Props> = ({ theme }) => {
 
       <div className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4 sm:px-6 py-5 space-y-5 ${mainScrollCompositorClass}`}>
         {loading && !data ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 size={24} className="animate-spin text-slate-400" />
-          </div>
+          <PageSkeleton type="chart" />
         ) : loadError ? (
           <PageError error={loadError} onRetry={fetchData} retryLabel="重试加载使用统计" />
         ) : (

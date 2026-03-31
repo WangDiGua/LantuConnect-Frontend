@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Ban, Shield, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { Ban, Shield, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { AnimatedList } from '../../components/common/AnimatedList';
@@ -14,6 +14,7 @@ import {
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 
 interface TokenListPageProps { theme: Theme; fontSize: FontSize; showMessage: (msg: string, type?: 'success' | 'error' | 'info') => void; breadcrumbSegments: string[]; }
 
@@ -98,7 +99,7 @@ export const TokenListPage: React.FC<TokenListPageProps> = ({ theme, showMessage
           </div>
           <div className="flex-1 min-h-0 overflow-auto">
             {loading && tokens.length === 0 ? (
-              <div className="flex items-center justify-center py-12"><Loader2 size={24} className="animate-spin text-slate-400" /></div>
+              <PageSkeleton type="table" />
             ) : tokens.length === 0 ? (
               <div className={`text-center py-12 text-sm ${textMuted(theme)}`}>
                 {debouncedSearch || statusFilter !== 'all' ? '无匹配 Token' : '暂无 Token'}

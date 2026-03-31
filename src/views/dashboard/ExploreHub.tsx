@@ -3,7 +3,7 @@ import { Highlight, themes } from 'prism-react-renderer';
 import type { LucideIcon } from 'lucide-react';
 import {
   Bot, Wrench, Cpu, AppWindow, Database, BookOpen, Users, Sparkles,
-  Activity, Flame, ChevronRight, Award, Megaphone, ArrowRight, Loader2,
+  Activity, Flame, ChevronRight, Award, Megaphone, ArrowRight,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { EChartsOption } from 'echarts';
@@ -13,6 +13,7 @@ import { buildPath } from '../../constants/consoleRoutes';
 import { dashboardService } from '../../api/services/dashboard.service';
 import type { ExploreHubData, ExploreResourceItem, AnnouncementItem } from '../../types/dto/explore';
 import { PageError } from '../../components/common/PageError';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { Modal } from '../../components/common/Modal';
 import { MarkdownView } from '../../components/common/MarkdownView';
 import { MultiAvatar } from '../../components/common/MultiAvatar';
@@ -357,8 +358,8 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <Loader2 size={28} className="animate-spin text-slate-400" />
+      <div className="flex-1">
+        <PageSkeleton type="dashboard" />
       </div>
     );
   }

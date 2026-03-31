@@ -16,6 +16,7 @@ import {
 } from '../../utils/uiClasses';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { formatDateTime } from '../../utils/formatDateTime';
 
 interface RoleListPageProps { theme: Theme; fontSize: FontSize; breadcrumbBase: string[]; }
@@ -181,7 +182,7 @@ export const RoleListPage: React.FC<RoleListPageProps> = ({ theme }) => {
             {errorMsg ? (
               <EmptyState title="角色数据加载失败" description={errorMsg} action={<button type="button" onClick={fetchRoles} className={btnSecondary(theme)}>重试</button>} />
             ) : loading && roles.length === 0 ? (
-              <div className="flex items-center justify-center py-12"><Loader2 size={24} className="animate-spin text-slate-400" /></div>
+              <PageSkeleton type="table" />
             ) : paginated.length === 0 ? (
               <div className={`text-center py-12 text-sm ${textMuted(theme)}`}>暂无匹配角色</div>
             ) : (

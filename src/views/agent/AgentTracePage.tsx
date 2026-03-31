@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { GitBranch, ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
+import { GitBranch, ChevronDown, ChevronRight } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import { BentoCard } from '../../components/common/BentoCard';
 import { GlassPanel } from '../../components/common/GlassPanel';
@@ -11,6 +11,7 @@ import {
 } from '../../utils/uiClasses';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
 
 interface AgentTracePageProps {
   theme: Theme;
@@ -152,9 +153,7 @@ export const AgentTracePage: React.FC<AgentTracePageProps> = ({ theme }) => {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 size={24} className="animate-spin text-slate-400" />
-          </div>
+          <PageSkeleton type="table" />
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,320px)_1fr] gap-4">
             {/* Trace List */}

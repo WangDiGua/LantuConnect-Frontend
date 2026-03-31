@@ -4,6 +4,8 @@
 > 目标：输出"全项目能力总册 + 后端对齐真值"双层文档，覆盖全部路由、全部页面交互、全部接口与使用证据。
 > 代码基线：`src/App.tsx`、`src/layouts/MainLayout.tsx`、`src/constants/consoleRoutes.ts`、`src/constants/navigation.ts`、`src/context/UserRoleContext.tsx`、`src/lib/http.ts`、`src/api/services/**`、`src/views/**`。
 
+> **路由与菜单权威说明**：优先对照 [docs/frontend/routes-and-navigation.md](frontend/routes-and-navigation.md) 与上述源码。下文 **A2** 为历史矩阵节选，若与真值文档或 `MainLayout` 不一致，**以真值文档为准**。
+
 ## B0. 后端路由现状（执行改造时优先遵循）
 
 - 本文档反映前端**当前代码真实状态**，所有接口均以代码为准。
@@ -60,6 +62,8 @@
 
 ### A2.0 废弃页面重定向（normalizeDeprecatedPage）
 
+仅涉及 **URL slug 替换**（实现见 `MainLayout.tsx` 内 `normalizeDeprecatedPage`）。`provider-list` / `provider-create` **不在此表**，仍为正常管理端页面。
+
 | 旧 page slug | 重定向目标 |
 |---|---|
 | `agent-create` | `agent-register` |
@@ -67,13 +71,17 @@
 | `skill-create` | `skill-register` |
 | `app-create` | `app-register` |
 | `dataset-create` | `dataset-register` |
-| `provider-list` | `resource-grant-management` |
-| `provider-create` | `resource-grant-management` |
 | `category-management` | `tag-management` |
 | `submit-agent` | `my-agents-pub` |
 | `submit-skill` | `my-agents-pub` |
+| `my-agents` | `my-agents-pub` |
+| `my-skills` | `my-agents-pub` |
+
+管理端旧列表/审核 URL 另见真值文档中的 **replace 到 `resource-catalog` / `resource-audit`**（带 `?type=`）。
 
 ### A2.1 admin 全量 page
+
+侧栏 `sidebarId` 以 `consoleRoutes.ADMIN_SIDEBAR_PAGES` 为准：**资源**为 `resource-management`，**审核**为 `audit-center`，不再使用文档旧版中的多套 `agent-management` / `skill-management` 一级菜单。
 
 | sidebarId | page slug | Hash 路径 | 渲染组件 | 状态 | 说明 |
 |---|---|---|---|---|---|
@@ -81,90 +89,94 @@
 | overview | `health-check` | `#/admin/health-check` | `HealthCheckOverview` | reachable | - |
 | overview | `usage-statistics` | `#/admin/usage-statistics` | `UsageStatsOverview` | reachable | - |
 | overview | `data-reports` | `#/admin/data-reports` | `DataReportsPage` | reachable | - |
-| agent-management | `agent-list` | `#/admin/agent-list` | `ResourceCenterManagementPage(agent)` | reachable | 统一资源管理 |
-| agent-management | `agent-register` | `#/admin/agent-register` | `ResourceRegisterPage(agent)` | reachable | 统一资源注册 |
-| agent-management | `agent-detail` | `#/admin/agent-detail/{id}` | `AgentDetail` | direct-url-only | 详情页 |
-| agent-management | `agent-audit` | `#/admin/agent-audit` | `ResourceAuditList(agent)` | reachable | 统一资源审核 |
-| agent-management | `agent-monitoring` | `#/admin/agent-monitoring` | `AgentMonitoringPage` | reachable | - |
-| agent-management | `agent-trace` | `#/admin/agent-trace` | `AgentTracePage` | reachable | - |
-| skill-management | `skill-list` | `#/admin/skill-list` | `ResourceCenterManagementPage(skill)` | reachable | 统一资源管理 |
-| skill-management | `mcp-server-list` | `#/admin/mcp-server-list` | `ResourceCenterManagementPage(mcp)` | reachable | 统一资源管理 |
-| skill-management | `skill-register` | `#/admin/skill-register` | `ResourceRegisterPage(skill)` | reachable | 统一资源注册 |
-| skill-management | `mcp-register` | `#/admin/mcp-register` | `ResourceRegisterPage(mcp)` | reachable | 统一资源注册 |
-| skill-management | `skill-audit` | `#/admin/skill-audit` | `ResourceAuditList(skill)` | reachable | 统一资源审核 |
-| app-management | `app-list` | `#/admin/app-list` | `ResourceCenterManagementPage(app)` | reachable | 统一资源管理 |
-| app-management | `app-register` | `#/admin/app-register` | `ResourceRegisterPage(app)` | reachable | 统一资源注册 |
-| dataset-management | `dataset-list` | `#/admin/dataset-list` | `ResourceCenterManagementPage(dataset)` | reachable | 统一资源管理 |
-| dataset-management | `dataset-register` | `#/admin/dataset-register` | `ResourceRegisterPage(dataset)` | reachable | 统一资源注册 |
-| provider-management | `resource-grant-management` | `#/admin/resource-grant-management` | `UserManagementModule` | reachable | 资源授权管理 |
-| user-management | `user-list` | `#/admin/user-list` | `UserManagementModule(user-list)` | reachable | 菜单级权限 |
-| user-management | `role-management` | `#/admin/role-management` | `UserManagementModule(role-management)` | reachable | 菜单级权限 |
-| user-management | `organization` | `#/admin/organization` | `UserManagementModule(organization)` | reachable | 菜单级权限 |
-| user-management | `api-key-management` | `#/admin/api-key-management` | `UserManagementModule(api-key-management)` | reachable | 菜单级权限 |
-| user-management | `resource-grant-management` | `#/admin/resource-grant-management` | `UserManagementModule` | reachable | 菜单级权限 |
+| resource-management | `resource-catalog` | `#/admin/resource-catalog?type=...` | `ResourceCenterManagementPage` | reachable | 统一资源中心 |
+| resource-management | `agent-list` | `#/admin/agent-list` | — | redirect | replace → `resource-catalog?type=agent` |
+| resource-management | `skill-list` | `#/admin/skill-list` | — | redirect | replace → `resource-catalog?type=skill` |
+| resource-management | `mcp-server-list` | `#/admin/mcp-server-list` | — | redirect | replace → `resource-catalog?type=mcp` |
+| resource-management | `app-list` | `#/admin/app-list` | — | redirect | replace → `resource-catalog?type=app` |
+| resource-management | `dataset-list` | `#/admin/dataset-list` | — | redirect | replace → `resource-catalog?type=dataset` |
+| resource-management | `agent-register` | `#/admin/agent-register` | `ResourceRegisterPage(agent)` | reachable | - |
+| resource-management | `agent-detail` | `#/admin/agent-detail/{id}` | `AgentDetail` | direct-url-only | - |
+| resource-management | `agent-monitoring` | `#/admin/agent-monitoring` | `AgentMonitoringPage` | reachable | - |
+| resource-management | `agent-trace` | `#/admin/agent-trace` | `AgentTracePage` | reachable | - |
+| resource-management | `skill-register` | `#/admin/skill-register` | `ResourceRegisterPage(skill)` | reachable | - |
+| resource-management | `mcp-register` | `#/admin/mcp-register` | `ResourceRegisterPage(mcp)` | reachable | - |
+| resource-management | `app-register` | `#/admin/app-register` | `ResourceRegisterPage(app)` | reachable | - |
+| resource-management | `dataset-register` | `#/admin/dataset-register` | `ResourceRegisterPage(dataset)` | reachable | - |
+| audit-center | `resource-audit` | `#/admin/resource-audit?type=...` | `ResourceAuditList` | reachable | 统一审核 |
+| audit-center | `agent-audit` | `#/admin/agent-audit` | — | redirect | replace → `resource-audit?type=agent` |
+| audit-center | `skill-audit` 等 | `#/admin/skill-audit` … | — | redirect | replace → `resource-audit?type=...` |
+| provider-management | `provider-list` | `#/admin/provider-list` | `ProviderManagementPage` | reachable | - |
+| provider-management | `provider-create` | `#/admin/provider-create` | `ProviderManagementPage` | reachable | - |
+| user-management | `user-list` | `#/admin/user-list` | `UserManagementModule` | reachable | - |
+| user-management | `role-management` | `#/admin/role-management` | `UserManagementModule` | reachable | - |
+| user-management | `organization` | `#/admin/organization` | `UserManagementModule` | reachable | - |
+| user-management | `api-key-management` | `#/admin/api-key-management` | `UserManagementModule` | reachable | - |
+| user-management | `resource-grant-management` | `#/admin/resource-grant-management` | `UserManagementModule` | reachable | - |
+| user-management | `grant-applications` | `#/admin/grant-applications` | `GrantApplicationListPage` | reachable | 授权申请审批 |
 | user-management | `developer-applications` | `#/admin/developer-applications` | `DeveloperApplicationListPage` | reachable | 入驻审批 |
-| monitoring | `monitoring-overview` | `#/admin/monitoring-overview` | `MonitoringModule` | reachable | 菜单级权限 |
-| monitoring | `call-logs` | `#/admin/call-logs` | `MonitoringModule` | reachable | 菜单级权限 |
-| monitoring | `performance-analysis` | `#/admin/performance-analysis` | `MonitoringModule` | reachable | 菜单级权限 |
-| monitoring | `alert-management` | `#/admin/alert-management` | `MonitoringModule` | reachable | 菜单级权限 |
+| monitoring | `monitoring-overview` | `#/admin/monitoring-overview` | `MonitoringModule` | reachable | - |
+| monitoring | `call-logs` | `#/admin/call-logs` | `MonitoringModule` | reachable | - |
+| monitoring | `performance-analysis` | `#/admin/performance-analysis` | `MonitoringModule` | reachable | - |
+| monitoring | `alert-management` | `#/admin/alert-management` | `MonitoringModule` | reachable | - |
 | monitoring | `alert-rules` | `#/admin/alert-rules` | `MonitoringModule` | reachable | 子项级权限 |
 | monitoring | `health-config` | `#/admin/health-config` | `MonitoringModule` | reachable | 子项级权限 |
 | monitoring | `circuit-breaker` | `#/admin/circuit-breaker` | `MonitoringModule` | reachable | 子项级权限 |
-| system-config | `tag-management` | `#/admin/tag-management` | `SystemConfigModule` | reachable | 菜单级权限 |
-| system-config | `model-config` | `#/admin/model-config` | `SystemConfigModule` | reachable | 菜单级权限 |
-| system-config | `security-settings` | `#/admin/security-settings` | `SystemConfigModule` | reachable | 菜单级权限 |
-| system-config | `quota-management` | `#/admin/quota-management` | `SystemConfigModule` | reachable | 菜单级权限 |
-| system-config | `rate-limit-policy` | `#/admin/rate-limit-policy` | `SystemConfigModule` | reachable | 菜单级权限 |
-| system-config | `access-control` | `#/admin/access-control` | `SystemConfigModule` | reachable | 菜单级权限 |
-| system-config | `audit-log` | `#/admin/audit-log` | `SystemConfigModule` | reachable | 菜单级权限 |
-| system-config | `sensitive-words` | `#/admin/sensitive-words` | `SystemConfigModule(SensitiveWordPage)` | reachable | 敏感词管理 |
-| system-config | `announcements` | `#/admin/announcements` | `SystemConfigModule(AnnouncementPage)` | reachable | 平台公告管理 |
-| developer-portal | `api-docs` | `#/admin/api-docs` | `ApiDocsPage` | reachable | - |
-| developer-portal | `sdk-download` | `#/admin/sdk-download` | `SdkDownloadPage` | reachable | - |
-| developer-portal | `api-playground` | `#/admin/api-playground` | `ApiPlaygroundPage` | reachable | `fetch` 通道 |
-| developer-portal | `developer-statistics` | `#/admin/developer-statistics` | `DeveloperStatsPage` | reachable | 开发者统计 |
+| system-config | `tag-management` | `#/admin/tag-management` | `SystemConfigModule` | reachable | - |
+| system-config | `model-config` | `#/admin/model-config` | `SystemConfigModule` | reachable | - |
+| system-config | `security-settings` | `#/admin/security-settings` | `SystemConfigModule` | reachable | - |
+| system-config | `quota-management` | `#/admin/quota-management` | `SystemConfigModule` | reachable | - |
+| system-config | `rate-limit-policy` | `#/admin/rate-limit-policy` | `SystemConfigModule` | reachable | - |
+| system-config | `access-control` | `#/admin/access-control` | `SystemConfigModule` | reachable | - |
+| system-config | `audit-log` | `#/admin/audit-log` | `SystemConfigModule` | reachable | - |
+| system-config | `sensitive-words` | `#/admin/sensitive-words` | `SystemConfigModule` | reachable | - |
+| system-config | `announcements` | `#/admin/announcements` | `SystemConfigModule` | reachable | - |
+
+`api-docs` / `sdk-download` / `api-playground` / `developer-statistics`：**勿使用 `#/admin/...`**；从管理端访问会 **replace 到 `#/user/...`**（见 `MainLayout`）。
 
 ### A2.2 user 全量 page
+
+用户端二级市场统一挂在 `marketplace` 一个 `sidebarId` 下（非 `agent-market` 等多个一级侧栏）。
 
 | sidebarId | page slug | Hash 路径 | 渲染组件 | 状态 | 说明 |
 |---|---|---|---|---|---|
 | hub | `hub` | `#/user/hub` | `ExploreHub` | reachable | 默认发现页 |
-| workspace | `workspace` | `#/user/workspace` | `UserWorkspaceOverview` | reachable | 通过 sidebar 默认页进入 |
-| workspace | `my-agents` | `#/user/my-agents` | `MyAgentList` | reachable | 与 my-publish 共用 |
+| workspace | `workspace` | `#/user/workspace` | `UserWorkspaceOverview` | reachable | 子项 `overview` 映射到此 |
 | workspace | `authorized-skills` | `#/user/authorized-skills` | `AuthorizedSkillsPage` | reachable | - |
-| workspace | `my-favorites` | `#/user/my-favorites` | `MyFavoritesPage` | reachable | 与 my-space 共用 |
-| workspace | `quick-access` | `#/user/quick-access` | `QuickAccess` | direct-url-only | 白名单在，但无子菜单项 |
-| workspace | `recent-use` | `#/user/recent-use` | `RecentUsePage` | reachable | - |
-| agent-market | `agent-market` | `#/user/agent-market` | `AgentMarket` | reachable | - |
-| skill-market | `skill-market` | `#/user/skill-market` | `SkillMarket` | reachable | - |
-| app-market | `app-market` | `#/user/app-market` | `AppMarket` | reachable | - |
-| dataset-market | `dataset-market` | `#/user/dataset-market` | `DatasetMarket` | reachable | - |
+| workspace | `my-favorites` | `#/user/my-favorites` | `MyFavoritesPage` | reachable | - |
+| workspace | `quick-access` | `#/user/quick-access` | `QuickAccess` | reachable | - |
+| marketplace | `agent-market` | `#/user/agent-market` | `AgentMarket` | reachable | - |
+| marketplace | `skill-market` | `#/user/skill-market` | `SkillMarket` | reachable | - |
+| marketplace | `mcp-market` | `#/user/mcp-market` | `McpMarket` | reachable | - |
+| marketplace | `app-market` | `#/user/app-market` | `AppMarket` | reachable | - |
+| marketplace | `dataset-market` | `#/user/dataset-market` | `DatasetMarket` | reachable | - |
 | my-publish | `my-agents-pub` | `#/user/my-agents-pub` | `MyPublishHubPage` | reachable | 发布总览 |
-| my-publish | `resource-center` | `#/user/resource-center` | `ResourceCenterManagementPage` | reachable | 统一资源中心 |
-| my-publish | `agent-list` | `#/user/agent-list` | `ResourceCenterManagementPage(agent)` | reachable | - |
+| my-publish | `resource-center` | `#/user/resource-center?type=...` | `ResourceCenterManagementPage` | reachable | 无 `type` 时补 `agent` |
+| my-publish | `agent-list` | `#/user/agent-list` | — | redirect | replace → `resource-center?type=agent` |
+| my-publish | `skill-list` 等 | `#/user/skill-list` … | — | redirect | replace → `resource-center?type=...` |
 | my-publish | `agent-register` | `#/user/agent-register` | `ResourceRegisterPage(agent)` | reachable | - |
-| my-publish | `skill-list` | `#/user/skill-list` | `ResourceCenterManagementPage(skill)` | reachable | - |
 | my-publish | `skill-register` | `#/user/skill-register` | `ResourceRegisterPage(skill)` | reachable | - |
-| my-publish | `mcp-server-list` | `#/user/mcp-server-list` | `ResourceCenterManagementPage(mcp)` | reachable | - |
 | my-publish | `mcp-register` | `#/user/mcp-register` | `ResourceRegisterPage(mcp)` | reachable | - |
-| my-publish | `app-list` | `#/user/app-list` | `ResourceCenterManagementPage(app)` | reachable | - |
 | my-publish | `app-register` | `#/user/app-register` | `ResourceRegisterPage(app)` | reachable | - |
-| my-publish | `dataset-list` | `#/user/dataset-list` | `ResourceCenterManagementPage(dataset)` | reachable | - |
 | my-publish | `dataset-register` | `#/user/dataset-register` | `ResourceRegisterPage(dataset)` | reachable | - |
-| my-publish | `my-agents` | `#/user/my-agents` | `MyAgentList` | reachable | 与 workspace 共用 |
-| my-publish | `my-skills` | `#/user/my-skills` | `MySkillList` | reachable | - |
+| developer-portal | `api-docs` | `#/user/api-docs` | `ApiDocsPage` | reachable | 需 `developer:portal` |
+| developer-portal | `sdk-download` | `#/user/sdk-download` | `SdkDownloadPage` | reachable | - |
+| developer-portal | `api-playground` | `#/user/api-playground` | `ApiPlaygroundPage` | reachable | - |
+| developer-portal | `developer-statistics` | `#/user/developer-statistics` | `DeveloperStatsPage` | reachable | - |
 | my-space | `usage-records` | `#/user/usage-records` | `UsageRecordsPage` | reachable | - |
+| my-space | `recent-use` | `#/user/recent-use` | `UsageRecordsPage` | reachable | `initialView=recent` |
 | my-space | `usage-stats` | `#/user/usage-stats` | `UsageStatsPage` | reachable | - |
-| user-settings | `profile` | `#/user/profile` | `UserProfile` | reachable | - |
-| user-settings | `preferences` | `#/user/preferences` | `UserSettingsPage` | reachable | - |
+| my-space | `my-grant-applications` | `#/user/my-grant-applications` | `MyGrantApplicationsPage` | reachable | - |
+| user-settings | `profile` | `#/user/profile` | `UserSettingsHubPage` | reachable | `initialTab=profile` |
+| user-settings | `preferences` | `#/user/preferences` | `UserSettingsHubPage` | reachable | `initialTab=preferences` |
 
 ### A2.3 无效路由行为
 
 | 场景 | 结果 |
 |---|---|
-| `#/admin/{unknown}` 或 `#/user/{unknown}` | `routeValid=false`，重定向到默认页 |
+| `#/admin/{unknown}` 或 `#/user/{unknown}`（未知 `page`） | `routeValid=false`，`replace` 到该 `role` 的 `defaultPath`（非占位页时） |
 | 无 admin 能力访问 `#/admin/*` | 重定向到 user 默认页 |
-| `*` 路由 | 重定向到 `#/` 再由 `ConsoleHomeRedirect` 决定落点 |
+| 非 `/:role/:page` 的 `*` | `Navigate` 到 `/404`（见 `MainLayout` 内路由表） |
 
 ## A3. 全量交互矩阵（L3，页面级）
 

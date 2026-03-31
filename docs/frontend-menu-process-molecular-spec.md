@@ -2,7 +2,8 @@
 
 > 文档目的：给前端、产品、测试一份可以“逐菜单、逐按钮、逐接口”核对的执行手册，避免继续出现功能理解偏差。  
 > 适用范围：`platform_admin`、`dept_admin`、`developer`、`user` 四类角色。  
-> 对齐基准：后端闭环真值文档 `docs/resource-registration-authorization-invocation-guide.md`。  
+> **路由与侧栏真值**：[docs/frontend/routes-and-navigation.md](frontend/routes-and-navigation.md)（与本文冲突时以该文与源码为准）。  
+> 业务闭环说明：`docs/resource-registration-authorization-invocation-guide.md`。  
 > 代码基线：`src/layouts/MainLayout.tsx`、`src/constants/navigation.ts`、`src/constants/consoleRoutes.ts`、`src/api/services/**`、`src/views/**`。
 
 ---
@@ -10,10 +11,10 @@
 ## 1. 核心结论（必须先统一）
 
 1. 前端目前已经接入统一资源主链路（注册中心、审核中心、授权中心、目录/解析/调用）。
-2. 菜单语义已按资源边界重构：`MCP` 已从 `Skill 管理` 拆出为独立一级菜单 `MCP 管理`。
-3. `Provider` 目录已改为“关系说明”入口，不再与 `用户与权限 -> 资源授权管理` 形成同页双入口误导。
-4. 应用端新增“授权申请适配层 + 申请记录页”，市场页可提交申请并查看状态、失败原因。
-5. 你关注的问题（MCP 广场、Skill/MCP 边界、Provider 与 Grant 关系）已在本轮实现中落地修正。
+2. **管理端**资源与审核在侧栏上归并为 **`resource-management`（统一资源中心 + 注册/运维）** 与 **`audit-center`（资源审核）**；不再使用多套并列的「Agent 管理 / Skill 管理 / MCP 管理」一级菜单（旧 slug 如 `agent-list` 仍可作 URL，会重定向到 `resource-catalog?type=`）。
+3. **`Provider`** 在 **`provider-management`** 下以 **`ProviderManagementPage`（列表/新建）** 呈现，并可跳转「资源授权管理」；**不是** `provider-authorization-guide` 页面（代码中无该 slug）。
+4. 应用端含授权申请与用户侧「我的授权申请」等能力；市场侧流程以后端能力为准。
+5. **用户端**五类市场入口归属同一侧栏分组 **`marketplace`**；**开发者中心**仅挂在 **`user`** 路由下，从 `#/admin/...` 访问开发者页会被重定向到 `#/user/...`。
 
 ---
 
@@ -27,16 +28,20 @@
 
 ## 2.2 路由校验与重定向规则
 
-- 无效 `page`：跳转 `404`
+- 无效 `page`（无法映射到已知侧栏）：`replace` 到当前 `role` 的默认页（`#/admin/dashboard` 或 `#/user/hub`）；非 `/:role/:page` 路径可走 `#/404`
 - 无管理端权限访问 `admin/*`：跳转 `user` 默认页
-- 用户端访问统一资源中心且无发布权限：跳转 `hub` 并提示
-- 旧页面 slug 自动归一到新入口（如 `provider-list` -> `provider-authorization-guide`）
+- 用户端访问统一资源相关页且无发布权限：跳转 `hub` 并提示
+- `normalizeDeprecatedPage`：`agent-create`→`agent-register`、`category-management`→`tag-management`、`submit-*` / `my-agents` / `my-skills`→`my-agents-pub` 等（**不含** `provider-list`）
+- 管理端：`agent-list` 等 → `resource-catalog?type=`；`agent-audit` 等 → `resource-audit?type=`
+- 用户端：五类 `*-list` → `resource-center?type=`
+- `#/admin/api-docs` 等开发者页 → `#/user/api-docs` 等同路径
 
 ## 2.3 菜单权限裁剪规则
 
 - 一级菜单按权限裁剪：`provider:manage`、`user:manage`、`monitor:view`、`system:config`
-- 二级菜单按 `SUB_ITEM_PERM_MAP` 再裁剪（如 `skill-audit` 需 `skill:audit`）
-- `my-publish` 是否可见取决于 `agent/skill/app/dataset` 任一 `create` 权限
+- 二级菜单按 `MainLayout` 中 `SUB_ITEM_PERM_MAP` 再裁剪（如 `provider-list`、`resource-grant-management`、`alert-rules` 等）
+- 审核类子项另有按资源类型的权限位（见侧栏装配逻辑）
+- `my-publish` 是否可见取决于发布相关权限（与 `canPublishResources` 等一致）
 
 ---
 
@@ -46,19 +51,19 @@
 
 ## 3.1 一级菜单全表（管理端）
 
-| 一级菜单 | 二级分组 | 二级菜单项 | 页面 page |
-|---|---|---|---|
-| 总览 | 总览 | 数据概览 / 健康状态 / 使用统计 / 数据报表 | `dashboard` / `health-check` / `usage-statistics` / `data-reports` |
-| Agent 管理 | 资源目录 / 运行 | Agent 列表 / 审核队列 / 运行监控 / 调用追踪 | `agent-list` / `agent-audit` / `agent-monitoring` / `agent-trace` |
-| Skill 管理 | 资源目录 | Skill 列表 / 审核队列 | `skill-list` / `skill-audit` |
-| MCP 管理 | 资源目录 | MCP 列表 / 审核队列 | `mcp-server-list` / `mcp-audit` |
-| 智能应用 | 资源目录 | 应用列表 | `app-list` |
-| 数据集 | 资源目录 | 数据集列表 | `dataset-list` |
-| 资源提供与授权 | Provider 语义 | Provider 与授权关系说明 | `provider-authorization-guide` |
-| 用户与权限 | 用户 / 凭证 / 入驻 | 用户管理 / 角色管理 / 组织架构 / API Key 管理 / 资源授权管理 / 入驻审批 | `user-list` / `role-management` / `organization` / `api-key-management` / `resource-grant-management` / `developer-applications` |
-| 监控中心 | 观测 / 告警 / 治理 | 监控概览 / 调用日志 / 性能分析 / 告警管理 / 告警规则 / 健康检查 / 熔断降级 | `monitoring-overview` 等 |
-| 系统配置 | 基础 / 策略 / 审计 / 内容治理 | 标签 / 模型 / 安全 / 配额 / 限流 / 访问控制 / 审计日志 / 敏感词 / 平台公告 | `tag-management` 等 |
-| 开发者中心 | 文档 / 统计 | API 文档 / SDK 下载 / API Playground / 开发者统计 | `api-docs` / `sdk-download` / `api-playground` / `developer-statistics` |
+与 `navigation.ADMIN_SIDEBAR_ITEMS` + `getNavSubGroups` 一致；**「列表/审核」类旧 slug 仅作兼容 URL**，canonical 为 `resource-catalog` / `resource-audit`。
+
+| 一级菜单（sidebarId） | 二级分组（示意） | 二级菜单项 / page |
+|---|---|---|
+| 总览 `overview` | 总览 | `dashboard`、`health-check`、`usage-statistics`、`data-reports` |
+| 资源管理 `resource-management` | 资源目录 / Agent 运维 | **`resource-catalog`**（统一资源中心）；`agent-monitoring`、`agent-trace`；另 `agent-register`…`dataset-register`、`agent-detail` |
+| 审核中心 `audit-center` | 待审核资源 | **`resource-audit`**（兼容 `agent-audit` 等 URL） |
+| Provider 管理 `provider-management` | Provider | `provider-list`、`provider-create` |
+| 用户与权限 `user-management` | 用户 / 凭证 / 入驻 | `user-list`、`role-management`、`organization`、`api-key-management`、`resource-grant-management`、`grant-applications`、`developer-applications` |
+| 监控中心 `monitoring` | 观测 / 告警 / 治理 | `monitoring-overview`、`call-logs`、`performance-analysis`、`alert-management`、`alert-rules`、`health-config`、`circuit-breaker` |
+| 系统配置 `system-config` | 基础 / 策略 / 审计 / 内容治理 | `tag-management`、`model-config`、`security-settings`、`quota-management`、`rate-limit-policy`、`access-control`、`audit-log`、`sensitive-words`、`announcements` |
+
+**开发者中心**不挂在管理端 URL；页面仅在 `#/user/developer-portal/...` 下提供。
 
 ## 3.2 管理端资源管理链路（菜单 -> 功能 -> 接口）
 
@@ -250,11 +255,10 @@ flowchart TD
 
 ## 7. 你提出的争议问题逐条回答（强制阅读）
 
-## 7.1 “platform_admin 下 skill 管理的 MCP 注册中心是干什么的？”
+## 7.1 “platform_admin 下 skill 管理与 MCP 是什么关系？”
 
-- 作用：管理 `resourceType=mcp` 的资源列表与注册入口（不是 Skill 本身）。
-- 现状：在导航层归入 “Skill 管理” 分组，但在数据层是独立资源类型 `mcp`。
-- 结论：信息架构混放，数据模型未混。建议后续从“Skill 管理”拆成“MCP 管理”一级菜单。
+- 数据层：`skill` 与 `mcp` 均为独立 `resourceType`。
+- 导航层：二者同属 **`resource-management`**，经 **统一资源中心** `resource-catalog?type=skill|mcp` 切换；旧 URL `mcp-server-list` / `skill-list` 仍会重定向到对应 `type`。
 
 ## 7.2 “应用端用户如何申请应用授权？”
 
@@ -271,28 +275,25 @@ flowchart TD
 
 ## 7.4 “管理端是否把 Skill 与 MCP 混一起了？”
 
-- 资源中心组件仍复用，但菜单和入口已拆分：
-  - `Skill 管理` -> `skill-list/skill-audit`
-  - `MCP 管理` -> `mcp-server-list/mcp-audit`
-- 数据层仍保持 `resourceType=skill|mcp` 独立。
+- 列表与注册共用 **`ResourceCenterManagementPage` / `ResourceRegisterPage`**，按 `type` 区分；审核共用 **`resource-audit`**，按 `type` 区分。
+- 不再使用并列的「Skill 管理 / MCP 管理」两个一级侧栏；侧栏上是一套 **资源管理 + 审核中心**。
 
-## 7.5 “Provider 目录和用户与权限里的资源授权管理为什么是一个页面？”
+## 7.5 “Provider 与资源授权管理是什么关系？”
 
-- 本轮已改造为“关系说明 + 明确跳转”：
-  - `provider-management` 指向 `provider-authorization-guide`（解释 Provider 与 Grant 的关系）；
-  - 实际授权操作仍统一在 `resource-grant-management`。
-- 旧入口兼容跳转到关系说明页，减少同名异义困惑。
+- **`provider-management`**：`ProviderManagementPage`（Provider 列表/新建），可从该页打开 **`resource-grant-management`**（见 `onOpenGrantManagement`）。
+- **`resource-grant-management`**：在 **`user-management`** 侧栏下，由 `UserManagementModule` 承载。
+- 二者为不同 `page` slug，非同一页面。
 
 ---
 
 ## 8. Gap 清单（本轮后）
 
-## P0（已完成）
+## P0（已完成 / 以当前代码为准）
 
-1. 应用端 `mcp-market` 页面、菜单、路由已接入。
-2. 管理端 `MCP` 已从 `Skill 管理` 拆出为独立一级菜单。
-3. 应用端授权申请已补齐入口、记录、状态反馈（含后端未开放时的适配降级）。
-4. Provider 菜单已完成语义修正与关系说明页改造。
+1. 应用端 `mcp-market` 等市场路由已接入。
+2. 管理端资源/审核已收敛为 **统一资源中心** + **资源审核** 侧栏结构（`resource-catalog` / `resource-audit`）。
+3. 应用端授权申请与记录能力已接入（以后端接口可用性为准）。
+4. Provider 与资源授权分为 **Provider 管理** 与 **资源授权管理** 两个入口。
 
 ## P1（本迭代建议完成）
 

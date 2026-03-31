@@ -5,3 +5,5 @@
 - [frontend-backend-handoff/frontend-completion-before-backend.md](./frontend-backend-handoff/frontend-completion-before-backend.md)
 
 协作文档总入口：[frontend-backend-handoff/README.md](./frontend-backend-handoff/README.md)
+
+前端路由与菜单真值：[frontend/routes-and-navigation.md](./frontend/routes-and-navigation.md)

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Plus, RefreshCw } from 'lucide-react';
+import { Download, Plus, RefreshCw } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { ResourceType } from '../../types/dto/catalog';
 import type { ResourceCenterItemVO, ResourceStatus, ResourceVersionVO } from '../../types/dto/resource-center';
@@ -32,6 +32,42 @@ import {
 import { nullDisplay } from '../../utils/errorHandler';
 import { formatDateTime } from '../../utils/formatDateTime';
 
+function skillSubmitBlocked(item: ResourceCenterItemVO): boolean {
+  if (item.resourceType !== 'skill') return false;
+  const ok = String(item.packValidationStatus ?? '').toLowerCase() === 'valid';
+  const hasUri = Boolean(item.artifactUri?.trim());
+  return !ok || !hasUri;
+}
+
+/** 与「下载制品」接口一致：仅技能且已通过校验并具备 artifactUri 时可下载 */
+function skillCanDownloadArtifact(item: ResourceCenterItemVO): boolean {
+  if (item.resourceType !== 'skill') return false;
+  if (String(item.packValidationStatus ?? '').toLowerCase() !== 'valid') return false;
+  return Boolean(item.artifactUri?.trim());
+}
+
+/** 新建版本输入框的默认建议（后端校验以 @VersionText 为准） */
+function bumpVersionLabel(current: string): string {
+  const trimmed = current.trim();
+  const vm = trimmed.match(/^(v?)(\d+)$/i);
+  if (vm) {
+    const n = Number.parseInt(vm[2], 10);
+    if (Number.isFinite(n)) return `${vm[1]}${n + 1}`;
+  }
+  const hasV = /^v/i.test(trimmed);
+  const bare = trimmed.replace(/^v/i, '');
+  const seg = bare.split('.').filter((s) => s.length > 0);
+  if (seg.length > 0) {
+    const lastRaw = seg[seg.length - 1];
+    const tailNum = Number.parseInt(lastRaw, 10);
+    if (Number.isFinite(tailNum)) {
+      seg[seg.length - 1] = String(tailNum + 1);
+      return (hasV ? 'v' : '') + seg.join('.');
+    }
+  }
+  return `${trimmed}-2`;
+}
+
 interface Props {
   theme: Theme;
   fontSize: FontSize;
@@ -57,7 +93,9 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
   const [items, setItems] = useState<ResourceCenterItemVO[]>([]);
   const [versionTarget, setVersionTarget] = useState<ResourceCenterItemVO | null>(null);
   const [versions, setVersions] = useState<ResourceVersionVO[]>([]);
+  const [versionsLoading, setVersionsLoading] = useState(false);
   const [newVersion, setNewVersion] = useState('v2');
+  const [makeNewVersionCurrent, setMakeNewVersionCurrent] = useState(true);
   const [activeType, setActiveType] = useState<ResourceType>(resourceType ?? 'agent');
   const [runningActionKey, setRunningActionKey] = useState<string | null>(null);
   const [keyword, setKeyword] = useState('');
@@ -107,13 +145,30 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
     return `${RESOURCE_TYPE_LABEL_ZH[activeType]}资源管理`;
   }, [allowTypeSwitch, activeType]);
 
+  const closeVersionModal = () => {
+    setVersionTarget(null);
+    setVersions([]);
+    setMakeNewVersionCurrent(true);
+  };
+
   const openVersions = async (item: ResourceCenterItemVO) => {
     setVersionTarget(item);
+    setVersions([]);
+    setVersionsLoading(true);
+    setMakeNewVersionCurrent(true);
+    const suggested =
+      item.currentVersion && item.currentVersion.trim()
+        ? bumpVersionLabel(item.currentVersion.trim())
+        : 'v1';
+    setNewVersion(suggested);
     try {
       const data = await resourceCenterService.listVersions(item.id);
       setVersions(data);
-    } catch {
+    } catch (err) {
       setVersions([]);
+      showMessage(err instanceof Error ? err.message : '加载版本列表失败', 'error');
+    } finally {
+      setVersionsLoading(false);
     }
   };
 
@@ -253,8 +308,35 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                         <div className={`mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] ${textMuted(theme)}`}>
                           <span>创建: {nullDisplay(formatDateTime(item.createTime))}</span>
                           <span>更新: {nullDisplay(formatDateTime(item.updateTime))}</span>
-                          {item.tags && item.tags.length > 0 && <span>标签: {item.tags.slice(0, 3).join(', ')}</span>}
+                          {item.catalogTagNames && item.catalogTagNames.length > 0 && (
+                            <span>目录标签: {item.catalogTagNames.slice(0, 5).join(', ')}</span>
+                          )}
+                          {item.resourceType === 'dataset' && item.tags && item.tags.length > 0 && (
+                            <span>
+                              {item.catalogTagNames?.length ? ' · ' : ''}数据标签: {item.tags.slice(0, 3).join(', ')}
+                            </span>
+                          )}
                           {item.endpoint && <span className="font-mono">端点: {item.endpoint}</span>}
+                          {item.resourceType === 'skill' && item.packValidationStatus && (
+                            <span>
+                              技能包:{' '}
+                              <span
+                                className={
+                                  String(item.packValidationStatus).toLowerCase() === 'valid'
+                                    ? isDark
+                                      ? 'text-emerald-300'
+                                      : 'text-emerald-700'
+                                    : String(item.packValidationStatus).toLowerCase() === 'invalid'
+                                      ? isDark
+                                        ? 'text-rose-300'
+                                        : 'text-rose-700'
+                                      : textMuted(theme)
+                                }
+                              >
+                                {item.packValidationStatus}
+                              </span>
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
@@ -268,10 +350,37 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                             版本
                           </button>
                         )}
+                        {skillCanDownloadArtifact(item) && (
+                          <button
+                            type="button"
+                            disabled={runningActionKey === `dl-artifact-${item.id}`}
+                            title="下载后端已校验的技能包（GET …/skill-artifact）"
+                            onClick={() => void runAction(
+                              `dl-artifact-${item.id}`,
+                              () => resourceCenterService.downloadSkillArtifact(item.id, item.displayName),
+                              '已开始下载',
+                            )}
+                            className={mgmtTableActionGhost(theme)}
+                          >
+                            {runningActionKey === `dl-artifact-${item.id}` ? (
+                              '下载中…'
+                            ) : (
+                              <>
+                                <Download size={14} className="inline-block align-[-2px] mr-1" />
+                                下载制品
+                              </>
+                            )}
+                          </button>
+                        )}
                         {(item.status === 'draft' || item.status === 'rejected' || item.status === 'deprecated') && (
                           <button
                             type="button"
-                            disabled={runningActionKey === `submit-${item.id}`}
+                            disabled={runningActionKey === `submit-${item.id}` || skillSubmitBlocked(item)}
+                            title={
+                              skillSubmitBlocked(item) && item.resourceType === 'skill'
+                                ? '技能须先上传 zip 且 pack_validation_status=valid'
+                                : undefined
+                            }
                             onClick={() => void runAction(`submit-${item.id}`, () => resourceCenterService.submit(item.id), '已提交审核')}
                             className={mgmtTableActionPositive(theme)}
                           >
@@ -337,64 +446,133 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
 
       <Modal
         open={!!versionTarget}
-        onClose={() => setVersionTarget(null)}
+        onClose={closeVersionModal}
         title={versionTarget ? `版本管理 · ${versionTarget.displayName}` : '版本管理'}
         theme={theme}
         size="lg"
       >
         {versionTarget && (
           <>
+            <p className={`mb-3 text-xs leading-relaxed ${textMuted(theme)}`}>
+              与后端对齐：加载列表为 <span className="font-mono text-[11px]">GET …/resources/:id/versions</span>；新建版本会写入当前资源快照（
+              <span className="font-mono text-[11px]">POST …/versions</span>，body 含 <span className="font-mono text-[11px]">version</span>、可选{' '}
+              <span className="font-mono text-[11px]">makeCurrent</span>）。回退或切换默认版本使用{' '}
+              <span className="font-mono text-[11px]">POST …/versions/:version/switch</span>，且仅 <span className="font-mono text-[11px]">status=active</span>{' '}
+              的行可切换。
+            </p>
             <div className="space-y-2">
-              {versions.length === 0 ? (
-                <p className={`text-sm ${textMuted(theme)}`}>暂无版本记录</p>
+              {versionsLoading ? (
+                <p className={`py-4 text-center text-sm ${textMuted(theme)}`}>加载版本列表…</p>
+              ) : versions.length === 0 ? (
+                <p className={`text-sm ${textMuted(theme)}`}>
+                  暂无版本记录。创建第一个版本时，后端会根据当前资源自动生成快照并写入。
+                </p>
               ) : (
-                versions.map((ver) => (
-                  <div key={ver.id} className={`flex items-center justify-between rounded-xl px-3 py-2 ${isDark ? 'bg-white/[0.04]' : 'bg-slate-50'}`}>
-                    <span className={`text-sm ${textPrimary(theme)}`}>{ver.version} {ver.isCurrent ? '(当前)' : ''}</span>
-                    {!ver.isCurrent && (
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          await runAction(
-                            `switch-version-${versionTarget.id}-${ver.version}`,
-                            () => resourceCenterService.switchVersion(versionTarget.id, ver.version),
-                            `已切换到 ${ver.version}`,
-                          );
-                          const latest = await resourceCenterService.listVersions(versionTarget.id);
-                          setVersions(latest);
-                        }}
-                        className={btnGhost(theme)}
-                      >
-                        切换
-                      </button>
-                    )}
-                  </div>
-                ))
+                versions.map((ver) => {
+                  const status = (ver.status ?? 'active').toLowerCase();
+                  const canSwitch = !ver.isCurrent && status === 'active';
+                  return (
+                    <div
+                      key={`${ver.id}-${ver.version}`}
+                      className={`flex flex-wrap items-center justify-between gap-2 rounded-xl px-3 py-2.5 ${isDark ? 'bg-white/[0.04]' : 'bg-slate-50'}`}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`text-sm font-medium ${textPrimary(theme)}`}>{ver.version}</span>
+                          {ver.isCurrent && (
+                            <span className={`rounded px-1.5 py-0.5 text-[11px] ${isDark ? 'bg-emerald-500/20 text-emerald-300' : 'bg-emerald-100 text-emerald-800'}`}>
+                              当前默认
+                            </span>
+                          )}
+                          <span
+                            className={`rounded px-1.5 py-0.5 text-[11px] font-mono ${
+                              status === 'active'
+                                ? isDark
+                                  ? 'bg-white/10 text-slate-300'
+                                  : 'bg-slate-200/80 text-slate-700'
+                                : isDark
+                                  ? 'bg-amber-500/15 text-amber-200'
+                                  : 'bg-amber-100 text-amber-900'
+                            }`}
+                          >
+                            {status === 'active' ? 'active · 可切换' : `status: ${ver.status ?? '—'}`}
+                          </span>
+                        </div>
+                        {ver.createTime && (
+                          <p className={`mt-0.5 text-[11px] ${textMuted(theme)}`}>创建 {formatDateTime(ver.createTime)}</p>
+                        )}
+                      </div>
+                      {canSwitch && (
+                        <button
+                          type="button"
+                          title="将网关解析与目录默认指向此版本（回退即切换到较早的 active 版本）"
+                          onClick={async () => {
+                            await runAction(
+                              `switch-version-${versionTarget.id}-${ver.version}`,
+                              () => resourceCenterService.switchVersion(versionTarget.id, ver.version),
+                              `已设为当前版本 ${ver.version}`,
+                            );
+                            setVersions(await resourceCenterService.listVersions(versionTarget.id));
+                          }}
+                          className={btnGhost(theme)}
+                        >
+                          设为当前
+                        </button>
+                      )}
+                    </div>
+                  );
+                })
               )}
             </div>
-            <div className="mt-3 flex items-center gap-2">
-              <input
-                value={newVersion}
-                onChange={(e) => setNewVersion(e.target.value)}
-                className={`flex-1 rounded-xl border px-3 py-2 text-sm ${isDark ? 'border-white/10 bg-white/[0.04] text-slate-200' : 'border-slate-200 bg-white text-slate-700'}`}
-                placeholder="新版本号，如 v2"
-              />
-              <button
-                type="button"
-                onClick={async () => {
-                  if (!newVersion.trim()) return;
-                  await runAction(
-                    `create-version-${versionTarget.id}`,
-                    () => resourceCenterService.createVersion(versionTarget.id, { version: newVersion.trim(), makeCurrent: true }).then(() => undefined),
-                    `已创建版本 ${newVersion}`,
-                  );
-                  const latest = await resourceCenterService.listVersions(versionTarget.id);
-                  setVersions(latest);
-                }}
-                className={btnPrimary}
-              >
-                创建版本
-              </button>
+            <div className={`mt-4 border-t pt-4 ${isDark ? 'border-white/[0.08]' : 'border-slate-100'}`}>
+              <p className={`mb-2 text-xs ${textSecondary(theme)}`}>
+                新建版本：版本号须匹配 <span className="font-mono">v?数字[.数字]…</span>，可选后缀如{' '}
+                <span className="font-mono">-rc1</span>（与后端 <span className="font-mono">@VersionText</span> 一致）。
+              </p>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <input
+                  value={newVersion}
+                  onChange={(e) => setNewVersion(e.target.value)}
+                  className={`min-w-0 flex-1 rounded-xl border px-3 py-2 text-sm ${isDark ? 'border-white/10 bg-white/[0.04] text-slate-200' : 'border-slate-200 bg-white text-slate-700'}`}
+                  placeholder="例如 v2、1.0.0、v1-rc1"
+                />
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const vv = newVersion.trim();
+                    if (!vv) {
+                      showMessage('请填写版本号', 'warning');
+                      return;
+                    }
+                    await runAction(
+                      `create-version-${versionTarget.id}`,
+                      () =>
+                        resourceCenterService
+                          .createVersion(versionTarget.id, { version: vv, makeCurrent: makeNewVersionCurrent })
+                          .then(() => undefined),
+                      makeNewVersionCurrent ? `已创建并设为当前版本 ${vv}` : `已创建版本 ${vv}`,
+                    );
+                    setVersions(await resourceCenterService.listVersions(versionTarget.id));
+                  }}
+                  className={btnPrimary}
+                >
+                  新建版本
+                </button>
+              </div>
+              <label className={`mt-2 flex cursor-pointer items-center gap-2 text-sm ${textSecondary(theme)}`}>
+                <input
+                  type="checkbox"
+                  className="rounded border-slate-300"
+                  checked={makeNewVersionCurrent}
+                  onChange={(e) => setMakeNewVersionCurrent(e.target.checked)}
+                />
+                创建后立即设为当前默认版本（对应 <span className="font-mono">makeCurrent: true</span>）
+              </label>
+              {!makeNewVersionCurrent && (
+                <p className={`mt-1 text-[11px] ${isDark ? 'text-amber-200/90' : 'text-amber-800'}`}>
+                  若取消勾选，新版本可能不会成为「当前」解析版本，直至你手动「设为当前」。
+                </p>
+              )}
             </div>
           </>
         )}

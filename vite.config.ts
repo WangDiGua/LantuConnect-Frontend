@@ -27,6 +27,17 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: 'dist',
       sourcemap: false,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules/echarts')) return 'echarts';
+            if (id.includes('node_modules/three')) return 'three';
+            if (id.includes('node_modules/bytemd') || id.includes('node_modules/@bytemd')) return 'bytemd';
+            if (id.includes('node_modules/framer-motion')) return 'framer-motion';
+            if (id.includes('node_modules/prism-react-renderer') || id.includes('node_modules/prismjs')) return 'prism';
+          },
+        },
+      },
     },
   };
 });

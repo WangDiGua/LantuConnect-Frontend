@@ -25,6 +25,7 @@ import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { PageError } from '../../components/common/PageError';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
 import { formatDateTime } from '../../utils/formatDateTime';
+import { MAX_STORED_API_KEY_LENGTH, readBoundedLocalStorage } from '../../lib/safeStorage';
 
 interface Props { theme: Theme; fontSize: FontSize; themeColor?: ThemeColor; showMessage?: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void; }
 
@@ -138,6 +139,19 @@ export const AppMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, themeCo
     };
   }, [detailApp]);
 
+  /** 列表项无 spec；GET /catalog/resources/app/{id} 含 embedType/icon/screenshots */
+  useEffect(() => {
+    const id = detailApp?.id;
+    if (id == null) return;
+    let cancelled = false;
+    void smartAppService.getById(Number(id)).then((full) => {
+      if (!cancelled) setDetailApp(full);
+    }).catch(() => { /* 保留列表项兜底 */ });
+    return () => {
+      cancelled = true;
+    };
+  }, [detailApp?.id]);
+
   const filtered = useMemo(() => {
     if (!keyword.trim()) return apps;
     const kw = keyword.toLowerCase();
@@ -151,7 +165,7 @@ export const AppMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, themeCo
   const handleOpen = async (app: SmartApp) => {
     setOpeningAppId(app.id);
     try {
-      const apiKey = localStorage.getItem('lantu_api_key')?.trim();
+      const apiKey = readBoundedLocalStorage('lantu_api_key', MAX_STORED_API_KEY_LENGTH)?.trim();
       if (!apiKey) {
         showMessage?.('请先选择并绑定 API Key', 'warning');
         return;
@@ -275,7 +289,11 @@ export const AppMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, themeCo
             {filtered.map((app) => (
               <BentoCard key={app.id} theme={theme} hover glow="indigo" padding="md" onClick={() => setDetailApp(app)} className="flex flex-col h-full !rounded-[20px]">
                 <div className="flex items-start gap-3 mb-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-bold shrink-0 ${pickColor(app.appName)}`}>{(app.displayName || app.appName).charAt(0)}</div>
+                  {app.icon ? (
+                    <img src={app.icon} alt="" className="w-10 h-10 rounded-xl object-cover shrink-0 ring-1 ring-black/10" loading="lazy" />
+                  ) : (
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-bold shrink-0 ${pickColor(app.appName)}`}>{(app.displayName || app.appName).charAt(0)}</div>
+                  )}
                   <div className="min-w-0 flex-1"><h3 className={`font-semibold truncate ${textPrimary(theme)}`}>{app.displayName}</h3></div>
                 </div>
                 <p className={`text-sm leading-relaxed mb-3 line-clamp-2 ${textSecondary(theme)}`}>{app.description || '暂无描述'}</p>
@@ -311,7 +329,11 @@ export const AppMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, themeCo
         {detailApp && (
           <>
             <div className="flex items-center gap-3 mb-4">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-bold shrink-0 ${pickColor(detailApp.appName)}`}>{(detailApp.displayName || detailApp.appName).charAt(0)}</div>
+              {detailApp.icon ? (
+                <img src={detailApp.icon} alt="" className="w-10 h-10 rounded-xl object-cover shrink-0 ring-1 ring-black/10" />
+              ) : (
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-bold shrink-0 ${pickColor(detailApp.appName)}`}>{(detailApp.displayName || detailApp.appName).charAt(0)}</div>
+              )}
               <div className="min-w-0 flex-1">
                 <h3 className={`text-lg font-bold truncate ${textPrimary(theme)}`}>{detailApp.displayName}</h3>
                 <div className="flex items-center gap-2">

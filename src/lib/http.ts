@@ -6,6 +6,7 @@ import axios, {
   InternalAxiosRequestConfig,
 } from 'axios';
 import { env } from '../config/env';
+import { MAX_STORED_API_KEY_LENGTH, readBoundedLocalStorage } from './safeStorage';
 import { ApiException, ApiResponse } from '../types/api';
 
 let getToken: () => string | null = () => localStorage.getItem(env.VITE_TOKEN_KEY);
@@ -47,6 +48,24 @@ export function bindAuthCallbacks(cbs: {
   onRefreshSuccess = cbs.onRefreshSuccess;
 }
 
+/** 与 axios 网关请求对齐的鉴权头，供 invoke-stream 等 fetch 长连接使用。 */
+export function buildGatewayAuthHeaders(opts: { apiKey: string; traceId?: string }): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'X-Api-Key': opts.apiKey.trim(),
+  };
+  const trace = opts.traceId?.trim() || buildRequestId();
+  headers['X-Trace-Id'] = trace;
+  headers['X-Request-Id'] = buildRequestId();
+  const token = getToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const userId = getUserId();
+  if (userId) headers['X-User-Id'] = userId;
+  const loginName = getLoginName();
+  if (loginName) headers['X-Username'] = loginName;
+  return headers;
+}
+
 const instance: AxiosInstance = axios.create({
   baseURL: env.VITE_API_BASE_URL,
   timeout: 30_000,
@@ -57,11 +76,11 @@ const API_KEY_STORAGE_KEY = 'lantu_api_key';
 const SANDBOX_TOKEN_STORAGE_KEY = 'lantu_sandbox_token';
 
 function getStoredApiKey(): string | null {
-  return localStorage.getItem(API_KEY_STORAGE_KEY);
+  return readBoundedLocalStorage(API_KEY_STORAGE_KEY, MAX_STORED_API_KEY_LENGTH);
 }
 
 function getStoredSandboxToken(): string | null {
-  return localStorage.getItem(SANDBOX_TOKEN_STORAGE_KEY);
+  return readBoundedLocalStorage(SANDBOX_TOKEN_STORAGE_KEY, MAX_STORED_API_KEY_LENGTH);
 }
 
 function buildRequestId(): string {
@@ -89,6 +108,9 @@ function ensureRequiredHeaders(config: InternalAxiosRequestConfig): void {
 
   if (path === '/invoke' && !hasApiKey) {
     throw new ApiException({ code: 1001, status: 400, message: '调用 /invoke 必须提供 X-Api-Key' });
+  }
+  if (path === '/invoke-stream' && !hasApiKey) {
+    throw new ApiException({ code: 1001, status: 400, message: '调用 /invoke-stream 必须提供 X-Api-Key' });
   }
   if (path.startsWith('/sdk/v1/') && !hasApiKey) {
     throw new ApiException({ code: 1001, status: 400, message: '调用 /sdk/v1/* 必须提供 X-Api-Key' });
@@ -432,10 +454,11 @@ export const http = {
     return unwrap(res);
   },
 
+  /** FormData 上传：勿手动设置 Content-Type，以便 axios 带上 multipart boundary。 */
   async upload<T>(url: string, formData: FormData, config?: AxiosRequestConfig): Promise<T> {
     const res = await instance.post<ApiResponse<T>>(url, formData, {
       ...config,
-      headers: { ...config?.headers, 'Content-Type': 'multipart/form-data' },
+      headers: { ...config?.headers },
     });
     return unwrap(res);
   },

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Bot,
@@ -21,6 +21,7 @@ import { buildPath } from '../../constants/consoleRoutes';
 import { bentoCard, canvasBodyBg, mainScrollCompositorClass, textPrimary, textSecondary, textMuted, btnPrimary, btnGhost } from '../../utils/uiClasses';
 import { BentoCard } from '../../components/common/BentoCard';
 import { DashboardLayout } from '../../components/layout/PageLayouts';
+import { parseQuickLinkIds } from '../../lib/safeStorage';
 
 interface QuickAccessProps {
   theme: Theme;
@@ -38,6 +39,8 @@ const ALL_TOOLS = [
   { id: 'monitoring', name: '监控中心', icon: Activity, desc: '调用日志与告警', page: 'monitoring-overview', glow: 'emerald' as const, perm: 'monitor:view' },
 ] as const;
 
+const ALL_TOOL_IDS = new Set<string>(ALL_TOOLS.map((t) => t.id));
+
 const ICON_BG: Record<string, { light: string; dark: string }> = {
   agent:      { light: 'bg-blue-50 text-blue-600',      dark: 'bg-blue-500/15 text-blue-400' },
   skill:      { light: 'bg-neutral-100 text-neutral-900',  dark: 'bg-neutral-900/10 text-neutral-300' },
@@ -50,14 +53,26 @@ const ICON_BG: Record<string, { light: string; dark: string }> = {
 export const QuickAccess: React.FC<QuickAccessProps> = ({ theme, fontSize: _fontSize }) => {
   const isDark = theme === 'dark';
   const { hasPermission, isAdmin } = useUserRole();
-  const permittedTools = ALL_TOOLS.filter((t) => hasPermission(t.perm));
+  const permittedTools = useMemo(() => ALL_TOOLS.filter((t) => hasPermission(t.perm)), [hasPermission]);
   const navigate = useNavigate();
 
-  const [visibleIds, setVisibleIds] = useState<string[]>(() => {
-    try { return JSON.parse(localStorage.getItem(QUICK_LINKS_KEY) || 'null') ?? permittedTools.map((t) => t.id); }
-    catch { return permittedTools.map((t) => t.id); }
-  });
-  useEffect(() => { localStorage.setItem(QUICK_LINKS_KEY, JSON.stringify(visibleIds)); }, [visibleIds]);
+  const [visibleIds, setVisibleIds] = useState<string[]>(() =>
+    parseQuickLinkIds(localStorage.getItem(QUICK_LINKS_KEY), ALL_TOOLS.map((t) => t.id), ALL_TOOL_IDS),
+  );
+  useEffect(() => {
+    const allowed = new Set<string>(permittedTools.map((t) => t.id));
+    setVisibleIds((prev) => {
+      const filtered = prev.filter((id) => allowed.has(id));
+      return filtered.length > 0 ? filtered : permittedTools.map((t) => t.id);
+    });
+  }, [permittedTools]);
+  useEffect(() => {
+    try {
+      localStorage.setItem(QUICK_LINKS_KEY, JSON.stringify(visibleIds));
+    } catch {
+      /* ignore quota */
+    }
+  }, [visibleIds]);
 
   const [showCustomize, setShowCustomize] = useState(false);
   const [draftVisible, setDraftVisible] = useState<string[]>(visibleIds);

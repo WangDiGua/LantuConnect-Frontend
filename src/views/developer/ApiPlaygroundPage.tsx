@@ -14,9 +14,15 @@ import {
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
 import { buildPath } from '../../constants/consoleRoutes';
+import {
+  MAX_PLAYGROUND_HISTORY_ITEMS,
+  normalizePlaygroundHistory,
+  parsePlaygroundHistoryFromStorage,
+  type PlaygroundHistoryEntry,
+} from '../../lib/safeStorage';
 
 interface HeaderPair { key: string; value: string; }
-interface HistoryEntry { method: string; url: string; status: number; time: number; body: string; responseBody: string; }
+type HistoryEntry = PlaygroundHistoryEntry;
 
 const METHOD_COLORS: Record<string, string> = { GET: 'text-emerald-500', POST: 'text-blue-500', PUT: 'text-amber-500', DELETE: 'text-rose-500' };
 
@@ -64,13 +70,17 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme }) =
   const [body, setBody] = useState('{\n  "resourceType": "agent",\n  "resourceId": "1",\n  "payload": {\n    "input": "hello"\n  }\n}');
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<{ status: number; time: number; body: string; headers: Record<string, string> } | null>(null);
-  const [history, setHistory] = useState<HistoryEntry[]>(() => {
-    try { const stored = localStorage.getItem('lantu_playground_history'); return stored ? JSON.parse(stored) : []; } catch { return []; }
-  });
+  const [history, setHistory] = useState<HistoryEntry[]>(() =>
+    parsePlaygroundHistoryFromStorage(localStorage.getItem('lantu_playground_history')),
+  );
   const [showRespHeaders, setShowRespHeaders] = useState(false);
 
   React.useEffect(() => {
-    try { localStorage.setItem('lantu_playground_history', JSON.stringify(history)); } catch {}
+    try {
+      localStorage.setItem('lantu_playground_history', JSON.stringify(normalizePlaygroundHistory(history)));
+    } catch {
+      /* 配额或其它写入失败：忽略，不打断调试 */
+    }
   }, [history]);
 
   const addHeader = () => setHeaders([...headers, { key: '', value: '' }]);
@@ -129,14 +139,24 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme }) =
       }
       const time = Date.now() - started;
       setResponse({ status, time, body: text, headers: respHeaders });
-      setHistory((prev) => [{ method, url: resolvedPath, status, time, body, responseBody: text }, ...prev].slice(0, 5));
+      setHistory((prev) =>
+        normalizePlaygroundHistory([{ method, url: resolvedPath, status, time, body, responseBody: text }, ...prev]).slice(
+          0,
+          MAX_PLAYGROUND_HISTORY_ITEMS,
+        ),
+      );
     } catch (e) {
       const time = Date.now() - started;
       const status = e instanceof ApiException ? e.status : 0;
       const msg = e instanceof Error ? e.message : String(e);
       const respBody = JSON.stringify({ error: msg }, null, 2);
       setResponse({ status, time, body: respBody, headers: {} });
-      setHistory((prev) => [{ method, url: resolvedPath, status, time, body, responseBody: respBody }, ...prev].slice(0, 5));
+      setHistory((prev) =>
+        normalizePlaygroundHistory([{ method, url: resolvedPath, status, time, body, responseBody: respBody }, ...prev]).slice(
+          0,
+          MAX_PLAYGROUND_HISTORY_ITEMS,
+        ),
+      );
     } finally {
       setLoading(false);
     }

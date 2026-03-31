@@ -5,12 +5,13 @@ import { filterTagsForResourceType } from '../../utils/marketTags';
 import type { TagItem } from '../../types/dto/tag';
 import { Copy, Eye, EyeOff, Heart, Loader2, MessageSquare, Play, Puzzle, RefreshCw, Search, Send } from 'lucide-react';
 import type { Theme, FontSize, ThemeColor } from '../../types';
-import type { InvokeRequest, InvokeResponse, ResourceCatalogItemVO } from '../../types/dto/catalog';
+import type { InvokeRequest, InvokeResponse, ResourceCatalogItemVO, ResourceResolveVO } from '../../types/dto/catalog';
 import { resourceCatalogService } from '../../api/services/resource-catalog.service';
 import { invokeService } from '../../api/services/invoke.service';
 import { sdkService } from '../../api/services/sdk.service';
 import { userActivityService } from '../../api/services/user-activity.service';
 import { mapInvokeFlowError } from '../../utils/invokeError';
+import { MAX_STORED_API_KEY_LENGTH, readBoundedLocalStorage } from '../../lib/safeStorage';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { BentoCard } from '../../components/common/BentoCard';
 import { GlassPanel } from '../../components/common/GlassPanel';
@@ -132,6 +133,13 @@ type McpParamPreset = {
   params: Record<string, unknown>;
 };
 
+function isWebSocketMcpResolved(resolved: ResourceResolveVO): boolean {
+  const ep = resolved.endpoint?.trim().toLowerCase() ?? '';
+  if (ep.startsWith('ws://') || ep.startsWith('wss://')) return true;
+  const t = resolved.spec?.transport;
+  return typeof t === 'string' && t.toLowerCase() === 'websocket';
+}
+
 function tryFormatJsonText(raw: string): { asJson: boolean; text: string } {
   const trimmed = raw.trim();
   if (!trimmed) return { asJson: false, text: '' };
@@ -159,7 +167,10 @@ export const McpMarket: React.FC<Props> = ({ theme, showMessage }) => {
   const [mcpPresetId, setMcpPresetId] = useState<string>(() => getDefaultPresetIdByMethod(MCP_JSONRPC_METHODS[0]));
   const [invokePayload, setInvokePayload] = useState(DEFAULT_MCP_PAYLOAD_TEXT);
   const [invokeGatewayMode, setInvokeGatewayMode] = useState<InvokeGatewayMode>('invoke');
-  const [invokeApiKey, setInvokeApiKey] = useState<string>(() => localStorage.getItem('lantu_api_key') ?? '');
+  const [invokeUseStream, setInvokeUseStream] = useState(false);
+  const [invokeApiKey, setInvokeApiKey] = useState<string>(
+    () => readBoundedLocalStorage('lantu_api_key', MAX_STORED_API_KEY_LENGTH) ?? '',
+  );
   const [showApiKey, setShowApiKey] = useState(false);
   const [invokeTraceId, setInvokeTraceId] = useState(() => newTraceId());
   const [invokeVersion, setInvokeVersion] = useState('');
@@ -168,6 +179,7 @@ export const McpMarket: React.FC<Props> = ({ theme, showMessage }) => {
   const [invokeResultMessage, setInvokeResultMessage] = useState<string | null>(null);
   const [invokeResultError, setInvokeResultError] = useState<string | null>(null);
   const [invokeRequestTraceId, setInvokeRequestTraceId] = useState<string>('');
+  const [invokeStreamOutput, setInvokeStreamOutput] = useState('');
   const [invoking, setInvoking] = useState(false);
   const [grantModalOpen, setGrantModalOpen] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
@@ -235,6 +247,8 @@ export const McpMarket: React.FC<Props> = ({ theme, showMessage }) => {
     setMcpPresetId(getDefaultPresetIdByMethod(MCP_JSONRPC_METHODS[0]));
     setInvokePayload(DEFAULT_MCP_PAYLOAD_TEXT);
     setInvokeGatewayMode('invoke');
+    setInvokeUseStream(false);
+    setInvokeStreamOutput('');
     setInvokeTraceId(newTraceId());
     setInvokeVersion('');
     setInvokeTimeoutSec(60);
@@ -268,8 +282,14 @@ export const McpMarket: React.FC<Props> = ({ theme, showMessage }) => {
 
   useEffect(() => {
     const key = invokeApiKey.trim();
-    if (key) localStorage.setItem('lantu_api_key', key);
-    else localStorage.removeItem('lantu_api_key');
+    try {
+      if (key) {
+        if (key.length > MAX_STORED_API_KEY_LENGTH) return;
+        localStorage.setItem('lantu_api_key', key);
+      } else localStorage.removeItem('lantu_api_key');
+    } catch {
+      /* quota */
+    }
   }, [invokeApiKey]);
 
   const filtered = useMemo(() => {
@@ -339,8 +359,11 @@ export const McpMarket: React.FC<Props> = ({ theme, showMessage }) => {
   const validateInvokeRequest = useCallback((payload: Record<string, unknown>): string | null => {
     if (!invokeApiKey.trim()) return 'API Key 为空，请先填写可用的 X-Api-Key';
     if (!detail?.resourceId) return '资源ID为空，请重新选择资源后重试';
-    if (!Number.isFinite(invokeTimeoutSec) || invokeTimeoutSec < 1 || invokeTimeoutSec > 120) {
-      return '超时秒数必须为 1~120 之间的数字';
+    const maxSec = invokeUseStream ? 600 : 120;
+    if (!Number.isFinite(invokeTimeoutSec) || invokeTimeoutSec < 1 || invokeTimeoutSec > maxSec) {
+      return invokeUseStream
+        ? `超时秒数必须为 1~${maxSec}（流式与网关上限一致）`
+        : '超时秒数必须为 1~120 之间的数字';
     }
     const method = payload.method;
     if (typeof method !== 'string' || !method.trim()) return 'payload.method 不能为空';
@@ -356,7 +379,7 @@ export const McpMarket: React.FC<Props> = ({ theme, showMessage }) => {
       }
     }
     return null;
-  }, [detail?.resourceId, invokeApiKey, invokeTimeoutSec]);
+  }, [detail?.resourceId, invokeApiKey, invokeTimeoutSec, invokeUseStream]);
 
   const handleInvoke = useCallback(async () => {
     if (!detail) return;
@@ -374,6 +397,7 @@ export const McpMarket: React.FC<Props> = ({ theme, showMessage }) => {
     setInvokeResponse(null);
     setInvokeResultMessage(null);
     setInvokeResultError(null);
+    setInvokeStreamOutput('');
     setInvokeRequestTraceId(invokeTraceId);
     try {
       let resolved;
@@ -396,6 +420,10 @@ export const McpMarket: React.FC<Props> = ({ theme, showMessage }) => {
         setInvokeResultMessage(`该 MCP 资源返回元数据：${JSON.stringify(resolved.spec ?? {}, null, 2)}`);
         return;
       }
+      if (invokeUseStream && isWebSocketMcpResolved(resolved)) {
+        showMessage?.('WebSocket MCP 仅支持普通 invoke，请关闭「流式调用」后重试', 'warning');
+        return;
+      }
       const requestPayload: InvokeRequest = {
         resourceType: 'mcp',
         resourceId: detail.resourceId,
@@ -404,10 +432,47 @@ export const McpMarket: React.FC<Props> = ({ theme, showMessage }) => {
         payload: built.payload,
       };
       try {
-        const res = invokeGatewayMode === 'sdk'
-          ? await sdkService.invoke(invokeApiKey.trim(), requestPayload, invokeTraceId)
-          : await invokeService.invoke(requestPayload, invokeApiKey.trim(), invokeTraceId);
-        setInvokeResponse(res);
+        if (invokeUseStream) {
+          let acc = '';
+          setInvokeStreamOutput('');
+          const streamBudgetMs = Math.min(600, Math.max(1, invokeTimeoutSec)) * 1000 + 30_000;
+          const ac = new AbortController();
+          const to = window.setTimeout(() => ac.abort(), streamBudgetMs);
+          try {
+            const onChunk = (d: string) => {
+              acc += d;
+              setInvokeStreamOutput(acc);
+            };
+            if (invokeGatewayMode === 'sdk') {
+              await sdkService.invokeStream(invokeApiKey.trim(), requestPayload, invokeTraceId, onChunk, ac.signal);
+            } else {
+              await invokeService.invokeStream(requestPayload, invokeApiKey.trim(), invokeTraceId, onChunk, ac.signal);
+            }
+            setInvokeResponse({
+              requestId: '',
+              traceId: invokeTraceId,
+              resourceType: 'mcp',
+              resourceId: String(detail.resourceId),
+              statusCode: 200,
+              status: 'success',
+              latencyMs: 0,
+              body: acc,
+            });
+          } catch (e) {
+            if (e instanceof Error && e.name === 'AbortError') {
+              setInvokeResultError(`流式调用超时或已中断（>${Math.round(streamBudgetMs / 1000)}s）\nTraceId：${invokeTraceId}`);
+            } else {
+              throw e;
+            }
+          } finally {
+            window.clearTimeout(to);
+          }
+        } else {
+          const res = invokeGatewayMode === 'sdk'
+            ? await sdkService.invoke(invokeApiKey.trim(), requestPayload, invokeTraceId)
+            : await invokeService.invoke(requestPayload, invokeApiKey.trim(), invokeTraceId);
+          setInvokeResponse(res);
+        }
       } catch (e) {
         const mapped = mapInvokeFlowError(e, 'invoke');
         if (e instanceof ApiException) {
@@ -437,6 +502,7 @@ export const McpMarket: React.FC<Props> = ({ theme, showMessage }) => {
     invokeGatewayMode,
     invokeTimeoutSec,
     invokeTraceId,
+    invokeUseStream,
     invokeVersion,
     showMessage,
     validateInvokeRequest,
@@ -664,7 +730,11 @@ export const McpMarket: React.FC<Props> = ({ theme, showMessage }) => {
               获取授权指引
             </button>
             <button type="button" className={`${btnPrimary} disabled:opacity-50`} disabled={invoking} onClick={() => void handleInvoke()}>
-              {invoking ? <><Loader2 size={14} className="animate-spin" /> 调用中…</> : <><Play size={14} /> 调用</>}
+              {invoking ? (
+                <><Loader2 size={14} className="animate-spin" /> {invokeUseStream ? '流式调用中…' : '调用中…'}</>
+              ) : (
+                <><Play size={14} /> {invokeUseStream ? '流式调用' : '调用'}</>
+              )}
             </button>
           </>
         )}
@@ -737,11 +807,28 @@ export const McpMarket: React.FC<Props> = ({ theme, showMessage }) => {
                   value={invokeGatewayMode}
                   onChange={(next) => setInvokeGatewayMode(next as InvokeGatewayMode)}
                   options={[
-                    { value: 'invoke', label: '/api/invoke（推荐）' },
-                    { value: 'sdk', label: '/api/sdk/v1/invoke（SDK）' },
+                    {
+                      value: 'invoke',
+                      label: invokeUseStream ? '/api/invoke-stream（流式）' : '/api/invoke（推荐）',
+                    },
+                    {
+                      value: 'sdk',
+                      label: invokeUseStream ? '/api/sdk/v1/invoke-stream（流式）' : '/api/sdk/v1/invoke（SDK）',
+                    },
                   ]}
                   triggerClassName="!text-xs"
                 />
+                <label className={`mt-2 flex cursor-pointer items-start gap-2 text-[11px] ${textMuted(theme)}`}>
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 rounded border-slate-400"
+                    checked={invokeUseStream}
+                    onChange={(e) => setInvokeUseStream(e.target.checked)}
+                  />
+                  <span>
+                    流式调用（invoke-stream，fetch 长连接；权限同 invoke）。WebSocket MCP 请保持关闭并使用普通调用。
+                  </span>
+                </label>
               </div>
               <div>
                 <label className={`mb-1.5 block text-xs font-semibold ${textSecondary(theme)}`}>X-Api-Key（必填）</label>
@@ -808,14 +895,26 @@ export const McpMarket: React.FC<Props> = ({ theme, showMessage }) => {
                 <input
                   type="number"
                   min={1}
-                  max={120}
+                  max={invokeUseStream ? 600 : 120}
                   value={invokeTimeoutSec}
                   onChange={(e) => setInvokeTimeoutSec(Number(e.target.value) || 60)}
                   className={`${nativeInputClass(theme)} font-mono text-xs`}
                 />
-                <p className={`mt-1 text-[11px] ${textMuted(theme)}`}>建议范围 1~120 秒</p>
+                <p className={`mt-1 text-[11px] ${textMuted(theme)}`}>
+                  {invokeUseStream ? '流式时最长 600 秒（与网关一致）' : '建议范围 1~120 秒'}
+                </p>
               </div>
             </div>
+            {invokeUseStream && (invoking || invokeStreamOutput) && (
+              <div>
+                <p className={`mb-1 text-xs font-semibold ${textSecondary(theme)}`}>流式输出（实时）</p>
+                <pre className={`max-h-[28vh] overflow-auto rounded-xl border p-3 text-xs leading-relaxed whitespace-pre-wrap ${
+                  isDark ? 'border-white/10 bg-[#0f172a]' : 'border-slate-200 bg-white'
+                }`}>
+                  {invokeStreamOutput || (invoking ? '等待首包…' : '')}
+                </pre>
+              </div>
+            )}
             <div>
               <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                 <span className={`text-xs font-semibold ${textSecondary(theme)}`}>调用参数（JSON-RPC）</span>

@@ -30,6 +30,7 @@ import { resourceCatalogService } from '../../api/services/resource-catalog.serv
 import { invokeService } from '../../api/services/invoke.service';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { mapInvokeFlowError } from '../../utils/invokeError';
+import { parseWorkspaceAgentIdsFromStorage } from '../../lib/safeStorage';
 import type { Agent } from '../../types/dto/agent';
 import { PageError } from '../../components/common/PageError';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
@@ -161,8 +162,14 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
 
   const navigate = useNavigate();
   const WS_KEY = 'lantu_workspace_agents';
-  const [workspaceAgents, setWorkspaceAgents] = useState<string[]>(() => { try { return JSON.parse(localStorage.getItem(WS_KEY) || '[]'); } catch { return []; } });
-  useEffect(() => { localStorage.setItem(WS_KEY, JSON.stringify(workspaceAgents)); }, [workspaceAgents]);
+  const [workspaceAgents, setWorkspaceAgents] = useState<string[]>(() => parseWorkspaceAgentIdsFromStorage(localStorage.getItem(WS_KEY)));
+  useEffect(() => {
+    try {
+      localStorage.setItem(WS_KEY, JSON.stringify(workspaceAgents));
+    } catch {
+      /* ignore quota */
+    }
+  }, [workspaceAgents]);
   const isInWorkspace = (id: string) => workspaceAgents.includes(id);
 
   const [confirmAgent, setConfirmAgent] = useState<MarketCard | null>(null);

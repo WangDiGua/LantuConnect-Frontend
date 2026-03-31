@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Highlight, themes } from 'prism-react-renderer';
 import type { LucideIcon } from 'lucide-react';
 import {
   Bot, Wrench, Cpu, AppWindow, Database, BookOpen, Users, Sparkles,
@@ -159,20 +160,6 @@ const agent = new Nexus.Agent({
 await agent.deploy();
 console.log('✨ 智能体已上线');`;
 
-function highlightTerminalCode(code: string): string {
-  return code
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/\/\/ (.*)/g, '<span class="text-gray-500">//$1</span>')
-    .replace(/\bimport\b/g, '<span class="text-pink-500">import</span>')
-    .replace(/\bfrom\b/g, '<span class="text-pink-500">from</span>')
-    .replace(/\bconst\b/g, '<span class="text-blue-400">const</span>')
-    .replace(/\bnew\b/g, '<span class="text-blue-400">new</span>')
-    .replace(/\bawait\b/g, '<span class="text-pink-500">await</span>')
-    .replace(/'(.*?)'/g, '<span class="text-green-400">\'$1\'</span>');
-}
-
 const HeroCodeTerminal: React.FC = () => {
   const [typedCode, setTypedCode] = useState('');
 
@@ -204,10 +191,25 @@ const HeroCodeTerminal: React.FC = () => {
       </div>
 
       <div className="h-[300px] shrink-0 p-5 font-mono text-sm leading-relaxed overflow-y-auto overflow-x-hidden min-h-0 min-w-0">
-        <pre className="text-gray-300 whitespace-pre-wrap break-words min-w-0 pb-1">
-          <code dangerouslySetInnerHTML={{ __html: highlightTerminalCode(typedCode) }} />
-          <span className="inline-block w-2 h-4 bg-blue-400 ml-1 animate-pulse" aria-hidden />
-        </pre>
+        <div className="text-gray-300 whitespace-pre-wrap break-words min-w-0 pb-1 inline-block max-w-full align-top">
+          <Highlight theme={themes.vsDark} code={typedCode} language="tsx">
+            {({ className, style, tokens, getLineProps, getTokenProps }) => (
+              <pre
+                className={`${className} whitespace-pre-wrap break-words m-0 p-0 bg-transparent`}
+                style={{ ...style, background: 'transparent', margin: 0, padding: 0 }}
+              >
+                {tokens.map((line, i) => (
+                  <div key={i} {...getLineProps({ line })}>
+                    {line.map((token, key) => (
+                      <span key={key} {...getTokenProps({ token })} />
+                    ))}
+                  </div>
+                ))}
+              </pre>
+            )}
+          </Highlight>
+          <span className="inline-block w-2 h-4 bg-blue-400 ml-1 align-text-bottom animate-pulse" aria-hidden />
+        </div>
       </div>
     </div>
   );

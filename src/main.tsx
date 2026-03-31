@@ -1,4 +1,5 @@
-import {createRoot} from 'react-dom/client';
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './styles/index.css';
 import { getRootFontSizePx } from './constants/theme';
@@ -14,4 +15,8 @@ document.documentElement.style.fontSize = getRootFontSizePx(appearance.fontSize)
 
 const root = document.getElementById('root')!;
 
-createRoot(root).render(<App />);
+createRoot(root).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
+);

@@ -25,6 +25,7 @@ import {
 } from '../../utils/uiClasses';
 import type { DomainStatus } from '../../utils/uiClasses';
 import { formatDateTime } from '../../utils/formatDateTime';
+import { safeOpenHttpUrl } from '../../lib/windowNavigate';
 
 interface AgentDetailProps { agentId: string; theme: Theme; fontSize: FontSize; onBack: () => void; }
 
@@ -54,7 +55,10 @@ export const AgentDetail: React.FC<AgentDetailProps> = ({ agentId, theme, fontSi
     try {
       const resolved = await resourceCatalogService.resolve({ resourceType: 'agent', resourceId: agentId });
       if (resolved.invokeType === 'redirect' && resolved.endpoint) {
-        window.open(resolved.endpoint, '_blank', 'noopener,noreferrer');
+        if (!safeOpenHttpUrl(resolved.endpoint)) {
+          showMessage('无法打开该地址（仅支持 http/https）', 'warning');
+          return;
+        }
         setTestResult(`该资源为跳转类型，已打开地址：${resolved.endpoint}`);
         showMessage('已打开资源地址', 'success');
         return;

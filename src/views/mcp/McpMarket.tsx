@@ -12,6 +12,7 @@ import { sdkService } from '../../api/services/sdk.service';
 import { userActivityService } from '../../api/services/user-activity.service';
 import { mapInvokeFlowError } from '../../utils/invokeError';
 import { MAX_STORED_API_KEY_LENGTH, readBoundedLocalStorage } from '../../lib/safeStorage';
+import { safeOpenHttpUrl } from '../../lib/windowNavigate';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { BentoCard } from '../../components/common/BentoCard';
 import { GlassPanel } from '../../components/common/GlassPanel';
@@ -412,7 +413,10 @@ export const McpMarket: React.FC<Props> = ({ theme, showMessage }) => {
         return;
       }
       if (resolved.invokeType === 'redirect' && resolved.endpoint) {
-        window.open(resolved.endpoint, '_blank', 'noopener,noreferrer');
+        if (!safeOpenHttpUrl(resolved.endpoint)) {
+          setInvokeResultError('无法打开该地址（仅支持 http/https）');
+          return;
+        }
         setInvokeResultMessage(`该 MCP 资源为跳转类型，已打开地址：${resolved.endpoint}`);
         return;
       }

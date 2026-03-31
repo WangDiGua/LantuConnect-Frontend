@@ -26,6 +26,7 @@ import { PageError } from '../../components/common/PageError';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { MAX_STORED_API_KEY_LENGTH, readBoundedLocalStorage } from '../../lib/safeStorage';
+import { safeOpenHttpUrl } from '../../lib/windowNavigate';
 
 interface Props { theme: Theme; fontSize: FontSize; themeColor?: ThemeColor; showMessage?: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void; }
 
@@ -200,16 +201,19 @@ export const AppMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, themeCo
       }
       const launchUrl = resolveLaunchUrl(resolved.launchUrl);
       if (launchUrl) {
-        const opened = window.open(launchUrl, '_blank', 'noopener,noreferrer');
+        const opened = safeOpenHttpUrl(launchUrl);
         if (!opened) {
-          showMessage?.('浏览器拦截了弹窗，请允许弹窗后重试', 'warning');
+          showMessage?.('无法打开：地址非 http(s) 或浏览器拦截了弹窗', 'warning');
           return;
         }
         if (app.embedType === 'iframe') showMessage?.('应用已在新窗口打开', 'info');
         return;
       }
       if (resolved.endpoint) {
-        window.open(resolved.endpoint, '_blank', 'noopener,noreferrer');
+        if (!safeOpenHttpUrl(resolved.endpoint)) {
+          showMessage?.('兼容地址无效或弹窗被拦截（仅支持 http/https）', 'warning');
+          return;
+        }
         showMessage?.('当前应用使用兼容地址打开（建议后端返回 launchUrl）', 'info');
         return;
       }

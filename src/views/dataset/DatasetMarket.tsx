@@ -12,6 +12,7 @@ import { resourceCatalogService } from '../../api/services/resource-catalog.serv
 import { invokeService } from '../../api/services/invoke.service';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { mapInvokeFlowError } from '../../utils/invokeError';
+import { safeOpenHttpUrl } from '../../lib/windowNavigate';
 import {
   canvasBodyBg, mainScrollCompositorClass, bentoCard, btnPrimary, btnSecondary,
   textPrimary, textSecondary, textMuted, techBadge,
@@ -166,7 +167,10 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, the
         return;
       }
       if (resolved.invokeType === 'redirect' && resolved.endpoint) {
-        window.open(resolved.endpoint, '_blank', 'noopener,noreferrer');
+        if (!safeOpenHttpUrl(resolved.endpoint)) {
+          setInvokeResult('无法打开该地址（仅支持 http/https）');
+          return;
+        }
         setInvokeResult(`该数据集资源为跳转类型，已打开地址：${resolved.endpoint}`);
         return;
       }

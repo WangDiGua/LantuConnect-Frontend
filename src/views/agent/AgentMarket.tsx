@@ -31,6 +31,7 @@ import { invokeService } from '../../api/services/invoke.service';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { mapInvokeFlowError } from '../../utils/invokeError';
 import { parseWorkspaceAgentIdsFromStorage } from '../../lib/safeStorage';
+import { safeOpenHttpUrl } from '../../lib/windowNavigate';
 import type { Agent } from '../../types/dto/agent';
 import { PageError } from '../../components/common/PageError';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
@@ -223,7 +224,10 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
         return;
       }
       if (resolved.invokeType === 'redirect' && resolved.endpoint) {
-        window.open(resolved.endpoint, '_blank', 'noopener,noreferrer');
+        if (!safeOpenHttpUrl(resolved.endpoint)) {
+          setInvokeResult('无法打开该地址（仅支持 http/https）');
+          return;
+        }
         setInvokeResult(`该 Agent 为跳转类型，已打开地址：${resolved.endpoint}`);
         return;
       }

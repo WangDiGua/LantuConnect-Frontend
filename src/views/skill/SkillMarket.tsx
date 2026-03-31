@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, Zap, Clock, Activity, MessageSquare, Play, Loader2, Heart } from 'lucide-react';
 import type { Theme, FontSize, ThemeColor } from '../../types';
 import type { Skill } from '../../types/dto/skill';
@@ -13,6 +13,7 @@ import { resourceCatalogService } from '../../api/services/resource-catalog.serv
 import { invokeService } from '../../api/services/invoke.service';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { mapInvokeFlowError } from '../../utils/invokeError';
+import { safeOpenHttpUrl } from '../../lib/windowNavigate';
 import {
   canvasBodyBg, mainScrollCompositorClass, bentoCard, btnPrimary, btnSecondary,
   textPrimary, textSecondary, textMuted, techBadge,
@@ -27,6 +28,7 @@ import { MarketLayout } from '../../components/layout/PageLayouts';
 import { PageError } from '../../components/common/PageError';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
 import { formatDateTime } from '../../utils/formatDateTime';
+import { buildPath } from '../../constants/consoleRoutes';
 
 interface Props { theme: Theme; fontSize: FontSize; themeColor?: ThemeColor; showMessage?: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void; }
 
@@ -41,6 +43,7 @@ function safeText(v: unknown): string { return String(v ?? ''); }
 
 
 export const SkillMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, themeColor: _themeColor, showMessage }) => {
+  const navigate = useNavigate();
   const { chromePageTitle } = useLayoutChrome();
   const isDark = theme === 'dark';
   const [skills, setSkills] = useState<Skill[]>([]);
@@ -81,7 +84,10 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, theme
         return;
       }
       if (resolved.invokeType === 'redirect' && resolved.endpoint) {
-        window.open(resolved.endpoint, '_blank', 'noopener,noreferrer');
+        if (!safeOpenHttpUrl(resolved.endpoint)) {
+          setUseResult('无法打开该地址（仅支持 http/https）');
+          return;
+        }
         setUseResult(`该资源为跳转类型，已打开地址：${resolved.endpoint}`);
         return;
       }
@@ -206,15 +212,24 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, theme
               subtitleOnly
               theme={theme}
               title={chromePageTitle || '技能市场'}
-              tagline="发现与调用可复用技能"
+              tagline="发现与调用可复用技能；支持本地上传或 HTTPS 直链导入技能包发布"
             />
           </div>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:items-end">
+            <button
+              type="button"
+              onClick={() => navigate(buildPath('user', 'skill-register'))}
+              className={`${btnSecondary} shrink-0 px-3 py-2 text-xs font-semibold`}
+            >
+              发布技能（上传 / URL 导入）
+            </button>
           <GlassPanel theme={theme} padding="sm" className="!p-0 w-full sm:w-72">
             <div className="relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               <input type="text" placeholder="搜索技能…" value={keyword} onChange={(e) => setKeyword(e.target.value)} className={`w-full bg-transparent pl-9 pr-3 py-2.5 text-sm outline-none ${textPrimary(theme)}`} />
             </div>
           </GlassPanel>
+          </div>
         </div>
 
         {/* Tags from GET /tags (category Skill) */}

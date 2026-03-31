@@ -296,18 +296,30 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     : DEFAULT_MCP_AUTH_CONFIG_JSON,
               }
             : {}),
-          appUrl: item.appUrl || '',
-          embedType: item.embedType || 'iframe',
-          appIcon: item.icon || '',
-          appScreenshotsText:
-            Array.isArray(item.screenshots) && item.screenshots.length > 0 ? item.screenshots.join('\n') : '',
-          appIsPublic: item.isPublic === true,
-          dataType: item.dataType || 'structured',
-          format: item.format || 'json',
-          recordCount: Number(item.recordCount ?? 0) || 0,
-          fileSize: Number(item.fileSize ?? 0) || 0,
-          tags: Array.isArray(item.tags) ? item.tags.join(',') : '',
-          relatedResourceIds: Array.isArray(item.relatedResourceIds) ? item.relatedResourceIds.join(', ') : '',
+          ...(resourceType === 'app'
+            ? {
+                appUrl: item.appUrl || '',
+                embedType: item.embedType || 'iframe',
+                appIcon: item.icon || '',
+                appScreenshotsText:
+                  Array.isArray(item.screenshots) && item.screenshots.length > 0 ? item.screenshots.join('\n') : '',
+                appIsPublic: item.isPublic === true,
+              }
+            : {}),
+          ...(resourceType === 'dataset'
+            ? {
+                dataType: item.dataType || 'structured',
+                format: item.format || 'json',
+                recordCount: Number(item.recordCount ?? 0) || 0,
+                fileSize: Number(item.fileSize ?? 0) || 0,
+                tags: Array.isArray(item.tags) ? item.tags.join(',') : '',
+              }
+            : {}),
+          ...(resourceType === 'agent' || resourceType === 'app'
+            ? {
+                relatedResourceIds: Array.isArray(item.relatedResourceIds) ? item.relatedResourceIds.join(', ') : '',
+              }
+            : {}),
           ...(resourceType === 'agent'
             ? {
                 agentType: item.agentType || prev.agentType,
@@ -499,6 +511,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     form.paramsSchemaJson,
     form.protocol,
     form.recordCount,
+    form.relatedResourceIds,
     form.resourceCode,
     form.skillType,
     form.mode,

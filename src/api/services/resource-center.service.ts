@@ -27,14 +27,28 @@ function normalizePackStatus(raw: unknown): SkillPackValidationStatus | string |
   return v;
 }
 
+/** 兼容对象或 JSON 字符串（部分网关/历史接口会 stringify） */
+function asRecordObject(value: unknown): Record<string, unknown> | undefined {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  if (typeof value === 'string') {
+    const t = value.trim();
+    if (!t) return undefined;
+    try {
+      const p = JSON.parse(t) as unknown;
+      if (p && typeof p === 'object' && !Array.isArray(p)) return p as Record<string, unknown>;
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
+}
+
 function toResourceItem(raw: any): ResourceCenterItemVO {
   const id = Number(raw?.id ?? raw?.resourceId ?? 0) || 0;
   const type = String(raw?.resourceType ?? 'agent') as ResourceCenterItemVO['resourceType'];
-  const manifestRaw = raw?.manifest;
-  const manifest =
-    manifestRaw && typeof manifestRaw === 'object' && !Array.isArray(manifestRaw)
-      ? (manifestRaw as Record<string, unknown>)
-      : undefined;
+  const manifest = asRecordObject(raw?.manifest);
   return {
     id,
     resourceType: type,
@@ -79,18 +93,33 @@ function toResourceItem(raw: any): ResourceCenterItemVO {
           : raw?.hidden === 0 || raw?.hidden === '0'
             ? false
             : undefined,
-    agentType: raw?.agentType != null && raw?.agentType !== '' ? String(raw.agentType) : undefined,
-    spec:
-      raw?.spec && typeof raw.spec === 'object' && !Array.isArray(raw.spec)
-        ? (raw.spec as Record<string, unknown>)
-        : undefined,
-    systemPrompt: raw?.systemPrompt != null && raw?.systemPrompt !== '' ? String(raw.systemPrompt) : undefined,
+    agentType:
+      raw?.agentType != null && raw?.agentType !== ''
+        ? String(raw.agentType)
+        : raw?.agent_type != null && raw?.agent_type !== ''
+          ? String(raw.agent_type)
+          : undefined,
+    spec: asRecordObject(raw?.spec ?? raw?.spec_json),
+    systemPrompt:
+      raw?.systemPrompt != null && String(raw.systemPrompt).trim() !== ''
+        ? String(raw.systemPrompt)
+        : raw?.system_prompt != null && String(raw.system_prompt).trim() !== ''
+          ? String(raw.system_prompt)
+          : undefined,
     maxSteps:
-      raw?.maxSteps != null && Number.isFinite(Number(raw.maxSteps)) ? Number(raw.maxSteps) : undefined,
+      raw?.maxSteps != null && Number.isFinite(Number(raw.maxSteps))
+        ? Number(raw.maxSteps)
+        : raw?.max_steps != null && Number.isFinite(Number(raw.max_steps))
+          ? Number(raw.max_steps)
+          : undefined,
     temperature:
-      raw?.temperature != null && Number.isFinite(Number(raw.temperature)) ? Number(raw.temperature) : undefined,
-    relatedResourceIds: Array.isArray(raw?.relatedResourceIds)
-      ? raw.relatedResourceIds.map((n: unknown) => Number(n)).filter((n: number) => Number.isFinite(n) && n > 0)
+      raw?.temperature != null && Number.isFinite(Number(raw.temperature))
+        ? Number(raw.temperature)
+        : undefined,
+    relatedResourceIds: Array.isArray(raw?.relatedResourceIds ?? raw?.related_resource_ids)
+      ? (raw.relatedResourceIds ?? raw.related_resource_ids)
+          .map((n: unknown) => Number(n))
+          .filter((n: number) => Number.isFinite(n) && n > 0)
       : undefined,
     dataType: raw?.dataType ? String(raw.dataType) : undefined,
     format: raw?.format ? String(raw.format) : undefined,
@@ -126,13 +155,16 @@ function toResourceItem(raw: any): ResourceCenterItemVO {
     parentResourceId:
       raw?.parentResourceId != null && Number.isFinite(Number(raw.parentResourceId))
         ? Number(raw.parentResourceId)
-        : undefined,
+        : raw?.parent_resource_id != null && Number.isFinite(Number(raw.parent_resource_id))
+          ? Number(raw.parent_resource_id)
+          : undefined,
     displayTemplate:
-      raw?.displayTemplate != null && raw?.displayTemplate !== '' ? String(raw.displayTemplate) : undefined,
-    parametersSchema:
-      raw?.parametersSchema && typeof raw.parametersSchema === 'object' && !Array.isArray(raw.parametersSchema)
-        ? (raw.parametersSchema as Record<string, unknown>)
-        : undefined,
+      raw?.displayTemplate != null && raw?.displayTemplate !== ''
+        ? String(raw.displayTemplate)
+        : raw?.display_template != null && raw?.display_template !== ''
+          ? String(raw.display_template)
+          : undefined,
+    parametersSchema: asRecordObject(raw?.parametersSchema ?? raw?.parameters_schema),
   };
 }
 

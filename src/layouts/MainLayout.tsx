@@ -51,6 +51,7 @@ const AuthorizedSkillsPage = lazy(() => import('../views/user/AuthorizedSkillsPa
 const MyGrantApplicationsPage = lazy(() => import('../views/user/MyGrantApplicationsPage').then(m => ({ default: m.MyGrantApplicationsPage })));
 const ResourceCenterManagementPage = lazy(() => import('../views/resourceCenter/ResourceCenterManagementPage').then(m => ({ default: m.ResourceCenterManagementPage })));
 const ResourceRegisterPage = lazy(() => import('../views/resourceCenter/ResourceRegisterPage').then(m => ({ default: m.ResourceRegisterPage })));
+const SkillExternalMarketPage = lazy(() => import('../views/resourceCenter/SkillExternalMarketPage').then(m => ({ default: m.SkillExternalMarketPage })));
 const ResourceAuditList = lazy(() => import('../views/audit/ResourceAuditList').then(m => ({ default: m.ResourceAuditList })));
 const GrantApplicationListPage = lazy(() => import('../views/userMgmt/GrantApplicationListPage').then(m => ({ default: m.GrantApplicationListPage })));
 const DeveloperApplicationListPage = lazy(() => import('../views/userMgmt/DeveloperApplicationListPage').then(m => ({ default: m.DeveloperApplicationListPage })));
@@ -138,6 +139,7 @@ const SUB_ITEM_PERM_MAP: Record<string, string> = {
   'alert-rules': 'system:config',
   'health-config': 'system:config',
   'circuit-breaker': 'system:config',
+  'skill-external-market': 'system:config',
 };
 
 const LEGACY_PAGE_TO_TYPE: Record<string, ResourceType> = {
@@ -228,8 +230,11 @@ const MainContent = React.memo<{
               allowTypeSwitch
               onTypeChange={(nextType) => nav('resource-catalog', nextType)}
               onNavigateRegister={(type, id) => nav(RESOURCE_TYPE_REGISTER_PAGE[type], id)}
+              onOpenSkillExternalMarket={() => nav('skill-external-market')}
             />
           );
+        case 'skill-external-market':
+          return <SkillExternalMarketPage theme={t} fontSize={fs} showMessage={msg} />;
         case 'agent-register':
           return renderResourceRegister('agent');
         case 'agent-detail':
@@ -706,6 +711,11 @@ const MainLayoutContent: React.FC<{
       !hasPermission('developer:portal')
     ) {
       navigate(defaultPath('user'), { replace: true });
+      return;
+    }
+    if (routeRole === 'admin' && normalizedRoutePage === 'skill-external-market' && !hasPermission('system:config')) {
+      navigate(`${buildPath('admin', 'resource-catalog')}?type=skill`, { replace: true });
+      showMessage('当前账号无权访问技能在线市场', 'info');
       return;
     }
     if (!routeValid) {

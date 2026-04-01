@@ -1,5 +1,5 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, BookOpen, ChevronDown, Download, Link2, Save, Send, Upload } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { ResourceType } from '../../types/dto/catalog';
@@ -39,7 +39,7 @@ const DEFAULT_SKILL_PARAMS_SCHEMA_JSON = '{\n  "type": "object",\n  "properties"
 
 const TYPE_GUIDE_ONE_LINE: Record<ResourceType, string> = {
   agent: '填写基础信息与运行地址后即可保存。',
-  skill: '技能请先上传 zip；远程 HTTP 工具请走 MCP。',
+  skill: '技能请先上传包（zip/tar.gz/单 Markdown 等）；远程 HTTP 工具请走 MCP。',
   mcp: '填写接入地址与鉴权即可。',
   app: '填写可访问 URL 与打开方式。',
   dataset: '填写类型与格式等元数据。',
@@ -156,6 +156,8 @@ export const ResourceRegisterPage: React.FC<Props> = ({
 }) => {
   const isDark = theme === 'dark';
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const user = useAuthStore((s) => s.user);
   const [tagOptions, setTagOptions] = useState<{ value: string; label: string }[]>([{ value: '', label: '不选' }]);
   const [loading, setLoading] = useState(false);
@@ -227,6 +229,44 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       cancelled = true;
     };
   }, [resourceType]);
+
+  useEffect(() => {
+    if (resourceType !== 'skill' || resourceId) return;
+    const raw = searchParams.get('skillPackUrl');
+    if (!raw?.trim()) return;
+    const url = raw.trim();
+    setSkillPackUrl(url);
+    setSkillTechOpen(true);
+    if (!isValidUrl(url)) {
+      showMessage('来自在线市场的技能包链接无效，请使用 HTTPS 直链', 'error');
+      return;
+    }
+    /** 与 React Strict Mode 双次 effect 兼容：仅用「当前挂载」标记，避免第一次被 tear down 后 loading 永远 true */
+    let active = true;
+    setLoading(true);
+    void resourceCenterService
+      .importSkillPackageFromUrl(url, undefined)
+      .then((vo) => {
+        if (!active) return;
+        applySkillPackVoToForm(vo, 'url');
+        setSkillPackUrl('');
+        if (!vo.id) {
+          navigate({ pathname: location.pathname, search: '' }, { replace: true });
+        }
+      })
+      .catch((err) => {
+        if (active) {
+          showMessage(err instanceof Error ? err.message : '从 URL 导入失败', 'error');
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 市场深链一次性导入；闭包内使用当期 applySkillPackVoToForm / navigate
+  }, [resourceType, resourceId, searchParams]);
 
   useEffect(() => {
     if (!resourceId) return;
@@ -665,7 +705,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     const ok = String(vo.packValidationStatus).toLowerCase() === 'valid';
     const verb = via === 'url' ? '从链接导入' : '上传';
     showMessage(
-      ok ? `技能包已${verb}并通过校验` : `已${verb}：${vo.packValidationMessage || '校验未通过，请检查 zip 内容'}`,
+      ok ? `技能包已${verb}并通过校验` : `已${verb}：${vo.packValidationMessage || '校验未通过，请检查包内 SKILL.md 等'}`,
       ok ? 'success' : 'warning',
     );
   };
@@ -688,7 +728,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
   const handleSkillUrlImport = async () => {
     const u = skillPackUrl.trim();
     if (!u) {
-      showMessage('请输入可直链下载的 zip 地址（HTTPS）', 'error');
+      showMessage('请输入可直链下载的技能包地址（HTTPS，zip/tar.gz 等）', 'error');
       return;
     }
     setLoading(true);
@@ -710,11 +750,11 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     }
     if (submitAfterSave && resourceType === 'skill') {
       if (String(form.packValidationStatus).toLowerCase() !== 'valid') {
-        showMessage('提交审核前技能包须通过服务端校验（valid）。请先上传含 SKILL.md 的 zip。', 'error');
+        showMessage('提交审核前技能包须通过服务端校验（valid）。请先上传含 SKILL.md 的包（zip/tar.gz/单 md 等）。', 'error');
         return;
       }
       if (!form.artifactUri.trim()) {
-        showMessage('提交审核前须具备技能包地址（artifactUri），请先上传 zip。', 'error');
+        showMessage('提交审核前须具备技能包地址（artifactUri），请先上传技能包。', 'error');
         return;
       }
     }
@@ -1131,7 +1171,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
               <>
                 <div className="md:col-span-2 rounded-xl border border-dashed px-4 py-3 text-sm">
                   <div className={`mb-2 flex flex-wrap items-center justify-between gap-2 ${textPrimary(theme)}`}>
-                    <span className="font-medium">技能包（zip，内含 SKILL.md）</span>
+                    <span className="font-medium">技能包（zip / tar.gz / tar / 单 Markdown，须含 SKILL.md 规则）</span>
                     <span
                       className={`rounded-full px-2 py-0.5 text-xs ${
                         String(form.packValidationStatus).toLowerCase() === 'valid'
@@ -1156,8 +1196,14 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                   <div className="flex flex-wrap items-center gap-2">
                     <label className={`inline-flex cursor-pointer items-center gap-2 ${btnSecondary(theme)}`}>
                       <Upload size={15} />
-                      <span>{resourceId ? '上传 / 更换 zip' : '上传 zip 创建草稿'}</span>
-                      <input type="file" accept=".zip,application/zip" className="hidden" onChange={(e) => void handleSkillZipUpload(e)} disabled={loading} />
+                      <span>{resourceId ? '上传 / 更换包' : '上传技能包创建草稿'}</span>
+                      <input
+                        type="file"
+                        accept=".zip,.tar,.tar.gz,.tgz,.md,.gz,application/zip,application/gzip,application/x-gzip,text/markdown,application/octet-stream"
+                        className="hidden"
+                        onChange={(e) => void handleSkillZipUpload(e)}
+                        disabled={loading}
+                      />
                     </label>
                     <div className={`mt-2 flex w-full min-w-[240px] flex-1 flex-col gap-2 sm:mt-0 sm:flex-row sm:items-center`}>
                       <input
@@ -1168,7 +1214,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                         className={`min-w-0 flex-1 rounded-lg border px-3 py-2 text-sm ${
                           isDark ? 'border-white/10 bg-white/[0.04] text-slate-200 placeholder:text-slate-500' : 'border-slate-200 bg-white text-slate-900 placeholder:text-slate-400'
                         }`}
-                        placeholder="或粘贴 zip 直链（HTTPS），服务端拉取"
+                        placeholder="或粘贴直链（HTTPS）：zip / tar.gz / tar / .md 等，服务端拉取并归一化"
                       />
                       <button
                         type="button"

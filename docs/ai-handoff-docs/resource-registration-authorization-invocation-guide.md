@@ -12,8 +12,10 @@
 - 后端已经打通五类资源的主链路：**注册 -> 提审 -> 审核 -> 发布 -> 目录可见 -> 使用/调用**。
 - 上架不是一步：**`approve` 不等于上架**，必须再执行 `publish` 才到 `published`。
 - 授权不是“授权链接”：当前是 **`API Key + Scope + Grant` 三层校验模型**。
+- **强统一（浏览 / 执行）**：`GET /catalog/resources*` 可仅靠登录态（JWT）或 API Key **逛市场**；**`POST /catalog/resolve`、`POST /invoke`、`POST /invoke-stream` 必须带本人有效 `X-Api-Key`**（不能只依赖“仅登录”）。
 - 五类资源都能注册，但“使用方式”不同：
-  - `agent/skill/mcp`：可走统一调用 `POST /invoke`。
+  - `agent/mcp`：可走 `POST /catalog/resolve` 与统一调用 `POST /invoke`（或流式 `invoke-stream`）。
+  - `skill`：可走 `POST /catalog/resolve`；**网关不接受** `resourceType=skill` 的 `POST /invoke`（与 Key 策略无关的协议限制）。
   - `app`：主要是解析后拿 URL 跳转/嵌入（`invokeType=redirect`）。
   - `dataset`：主要是元数据消费（`invokeType=metadata`），不是 HTTP 远程执行型。
 
@@ -75,8 +77,8 @@
 
 - `GET /catalog/resources` 目录列表
 - `GET /catalog/resources/{type}/{id}` 按类型详情解析
-- `POST /catalog/resolve` 统一解析
-- `POST /invoke` 统一调用（必须 `X-Api-Key`）
+- `POST /catalog/resolve` 统一解析（**必须 `X-Api-Key`**，强统一）
+- `POST /invoke` / `POST /invoke-stream` 统一调用（**必须 `X-Api-Key`**）
 
 ## 3.4 授权（Grant）
 
@@ -298,11 +300,10 @@ flowchart TD
 - 管理类接口（资源注册、审核、grant 管理）：
   - `Authorization: Bearer <token>`
   - `X-User-Id`（由认证链路注入或透传）
-- 目录/解析：
-  - 至少一项：`X-User-Id` 或 `X-Api-Key`
-- 调用：
-  - `X-Api-Key` 必填
-  - `X-User-Id` 可选
+- 目录（`GET /catalog/resources*`）：
+  - 至少一项：`X-User-Id`（登录态）或 `X-Api-Key`（用于逛市场）
+- 解析（`POST /catalog/resolve`）与调用（`POST /invoke`、`POST /invoke-stream`）：
+  - **`X-Api-Key` 必填**（完整 secretPlain）；可与 `Authorization` / `X-User-Id` 同传
   - `X-Trace-Id` 推荐
 
 ## 8.3 `/invoke` 请求示例（仅可调用类型）

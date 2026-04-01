@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Settings, Lock, Smartphone, Monitor, Bell, Mail, Eye, Database, Palette,
-  ChevronRight, Trash2, Download, Loader2, KeyRound, Plus, Copy,
+  ChevronRight, Trash2, Download, Loader2, KeyRound, Plus, Copy, Check, DownloadCloud,
 } from 'lucide-react';
 import type { Theme, ThemeMode, FontSize, ThemeColor } from '../../types';
 import { THEME_COLOR_CLASSES } from '../../constants/theme';
@@ -24,6 +24,21 @@ import { PageTitleTagline } from '../../components/common/PageTitleTagline';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { buildPath } from '../../constants/consoleRoutes';
 import { apiKeyScopesAllowGatewayFlow } from '../../utils/apiKeyScopes';
+import { MAX_STORED_API_KEY_LENGTH } from '../../lib/safeStorage';
+
+const GATEWAY_API_KEY_STORAGE_KEY = 'lantu_api_key';
+
+function tryPersistGatewayApiKeyToLocalStorage(plain: string): 'ok' | 'too_long' | 'quota' {
+  const t = plain.trim();
+  if (!t) return 'ok';
+  if (t.length > MAX_STORED_API_KEY_LENGTH) return 'too_long';
+  try {
+    localStorage.setItem(GATEWAY_API_KEY_STORAGE_KEY, t);
+    return 'ok';
+  } catch {
+    return 'quota';
+  }
+}
 
 export interface UserSettingsPageProps {
   theme: Theme;
@@ -368,10 +383,13 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
               </button>
             </div>
             {newPlainKey && (
-              <div className={`rounded-xl p-3 border ${isDark ? 'bg-emerald-500/10 border-emerald-500/25' : 'bg-emerald-50 border-emerald-200'}`}>
-                <p className={`text-xs mb-1 ${textSecondary(theme)}`}>请立即复制保存（仅展示一次）：</p>
-                <div className="flex gap-2">
-                  <code className={`text-xs break-all flex-1 rounded-lg px-2 py-1.5 ${isDark ? 'bg-black/30 text-emerald-300' : 'bg-white text-emerald-700'}`}>{newPlainKey}</code>
+              <div className={`rounded-xl p-3 border space-y-2 ${isDark ? 'bg-emerald-500/10 border-emerald-500/25' : 'bg-emerald-50 border-emerald-200'}`}>
+                <p className={`text-xs font-semibold ${isDark ? 'text-emerald-100' : 'text-emerald-950'}`}>密钥仅出现这一次</p>
+                <p className={`text-[11px] leading-relaxed ${textSecondary(theme)}`}>
+                  服务端只保存密钥的校验摘要，<strong className={textPrimary(theme)}>无法找回</strong>明文。请复制到密码管理器或环境变量；需要在本站「市场 / 网关调试」里用时，可一键写入下面共用的本机存储。
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <code className={`text-xs break-all flex-1 min-w-[12rem] rounded-lg px-2 py-1.5 ${isDark ? 'bg-black/30 text-emerald-300' : 'bg-white text-emerald-700'}`}>{newPlainKey}</code>
                   <button
                     type="button"
                     className={btnSecondary(theme)}
@@ -380,11 +398,35 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
                         await navigator.clipboard.writeText(newPlainKey);
                         showMessage('已复制到剪贴板', 'success');
                       } catch {
-                        showMessage('复制失败，请手动复制', 'error');
+                        showMessage('复制失败，请手动全选复制', 'error');
                       }
                     }}
                   >
                     <Copy size={14} /> 复制
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2 pt-0.5">
+                  <button
+                    type="button"
+                    className={`${btnSecondary(theme)} !text-sm`}
+                    onClick={() => {
+                      const r = tryPersistGatewayApiKeyToLocalStorage(newPlainKey);
+                      if (r === 'too_long') showMessage('密钥过长，无法写入本地', 'error');
+                      else if (r === 'quota') showMessage('浏览器存储已满，请手动保存密钥', 'error');
+                      else showMessage('已写入本机网关 Key（与市场、Playground、axios 共用）', 'success');
+                    }}
+                  >
+                    <DownloadCloud size={14} /> 保存到本机网关 Key
+                  </button>
+                  <button
+                    type="button"
+                    className={`${btnSecondary(theme)} !text-sm`}
+                    onClick={() => {
+                      setNewPlainKey(null);
+                      showMessage('明文已从本页隐藏。若尚未备份到安全位置，将无法再查看同一串密钥。', 'info');
+                    }}
+                  >
+                    <Check size={14} /> 我已保存，隐藏明文
                   </button>
                 </div>
               </div>

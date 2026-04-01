@@ -8,6 +8,10 @@ import type {
   ResourceUpsertRequest,
   ResourceVersionCreateRequest,
   ResourceVersionVO,
+  SkillExternalCatalogItemVO,
+  SkillExternalCatalogPage,
+  SkillExternalCatalogProperties,
+  SkillExternalCatalogSettingsResponse,
   SkillPackValidationStatus,
 } from '../../types/dto/resource-center';
 
@@ -211,6 +215,92 @@ function normalizePage(raw: unknown): ResourceCenterPage {
   return { list: [], total: 0, page: 1, pageSize: 20 };
 }
 
+function toSkillCatalogItem(raw: any): SkillExternalCatalogItemVO {
+  const starsRaw = raw?.stars;
+  const stars = starsRaw != null && starsRaw !== '' ? Number(starsRaw) : undefined;
+  return {
+    id: String(raw?.id ?? ''),
+    name: String(raw?.name ?? ''),
+    summary: raw?.summary != null ? String(raw.summary) : undefined,
+    packUrl: String(raw?.packUrl ?? ''),
+    licenseNote: raw?.licenseNote != null ? String(raw.licenseNote) : undefined,
+    sourceUrl: raw?.sourceUrl != null ? String(raw.sourceUrl) : undefined,
+    stars: Number.isFinite(stars) ? stars : undefined,
+  };
+}
+
+function normalizeSkillExternalCatalogPage(raw: unknown): SkillExternalCatalogPage {
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    const o = raw as Record<string, unknown>;
+    const listRaw = o.list;
+    const list = Array.isArray(listRaw) ? listRaw.map(toSkillCatalogItem) : [];
+    return {
+      list,
+      total: Number(o.total ?? list.length) || 0,
+      page: Number(o.page ?? 1) || 1,
+      pageSize: Number(o.pageSize ?? 20) || 20,
+    };
+  }
+  return { list: [], total: 0, page: 1, pageSize: 20 };
+}
+
+function num(raw: unknown, fallback: number): number {
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function toSkillExternalCatalogProperties(raw: any): SkillExternalCatalogProperties {
+  const sm = raw?.skillsmp ?? {};
+  const queriesRaw = sm?.discoveryQueries;
+  const discoveryQueries = Array.isArray(queriesRaw)
+    ? queriesRaw.map((q: unknown) => String(q ?? '').trim()).filter(Boolean)
+    : [];
+  const entriesRaw = raw?.entries;
+  const entries = Array.isArray(entriesRaw)
+    ? entriesRaw.map((e: any) => ({
+        id: e?.id != null ? String(e.id) : '',
+        name: e?.name != null ? String(e.name) : '',
+        summary: e?.summary != null ? String(e.summary) : undefined,
+        packUrl: e?.packUrl != null ? String(e.packUrl) : '',
+        licenseNote: e?.licenseNote != null ? String(e.licenseNote) : undefined,
+        sourceUrl: e?.sourceUrl != null ? String(e.sourceUrl) : undefined,
+      }))
+    : [];
+  return {
+    provider: raw?.provider != null ? String(raw.provider) : 'skillsmp',
+    cacheTtlSeconds: num(raw?.cacheTtlSeconds, 3600),
+    mirrorCatalogUrl: raw?.mirrorCatalogUrl != null ? String(raw.mirrorCatalogUrl) : '',
+    outboundHttpProxy: {
+      host: raw?.outboundHttpProxy?.host != null ? String(raw.outboundHttpProxy.host) : '',
+      port: num(raw?.outboundHttpProxy?.port, 0),
+    },
+    githubZipMirror: {
+      mode: raw?.githubZipMirror?.mode != null ? String(raw.githubZipMirror.mode) : 'none',
+      prefix: raw?.githubZipMirror?.prefix != null ? String(raw.githubZipMirror.prefix) : '',
+    },
+    entries,
+    skillsmp: {
+      enabled: sm?.enabled !== false,
+      baseUrl: sm?.baseUrl != null ? String(sm.baseUrl) : 'https://skillsmp.com/api/v1',
+      apiKey: sm?.apiKey != null ? String(sm.apiKey) : '',
+      sortBy: sm?.sortBy != null ? String(sm.sortBy) : 'stars',
+      limitPerQuery: num(sm?.limitPerQuery, 100),
+      maxQueriesPerRequest: num(sm?.maxQueriesPerRequest, 12),
+      githubDefaultBranch: sm?.githubDefaultBranch != null ? String(sm.githubDefaultBranch) : 'main',
+      discoveryQueries,
+    },
+  };
+}
+
+function toSkillExternalCatalogSettingsResponse(raw: unknown): SkillExternalCatalogSettingsResponse {
+  const o = raw as Record<string, unknown> | null | undefined;
+  const cfg = (o?.config ?? o) as any;
+  return {
+    config: toSkillExternalCatalogProperties(cfg && typeof cfg === 'object' ? cfg : {}),
+    skillsmpApiKeyConfigured: o?.skillsmpApiKeyConfigured === true,
+  };
+}
+
 function toVersionItem(raw: any): ResourceVersionVO {
   const currentFlag = raw?.isCurrent ?? raw?.current;
   return {
@@ -225,6 +315,35 @@ function toVersionItem(raw: any): ResourceVersionVO {
 }
 
 export const resourceCenterService = {
+  /**
+   * 平台管理员：技能在线市场分页列表（keyword 匹配名称/简介/链接等；不传参默认第 1 页 20 条）
+   */
+  listSkillExternalCatalog: async (query?: {
+    keyword?: string;
+    page?: number;
+    pageSize?: number;
+  }): Promise<SkillExternalCatalogPage> => {
+    const raw = await http.get<unknown>('/resource-center/skill-external-catalog', {
+      params: {
+        ...(query?.keyword?.trim() ? { keyword: query.keyword.trim() } : {}),
+        page: query?.page ?? 1,
+        pageSize: query?.pageSize ?? 20,
+      },
+    });
+    return normalizeSkillExternalCatalogPage(raw);
+  },
+
+  /** 超管委会：读取市场运行时配置（SkillsMP apiKey 不下发明文） */
+  getSkillExternalCatalogSettings: async (): Promise<SkillExternalCatalogSettingsResponse> => {
+    const raw = await http.get<unknown>('/resource-center/skill-external-catalog/settings');
+    return toSkillExternalCatalogSettingsResponse(raw);
+  },
+
+  /** 超管委会：保存市场配置；skillsmp.apiKey 传空字符串表示保留原 Key */
+  putSkillExternalCatalogSettings: async (body: SkillExternalCatalogProperties): Promise<void> => {
+    await http.put<void>('/resource-center/skill-external-catalog/settings', body);
+  },
+
   listMine: async (query?: ResourceCenterListQuery): Promise<ResourceCenterPage> => {
     const raw = await http.get<unknown>('/resource-center/resources/mine', { params: query });
     return normalizePage(raw);
@@ -302,10 +421,14 @@ export const resourceCenterService = {
 
   /** 从 HTTPS URL 拉取 zip，校验与落库与 uploadSkillPackage 一致；新建资源为 sourceType=cloud。 */
   importSkillPackageFromUrl: async (url: string, resourceId?: number): Promise<ResourceCenterItemVO> => {
-    const raw = await http.post<unknown>('/resource-center/resources/skills/package-import-url', {
-      url: url.trim(),
-      ...(resourceId != null && Number.isFinite(resourceId) && resourceId > 0 ? { resourceId } : {}),
-    });
+    const raw = await http.post<unknown>(
+      '/resource-center/resources/skills/package-import-url',
+      {
+        url: url.trim(),
+        ...(resourceId != null && Number.isFinite(resourceId) && resourceId > 0 ? { resourceId } : {}),
+      },
+      { timeout: 120_000 },
+    );
     return toResourceItem(raw);
   },
 

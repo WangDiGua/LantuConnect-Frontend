@@ -282,7 +282,7 @@
 | `X-Username` | 登录态存在时注入 | 可选 | axios |
 | `X-Request-Id` | 每请求自动生成 | 自动 | axios |
 | `X-Trace-Id` | 每请求自动注入（与 X-Request-Id 联动） | 自动 | axios |
-| `X-Api-Key` | localStorage 读取自动注入（如有） | SDK/invoke/sandbox 场景 | axios |
+| `X-Api-Key` | localStorage 或市场页填写后注入；无 Key 时执行向请求会被前端/网关拦截 | **强统一**：`POST /catalog/resolve`、`/invoke`、`/invoke-stream` 及 SDK 等须有效 Key | axios |
 | `X-Sandbox-Token` | localStorage 读取自动注入（如有） | 沙箱调用必填 | axios |
 
 ### B1.3 通道差异

@@ -27,6 +27,9 @@ import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
+import { usePersistedGatewayApiKey } from '../../hooks/usePersistedGatewayApiKey';
+import { GatewayApiKeyInput } from '../../components/common/GatewayApiKeyInput';
+import { ApiException } from '../../types/api';
 import { formatDateTime } from '../../utils/formatDateTime';
 
 interface Props { theme: Theme; fontSize: FontSize; themeColor?: ThemeColor; showMessage?: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void; }
@@ -66,6 +69,7 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, the
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [invokePayload, setInvokePayload] = useState('{\n  "query": "sample"\n}');
   const [invokeResult, setInvokeResult] = useState<string | null>(null);
+  const [gatewayApiKeyDraft, setGatewayApiKeyDraft] = usePersistedGatewayApiKey();
   const [searchParams, setSearchParams] = useSearchParams();
   const processedResourceId = useRef<string | null>(null);
 
@@ -160,11 +164,29 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, the
       }
     }
     try {
+      const apiKey = gatewayApiKeyDraft.trim();
+      if (!apiKey) {
+        setInvokeResult('请先填写并绑定有效的 X-Api-Key（创建 Key 时的完整 secretPlain）');
+        return;
+      }
       let resolved;
       try {
-        resolved = await resourceCatalogService.resolve({ resourceType: 'dataset', resourceId: String(ds.id) });
-      } catch (e) {
-        setInvokeResult(`${mapInvokeFlowError(e, 'resolve')}\n可保留当前参数后重试解析`);
+        resolved = await resourceCatalogService.resolve(
+          { resourceType: 'dataset', resourceId: String(ds.id) },
+          { headers: { 'X-Api-Key': apiKey } },
+        );
+      } catch (err) {
+        if (err instanceof ApiException && err.code === 1009) {
+          setInvokeResult(err.message || '请绑定有效的 X-Api-Key（创建 Key 时的完整 secretPlain）');
+        } else if (err instanceof ApiException && (err.status === 401 || err.code === 1002)) {
+          setInvokeResult('请先选择有效 API Key');
+        } else if (err instanceof ApiException && (err.status === 403 || err.code === 1003)) {
+          setInvokeResult('你暂无该资源使用权限，请先申请授权');
+        } else if (err instanceof Error && (err.message.includes('X-Api-Key') || err.message.includes('API Key'))) {
+          setInvokeResult('请先填写并绑定 API Key');
+        } else {
+          setInvokeResult(`${mapInvokeFlowError(err, 'resolve')}\n可保留当前参数后重试解析`);
+        }
         return;
       }
       if (resolved.invokeType === 'redirect' && resolved.endpoint) {
@@ -180,7 +202,10 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, the
         return;
       }
       try {
-        const res = await invokeService.invoke({ resourceType: 'dataset', resourceId: String(ds.id), payload: trimmed ? JSON.parse(trimmed) : undefined });
+        const res = await invokeService.invoke(
+          { resourceType: 'dataset', resourceId: String(ds.id), payload: trimmed ? JSON.parse(trimmed) : undefined },
+          apiKey,
+        );
         setInvokeResult(`状态: ${res.status} (${res.statusCode})\n耗时: ${res.latencyMs}ms\nTraceId: ${res.traceId}\n\n${res.body}`);
       } catch (e) {
         setInvokeResult(`${mapInvokeFlowError(e, 'invoke')}\n数据集市场通常支持 resolve -> metadata/redirect；如需推理调用请通过 Agent/Skill/App 链路发起。`);
@@ -333,6 +358,12 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, the
                 <div><div className={`text-[11px] font-medium ${textMuted(theme)}`}>记录数</div><div className={`text-base font-bold ${textPrimary(theme)}`}>{formatCount(ds.recordCount)}</div></div>
                 <div><div className={`text-[11px] font-medium ${textMuted(theme)}`}>文件大小</div><div className={`text-base font-bold ${textPrimary(theme)}`}>{formatFileSize(ds.fileSize)}</div></div>
               </div>
+              <GatewayApiKeyInput
+                theme={theme}
+                id="dataset-market-gateway-key"
+                value={gatewayApiKeyDraft}
+                onChange={setGatewayApiKeyDraft}
+              />
               <div>
                 <div className={`text-xs font-semibold mb-2 ${textSecondary(theme)}`}>调用参数（JSON 对象）</div>
                 <textarea

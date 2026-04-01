@@ -33,6 +33,14 @@ export function readBoundedLocalStorage(key: string, maxLen: number): string | n
   }
 }
 
+/** 网关 /catalog/resolve、/invoke 等使用的本地 API Key（与 App/MCP 共用 `lantu_api_key`） */
+export function getStoredGatewayApiKey(): string | undefined {
+  const raw = readBoundedLocalStorage('lantu_api_key', MAX_STORED_API_KEY_LENGTH);
+  if (raw == null) return undefined;
+  const t = raw.trim();
+  return t.length > 0 ? t : undefined;
+}
+
 export function normalizePlaygroundHistory(entries: unknown): PlaygroundHistoryEntry[] {
   if (!Array.isArray(entries)) return [];
   const out: PlaygroundHistoryEntry[] = [];

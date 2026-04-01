@@ -65,6 +65,7 @@ const ADMIN_SIDEBAR_PAGES: Record<string, string[]> = {
   'overview': ['dashboard', 'health-check', 'usage-statistics', 'data-reports'],
   'resource-management': [
     'resource-catalog',
+    'skill-external-market',
     'agent-register', 'agent-monitoring', 'agent-trace', 'agent-detail',
     'skill-register', 'mcp-register', 'app-register', 'dataset-register',
     'agent-list', 'skill-list', 'mcp-server-list', 'app-list', 'dataset-list',
@@ -124,6 +125,9 @@ export function subItemToPage(sidebarId: string, subItemId: string, isAdmin: boo
 export function pageToSubItem(page: string, sidebarId: string | null, isAdmin: boolean): string {
   if (isAdmin && page === 'dashboard' && sidebarId === 'overview') return 'overview';
   if (!isAdmin && page === 'workspace' && sidebarId === 'workspace') return 'overview';
+  if (isAdmin && sidebarId === 'resource-management' && page === 'skill-external-market') {
+    return 'skill-external-market';
+  }
   if (isAdmin && sidebarId === 'resource-management' && ADMIN_RESOURCE_CATALOG_PAGES.has(page)) {
     return 'resource-catalog';
   }

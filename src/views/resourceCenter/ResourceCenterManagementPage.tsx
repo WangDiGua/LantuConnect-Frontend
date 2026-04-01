@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Download, Plus, RefreshCw } from 'lucide-react';
+import { Download, Plus, RefreshCw, Store } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { ResourceType } from '../../types/dto/catalog';
 import type {
@@ -109,6 +109,8 @@ interface Props {
   allowTypeSwitch?: boolean;
   onTypeChange?: (type: ResourceType) => void;
   onNavigateRegister: (resourceType: ResourceType, id?: number) => void;
+  /** 平台管理员在「技能」页打开在线市场 */
+  onOpenSkillExternalMarket?: () => void;
 }
 
 export const ResourceCenterManagementPage: React.FC<Props> = ({
@@ -118,6 +120,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
   allowTypeSwitch = false,
   onTypeChange,
   onNavigateRegister,
+  onOpenSkillExternalMarket,
 }) => {
   const isDark = theme === 'dark';
   const { platformRole } = useUserRole();
@@ -274,11 +277,17 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
               <h2 className={`text-lg font-bold ${textPrimary(theme)}`}>{title}</h2>
               <p className={`mt-0.5 text-xs ${textMuted(theme)}`}>资源中心闭环：注册、提审、发布、版本、下线</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button type="button" onClick={() => void fetchData()} className={btnGhost(theme)}>
                 <RefreshCw size={15} />
                 刷新
               </button>
+              {allowTypeSwitch && activeType === 'skill' && canPublish && onOpenSkillExternalMarket ? (
+                <button type="button" onClick={onOpenSkillExternalMarket} className={btnGhost(theme)}>
+                  <Store size={15} />
+                  在线市场
+                </button>
+              ) : null}
               <button type="button" onClick={() => onNavigateRegister(activeType)} className={btnPrimary}>
                 <Plus size={15} />
                 注册{RESOURCE_TYPE_LABEL_ZH[activeType]}

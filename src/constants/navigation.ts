@@ -51,6 +51,7 @@ import {
   Compass,
   Library,
   Plus,
+  Store,
 } from 'lucide-react';
 
 // ==================== 管理员菜单（接入平台管理视角）====================
@@ -99,6 +100,7 @@ export const ADMIN_RESOURCE_MANAGEMENT_GROUPS = [
     title: '资源目录',
     items: [
       { id: 'resource-catalog', icon: Boxes, label: '统一资源中心', tag: '审核' },
+      { id: 'skill-external-market', icon: Store, label: '技能在线市场', tag: '管理员' },
     ],
   },
   {

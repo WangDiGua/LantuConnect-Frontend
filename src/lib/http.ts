@@ -137,6 +137,13 @@ function ensureRequiredHeaders(config: InternalAxiosRequestConfig): void {
   if ((path === '/system-config/params' || path === '/system-config/security') && config.method?.toLowerCase() === 'put' && !hasUserId) {
     throw new ApiException({ code: 1001, status: 400, message: '调用 PUT /system-config/params|security 必须提供 X-User-Id' });
   }
+  if (path === '/resource-center/skill-external-catalog/settings' && config.method?.toLowerCase() === 'put' && !hasUserId) {
+    throw new ApiException({
+      code: 1001,
+      status: 400,
+      message: '调用 PUT /resource-center/skill-external-catalog/settings 必须提供 X-User-Id（请确认已登录）',
+    });
+  }
   if ((path === '/system-config/network/apply' || path === '/system-config/acl/publish') && config.method?.toLowerCase() === 'post' && !hasUserId) {
     throw new ApiException({ code: 1001, status: 400, message: '调用 POST /system-config/network/apply|acl/publish 必须提供 X-User-Id' });
   }
@@ -152,14 +159,20 @@ function ensureRequiredHeaders(config: InternalAxiosRequestConfig): void {
   if (path.startsWith('/developer/applications') && !hasUserId) {
     throw new ApiException({ code: 1001, status: 400, message: '调用 /developer/applications* 必须提供 X-User-Id' });
   }
-  if ((path === '/catalog/resolve' || path.startsWith('/catalog/resources')) && !hasUserId && !hasApiKey) {
-    throw new ApiException({ code: 1001, status: 400, message: '调用目录/解析接口必须至少提供 X-User-Id 或 X-Api-Key' });
+  if (path === '/catalog/resolve' && !hasApiKey) {
+    throw new ApiException({ code: 1001, status: 400, message: '调用 POST /catalog/resolve 必须提供 X-Api-Key' });
+  }
+  if (path.startsWith('/catalog/resources') && !hasUserId && !hasApiKey) {
+    throw new ApiException({ code: 1001, status: 400, message: '浏览目录接口必须至少提供 X-User-Id（登录）或 X-Api-Key' });
   }
 }
 
 function mapErrorMessage(status: number, code?: number, fallback?: string): string {
   if (status === 401 || code === 1002 || code === 2001 || code === 2002 || code === 2008) {
     return fallback || '认证已失效，请重新登录后重试';
+  }
+  if (code === 1009) {
+    return fallback || '请绑定有效的 X-Api-Key（创建 Key 时的完整 secretPlain）';
   }
   if (status === 403 || code === 1003) {
     return fallback || '无权限执行当前操作（请检查 RBAC、API Key scope 与资源 Grant）';
@@ -219,8 +232,11 @@ function withPathHint(path: string, message: string): string {
   if ((path === '/invoke' || path.startsWith('/sdk/v1/')) && message.includes('无权限')) {
     return `${message}。调用链路需同时满足：RBAC + API Key scope + Resource Grant。`;
   }
-  if ((path === '/catalog/resolve' || path.startsWith('/catalog/resources')) && message.includes('无权限')) {
-    return `${message}。目录/解析接口至少需要 X-User-Id 或 X-Api-Key。`;
+  if (path === '/catalog/resolve' && message.includes('无权限')) {
+    return `${message}。POST /catalog/resolve 须提供有效的 X-Api-Key。`;
+  }
+  if (path.startsWith('/catalog/resources') && message.includes('无权限')) {
+    return `${message}。浏览目录至少需要登录（X-User-Id）或 X-Api-Key。`;
   }
   return message;
 }

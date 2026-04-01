@@ -408,7 +408,7 @@ export const McpMarket: React.FC<Props> = ({ theme, showMessage }) => {
           resourceType: 'mcp',
           resourceId: detail.resourceId,
           version: invokeVersion.trim() || undefined,
-        });
+        }, { headers: { 'X-Api-Key': invokeApiKey.trim() } });
       } catch (e) {
         setInvokeResultError(`${mapInvokeFlowError(e, 'resolve')}\n可保留当前参数后重试解析`);
         return;

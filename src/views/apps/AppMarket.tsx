@@ -26,7 +26,8 @@ import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
 import { formatDateTime } from '../../utils/formatDateTime';
-import { MAX_STORED_API_KEY_LENGTH, readBoundedLocalStorage } from '../../lib/safeStorage';
+import { usePersistedGatewayApiKey } from '../../hooks/usePersistedGatewayApiKey';
+import { GatewayApiKeyInput } from '../../components/common/GatewayApiKeyInput';
 import { safeOpenHttpUrl } from '../../lib/windowNavigate';
 
 interface Props { theme: Theme; fontSize: FontSize; themeColor?: ThemeColor; showMessage?: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void; }
@@ -65,6 +66,7 @@ export const AppMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, themeCo
   const [detailTab, setDetailTab] = useState<'overview' | 'reviews'>('overview');
   const [searchParams, setSearchParams] = useSearchParams();
   const processedResourceId = useRef<string | null>(null);
+  const [gatewayApiKeyDraft, setGatewayApiKeyDraft] = usePersistedGatewayApiKey();
 
   useEffect(() => {
     tagService.list()
@@ -167,7 +169,7 @@ export const AppMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, themeCo
   const handleOpen = async (app: SmartApp) => {
     setOpeningAppId(app.id);
     try {
-      const apiKey = readBoundedLocalStorage('lantu_api_key', MAX_STORED_API_KEY_LENGTH)?.trim();
+      const apiKey = gatewayApiKeyDraft.trim();
       if (!apiKey) {
         showMessage?.('请先选择并绑定 API Key', 'warning');
         return;
@@ -181,7 +183,9 @@ export const AppMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, themeCo
           headers: { 'X-Api-Key': apiKey },
         });
       } catch (err) {
-        if (err instanceof ApiException && (err.status === 401 || err.code === 1002)) {
+        if (err instanceof ApiException && err.code === 1009) {
+          showMessage?.(err.message || '请绑定有效的 X-Api-Key', 'warning');
+        } else if (err instanceof ApiException && (err.status === 401 || err.code === 1002)) {
           showMessage?.('请先选择有效 API Key', 'warning');
         } else if (err instanceof ApiException && (err.status === 403 || err.code === 1003)) {
           showMessage?.('你暂无该应用使用权限，请先申请授权', 'warning');
@@ -362,6 +366,12 @@ export const AppMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, themeCo
               </div>
             </div>
             <div className="space-y-5">
+              <GatewayApiKeyInput
+                theme={theme}
+                id="app-market-gateway-key"
+                value={gatewayApiKeyDraft}
+                onChange={setGatewayApiKeyDraft}
+              />
               <div
                 className={`inline-flex rounded-xl p-1 ${isDark ? 'bg-white/[0.06]' : 'bg-slate-100'}`}
                 role="tablist"

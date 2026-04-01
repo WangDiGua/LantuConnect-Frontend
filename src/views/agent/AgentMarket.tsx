@@ -36,6 +36,9 @@ import type { Agent } from '../../types/dto/agent';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
+import { usePersistedGatewayApiKey } from '../../hooks/usePersistedGatewayApiKey';
+import { GatewayApiKeyInput } from '../../components/common/GatewayApiKeyInput';
+import { ApiException } from '../../types/api';
 
 export interface AgentMarketProps {
   theme: Theme; fontSize: FontSize; themeColor: ThemeColor;
@@ -193,6 +196,7 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
   const [invoking, setInvoking] = useState(false);
   const [invokePayload, setInvokePayload] = useState('{\n  "input": "hello"\n}');
   const [invokeResult, setInvokeResult] = useState<string | null>(null);
+  const [gatewayApiKeyDraft, setGatewayApiKeyDraft] = usePersistedGatewayApiKey();
   const applyAuthorization = (_agent: MarketCard) => {
     setGrantModalAgent(_agent);
   };
@@ -217,11 +221,29 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
       }
     }
     try {
+      const apiKey = gatewayApiKeyDraft.trim();
+      if (!apiKey) {
+        setInvokeResult('请先填写并绑定有效的 X-Api-Key（创建 Key 时的完整 secretPlain）');
+        return;
+      }
       let resolved;
       try {
-        resolved = await resourceCatalogService.resolve({ resourceType: 'agent', resourceId: agent.id });
-      } catch (e) {
-        setInvokeResult(`${mapInvokeFlowError(e, 'resolve')}\n可保留当前参数后重试解析`);
+        resolved = await resourceCatalogService.resolve(
+          { resourceType: 'agent', resourceId: agent.id },
+          { headers: { 'X-Api-Key': apiKey } },
+        );
+      } catch (err) {
+        if (err instanceof ApiException && err.code === 1009) {
+          setInvokeResult(err.message || '请绑定有效的 X-Api-Key（创建 Key 时的完整 secretPlain）');
+        } else if (err instanceof ApiException && (err.status === 401 || err.code === 1002)) {
+          setInvokeResult('请先选择有效 API Key');
+        } else if (err instanceof ApiException && (err.status === 403 || err.code === 1003)) {
+          setInvokeResult('你暂无该资源使用权限，请先申请授权');
+        } else if (err instanceof Error && (err.message.includes('X-Api-Key') || err.message.includes('API Key'))) {
+          setInvokeResult('请先填写并绑定 API Key');
+        } else {
+          setInvokeResult(`${mapInvokeFlowError(err, 'resolve')}\n可保留当前参数后重试解析`);
+        }
         return;
       }
       if (resolved.invokeType === 'redirect' && resolved.endpoint) {
@@ -241,7 +263,7 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
           resourceType: 'agent',
           resourceId: agent.id,
           payload,
-        });
+        }, apiKey);
         setInvokeResult(`状态: ${res.status} (${res.statusCode})\n耗时: ${res.latencyMs}ms\nTraceId: ${res.traceId}\n\n${res.body}`);
       } catch (e) {
         setInvokeResult(`${mapInvokeFlowError(e, 'invoke')}\n可保留当前参数后重试调用`);
@@ -462,6 +484,13 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
                   <p className={`text-sm leading-relaxed ${textSecondary(theme)}`}>{detailAgent.description}</p>
                   <div className="flex flex-wrap gap-1.5 mt-3">{detailAgent.tags.map((t) => <span key={t} className={techBadge(theme)}>{t}</span>)}</div>
                 </div>
+                <GatewayApiKeyInput
+                  theme={theme}
+                  id="agent-market-gateway-key"
+                  value={gatewayApiKeyDraft}
+                  onChange={setGatewayApiKeyDraft}
+                  className="mb-1"
+                />
                 <div className={`${bentoCard(theme)} p-4`}>
                   <h4 className={`font-bold text-sm mb-2 ${textPrimary(theme)}`}>调用参数</h4>
                   <textarea

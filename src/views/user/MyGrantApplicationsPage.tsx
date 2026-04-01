@@ -131,8 +131,8 @@ export const MyGrantApplicationsPage: React.FC<Props> = ({ theme }) => {
                   在列表中找「已通过」，点 <strong className={textPrimary(theme)}>前往资源</strong> 打开市场详情试调用。
                 </li>
                 <li>
-                  自建接入时使用 <span className="font-mono text-xs">/catalog/resolve</span> 与 <span className="font-mono text-xs">/invoke</span>；请求头、密钥与权限规则见{' '}
-                  <strong className={textPrimary(theme)}>API 文档</strong>（下方按钮）。
+                  自建接入时使用 <span className="font-mono text-xs">/catalog/resolve</span> 与 <span className="font-mono text-xs">/invoke</span>（流式为 <span className="font-mono text-xs">/invoke-stream</span>）；上述执行向请求<strong className={textPrimary(theme)}>均须</strong>携带有效 <span className="font-mono text-xs">X-Api-Key</span>。细则见{' '}
+                  <strong className={textPrimary(theme)}>API 文档</strong>。
                 </li>
               </ul>
               <div className="mt-3 flex flex-wrap gap-2">

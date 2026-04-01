@@ -17,10 +17,42 @@ import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { buildPath } from '../../constants/consoleRoutes';
 import {
   MAX_PLAYGROUND_HISTORY_ITEMS,
+  MAX_STORED_API_KEY_LENGTH,
   normalizePlaygroundHistory,
   parsePlaygroundHistoryFromStorage,
+  readBoundedLocalStorage,
   type PlaygroundHistoryEntry,
 } from '../../lib/safeStorage';
+
+/** 与 `usePersistedGatewayApiKey`、axios 注入逻辑共用 */
+const GATEWAY_API_KEY_STORAGE_KEY = 'lantu_api_key';
+
+function readStoredGatewayApiKey(): string {
+  return readBoundedLocalStorage(GATEWAY_API_KEY_STORAGE_KEY, MAX_STORED_API_KEY_LENGTH)?.trim() ?? '';
+}
+
+function getHeaderValue(pairs: HeaderPair[], name: string): string {
+  const n = name.toLowerCase();
+  for (const h of pairs) {
+    if (h.key.trim().toLowerCase() === n) return h.value;
+  }
+  return '';
+}
+
+/** 相对 /api 路径；外链不校验 */
+function playgroundPathNeedsApiKey(rawUrl: string): boolean {
+  const path = toRelativeApiPath(rawUrl).split('?')[0];
+  if (/^https?:\/\//i.test(path)) return false;
+  if (path === '/invoke' || path === '/invoke-stream' || path === '/catalog/resolve') return true;
+  if (path.startsWith('/sdk/v1/')) return true;
+  return false;
+}
+
+function effectivePlaygroundApiKey(headers: HeaderPair[]): string {
+  const fromForm = getHeaderValue(headers, 'X-Api-Key').trim();
+  if (fromForm) return fromForm;
+  return readStoredGatewayApiKey();
+}
 
 interface HeaderPair { key: string; value: string; }
 type HistoryEntry = PlaygroundHistoryEntry;
@@ -75,6 +107,20 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme }) =
     parsePlaygroundHistoryFromStorage(localStorage.getItem('lantu_playground_history')),
   );
   const [showRespHeaders, setShowRespHeaders] = useState(false);
+  const [executeKeyHint, setExecuteKeyHint] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    const stored = readStoredGatewayApiKey();
+    if (!stored) return;
+    setHeaders((prev) => {
+      const idx = prev.findIndex((h) => h.key.trim().toLowerCase() === 'x-api-key');
+      if (idx < 0) return prev;
+      if (prev[idx].value.trim()) return prev;
+      const next = [...prev];
+      next[idx] = { ...next[idx], value: stored };
+      return next;
+    });
+  }, []);
 
   React.useEffect(() => {
     try {
@@ -84,15 +130,27 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme }) =
     }
   }, [history]);
 
+  React.useEffect(() => {
+    setExecuteKeyHint(null);
+  }, [url, method]);
+
   const addHeader = () => setHeaders([...headers, { key: '', value: '' }]);
   const updateHeader = (idx: number, field: 'key' | 'value', val: string) => { const n = [...headers]; n[idx] = { ...n[idx], [field]: val }; setHeaders(n); };
   const removeHeader = (idx: number) => setHeaders(headers.filter((_, i) => i !== idx));
 
   const sendRequest = useCallback(async () => {
+    const resolvedPath = toRelativeApiPath(url);
+    if (playgroundPathNeedsApiKey(url) && !effectivePlaygroundApiKey(headers)) {
+      setExecuteKeyHint(
+        '此路径须带有效 X-Api-Key（完整 secretPlain）。请在 Headers 填写，或在资源市场 / 个人设置保存网关 Key（与 axios 共用本地存储后会自动注入请求）。',
+      );
+      setResponse(null);
+      return;
+    }
+    setExecuteKeyHint(null);
     setLoading(true);
     setResponse(null);
     const started = Date.now();
-    const resolvedPath = toRelativeApiPath(url);
     const isAbsolute = /^https?:\/\//i.test(resolvedPath);
 
     const hdrs = new Headers();
@@ -174,7 +232,12 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme }) =
             <Terminal size={20} className={isDark ? 'text-emerald-400' : 'text-emerald-600'} />
           </div>
           <div className="min-w-0 flex-1 flex flex-wrap items-center gap-x-3 gap-y-2">
-            <PageTitleTagline subtitleOnly theme={theme} title={chromePageTitle || 'API Playground'} tagline="调试请求；鉴权与路径说明见接入指南" />
+            <PageTitleTagline
+              subtitleOnly
+              theme={theme}
+              title={chromePageTitle || 'API Playground'}
+              tagline="调试请求；POST /catalog/resolve、/invoke、/invoke-stream 须 X-Api-Key（已尝试填入与市场共用的本地密钥）"
+            />
             <button
               type="button"
               className={`inline-flex items-center gap-1 rounded-xl border px-3 py-1.5 text-xs font-medium ${
@@ -202,8 +265,19 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme }) =
                   onChange={setMethod}
                   options={HTTP_METHOD_OPTIONS}
                 />
-                <input type="text" value={url} onChange={(e) => setUrl(e.target.value)} className={nativeInputClass(theme)} placeholder="/api/catalog/resources 或 /api/invoke" />
+                <input
+                  type="text"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  className={nativeInputClass(theme)}
+                  placeholder="/catalog/resources … /catalog/resolve /invoke（执行向须 Key）"
+                />
               </div>
+              {playgroundPathNeedsApiKey(url) && (
+                <p className={`text-[11px] leading-snug rounded-lg px-3 py-2 ${isDark ? 'bg-amber-500/10 text-amber-100/90 border border-amber-500/20' : 'bg-amber-50 text-amber-950 border border-amber-200/80'}`}>
+                  当前 URL 属于<strong>执行向</strong>：须有效的 <span className="font-mono">X-Api-Key</span>。若已从本机注入，请检查下方 Headers 中的对应行。
+                </p>
+              )}
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className={`text-xs font-semibold ${textSecondary(theme)}`}>Headers</span>
@@ -226,7 +300,12 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme }) =
                 </div>
               )}
             </div>
-            <div className={`px-4 py-3 border-t shrink-0 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+            <div className={`px-4 py-3 border-t shrink-0 space-y-2 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+              {executeKeyHint && (
+                <p className={`text-xs rounded-lg px-3 py-2 ${isDark ? 'bg-rose-500/15 text-rose-100 border border-rose-500/25' : 'bg-rose-50 text-rose-950 border border-rose-200'}`}>
+                  {executeKeyHint}
+                </p>
+              )}
               <button type="button" onClick={sendRequest} disabled={loading} className={`w-full ${btnPrimary} !justify-center`}>
                 {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Send size={16} />}
                 {loading ? '请求中...' : '发送请求'}

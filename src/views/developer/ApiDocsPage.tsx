@@ -42,12 +42,13 @@ const API_CATEGORIES: ApiCategory[] = [
     { method: 'POST', path: '/auth/refresh', description: '使用 refreshToken 刷新 token', params: [{ name: 'refreshToken', type: 'string', required: true, description: '刷新令牌' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { token: 'eyJ...', refreshToken: 'rt_new' } }, null, 2) },
   ]},
   { id: 'catalog', label: '统一资源目录', endpoints: [
-    { method: 'GET', path: '/catalog/resources', description: '按 resourceType、keyword、status、tags 等查询资源目录。列表项可含 tags（目录标签名字符串）；query tags 按标签名过滤（基于资源与标签的关联表）。', params: [{ name: 'page', type: 'number', required: false, description: '页码，默认 1' }, { name: 'pageSize', type: 'number', required: false, description: '每页，默认 20' }, { name: 'resourceType', type: 'string', required: false, description: 'agent/skill/mcp/app/dataset' }, { name: 'keyword', type: 'string', required: false, description: '关键字' }, { name: 'tags', type: 'string', required: false, description: '标签名筛选（格式以后端为准，可与 keyword 等组合）' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { list: [{ resourceType: 'agent', resourceId: '1', resourceCode: 'course-advisor', displayName: '选课助手', status: 'published', tags: ['教务'], currentVersion: 'v1' }], total: 42, page: 1, pageSize: 20 } }, null, 2) },
-    { method: 'GET', path: '/catalog/resources/{type}/{id}', description: '查询单个资源详情', params: [{ name: 'type', type: 'string', required: true, description: '资源类型' }, { name: 'id', type: 'string', required: true, description: '资源 ID' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { resourceType: 'skill', resourceId: '9', resourceCode: 'weather-tool', displayName: '天气查询', status: 'published', currentVersion: 'v1' } }, null, 2) },
+    { method: 'GET', path: '/catalog/resources', description: '按 resourceType、keyword、status、tags 等查询资源目录（逛市场）。须至少有登录态（Authorization → X-User-Id）或 X-Api-Key 之一；二者可同时携带。', params: [{ name: 'page', type: 'number', required: false, description: '页码，默认 1' }, { name: 'pageSize', type: 'number', required: false, description: '每页，默认 20' }, { name: 'resourceType', type: 'string', required: false, description: 'agent/skill/mcp/app/dataset' }, { name: 'keyword', type: 'string', required: false, description: '关键字' }, { name: 'tags', type: 'string', required: false, description: '标签名筛选（格式以后端为准，可与 keyword 等组合）' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { list: [{ resourceType: 'agent', resourceId: '1', resourceCode: 'course-advisor', displayName: '选课助手', status: 'published', tags: ['教务'], currentVersion: 'v1' }], total: 42, page: 1, pageSize: 20 } }, null, 2) },
+    { method: 'GET', path: '/catalog/resources/{type}/{id}', description: '查询单个资源详情（逛市场）。头要求同 GET /catalog/resources；可与登录态同传 X-Api-Key。', params: [{ name: 'type', type: 'string', required: true, description: '资源类型' }, { name: 'id', type: 'string', required: true, description: '资源 ID' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { resourceType: 'skill', resourceId: '9', resourceCode: 'weather-tool', displayName: '天气查询', status: 'published', currentVersion: 'v1' } }, null, 2) },
   ]},
   { id: 'resolve-invoke', label: '解析与调用', endpoints: [
-    { method: 'POST', path: '/catalog/resolve', description: '解析资源到可调用 endpoint/spec', params: [{ name: 'resourceType', type: 'string', required: true, description: '资源类型' }, { name: 'resourceId', type: 'string', required: true, description: '资源 ID' }, { name: 'version', type: 'string', required: false, description: '版本号' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { resourceType: 'agent', resourceId: '1', endpoint: 'https://gateway/invoke/agent/1', invokeType: 'http', version: 'v1' } }, null, 2) },
-    { method: 'POST', path: '/invoke', description: '统一调用入口。X-Api-Key 须为完整 secretPlain。还须 Key scope 含 invoke（或 *）且对跨 owner 资源具备 Grant；否则会 403。', params: [{ name: 'resourceType', type: 'string', required: true, description: '资源类型' }, { name: 'resourceId', type: 'string', required: true, description: '资源 ID' }, { name: 'payload', type: 'object', required: false, description: '业务输入' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { requestId: 'req_1', traceId: 'tr_1', resourceType: 'agent', resourceId: '1', statusCode: 200, status: 'success', latencyMs: 124, body: '{\"answer\":\"ok\"}' } }, null, 2) },
+    { method: 'POST', path: '/catalog/resolve', description: '执行向解析：将资源解析为可调用 endpoint/spec。**X-Api-Key 必填**（完整 secretPlain）；可与 Bearer 同传。另须 Key scope 含 resolve（或 *），跨 owner 资源还须 Grant。', params: [{ name: 'resourceType', type: 'string', required: true, description: '资源类型' }, { name: 'resourceId', type: 'string', required: true, description: '资源 ID' }, { name: 'version', type: 'string', required: false, description: '版本号' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { resourceType: 'agent', resourceId: '1', endpoint: 'https://gateway/invoke/agent/1', invokeType: 'http', version: 'v1' } }, null, 2) },
+    { method: 'POST', path: '/invoke', description: '统一调用入口。**X-Api-Key 必填**。还须 Key scope 含 invoke（或 *）且对跨 owner 资源具备 Grant；否则会 403。resourceType=skill 时网关不支持远程 invoke（见使用指南）。', params: [{ name: 'resourceType', type: 'string', required: true, description: '资源类型' }, { name: 'resourceId', type: 'string', required: true, description: '资源 ID' }, { name: 'payload', type: 'object', required: false, description: '业务输入' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { requestId: 'req_1', traceId: 'tr_1', resourceType: 'agent', resourceId: '1', statusCode: 200, status: 'success', latencyMs: 124, body: '{\"answer\":\"ok\"}' } }, null, 2) },
+    { method: 'POST', path: '/invoke-stream', description: '流式调用（SSE 等）。**X-Api-Key 必填**；权限模型与 /invoke 一致。', params: [{ name: 'resourceType', type: 'string', required: true, description: '资源类型' }, { name: 'resourceId', type: 'string', required: true, description: '资源 ID' }, { name: 'payload', type: 'object', required: false, description: '业务输入' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: {} }, null, 2) },
   ]},
   { id: 'sandbox-sdk-grants', label: '沙箱/SDK/授权', endpoints: [
     { method: 'POST', path: '/sandbox/sessions', description: '创建沙箱会话（需 X-User-Id + X-Api-Key）', params: [{ name: 'ttlMinutes', type: 'number', required: false, description: '会话时长' }, { name: 'maxCalls', type: 'number', required: false, description: '最大调用次数' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { sessionToken: 'sbx_xxx', maxCalls: 100, usedCalls: 0, status: 'active' } }, null, 2) },
@@ -196,7 +197,11 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme }) => {
                   <div className={`rounded-xl border px-4 py-3 text-sm ${isDark ? 'border-amber-500/25 bg-amber-500/10 text-amber-100/90' : 'border-amber-200 bg-amber-50 text-amber-950'}`}>
                     <p className="flex items-start gap-2 font-medium">
                       <AlertCircle size={16} className="mt-0.5 shrink-0" />
-                      <span>调用 <span className="font-mono">/invoke</span> 时，请求头 <span className="font-mono">X-Api-Key</span> 必须是创建 Key 时返回的完整明文，而不是列表里的掩码或 id。细则见「接口参考」中的说明。</span>
+                      <span>
+                        <strong className={textPrimary(theme)}>强统一：</strong>
+                        浏览目录可用登录态（JWT）；<span className="font-mono">POST /catalog/resolve</span>、<span className="font-mono">POST /invoke</span>、<span className="font-mono">POST /invoke-stream</span> 均须带有效的{' '}
+                        <span className="font-mono">X-Api-Key</span>（创建 Key 当次返回的完整 <span className="font-mono">secretPlain</span>），不能填列表掩码或记录 id。细则见「接口参考」。
+                      </span>
                     </p>
                   </div>
                 </section>
@@ -204,7 +209,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme }) => {
                 <section id="doc-roles" className="mt-14 space-y-4">
                   {proseH2(theme, '账号与角色')}
                   {prosePara(theme, '登录后，你的能力取决于平台分配的角色：开发者可以创建与管理自己的资源；部门/平台管理员负责审核与发布；普通师生通常以「使用方」身份浏览市场并申请调用。若账号尚无开发者角色，通常需要先完成入驻申请，再通过管理员审批。')}
-                  {prosePara(theme, '下文「完成一次调用」对个人开发者与师生用户同样适用：都需要合法的 API Key 与（对非自有资源）授权。')}
+                  {prosePara(theme, '下文「完成一次调用」对个人开发者与师生用户同样适用：执行向（resolve / invoke / invoke-stream）都必须携带本人有效 API Key；仅浏览目录可主要靠登录态。调用他人名下资源时，在 Key 与 scope 之外还需要 Grant 或审批通过的授权。')}
                 </section>
 
                 <section id="doc-discover" className="mt-14 space-y-4">
@@ -227,7 +232,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme }) => {
                   {proseH3(theme, '2. 是否还需要授权？')}
                   {prosePara(theme, '平台按「API Key + Scope + Resource Grant」三层校验：仅有 Key 不足以调用他人名下的已发布资源——还需要针对你的 Key 的授权记录（Grant），或通过「我的授权申请」等流程审批通过后由系统自动建立。Grant 里填写的是 Key 的记录 id，不是密钥明文。')}
                   {proseH3(theme, '3. 解析与调用')}
-                  {prosePara(theme, '先 POST /catalog/resolve 拿到可调用信息，再 POST /invoke 传入 resourceType、resourceId 与业务 payload；需要固定版本时可在解析/调用路径中携带 version。也可以在开发者中心的「API 调试」里试用（会带上当前环境约定）。')}
+                  {prosePara(theme, '两次请求都须在请求头带 X-Api-Key：先 POST /catalog/resolve 拿到可调用信息，再 POST /invoke（或流式用 POST /invoke-stream）传入 resourceType、resourceId 与业务 payload。需要固定版本时可在解析/调用体中携带 version。控制台「API 调试」试用时也请手动填好 Key（或由本地存储注入）。')}
                   <div className="flex flex-wrap gap-2 pt-1">
                     <button type="button" onClick={() => go('preferences')} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${btnSecondary(theme)}`}>
                       <KeyRound size={16} /> 个人设置（API Key）
@@ -258,8 +263,9 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme }) => {
                 <section id="doc-types" className="mt-14 space-y-4">
                   {proseH2(theme, '五类资源怎么用？')}
                   <ul className={`list-disc space-y-2 pl-5 text-[15px] leading-7 ${textSecondary(theme)}`}>
-                    <li><strong className={textPrimary(theme)}>agent / skill / mcp</strong>：通常走统一解析与 POST /invoke 调用。</li>
-                    <li><strong className={textPrimary(theme)}>app</strong>：解析后多为跳转或嵌入地址（invokeType 形如 redirect），按返回 URL 使用即可。</li>
+                    <li><strong className={textPrimary(theme)}>agent / mcp</strong>：通常 POST /catalog/resolve 后走 POST /invoke（或 invoke-stream）。</li>
+                    <li><strong className={textPrimary(theme)}>skill</strong>：可走 POST /catalog/resolve；网关不接受 <span className="font-mono">resourceType=skill</span> 的 POST /invoke（技能包由 Agent 运行时加载，远程工具请用 MCP）。</li>
+                    <li><strong className={textPrimary(theme)}>app</strong>：须登录态 + 本人的 Key 参与解析/票据链路；解析后多为跳转或嵌入（invokeType 常为 redirect）。</li>
                     <li><strong className={textPrimary(theme)}>dataset</strong>：侧重元数据消费（如 invokeType 为 metadata），不是每一项都要走远程 HTTP 执行。</li>
                   </ul>
                 </section>
@@ -305,7 +311,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme }) => {
             >
               <p className={`font-semibold ${isDark ? 'text-amber-100' : 'text-amber-950'}`}>X-Api-Key 填什么（与列表里看到的不同）</p>
               <p className={`mt-1.5 ${isDark ? 'text-amber-100/90' : 'text-amber-950/90'}`}>
-                调用 <span className="font-mono">/invoke</span>、<span className="font-mono">/sdk/v1/*</span> 等需{' '}
+                调用 <span className="font-mono">/catalog/resolve</span>、<span className="font-mono">/invoke</span>、<span className="font-mono">/invoke-stream</span>、<span className="font-mono">/sdk/v1/*</span> 等需{' '}
                 <span className="font-mono">X-Api-Key</span> 的接口时，请求头必须是<strong>创建接口</strong>{' '}
                 <span className="font-mono">POST /user-settings/api-keys</span> 或 <span className="font-mono">POST /user-mgmt/api-keys</span>{' '}
                 成功响应里的 <span className="font-mono">data.secretPlain</span>（完整 <span className="font-mono">sk_</span>…，仅该次响应返回）。

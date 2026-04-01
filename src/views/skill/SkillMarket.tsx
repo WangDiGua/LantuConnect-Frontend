@@ -30,6 +30,9 @@ import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { buildPath } from '../../constants/consoleRoutes';
+import { usePersistedGatewayApiKey } from '../../hooks/usePersistedGatewayApiKey';
+import { GatewayApiKeyInput } from '../../components/common/GatewayApiKeyInput';
+import { ApiException } from '../../types/api';
 
 interface Props { theme: Theme; fontSize: FontSize; themeColor?: ThemeColor; showMessage?: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void; }
 
@@ -62,6 +65,7 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, theme
   const [useResult, setUseResult] = useState<string | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const processedResourceId = useRef<string | null>(null);
+  const [gatewayApiKeyDraft, setGatewayApiKeyDraft] = usePersistedGatewayApiKey();
 
   const getParamFields = useCallback((skill: Skill): { key: string; type: string; required: boolean }[] => {
     const schema = skill.parametersSchema as { properties?: Record<string, { type: string }>; required?: string[] } | null;
@@ -73,15 +77,31 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, theme
     if (!useSkill) return;
     setUseLoading(true);
     setUseResult(null);
+    const apiKey = gatewayApiKeyDraft.trim();
+    if (!apiKey) {
+      setUseResult('请先填写并绑定有效的 X-Api-Key（创建 Key 时的完整 secretPlain）');
+      setUseLoading(false);
+      return;
+    }
     try {
       let resolved;
       try {
         resolved = await resourceCatalogService.resolve({
           resourceType: 'skill',
           resourceId: String(useSkill.id),
-        });
-      } catch (e) {
-        setUseResult(`${mapInvokeFlowError(e, 'resolve')}\n可保留当前参数后重试解析`);
+        }, { headers: { 'X-Api-Key': apiKey } });
+      } catch (err) {
+        if (err instanceof ApiException && err.code === 1009) {
+          setUseResult(err.message || '请绑定有效的 X-Api-Key（创建 Key 时的完整 secretPlain）');
+        } else if (err instanceof ApiException && (err.status === 401 || err.code === 1002)) {
+          setUseResult('请先选择有效 API Key');
+        } else if (err instanceof ApiException && (err.status === 403 || err.code === 1003)) {
+          setUseResult('你暂无该资源使用权限，请先申请授权');
+        } else if (err instanceof Error && (err.message.includes('X-Api-Key') || err.message.includes('API Key'))) {
+          setUseResult('请先填写并绑定 API Key');
+        } else {
+          setUseResult(`${mapInvokeFlowError(err, 'resolve')}\n可保留当前参数后重试解析`);
+        }
         return;
       }
       if (resolved.invokeType === 'redirect' && resolved.endpoint) {
@@ -101,7 +121,7 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, theme
           resourceType: 'skill',
           resourceId: String(useSkill.id),
           payload: useParams as Record<string, unknown>,
-        });
+        }, apiKey);
         setUseResult(`状态: ${res.status} (${res.statusCode})\n耗时: ${res.latencyMs}ms\nTraceId: ${res.traceId}\n\n${res.body}`);
       } catch (e) {
         setUseResult(`${mapInvokeFlowError(e, 'invoke')}\n可保留当前参数后重试调用`);
@@ -111,7 +131,7 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, theme
     } finally {
       setUseLoading(false);
     }
-  }, [useSkill, useParams]);
+  }, [useSkill, useParams, gatewayApiKeyDraft]);
   const handleApplyAuthorization = useCallback(() => {
     if (!useSkill) return;
     setGrantModalOpen(true);
@@ -338,6 +358,12 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, theme
       }>
         {useSkill && (
           <div className="space-y-4">
+            <GatewayApiKeyInput
+              theme={theme}
+              id="skill-market-gateway-key"
+              value={gatewayApiKeyDraft}
+              onChange={setGatewayApiKeyDraft}
+            />
             <p className={`text-xs ${textMuted(theme)}`}>{useSkill.description || '暂无描述'}</p>
             {getParamFields(useSkill).map((f) => (
               <div key={f.key}>

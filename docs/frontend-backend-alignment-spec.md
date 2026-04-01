@@ -309,8 +309,9 @@
 |---|---|---|---|---|
 | GET | `/catalog/resources` | query:`ResourceCatalogQueryRequest` | `X-User-Id?`,`X-Api-Key?` | 保留 |
 | GET | `/catalog/resources/{type}/{id}` | path:`type,id` | `X-User-Id?`,`X-Api-Key?` | 保留 |
-| POST | `/catalog/resolve` | body:`ResourceResolveRequest` | `X-User-Id?`,`X-Api-Key?` | 保留 |
-| POST | `/invoke` | body:`InvokeRequest` | `X-Api-Key` 必填，`X-User-Id?`,`X-Trace-Id?` | 保留 |
+| POST | `/catalog/resolve` | body:`ResourceResolveRequest` | **`X-Api-Key` 必填**（强统一执行向）；可与 Bearer / `X-User-Id` 同传 | 保留 |
+| POST | `/invoke` | body:`InvokeRequest` | **`X-Api-Key` 必填**；`X-User-Id?`,`X-Trace-Id?` | 保留 |
+| POST | `/invoke-stream` | body: 同 invoke | **`X-Api-Key` 必填**；权限同 invoke | 保留 |
 
 ## 4.2.1 资源调用授权管理（新增）
 

@@ -25,7 +25,7 @@ import {
 } from '../../utils/uiClasses';
 import type { DomainStatus } from '../../utils/uiClasses';
 import { nullDisplay } from '../../utils/errorHandler';
-import { formatDateTime } from '../../utils/formatDateTime';
+import { expiryRelativeToNow, formatDateTime } from '../../utils/formatDateTime';
 import { buildPath, type ConsoleRole } from '../../constants/consoleRoutes';
 import { marketPageForResourceType } from '../../utils/marketDeepLink';
 
@@ -45,6 +45,11 @@ const STATUS_LABEL_ZH: Record<string, string> = {
   pending: '待审批',
   approved: '已通过',
   rejected: '已驳回',
+};
+
+const EXPIRY_BADGE_STATUS: Record<'expired' | 'active', DomainStatus> = {
+  expired: 'rejected',
+  active: 'published',
 };
 
 export const MyGrantApplicationsPage: React.FC<Props> = ({ theme }) => {
@@ -152,7 +157,7 @@ export const MyGrantApplicationsPage: React.FC<Props> = ({ theme }) => {
                 />
               </div>
             ) : (
-              <table className="w-full min-w-[900px] text-sm">
+              <table className="w-full min-w-[1520px] text-sm">
                 <thead className={`border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
                   <tr>
                     <th className={tableHeadCell(theme)}>申请 ID</th>
@@ -161,9 +166,14 @@ export const MyGrantApplicationsPage: React.FC<Props> = ({ theme }) => {
                     <th className={tableHeadCell(theme)}>API Key</th>
                     <th className={tableHeadCell(theme)}>操作权限</th>
                     <th className={tableHeadCell(theme)}>使用场景</th>
+                    <th className={tableHeadCell(theme)}>调用频次</th>
                     <th className={tableHeadCell(theme)}>状态</th>
-                    <th className={tableHeadCell(theme)}>驳回原因</th>
+                    <th className={tableHeadCell(theme)}>审批人</th>
+                    <th className={tableHeadCell(theme)}>审批时间</th>
                     <th className={tableHeadCell(theme)}>申请时间</th>
+                    <th className={tableHeadCell(theme)}>过期时间</th>
+                    <th className={tableHeadCell(theme)}>是否过期</th>
+                    <th className={tableHeadCell(theme)}>驳回原因</th>
                     <th className={tableHeadCell(theme)}>下一步</th>
                   </tr>
                 </thead>
@@ -176,14 +186,34 @@ export const MyGrantApplicationsPage: React.FC<Props> = ({ theme }) => {
                       <td className={`${tableCell()} font-mono ${textSecondary(theme)}`}>{nullDisplay(item.apiKeyId)}</td>
                       <td className={`${tableCell()} ${textSecondary(theme)}`}>{item.actions.length > 0 ? item.actions.join(', ') : '--'}</td>
                       <td className={`${tableCell()} ${textSecondary(theme)}`}>{nullDisplay(item.useCase)}</td>
+                      <td className={`${tableCell()} ${textSecondary(theme)}`}>{nullDisplay(item.callFrequency)}</td>
                       <td className={tableCell()}>
                         <span className={statusBadgeClass(STATUS_MAP[item.status] ?? 'draft', theme)}>
                           <span className={statusDot(STATUS_MAP[item.status] ?? 'draft')} />
                           {STATUS_LABEL_ZH[item.status] ?? statusLabel(STATUS_MAP[item.status] ?? 'draft')}
                         </span>
                       </td>
-                      <td className={`${tableCell()} ${textSecondary(theme)}`}>{nullDisplay(item.rejectReason)}</td>
+                      <td className={`${tableCell()} ${textSecondary(theme)}`}>{nullDisplay(item.reviewerName)}</td>
+                      <td className={`${tableCell()} ${textMuted(theme)}`}>{nullDisplay(formatDateTime(item.reviewTime))}</td>
                       <td className={`${tableCell()} ${textMuted(theme)}`}>{nullDisplay(formatDateTime(item.createTime))}</td>
+                      <td className={`${tableCell()} ${textMuted(theme)}`}>{nullDisplay(formatDateTime(item.expiresAt))}</td>
+                      <td className={tableCell()}>
+                        {(() => {
+                          const exp = expiryRelativeToNow(item.expiresAt);
+                          if (exp === 'none') {
+                            return <span className={`text-xs ${textMuted(theme)}`}>未设置</span>;
+                          }
+                          const st = EXPIRY_BADGE_STATUS[exp];
+                          const zh = exp === 'expired' ? '已过期' : '未过期';
+                          return (
+                            <span className={statusBadgeClass(st, theme)}>
+                              <span className={statusDot(st)} />
+                              {zh}
+                            </span>
+                          );
+                        })()}
+                      </td>
+                      <td className={`${tableCell()} ${textSecondary(theme)} max-w-[200px] break-words`}>{nullDisplay(item.rejectReason)}</td>
                       <td className={tableCell()}>
                         {(() => {
                           const market = marketPageForResourceType(item.resourceType);

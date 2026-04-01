@@ -24,8 +24,18 @@ function parseToDate(input: string | number | Date): Date | null {
     return Number.isNaN(d.getTime()) ? null : d;
   }
 
-  const d = new Date(s);
+  // `YYYY-MM-DD HH:mm:ss`：补 `T` 后解析更稳定
+  const normalized = /^(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}(?::\d{2})?)$/.test(s) ? s.replace(' ', 'T') : s;
+  const d = new Date(normalized);
   return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/** 相对当前时间判断授权过期时间：`none` = 未设置或无法解析 */
+export function expiryRelativeToNow(expiresAt: string | null | undefined): 'none' | 'expired' | 'active' {
+  if (expiresAt == null || !String(expiresAt).trim()) return 'none';
+  const d = parseToDate(expiresAt);
+  if (!d) return 'none';
+  return d.getTime() < Date.now() ? 'expired' : 'active';
 }
 
 /**

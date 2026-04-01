@@ -108,6 +108,25 @@
 
 /* Brand logo home：仅导航，不要点击/聚焦时的外框或阴影 */
 @layer utilities {
+  /** 表格单元格内横向滚动：覆盖全局隐藏滚动条，窄列内标签横排 + 滑动手势仍可滚动 */
+  .lantu-table-cell-scroll-x {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    -ms-overflow-style: auto;
+  }
+  .lantu-table-cell-scroll-x::-webkit-scrollbar {
+    display: block;
+    height: 6px;
+  }
+  .lantu-table-cell-scroll-x::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background-color: rgb(163 163 163 / 0.55);
+  }
+  [data-theme="dark"] .lantu-table-cell-scroll-x::-webkit-scrollbar-thumb {
+    background-color: rgb(148 163 184 / 0.45);
+  }
+
   .logo-nav-btn {
     -webkit-tap-highlight-color: transparent;
     box-shadow: none !important;

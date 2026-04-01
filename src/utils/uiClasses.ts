@@ -188,7 +188,8 @@ const STATUS_COLOR: Record<DomainStatus, { light: string; dark: string }> = {
 
 export function statusBadgeClass(status: DomainStatus, theme: Theme) {
   const c = STATUS_COLOR[status] || STATUS_COLOR.draft;
-  return `inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-semibold tracking-wide uppercase ${D(theme) ? c.dark : c.light}`;
+  /** `whitespace-nowrap shrink-0`：避免宽表挤压时中文/标签被压成一字一行 */
+  return `inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-semibold tracking-wide uppercase whitespace-nowrap shrink-0 ${D(theme) ? c.dark : c.light}`;
 }
 
 export function statusDot(status: DomainStatus) {

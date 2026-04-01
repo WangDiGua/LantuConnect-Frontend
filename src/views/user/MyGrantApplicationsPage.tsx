@@ -183,25 +183,48 @@ export const MyGrantApplicationsPage: React.FC<Props> = ({ theme }) => {
                       <td className={`${tableCell()} font-mono ${textSecondary(theme)}`}>{item.id}</td>
                       <td className={`${tableCell()} ${textSecondary(theme)}`}>{nullDisplay(item.resourceType)}</td>
                       <td className={`${tableCell()} font-mono ${textSecondary(theme)}`}>{item.resourceId}</td>
-                      <td className={`${tableCell()} font-mono ${textSecondary(theme)}`}>{nullDisplay(item.apiKeyId)}</td>
-                      <td className={`${tableCell()} ${textSecondary(theme)}`}>{item.actions.length > 0 ? item.actions.join(', ') : '--'}</td>
+                      <td className={`${tableCell()} max-w-[200px] align-middle font-mono ${textSecondary(theme)}`}>
+                        {item.apiKeyId ? (
+                          <div className={`lantu-table-cell-scroll-x min-w-0 max-w-full font-mono text-[12px] whitespace-nowrap`}>{item.apiKeyId}</div>
+                        ) : (
+                          '--'
+                        )}
+                      </td>
+                      <td className={`${tableCell()} max-w-[min(260px,100%)] align-middle ${textSecondary(theme)}`}>
+                        {item.actions.length > 0 ? (
+                          <div className="lantu-table-cell-scroll-x flex min-w-0 max-w-full flex-nowrap items-center gap-1.5 py-0.5">
+                            {item.actions.map((a) => (
+                              <span
+                                key={a}
+                                className={`shrink-0 rounded-md border px-2 py-0.5 text-[11px] font-medium whitespace-nowrap ${
+                                  isDark ? 'border-white/[0.08] bg-white/[0.06]' : 'border-slate-200/80 bg-slate-50'
+                                }`}
+                              >
+                                {a}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          '--'
+                        )}
+                      </td>
                       <td className={`${tableCell()} ${textSecondary(theme)}`}>{nullDisplay(item.useCase)}</td>
                       <td className={`${tableCell()} ${textSecondary(theme)}`}>{nullDisplay(item.callFrequency)}</td>
-                      <td className={tableCell()}>
+                      <td className={`${tableCell()} align-middle`}>
                         <span className={statusBadgeClass(STATUS_MAP[item.status] ?? 'draft', theme)}>
                           <span className={statusDot(STATUS_MAP[item.status] ?? 'draft')} />
                           {STATUS_LABEL_ZH[item.status] ?? statusLabel(STATUS_MAP[item.status] ?? 'draft')}
                         </span>
                       </td>
                       <td className={`${tableCell()} ${textSecondary(theme)}`}>{nullDisplay(item.reviewerName)}</td>
-                      <td className={`${tableCell()} ${textMuted(theme)}`}>{nullDisplay(formatDateTime(item.reviewTime))}</td>
-                      <td className={`${tableCell()} ${textMuted(theme)}`}>{nullDisplay(formatDateTime(item.createTime))}</td>
-                      <td className={`${tableCell()} ${textMuted(theme)}`}>{nullDisplay(formatDateTime(item.expiresAt))}</td>
-                      <td className={tableCell()}>
+                      <td className={`${tableCell()} whitespace-nowrap ${textMuted(theme)}`}>{nullDisplay(formatDateTime(item.reviewTime))}</td>
+                      <td className={`${tableCell()} whitespace-nowrap ${textMuted(theme)}`}>{nullDisplay(formatDateTime(item.createTime))}</td>
+                      <td className={`${tableCell()} whitespace-nowrap ${textMuted(theme)}`}>{nullDisplay(formatDateTime(item.expiresAt))}</td>
+                      <td className={`${tableCell()} align-middle`}>
                         {(() => {
                           const exp = expiryRelativeToNow(item.expiresAt);
                           if (exp === 'none') {
-                            return <span className={`text-xs ${textMuted(theme)}`}>未设置</span>;
+                            return <span className={`whitespace-nowrap text-xs shrink-0 ${textMuted(theme)}`}>未设置</span>;
                           }
                           const st = EXPIRY_BADGE_STATUS[exp];
                           const zh = exp === 'expired' ? '已过期' : '未过期';
@@ -214,7 +237,7 @@ export const MyGrantApplicationsPage: React.FC<Props> = ({ theme }) => {
                         })()}
                       </td>
                       <td className={`${tableCell()} ${textSecondary(theme)} max-w-[200px] break-words`}>{nullDisplay(item.rejectReason)}</td>
-                      <td className={tableCell()}>
+                      <td className={`${tableCell()} align-middle`}>
                         {(() => {
                           const market = marketPageForResourceType(item.resourceType);
                           if (item.status === 'approved' && market) {

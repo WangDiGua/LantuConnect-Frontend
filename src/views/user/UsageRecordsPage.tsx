@@ -111,7 +111,7 @@ export const UsageRecordsPage: React.FC<UsageRecordsPageProps> = ({ theme, initi
       mcp: isDark ? 'bg-violet-500/10 text-violet-300 ring-1 ring-violet-500/20' : 'bg-violet-50 text-violet-700 ring-1 ring-violet-200/70',
       dataset: isDark ? 'bg-emerald-500/10 text-emerald-300 ring-1 ring-emerald-500/20' : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/70',
     };
-    return `inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${styles[type] || ''}`;
+    return `inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${styles[type] || ''}`;
   };
 
   const statusCls = (status: string) => status === 'success' ? 'text-emerald-500' : 'text-rose-500';
@@ -231,10 +231,10 @@ export const UsageRecordsPage: React.FC<UsageRecordsPageProps> = ({ theme, initi
                   <tbody>
                     {pagedRows.map((record, idx) => (
                       <tr key={record.id} className={tableBodyRow(theme, idx)}>
-                        <td className={`${tableCell()} ${textSecondary(theme)}`}>{formatDateTime(record.createTime)}</td>
+                        <td className={`${tableCell()} whitespace-nowrap ${textSecondary(theme)}`}>{formatDateTime(record.createTime)}</td>
                         <td className={`${tableCell()} ${textPrimary(theme)}`}>{record.displayName}</td>
                         <td className={tableCell()}><span className={typeBadge(record.type)}>{TYPE_LABEL[record.type] ?? record.type}</span></td>
-                        <td className={`${tableCell()} text-xs font-semibold ${statusCls(record.status)}`}>{record.status === 'success' ? '成功' : '失败'}</td>
+                        <td className={`${tableCell()} whitespace-nowrap text-xs font-semibold ${statusCls(record.status)}`}>{record.status === 'success' ? '成功' : '失败'}</td>
                         <td className={`${tableCell()} ${textSecondary(theme)}`}>{record.action}</td>
                         <td className={`${tableCell()} ${textSecondary(theme)}`}>{record.agentName || '—'}</td>
                         <td className={`${tableCell()} ${textSecondary(theme)}`}>{record.tokenCost > 0 ? record.tokenCost : '—'}</td>
@@ -278,12 +278,12 @@ export const UsageRecordsPage: React.FC<UsageRecordsPageProps> = ({ theme, initi
                   <tbody>
                     {recentRows.map((item, idx) => (
                       <tr key={`${item.targetType}-${item.targetId}-${item.id}`} className={tableBodyRow(theme, idx)}>
-                        <td className={`${tableCell()} ${textSecondary(theme)}`}>{formatDateTime(item.createTime || item.lastUsedTime, '未知时间')}</td>
+                        <td className={`${tableCell()} whitespace-nowrap ${textSecondary(theme)}`}>{formatDateTime(item.createTime || item.lastUsedTime, '未知时间')}</td>
                         <td className={`${tableCell()} ${textPrimary(theme)}`}>{item.displayName || '—'}</td>
                         <td className={`${tableCell()} ${textSecondary(theme)} font-mono`}>{item.targetCode || '—'}</td>
                         <td className={`${tableCell()} ${textSecondary(theme)}`}>{TYPE_LABEL[item.targetType] ?? item.targetType}</td>
                         <td className={`${tableCell()} ${textSecondary(theme)}`}>{item.action || '—'}</td>
-                        <td className={`${tableCell()} text-xs font-semibold ${recentStatusClass(item.status)}`}>{recentStatusLabel(item.status)}</td>
+                        <td className={`${tableCell()} whitespace-nowrap text-xs font-semibold ${recentStatusClass(item.status)}`}>{recentStatusLabel(item.status)}</td>
                         <td className={`${tableCell()} ${textSecondary(theme)}`}>{typeof item.tokenCost === 'number' ? item.tokenCost : '—'}</td>
                         <td className={`${tableCell()} ${textSecondary(theme)}`}>{typeof item.latencyMs === 'number' && item.latencyMs > 0 ? `${item.latencyMs} ms` : '—'}</td>
                       </tr>

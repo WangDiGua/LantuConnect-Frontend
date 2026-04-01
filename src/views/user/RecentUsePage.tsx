@@ -13,6 +13,7 @@ import {
   tableHeadCell,
   tableBodyRow,
   tableCell,
+  tableCellScrollInnerMono,
   textMuted,
   textPrimary,
   textSecondary,
@@ -132,12 +133,14 @@ export const RecentUsePage: React.FC<Props> = ({ theme }) => {
                   <tbody>
                     {filtered.map((item, idx) => (
                       <tr key={`${item.targetType}-${item.targetId}-${item.id}`} className={tableBodyRow(theme, idx)}>
-                        <td className={`${tableCell()} ${textSecondary(theme)}`}>{formatDateTime(item.createTime || item.lastUsedTime, '未知时间')}</td>
+                        <td className={`${tableCell()} whitespace-nowrap ${textSecondary(theme)}`}>{formatDateTime(item.createTime || item.lastUsedTime, '未知时间')}</td>
                         <td className={`${tableCell()} ${textPrimary(theme)}`}>{item.displayName || '—'}</td>
-                        <td className={`${tableCell()} ${textSecondary(theme)} font-mono`}>{item.targetCode || '—'}</td>
+                        <td className={`${tableCell()} max-w-[200px] align-middle ${textSecondary(theme)}`}>
+                          {item.targetCode ? <div className={tableCellScrollInnerMono}>{item.targetCode}</div> : '—'}
+                        </td>
                         <td className={`${tableCell()} ${textSecondary(theme)}`}>{TYPE_LABEL[item.targetType] ?? item.targetType}</td>
                         <td className={`${tableCell()} ${textSecondary(theme)}`}>{item.action || '—'}</td>
-                        <td className={`${tableCell()} text-xs font-semibold ${statusClass(item.status)}`}>{statusLabel(item.status)}</td>
+                        <td className={`${tableCell()} whitespace-nowrap text-xs font-semibold ${statusClass(item.status)}`}>{statusLabel(item.status)}</td>
                         <td className={`${tableCell()} ${textSecondary(theme)}`}>{typeof item.tokenCost === 'number' ? item.tokenCost : '—'}</td>
                         <td className={`${tableCell()} ${textSecondary(theme)}`}>{typeof item.latencyMs === 'number' && item.latencyMs > 0 ? `${item.latencyMs} ms` : '—'}</td>
                       </tr>

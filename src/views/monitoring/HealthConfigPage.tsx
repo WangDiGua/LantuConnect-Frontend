@@ -5,7 +5,7 @@ import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
 import { TOOLBAR_ROW_LIST, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
-import { btnPrimary, btnSecondary, mgmtTableActionGhost, tableHeadCell, tableBodyRow, tableCell, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import { btnPrimary, btnSecondary, mgmtTableActionGhost, tableHeadCell, tableBodyRow, tableCell, tableCellScrollInnerMono, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
 import { Modal } from '../../components/common/Modal';
 import { BentoCard } from '../../components/common/BentoCard';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
@@ -149,13 +149,15 @@ export const HealthConfigPage: React.FC<Props> = ({ theme, fontSize, showMessage
                           <td className={`${tableCell()} font-medium ${textPrimary(theme)}`}>{safeText(r.displayName) || '未命名资源'}</td>
                           <td className={`${tableCell()} text-xs ${textMuted(theme)}`}>{TYPE_LABEL[r.agentType] ?? r.agentType}</td>
                           <td className={tableCell()}>
-                            <span className={`inline-flex px-2 py-0.5 rounded-lg text-xs font-medium ${isDark ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>{safeText(r.checkType).toUpperCase() || 'HTTP'}</span>
+                            <span className={`inline-flex shrink-0 items-center whitespace-nowrap px-2 py-0.5 rounded-lg text-xs font-medium ${isDark ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>{safeText(r.checkType).toUpperCase() || 'HTTP'}</span>
                           </td>
-                          <td className={`${tableCell()} text-xs font-mono max-w-[200px] truncate ${textMuted(theme)}`} title={safeText(r.checkUrl)}>{safeText(r.checkUrl) || '—'}</td>
+                          <td className={`${tableCell()} max-w-[200px] align-middle ${textMuted(theme)}`}>
+                            <div className={tableCellScrollInnerMono}>{safeText(r.checkUrl) || '—'}</div>
+                          </td>
                           <td className={`${tableCell()} text-xs text-center ${textMuted(theme)}`}>{r.intervalSec}</td>
                           <td className={`${tableCell()} text-xs text-center ${textMuted(theme)}`}>{r.healthyThreshold}</td>
                           <td className={tableCell()}>
-                            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-medium ${isDark ? st.badge.dark : st.badge.light}`}>
+                            <span className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap px-2 py-0.5 rounded-lg text-xs font-medium ${isDark ? st.badge.dark : st.badge.light}`}>
                               <span className={`w-2 h-2 rounded-full ${st.dot} ${r.healthStatus !== 'down' ? 'animate-pulse' : ''}`} />
                               {st.label}
                             </span>

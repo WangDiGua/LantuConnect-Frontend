@@ -22,6 +22,8 @@ import {
   tableHeadCell,
   tableBodyRow,
   tableCell,
+  tableCellActionChipsRow,
+  tableCellScrollInnerMono,
 } from '../../utils/uiClasses';
 import type { DomainStatus } from '../../utils/uiClasses';
 import { nullDisplay } from '../../utils/errorHandler';
@@ -185,14 +187,14 @@ export const MyGrantApplicationsPage: React.FC<Props> = ({ theme }) => {
                       <td className={`${tableCell()} font-mono ${textSecondary(theme)}`}>{item.resourceId}</td>
                       <td className={`${tableCell()} max-w-[200px] align-middle font-mono ${textSecondary(theme)}`}>
                         {item.apiKeyId ? (
-                          <div className={`lantu-table-cell-scroll-x min-w-0 max-w-full font-mono text-[12px] whitespace-nowrap`}>{item.apiKeyId}</div>
+                          <div className={tableCellScrollInnerMono}>{item.apiKeyId}</div>
                         ) : (
                           '--'
                         )}
                       </td>
                       <td className={`${tableCell()} max-w-[min(260px,100%)] align-middle ${textSecondary(theme)}`}>
                         {item.actions.length > 0 ? (
-                          <div className="lantu-table-cell-scroll-x flex min-w-0 max-w-full flex-nowrap items-center gap-1.5 py-0.5">
+                          <div className={tableCellActionChipsRow()}>
                             {item.actions.map((a) => (
                               <span
                                 key={a}

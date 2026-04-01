@@ -13,6 +13,7 @@ import {
   canvasBodyBg, bentoCard, bentoCardHover, btnPrimary, btnSecondary, btnGhost,
   mgmtTableActionDanger, mgmtTableActionGhost,
   textPrimary, textSecondary, textMuted, tableHeadCell, tableBodyRow, tableCell,
+  tableCellScrollInner,
 } from '../../utils/uiClasses';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
@@ -204,23 +205,27 @@ export const RoleListPage: React.FC<RoleListPageProps> = ({ theme }) => {
                     <tr key={r.id} className={tableBodyRow(theme, idx)}>
                       <td className={`${tableCell()} font-medium ${textPrimary(theme)}`}>{r.name}</td>
                       <td className={tableCell()}>
-                        <span className={`text-xs px-1.5 py-0.5 rounded font-mono ${isDark ? 'bg-white/5 text-slate-500' : 'bg-slate-50 text-slate-500'}`}>{r.code}</span>
+                        <span className={`inline-flex shrink-0 items-center whitespace-nowrap text-xs px-1.5 py-0.5 rounded font-mono ${isDark ? 'bg-white/5 text-slate-500' : 'bg-slate-50 text-slate-500'}`}>{r.code}</span>
                       </td>
                       <td className={`${tableCell()} ${textSecondary(theme)}`}>{safeText(r.description) || '—'}</td>
                       <td className={`${tableCell()} ${textSecondary(theme)}`}>{r.userCount}</td>
                       <td className={tableCell()}>
                         {r.isSystem ? (
-                          <span className={`text-[11px] px-1.5 py-0.5 rounded ${isDark ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-50 text-amber-600'}`}>是</span>
+                          <span className={`inline-flex shrink-0 items-center whitespace-nowrap text-[11px] px-1.5 py-0.5 rounded ${isDark ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-50 text-amber-600'}`}>是</span>
                         ) : (
                           <span className={textMuted(theme)}>否</span>
                         )}
                       </td>
-                      <td className={`${tableCell()} ${textSecondary(theme)}`}>
-                        {r.permissions?.length > 0
-                          ? <span title={r.permissions.join(', ')}>{r.permissions.slice(0, 3).join(', ')}{r.permissions.length > 3 ? ` +${r.permissions.length - 3}` : ''}</span>
-                          : '—'}
+                      <td className={`${tableCell()} max-w-[min(280px,100%)] align-middle ${textSecondary(theme)}`}>
+                        {r.permissions?.length > 0 ? (
+                          <div className={`${tableCellScrollInner} text-[12px]`} title={r.permissions.join(', ')}>
+                            {r.permissions.slice(0, 3).join(', ')}{r.permissions.length > 3 ? ` +${r.permissions.length - 3}` : ''}
+                          </div>
+                        ) : (
+                          '—'
+                        )}
                       </td>
-                      <td className={`${tableCell()} ${textSecondary(theme)}`}>{formatDateTime(r.createdAt)}</td>
+                      <td className={`${tableCell()} whitespace-nowrap ${textSecondary(theme)}`}>{formatDateTime(r.createdAt)}</td>
                       <td className={`${tableCell()} text-right`}>
                         <div className="inline-flex flex-nowrap items-center justify-end gap-2">
                           <button

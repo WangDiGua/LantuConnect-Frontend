@@ -137,6 +137,16 @@ export function tableCell() {
   return 'px-6 py-4 text-[13px]';
 }
 
+/** 表单元格内横向滚动单行（配合 td max-w；样式见 index.css `lantu-table-cell-scroll-x`） */
+export const tableCellScrollInner = 'lantu-table-cell-scroll-x min-w-0 max-w-full whitespace-nowrap';
+
+export const tableCellScrollInnerMono = `${tableCellScrollInner} font-mono text-[12px]`;
+
+/** 操作权限等多 chip 横排容器 */
+export function tableCellActionChipsRow() {
+  return `${tableCellScrollInner} flex flex-nowrap items-center gap-1.5 py-0.5`;
+}
+
 /** 管理列表行内「查看 / 编辑」等：胶囊、纯文字、浅灰底 */
 export function mgmtTableActionGhost(theme: Theme) {
   return `inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${

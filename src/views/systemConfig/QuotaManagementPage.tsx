@@ -302,11 +302,11 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
                         return (
                           <tr key={r.id} className={tableBodyRow(theme, i)}>
                             <td className={tableCell()}>
-                              <span className={`inline-flex px-2 py-0.5 rounded-lg text-xs font-medium ${isDark ? sc.dark : sc.light}`}>{sc.label}</span>
+                              <span className={`inline-flex shrink-0 items-center whitespace-nowrap px-2 py-0.5 rounded-lg text-xs font-medium ${isDark ? sc.dark : sc.light}`}>{sc.label}</span>
                             </td>
                             <td className={`${tableCell()} font-medium ${textPrimary(theme)}`}>{r.targetName}</td>
                             <td className={tableCell()}>
-                              <span className={`text-xs font-medium ${r.enabled ? 'text-emerald-500' : textMuted(theme)}`}>{r.enabled ? '启用' : '停用'}</span>
+                              <span className={`inline-flex shrink-0 items-center whitespace-nowrap text-xs font-medium ${r.enabled ? 'text-emerald-500' : textMuted(theme)}`}>{r.enabled ? '启用' : '停用'}</span>
                             </td>
                             <td className={`${tableCell()} text-xs tabular-nums ${textMuted(theme)}`}>{formatNum(r.dailyLimit)}</td>
                             <td className={tableCell()}>
@@ -318,7 +318,7 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
                               <div className={`text-xs mb-1 tabular-nums ${textMuted(theme)}`}>{formatNum(r.monthlyUsed)}</div>
                               <QuotaProgressBar value={r.monthlyUsed} max={r.monthlyLimit} theme={theme} />
                             </td>
-                            <td className={`${tableCell()} text-xs ${textMuted(theme)}`}>{formatDateTime(r.createTime)}</td>
+                            <td className={`${tableCell()} whitespace-nowrap text-xs ${textMuted(theme)}`}>{formatDateTime(r.createTime)}</td>
                             <td className={tableCell()}>
                               <div className="inline-flex flex-wrap items-center justify-end gap-2">
                                 <button type="button" className={mgmtTableActionGhost(theme)} onClick={() => openQuotaEdit(r)}>编辑</button>

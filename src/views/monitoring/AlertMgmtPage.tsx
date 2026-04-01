@@ -126,10 +126,10 @@ export const AlertMgmtPage: React.FC<AlertMgmtPageProps> = ({ theme }) => {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className={`font-semibold ${textPrimary(theme)}`}>{safeText(r.ruleName) || '未命名规则'}</span>
-                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${isDark ? sevBadge.dark : sevBadge.light}`}>
+                          <span className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${isDark ? sevBadge.dark : sevBadge.light}`}>
                             {sevBadge.label}
                           </span>
-                          <span className="inline-flex items-center gap-1.5">
+                          <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap">
                             <span className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[r.status]}`} />
                             <span className={`text-[11px] font-medium ${textSecondary(theme)}`}>{STATUS_LABEL[r.status]}</span>
                           </span>
@@ -143,7 +143,7 @@ export const AlertMgmtPage: React.FC<AlertMgmtPageProps> = ({ theme }) => {
                         </div>
                         <div className="text-right">
                           <div className={`text-xs uppercase tracking-wider ${textMuted(theme)}`}>时间</div>
-                          <div className={`text-xs ${textSecondary(theme)}`}>{formatDateTime(r.firedAt)}</div>
+                          <div className={`whitespace-nowrap text-xs ${textSecondary(theme)}`}>{formatDateTime(r.firedAt)}</div>
                         </div>
                       </div>
                     </motion.div>

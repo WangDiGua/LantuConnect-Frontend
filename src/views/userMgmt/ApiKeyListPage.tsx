@@ -10,6 +10,7 @@ import type { ApiKeyRecord } from '../../types/dto/user-mgmt';
 import {
   canvasBodyBg, bentoCard, bentoCardHover, btnPrimary, btnSecondary, btnGhost,
   textPrimary, textSecondary, textMuted, tableHeadCell, tableBodyRow, tableCell,
+  tableCellActionChipsRow, tableCellScrollInnerMono,
 } from '../../utils/uiClasses';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
@@ -127,10 +128,14 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, showMessa
                   {paginated.map((k, idx) => (
                     <tr key={k.id} className={tableBodyRow(theme, idx)}>
                       <td className={`${tableCell()} font-medium ${textPrimary(theme)}`}>{k.name}</td>
-                      <td className={`${tableCell()} font-mono text-xs ${textSecondary(theme)}`}>{k.id}</td>
-                      <td className={`${tableCell()} font-mono text-xs ${textSecondary(theme)}`}>{k.maskedKey || `${k.prefix}••••••••`}</td>
-                      <td className={tableCell()}>
-                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                      <td className={`${tableCell()} max-w-[140px] align-middle ${textSecondary(theme)}`}>
+                        <div className={tableCellScrollInnerMono}>{k.id}</div>
+                      </td>
+                      <td className={`${tableCell()} max-w-[200px] align-middle ${textSecondary(theme)}`}>
+                        <div className={tableCellScrollInnerMono}>{k.maskedKey || `${k.prefix}••••••••`}</div>
+                      </td>
+                      <td className={`${tableCell()} align-middle`}>
+                        <span className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
                           k.status === 'active'
                             ? (isDark ? 'bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20' : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/60')
                             : (isDark ? 'bg-rose-500/10 text-rose-400 ring-1 ring-rose-500/20' : 'bg-rose-50 text-rose-700 ring-1 ring-rose-200/60')
@@ -138,13 +143,30 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, showMessa
                           {k.status === 'active' ? '有效' : k.status === 'expired' ? '已过期' : '已撤销'}
                         </span>
                       </td>
-                      <td className={`${tableCell()} ${textSecondary(theme)}`}>{k.scopes?.length ? k.scopes.join(', ') : '—'}</td>
+                      <td className={`${tableCell()} max-w-[min(260px,100%)] align-middle ${textSecondary(theme)}`}>
+                        {k.scopes?.length ? (
+                          <div className={tableCellActionChipsRow()}>
+                            {k.scopes.map((s) => (
+                              <span
+                                key={s}
+                                className={`shrink-0 rounded-md border px-2 py-0.5 text-[11px] font-medium whitespace-nowrap font-mono ${
+                                  isDark ? 'border-white/[0.08] bg-white/[0.06]' : 'border-slate-200/80 bg-slate-50'
+                                }`}
+                              >
+                                {s}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
                       <td className={`${tableCell()} ${textSecondary(theme)}`}>
                         {resolvePersonDisplay({ names: [k.createdByName], usernames: [k.createdBy] })}
                       </td>
-                      <td className={`${tableCell()} ${textSecondary(theme)}`}>{formatDateTime(k.createdAt)}</td>
-                      <td className={`${tableCell()} ${textSecondary(theme)}`}>{formatDateTime(k.expiresAt)}</td>
-                      <td className={`${tableCell()} ${textSecondary(theme)}`}>{formatDateTime(k.lastUsedAt)}</td>
+                      <td className={`${tableCell()} whitespace-nowrap ${textSecondary(theme)}`}>{formatDateTime(k.createdAt)}</td>
+                      <td className={`${tableCell()} whitespace-nowrap ${textSecondary(theme)}`}>{formatDateTime(k.expiresAt)}</td>
+                      <td className={`${tableCell()} whitespace-nowrap ${textSecondary(theme)}`}>{formatDateTime(k.lastUsedAt)}</td>
                       <td className={`${tableCell()} ${textSecondary(theme)}`}>{k.callCount ?? 0}</td>
                       <td className={`${tableCell()} text-right`}>
                         {k.status === 'active' && (

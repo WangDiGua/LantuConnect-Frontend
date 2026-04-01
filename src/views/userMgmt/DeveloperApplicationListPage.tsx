@@ -43,7 +43,7 @@ function statusBadge(status: string) {
   };
   const cls = map[status] ?? 'bg-slate-500/10 text-slate-500';
   const label: Record<string, string> = { pending: '待审核', approved: '已通过', rejected: '已驳回' };
-  return <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${cls}`}>{label[status] ?? status}</span>;
+  return <span className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ${cls}`}>{label[status] ?? status}</span>;
 }
 
 export const DeveloperApplicationListPage: React.FC<Props> = ({ theme, fontSize, showMessage }) => {
@@ -163,7 +163,7 @@ export const DeveloperApplicationListPage: React.FC<Props> = ({ theme, fontSize,
         cellClassName: `align-middle ${textMuted(theme)}`,
         cell: (app) => (
           <div>
-            <div>{formatDateTime(app.createTime, '-')}</div>
+            <div className="whitespace-nowrap">{formatDateTime(app.createTime, '-')}</div>
             {app.applyReason ? (
               <div className={`text-[11px] mt-0.5 line-clamp-1 max-w-[200px]`} title={app.applyReason}>
                 原因: {app.applyReason}

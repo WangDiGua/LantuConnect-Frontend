@@ -10,6 +10,7 @@ import type { TokenRecord } from '../../types/dto/user-mgmt';
 import {
   canvasBodyBg, bentoCard, bentoCardHover, btnGhost,
   textPrimary, textSecondary, textMuted,
+  tableCellScrollInner,
 } from '../../utils/uiClasses';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { formatDateTime } from '../../utils/formatDateTime';
@@ -113,15 +114,16 @@ export const TokenListPage: React.FC<TokenListPageProps> = ({ theme, showMessage
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className={`font-semibold ${textPrimary(theme)}`}>{t.name}</span>
-                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${isDark ? ss.dark : ss.light}`}>{ss.label}</span>
+                          <span className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${isDark ? ss.dark : ss.light}`}>{ss.label}</span>
                         </div>
-                        <div className={`text-xs mt-0.5 ${textMuted(theme)}`}>
-                          <span className="font-mono">{t.scopes.join(', ')}</span> · 过期 {formatDateTime(t.expiresAt)}
+                        <div className={`mt-0.5 flex min-w-0 flex-wrap items-baseline gap-x-1 text-xs ${textMuted(theme)}`}>
+                          <div className={`max-w-full min-w-0 font-mono ${tableCellScrollInner}`}>{t.scopes.join(', ')}</div>
+                          <span className="shrink-0 whitespace-nowrap">· 过期 {formatDateTime(t.expiresAt)}</span>
                         </div>
                       </div>
                       <div className="hidden lg:block text-right shrink-0">
                         <div className={`text-xs uppercase tracking-wider ${textMuted(theme)}`}>创建</div>
-                        <div className={`text-xs ${textSecondary(theme)}`}>{formatDateTime(t.createdAt)}</div>
+                        <div className={`whitespace-nowrap text-xs ${textSecondary(theme)}`}>{formatDateTime(t.createdAt)}</div>
                       </div>
                       {t.status === 'active' && (
                         <button type="button" onClick={() => setRevokeTarget(t.id)} className={`${btnGhost(theme)} !text-amber-500`}><Ban size={14} /> 撤销</button>

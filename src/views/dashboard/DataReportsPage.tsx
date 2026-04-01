@@ -278,15 +278,15 @@ export const DataReportsPage: React.FC<DataReportsPageProps> = ({ theme, fontSiz
                           const pct = totalAll > 0 ? ((d.calls / totalAll) * 100).toFixed(1) : '0';
                           return (
                             <tr key={d.department} className={tableBodyRow(theme, i)}>
-                              <td className={tableCell()}><span className={`font-medium ${textPrimary(theme)}`}>{d.department}</span></td>
-                              <td className={`${tableCell()} tabular-nums ${textSecondary(theme)}`}>{d.users}</td>
-                              <td className={`${tableCell()} tabular-nums ${textSecondary(theme)}`}>{d.calls.toLocaleString()}</td>
+                              <td className={tableCell()}><span className={`whitespace-nowrap font-medium ${textPrimary(theme)}`}>{d.department}</span></td>
+                              <td className={`${tableCell()} whitespace-nowrap tabular-nums ${textSecondary(theme)}`}>{d.users}</td>
+                              <td className={`${tableCell()} whitespace-nowrap tabular-nums ${textSecondary(theme)}`}>{d.calls.toLocaleString()}</td>
                               <td className={tableCell()}>
-                                <div className="flex items-center gap-2">
+                                <div className="flex min-w-0 items-center gap-2">
                                   <div className={`flex-1 h-1.5 rounded-full max-w-[60px] ${isDark ? 'bg-white/10' : 'bg-slate-200'}`}>
                                     <div className="h-full rounded-full bg-neutral-900" style={{ width: `${pct}%` }} />
                                   </div>
-                                  <span className={`text-xs tabular-nums ${textMuted(theme)}`}>{pct}%</span>
+                                  <span className={`shrink-0 whitespace-nowrap text-xs tabular-nums ${textMuted(theme)}`}>{pct}%</span>
                                 </div>
                               </td>
                             </tr>
@@ -319,9 +319,9 @@ export const DataReportsPage: React.FC<DataReportsPageProps> = ({ theme, fontSiz
                       <tbody>
                         {topAgents.map((a, i) => (
                           <tr key={a.name} className={tableBodyRow(theme, i)}>
-                            <td className={tableCell()}><span className={`font-medium ${textPrimary(theme)}`}>{a.name}</span></td>
-                            <td className={`${tableCell()} tabular-nums ${textSecondary(theme)}`}>{a.calls.toLocaleString()}</td>
-                            <td className={`${tableCell()} tabular-nums ${textSecondary(theme)}`}>{a.successRate}%</td>
+                            <td className={tableCell()}><span className={`whitespace-nowrap font-medium ${textPrimary(theme)}`}>{a.name}</span></td>
+                            <td className={`${tableCell()} whitespace-nowrap tabular-nums ${textSecondary(theme)}`}>{a.calls.toLocaleString()}</td>
+                            <td className={`${tableCell()} whitespace-nowrap tabular-nums ${textSecondary(theme)}`}>{a.successRate}%</td>
                           </tr>
                         ))}
                       </tbody>

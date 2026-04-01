@@ -170,11 +170,11 @@ export const AgentMonitoringPage: React.FC<AgentMonitoringPageProps> = ({ theme 
                   <tbody>
                     {rows.map((r, i) => (
                       <tr key={r.agentName} className={tableBodyRow(theme, i)}>
-                        <td className={tableCell()}><span className={`font-medium ${textPrimary(theme)}`}>{r.agentName}</span></td>
-                        <td className={tableCell()}><span className={`tabular-nums ${textSecondary(theme)}`}>{r.p50}</span></td>
-                        <td className={tableCell()}><span className={`tabular-nums ${r.p99 > 500 ? 'text-amber-500 font-semibold' : textSecondary(theme)}`}>{r.p99}</span></td>
-                        <td className={tableCell()}><span className={`tabular-nums ${textSecondary(theme)}`}>{r.qps}</span></td>
-                        <td className={tableCell()}><span className={`tabular-nums ${r.errors > 5 ? 'text-rose-500 font-semibold' : textSecondary(theme)}`}>{r.errors}</span></td>
+                        <td className={`${tableCell()} max-w-[200px]`}><span className={`block truncate font-medium ${textPrimary(theme)}`} title={r.agentName}>{r.agentName}</span></td>
+                        <td className={`${tableCell()} whitespace-nowrap`}><span className={`tabular-nums ${textSecondary(theme)}`}>{r.p50}</span></td>
+                        <td className={`${tableCell()} whitespace-nowrap`}><span className={`tabular-nums ${r.p99 > 500 ? 'text-amber-500 font-semibold' : textSecondary(theme)}`}>{r.p99}</span></td>
+                        <td className={`${tableCell()} whitespace-nowrap`}><span className={`tabular-nums ${textSecondary(theme)}`}>{r.qps}</span></td>
+                        <td className={`${tableCell()} whitespace-nowrap`}><span className={`tabular-nums ${r.errors > 5 ? 'text-rose-500 font-semibold' : textSecondary(theme)}`}>{r.errors}</span></td>
                       </tr>
                     ))}
                   </tbody>

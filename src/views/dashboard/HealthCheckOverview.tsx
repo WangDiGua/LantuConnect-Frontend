@@ -165,21 +165,21 @@ export const HealthCheckOverview: React.FC<Props> = ({ theme }) => {
                               <span className={`font-medium ${textPrimary(theme)}`}>{item.name}</span>
                             </td>
                             <td className={tableCell()}>
-                              <span className={`text-xs uppercase tracking-widest font-medium px-1.5 py-0.5 rounded ${
+                              <span className={`inline-flex shrink-0 items-center whitespace-nowrap text-xs uppercase tracking-widest font-medium px-1.5 py-0.5 rounded ${
                                 isDark ? 'bg-white/[0.04] text-slate-500' : 'bg-slate-50 text-slate-400'
                               }`}>
                                 {item.type}
                               </span>
                             </td>
                             <td className={tableCell()}>
-                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${isDark ? cfg.darkBg : cfg.lightBg}`}>
+                              <span className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${isDark ? cfg.darkBg : cfg.lightBg}`}>
                                 <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot} ${item.status === 'healthy' ? 'animate-pulse' : ''}`} />
                                 {cfg.label}
                               </span>
                             </td>
-                            <td className={`${tableCell()} ${textMuted(theme)}`}>{item.lastCheck}</td>
-                            <td className={`${tableCell()} font-mono ${textSecondary(theme)}`}>{item.checkType}</td>
-                            <td className={`${tableCell()} font-mono ${textMuted(theme)}`}>{item.intervalSec}</td>
+                            <td className={`${tableCell()} whitespace-nowrap ${textMuted(theme)}`}>{item.lastCheck}</td>
+                            <td className={`${tableCell()} whitespace-nowrap font-mono ${textSecondary(theme)}`}>{item.checkType}</td>
+                            <td className={`${tableCell()} whitespace-nowrap font-mono ${textMuted(theme)}`}>{item.intervalSec}</td>
                           </tr>
                         );
                       })}

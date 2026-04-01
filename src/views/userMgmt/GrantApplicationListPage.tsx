@@ -16,6 +16,8 @@ import {
   textSecondary,
   tableBodyRow,
   tableCell,
+  tableCellActionChipsRow,
+  tableCellScrollInnerMono,
   tableHeadCell,
   mgmtTableActionDanger,
   mgmtTableActionPositive,
@@ -163,7 +165,7 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, showMessage }
                 />
               </div>
             ) : (
-              <table className="w-full min-w-[1100px] text-sm">
+              <table className="w-full min-w-[1200px] text-sm">
                 <thead className={`border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
                   <tr>
                     <th className={tableHeadCell(theme)}>ID</th>
@@ -186,12 +188,33 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, showMessage }
                         <td className={`${tableCell()} font-medium ${textPrimary(theme)}`}>{item.id}</td>
                         <td className={`${tableCell()} ${textSecondary(theme)}`}>{nullDisplay(item.resourceType)}</td>
                         <td className={`${tableCell()} ${textSecondary(theme)}`}>{item.resourceId}</td>
-                        <td className={`${tableCell()} ${textSecondary(theme)}`}>{nullDisplay(item.apiKeyId)}</td>
-                        <td className={`${tableCell()} ${textSecondary(theme)}`}>
-                          {item.actions?.length ? item.actions.join(', ') : nullDisplay(undefined)}
+                        <td className={`${tableCell()} max-w-[200px] align-middle font-mono ${textSecondary(theme)}`}>
+                          {item.apiKeyId ? (
+                            <div className={tableCellScrollInnerMono}>{item.apiKeyId}</div>
+                          ) : (
+                            nullDisplay(undefined)
+                          )}
+                        </td>
+                        <td className={`${tableCell()} max-w-[min(260px,100%)] align-middle ${textSecondary(theme)}`}>
+                          {item.actions?.length ? (
+                            <div className={tableCellActionChipsRow()}>
+                              {item.actions.map((a) => (
+                                <span
+                                  key={a}
+                                  className={`shrink-0 rounded-md border px-2 py-0.5 text-[11px] font-medium whitespace-nowrap ${
+                                    isDark ? 'border-white/[0.08] bg-white/[0.06]' : 'border-slate-200/80 bg-slate-50'
+                                  }`}
+                                >
+                                  {a}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            nullDisplay(undefined)
+                          )}
                         </td>
                         <td className={`${tableCell()} ${textSecondary(theme)}`}>{nullDisplay(item.useCase)}</td>
-                        <td className={tableCell()}>
+                        <td className={`${tableCell()} align-middle`}>
                           <span className={statusBadgeClass(domainStatus, theme)}>
                             <span className={statusDot(domainStatus)} />
                             {statusLabel(domainStatus)}
@@ -203,7 +226,7 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, showMessage }
                             审核：{resolvePersonDisplay({ names: [item.reviewerName], ids: [item.reviewerId] })}
                           </div>
                         </td>
-                        <td className={`${tableCell()} ${textSecondary(theme)}`}>
+                        <td className={`${tableCell()} whitespace-nowrap ${textSecondary(theme)}`}>
                           {nullDisplay(formatDateTime(item.createTime))}
                         </td>
                         <td className={`${tableCell()} text-right`}>

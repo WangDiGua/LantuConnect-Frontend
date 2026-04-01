@@ -142,15 +142,15 @@ export const UsageStatsOverview: React.FC<Props> = ({ theme }) => {
                         {topItems.map((item, i) => (
                           <tr key={item.date} className={tableBodyRow(theme, i)}>
                             <td className={tableCell()}>
-                              <span className={`font-bold text-xs ${i < 3 ? (isDark ? 'text-amber-400' : 'text-amber-600') : textMuted(theme)}`}>
+                              <span className={`inline-flex shrink-0 whitespace-nowrap font-bold text-xs ${i < 3 ? (isDark ? 'text-amber-400' : 'text-amber-600') : textMuted(theme)}`}>
                                 {i + 1}
                               </span>
                             </td>
                             <td className={tableCell()}>
-                              <span className={`font-medium ${textPrimary(theme)}`}>{item.date}</span>
+                              <span className={`whitespace-nowrap font-medium ${textPrimary(theme)}`}>{item.date}</span>
                             </td>
-                            <td className={`${tableCell()} text-right font-mono ${textSecondary(theme)}`}>{item.calls.toLocaleString()}</td>
-                            <td className={`${tableCell()} text-right font-mono ${textMuted(theme)}`}>{item.users}</td>
+                            <td className={`${tableCell()} text-right whitespace-nowrap font-mono ${textSecondary(theme)}`}>{item.calls.toLocaleString()}</td>
+                            <td className={`${tableCell()} text-right whitespace-nowrap font-mono ${textMuted(theme)}`}>{item.users}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -182,11 +182,11 @@ export const UsageStatsOverview: React.FC<Props> = ({ theme }) => {
                         {points.map((pt, i) => (
                           <tr key={pt.date} className={tableBodyRow(theme, i)}>
                             <td className={tableCell()}>
-                              <span className={`font-medium ${textPrimary(theme)}`}>{pt.date}</span>
+                              <span className={`whitespace-nowrap font-medium ${textPrimary(theme)}`}>{pt.date}</span>
                             </td>
-                            <td className={`${tableCell()} text-right font-mono ${textSecondary(theme)}`}>{pt.tokens.toLocaleString()}</td>
-                            <td className={`${tableCell()} text-right font-mono ${textMuted(theme)}`}>{pt.calls.toLocaleString()}</td>
-                            <td className={`${tableCell()} text-right font-mono ${textMuted(theme)}`}>{pt.users}</td>
+                            <td className={`${tableCell()} text-right whitespace-nowrap font-mono ${textSecondary(theme)}`}>{pt.tokens.toLocaleString()}</td>
+                            <td className={`${tableCell()} text-right whitespace-nowrap font-mono ${textMuted(theme)}`}>{pt.calls.toLocaleString()}</td>
+                            <td className={`${tableCell()} text-right whitespace-nowrap font-mono ${textMuted(theme)}`}>{pt.users}</td>
                           </tr>
                         ))}
                       </tbody>

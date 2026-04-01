@@ -215,10 +215,10 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
                         </div>
                       </td>
                       <td className={tableCell()}>
-                        <span className={`text-xs px-2 py-0.5 rounded ${isDark ? 'bg-neutral-900/10 text-neutral-300' : 'bg-neutral-100 text-neutral-900'}`}>{safeText(u.role) || '—'}</span>
+                        <span className={`inline-flex shrink-0 items-center whitespace-nowrap text-xs px-2 py-0.5 rounded ${isDark ? 'bg-neutral-900/10 text-neutral-300' : 'bg-neutral-100 text-neutral-900'}`}>{safeText(u.role) || '—'}</span>
                       </td>
                       <td className={tableCell()}>
-                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                        <span className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
                           u.status === 'active' ? (isDark ? 'bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20' : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/60')
                           : u.status === 'locked' ? (isDark ? 'bg-amber-500/10 text-amber-400 ring-1 ring-amber-500/20' : 'bg-amber-50 text-amber-700 ring-1 ring-amber-200/60')
                           : (isDark ? 'bg-slate-500/10 text-slate-400 ring-1 ring-slate-500/20' : 'bg-slate-50 text-slate-600 ring-1 ring-slate-200/60')
@@ -229,8 +229,8 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
                       <td className={`${tableCell()} ${textSecondary(theme)}`}>{safeText(u.email) || '—'}</td>
                       <td className={`${tableCell()} ${textSecondary(theme)}`}>{safeText(u.phone) || '—'}</td>
                       <td className={`${tableCell()} ${textSecondary(theme)}`}>{safeText(u.department) || '—'}</td>
-                      <td className={`${tableCell()} ${textSecondary(theme)}`}>{formatDateTime(u.lastLoginAt)}</td>
-                      <td className={`${tableCell()} ${textSecondary(theme)}`}>{formatDateTime(u.createdAt)}</td>
+                      <td className={`${tableCell()} whitespace-nowrap ${textSecondary(theme)}`}>{formatDateTime(u.lastLoginAt)}</td>
+                      <td className={`${tableCell()} whitespace-nowrap ${textSecondary(theme)}`}>{formatDateTime(u.createdAt)}</td>
                       <td className={`${tableCell()} text-right`}>
                         <div className="inline-flex flex-nowrap items-center justify-end gap-2">
                           <button type="button" onClick={() => openEdit(u)} className={mgmtTableActionGhost(theme)} title="编辑">编辑</button>

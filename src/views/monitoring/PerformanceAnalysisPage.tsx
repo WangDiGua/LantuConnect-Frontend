@@ -137,12 +137,12 @@ export const PerformanceAnalysisPage: React.FC<Props> = ({ theme, showMessage })
                 <tbody>
                   {rows.map((r, i) => (
                     <tr key={`${r.timestamp}-${i}`} className={tableBodyRow(theme, i)}>
-                      <td className={tableCell()}><span className="font-mono text-xs">{formatDateTime(r.timestamp)}</span></td>
-                      <td className={tableCell()}><span className={`font-mono tabular-nums ${r.cpu > 80 ? 'text-rose-500 font-semibold' : textSecondary(theme)}`}>{r.cpu}</span></td>
-                      <td className={tableCell()}><span className={`font-mono tabular-nums ${r.memory > 85 ? 'text-rose-500 font-semibold' : textSecondary(theme)}`}>{r.memory}</span></td>
-                      <td className={tableCell()}><span className={`font-mono tabular-nums ${textSecondary(theme)}`}>{r.latencyP50}</span></td>
-                      <td className={tableCell()}><span className={`font-mono tabular-nums ${r.latencyP99 > 500 ? 'text-amber-500 font-semibold' : textSecondary(theme)}`}>{r.latencyP99}</span></td>
-                      <td className={tableCell()}><span className={`font-mono tabular-nums ${textSecondary(theme)}`}>{r.throughput}</span></td>
+                      <td className={`${tableCell()} whitespace-nowrap`}><span className="font-mono text-xs">{formatDateTime(r.timestamp)}</span></td>
+                      <td className={`${tableCell()} whitespace-nowrap`}><span className={`font-mono tabular-nums ${r.cpu > 80 ? 'text-rose-500 font-semibold' : textSecondary(theme)}`}>{r.cpu}</span></td>
+                      <td className={`${tableCell()} whitespace-nowrap`}><span className={`font-mono tabular-nums ${r.memory > 85 ? 'text-rose-500 font-semibold' : textSecondary(theme)}`}>{r.memory}</span></td>
+                      <td className={`${tableCell()} whitespace-nowrap`}><span className={`font-mono tabular-nums ${textSecondary(theme)}`}>{r.latencyP50}</span></td>
+                      <td className={`${tableCell()} whitespace-nowrap`}><span className={`font-mono tabular-nums ${r.latencyP99 > 500 ? 'text-amber-500 font-semibold' : textSecondary(theme)}`}>{r.latencyP99}</span></td>
+                      <td className={`${tableCell()} whitespace-nowrap`}><span className={`font-mono tabular-nums ${textSecondary(theme)}`}>{r.throughput}</span></td>
                     </tr>
                   ))}
                 </tbody>

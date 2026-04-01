@@ -9,6 +9,7 @@ import { SearchInput, FilterSelect, Pagination } from '../../components/common';
 import type { CallLogEntry } from '../../types/dto/monitoring';
 import {
   canvasBodyBg, bentoCard, textPrimary, textSecondary, textMuted, tableBodyRow, tableCell, tableHeadCell,
+  tableCellScrollInner, tableCellScrollInnerMono,
 } from '../../utils/uiClasses';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { formatDateTime } from '../../utils/formatDateTime';
@@ -138,9 +139,9 @@ export const CallLogPage: React.FC<CallLogPageProps> = ({ theme }) => {
                     const badge = STATUS_BADGE[r.status] ?? STATUS_BADGE.error;
                     return (
                       <tr key={`${r.id}-${r.createdAt}`} className={tableBodyRow(theme, idx)}>
-                        <td className={`${tableCell()} ${textSecondary(theme)}`}>{formatDateTime(r.createdAt)}</td>
-                        <td className={tableCell()}>
-                          <span className={`px-2 py-0.5 rounded-lg text-[11px] font-bold font-mono ${
+                        <td className={`${tableCell()} whitespace-nowrap ${textSecondary(theme)}`}>{formatDateTime(r.createdAt)}</td>
+                        <td className={`${tableCell()} align-middle`}>
+                          <span className={`inline-flex shrink-0 items-center whitespace-nowrap px-2 py-0.5 rounded-lg text-[11px] font-bold font-mono ${
                             safeText(r.method).startsWith('GET')
                               ? isDark ? 'bg-sky-500/15 text-sky-400' : 'bg-sky-50 text-sky-700'
                               : isDark ? 'bg-neutral-900/10 text-neutral-300' : 'bg-neutral-100 text-neutral-800'
@@ -149,17 +150,17 @@ export const CallLogPage: React.FC<CallLogPageProps> = ({ theme }) => {
                           </span>
                         </td>
                         <td className={`${tableCell()} ${textPrimary(theme)}`}>{safeText(r.agentName) || '未命名资源'}</td>
-                        <td className={tableCell()}>
-                          <span className={`font-mono text-[11px] ${textMuted(theme)}`}>{safeText(r.traceId) || '—'}</span>
+                        <td className={`${tableCell()} max-w-[180px] align-middle`}>
+                          <div className={`${tableCellScrollInnerMono} ${textMuted(theme)}`}>{safeText(r.traceId) || '—'}</div>
                         </td>
                         <td className={`${tableCell()} ${textSecondary(theme)}`}>{safeText(r.model) || '未知模型'}</td>
-                        <td className={tableCell()}>
-                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${isDark ? badge.dark : badge.light}`}>
+                        <td className={`${tableCell()} align-middle`}>
+                          <span className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${isDark ? badge.dark : badge.light}`}>
                             {badge.label}
                           </span>
                         </td>
-                        <td className={tableCell()}>
-                          <span className={`px-2 py-0.5 rounded-lg text-[11px] font-mono font-semibold ${
+                        <td className={`${tableCell()} align-middle`}>
+                          <span className={`inline-flex shrink-0 items-center whitespace-nowrap px-2 py-0.5 rounded-lg text-[11px] font-mono font-semibold ${
                             r.statusCode >= 500
                               ? isDark ? 'bg-rose-500/15 text-rose-400' : 'bg-rose-50 text-rose-700'
                               : r.statusCode >= 400
@@ -175,8 +176,12 @@ export const CallLogPage: React.FC<CallLogPageProps> = ({ theme }) => {
                         <td className={`${tableCell()} ${textSecondary(theme)}`}>{safeNumber(r.inputTokens)}</td>
                         <td className={`${tableCell()} ${textSecondary(theme)}`}>{safeNumber(r.outputTokens)}</td>
                         <td className={`${tableCell()} ${textSecondary(theme)}`}>{r.cost > 0 ? `¥${r.cost.toFixed(4)}` : '—'}</td>
-                        <td className={`${tableCell()} ${textSecondary(theme)}`}>{r.ip || '—'}</td>
-                        <td className={`${tableCell()} ${textSecondary(theme)}`}>{r.errorMessage || '—'}</td>
+                        <td className={`${tableCell()} whitespace-nowrap ${textSecondary(theme)}`}>{r.ip || '—'}</td>
+                        <td className={`${tableCell()} max-w-[220px] align-middle ${textSecondary(theme)}`}>
+                          <div className={`${tableCellScrollInner} text-[12px]`} title={r.errorMessage || undefined}>
+                            {r.errorMessage || '—'}
+                          </div>
+                        </td>
                       </tr>
                     );
                   })}

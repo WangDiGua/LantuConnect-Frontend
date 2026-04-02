@@ -14,6 +14,7 @@ import {
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
+import { env } from '../../config/env';
 import { buildPath } from '../../constants/consoleRoutes';
 import {
   MAX_PLAYGROUND_HISTORY_ITEMS,
@@ -39,7 +40,7 @@ function getHeaderValue(pairs: HeaderPair[], name: string): string {
   return '';
 }
 
-/** 相对 /api 路径；外链不校验 */
+/** 相对上下文路径下的接口路径；外链不校验 */
 function playgroundPathNeedsApiKey(rawUrl: string): boolean {
   const path = toRelativeApiPath(rawUrl).split('?')[0];
   if (/^https?:\/\//i.test(path)) return false;
@@ -65,7 +66,13 @@ function toRelativeApiPath(input: string): string {
   const trimmed = input.trim();
   if (!trimmed) return '/';
   if (/^https?:\/\//i.test(trimmed)) return trimmed;
-  if (trimmed.startsWith('/api/')) return trimmed.slice(4);
+  const prefix = env.VITE_API_BASE_URL.replace(/\/$/, '');
+  if (prefix && (trimmed === prefix || trimmed.startsWith(`${prefix}/`))) {
+    return trimmed.length === prefix.length ? '/' : trimmed.slice(prefix.length);
+  }
+  if (trimmed.startsWith('/api/') || trimmed === '/api') {
+    return trimmed === '/api' ? '/' : trimmed.slice(4);
+  }
   return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
 }
 
@@ -92,7 +99,9 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme }) =
   const navigate = useNavigate();
   const isDark = theme === 'dark';
   const [method, setMethod] = useState('GET');
-  const [url, setUrl] = useState('/api/catalog/resources?page=1&pageSize=20&resourceType=agent');
+  const [url, setUrl] = useState(
+    () => `${env.VITE_API_BASE_URL.replace(/\/$/, '')}/catalog/resources?page=1&pageSize=20&resourceType=agent`,
+  );
   const [headers, setHeaders] = useState<HeaderPair[]>([
     { key: 'Authorization', value: '' },
     { key: 'X-User-Id', value: '' },

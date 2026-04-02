@@ -382,7 +382,7 @@ export const AccessControlPage: React.FC<PageProps> = ({ theme, fontSize, showMe
           className={`${btnPrimary} mb-4`}
           disabled={loadingRules}
           onClick={() => {
-            setRules((prev) => [...prev, { id: `${Date.now()}`, path: '/api/**', roles: 'authenticated' }]);
+            setRules((prev) => [...prev, { id: `${Date.now()}`, path: '/regis/**', roles: 'authenticated' }]);
             showMessage('已添加规则草稿', 'success');
           }}
         >

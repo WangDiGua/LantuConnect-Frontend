@@ -537,7 +537,7 @@ export const AgentCreate: React.FC<AgentCreateProps> = ({ theme, fontSize, theme
               />
               <input
                 type="text"
-                placeholder="https://api.example.com/api/invoke"
+                placeholder="https://api.example.com/regis/invoke"
                 className={`${inputCls} join-item flex-1 !rounded-l-none !rounded-r-xl ${errors.url ? '!border-red-500 !ring-red-500/20' : ''}`}
                 value={formData.config.url}
                 onChange={(e) => setFormData({ ...formData, config: { ...formData.config, url: e.target.value } })}

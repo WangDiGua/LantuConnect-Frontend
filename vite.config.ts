@@ -4,7 +4,7 @@ import path from 'path';
 import type { Plugin } from 'vite';
 import { defineConfig, loadEnv } from 'vite';
 
-/** 生产环境注入基础 CSP（与 Hash SPA + Google Fonts + 同源 /api 代理对齐） */
+/** 生产环境注入基础 CSP（与 Hash SPA + Google Fonts + 同源 API 代理对齐） */
 function contentSecurityPolicyPlugin(mode: string, env: Record<string, string>): Plugin {
   /** 前后端不同源时请在 .env.production 设置 VITE_API_BASE_URL 完整 origin，否则 connect-src 仅同源 'self' */
   let connectExtras = 'https://fonts.googleapis.com https://fonts.gstatic.com ws: wss:';
@@ -62,7 +62,7 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       hmr: process.env.DISABLE_HMR !== 'true',
       proxy: {
-        '/api': {
+        '/regis': {
           target: proxyTarget,
           changeOrigin: true,
         },

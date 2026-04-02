@@ -36,6 +36,9 @@ import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
 import { ApiException } from '../../types/api';
+import { env } from '../../config/env';
+
+const API_PATH_PREFIX = env.VITE_API_BASE_URL.replace(/\/$/, '');
 
 interface Props {
   theme: Theme;
@@ -812,11 +815,11 @@ export const McpMarket: React.FC<Props> = ({ theme, showMessage }) => {
                   options={[
                     {
                       value: 'invoke',
-                      label: invokeUseStream ? '/api/invoke-stream（流式）' : '/api/invoke（推荐）',
+                      label: invokeUseStream ? `${API_PATH_PREFIX}/invoke-stream（流式）` : `${API_PATH_PREFIX}/invoke（推荐）`,
                     },
                     {
                       value: 'sdk',
-                      label: invokeUseStream ? '/api/sdk/v1/invoke-stream（流式）' : '/api/sdk/v1/invoke（SDK）',
+                      label: invokeUseStream ? `${API_PATH_PREFIX}/sdk/v1/invoke-stream（流式）` : `${API_PATH_PREFIX}/sdk/v1/invoke（SDK）`,
                     },
                   ]}
                   triggerClassName="!text-xs"

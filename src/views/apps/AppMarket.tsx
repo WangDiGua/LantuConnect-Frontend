@@ -42,7 +42,7 @@ function resolveLaunchUrl(rawUrl?: string): string {
   const launchUrl = String(rawUrl ?? '').trim();
   if (!launchUrl) return '';
   if (/^https?:\/\//i.test(launchUrl)) return launchUrl;
-  const base = env.VITE_API_BASE_URL || '/api';
+  const base = env.VITE_API_BASE_URL;
   const absoluteBase = /^https?:\/\//i.test(base)
     ? base
     : `${window.location.origin}${base.startsWith('/') ? base : `/${base}`}`;

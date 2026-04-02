@@ -14,6 +14,10 @@ import {
 } from '../../utils/uiClasses';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
+import { env } from '../../config/env';
+
+/** 后端 servlet context-path，与文档中的完整 URL 展示一致 */
+const API_CONTEXT_PREFIX = env.VITE_API_BASE_URL.replace(/\/$/, '');
 
 interface ApiEndpoint {
   method: 'GET' | 'POST' | 'PUT' | 'DELETE';
@@ -190,8 +194,8 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme }) => {
                   ))}
                   {prosePara(theme, (
                     <>
-                      所有 HTTP 接口的前缀为上下文路径 <code className={`rounded px-1.5 py-0.5 font-mono text-sm ${isDark ? 'bg-white/10' : 'bg-slate-100'}`}>/api</code>
-                      （例如完整地址形如 <code className={`rounded px-1.5 py-0.5 font-mono text-sm ${isDark ? 'bg-white/10' : 'bg-slate-100'}`}>https://你的域名/api/catalog/resources</code>）。
+                      所有 HTTP 接口的前缀为上下文路径 <code className={`rounded px-1.5 py-0.5 font-mono text-sm ${isDark ? 'bg-white/10' : 'bg-slate-100'}`}>{API_CONTEXT_PREFIX}</code>
+                      （例如完整地址形如 <code className={`rounded px-1.5 py-0.5 font-mono text-sm ${isDark ? 'bg-white/10' : 'bg-slate-100'}`}>https://你的域名{API_CONTEXT_PREFIX}/catalog/resources</code>）。
                     </>
                   ))}
                   <div className={`rounded-xl border px-4 py-3 text-sm ${isDark ? 'border-amber-500/25 bg-amber-500/10 text-amber-100/90' : 'border-amber-200 bg-amber-50 text-amber-950'}`}>
@@ -409,7 +413,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme }) => {
                     <BentoCard key={idx} theme={theme}>
                       <div className="flex flex-wrap items-center gap-3 mb-3">
                         <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${isDark ? mc.dark : mc.light}`}>{ep.method}</span>
-                        <code className={`text-sm font-mono font-semibold ${textPrimary(theme)}`}>/api{ep.path}</code>
+                        <code className={`text-sm font-mono font-semibold ${textPrimary(theme)}`}>{API_CONTEXT_PREFIX}{ep.path}</code>
                       </div>
                       <p className={`text-sm mb-4 ${textSecondary(theme)}`}>{ep.description}</p>
 
@@ -443,7 +447,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme }) => {
                       </div>
 
                       <div className="flex justify-end mt-3">
-                        <button type="button" className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${isDark ? 'text-neutral-300 hover:text-neutral-300' : 'text-neutral-900 hover:text-neutral-800'}`} onClick={() => { window.dispatchEvent(new CustomEvent('navigate-to-playground', { detail: { method: ep.method, path: `/api${ep.path}` } })); }}>
+                        <button type="button" className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${isDark ? 'text-neutral-300 hover:text-neutral-300' : 'text-neutral-900 hover:text-neutral-800'}`} onClick={() => { window.dispatchEvent(new CustomEvent('navigate-to-playground', { detail: { method: ep.method, path: `${API_CONTEXT_PREFIX}${ep.path}` } })); }}>
                           <ExternalLink size={13} /> 在 Playground 中试用
                         </button>
                       </div>

@@ -12,7 +12,7 @@ import {
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
 
-/** 与后端 SdkGatewayController `/sdk/v1` 一致；实际请求为 `基地址 + /sdk/v1/...`（基地址含 context-path `/api`） */
+/** 与后端 SdkGatewayController `/sdk/v1` 一致；实际请求为 `基地址 + /sdk/v1/...`（基地址含 context-path，默认 `/regis`） */
 const SDK_V1_ENDPOINTS: { method: string; path: string; note: string }[] = [
   { method: 'GET', path: '/sdk/v1/resources', note: '资源目录分页（query 与目录接口一致）' },
   { method: 'GET', path: '/sdk/v1/resources/{type}/{id}', note: '按类型与 ID 查询详情/解析信息' },
@@ -70,8 +70,8 @@ const SDK_ROADMAP: SdkRoadmapInfo[] = [
   },
 ];
 
-const QUICK_START_FETCH = `// 与控制台使用相同 API 基地址（默认 /api，见部署环境 VITE_API_BASE_URL）
-const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
+const QUICK_START_FETCH = `// 与控制台使用相同 API 基地址（默认 /regis，见 VITE_API_BASE_URL）
+const baseUrl = import.meta.env.VITE_API_BASE_URL || '/regis';
 
 async function sdkInvoke(apiKey, body) {
   const res = await fetch(\`\${baseUrl}/sdk/v1/invoke\`, {
@@ -98,7 +98,7 @@ async function sdkInvoke(apiKey, body) {
 const data = await sdkInvoke('sk_your_full_secret_here', {});
 console.log(data);`;
 
-const QUICK_START_CURL = `# 请将 BASE 替换为实际网关根路径（含 /api），KEY 为完整 X-Api-Key
+const QUICK_START_CURL = `# 请将 BASE 替换为实际网关根路径（含 context-path，如 https://host/regis），KEY 为完整 X-Api-Key
 curl -sS -X POST "$BASE/sdk/v1/invoke" \\
   -H "Content-Type: application/json" \\
   -H "X-Api-Key: $KEY" \\
@@ -122,7 +122,7 @@ export const SdkDownloadPage: React.FC<SdkDownloadPageProps> = ({ theme }) => {
   const [roadmapModal, setRoadmapModal] = useState<SdkRoadmapInfo | null>(null);
   const [quickTab, setQuickTab] = useState<'fetch' | 'curl'>('fetch');
 
-  const apiBaseHint = env.VITE_API_BASE_URL || '/api';
+  const apiBaseHint = env.VITE_API_BASE_URL;
 
   return (
     <div className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-colors duration-300 ${canvasBodyBg(theme)}`}>

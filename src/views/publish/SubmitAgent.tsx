@@ -285,7 +285,7 @@ export const SubmitAgent: React.FC<Props> = ({ theme, fontSize }) => {
                       <label className={`${labelCls} mb-1.5 block`}>接口地址 (URL) *</label>
                       <input
                         type="text"
-                        placeholder="https://api.example.com/factory_ixeo2_8oiuw/regis/catalog/resolve"
+                        placeholder="https://api.example.com/regis/catalog/resolve"
                         className={`${inputCls} ${errors.specUrl ? '!border-red-500 !ring-red-500/20' : ''}`}
                         value={form.specUrl}
                         onChange={e => updateField('specUrl', e.target.value)}

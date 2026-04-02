@@ -1,6 +1,6 @@
 import { DEFAULT_API_BASE_PATH } from './defaultApiBase';
 
-/** 与线上 API 根路径一致（默认 `网关前缀/regis`；仅 `/regis` 表示本机直连） */
+/** 与线上 API 根路径一致（默认 `/regis`，与静态资源子路径无关） */
 export { DEFAULT_API_BASE_PATH };
 
 const env = {

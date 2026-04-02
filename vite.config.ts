@@ -3,21 +3,17 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import type { Plugin } from 'vite';
 import { defineConfig, loadEnv } from 'vite';
-import {
-  DEFAULT_API_BASE_PATH,
-  GATEWAY_PATH_PREFIX,
-  devProxyStripGatewayPrefix,
-} from './src/config/defaultApiBase';
+import { DEFAULT_API_BASE_PATH, STATIC_DEPLOY_PATH_PREFIX } from './src/config/defaultApiBase';
 
-/** 静态资源与入口 HTML 的公共路径（须以 / 结尾），与 nginx 上的子目录一致；见 Vite `base` */
-function normalizeAppBase(raw: string | undefined, useProdGatewayPrefix: boolean): string {
+/** 静态资源 `base`（须以 / 结尾）；与 API 根路径无关 */
+function normalizeAppBase(raw: string | undefined, useProdStaticSubpath: boolean): string {
   const v = raw?.trim();
   if (v) {
     if (v === '/') return '/';
     const s = v.startsWith('/') ? v : `/${v}`;
     return s.endsWith('/') ? s : `${s}/`;
   }
-  return useProdGatewayPrefix ? `${GATEWAY_PATH_PREFIX}/` : '/';
+  return useProdStaticSubpath ? `${STATIC_DEPLOY_PATH_PREFIX}/` : '/';
 }
 
 /** 生产环境注入基础 CSP（与 Hash SPA + Google Fonts + 同源 API 代理对齐） */
@@ -86,7 +82,6 @@ export default defineConfig(({ mode }) => {
         [apiBase]: {
           target: proxyTarget,
           changeOrigin: true,
-          rewrite: (p: string) => devProxyStripGatewayPrefix(p),
         },
       },
     },

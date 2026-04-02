@@ -1,16 +1,8 @@
 /**
- * 线上常为：`https://域名/factory_ixeo2_8oiuw/regis/`（网关前缀 + 后端 context-path，浏览器里两段都要）
- * 本机直连 Spring、无前缀：`VITE_API_BASE_URL=/regis`
+ * 静态前端可能挂在网关子路径下（与 Vite `base` / `VITE_APP_BASE_PATH` 一致），
+ * 但接口根路径一般为后端的 context-path 本身，不含该段（默认 `/regis`）。
  */
-export const GATEWAY_PATH_PREFIX = '/factory_ixeo2_8oiuw' as const;
+export const STATIC_DEPLOY_PATH_PREFIX = '/factory_ixeo2_8oiuw' as const;
 
-export const DEFAULT_API_BASE_PATH = `${GATEWAY_PATH_PREFIX}/regis` as const;
-
-/**
- * Vite dev 代理：剥掉网关前缀，使打到本机 8080 的路径为 `/regis/...`
- * 例：`/factory_ixeo2_8oiuw/regis/auth/login` → `/regis/auth/login`
- */
-export function devProxyStripGatewayPrefix(path: string): string {
-  if (!path.startsWith(GATEWAY_PATH_PREFIX)) return path;
-  return path.slice(GATEWAY_PATH_PREFIX.length) || '/';
-}
+/** 浏览器请求 API 的根路径（与 server.servlet.context-path 等一致） */
+export const DEFAULT_API_BASE_PATH = '/regis' as const;

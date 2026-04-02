@@ -98,7 +98,7 @@ async function sdkInvoke(apiKey, body) {
 const data = await sdkInvoke('sk_your_full_secret_here', {});
 console.log(data);`;
 
-const QUICK_START_CURL = `# 请将 BASE 替换为实际网关根路径（如 https://host${DEFAULT_API_BASE_PATH}），KEY 为完整 X-Api-Key
+const QUICK_START_CURL = `# 请将 BASE 替换为 API 根路径（如 https://host${DEFAULT_API_BASE_PATH}），KEY 为完整 X-Api-Key
 curl -sS -X POST "$BASE/sdk/v1/invoke" \\
   -H "Content-Type: application/json" \\
   -H "X-Api-Key: $KEY" \\

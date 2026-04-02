@@ -373,7 +373,7 @@ export const SkillCreate: React.FC<Props> = ({ theme, fontSize: _fontSize, onBac
             <label className={`${labelCls} mb-1.5 block`}>服务地址 (URL) *</label>
             <input
               type="text"
-              placeholder="https://api.example.com/factory_ixeo2_8oiuw/regis/invoke"
+              placeholder="https://api.example.com/regis/invoke"
               className={`${inputCls} ${errors.specUrl ? '!border-red-500 !ring-red-500/20' : ''}`}
               value={form.specUrl}
               onChange={e => updateField('specUrl', e.target.value)}

@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import type { Plugin } from 'vite';
 import { defineConfig, loadEnv } from 'vite';
+import { DEFAULT_API_BASE_PATH, devProxyStripGatewayPrefix } from './src/config/defaultApiBase';
 
 /** 生产环境注入基础 CSP（与 Hash SPA + Google Fonts + 同源 API 代理对齐） */
 function contentSecurityPolicyPlugin(mode: string, env: Record<string, string>): Plugin {
@@ -46,6 +47,7 @@ export default defineConfig(({ mode }) => {
   /** no-strict：仍用 development 的 .env（API 代理等）；关闭 StrictMode 见下方 define */
   const env = mode === 'no-strict' ? loadEnv('development', '.', '') : loadEnv(mode, '.', '');
   const proxyTarget = env.VITE_API_PROXY_TARGET || 'http://localhost:8080';
+  const apiBase = (env.VITE_API_BASE_URL || DEFAULT_API_BASE_PATH).replace(/\/$/, '');
 
   return {
     define:
@@ -62,9 +64,10 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       hmr: process.env.DISABLE_HMR !== 'true',
       proxy: {
-        '/regis': {
+        [apiBase]: {
           target: proxyTarget,
           changeOrigin: true,
+          rewrite: (p: string) => devProxyStripGatewayPrefix(p),
         },
       },
     },

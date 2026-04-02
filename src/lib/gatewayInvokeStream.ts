@@ -1,8 +1,8 @@
-import { env } from '../config/env';
+import { DEFAULT_API_BASE_PATH, env } from '../config/env';
 import { ApiException } from '../types/api';
 
 export function resolveGatewayRequestUrl(path: string): string {
-  const base = String(env.VITE_API_BASE_URL || '/regis').replace(/\/$/, '');
+  const base = String(env.VITE_API_BASE_URL || DEFAULT_API_BASE_PATH).replace(/\/$/, '');
   const p = path.startsWith('/') ? path : `/${path}`;
   if (/^https?:\/\//i.test(base)) {
     return `${base}${p}`;

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Download, FileText, Copy, Check, ExternalLink, BookOpen, Terminal } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { Theme, FontSize } from '../../types';
-import { env } from '../../config/env';
+import { DEFAULT_API_BASE_PATH, env } from '../../config/env';
 import { buildPath } from '../../constants/consoleRoutes';
 import { BentoCard } from '../../components/common/BentoCard';
 import { Modal } from '../../components/common/Modal';
@@ -70,8 +70,8 @@ const SDK_ROADMAP: SdkRoadmapInfo[] = [
   },
 ];
 
-const QUICK_START_FETCH = `// 与控制台使用相同 API 基地址（默认 /regis，见 VITE_API_BASE_URL）
-const baseUrl = import.meta.env.VITE_API_BASE_URL || '/regis';
+const QUICK_START_FETCH = `// 与控制台使用相同 API 基地址（默认 ${DEFAULT_API_BASE_PATH}，见 VITE_API_BASE_URL）
+const baseUrl = import.meta.env.VITE_API_BASE_URL || '${DEFAULT_API_BASE_PATH}';
 
 async function sdkInvoke(apiKey, body) {
   const res = await fetch(\`\${baseUrl}/sdk/v1/invoke\`, {
@@ -98,7 +98,7 @@ async function sdkInvoke(apiKey, body) {
 const data = await sdkInvoke('sk_your_full_secret_here', {});
 console.log(data);`;
 
-const QUICK_START_CURL = `# 请将 BASE 替换为实际网关根路径（含 context-path，如 https://host/regis），KEY 为完整 X-Api-Key
+const QUICK_START_CURL = `# 请将 BASE 替换为实际网关根路径（如 https://host${DEFAULT_API_BASE_PATH}），KEY 为完整 X-Api-Key
 curl -sS -X POST "$BASE/sdk/v1/invoke" \\
   -H "Content-Type: application/json" \\
   -H "X-Api-Key: $KEY" \\

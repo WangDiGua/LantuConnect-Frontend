@@ -104,7 +104,7 @@ const App: React.FC = () => {
     <QueryClientProvider client={queryClient}>
       <ErrorBoundary>
         <MessageProvider theme={theme}>
-          <HashRouter>
+          <HashRouter basename={(import.meta.env.BASE_URL ?? '/').replace(/\/$/, '') || undefined}>
             <AuthBinder />
             <HttpErrorBinder />
             <Suspense fallback={<div className="fixed inset-0 overflow-auto bg-slate-50 dark:bg-slate-950"><PageSkeleton type="dashboard" /></div>}>

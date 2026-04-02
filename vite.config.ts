@@ -3,7 +3,22 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import type { Plugin } from 'vite';
 import { defineConfig, loadEnv } from 'vite';
-import { DEFAULT_API_BASE_PATH, devProxyStripGatewayPrefix } from './src/config/defaultApiBase';
+import {
+  DEFAULT_API_BASE_PATH,
+  GATEWAY_PATH_PREFIX,
+  devProxyStripGatewayPrefix,
+} from './src/config/defaultApiBase';
+
+/** 静态资源与入口 HTML 的公共路径（须以 / 结尾），与 nginx 上的子目录一致；见 Vite `base` */
+function normalizeAppBase(raw: string | undefined, useProdGatewayPrefix: boolean): string {
+  const v = raw?.trim();
+  if (v) {
+    if (v === '/') return '/';
+    const s = v.startsWith('/') ? v : `/${v}`;
+    return s.endsWith('/') ? s : `${s}/`;
+  }
+  return useProdGatewayPrefix ? `${GATEWAY_PATH_PREFIX}/` : '/';
+}
 
 /** 生产环境注入基础 CSP（与 Hash SPA + Google Fonts + 同源 API 代理对齐） */
 function contentSecurityPolicyPlugin(mode: string, env: Record<string, string>): Plugin {
@@ -48,8 +63,12 @@ export default defineConfig(({ mode }) => {
   const env = mode === 'no-strict' ? loadEnv('development', '.', '') : loadEnv(mode, '.', '');
   const proxyTarget = env.VITE_API_PROXY_TARGET || 'http://localhost:8080';
   const apiBase = (env.VITE_API_BASE_URL || DEFAULT_API_BASE_PATH).replace(/\/$/, '');
+  /* 仅生产包默认挂载到与网关相同前缀下；本地 dev 默认根路径，需要时可在 .env.development 设 VITE_APP_BASE_PATH */
+  const useProdStaticPrefix = mode === 'production';
+  const base = normalizeAppBase(env.VITE_APP_BASE_PATH, useProdStaticPrefix);
 
   return {
+    base,
     define:
       mode === 'no-strict'
         ? { 'import.meta.env.VITE_DISABLE_STRICT_MODE': JSON.stringify('true') }

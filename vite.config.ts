@@ -39,7 +39,7 @@ function contentSecurityPolicyPlugin(mode: string, env: Record<string, string>):
     "worker-src 'self' blob:",
     "base-uri 'self'",
     "form-action 'self'",
-    "frame-ancestors 'none'",
+    /** frame-ancestors 仅在 HTTP 响应头中生效，写在 meta 里会被浏览器忽略且控制台告警 */
     "upgrade-insecure-requests",
   ];
   const csp = directives.join('; ');

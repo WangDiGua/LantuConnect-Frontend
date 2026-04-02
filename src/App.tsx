@@ -104,7 +104,8 @@ const App: React.FC = () => {
     <QueryClientProvider client={queryClient}>
       <ErrorBoundary>
         <MessageProvider theme={theme}>
-          <HashRouter basename={(import.meta.env.BASE_URL ?? '/').replace(/\/$/, '') || undefined}>
+          {/** Hash 路由的匹配只看 `#` 后路径；勿把 Vite `base`（静态资源前缀）设成 basename，否则与 hash 内 pathname 不一致会白屏 */}
+          <HashRouter>
             <AuthBinder />
             <HttpErrorBinder />
             <Suspense fallback={<div className="fixed inset-0 overflow-auto bg-slate-50 dark:bg-slate-950"><PageSkeleton type="dashboard" /></div>}>

@@ -8,11 +8,13 @@ import type {
   ResourceUpsertRequest,
   ResourceVersionCreateRequest,
   ResourceVersionVO,
+  SkillExternalCatalogHttpSource,
   SkillExternalCatalogItemVO,
   SkillExternalCatalogPage,
   SkillExternalCatalogProperties,
   SkillExternalCatalogSettingsResponse,
   SkillPackValidationStatus,
+  SkillPackChunkUploadProgress,
 } from '../../types/dto/resource-center';
 
 function normalizeStatus(raw: unknown): ResourceCenterItemVO['status'] {
@@ -135,9 +137,24 @@ function toResourceItem(raw: any): ResourceCenterItemVO {
     catalogTagNames: Array.isArray(raw?.catalogTagNames)
       ? raw.catalogTagNames.map((t: unknown) => String(t))
       : undefined,
-    skillType: raw?.skillType != null && raw?.skillType !== '' ? String(raw.skillType) : undefined,
-    artifactUri: raw?.artifactUri != null && raw?.artifactUri !== '' ? String(raw.artifactUri) : undefined,
-    artifactSha256: raw?.artifactSha256 != null && raw?.artifactSha256 !== '' ? String(raw.artifactSha256) : undefined,
+    skillType:
+      raw?.skillType != null && raw?.skillType !== ''
+        ? String(raw.skillType)
+        : raw?.skill_type != null && raw?.skill_type !== ''
+          ? String(raw.skill_type)
+          : undefined,
+    artifactUri:
+      raw?.artifactUri != null && String(raw.artifactUri).trim() !== ''
+        ? String(raw.artifactUri).trim()
+        : raw?.artifact_uri != null && String(raw.artifact_uri).trim() !== ''
+          ? String(raw.artifact_uri).trim()
+          : undefined,
+    artifactSha256:
+      raw?.artifactSha256 != null && String(raw.artifactSha256).trim() !== ''
+        ? String(raw.artifactSha256).trim()
+        : raw?.artifact_sha256 != null && String(raw.artifact_sha256).trim() !== ''
+          ? String(raw.artifact_sha256).trim()
+          : undefined,
     manifest,
     entryDoc: raw?.entryDoc != null && raw?.entryDoc !== '' ? String(raw.entryDoc) : undefined,
     packValidationStatus: normalizePackStatus(raw?.packValidationStatus ?? raw?.pack_validation_status),
@@ -152,6 +169,12 @@ function toResourceItem(raw: any): ResourceCenterItemVO {
         ? String(raw.packValidationMessage)
         : raw?.pack_validation_message != null
           ? String(raw.pack_validation_message)
+          : undefined,
+    skillRootPath:
+      raw?.skillRootPath != null && String(raw.skillRootPath).trim() !== ''
+        ? String(raw.skillRootPath)
+        : raw?.skill_root_path != null && String(raw.skill_root_path).trim() !== ''
+          ? String(raw.skill_root_path)
           : undefined,
     mode: raw?.mode != null && raw?.mode !== '' ? String(raw.mode) : undefined,
     maxConcurrency:
@@ -249,6 +272,88 @@ function num(raw: unknown, fallback: number): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
+/** 超过此大小走分片上传（每片 4MB，与后端 {@code SkillPackChunkedUploadService.CHUNK_SIZE} 一致） */
+const SKILL_PACK_CHUNK_THRESHOLD = 8 * 1024 * 1024;
+const SERVER_SKILL_CHUNK_SIZE = 4 * 1024 * 1024;
+
+const SKILL_CHUNK_STORAGE_PREFIX = 'lantu_skill_pack_chunk_v1:';
+
+function skillPackChunkStorageKey(file: File, resourceId?: number, skillRoot?: string) {
+  return `${SKILL_CHUNK_STORAGE_PREFIX}${file.name}|${file.size}|${file.lastModified}|${resourceId ?? ''}|${skillRoot ?? ''}`;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+type SkillPackChunkInitResponse = {
+  uploadId: string;
+  chunkSize: number;
+  totalChunks: number;
+  fileSize: number;
+};
+
+type SkillPackChunkStatusResponse = {
+  totalChunks: number;
+  fileSize: number;
+  receivedCount: number;
+  receivedChunkIndices: number[];
+};
+
+async function postSkillChunk(uploadId: string, chunkIndex: number, blob: Blob): Promise<void> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const fd = new FormData();
+    fd.append('file', blob, 'chunk');
+    try {
+      await http.upload<unknown>(
+        `/resource-center/resources/skills/package-upload/chunk/${uploadId}/${chunkIndex}`,
+        fd,
+        { timeout: 120_000 },
+      );
+      return;
+    } catch (e) {
+      lastErr = e;
+      await sleep(400 * 2 ** attempt);
+    }
+  }
+  throw lastErr;
+}
+
+function normalizeRemoteCatalogMode(raw: unknown): string {
+  const s = raw != null ? String(raw).trim().toUpperCase().replace(/-/g, '_') : '';
+  if (['MERGED', 'SKILLHUB_ONLY', 'SKILLSMP_ONLY', 'MIRROR_ONLY'].includes(s)) return s;
+  return 'MERGED';
+}
+
+/** 与后端一致：skillhub.tencent.com 官网对 /api/v1/search 多为 HTML，勿作 API 根 */
+const RECOMMENDED_SKILLHUB_JSON_ROOT = 'https://agentskillhub.dev';
+
+function shouldReplaceTencentOfficialSkillHubHost(url: string): boolean {
+  const t = url.trim();
+  if (!t) return false;
+  try {
+    const h = new URL(t).hostname.toLowerCase();
+    return h === 'skillhub.tencent.com' || h === 'www.skillhub.tencent.com';
+  } catch {
+    return false;
+  }
+}
+
+function normalizeSkillHubUrlsFromApi(sh: Record<string, unknown>): { baseUrl: string; fallbackBaseUrl: string } {
+  const rawBase = sh?.baseUrl != null ? String(sh.baseUrl).trim() : '';
+  const rawFb = sh?.fallbackBaseUrl != null ? String(sh.fallbackBaseUrl).trim() : '';
+  let baseUrl = rawBase || RECOMMENDED_SKILLHUB_JSON_ROOT;
+  let fallbackBaseUrl = rawFb;
+  if (shouldReplaceTencentOfficialSkillHubHost(baseUrl)) {
+    baseUrl = RECOMMENDED_SKILLHUB_JSON_ROOT;
+  }
+  if (shouldReplaceTencentOfficialSkillHubHost(fallbackBaseUrl)) {
+    fallbackBaseUrl = '';
+  }
+  return { baseUrl, fallbackBaseUrl };
+}
+
 function toSkillExternalCatalogProperties(raw: any): SkillExternalCatalogProperties {
   const sm = raw?.skillsmp ?? {};
   const queriesRaw = sm?.discoveryQueries;
@@ -266,10 +371,42 @@ function toSkillExternalCatalogProperties(raw: any): SkillExternalCatalogPropert
         sourceUrl: e?.sourceUrl != null ? String(e.sourceUrl) : undefined,
       }))
     : [];
+  const urlsRaw = raw?.mirrorCatalogUrls;
+  const mirrorCatalogUrls = Array.isArray(urlsRaw)
+    ? urlsRaw.map((u: unknown) => String(u ?? '').trim()).filter(Boolean)
+    : [];
+  const sourcesRaw = raw?.catalogHttpSources;
+  const catalogHttpSources = Array.isArray(sourcesRaw)
+    ? sourcesRaw
+        .map((s: any) => ({
+          url: s?.url != null ? String(s.url).trim() : '',
+          format: s?.format != null ? String(s.format).trim() : 'AUTO',
+        }))
+        .filter((s: SkillExternalCatalogHttpSource) => s.url.length > 0)
+    : [];
+  const sh = (raw?.skillhub ?? {}) as Record<string, unknown>;
+  const shUrls = normalizeSkillHubUrlsFromApi(sh);
+  const shQueriesRaw = sh?.discoveryQueries;
+  const skillhubDiscoveryQueries = Array.isArray(shQueriesRaw)
+    ? shQueriesRaw.map((q: unknown) => String(q ?? '').trim()).filter(Boolean)
+    : [];
   return {
     provider: raw?.provider != null ? String(raw.provider) : 'skillsmp',
+    remoteCatalogMode: normalizeRemoteCatalogMode(raw?.remoteCatalogMode),
     cacheTtlSeconds: num(raw?.cacheTtlSeconds, 3600),
+    persistenceEnabled: raw?.persistenceEnabled !== false,
     mirrorCatalogUrl: raw?.mirrorCatalogUrl != null ? String(raw.mirrorCatalogUrl) : '',
+    mirrorCatalogUrls,
+    catalogHttpSources,
+    skillhub: {
+      enabled: sh?.enabled !== false,
+      baseUrl: shUrls.baseUrl,
+      fallbackBaseUrl: shUrls.fallbackBaseUrl,
+      limitPerQuery: num(sh?.limitPerQuery, 10),
+      maxQueriesPerRequest: num(sh?.maxQueriesPerRequest, 12),
+      githubDefaultBranch: sh?.githubDefaultBranch != null ? String(sh.githubDefaultBranch) : 'main',
+      discoveryQueries: skillhubDiscoveryQueries,
+    },
     outboundHttpProxy: {
       host: raw?.outboundHttpProxy?.host != null ? String(raw.outboundHttpProxy.host) : '',
       port: num(raw?.outboundHttpProxy?.port, 0),
@@ -280,7 +417,8 @@ function toSkillExternalCatalogProperties(raw: any): SkillExternalCatalogPropert
     },
     entries,
     skillsmp: {
-      enabled: sm?.enabled !== false,
+      /** 与后端 SkillsMp.enabled 默认 false 一致；仅显式 true 视为开启 */
+      enabled: sm?.enabled === true,
       baseUrl: sm?.baseUrl != null ? String(sm.baseUrl) : 'https://skillsmp.com/api/v1',
       apiKey: sm?.apiKey != null ? String(sm.apiKey) : '',
       sortBy: sm?.sortBy != null ? String(sm.sortBy) : 'stars',
@@ -328,14 +466,20 @@ export const resourceCenterService = {
         ...(query?.keyword?.trim() ? { keyword: query.keyword.trim() } : {}),
         page: query?.page ?? 1,
         pageSize: query?.pageSize ?? 20,
+        _ts: Date.now(),
       },
+      headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
     });
     return normalizeSkillExternalCatalogPage(raw);
   },
 
   /** 超管委会：读取市场运行时配置（SkillsMP apiKey 不下发明文） */
   getSkillExternalCatalogSettings: async (): Promise<SkillExternalCatalogSettingsResponse> => {
-    const raw = await http.get<unknown>('/resource-center/skill-external-catalog/settings');
+    const raw = await http.get<unknown>('/resource-center/skill-external-catalog/settings', {
+      /** 避免保存后立即 GET 仍命中浏览器/代理缓存导致界面仍为旧配置 */
+      params: { _ts: Date.now() },
+      headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
+    });
     return toSkillExternalCatalogSettingsResponse(raw);
   },
 
@@ -409,23 +553,150 @@ export const resourceCenterService = {
   },
 
   /** Anthropic 式技能 zip：校验 SKILL.md、写制品与 pack_validation_*。新建时可不传 resourceId（后端创建草稿 skill）。 */
-  uploadSkillPackage: async (file: File, resourceId?: number): Promise<ResourceCenterItemVO> => {
+  uploadSkillPackage: async (file: File, resourceId?: number, skillRoot?: string): Promise<ResourceCenterItemVO> => {
     const fd = new FormData();
     fd.append('file', file);
     if (resourceId != null && Number.isFinite(resourceId) && resourceId > 0) {
       fd.append('resourceId', String(resourceId));
     }
+    const sr = skillRoot?.trim();
+    if (sr) {
+      fd.append('skillRoot', sr);
+    }
     const raw = await http.upload<unknown>('/resource-center/resources/skills/package-upload', fd);
     return toResourceItem(raw);
   },
 
+  /**
+   * 技能包上传：小于阈值整包 POST；大于阈值分片+断点续传（刷新页后同文件可继续传未完成分片）。
+   */
+  uploadSkillPackageResumable: async (
+    file: File,
+    resourceId?: number,
+    skillRoot?: string,
+    onProgress?: (p: SkillPackChunkUploadProgress) => void,
+  ): Promise<ResourceCenterItemVO> => {
+    const sr = skillRoot?.trim();
+    if (file.size <= SKILL_PACK_CHUNK_THRESHOLD) {
+      const fd = new FormData();
+      fd.append('file', file);
+      if (resourceId != null && Number.isFinite(resourceId) && resourceId > 0) {
+        fd.append('resourceId', String(resourceId));
+      }
+      if (sr) {
+        fd.append('skillRoot', sr);
+      }
+      const raw = await http.upload<unknown>('/resource-center/resources/skills/package-upload', fd);
+      return toResourceItem(raw);
+    }
+
+    const storageKey = skillPackChunkStorageKey(file, resourceId, sr);
+    let uploadId: string | null = null;
+    let totalChunks = 0;
+    const chunkSize = SERVER_SKILL_CHUNK_SIZE;
+    const done = new Set<number>();
+
+    try {
+      const rawPrev = sessionStorage.getItem(storageKey);
+      if (rawPrev) {
+        const prev = JSON.parse(rawPrev) as { uploadId?: string };
+        if (prev?.uploadId && typeof prev.uploadId === 'string') {
+          try {
+            const st = await http.get<SkillPackChunkStatusResponse>(
+              `/resource-center/resources/skills/package-upload/chunk/${prev.uploadId}/status`,
+            );
+            if (st && st.fileSize === file.size && Array.isArray(st.receivedChunkIndices)) {
+              uploadId = prev.uploadId;
+              totalChunks = st.totalChunks;
+              st.receivedChunkIndices.forEach((i) => done.add(i));
+            }
+          } catch {
+            sessionStorage.removeItem(storageKey);
+          }
+        }
+      }
+    } catch {
+      /* private mode / quota */
+    }
+
+    if (!uploadId) {
+      onProgress?.({ phase: 'init', loaded: 0, total: file.size });
+      const init = await http.post<SkillPackChunkInitResponse>(
+        '/resource-center/resources/skills/package-upload/chunk/init',
+        {
+          fileName: file.name,
+          fileSize: file.size,
+          ...(resourceId != null && Number.isFinite(resourceId) && resourceId > 0 ? { resourceId } : {}),
+          ...(sr ? { skillRoot: sr } : {}),
+        },
+        { timeout: 60_000 },
+      );
+      uploadId = init.uploadId;
+      totalChunks = init.totalChunks;
+      done.clear();
+      try {
+        sessionStorage.setItem(storageKey, JSON.stringify({ uploadId }));
+      } catch {
+        /* ignore */
+      }
+    }
+
+    if (!uploadId || totalChunks <= 0) {
+      throw new Error('分片上传初始化失败');
+    }
+
+    let loaded = 0;
+    for (const idx of done) {
+      const start = idx * chunkSize;
+      const end = Math.min(start + chunkSize, file.size);
+      loaded += end - start;
+    }
+
+    for (let i = 0; i < totalChunks; i++) {
+      if (done.has(i)) {
+        continue;
+      }
+      const start = i * chunkSize;
+      const end = Math.min(start + chunkSize, file.size);
+      const blob = file.slice(start, end);
+      onProgress?.({ phase: 'chunk', loaded, total: file.size, chunkIndex: i, totalChunks });
+      await postSkillChunk(uploadId, i, blob);
+      done.add(i);
+      loaded += end - start;
+      try {
+        sessionStorage.setItem(storageKey, JSON.stringify({ uploadId }));
+      } catch {
+        /* ignore */
+      }
+      onProgress?.({ phase: 'chunk', loaded, total: file.size, chunkIndex: i, totalChunks });
+    }
+
+    onProgress?.({ phase: 'complete', loaded: file.size, total: file.size, totalChunks });
+    const raw = await http.post<unknown>(
+      `/resource-center/resources/skills/package-upload/chunk/${uploadId}/complete`,
+      {},
+      { timeout: 180_000 },
+    );
+    try {
+      sessionStorage.removeItem(storageKey);
+    } catch {
+      /* ignore */
+    }
+    return toResourceItem(raw);
+  },
+
   /** 从 HTTPS URL 拉取 zip，校验与落库与 uploadSkillPackage 一致；新建资源为 sourceType=cloud。 */
-  importSkillPackageFromUrl: async (url: string, resourceId?: number): Promise<ResourceCenterItemVO> => {
+  importSkillPackageFromUrl: async (
+    url: string,
+    resourceId?: number,
+    skillRoot?: string,
+  ): Promise<ResourceCenterItemVO> => {
     const raw = await http.post<unknown>(
       '/resource-center/resources/skills/package-import-url',
       {
         url: url.trim(),
         ...(resourceId != null && Number.isFinite(resourceId) && resourceId > 0 ? { resourceId } : {}),
+        ...(skillRoot?.trim() ? { skillRoot: skillRoot.trim() } : {}),
       },
       { timeout: 120_000 },
     );

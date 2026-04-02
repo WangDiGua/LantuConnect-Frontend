@@ -24,6 +24,7 @@ import {
   bentoCardHover,
   btnGhost,
   btnPrimary,
+  btnSecondary,
   mgmtTableActionDanger,
   mgmtTableActionGhost,
   mgmtTableActionPositive,
@@ -41,15 +42,12 @@ import { formatDateTime } from '../../utils/formatDateTime';
 
 function skillSubmitBlocked(item: ResourceCenterItemVO): boolean {
   if (item.resourceType !== 'skill') return false;
-  const ok = String(item.packValidationStatus ?? '').toLowerCase() === 'valid';
-  const hasUri = Boolean(item.artifactUri?.trim());
-  return !ok || !hasUri;
+  return !Boolean(item.artifactUri?.trim());
 }
 
-/** 与「下载制品」接口一致：仅技能且已通过校验并具备 artifactUri 时可下载 */
+/** 与后端 skill-artifact 一致：有制品即可下载（不要求 valid） */
 function skillCanDownloadArtifact(item: ResourceCenterItemVO): boolean {
   if (item.resourceType !== 'skill') return false;
-  if (String(item.packValidationStatus ?? '').toLowerCase() !== 'valid') return false;
   return Boolean(item.artifactUri?.trim());
 }
 
@@ -108,7 +106,7 @@ interface Props {
   resourceType?: ResourceType;
   allowTypeSwitch?: boolean;
   onTypeChange?: (type: ResourceType) => void;
-  onNavigateRegister: (resourceType: ResourceType, id?: number) => void;
+  onNavigateRegister: (resourceType: ResourceType, id?: number, opts?: { skillTrack?: 'hosted' | 'mountable' }) => void;
   /** 平台管理员在「技能」页打开在线市场 */
   onOpenSkillExternalMarket?: () => void;
 }
@@ -288,10 +286,31 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                   在线市场
                 </button>
               ) : null}
-              <button type="button" onClick={() => onNavigateRegister(activeType)} className={btnPrimary}>
-                <Plus size={15} />
-                注册{RESOURCE_TYPE_LABEL_ZH[activeType]}
-              </button>
+              {activeType === 'skill' ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onNavigateRegister('skill', undefined, { skillTrack: 'hosted' })}
+                    className={btnPrimary}
+                  >
+                    <Plus size={15} />
+                    注册技能（托管分发）
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onNavigateRegister('skill', undefined, { skillTrack: 'mountable' })}
+                    className={btnSecondary(theme)}
+                  >
+                    <Plus size={15} />
+                    注册技能（可挂载）
+                  </button>
+                </div>
+              ) : (
+                <button type="button" onClick={() => onNavigateRegister(activeType)} className={btnPrimary}>
+                  <Plus size={15} />
+                  注册{RESOURCE_TYPE_LABEL_ZH[activeType]}
+                </button>
+              )}
             </div>
           </div>
 
@@ -364,12 +383,33 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
               <EmptyState
                 title="暂无资源"
                 description="当前筛选条件下没有资源，试试调整筛选或注册新资源。"
-                action={(
-                  <button type="button" onClick={() => onNavigateRegister(activeType)} className={btnPrimary}>
-                    <Plus size={15} />
-                    注册{RESOURCE_TYPE_LABEL_ZH[activeType]}
-                  </button>
-                )}
+                action={
+                  activeType === 'skill' ? (
+                    <div className="flex flex-wrap items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onNavigateRegister('skill', undefined, { skillTrack: 'hosted' })}
+                        className={btnPrimary}
+                      >
+                        <Plus size={15} />
+                        注册技能（托管分发）
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onNavigateRegister('skill', undefined, { skillTrack: 'mountable' })}
+                        className={btnSecondary(theme)}
+                      >
+                        <Plus size={15} />
+                        注册技能（可挂载）
+                      </button>
+                    </div>
+                  ) : (
+                    <button type="button" onClick={() => onNavigateRegister(activeType)} className={btnPrimary}>
+                      <Plus size={15} />
+                      注册{RESOURCE_TYPE_LABEL_ZH[activeType]}
+                    </button>
+                  )
+                }
               />
             ) : (
               <div className="space-y-2">

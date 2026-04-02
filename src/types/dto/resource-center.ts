@@ -41,6 +41,15 @@ export interface ResourceMcpUpsertRequest extends ResourceBaseUpsertRequest {
 
 export type SkillPackValidationStatus = 'none' | 'pending' | 'valid' | 'invalid';
 
+/** 技能包分片上传进度（大文件断点续传） */
+export type SkillPackChunkUploadProgress = {
+  phase: 'init' | 'chunk' | 'complete';
+  loaded: number;
+  total: number;
+  chunkIndex?: number;
+  totalChunks?: number;
+};
+
 export interface ResourceSkillUpsertRequest extends ResourceBaseUpsertRequest {
   resourceType: 'skill';
   /** 技能包格式：anthropic_v1 / folder_v1（远程 HTTP 工具请注册 resourceType=mcp） */
@@ -51,6 +60,8 @@ export interface ResourceSkillUpsertRequest extends ResourceBaseUpsertRequest {
   artifactSha256?: string;
   manifest?: Record<string, unknown>;
   entryDoc?: string;
+  /** zip 内技能根子目录（可选），与上传 skillRoot 一致 */
+  skillRootPath?: string;
   spec?: Record<string, unknown>;
   parametersSchema?: Record<string, unknown>;
   /** 挂载的父资源（如 MCP Server） */
@@ -153,6 +164,7 @@ export interface ResourceCenterItemVO {
   packValidationStatus?: SkillPackValidationStatus | string;
   packValidatedAt?: string;
   packValidationMessage?: string;
+  skillRootPath?: string;
   mode?: string;
   maxConcurrency?: number;
   parentResourceId?: number;
@@ -301,6 +313,18 @@ export interface SkillExternalCatalogEntry {
   sourceUrl?: string;
 }
 
+/** 与后端 SkillHub 一致（公开 /api/v1/search；默认 agentskillhub.dev，非 skillhub.tencent.com 官网页） */
+export interface SkillExternalCatalogSkillHubConfig {
+  enabled?: boolean;
+  baseUrl?: string;
+  /** 主站失败时备用根，如 https://agentskillhub.dev */
+  fallbackBaseUrl?: string;
+  limitPerQuery?: number;
+  maxQueriesPerRequest?: number;
+  githubDefaultBranch?: string;
+  discoveryQueries?: string[];
+}
+
 export interface SkillExternalCatalogSkillsMpConfig {
   enabled?: boolean;
   baseUrl?: string;
@@ -313,13 +337,28 @@ export interface SkillExternalCatalogSkillsMpConfig {
   discoveryQueries?: string[];
 }
 
+/** 与后端 CatalogHttpSource 一致 */
+export interface SkillExternalCatalogHttpSource {
+  url?: string;
+  /** AUTO（默认）| SKILL0（与 AUTO 等价，便于标注 skill0 类接口） */
+  format?: string;
+}
+
 export interface SkillExternalCatalogProperties {
   provider?: string;
+  /** MERGED | SKILLHUB_ONLY | SKILLSMP_ONLY | MIRROR_ONLY */
+  remoteCatalogMode?: string;
   cacheTtlSeconds?: number;
+  persistenceEnabled?: boolean;
   mirrorCatalogUrl?: string;
+  /** 多个 JSON 目录 URL，与 mirrorCatalogUrl、catalogHttpSources 合并去重 */
+  mirrorCatalogUrls?: string[];
+  catalogHttpSources?: SkillExternalCatalogHttpSource[];
   outboundHttpProxy?: SkillExternalCatalogOutboundHttpProxy;
   githubZipMirror?: SkillExternalCatalogGithubZipMirror;
   entries?: SkillExternalCatalogEntry[];
+  /** 默认开启：SkillHub 公开搜索（无需 Key；见 skillhub.baseUrl） */
+  skillhub?: SkillExternalCatalogSkillHubConfig;
   skillsmp?: SkillExternalCatalogSkillsMpConfig;
 }
 

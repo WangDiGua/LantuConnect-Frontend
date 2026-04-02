@@ -168,7 +168,7 @@ const MainContent = React.memo<{
   themeColor: ThemeColor;
   fontSize: FontSize;
   showMessage: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void;
-  navigateTo: (page: string, id?: string | number) => void;
+  navigateTo: (page: string, id?: string | number, extra?: { skillTrack?: 'hosted' | 'mountable' }) => void;
   setShowUserMenu: (show: boolean) => void;
   setShowAppearanceMenu: (show: boolean) => void;
 }>(({
@@ -192,7 +192,7 @@ const MainContent = React.memo<{
       showMessage={msg}
       resourceType={type}
       allowTypeSwitch={false}
-      onNavigateRegister={(_, id) => nav(RESOURCE_TYPE_REGISTER_PAGE[type], id)}
+      onNavigateRegister={(rt, id, opts) => nav(RESOURCE_TYPE_REGISTER_PAGE[rt], id, opts)}
     />
   );
 
@@ -204,7 +204,6 @@ const MainContent = React.memo<{
       resourceType={type}
       resourceId={rid ? Number(rid) : undefined}
       onBack={() => nav(RESOURCE_TYPE_LIST_PAGE[type])}
-      onAfterSkillPackCreated={type === 'skill' ? (id) => nav('skill-register', id) : undefined}
     />
   );
 
@@ -229,7 +228,7 @@ const MainContent = React.memo<{
               resourceType={typeQuery ?? 'agent'}
               allowTypeSwitch
               onTypeChange={(nextType) => nav('resource-catalog', nextType)}
-              onNavigateRegister={(type, id) => nav(RESOURCE_TYPE_REGISTER_PAGE[type], id)}
+              onNavigateRegister={(type, id, opts) => nav(RESOURCE_TYPE_REGISTER_PAGE[type], id, opts)}
               onOpenSkillExternalMarket={() => nav('skill-external-market')}
             />
           );
@@ -328,7 +327,7 @@ const MainContent = React.memo<{
             resourceType={typeQuery ?? 'agent'}
             allowTypeSwitch
             onTypeChange={(nextType) => nav('resource-center', nextType)}
-            onNavigateRegister={(type, id) => nav(RESOURCE_TYPE_REGISTER_PAGE[type], id)}
+            onNavigateRegister={(type, id, opts) => nav(RESOURCE_TYPE_REGISTER_PAGE[type], id, opts)}
           />
         );
       case 'agent-list':
@@ -948,23 +947,31 @@ const MainLayoutContent: React.FC<{
     }
   }, [animationStyle, page]);
 
-  const navigateTo = useCallback((targetPage: string, id?: string | number) => {
-    if (targetPage === 'resource-center') {
-      const type = typeof id === 'string' ? parseResourceType(id) : undefined;
-      navigate(
-        type
-          ? `${buildPath(consoleRole, 'resource-center')}?type=${type}`
-          : buildPath(consoleRole, 'resource-center'),
-      );
-      return;
-    }
-    if (targetPage === 'resource-catalog') {
-      const type = typeof id === 'string' ? parseResourceType(id) : undefined;
-      navigate(`${buildPath('admin', 'resource-catalog')}?type=${type ?? 'agent'}`);
-      return;
-    }
-    navigate(buildPath(consoleRole, targetPage, id));
-  }, [navigate, consoleRole]);
+  const navigateTo = useCallback(
+    (targetPage: string, id?: string | number, extra?: { skillTrack?: 'hosted' | 'mountable' }) => {
+      if (targetPage === 'resource-center') {
+        const type = typeof id === 'string' ? parseResourceType(id) : undefined;
+        navigate(
+          type
+            ? `${buildPath(consoleRole, 'resource-center')}?type=${type}`
+            : buildPath(consoleRole, 'resource-center'),
+        );
+        return;
+      }
+      if (targetPage === 'resource-catalog') {
+        const type = typeof id === 'string' ? parseResourceType(id) : undefined;
+        navigate(`${buildPath('admin', 'resource-catalog')}?type=${type ?? 'agent'}`);
+        return;
+      }
+      const path = buildPath(consoleRole, targetPage, id);
+      if (targetPage === 'skill-register' && extra?.skillTrack) {
+        navigate(`${path}?skillTrack=${extra.skillTrack}`);
+      } else {
+        navigate(path);
+      }
+    },
+    [navigate, consoleRole],
+  );
 
   const contentKey = useMemo(() => {
     if (page === 'resource-center') return `${page}?type=${queryType ?? 'agent'}`;

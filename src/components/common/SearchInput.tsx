@@ -39,7 +39,10 @@ export const SearchInput: React.FC<SearchInputProps> = ({
         size={16}
       />
       <input
-        type="search"
+        type="text"
+        inputMode="search"
+        role="searchbox"
+        autoComplete="off"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}

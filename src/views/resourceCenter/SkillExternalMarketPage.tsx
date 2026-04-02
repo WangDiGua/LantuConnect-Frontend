@@ -52,6 +52,14 @@ export const SkillExternalMarketPage: React.FC<Props> = ({ theme, fontSize, show
     setPage(1);
   }, [debouncedSearch]);
 
+  const selectMarketTab = (next: MarketTab) => {
+    if (tab === 'list' && next !== 'list') {
+      const ae = document.activeElement;
+      if (ae instanceof HTMLElement) ae.blur();
+    }
+    setTab(next);
+  };
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -79,7 +87,7 @@ export const SkillExternalMarketPage: React.FC<Props> = ({ theme, fontSize, show
   }, [load, tab]);
 
   const goImport = (packUrl: string) => {
-    const q = `?skillPackUrl=${encodeURIComponent(packUrl.trim())}`;
+    const q = `?skillTrack=hosted&skillPackUrl=${encodeURIComponent(packUrl.trim())}`;
     navigate(`${buildPath('admin', 'skill-register')}${q}`);
   };
 
@@ -98,8 +106,8 @@ export const SkillExternalMarketPage: React.FC<Props> = ({ theme, fontSize, show
               <div>
                 <h2 className={`text-lg font-bold ${textPrimary(theme)}`}>技能在线市场</h2>
                 <p className={`mt-0.5 text-xs ${textMuted(theme)}`}>
-                  列表由后端聚合（SkillsMP / 自建镜像 JSON / YAML），支持关键字筛选与分页。可配代理与 GitHub zip 镜像以改善国内访问。导入对 zip
-                  结构有校验；子目录技能请在镜像源中提供已打好的 zip 链接或本地上传。
+                  列表数据由管理员在「市场配置」的<strong>生效方式</strong>中指定（合并多源 / 仅 SkillHub / 仅 SkillsMP / 仅镜像），并在各标签页维护对应站点参数。支持关键字与分页。导入
+                  zip 有结构校验。
                 </p>
               </div>
             </div>
@@ -121,7 +129,7 @@ export const SkillExternalMarketPage: React.FC<Props> = ({ theme, fontSize, show
                 </button>
                 <button
                   type="button"
-                  onClick={() => setTab('settings')}
+                  onClick={() => selectMarketTab('settings')}
                   className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                     tab === 'settings'
                       ? isDark
@@ -162,7 +170,6 @@ export const SkillExternalMarketPage: React.FC<Props> = ({ theme, fontSize, show
                       onChange={setSearch}
                       placeholder="筛选：名称、简介、ZIP 链接、来源…"
                       theme={theme}
-                      disabled={loading}
                     />
                   </div>
                   {!loading && total > 0 ? (
@@ -180,7 +187,7 @@ export const SkillExternalMarketPage: React.FC<Props> = ({ theme, fontSize, show
                   <p className={`px-4 py-8 text-center text-sm ${textSecondary(theme)}`}>
                     {debouncedSearch
                       ? '无匹配条目，请调整关键字。'
-                      : '暂无数据。可在「市场配置」中设置 SkillsMP、镜像 JSON、代理与 provider；亦可使用环境变量与 YAML 默认值。'}
+                      : '暂无数据。可在「市场配置」中设置 SkillHub、SkillsMP、镜像 JSON、代理与 provider；亦可使用环境变量与 YAML 默认值。'}
                   </p>
                 ) : (
                   <>

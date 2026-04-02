@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import type { Theme, FontSize } from '../../types';
 import type {
   SkillExternalCatalogEntry,
+  SkillExternalCatalogHttpSource,
   SkillExternalCatalogProperties,
 } from '../../types/dto/resource-center';
 import { resourceCenterService } from '../../api/services/resource-center.service';
@@ -17,24 +18,66 @@ interface Props {
   theme: Theme;
   fontSize: FontSize;
   showMessage: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void;
-  /** 保存成功后回调（用于刷新市场列表） */
   onSaved?: () => void;
 }
 
+type SettingsTab = 'source' | 'skillhub' | 'skillsmp' | 'mirror' | 'static';
+
+const TAB_DEF: { id: SettingsTab; label: string }[] = [
+  { id: 'source', label: '生效方式' },
+  { id: 'skillhub', label: 'SkillHub 搜索' },
+  { id: 'skillsmp', label: 'SkillsMP' },
+  { id: 'mirror', label: 'JSON / HTTP 镜像' },
+  { id: 'static', label: '静态条目' },
+];
+
+const REMOTE_CATALOG_MODES: { value: string; label: string; hint: string }[] = [
+  {
+    value: 'MERGED',
+    label: '多源合并',
+    hint: 'SkillHub、SkillsMP、下方配置的 JSON/HTTP 镜像全部拉取后去重合并（默认，适合尽量多收录）',
+  },
+  {
+    value: 'SKILLHUB_ONLY',
+    label: '仅 SkillHub',
+    hint:
+      '只使用公开搜索 API（默认站点根 https://agentskillhub.dev，客户端会请求 /api/v1/search）。勿将 skillhub.tencent.com 官网根当作 API 地址。',
+  },
+  {
+    value: 'SKILLSMP_ONLY',
+    label: '仅 SkillsMP',
+    hint: '只使用 SkillsMP；需 API Key，并在「SkillsMP」页开启',
+  },
+  {
+    value: 'MIRROR_ONLY',
+    label: '仅 JSON / HTTP 镜像',
+    hint: '只使用镜像 URL 与 HTTP 目录源（skill0、自建 CDN 等）；不请求 SkillHub / SkillsMP',
+  },
+];
+
 const PROVIDERS = [
-  { value: 'skillsmp', label: 'skillsmp（SkillsMP + 镜像合并）' },
-  { value: 'static', label: 'static（仅 YAML / entries）' },
-  { value: 'merge', label: 'merge（YAML + 动态源）' },
+  { value: 'skillsmp', label: 'skillsmp（远程目录 + 可落库）' },
+  { value: 'static', label: 'static（仅下方静态条目，无远程拉取）' },
+  { value: 'merge', label: 'merge（静态条目 ∪ 远程目录）' },
+];
+
+const CATALOG_SOURCE_FORMATS = [
+  { value: 'AUTO', label: 'AUTO' },
+  { value: 'SKILL0', label: 'SKILL0' },
 ];
 
 const ZIP_MIRROR_MODES = [
-  { value: 'none', label: 'none（不改写）' },
+  { value: 'none', label: 'none' },
   { value: 'prefix-encoded', label: 'prefix-encoded' },
   { value: 'prefix-raw', label: 'prefix-raw' },
 ];
 
 function emptyEntry(): SkillExternalCatalogEntry {
   return { id: '', name: '', summary: '', packUrl: '', licenseNote: '', sourceUrl: '' };
+}
+
+function emptyHttpSource(): SkillExternalCatalogHttpSource {
+  return { url: '', format: 'AUTO' };
 }
 
 export const SkillExternalMarketSettingsForm: React.FC<Props> = ({ theme, fontSize, showMessage, onSaved }) => {
@@ -49,25 +92,48 @@ export const SkillExternalMarketSettingsForm: React.FC<Props> = ({ theme, fontSi
   const [draft, setDraft] = useState<SkillExternalCatalogProperties | null>(null);
   const [keyConfigured, setKeyConfigured] = useState(false);
   const [queriesText, setQueriesText] = useState('');
+  const [mirrorUrlsText, setMirrorUrlsText] = useState('');
+  const [skillHubQueriesText, setSkillHubQueriesText] = useState('');
+  const [settingsTab, setSettingsTab] = useState<SettingsTab>('source');
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await resourceCenterService.getSkillExternalCatalogSettings();
-      setDraft(res.config);
-      setKeyConfigured(res.skillsmpApiKeyConfigured);
-      const q = res.config.skillsmp?.discoveryQueries ?? [];
-      setQueriesText(q.join('\n'));
-    } catch (e) {
-      const err = e instanceof Error ? e : new Error('加载配置失败');
-      setError(err);
-      setDraft(null);
-      showMessage(err.message, 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [showMessage]);
+  const load = useCallback(
+    async (opts?: { keepVisible?: boolean }) => {
+      const keepVisible = opts?.keepVisible === true;
+      if (!keepVisible) {
+        setLoading(true);
+      }
+      setError(null);
+      try {
+        const res = await resourceCenterService.getSkillExternalCatalogSettings();
+        const cfg = res.config;
+        setDraft({
+          ...cfg,
+          skillhub: cfg.skillhub ? { ...cfg.skillhub } : undefined,
+          skillsmp: cfg.skillsmp ? { ...cfg.skillsmp } : undefined,
+          outboundHttpProxy: cfg.outboundHttpProxy ? { ...cfg.outboundHttpProxy } : undefined,
+          githubZipMirror: cfg.githubZipMirror ? { ...cfg.githubZipMirror } : undefined,
+          entries: cfg.entries ? cfg.entries.map((e) => ({ ...e })) : undefined,
+          catalogHttpSources: cfg.catalogHttpSources ? cfg.catalogHttpSources.map((s) => ({ ...s })) : undefined,
+          mirrorCatalogUrls: cfg.mirrorCatalogUrls ? [...cfg.mirrorCatalogUrls] : undefined,
+        });
+        setKeyConfigured(res.skillsmpApiKeyConfigured);
+        const q = cfg.skillsmp?.discoveryQueries ?? [];
+        setQueriesText(q.join('\n'));
+        setMirrorUrlsText((cfg.mirrorCatalogUrls ?? []).join('\n'));
+        setSkillHubQueriesText((cfg.skillhub?.discoveryQueries ?? []).join('\n'));
+      } catch (e) {
+        const err = e instanceof Error ? e : new Error('加载配置失败');
+        setError(err);
+        setDraft(null);
+        showMessage(err.message, 'error');
+      } finally {
+        if (!keepVisible) {
+          setLoading(false);
+        }
+      }
+    },
+    [showMessage],
+  );
 
   useEffect(() => {
     void load();
@@ -86,9 +152,25 @@ export const SkillExternalMarketSettingsForm: React.FC<Props> = ({ theme, fontSi
     const entries = (draft.entries ?? []).filter(
       (e) => e.id?.trim() && e.name?.trim() && e.packUrl?.trim(),
     );
+    const mirrorCatalogUrls = mirrorUrlsText
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter(Boolean);
+    const catalogHttpSources = (draft.catalogHttpSources ?? []).filter((s) => (s.url ?? '').trim().length > 0);
+    const skillHubQueryLines = skillHubQueriesText
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter((l) => l.length >= 2);
     const payload: SkillExternalCatalogProperties = {
       ...draft,
+      remoteCatalogMode: draft.remoteCatalogMode ?? 'MERGED',
       entries,
+      mirrorCatalogUrls,
+      catalogHttpSources,
+      skillhub: {
+        ...draft.skillhub,
+        discoveryQueries: skillHubQueryLines,
+      },
       skillsmp: {
         ...draft.skillsmp,
         discoveryQueries: lines,
@@ -99,7 +181,7 @@ export const SkillExternalMarketSettingsForm: React.FC<Props> = ({ theme, fontSi
     try {
       await resourceCenterService.putSkillExternalCatalogSettings(payload);
       showMessage('市场配置已保存，列表缓存已失效', 'success');
-      await load();
+      await load({ keepVisible: true });
       onSaved?.();
     } catch (e) {
       showMessage(e instanceof Error ? e.message : '保存失败', 'error');
@@ -125,408 +207,688 @@ export const SkillExternalMarketSettingsForm: React.FC<Props> = ({ theme, fontSi
   }
 
   const sm = draft.skillsmp ?? {};
+  const sh = draft.skillhub ?? {};
+  const rcm = (draft.remoteCatalogMode ?? 'MERGED').toUpperCase();
+
+  const tabBtn = (id: SettingsTab) => {
+    const active = settingsTab === id;
+    return (
+      <button
+        key={id}
+        type="button"
+        onClick={() => setSettingsTab(id)}
+        className={`shrink-0 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+          active
+            ? isDark
+              ? 'bg-white/15 text-white'
+              : 'bg-slate-900 text-white'
+            : `${textMuted(theme)} hover:opacity-90`
+        }`}
+      >
+        {TAB_DEF.find((t) => t.id === id)?.label}
+      </button>
+    );
+  };
 
   return (
-    <div className={`space-y-8 px-3 py-4 sm:px-4 ${densityClass}`}>
+    <div className={`space-y-6 px-3 py-4 sm:px-4 ${densityClass}`}>
+      <form className="contents" autoComplete="off" onSubmit={(e) => e.preventDefault()}>
       <p className={`text-sm ${textMuted(theme)}`}>
-        配置写入数据库后覆盖 <code className="text-xs opacity-90">skill-external-catalog.yml</code> 默认值；SkillsMP API Key
-        留空则保留已保存的 Key。
+        按标签页分市场配置；<strong>「生效方式」</strong>决定列表<strong>实际使用哪一类远程源</strong>（单选 SkillHub / SkillsMP / 镜像 / 或全部合并）。静态条目仅在
+        provider 为 merge 或 static 时参与展示。配置写入数据库后覆盖{' '}
+        <code className="text-xs opacity-90">skill-external-catalog.yml</code>。SkillsMP Key 留空保留原值。
         {keyConfigured ? (
-          <span className={`ml-1 font-medium ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>（当前已配置 Key）</span>
+          <span className={`ml-1 font-medium ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>（已配置 Key）</span>
         ) : (
-          <span className={`ml-1 ${textMuted(theme)}`}>（当前未配置 Key）</span>
+          <span className={`ml-1 ${textMuted(theme)}`}>（未配置 Key）</span>
         )}
       </p>
 
-      <section>
-        <h3 className={`mb-3 text-sm font-semibold ${textPrimary(theme)}`}>来源与缓存</h3>
-        <div className="grid gap-4 sm:grid-cols-2">
+      <div
+        className={`flex flex-wrap gap-2 border-b pb-3 ${isDark ? 'border-white/[0.08]' : 'border-slate-200'}`}
+      >
+        {TAB_DEF.map((t) => tabBtn(t.id))}
+      </div>
+
+      {settingsTab === 'source' && (
+        <section className="space-y-6">
           <div>
-            <label className={`${labelCls} mb-1.5 block`}>provider</label>
-            <select
-              className={inputCls}
-              value={draft.provider ?? 'skillsmp'}
-              onChange={(e) => updateDraft({ provider: e.target.value })}
-            >
-              {PROVIDERS.map((p) => (
-                <option key={p.value} value={p.value}>
-                  {p.label}
-                </option>
+            <h3 className={`mb-3 text-sm font-semibold ${textPrimary(theme)}`}>远程目录用哪个源</h3>
+            <div className="grid gap-3">
+              {REMOTE_CATALOG_MODES.map((m) => (
+                <label
+                  key={m.value}
+                  className={`flex cursor-pointer gap-3 rounded-xl border p-4 ${
+                    isDark ? 'border-white/[0.1] bg-white/[0.02]' : 'border-slate-200 bg-slate-50/40'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    className="mt-1"
+                    name="remoteCatalogMode"
+                    checked={rcm === m.value}
+                    onChange={() => updateDraft({ remoteCatalogMode: m.value })}
+                  />
+                  <div>
+                    <div className={`font-medium ${textPrimary(theme)}`}>{m.label}</div>
+                    <p className={`mt-1 text-xs leading-relaxed ${textMuted(theme)}`}>{m.hint}</p>
+                  </div>
+                </label>
               ))}
-            </select>
+            </div>
           </div>
-          <div>
-            <label className={`${labelCls} mb-1.5 block`}>缓存 TTL（秒）</label>
-            <input
-              type="number"
-              min={60}
-              className={inputCls}
-              value={draft.cacheTtlSeconds ?? 3600}
-              onChange={(e) => updateDraft({ cacheTtlSeconds: Number(e.target.value) || 3600 })}
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <label className={`${labelCls} mb-1.5 block`}>镜像目录 URL（JSON）</label>
-            <input
-              className={inputCls}
-              value={draft.mirrorCatalogUrl ?? ''}
-              onChange={(e) => updateDraft({ mirrorCatalogUrl: e.target.value })}
-              placeholder="https://…"
-            />
-          </div>
-        </div>
-      </section>
 
-      <section>
-        <h3 className={`mb-3 text-sm font-semibold ${textPrimary(theme)}`}>出站 HTTP 代理</h3>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className={`${labelCls} mb-1.5 block`}>主机</label>
-            <input
-              className={inputCls}
-              value={draft.outboundHttpProxy?.host ?? ''}
-              onChange={(e) =>
-                setDraft((prev) =>
-                  prev
-                    ? {
-                        ...prev,
-                        outboundHttpProxy: {
-                          ...prev.outboundHttpProxy,
-                          host: e.target.value,
-                          port: prev.outboundHttpProxy?.port ?? 0,
-                        },
-                      }
-                    : prev,
-                )
-              }
-              placeholder="127.0.0.1"
-            />
+          <div className={`rounded-xl border p-4 ${isDark ? 'border-white/[0.08]' : 'border-slate-200'}`}>
+            <h4 className={`mb-3 text-sm font-semibold ${textPrimary(theme)}`}>provider（与落库逻辑）</h4>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <label className={`${labelCls} mb-1.5 block`}>provider</label>
+                <select
+                  className={inputCls}
+                  value={draft.provider ?? 'skillsmp'}
+                  onChange={(e) => updateDraft({ provider: e.target.value })}
+                >
+                  {PROVIDERS.map((p) => (
+                    <option key={p.value} value={p.value}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={`${labelCls} mb-1.5 block`}>缓存 TTL（秒）</label>
+                <input
+                  type="number"
+                  min={60}
+                  className={inputCls}
+                  value={draft.cacheTtlSeconds ?? 3600}
+                  onChange={(e) => updateDraft({ cacheTtlSeconds: Number(e.target.value) || 3600 })}
+                />
+              </div>
+              <label className={`flex items-center gap-2 self-end sm:col-span-2 ${labelCls}`}>
+                <input
+                  type="checkbox"
+                  className="toggle toggle-primary toggle-sm"
+                  checked={draft.persistenceEnabled !== false}
+                  onChange={(e) => updateDraft({ persistenceEnabled: e.target.checked })}
+                />
+                远程结果落库镜像
+              </label>
+            </div>
           </div>
-          <div>
-            <label className={`${labelCls} mb-1.5 block`}>端口</label>
-            <input
-              type="number"
-              min={0}
-              className={inputCls}
-              value={draft.outboundHttpProxy?.port ?? 0}
-              onChange={(e) =>
-                setDraft((prev) =>
-                  prev
-                    ? {
-                        ...prev,
-                        outboundHttpProxy: {
-                          ...prev.outboundHttpProxy,
-                          host: prev.outboundHttpProxy?.host ?? '',
-                          port: Number(e.target.value) || 0,
-                        },
-                      }
-                    : prev,
-                )
-              }
-            />
-          </div>
-        </div>
-      </section>
 
-      <section>
-        <h3 className={`mb-3 text-sm font-semibold ${textPrimary(theme)}`}>GitHub ZIP 镜像</h3>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className={`${labelCls} mb-1.5 block`}>mode</label>
-            <select
-              className={inputCls}
-              value={draft.githubZipMirror?.mode ?? 'none'}
-              onChange={(e) =>
-                setDraft((prev) =>
-                  prev
-                    ? {
-                        ...prev,
-                        githubZipMirror: { ...prev.githubZipMirror, mode: e.target.value, prefix: prev.githubZipMirror?.prefix ?? '' },
-                      }
-                    : prev,
-                )
-              }
-            >
-              {ZIP_MIRROR_MODES.map((m) => (
-                <option key={m.value} value={m.value}>
-                  {m.label}
-                </option>
-              ))}
-            </select>
+          <div className={`rounded-xl border p-4 ${isDark ? 'border-white/[0.08]' : 'border-slate-200'}`}>
+            <h4 className={`mb-3 text-sm font-semibold ${textPrimary(theme)}`}>出站 HTTP 代理（各远程源共用）</h4>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className={`${labelCls} mb-1.5 block`}>主机</label>
+                <input
+                  className={inputCls}
+                  value={draft.outboundHttpProxy?.host ?? ''}
+                  onChange={(e) =>
+                    setDraft((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            outboundHttpProxy: {
+                              ...prev.outboundHttpProxy,
+                              host: e.target.value,
+                              port: prev.outboundHttpProxy?.port ?? 0,
+                            },
+                          }
+                        : prev,
+                    )
+                  }
+                  placeholder="127.0.0.1"
+                />
+              </div>
+              <div>
+                <label className={`${labelCls} mb-1.5 block`}>端口</label>
+                <input
+                  type="number"
+                  min={0}
+                  className={inputCls}
+                  value={draft.outboundHttpProxy?.port ?? 0}
+                  onChange={(e) =>
+                    setDraft((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            outboundHttpProxy: {
+                              ...prev.outboundHttpProxy,
+                              host: prev.outboundHttpProxy?.host ?? '',
+                              port: Number(e.target.value) || 0,
+                            },
+                          }
+                        : prev,
+                    )
+                  }
+                />
+              </div>
+            </div>
           </div>
-          <div>
-            <label className={`${labelCls} mb-1.5 block`}>prefix</label>
-            <input
-              className={inputCls}
-              value={draft.githubZipMirror?.prefix ?? ''}
-              onChange={(e) =>
-                setDraft((prev) =>
-                  prev
-                    ? {
-                        ...prev,
-                        githubZipMirror: {
-                          mode: prev.githubZipMirror?.mode ?? 'none',
-                          prefix: e.target.value,
-                        },
-                      }
-                    : prev,
-                )
-              }
-              placeholder="https://…"
-            />
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      <section>
-        <h3 className={`mb-3 text-sm font-semibold ${textPrimary(theme)}`}>SkillsMP</h3>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label className={`flex items-center gap-2 sm:col-span-2 ${labelCls}`}>
-            <input
-              type="checkbox"
-              className="toggle toggle-primary toggle-sm"
-              checked={sm.enabled !== false}
-              onChange={(e) =>
-                setDraft((prev) =>
-                  prev
-                    ? {
-                        ...prev,
-                        skillsmp: { ...prev.skillsmp, enabled: e.target.checked },
-                      }
-                    : prev,
-                )
-              }
-            />
-            启用 SkillsMP 拉取
-          </label>
-          <div className="sm:col-span-2">
-            <label className={`${labelCls} mb-1.5 block`}>API Key（留空不改）</label>
-            <input
-              type="password"
-              className={inputCls}
-              value={sm.apiKey ?? ''}
-              onChange={(e) =>
-                setDraft((prev) =>
-                  prev
-                    ? {
-                        ...prev,
-                        skillsmp: { ...prev.skillsmp, apiKey: e.target.value },
-                      }
-                    : prev,
-                )
-              }
-              placeholder={keyConfigured ? '••••••••（留空保留）' : '粘贴 SkillsMP API Key'}
-              autoComplete="off"
-            />
+      {settingsTab === 'skillhub' && (
+        <section>
+          <h3 className={`mb-3 text-sm font-semibold ${textPrimary(theme)}`}>SkillHub（公开搜索 API）</h3>
+          <p className={`mb-4 text-sm ${textMuted(theme)}`}>
+            与 Agent Skill Hub 协议兼容（无需 Key）。仅当「生效方式」为「多源合并」或「仅 SkillHub」时参与列表。
+            <span className="block mt-1">
+              站点根请用可返回 JSON 的地址（默认 <code className="text-xs opacity-90">https://agentskillhub.dev</code>
+              ）；<strong className="font-medium">不要填 skillhub.tencent.com 官网根</strong>
+              ，否则 Request 只会拿到 HTML。
+            </span>
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className={`flex items-center gap-2 sm:col-span-2 ${labelCls}`}>
+              <input
+                type="checkbox"
+                className="toggle toggle-primary toggle-sm"
+                checked={sh.enabled !== false}
+                onChange={(e) =>
+                  setDraft((prev) =>
+                    prev ? { ...prev, skillhub: { ...prev.skillhub, enabled: e.target.checked } } : prev,
+                  )
+                }
+              />
+              启用 SkillHub（/api/v1/search，单请求最多 10 条）
+            </label>
+            <div className="sm:col-span-2">
+              <label className={`${labelCls} mb-1.5 block`}>站点根 URL（将拼接 /api/v1/search）</label>
+              <input
+                className={inputCls}
+                value={sh.baseUrl ?? 'https://agentskillhub.dev'}
+                onChange={(e) =>
+                  setDraft((prev) =>
+                    prev ? { ...prev, skillhub: { ...prev.skillhub, baseUrl: e.target.value } } : prev,
+                  )
+                }
+                placeholder="https://agentskillhub.dev"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className={`${labelCls} mb-1.5 block`}>备用站点根（可选）</label>
+              <input
+                className={inputCls}
+                value={sh.fallbackBaseUrl ?? ''}
+                onChange={(e) =>
+                  setDraft((prev) =>
+                    prev ? { ...prev, skillhub: { ...prev.skillhub, fallbackBaseUrl: e.target.value } } : prev,
+                  )
+                }
+                placeholder="https://agentskillhub.dev"
+              />
+            </div>
+            <div>
+              <label className={`${labelCls} mb-1.5 block`}>每词上限（≤10）</label>
+              <input
+                type="number"
+                min={1}
+                max={10}
+                className={inputCls}
+                value={sh.limitPerQuery ?? 10}
+                onChange={(e) =>
+                  setDraft((prev) =>
+                    prev
+                      ? { ...prev, skillhub: { ...prev.skillhub, limitPerQuery: Number(e.target.value) || 10 } }
+                      : prev,
+                  )
+                }
+              />
+            </div>
+            <div>
+              <label className={`${labelCls} mb-1.5 block`}>最多搜索词数</label>
+              <input
+                type="number"
+                min={1}
+                className={inputCls}
+                value={sh.maxQueriesPerRequest ?? 12}
+                onChange={(e) =>
+                  setDraft((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          skillhub: { ...prev.skillhub, maxQueriesPerRequest: Number(e.target.value) || 12 },
+                        }
+                      : prev,
+                  )
+                }
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className={`${labelCls} mb-1.5 block`}>GitHub 推导 zip 用分支</label>
+              <input
+                className={inputCls}
+                value={sh.githubDefaultBranch ?? 'main'}
+                onChange={(e) =>
+                  setDraft((prev) =>
+                    prev
+                      ? { ...prev, skillhub: { ...prev.skillhub, githubDefaultBranch: e.target.value } }
+                      : prev,
+                  )
+                }
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className={`${labelCls} mb-1.5 block`}>发现关键词（每行，≥2 字符；留空则服务端内置）</label>
+              <textarea
+                className={`${inputCls} min-h-[120px] font-mono text-xs`}
+                value={skillHubQueriesText}
+                onChange={(e) => setSkillHubQueriesText(e.target.value)}
+              />
+            </div>
           </div>
-          <div className="sm:col-span-2">
-            <label className={`${labelCls} mb-1.5 block`}>baseUrl</label>
-            <input
-              className={inputCls}
-              value={sm.baseUrl ?? ''}
-              onChange={(e) =>
-                setDraft((prev) =>
-                  prev
-                    ? {
-                        ...prev,
-                        skillsmp: { ...prev.skillsmp, baseUrl: e.target.value },
-                      }
-                    : prev,
-                )
-              }
-            />
-          </div>
-          <div>
-            <label className={`${labelCls} mb-1.5 block`}>sortBy</label>
-            <input
-              className={inputCls}
-              value={sm.sortBy ?? 'stars'}
-              onChange={(e) =>
-                setDraft((prev) =>
-                  prev
-                    ? {
-                        ...prev,
-                        skillsmp: { ...prev.skillsmp, sortBy: e.target.value },
-                      }
-                    : prev,
-                )
-              }
-            />
-          </div>
-          <div>
-            <label className={`${labelCls} mb-1.5 block`}>默认分支</label>
-            <input
-              className={inputCls}
-              value={sm.githubDefaultBranch ?? 'main'}
-              onChange={(e) =>
-                setDraft((prev) =>
-                  prev
-                    ? {
-                        ...prev,
-                        skillsmp: { ...prev.skillsmp, githubDefaultBranch: e.target.value },
-                      }
-                    : prev,
-                )
-              }
-            />
-          </div>
-          <div>
-            <label className={`${labelCls} mb-1.5 block`}>每词条数上限</label>
-            <input
-              type="number"
-              min={1}
-              max={100}
-              className={inputCls}
-              value={sm.limitPerQuery ?? 100}
-              onChange={(e) =>
-                setDraft((prev) =>
-                  prev
-                    ? {
-                        ...prev,
-                        skillsmp: { ...prev.skillsmp, limitPerQuery: Number(e.target.value) || 100 },
-                      }
-                    : prev,
-                )
-              }
-            />
-          </div>
-          <div>
-            <label className={`${labelCls} mb-1.5 block`}>最多查询词数</label>
-            <input
-              type="number"
-              min={1}
-              className={inputCls}
-              value={sm.maxQueriesPerRequest ?? 12}
-              onChange={(e) =>
-                setDraft((prev) =>
-                  prev
-                    ? {
-                        ...prev,
-                        skillsmp: { ...prev.skillsmp, maxQueriesPerRequest: Number(e.target.value) || 12 },
-                      }
-                    : prev,
-                )
-              }
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <label className={`${labelCls} mb-1.5 block`}>发现关键词（每行一条）</label>
-            <textarea
-              className={`${inputCls} min-h-[140px] font-mono text-xs`}
-              value={queriesText}
-              onChange={(e) => setQueriesText(e.target.value)}
-            />
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      <section>
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h3 className={`text-sm font-semibold ${textPrimary(theme)}`}>静态条目 entries</h3>
-          <button
-            type="button"
-            className={btnGhost(theme)}
-            onClick={() =>
-              setDraft((prev) =>
-                prev ? { ...prev, entries: [...(prev.entries ?? []), emptyEntry()] } : prev,
-              )
-            }
-          >
-            <Plus size={14} />
-            添加一行
-          </button>
-        </div>
-        <div className="space-y-3">
-          {(draft.entries ?? []).length === 0 ? (
-            <p className={`text-sm ${textMuted(theme)}`}>暂无静态条目；merge/static 模式下可在此维护。</p>
-          ) : (
-            (draft.entries ?? []).map((row, idx) => (
-              <div
-                key={idx}
-                className={`grid gap-2 rounded-xl border p-3 sm:grid-cols-2 ${
-                  isDark ? 'border-white/[0.08] bg-white/[0.02]' : 'border-slate-200 bg-slate-50/50'
-                }`}
+      {settingsTab === 'skillsmp' && (
+        <section>
+          <h3 className={`mb-3 text-sm font-semibold ${textPrimary(theme)}`}>SkillsMP</h3>
+          <p className={`mb-4 text-sm ${textMuted(theme)}`}>
+            仅当「生效方式」为「多源合并」或「仅 SkillsMP」时参与列表；需有效 API Key。
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className={`flex items-center gap-2 sm:col-span-2 ${labelCls}`}>
+              <input
+                type="checkbox"
+                className="toggle toggle-primary toggle-sm"
+                checked={sm.enabled === true}
+                onChange={(e) =>
+                  setDraft((prev) =>
+                    prev ? { ...prev, skillsmp: { ...prev.skillsmp, enabled: e.target.checked } } : prev,
+                  )
+                }
+              />
+              启用 SkillsMP
+            </label>
+            <div className="sm:col-span-2">
+              <label className={`${labelCls} mb-1.5 block`}>API Key（留空不改）</label>
+              <input
+                type="password"
+                className={inputCls}
+                value={sm.apiKey ?? ''}
+                onChange={(e) =>
+                  setDraft((prev) =>
+                    prev ? { ...prev, skillsmp: { ...prev.skillsmp, apiKey: e.target.value } } : prev,
+                  )
+                }
+                placeholder={keyConfigured ? '••••••••（留空保留已保存的 Key）' : '粘贴 SkillsMP API Key'}
+                autoComplete="off"
+              />
+              {keyConfigured ? (
+                <p className={`mt-1.5 text-xs leading-relaxed ${textMuted(theme)}`}>
+                  当前已在服务端保存 Key（GET 接口为安全不回显明文，故 JSON 里 <code className="font-mono">apiKey</code>{' '}
+                  为空属正常）。更换时请直接粘贴新 Key 并保存；留空再保存表示继续沿用已保存的 Key。
+                </p>
+              ) : (
+                <p className={`mt-1.5 text-xs leading-relaxed ${textMuted(theme)}`}>
+                  首次保存或更换 Key 时请在此粘贴完整 SkillsMP API Key；保存时写入数据库{' '}
+                  <code className="font-mono">t_system_param.skill_external_catalog</code>。
+                </p>
+              )}
+            </div>
+            <div className="sm:col-span-2">
+              <label className={`${labelCls} mb-1.5 block`}>baseUrl</label>
+              <input
+                className={inputCls}
+                value={sm.baseUrl ?? ''}
+                onChange={(e) =>
+                  setDraft((prev) =>
+                    prev ? { ...prev, skillsmp: { ...prev.skillsmp, baseUrl: e.target.value } } : prev,
+                  )
+                }
+              />
+            </div>
+            <div>
+              <label className={`${labelCls} mb-1.5 block`}>sortBy</label>
+              <input
+                className={inputCls}
+                value={sm.sortBy ?? 'stars'}
+                onChange={(e) =>
+                  setDraft((prev) =>
+                    prev ? { ...prev, skillsmp: { ...prev.skillsmp, sortBy: e.target.value } } : prev,
+                  )
+                }
+              />
+            </div>
+            <div>
+              <label className={`${labelCls} mb-1.5 block`}>默认分支</label>
+              <input
+                className={inputCls}
+                value={sm.githubDefaultBranch ?? 'main'}
+                onChange={(e) =>
+                  setDraft((prev) =>
+                    prev
+                      ? { ...prev, skillsmp: { ...prev.skillsmp, githubDefaultBranch: e.target.value } }
+                      : prev,
+                  )
+                }
+              />
+            </div>
+            <div>
+              <label className={`${labelCls} mb-1.5 block`}>每词条数上限</label>
+              <input
+                type="number"
+                min={1}
+                max={100}
+                className={inputCls}
+                value={sm.limitPerQuery ?? 100}
+                onChange={(e) =>
+                  setDraft((prev) =>
+                    prev
+                      ? { ...prev, skillsmp: { ...prev.skillsmp, limitPerQuery: Number(e.target.value) || 100 } }
+                      : prev,
+                  )
+                }
+              />
+            </div>
+            <div>
+              <label className={`${labelCls} mb-1.5 block`}>最多查询词数</label>
+              <input
+                type="number"
+                min={1}
+                className={inputCls}
+                value={sm.maxQueriesPerRequest ?? 12}
+                onChange={(e) =>
+                  setDraft((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          skillsmp: { ...prev.skillsmp, maxQueriesPerRequest: Number(e.target.value) || 12 },
+                        }
+                      : prev,
+                  )
+                }
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className={`${labelCls} mb-1.5 block`}>发现关键词（每行一条）</label>
+              <textarea
+                className={`${inputCls} min-h-[140px] font-mono text-xs`}
+                value={queriesText}
+                onChange={(e) => setQueriesText(e.target.value)}
+              />
+            </div>
+          </div>
+        </section>
+      )}
+
+      {settingsTab === 'mirror' && (
+        <section className="space-y-8">
+          <div>
+            <h3 className={`mb-3 text-sm font-semibold ${textPrimary(theme)}`}>JSON / HTTP 镜像</h3>
+            <p className={`mb-4 text-sm ${textMuted(theme)}`}>
+              仅当「多源合并」或「仅 JSON / HTTP 镜像」时参与列表。支持 skill0、自建 CDN 等可 GET 的 JSON。
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <label className={`${labelCls} mb-1.5 block`}>镜像目录 URL（单个）</label>
+                <input
+                  className={inputCls}
+                  value={draft.mirrorCatalogUrl ?? ''}
+                  onChange={(e) => updateDraft({ mirrorCatalogUrl: e.target.value })}
+                  placeholder="https://…/skills.json"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className={`${labelCls} mb-1.5 block`}>附加 URL（每行一个）</label>
+                <textarea
+                  className={`${inputCls} min-h-[88px] font-mono text-xs`}
+                  value={mirrorUrlsText}
+                  onChange={(e) => setMirrorUrlsText(e.target.value)}
+                  placeholder="https://skill0.atypica.ai/api/skills"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h4 className={`text-sm font-semibold ${textPrimary(theme)}`}>HTTP 目录源（URL + format）</h4>
+              <button
+                type="button"
+                className={btnGhost(theme)}
+                onClick={() =>
+                  setDraft((prev) =>
+                    prev ? { ...prev, catalogHttpSources: [...(prev.catalogHttpSources ?? []), emptyHttpSource()] } : prev,
+                  )
+                }
               >
+                <Plus size={14} />
+                添加
+              </button>
+            </div>
+            <div className="space-y-3">
+              {(draft.catalogHttpSources ?? []).length === 0 ? (
+                <p className={`text-sm ${textMuted(theme)}`}>无显式源时可仅用上方多行 URL。</p>
+              ) : (
+                (draft.catalogHttpSources ?? []).map((row, idx) => (
+                  <div
+                    key={idx}
+                    className={`grid gap-2 rounded-xl border p-3 sm:grid-cols-[1fr_auto_auto] ${
+                      isDark ? 'border-white/[0.08] bg-white/[0.02]' : 'border-slate-200 bg-slate-50/50'
+                    }`}
+                  >
+                    <input
+                      className={inputCls}
+                      placeholder="https://…"
+                      value={row.url ?? ''}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setDraft((prev) => {
+                          if (!prev) return prev;
+                          const next = [...(prev.catalogHttpSources ?? [])];
+                          next[idx] = { ...next[idx], url: v };
+                          return { ...prev, catalogHttpSources: next };
+                        });
+                      }}
+                    />
+                    <select
+                      className={inputCls}
+                      value={(row.format ?? 'AUTO').toUpperCase()}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setDraft((prev) => {
+                          if (!prev) return prev;
+                          const next = [...(prev.catalogHttpSources ?? [])];
+                          next[idx] = { ...next[idx], format: v };
+                          return { ...prev, catalogHttpSources: next };
+                        });
+                      }}
+                    >
+                      {CATALOG_SOURCE_FORMATS.map((f) => (
+                        <option key={f.value} value={f.value}>
+                          {f.label}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="flex justify-end sm:justify-center">
+                      <button
+                        type="button"
+                        className={btnGhost(theme)}
+                        onClick={() =>
+                          setDraft((prev) => {
+                            if (!prev) return prev;
+                            const next = [...(prev.catalogHttpSources ?? [])];
+                            next.splice(idx, 1);
+                            return { ...prev, catalogHttpSources: next };
+                          })
+                        }
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div>
+            <h4 className={`mb-3 text-sm font-semibold ${textPrimary(theme)}`}>GitHub ZIP 镜像前缀</h4>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className={`${labelCls} mb-1.5 block`}>mode</label>
+                <select
+                  className={inputCls}
+                  value={draft.githubZipMirror?.mode ?? 'none'}
+                  onChange={(e) =>
+                    setDraft((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            githubZipMirror: {
+                              ...prev.githubZipMirror,
+                              mode: e.target.value,
+                              prefix: prev.githubZipMirror?.prefix ?? '',
+                            },
+                          }
+                        : prev,
+                    )
+                  }
+                >
+                  {ZIP_MIRROR_MODES.map((m) => (
+                    <option key={m.value} value={m.value}>
+                      {m.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={`${labelCls} mb-1.5 block`}>prefix</label>
                 <input
                   className={inputCls}
-                  placeholder="id"
-                  value={row.id ?? ''}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setDraft((prev) => {
-                      if (!prev) return prev;
-                      const next = [...(prev.entries ?? [])];
-                      next[idx] = { ...next[idx], id: v };
-                      return { ...prev, entries: next };
-                    });
-                  }}
+                  value={draft.githubZipMirror?.prefix ?? ''}
+                  onChange={(e) =>
+                    setDraft((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            githubZipMirror: {
+                              mode: prev.githubZipMirror?.mode ?? 'none',
+                              prefix: e.target.value,
+                            },
+                          }
+                        : prev,
+                    )
+                  }
                 />
-                <input
-                  className={inputCls}
-                  placeholder="name"
-                  value={row.name ?? ''}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setDraft((prev) => {
-                      if (!prev) return prev;
-                      const next = [...(prev.entries ?? [])];
-                      next[idx] = { ...next[idx], name: v };
-                      return { ...prev, entries: next };
-                    });
-                  }}
-                />
-                <input
-                  className={`${inputCls} sm:col-span-2`}
-                  placeholder="packUrl"
-                  value={row.packUrl ?? ''}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setDraft((prev) => {
-                      if (!prev) return prev;
-                      const next = [...(prev.entries ?? [])];
-                      next[idx] = { ...next[idx], packUrl: v };
-                      return { ...prev, entries: next };
-                    });
-                  }}
-                />
-                <input
-                  className={`${inputCls} sm:col-span-2`}
-                  placeholder="summary（可选）"
-                  value={row.summary ?? ''}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setDraft((prev) => {
-                      if (!prev) return prev;
-                      const next = [...(prev.entries ?? [])];
-                      next[idx] = { ...next[idx], summary: v };
-                      return { ...prev, entries: next };
-                    });
-                  }}
-                />
-                <div className="flex justify-end sm:col-span-2">
-                  <button
-                    type="button"
-                    className={btnGhost(theme)}
-                    onClick={() =>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {settingsTab === 'static' && (
+        <section>
+          <h3 className={`mb-3 text-sm font-semibold ${textPrimary(theme)}`}>静态条目 entries</h3>
+          <p className={`mb-4 text-sm ${textMuted(theme)}`}>在 provider=static 或 merge 时与远程列表合并（远程由「生效方式」决定）。</p>
+          <div className="mb-3 flex justify-end">
+            <button
+              type="button"
+              className={btnGhost(theme)}
+              onClick={() =>
+                setDraft((prev) => (prev ? { ...prev, entries: [...(prev.entries ?? []), emptyEntry()] } : prev))
+              }
+            >
+              <Plus size={14} />
+              添加一行
+            </button>
+          </div>
+          <div className="space-y-3">
+            {(draft.entries ?? []).length === 0 ? (
+              <p className={`text-sm ${textMuted(theme)}`}>暂无条目</p>
+            ) : (
+              (draft.entries ?? []).map((row, idx) => (
+                <div
+                  key={idx}
+                  className={`grid gap-2 rounded-xl border p-3 sm:grid-cols-2 ${
+                    isDark ? 'border-white/[0.08] bg-white/[0.02]' : 'border-slate-200 bg-slate-50/50'
+                  }`}
+                >
+                  <input
+                    className={inputCls}
+                    placeholder="id"
+                    value={row.id ?? ''}
+                    onChange={(e) => {
+                      const v = e.target.value;
                       setDraft((prev) => {
                         if (!prev) return prev;
                         const next = [...(prev.entries ?? [])];
-                        next.splice(idx, 1);
+                        next[idx] = { ...next[idx], id: v };
                         return { ...prev, entries: next };
-                      })
-                    }
-                  >
-                    <Trash2 size={14} />
-                    删除
-                  </button>
+                      });
+                    }}
+                  />
+                  <input
+                    className={inputCls}
+                    placeholder="name"
+                    value={row.name ?? ''}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setDraft((prev) => {
+                        if (!prev) return prev;
+                        const next = [...(prev.entries ?? [])];
+                        next[idx] = { ...next[idx], name: v };
+                        return { ...prev, entries: next };
+                      });
+                    }}
+                  />
+                  <input
+                    className={`${inputCls} sm:col-span-2`}
+                    placeholder="packUrl"
+                    value={row.packUrl ?? ''}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setDraft((prev) => {
+                        if (!prev) return prev;
+                        const next = [...(prev.entries ?? [])];
+                        next[idx] = { ...next[idx], packUrl: v };
+                        return { ...prev, entries: next };
+                      });
+                    }}
+                  />
+                  <input
+                    className={`${inputCls} sm:col-span-2`}
+                    placeholder="summary（可选）"
+                    value={row.summary ?? ''}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setDraft((prev) => {
+                        if (!prev) return prev;
+                        const next = [...(prev.entries ?? [])];
+                        next[idx] = { ...next[idx], summary: v };
+                        return { ...prev, entries: next };
+                      });
+                    }}
+                  />
+                  <div className="flex justify-end sm:col-span-2">
+                    <button
+                      type="button"
+                      className={btnGhost(theme)}
+                      onClick={() =>
+                        setDraft((prev) => {
+                          if (!prev) return prev;
+                          const next = [...(prev.entries ?? [])];
+                          next.splice(idx, 1);
+                          return { ...prev, entries: next };
+                        })
+                      }
+                    >
+                      <Trash2 size={14} />
+                      删除
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))
-          )}
-        </div>
-      </section>
+              ))
+            )}
+          </div>
+        </section>
+      )}
 
-      <div className="flex flex-wrap gap-2 pt-2">
+      <div className="flex flex-wrap gap-2 border-t pt-4">
         <button type="button" className={btnPrimary} disabled={saving} onClick={() => void save()}>
           {saving ? (
             <>
@@ -541,6 +903,7 @@ export const SkillExternalMarketSettingsForm: React.FC<Props> = ({ theme, fontSi
           重新加载
         </button>
       </div>
+      </form>
     </div>
   );
 };

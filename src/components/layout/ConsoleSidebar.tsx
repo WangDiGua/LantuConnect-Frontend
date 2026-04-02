@@ -202,6 +202,10 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
           <input
             ref={searchInputRef}
             type="text"
+            name="lantu-console-menu-filter"
+            inputMode="search"
+            autoComplete="off"
+            spellCheck={false}
             value={menuQuery}
             onChange={(e) => setMenuQuery(e.target.value)}
             onFocus={() => setSearchFocused(true)}

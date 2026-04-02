@@ -471,10 +471,32 @@ export const http = {
     return unwrap(res);
   },
 
-  /** FormData 上传：勿手动设置 Content-Type，以便 axios 带上 multipart boundary。 */
+  /**
+   * FormData 上传。实例默认 `Content-Type: application/json` 时若不剥掉，部分环境下会把 body 序列化成
+   * `{"file":{}}`，后端按 JSON 解析失败（file 须为 Base64 字符串或为 multipart 二进制）。
+   */
   async upload<T>(url: string, formData: FormData, config?: AxiosRequestConfig): Promise<T> {
     const res = await instance.post<ApiResponse<T>>(url, formData, {
+      timeout: config?.timeout ?? 120_000,
       ...config,
+      transformRequest: [
+        (data, headers) => {
+          if (data instanceof FormData && headers) {
+            const h = headers as unknown;
+            if (
+              typeof h === 'object' &&
+              h !== null &&
+              'delete' in h &&
+              typeof (h as { delete: (k: string) => void }).delete === 'function'
+            ) {
+              (h as { delete: (k: string) => void }).delete('Content-Type');
+            } else if (typeof h === 'object' && h !== null) {
+              delete (h as Record<string, unknown>)['Content-Type'];
+            }
+          }
+          return data;
+        },
+      ],
       headers: { ...config?.headers },
     });
     return unwrap(res);

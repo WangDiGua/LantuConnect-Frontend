@@ -1,6 +1,6 @@
-import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, BookOpen, ChevronDown, Download, Link2, Save, Send, Upload } from 'lucide-react';
+import { ArrowLeft, BookOpen, ChevronDown, Download, FileCheck, Link2, Loader2, Save, Send, Upload } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { ResourceType } from '../../types/dto/catalog';
 import type { ResourceUpsertRequest } from '../../types/dto/resource-center';
@@ -19,8 +19,49 @@ interface Props {
   resourceType: ResourceType;
   resourceId?: number;
   onBack: () => void;
-  /** 首次仅通过 zip 创建 skill 草稿后，跳转到带 id 的编辑路由以便继续填写 */
-  onAfterSkillPackCreated?: (id: number) => void;
+}
+
+/** 与后端「托管存档 vs skillRoot 子树语义」两条产品支线对应（同一 skill 资源类型）。 */
+type SkillRegisterTrack = 'hosted' | 'mountable';
+
+function skillTrackFromSearch(sp: URLSearchParams): SkillRegisterTrack {
+  return sp.get('skillTrack') === 'mountable' ? 'mountable' : 'hosted';
+}
+
+/** 上传/导入完成后通过 react-router state 传到带 id 的编辑页，避免 remount 瞬间表单尚未拉到制品字段时没有视觉上的一条「已上传」。 */
+type SkillPackPreviewState = { fileName: string; size: number } | { importUrl: string };
+
+type SkillPackEcho = { kind: 'file'; name: string; size: number } | { kind: 'url'; href: string };
+
+function formatSkillPackBytes(n: number): string {
+  if (!Number.isFinite(n) || n < 0) return '—';
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+function skillArtifactDisplayLabel(uri: string): string {
+  const t = uri.trim();
+  if (!t) return '';
+  try {
+    if (t.startsWith('http://') || t.startsWith('https://')) {
+      const u = new URL(t);
+      const seg = u.pathname.split('/').filter(Boolean).pop();
+      return (seg || t).trim();
+    }
+  } catch {
+    /* ignore */
+  }
+  const parts = t.replace(/\\/g, '/').split('/');
+  return (parts.pop() || t).trim();
+}
+
+function truncateSkillArtifactPath(s: string, max: number): string {
+  if (s.length <= max) return s;
+  const k = max - 3;
+  const a = Math.ceil(k / 2);
+  const b = Math.floor(k / 2);
+  return `${s.slice(0, a)}…${s.slice(s.length - b)}`;
 }
 
 const TYPE_LABEL: Record<ResourceType, string> = {
@@ -152,7 +193,6 @@ export const ResourceRegisterPage: React.FC<Props> = ({
   resourceType,
   resourceId,
   onBack,
-  onAfterSkillPackCreated,
 }) => {
   const isDark = theme === 'dark';
   const navigate = useNavigate();
@@ -161,9 +201,17 @@ export const ResourceRegisterPage: React.FC<Props> = ({
   const user = useAuthStore((s) => s.user);
   const [tagOptions, setTagOptions] = useState<{ value: string; label: string }[]>([{ value: '', label: '不选' }]);
   const [loading, setLoading] = useState(false);
+  /** 技能包本地上传较慢，单独提示动画（与保存/URL 导入共用 loading 时仍显示进度文案） */
+  const [skillPackUploading, setSkillPackUploading] = useState(false);
+  const [skillPackChunkHint, setSkillPackChunkHint] = useState<string | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [skillTechOpen, setSkillTechOpen] = useState(false);
+  const [skillRegisterTrack, setSkillRegisterTrack] = useState<SkillRegisterTrack>(() =>
+    resourceType === 'skill' ? skillTrackFromSearch(searchParams) : 'hosted',
+  );
   const [skillPackUrl, setSkillPackUrl] = useState('');
+  const [skillPackEcho, setSkillPackEcho] = useState<SkillPackEcho | null>(null);
+  const skillPackPreviewRef = useRef<SkillPackPreviewState | null>(null);
   const [skillArtifactDownloading, setSkillArtifactDownloading] = useState(false);
   const [agentAdvancedOpen, setAgentAdvancedOpen] = useState(false);
   const [form, setForm] = useState({
@@ -211,6 +259,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     packValidationStatus: 'none',
     packValidationMessage: '',
     artifactSha256: '',
+    skillRootPath: '',
   });
 
   useEffect(() => {
@@ -244,8 +293,10 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     /** 与 React Strict Mode 双次 effect 兼容：仅用「当前挂载」标记，避免第一次被 tear down 后 loading 永远 true */
     let active = true;
     setLoading(true);
+    skillPackPreviewRef.current = { importUrl: url };
+    const skillRootQ = searchParams.get('skillRoot')?.trim() || undefined;
     void resourceCenterService
-      .importSkillPackageFromUrl(url, undefined)
+      .importSkillPackageFromUrl(url, undefined, skillRootQ)
       .then((vo) => {
         if (!active) return;
         applySkillPackVoToForm(vo, 'url');
@@ -256,6 +307,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       })
       .catch((err) => {
         if (active) {
+          skillPackPreviewRef.current = null;
           showMessage(err instanceof Error ? err.message : '从 URL 导入失败', 'error');
         }
       })
@@ -267,6 +319,24 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- 市场深链一次性导入；闭包内使用当期 applySkillPackVoToForm / navigate
   }, [resourceType, resourceId, searchParams]);
+
+  useEffect(() => {
+    if (resourceType !== 'skill' || resourceId) return;
+    setSkillRegisterTrack(skillTrackFromSearch(searchParams));
+  }, [resourceType, resourceId, searchParams]);
+
+  useLayoutEffect(() => {
+    if (resourceType !== 'skill') return;
+    const raw = location.state as { skillPackPreview?: SkillPackPreviewState } | null | undefined;
+    const p = raw?.skillPackPreview;
+    if (!p) return;
+    if ('fileName' in p) {
+      setSkillPackEcho({ kind: 'file', name: p.fileName, size: p.size });
+    } else {
+      setSkillPackEcho({ kind: 'url', href: p.importUrl });
+    }
+    navigate({ pathname: location.pathname, search: location.search }, { replace: true, state: {} });
+  }, [resourceType, location.state, location.pathname, location.search, navigate]);
 
   useEffect(() => {
     if (!resourceId) return;
@@ -388,6 +458,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                 packValidationStatus: item.packValidationStatus || 'none',
                 packValidationMessage: item.packValidationMessage || '',
                 artifactSha256: item.artifactSha256 || '',
+                skillRootPath: item.skillRootPath || '',
                 mode: item.mode || prev.mode,
                 maxConcurrency: item.maxConcurrency ?? prev.maxConcurrency,
                 specJson:
@@ -404,6 +475,14 @@ export const ResourceRegisterPage: React.FC<Props> = ({
             : {}),
           ...(resourceType === 'dataset' ? { datasetIsPublic: item.isPublic === true } : {}),
         }));
+        if (resourceType === 'skill') {
+          const root = String(item.skillRootPath || '').trim();
+          if (root) setSkillRegisterTrack('mountable');
+          else {
+            const q = searchParams.get('skillTrack');
+            setSkillRegisterTrack(q === 'mountable' ? 'mountable' : 'hosted');
+          }
+        }
       })
       .catch(() => {
         showMessage('加载资源详情失败，已进入空白表单', 'warning');
@@ -414,7 +493,34 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     return () => {
       cancelled = true;
     };
-  }, [resourceId, resourceType, showMessage]);
+  }, [resourceId, resourceType, searchParams, showMessage]);
+
+  const setSkillTrackInUrl = (t: SkillRegisterTrack) => {
+    setSkillRegisterTrack(t);
+    const next = new URLSearchParams(searchParams);
+    next.set('skillTrack', t);
+    navigate({ pathname: location.pathname, search: next.toString() }, { replace: true });
+  };
+
+  const skillRegisterGuideLine = useMemo(
+    () =>
+      resourceType === 'skill'
+        ? skillRegisterTrack === 'hosted'
+          ? '托管分发：安全扫描后原样存档，可下载制品；技能根目录通常留空（整包）。'
+          : '可挂载智能体：先填写 zip 内技能根子目录再上传；语义校验与 resolve 的 skillRootPath 仅针对该子树。'
+        : TYPE_GUIDE_ONE_LINE[resourceType],
+    [resourceType, skillRegisterTrack],
+  );
+
+  const skillHasArtifact = useMemo(
+    () => resourceType === 'skill' && Boolean(form.artifactUri?.trim()),
+    [resourceType, form.artifactUri],
+  );
+
+  const skillEchoVisible = useMemo(
+    () => resourceType === 'skill' && skillPackEcho != null && !form.artifactUri?.trim(),
+    [resourceType, skillPackEcho, form.artifactUri],
+  );
 
   const validate = useMemo(() => {
     if (!resourceId && !user?.id) return '请先登录后再注册资源';
@@ -489,6 +595,9 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       }
     }
     if (resourceType === 'skill') {
+      if (skillRegisterTrack === 'mountable' && !form.skillRootPath.trim()) {
+        return '可挂载支线：请填写技能根目录（zip 内相对路径）';
+      }
       if (!form.skillType.trim()) return '请选择技能包格式（skillType）';
       const st = form.skillType.trim().toLowerCase();
       if (!['anthropic_v1', 'folder_v1'].includes(st)) {
@@ -555,7 +664,9 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     form.recordCount,
     form.relatedResourceIds,
     form.resourceCode,
+    form.skillRootPath,
     form.skillType,
+    skillRegisterTrack,
     form.mode,
     form.sourceType,
     form.categoryId,
@@ -618,6 +729,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
         artifactSha256: form.artifactSha256.trim() || undefined,
         manifest: Object.keys(manifestObj).length > 0 ? manifestObj : undefined,
         entryDoc: form.entryDoc.trim() || undefined,
+        skillRootPath: form.skillRootPath.trim(),
         spec: Object.keys(specObj).length > 0 ? specObj : {},
         parametersSchema: parsedSchema.data || {},
         ...(Number.isFinite(parentResourceIdNum) && parentResourceIdNum > 0 ? { parentResourceId: parentResourceIdNum } : {}),
@@ -682,6 +794,9 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     vo: Awaited<ReturnType<typeof resourceCenterService.uploadSkillPackage>>,
     via: 'upload' | 'url',
   ) => {
+    const preview = skillPackPreviewRef.current;
+    skillPackPreviewRef.current = null;
+
     setForm((prev) => ({
       ...prev,
       resourceCode: vo.resourceCode || prev.resourceCode,
@@ -694,13 +809,26 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       manifestJson: vo.manifest ? JSON.stringify(vo.manifest, null, 2) : prev.manifestJson,
       packValidationStatus: String(vo.packValidationStatus || 'none'),
       packValidationMessage: vo.packValidationMessage || '',
+      skillRootPath: vo.skillRootPath || '',
       skillIsPublic: vo.isPublic === true,
       sourceType: vo.sourceType || prev.sourceType,
       mode: vo.mode || prev.mode,
       maxConcurrency: vo.maxConcurrency ?? prev.maxConcurrency,
     }));
     if (!resourceId && vo.id) {
-      onAfterSkillPackCreated?.(vo.id);
+      const nextSearch = new URLSearchParams(searchParams);
+      nextSearch.set('skillTrack', skillRegisterTrack);
+      const base = location.pathname.replace(/\/+$/, '');
+      navigate(
+        { pathname: `${base}/${vo.id}`, search: nextSearch.toString() },
+        { replace: true, state: preview ? { skillPackPreview: preview } : undefined },
+      );
+    } else if (preview) {
+      if ('fileName' in preview) {
+        setSkillPackEcho({ kind: 'file', name: preview.fileName, size: preview.size });
+      } else {
+        setSkillPackEcho({ kind: 'url', href: preview.importUrl });
+      }
     }
     const ok = String(vo.packValidationStatus).toLowerCase() === 'valid';
     const verb = via === 'url' ? '从链接导入' : '上传';
@@ -714,13 +842,42 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
+    const skillPackMaxBytes = 100 * 1024 * 1024;
+    if (file.size > skillPackMaxBytes) {
+      showMessage(`技能包超过 ${skillPackMaxBytes / 1024 / 1024}MB 上限，请压缩或拆分后再传`, 'error');
+      return;
+    }
+    if (file.size === 0) {
+      showMessage('文件为空', 'error');
+      return;
+    }
+    skillPackPreviewRef.current = { fileName: file.name, size: file.size };
+    setSkillPackUploading(true);
+    setSkillPackChunkHint(null);
     setLoading(true);
     try {
-      const vo = await resourceCenterService.uploadSkillPackage(file, resourceId);
+      const vo = await resourceCenterService.uploadSkillPackageResumable(
+        file,
+        resourceId,
+        form.skillRootPath.trim() || undefined,
+        (p) => {
+          if (p.phase === 'chunk' && p.totalChunks != null) {
+            const n = (p.chunkIndex ?? 0) + 1;
+            setSkillPackChunkHint(`分片上传 ${n}/${p.totalChunks}（中断后同文件可续传）`);
+          } else if (p.phase === 'complete') {
+            setSkillPackChunkHint('合并并校验中…');
+          } else {
+            setSkillPackChunkHint(null);
+          }
+        },
+      );
       applySkillPackVoToForm(vo, 'upload');
     } catch (err) {
+      skillPackPreviewRef.current = null;
       showMessage(err instanceof Error ? err.message : '上传失败', 'error');
     } finally {
+      setSkillPackUploading(false);
+      setSkillPackChunkHint(null);
       setLoading(false);
     }
   };
@@ -731,12 +888,18 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       showMessage('请输入可直链下载的技能包地址（HTTPS，zip/tar.gz 等）', 'error');
       return;
     }
+    skillPackPreviewRef.current = { importUrl: u };
     setLoading(true);
     try {
-      const vo = await resourceCenterService.importSkillPackageFromUrl(u, resourceId);
+      const vo = await resourceCenterService.importSkillPackageFromUrl(
+        u,
+        resourceId,
+        form.skillRootPath.trim() || undefined,
+      );
       applySkillPackVoToForm(vo, 'url');
       setSkillPackUrl('');
     } catch (err) {
+      skillPackPreviewRef.current = null;
       showMessage(err instanceof Error ? err.message : '从 URL 导入失败', 'error');
     } finally {
       setLoading(false);
@@ -749,12 +912,8 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       return;
     }
     if (submitAfterSave && resourceType === 'skill') {
-      if (String(form.packValidationStatus).toLowerCase() !== 'valid') {
-        showMessage('提交审核前技能包须通过服务端校验（valid）。请先上传含 SKILL.md 的包（zip/tar.gz/单 md 等）。', 'error');
-        return;
-      }
       if (!form.artifactUri.trim()) {
-        showMessage('提交审核前须具备技能包地址（artifactUri），请先上传技能包。', 'error');
+        showMessage('提交审核前须已上传技能包（具备 artifactUri）。', 'error');
         return;
       }
     }
@@ -794,7 +953,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                 {TYPE_LABEL[resourceType]}
               </h2>
               <div className={`mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs ${textMuted(theme)}`}>
-                <span>{TYPE_GUIDE_ONE_LINE[resourceType]}</span>
+                <span>{skillRegisterGuideLine}</span>
                 <button
                   type="button"
                   className={`inline-flex items-center gap-1 font-medium ${isDark ? 'text-sky-400 hover:text-sky-300' : 'text-sky-600 hover:text-sky-700'}`}
@@ -1169,9 +1328,59 @@ export const ResourceRegisterPage: React.FC<Props> = ({
 
             {resourceType === 'skill' && (
               <>
-                <div className="md:col-span-2 rounded-xl border border-dashed px-4 py-3 text-sm">
+                <div
+                  className={`md:col-span-2 rounded-xl border px-4 py-3 ${
+                    isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-slate-50/80'
+                  }`}
+                >
+                  <p className={`text-xs font-semibold ${textPrimary(theme)}`}>技能注册支线</p>
+                  <p className={`mt-1 text-[11px] leading-relaxed ${textMuted(theme)}`}>
+                    后端仍是同一「技能」资源类型；此处按使用场景拆分说明。托管侧重存档与审核，可挂载侧重智能体侧单技能语义（skillRoot 子树）。
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSkillTrackInUrl('hosted')}
+                      className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                        skillRegisterTrack === 'hosted'
+                          ? 'bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900'
+                          : isDark
+                            ? 'bg-white/[0.06] text-slate-300 hover:bg-white/[0.1]'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200/80'
+                      }`}
+                    >
+                      托管分发（制品存档）
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSkillTrackInUrl('mountable')}
+                      className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                        skillRegisterTrack === 'mountable'
+                          ? 'bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900'
+                          : isDark
+                            ? 'bg-white/[0.06] text-slate-300 hover:bg-white/[0.1]'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200/80'
+                      }`}
+                    >
+                      可挂载智能体（skillRoot）
+                    </button>
+                  </div>
+                </div>
+                <div
+                  className={`md:col-span-2 rounded-xl border px-4 py-3 text-sm ${
+                    skillHasArtifact
+                      ? isDark
+                        ? 'border-solid border-emerald-500/35 bg-emerald-500/[0.08]'
+                        : 'border-solid border-emerald-300 bg-emerald-50/80'
+                      : `border-dashed ${isDark ? 'border-white/15' : 'border-slate-300'}`
+                  }`}
+                >
                   <div className={`mb-2 flex flex-wrap items-center justify-between gap-2 ${textPrimary(theme)}`}>
-                    <span className="font-medium">技能包（zip / tar.gz / tar / 单 Markdown，须含 SKILL.md 规则）</span>
+                    <span className="font-medium">
+                      {skillRegisterTrack === 'hosted'
+                        ? '技能包（zip / tar.gz …）· 原样入库；状态徽章表示在「整包或所选子树」上的 Anthropic 语义自检结果'
+                        : '技能包 · 请先填写下方技能根目录，再上传 / URL 导入；「valid」表示该子树满足单技能挂载语义'}
+                    </span>
                     <span
                       className={`rounded-full px-2 py-0.5 text-xs ${
                         String(form.packValidationStatus).toLowerCase() === 'valid'
@@ -1190,13 +1399,129 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                       {form.packValidationStatus || 'none'}
                     </span>
                   </div>
+                  {resourceId && loading && !skillHasArtifact && !skillEchoVisible ? (
+                    <div className={`mb-3 flex items-center gap-2 text-xs ${isDark ? 'text-sky-300' : 'text-sky-700'}`}>
+                      <Loader2 size={14} className="shrink-0 animate-spin" />
+                      <span>正在从服务端加载已保存的技能包与制品信息…</span>
+                    </div>
+                  ) : null}
+                  {(skillHasArtifact || skillEchoVisible) && (
+                    <div
+                      className={`mb-3 rounded-lg border-l-4 px-3 py-2.5 ${
+                        String(form.packValidationStatus).toLowerCase() === 'invalid'
+                          ? isDark
+                            ? 'border-rose-400 bg-rose-500/10'
+                            : 'border-rose-500 bg-rose-50'
+                          : String(form.packValidationStatus).toLowerCase() === 'valid'
+                            ? isDark
+                              ? 'border-emerald-400 bg-emerald-500/10'
+                              : 'border-emerald-500 bg-emerald-50'
+                            : isDark
+                              ? 'border-sky-400 bg-sky-500/10'
+                              : 'border-sky-500 bg-sky-50'
+                      }`}
+                    >
+                      <div className="flex gap-2">
+                        <FileCheck
+                          size={18}
+                          className={`mt-0.5 shrink-0 ${
+                            String(form.packValidationStatus).toLowerCase() === 'invalid'
+                              ? isDark
+                                ? 'text-rose-300'
+                                : 'text-rose-700'
+                              : isDark
+                                ? 'text-emerald-300'
+                                : 'text-emerald-700'
+                          }`}
+                        />
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <p className={`text-sm font-semibold ${textPrimary(theme)}`}>
+                            {skillHasArtifact
+                              ? '制品已保存，可继续填写基础信息并保存草稿'
+                              : '已收到上传 / 导入请求，正在写入资源…'}
+                          </p>
+                          {skillEchoVisible && skillPackEcho?.kind === 'file' ? (
+                            <p className={`text-xs ${textMuted(theme)}`}>
+                              本地上传：
+                              <span className={`font-medium ${textPrimary(theme)}`}>{skillPackEcho.name}</span>
+                              <span className="mx-1.5 opacity-60">·</span>
+                              {formatSkillPackBytes(skillPackEcho.size)}
+                            </p>
+                          ) : null}
+                          {skillEchoVisible && skillPackEcho?.kind === 'url' ? (
+                            <p className={`break-all text-xs ${textMuted(theme)}`}>
+                              链接导入：
+                              <span className="font-mono">{truncateSkillArtifactPath(skillPackEcho.href, 80)}</span>
+                            </p>
+                          ) : null}
+                          {skillHasArtifact ? (
+                            <>
+                              <p className={`break-all font-mono text-[11px] leading-snug ${textMuted(theme)}`}>
+                                <span className="opacity-90">制品路径 </span>
+                                {truncateSkillArtifactPath(form.artifactUri.trim(), 72)}
+                              </p>
+                              {form.artifactSha256.trim() ? (
+                                <p className={`font-mono text-[11px] ${textMuted(theme)}`}>
+                                  SHA-256 {form.artifactSha256.trim().slice(0, 20)}…
+                                </p>
+                              ) : null}
+                              <p className={`text-[11px] ${textMuted(theme)}`}>
+                                展示名：<span className={textPrimary(theme)}>{skillArtifactDisplayLabel(form.artifactUri)}</span>
+                              </p>
+                            </>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   {form.packValidationMessage ? (
                     <p className={`mb-2 text-xs ${textMuted(theme)}`}>{form.packValidationMessage}</p>
                   ) : null}
+                  {skillPackChunkHint ? (
+                    <p className={`mb-2 text-xs ${isDark ? 'text-sky-300' : 'text-sky-700'}`}>{skillPackChunkHint}</p>
+                  ) : null}
+                  <div className={`mb-3 ${textMuted(theme)}`}>
+                    <label className="mb-1 block text-xs font-medium text-current">
+                      {skillRegisterTrack === 'mountable' ? '技能根目录（zip 内相对路径）*' : '技能根目录（可选）'}
+                    </label>
+                    <input
+                      type="text"
+                      value={form.skillRootPath}
+                      onChange={(e) => setForm((p) => ({ ...p, skillRootPath: e.target.value }))}
+                      disabled={loading}
+                      placeholder={
+                        skillRegisterTrack === 'mountable'
+                          ? '如 my-package/sub-skill — 须与包内目录一致'
+                          : '一般留空（整包）；monorepo 多技能时可填子目录'
+                      }
+                      className={`w-full rounded-lg border px-3 py-2 text-sm ${
+                        isDark ? 'border-white/10 bg-white/[0.04] text-slate-200 placeholder:text-slate-500' : 'border-slate-200 bg-white text-slate-900 placeholder:text-slate-400'
+                      }`}
+                    />
+                    <p className={`mt-1 text-[11px] leading-relaxed ${textMuted(theme)}`}>
+                      {skillRegisterTrack === 'mountable'
+                        ? '本支线以该子树为技能根：SKILL.md 校验、resolve 的 skillRootPath、网关挂载范围均针对此路径。上传前请填好。'
+                        : '留空时按整包做安全扫描与可选语义校验；仅当包内含多个并列技能、需指定其一作为制品语义边界时再填写。'}
+                    </p>
+                  </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <label className={`inline-flex cursor-pointer items-center gap-2 ${btnSecondary(theme)}`}>
-                      <Upload size={15} />
-                      <span>{resourceId ? '上传 / 更换包' : '上传技能包创建草稿'}</span>
+                    <label
+                      className={`inline-flex cursor-pointer items-center gap-2 ${btnSecondary(theme)} ${
+                        skillPackUploading ? 'pointer-events-none opacity-80' : ''
+                      }`}
+                    >
+                      {skillPackUploading ? (
+                        <Loader2 size={15} className="animate-spin" />
+                      ) : (
+                        <Upload size={15} />
+                      )}
+                      <span>
+                        {skillPackUploading
+                          ? '上传并校验中…'
+                          : resourceId
+                            ? '上传 / 更换包'
+                            : '上传技能包创建草稿'}
+                      </span>
                       <input
                         type="file"
                         accept=".zip,.tar,.tar.gz,.tgz,.md,.gz,application/zip,application/gzip,application/x-gzip,text/markdown,application/octet-stream"
@@ -1227,9 +1552,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                         从 URL 导入
                       </button>
                     </div>
-                    {resourceId &&
-                      String(form.packValidationStatus).toLowerCase() === 'valid' &&
-                      Boolean(form.artifactUri.trim()) && (
+                    {resourceId && skillHasArtifact && (
                       <button
                         type="button"
                         disabled={loading || skillArtifactDownloading}

@@ -1,17 +1,17 @@
 # 前端对接：统一网关 MCP 调用（HTTP Streamable / SSE 响应 / WebSocket）
 
-本文说明前端（或开放平台控制台）如何在**不直连上游 MCP**的前提下，通过兰智通统一网关完成 MCP 类资源的试用与集成。后端已对三类接入方式做了协议层适配，前端仍只调用现有的 **`POST /api/invoke`**（SDK 场景可用 `POST /api/sdk/v1/invoke`），差异体现在**资源注册时的 endpoint、`auth_config`（spec）与请求体 `payload`**。
+本文说明前端（或开放平台控制台）如何在**不直连上游 MCP**的前提下，通过兰智通统一网关完成 MCP 类资源的试用与集成。后端已对三类接入方式做了协议层适配，前端仍只调用现有的 **`POST {context}/invoke`**（SDK 场景可用 `POST {context}/sdk/v1/invoke`，默认 `context=/regis`），差异体现在**资源注册时的 endpoint、`auth_config`（spec）与请求体 `payload`**。
 
 ## 1. 统一调用接口（不变）
 
 | 项 | 说明 |
 | --- | --- |
-| URL | `POST {baseUrl}/api/invoke`（SDK 场景可用 `POST {baseUrl}/api/sdk/v1/invoke`） |
+| URL | `POST {baseUrl}/invoke`（`baseUrl` 含上下文路径，默认以 `/regis` 结尾；SDK：`POST {baseUrl}/sdk/v1/invoke`） |
 | 鉴权 | 必填请求头 **`X-Api-Key`**（与用户拥有的资源 scope 一致） |
 | 可选头 | `X-Trace-Id` / `X-Request-Id`：贯穿一次 JSON-RPC 的 `id`，便于与上游日志对齐；不传则服务端生成 UUID |
 | 可选头 | `X-User-Id`：若网关策略需要用户维度治理时携带 |
 
-> 路径拼接注意：前端通常以 `VITE_API_BASE_URL=/api` 作为 baseURL，此时服务层只应使用 `/invoke` 或 `/sdk/v1/invoke`，避免再手工追加 `/api` 导致 `.../api/api/invoke`。
+> 路径拼接注意：前端以 `VITE_API_BASE_URL=/regis`（或与后端 `server.servlet.context-path` 一致）作为 baseURL 时，服务层只应使用 `/invoke` 或 `/sdk/v1/invoke`，避免再手工重复追加上下文路径。
 
 **请求体**（`InvokeRequest`）：
 

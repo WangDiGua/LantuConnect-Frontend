@@ -37,6 +37,30 @@ import type { AnnouncementItem } from '../../types/dto/explore';
 const RATE_LIMIT_TARGETS = new Set<RateLimitRule['target']>(['user', 'role', 'ip', 'api_key', 'global']);
 const RATE_LIMIT_ACTIONS = new Set<RateLimitRule['action']>(['reject', 'queue', 'throttle']);
 
+/** 与后端 SystemParam 序列化字段对齐（含 updateTime → updatedAt） */
+function mapSystemParamRecord(raw: unknown): SystemParam {
+  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const typeRaw = String(o.type ?? 'string').toLowerCase();
+  const type: SystemParam['type'] =
+    typeRaw === 'number' || typeRaw === 'boolean' || typeRaw === 'json' ? typeRaw : 'string';
+  return {
+    key: String(o.key ?? ''),
+    value: o.value == null ? '' : String(o.value),
+    type,
+    description: String(o.description ?? ''),
+    category: String(o.category ?? ''),
+    editable: o.editable === undefined ? true : Boolean(o.editable),
+    updatedAt: String(o.updatedAt ?? o.updateTime ?? ''),
+  };
+}
+
+/** 与后端 `SecuritySettingUpsertRequest.settingValue` 对齐 */
+export function securitySettingValueForApi(value: SecuritySetting['value']): string {
+  if (typeof value === 'boolean') return value ? 'true' : 'false';
+  if (typeof value === 'number') return String(value);
+  return String(value ?? '');
+}
+
 function numRl(v: unknown, fallback: number): number {
   const n = Number(v);
   return Number.isFinite(n) ? n : fallback;
@@ -168,19 +192,33 @@ export const systemConfigService = {
 
   getParams: async () => {
     const raw = await http.get<unknown>('/system-config/params');
-    return extractArray<SystemParam>(raw);
+    return extractArray<unknown>(raw).map(mapSystemParamRecord);
   },
 
-  updateParams: (data: { key: string; value: string }[]) =>
-    http.put<SystemParam[]>('/system-config/params', data),
+  /** 后端单条 upsert：`paramKey` / `paramValue` / `description`；按条顺序提交 */
+  updateParams: async (items: SystemParam[]) => {
+    for (const p of items) {
+      await http.put<void>('/system-config/params', {
+        paramKey: p.key,
+        paramValue: p.value,
+        description: p.description,
+      });
+    }
+  },
 
   getSecurity: async () => {
     const raw = await http.get<unknown>('/system-config/security');
     return extractArray<SecuritySetting>(raw);
   },
 
-  updateSecurity: (data: SecuritySetting[]) =>
-    http.put<SecuritySetting[]>('/system-config/security', data),
+  updateSecurity: async (items: SecuritySetting[]) => {
+    for (const s of items) {
+      await http.put<void>('/system-config/security', {
+        settingKey: s.key,
+        settingValue: securitySettingValueForApi(s.value),
+      });
+    }
+  },
 
   applyNetworkWhitelist: (rules: string[]) =>
     http.post<void>('/system-config/network/apply', { rules }),

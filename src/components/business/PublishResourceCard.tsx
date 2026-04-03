@@ -27,9 +27,11 @@ interface Props {
   item: MyPublishItem;
   onView: () => void;
   onWithdraw?: () => void;
+  /** 默认「调用次数」；技能包等非 invoke 资源可改为「热度」等，避免误导 */
+  callCountLabel?: string;
 }
 
-export const PublishResourceCard: React.FC<Props> = ({ theme, item, onView, onWithdraw }) => {
+export const PublishResourceCard: React.FC<Props> = ({ theme, item, onView, onWithdraw, callCountLabel = '调用次数' }) => {
   const isDark = theme === 'dark';
   const label = item.displayName || '—';
   const initial = label.trim().charAt(0) || '?';
@@ -72,7 +74,7 @@ export const PublishResourceCard: React.FC<Props> = ({ theme, item, onView, onWi
       >
         <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm sm:grid-cols-1">
           <div>
-            <dt className={`text-xs font-medium ${textMuted(theme)}`}>调用次数</dt>
+            <dt className={`text-xs font-medium ${textMuted(theme)}`}>{callCountLabel}</dt>
             <dd className={`mt-0.5 font-semibold tabular-nums ${textPrimary(theme)}`}>{item.callCount.toLocaleString()}</dd>
           </div>
           <div>

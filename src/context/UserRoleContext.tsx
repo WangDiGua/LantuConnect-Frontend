@@ -11,6 +11,7 @@ const ROLE_ALIAS: Record<string, PlatformRoleCode> = {
   department_admin: 'dept_admin',
   developer: 'developer',
   dev: 'developer',
+  consumer: 'consumer',
   unassigned: 'unassigned',
   no_role: 'unassigned',
   none: 'unassigned',
@@ -43,6 +44,7 @@ const ROLE_PERMISSIONS: Record<PlatformRoleCode, string[]> = {
     'dataset:view', 'dataset:create', 'dataset:edit', 'dataset:delete',
     'provider:view', 'provider:manage',
     'user:manage', 'role:manage', 'org:manage', 'api-key:manage', 'resource-grant:manage',
+    'grant-application:review',
     'system:config', 'monitor:view', 'audit:manage', 'resource:audit',
     'developer:portal', 'developer-application:review',
   ],
@@ -54,7 +56,7 @@ const ROLE_PERMISSIONS: Record<PlatformRoleCode, string[]> = {
     'dataset:view', 'dataset:create', 'dataset:edit',
     'resource:audit',
     'provider:view',
-    'user:manage', 'resource-grant:manage', 'monitor:view',
+    'user:manage', 'resource-grant:manage', 'grant-application:review', 'monitor:view',
   ],
   developer: [
     'agent:view', 'agent:create', 'agent:edit', 'agent:publish',
@@ -62,7 +64,16 @@ const ROLE_PERMISSIONS: Record<PlatformRoleCode, string[]> = {
     'mcp:view', 'mcp:create', 'mcp:edit', 'mcp:publish',
     'app:view', 'app:create', 'app:edit',
     'dataset:view', 'dataset:create', 'dataset:edit',
+    'grant-application:review',
     'developer:portal',
+  ],
+  /**
+   * 后端 consumer：agent:read / skill:read / app:view / dataset:read（mcp 与 skill 共用 skill:read）。
+   * 额外带上 *:view 与快捷入口等现有前端判权一致。
+   */
+  consumer: [
+    'agent:read', 'skill:read', 'app:view', 'dataset:read',
+    'agent:view', 'skill:view', 'dataset:view',
   ],
   user: [
     'agent:view', 'skill:view', 'app:view', 'dataset:view',

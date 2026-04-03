@@ -1,10 +1,38 @@
 import { http } from '../../lib/http';
 import { extractArray } from '../../utils/normalizeApiPayload';
 import type { DeveloperStatistics } from '../../types/dto/explore';
+import type { OwnerDeveloperStatsVO, OwnerResourceTypeInvokeCount } from '../../types/dto/dashboard';
 
 function num(v: unknown, fallback = 0): number {
   const n = Number(v);
   return Number.isFinite(n) ? n : fallback;
+}
+
+function normalizeOwnerResourceTypeInvokeCount(raw: unknown): OwnerResourceTypeInvokeCount {
+  const x = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  return {
+    resourceType: String(x.resourceType ?? x.resource_type ?? 'unknown'),
+    invokeCount: num(x.invokeCount ?? x.invoke_count),
+    successCount: num(x.successCount ?? x.success_count),
+  };
+}
+
+function normalizeOwnerDeveloperStats(raw: unknown): OwnerDeveloperStatsVO {
+  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const byType = extractArray(o.gatewayInvokesByResourceType ?? o.gateway_invokes_by_resource_type).map(
+    normalizeOwnerResourceTypeInvokeCount,
+  );
+  return {
+    ownerUserId: num(o.ownerUserId ?? o.owner_user_id),
+    periodDays: num(o.periodDays ?? o.period_days, 7),
+    periodStart: String(o.periodStart ?? o.period_start ?? ''),
+    periodEnd: String(o.periodEnd ?? o.period_end ?? ''),
+    gatewayInvokeTotal: num(o.gatewayInvokeTotal ?? o.gateway_invoke_total),
+    gatewayInvokeSuccess: num(o.gatewayInvokeSuccess ?? o.gateway_invoke_success),
+    usageRecordInvokeTotal: num(o.usageRecordInvokeTotal ?? o.usage_record_invoke_total),
+    skillPackDownloadTotal: num(o.skillPackDownloadTotal ?? o.skill_pack_download_total),
+    gatewayInvokesByResourceType: byType,
+  };
 }
 
 function normalizeDeveloperStatistics(raw: unknown): DeveloperStatistics {
@@ -45,8 +73,17 @@ function normalizeDeveloperStatistics(raw: unknown): DeveloperStatistics {
 }
 
 export const developerStatsService = {
+  /** 旧版开发者仪表盘；与 owner-resource-stats 数据源不同 */
   getMyStatistics: async () => {
     const raw = await http.get<unknown>('/developer/my-statistics');
     return normalizeDeveloperStatistics(raw);
+  },
+
+  /**
+   * Owner 维度：call_log 网关调用、usage_record(invoke)、技能包下载；权限见后端 OwnerDeveloperStatsService。
+   */
+  getOwnerResourceStats: async (params?: { periodDays?: number; ownerUserId?: number }) => {
+    const raw = await http.get<unknown>('/dashboard/owner-resource-stats', { params });
+    return normalizeOwnerDeveloperStats(raw);
   },
 };

@@ -1,4 +1,10 @@
-export type PlatformRoleCode = 'platform_admin' | 'dept_admin' | 'developer' | 'user' | 'unassigned';
+export type PlatformRoleCode =
+  | 'platform_admin'
+  | 'dept_admin'
+  | 'developer'
+  | 'consumer'
+  | 'user'
+  | 'unassigned';
 
 export interface UserInfo {
   id: string;

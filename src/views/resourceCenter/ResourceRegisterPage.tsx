@@ -3,7 +3,8 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, BookOpen, ChevronDown, Download, FileCheck, Link2, Loader2, Save, Send, Upload } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { ResourceType } from '../../types/dto/catalog';
-import type { ResourceUpsertRequest } from '../../types/dto/resource-center';
+import type { ResourceAccessPolicy, ResourceUpsertRequest } from '../../types/dto/resource-center';
+import { accessPolicyHelpLines, normalizeAccessPolicy } from '../../utils/accessPolicy';
 import { resourceCenterService } from '../../api/services/resource-center.service';
 import { tagService } from '../../api/services/tag.service';
 import { useAuthStore } from '../../stores/authStore';
@@ -260,6 +261,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     packValidationMessage: '',
     artifactSha256: '',
     skillRootPath: '',
+    accessPolicy: 'grant_required' as ResourceAccessPolicy,
   });
 
   useEffect(() => {
@@ -374,6 +376,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
           sourceType: item.sourceType || 'internal',
           providerId: item.providerId ?? '',
           categoryId: item.categoryId ?? '',
+          accessPolicy: normalizeAccessPolicy(item.accessPolicy) ?? 'grant_required',
           endpoint: item.endpoint || '',
           mcpRegisterMode:
             resourceType === 'mcp'
@@ -683,11 +686,13 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     const providerIdRaw = resourceId ? (form.providerId.trim() || user?.id) : user?.id;
     const providerIdNum = Number(providerIdRaw);
     const categoryIdNum = Number(form.categoryId.trim());
+    const ap = normalizeAccessPolicy(form.accessPolicy) ?? 'grant_required';
     const baseFields = {
       resourceCode: form.resourceCode.trim(),
       displayName: form.displayName.trim(),
       description: form.description.trim() || undefined,
       sourceType: form.sourceType,
+      accessPolicy: ap,
       ...(Number.isFinite(providerIdNum) && providerIdNum > 0 ? { providerId: providerIdNum } : {}),
       ...(form.categoryId.trim() && Number.isFinite(categoryIdNum) && categoryIdNum > 0 ? { categoryId: categoryIdNum } : {}),
     };
@@ -1030,6 +1035,24 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                 options={tagOptions}
                 placeholder="不选"
               />
+            </Field>
+            <Field label="消费策略（API Key + Grant）" full>
+              <LantuSelect
+                theme={theme}
+                value={form.accessPolicy}
+                onChange={(v) =>
+                  setForm((p) => ({ ...p, accessPolicy: (normalizeAccessPolicy(v) ?? 'grant_required') as ResourceAccessPolicy }))
+                }
+                options={[
+                  { value: 'grant_required', label: '须 Grant（默认，严格）' },
+                  { value: 'open_org', label: '同部门免 Grant' },
+                  { value: 'open_platform', label: '租户内免 Grant（谨慎）' },
+                ]}
+                placeholder="grant_required"
+              />
+              <p className={`mt-1.5 text-[11px] leading-relaxed ${textMuted(theme)}`}>
+                {accessPolicyHelpLines()[form.accessPolicy] ?? accessPolicyHelpLines().grant_required}
+              </p>
             </Field>
 
             <div className="md:col-span-2">

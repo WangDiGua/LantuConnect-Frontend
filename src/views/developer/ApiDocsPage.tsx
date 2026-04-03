@@ -50,14 +50,24 @@ const API_CATEGORIES: ApiCategory[] = [
     { method: 'GET', path: '/catalog/resources/{type}/{id}', description: '查询单个资源详情（逛市场）。头要求同 GET /catalog/resources；可与登录态同传 X-Api-Key。', params: [{ name: 'type', type: 'string', required: true, description: '资源类型' }, { name: 'id', type: 'string', required: true, description: '资源 ID' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { resourceType: 'skill', resourceId: '9', resourceCode: 'weather-tool', displayName: '天气查询', status: 'published', currentVersion: 'v1' } }, null, 2) },
   ]},
   { id: 'resolve-invoke', label: '解析与调用', endpoints: [
-    { method: 'POST', path: '/catalog/resolve', description: '执行向解析：将资源解析为可调用 endpoint/spec。**X-Api-Key 必填**（完整 secretPlain）；可与 Bearer 同传。另须 Key scope 含 resolve（或 *），跨 owner 资源还须 Grant。', params: [{ name: 'resourceType', type: 'string', required: true, description: '资源类型' }, { name: 'resourceId', type: 'string', required: true, description: '资源 ID' }, { name: 'version', type: 'string', required: false, description: '版本号' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { resourceType: 'agent', resourceId: '1', endpoint: 'https://gateway/invoke/agent/1', invokeType: 'http', version: 'v1' } }, null, 2) },
-    { method: 'POST', path: '/invoke', description: '统一调用入口。**X-Api-Key 必填**。还须 Key scope 含 invoke（或 *）且对跨 owner 资源具备 Grant；否则会 403。resourceType=skill 时网关不支持远程 invoke（见使用指南）。', params: [{ name: 'resourceType', type: 'string', required: true, description: '资源类型' }, { name: 'resourceId', type: 'string', required: true, description: '资源 ID' }, { name: 'payload', type: 'object', required: false, description: '业务输入' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { requestId: 'req_1', traceId: 'tr_1', resourceType: 'agent', resourceId: '1', statusCode: 200, status: 'success', latencyMs: 124, body: '{\"answer\":\"ok\"}' } }, null, 2) },
+    { method: 'POST', path: '/catalog/resolve', description: '执行向解析：将资源解析为可调用 endpoint/spec。**X-Api-Key 必填**（完整 secretPlain）；可与 Bearer 同传。另须 Key scope 含 resolve（或 *）；跨 owner 时尚需 Grant **或**资源 `accessPolicy` 为 `open_org` / `open_platform` 且满足网关短路条件（仍须 published；不改变 skill/dataset 的 invoke 边界）。', params: [{ name: 'resourceType', type: 'string', required: true, description: '资源类型' }, { name: 'resourceId', type: 'string', required: true, description: '资源 ID' }, { name: 'version', type: 'string', required: false, description: '版本号' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { resourceType: 'agent', resourceId: '1', endpoint: 'https://gateway/invoke/agent/1', invokeType: 'http', version: 'v1' } }, null, 2) },
+    { method: 'POST', path: '/invoke', description: '统一调用入口。**X-Api-Key 必填**。还须 Key scope 含 invoke（或 *）；跨 owner 时须 Grant 或符合 `accessPolicy` 短路。resourceType=**skill** 时网关**不接受**远程 invoke（技能走制品下载；可调用工具请注册为 MCP）。', params: [{ name: 'resourceType', type: 'string', required: true, description: '资源类型' }, { name: 'resourceId', type: 'string', required: true, description: '资源 ID' }, { name: 'payload', type: 'object', required: false, description: '业务输入' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { requestId: 'req_1', traceId: 'tr_1', resourceType: 'agent', resourceId: '1', statusCode: 200, status: 'success', latencyMs: 124, body: '{\"answer\":\"ok\"}' } }, null, 2) },
     { method: 'POST', path: '/invoke-stream', description: '流式调用（SSE 等）。**X-Api-Key 必填**；权限模型与 /invoke 一致。', params: [{ name: 'resourceType', type: 'string', required: true, description: '资源类型' }, { name: 'resourceId', type: 'string', required: true, description: '资源 ID' }, { name: 'payload', type: 'object', required: false, description: '业务输入' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: {} }, null, 2) },
+  ]},
+  { id: 'grant-applications', label: '授权申请工单', endpoints: [
+    { method: 'POST', path: '/grant-applications', description: '提交 Grant 申请工单。**须 X-User-Id**。通过后建立授权；提交会通知资源 owner 与平台管理员（与后端通知策略一致）。', params: [{ name: 'body', type: 'GrantApplicationRequest', required: true, description: '含 resourceType、resourceId、granteeApiKeyId、actions 等' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { applicationId: 10001 } }, null, 2) },
+    { method: 'GET', path: '/grant-applications/mine', description: '分页查询**我发起的**申请。**须 X-User-Id**。', params: [{ name: 'status', type: 'string', required: false, description: '状态筛选' }, { name: 'keyword / q', type: 'string', required: false, description: '关键字，二选一' }, { name: 'page', type: 'number', required: false, description: '页码' }, { name: 'pageSize', type: 'number', required: false, description: '每页条数' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { list: [], total: 0, page: 1, pageSize: 20 } }, null, 2) },
+    { method: 'GET', path: '/grant-applications/pending', description: '**待我审批**的申请列表。**须 X-User-Id**。可见范围由后端按操作者角色过滤：平台管理员全量；部门管理员仅 owner 属本部门的待办；开发者仅本人名下资源上的待办。**并非**仅平台管理员可见。', params: [{ name: 'status', type: 'string', required: false, description: '状态筛选' }, { name: 'keyword / q', type: 'string', required: false, description: '关键字' }, { name: 'page', type: 'number', required: false, description: '页码' }, { name: 'pageSize', type: 'number', required: false, description: '每页条数' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { list: [], total: 0, page: 1, pageSize: 20 } }, null, 2) },
+    { method: 'POST', path: '/grant-applications/{id}/approve', description: '审批通过。调用者须通过服务层校验（资源 owner / 同部门 dept_admin / platform_admin 等与直接 Grant 管理能力一致）。', params: [{ name: 'id', type: 'number', required: true, description: '申请 ID（路径参数）' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: null }, null, 2) },
+    { method: 'POST', path: '/grant-applications/{id}/reject', description: '驳回申请；body 含驳回原因。**权限同 approve**。', params: [{ name: 'id', type: 'number', required: true, description: '申请 ID' }, { name: 'reason', type: 'string', required: false, description: 'ResourceRejectRequest.reason' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: null }, null, 2) },
+  ]},
+  { id: 'owner-dashboard', label: 'Owner 资源成效', endpoints: [
+    { method: 'GET', path: '/dashboard/owner-resource-stats', description: 'Owner 维度统计：**网关 invoke（call_log）**、**usage_record(action=invoke) 对照**、**技能包下载**等。**须 X-User-Id**；默认识别当前用户为 owner，管理角色可按后端策略传 ownerUserId。**调用量不等于门户内全部使用量**（见使用指南「调用数字的含义」）。', params: [{ name: 'periodDays', type: 'number', required: false, description: '统计天数，默认 7' }, { name: 'ownerUserId', type: 'number', required: false, description: '指定 owner 用户 ID（部门/平台管理员场景）' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { ownerUserId: 1001, periodDays: 7, periodStart: '', periodEnd: '', gatewayInvokeTotal: 0, gatewayInvokeSuccess: 0, usageRecordInvokeTotal: 0, skillPackDownloadTotal: 0, gatewayInvokesByResourceType: [] } }, null, 2) },
   ]},
   { id: 'sandbox-sdk-grants', label: '沙箱/SDK/授权', endpoints: [
     { method: 'POST', path: '/sandbox/sessions', description: '创建沙箱会话（需 X-User-Id + X-Api-Key）', params: [{ name: 'ttlMinutes', type: 'number', required: false, description: '会话时长' }, { name: 'maxCalls', type: 'number', required: false, description: '最大调用次数' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { sessionToken: 'sbx_xxx', maxCalls: 100, usedCalls: 0, status: 'active' } }, null, 2) },
     { method: 'POST', path: '/sdk/v1/invoke', description: 'SDK 稳定调用入口（X-Api-Key 必填）', params: [{ name: 'resourceType', type: 'string', required: true, description: '资源类型' }, { name: 'resourceId', type: 'string', required: true, description: '资源 ID' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { requestId: 'sdk_req_1', traceId: 'sdk_tr_1', status: 'success' } }, null, 2) },
-    { method: 'POST', path: '/resource-grants', description: '按 Grant 模型授权第三方 API Key 调用资源（非授权链接）', params: [{ name: 'resourceType', type: 'string', required: true, description: '资源类型' }, { name: 'resourceId', type: 'string', required: true, description: '资源 ID' }, { name: 'granteeApiKeyId', type: 'string', required: true, description: '被授权 API Key ID' }, { name: 'actions', type: 'string[]', required: true, description: 'catalog/resolve/invoke/*' }, { name: 'expiresAt', type: 'string', required: false, description: '过期时间（ISO）' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { id: 'grant_1001', resourceType: 'mcp', resourceId: '56', actions: ['catalog', 'resolve', 'invoke'] } }, null, 2) },
+    { method: 'POST', path: '/resource-grants', description: '按 Grant 模型授权第三方 API Key 调用资源。若资源 accessPolicy 已允许 open_org/open_platform 短路，则可能无需本条；仍以网关校验为准。', params: [{ name: 'resourceType', type: 'string', required: true, description: '资源类型' }, { name: 'resourceId', type: 'string', required: true, description: '资源 ID' }, { name: 'granteeApiKeyId', type: 'string', required: true, description: '被授权 API Key ID' }, { name: 'actions', type: 'string[]', required: true, description: 'catalog/resolve/invoke/*' }, { name: 'expiresAt', type: 'string', required: false, description: '过期时间（ISO）' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { id: 'grant_1001', resourceType: 'mcp', resourceId: '56', actions: ['catalog', 'resolve', 'invoke'] } }, null, 2) },
   ]},
 ];
 
@@ -66,9 +76,11 @@ const GUIDE_TOC: { id: string; label: string }[] = [
   { id: 'doc-roles', label: '账号与角色' },
   { id: 'doc-discover', label: '发现资源' },
   { id: 'doc-consume', label: '完成一次调用' },
+  { id: 'doc-access-policy', label: '消费策略与授权' },
   { id: 'doc-publish', label: '发布资源' },
   { id: 'doc-types', label: '资源类型' },
   { id: 'doc-meta', label: '标签与版本' },
+  { id: 'doc-metrics', label: '调用数字的含义' },
   { id: 'doc-faq', label: '常见问题' },
 ];
 
@@ -189,7 +201,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme }) => {
                   {proseH2(theme, '这个平台能帮你做什么？')}
                   {prosePara(theme, (
                     <>
-                      LantuConnect 把<strong className={textPrimary(theme)}> 资源目录、解析、统一调用与治理 </strong>放在一套 API 里：你可以在控制台里浏览「资源市场」，用 API Key 调用已发布的 Agent / Skill / MCP 等；如果你是开发者，还可以注册资源、走审核与发布，让他人通过目录发现和调用。
+                      产品与后端契约以门户<strong className={textPrimary(theme)}> 数字化资产与可调用能力 </strong>为一体：统一注册、目录发现、按权消费。Agent / MCP 等走统一网关 <span className="font-mono">resolve</span> / <span className="font-mono">invoke</span>；技能包以制品下载为主（不提供 <span className="font-mono">skill</span> 的网关 invoke）；应用与数据集以发现、解析与接入为主。详细边界见产品锚点说明与《前端对接后端标准说明书》（后端 <span className="font-mono">docs/</span> 目录）。
                     </>
                   ))}
                   {prosePara(theme, (
@@ -212,8 +224,9 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme }) => {
 
                 <section id="doc-roles" className="mt-14 space-y-4">
                   {proseH2(theme, '账号与角色')}
-                  {prosePara(theme, '登录后，你的能力取决于平台分配的角色：开发者可以创建与管理自己的资源；部门/平台管理员负责审核与发布；普通师生通常以「使用方」身份浏览市场并申请调用。若账号尚无开发者角色，通常需要先完成入驻申请，再通过管理员审批。')}
-                  {prosePara(theme, '下文「完成一次调用」对个人开发者与师生用户同样适用：执行向（resolve / invoke / invoke-stream）都必须携带本人有效 API Key；仅浏览目录可主要靠登录态。调用他人名下资源时，在 Key 与 scope 之外还需要 Grant 或审批通过的授权。')}
+                  {prosePara(theme, '登录后，你的能力取决于平台分配的角色：开发者可以创建与管理自己的资源；部门/平台管理员负责审核与发布；预置角色 consumer（市场访客）仅具目录只读能力，适合「只逛市场」账号；普通师生常以使用方身份浏览并申请调用。若账号尚无开发者角色，通常需要先完成入驻申请，再通过管理员审批。')}
+                  {prosePara(theme, '前端路由里的 admin / user 只是视图壳层，不是后端角色名：管理后台与「我的」工作台是两套导航域，与 platform_admin / dept_admin / developer / consumer 等后端角色不同，判权以 JWT + 后端接口为准（见对接手册 §2.8）。')}
+                  {prosePara(theme, '下文「完成一次调用」对个人开发者与师生用户同样适用：执行向（resolve / invoke / invoke-stream）都必须携带本人有效 API Key；仅浏览目录可主要靠登录态。调用他人名下资源时，在 Key 与 scope 之外还需要 Grant、或资源配置的访问策略允许短路（见「消费策略与授权」）。')}
                 </section>
 
                 <section id="doc-discover" className="mt-14 space-y-4">
@@ -241,6 +254,9 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme }) => {
                     <button type="button" onClick={() => go('preferences')} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${btnSecondary(theme)}`}>
                       <KeyRound size={16} /> 个人设置（API Key）
                     </button>
+                    <button type="button" onClick={() => go('grant-applications')} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${btnSecondary(theme)}`}>
+                      <FileText size={16} /> 授权审批待办
+                    </button>
                     <button type="button" onClick={() => go('my-grant-applications')} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${btnSecondary(theme)}`}>
                       <FileText size={16} /> 我的授权申请
                     </button>
@@ -253,10 +269,16 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme }) => {
                   </div>
                 </section>
 
+                <section id="doc-access-policy" className="mt-14 space-y-4">
+                  {proseH2(theme, '资源消费策略与授权')}
+                  {prosePara(theme, '除 API Key scope 与 per-resource Grant 外，每条资源可有 accessPolicy（注册/更新时写入，默认 grant_required）：grant_required 须 Grant（及 Key scope）；open_org 在「Key 为用户 Key 且与资源 owner 同部门（menu_id）」时可免 Grant；open_platform 在租户内已认证 Key 且 scope 满足时可免 Grant。策略仅短路 Grant 校验，资源仍须 published，且不改变 skill 禁止 invoke、dataset 无统一 invoke 等产品边界（详见 PRODUCT_DEFINITION §4）。')}
+                  {prosePara(theme, 'Grant 工单：提交 POST /grant-applications 后，待办会按角色出现在「授权审批待办」中——资源 owner、本部 dept_admin、platform_admin 均可审批，并非仅超级管理员。通过后与直接 POST /resource-grants 等效建立授权。')}
+                </section>
+
                 <section id="doc-publish" className="mt-14 space-y-4">
                   {proseH2(theme, '发布资源（资源作者）')}
-                  {prosePara(theme, '在「我的发布 / 资源中心」创建资源后，状态从草稿开始：提交审核 → 管理员审核通过后进入可试用状态 → 需要再执行「发布」后才会在目录中变为已发布（published）并对调用方可见。请牢记：审核通过不等于已经上架。')}
-                  {prosePara(theme, '下架、版本管理等操作也在同一工作流中维护；具体按钮以控制台当前菜单为准。')}
+                  {prosePara(theme, '在「我的发布 / 资源中心」创建资源后，状态从草稿开始：提交审核 → 审核通过后进入 testing → **须再执行「发布」**才变为 published 并在目录中对调用方可见。请牢记：审核通过不等于已经上架。发布动作可由 owner、与 owner 同部门的 dept_admin 或 platform_admin/admin 执行（与 Grant 代管范围一致）。')}
+                  {prosePara(theme, '下架、版本管理与 accessPolicy 等也在同一工作流中维护；具体按钮以控制台当前菜单为准。')}
                   <div className="flex flex-wrap gap-2 pt-1">
                     <button type="button" onClick={() => go('resource-center')} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${btnSecondary(theme)}`}>
                       <Rocket size={16} /> 我的发布 · 资源中心
@@ -267,10 +289,11 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme }) => {
                 <section id="doc-types" className="mt-14 space-y-4">
                   {proseH2(theme, '五类资源怎么用？')}
                   <ul className={`list-disc space-y-2 pl-5 text-[15px] leading-7 ${textSecondary(theme)}`}>
-                    <li><strong className={textPrimary(theme)}>agent / mcp</strong>：通常 POST /catalog/resolve 后走 POST /invoke（或 invoke-stream）。</li>
-                    <li><strong className={textPrimary(theme)}>skill</strong>：可走 POST /catalog/resolve；网关不接受 <span className="font-mono">resourceType=skill</span> 的 POST /invoke（技能包由 Agent 运行时加载，远程工具请用 MCP）。</li>
-                    <li><strong className={textPrimary(theme)}>app</strong>：须登录态 + 本人的 Key 参与解析/票据链路；解析后多为跳转或嵌入（invokeType 常为 redirect）。</li>
-                    <li><strong className={textPrimary(theme)}>dataset</strong>：侧重元数据消费（如 invokeType 为 metadata），不是每一项都要走远程 HTTP 执行。</li>
+                    <li><strong className={textPrimary(theme)}>agent</strong>：<span className="font-mono">resolve</span> 后 <span className="font-mono">invoke</span> / <span className="font-mono">invoke-stream</span>（已 published）。</li>
+                    <li><strong className={textPrimary(theme)}>mcp</strong>：同上，流式场景用 <span className="font-mono">invoke-stream</span>。</li>
+                    <li><strong className={textPrimary(theme)}>skill</strong>：<span className="font-mono">resolve</span> + 技能制品下载；网关<strong className={textPrimary(theme)}> 不接受 </strong><span className="font-mono">resourceType=skill</span> 的 <span className="font-mono">invoke</span>。远程可执行工具请注册为 <strong className={textPrimary(theme)}>mcp</strong>。</li>
+                    <li><strong className={textPrimary(theme)}>app</strong>：以 <span className="font-mono">resolve</span> 获取 launch 信息为主；浏览器打开 launchUrl 可能不经过网关 invoke。若走 <span className="font-mono">invoke</span>，多为 redirect/票据语义。</li>
+                    <li><strong className={textPrimary(theme)}>dataset</strong>：<span className="font-mono">resolve</span> 读元数据；无通用远程 <span className="font-mono">invoke</span> 执行模型。</li>
                   </ul>
                 </section>
 
@@ -283,6 +306,11 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme }) => {
                       <Tag size={16} /> 在「接口参考」中查看目录参数
                     </button>
                   </div>
+                </section>
+
+                <section id="doc-metrics" className="mt-14 space-y-4">
+                  {proseH2(theme, '调用数字的含义')}
+                  {prosePara(theme, '监控与工作台常见的 call_log、usage_record（action=invoke）主要反映「统一网关远程调用」，不是门户内每一次「打开页面 / 下载技能包 / 仅 resolve」的全部使用量。技能包成功下载有单独埋点；控制台「资源成效统计」对接 GET /dashboard/owner-resource-stats，口径以后端聚合为准（详见 PRODUCT_DEFINITION §5）。')}
                 </section>
 
                 <section id="doc-faq" className="mt-14 space-y-4">
@@ -356,7 +384,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme }) => {
               <div>
                 <h4 className={`text-xs font-semibold ${textPrimary(theme)}`}>3. Resource Grant（第三层）</h4>
                 <ul className={`mt-1.5 list-disc pl-4 text-xs space-y-1 ${textSecondary(theme)}`}>
-                  <li>访问<strong>非本人拥有</strong>的已发布资源时，除 scope 外还须具备 Grant（<span className="font-mono">POST /resource-grants</span> 或由 <span className="font-mono">/grant-applications</span> 审批通过后建立）。</li>
+                  <li>访问<strong>非本人拥有</strong>的已发布资源时，除 scope 外还须具备 Grant（<span className="font-mono">POST /resource-grants</span> 或由工单审批），或资源 <span className="font-mono">accessPolicy</span> 允许在网关侧短路 Grant（仍须 published 与 scope）。待办由<strong>资源拥有者</strong>、<strong>同部门 dept_admin</strong>（本部 owner 资源）或<strong>平台管理员</strong>处理；入口为「授权审批待办」与后台同源列表。</li>
                   <li>Grant 中 <span className="font-mono">granteeApiKeyId</span> 为 API Key 的<strong>记录 id</strong>，与请求头中的完整 <span className="font-mono">X-Api-Key</span> 明文不同。</li>
                   <li><strong>常见误区：</strong>仅有 scope、对非自有资源无 Grant，会 403。</li>
                 </ul>

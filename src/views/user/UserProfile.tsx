@@ -60,6 +60,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ theme }) => {
     platform_admin: '平台管理员',
     dept_admin: '部门管理员',
     developer: '开发者',
+    consumer: '消费者',
     user: '普通用户',
   };
   const displayRole = roleLabels[user?.role ?? 'user'] ?? '普通用户';

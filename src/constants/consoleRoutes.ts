@@ -77,7 +77,7 @@ const ADMIN_SIDEBAR_PAGES: Record<string, string[]> = {
   'provider-management': ['provider-list', 'provider-create'],
   'user-management': ['user-list', 'role-management', 'organization', 'api-key-management', 'resource-grant-management', 'grant-applications', 'developer-applications'],
   'monitoring': ['monitoring-overview', 'call-logs', 'performance-analysis', 'alert-management', 'alert-rules', 'health-config', 'circuit-breaker'],
-  'system-config': ['tag-management', 'model-config', 'security-settings', 'quota-management', 'rate-limit-policy', 'access-control', 'audit-log', 'sensitive-words', 'announcements'],
+  'system-config': ['tag-management', 'system-params', 'model-config', 'security-settings', 'quota-management', 'rate-limit-policy', 'access-control', 'audit-log', 'sensitive-words', 'announcements'],
 };
 
 const USER_SIDEBAR_PAGES: Record<string, string[]> = {
@@ -94,7 +94,7 @@ const USER_SIDEBAR_PAGES: Record<string, string[]> = {
     'app-list', 'app-register',
     'dataset-list', 'dataset-register',
   ],
-  'my-space': ['usage-records', 'recent-use', 'usage-stats', 'my-grant-applications'],
+  'my-space': ['usage-records', 'recent-use', 'usage-stats', 'grant-applications', 'my-grant-applications'],
   'user-settings': ['profile', 'preferences'],
 };
 

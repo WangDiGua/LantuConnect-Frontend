@@ -110,6 +110,7 @@ export const MySkillList: React.FC<Props> = ({ theme }) => {
                 key={skill.id}
                 theme={theme}
                 item={skill}
+                callCountLabel="热度（网关 invoke）"
                 onView={() => setViewTarget(skill)}
                 onWithdraw={() => setWithdrawTarget(skill)}
               />
@@ -171,7 +172,7 @@ export const MySkillList: React.FC<Props> = ({ theme }) => {
               {[
                 { label: '名称', value: viewTarget.displayName, bold: true },
                 { label: '状态', value: null, badge: true },
-                { label: '调用次数', value: String(viewTarget.callCount) },
+                { label: '热度（网关 invoke）', value: String(viewTarget.callCount) },
                 { label: '创建时间', value: viewTarget.createTime },
               ].map((item) => (
                 <div key={item.label}>

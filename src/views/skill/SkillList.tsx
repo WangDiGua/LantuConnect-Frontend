@@ -200,7 +200,7 @@ export const SkillList: React.FC<Props> = ({ theme, fontSize }) => {
 
       <div className="hidden lg:flex items-center gap-6 shrink-0">
         <div className="text-right">
-          <div className={`text-xs uppercase tracking-wider ${textMuted(theme)}`}>调用</div>
+          <div className={`text-xs uppercase tracking-wider ${textMuted(theme)}`}>热度</div>
           <div className={`text-sm font-mono tabular-nums font-medium ${textSecondary(theme)}`}>
             {skill.callCount.toLocaleString()}
           </div>

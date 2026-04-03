@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { ChevronDown, Box, Cpu, MoreVertical, LogOut, Search, Command, ArrowLeftRight } from 'lucide-react';
+import { ChevronDown, MoreVertical, LogOut, Search, Command, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Theme } from '../../types';
 import { mainScrollCompositorClass } from '../../utils/uiClasses';
@@ -19,54 +19,55 @@ interface SubGroup {
   items: Array<{ id: string; label: string; icon: IconComponent; tag?: string }>;
 }
 
+/** 统一控制台侧栏：分区标题 + 带路由域的菜单项（同一壳内可点进 /user 或 /admin） */
+export type ConsoleSidebarRow =
+  | { kind: 'section'; label: string }
+  | { kind: 'item'; id: string; icon: IconComponent; label: string; domain: ConsoleRole };
+
 export interface ConsoleSidebarProps {
   theme: Theme;
-  layoutIsAdmin: boolean;
-  consoleRole: ConsoleRole;
+  /** 当前 URL 所在域，用于高亮与角色徽标旁注 */
+  routeRole: ConsoleRole;
   activeSidebar: string;
   activeSubItem: string;
-  sidebarItems: Array<{ id: string; icon: IconComponent; label: string }>;
+  /** 含「应用/工作台」「平台管理」分区与 domain */
+  sidebarRows: ConsoleSidebarRow[];
   expandedGroups: string[];
-  canAccessAdmin: boolean;
   platformRole: PlatformRoleCode;
   displayUserName: string;
   avatarSeed: string;
-  onSidebarClick: (id: string) => void;
-  onSubItemClick: (subItemId: string, parentSidebarId: string) => void;
+  onSidebarClick: (id: string, domain: ConsoleRole) => void;
+  onSubItemClick: (subItemId: string, parentSidebarId: string, domain: ConsoleRole) => void;
   onToggleGroup: (id: string) => void;
-  onSwitchMode: (role: ConsoleRole) => void;
-  onUserCardClick: () => void;
   onNavigateToProfile: () => void;
   onLogout: () => void;
   /** 点击品牌区回到当前身份目录首页 */
   onLogoClick?: () => void;
-  filteredSubGroupsForSidebarId: (id: string) => SubGroup[];
+  filteredSubGroupsForSidebarId: (id: string, domain: ConsoleRole) => SubGroup[];
 }
 
 const ROLE_LABELS: Record<PlatformRoleCode, string> = {
   platform_admin: '超级管理员',
   dept_admin: '部门管理员',
   developer: '开发者',
+  consumer: '消费者',
   user: '用户',
   unassigned: '待入驻用户',
 };
 
 export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
   theme,
-  layoutIsAdmin,
+  routeRole,
   activeSidebar,
   activeSubItem,
-  sidebarItems,
+  sidebarRows,
   expandedGroups,
-  canAccessAdmin,
   platformRole,
   displayUserName,
   avatarSeed,
   onSidebarClick,
   onSubItemClick,
   onToggleGroup,
-  onSwitchMode,
-  onUserCardClick,
   onNavigateToProfile,
   onLogout,
   onLogoClick,
@@ -85,9 +86,10 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
   const normalizedQuery = menuQuery.trim().toLowerCase();
 
   const navItems = useMemo(() => {
-    return sidebarItems
+    const itemRows = sidebarRows.filter((r): r is Extract<ConsoleSidebarRow, { kind: 'item' }> => r.kind === 'item');
+    return itemRows
       .map((item) => {
-        const allChildren = filteredSubGroupsForSidebarId(item.id).flatMap((g) => g.items);
+        const allChildren = filteredSubGroupsForSidebarId(item.id, item.domain).flatMap((g) => g.items);
         const hasChildren = allChildren.length > 0;
         const parentMatched = item.label.toLowerCase().includes(normalizedQuery);
         const matchedChildren = normalizedQuery
@@ -118,8 +120,41 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
           visibleChildren: [],
         };
       })
-      .filter((v): v is { item: ConsoleSidebarProps['sidebarItems'][number]; hasChildren: boolean; visibleChildren: SubGroup['items'] } => !!v);
-  }, [filteredSubGroupsForSidebarId, normalizedQuery, sidebarItems]);
+      .filter((v): v is { item: Extract<ConsoleSidebarRow, { kind: 'item' }>; hasChildren: boolean; visibleChildren: SubGroup['items'] } => !!v);
+  }, [filteredSubGroupsForSidebarId, normalizedQuery, sidebarRows]);
+
+  const navItemStateByKey = useMemo(() => {
+    const m = new Map<string, (typeof navItems)[number]>();
+    for (const n of navItems) {
+      m.set(`${n.item.domain}-${n.item.id}`, n);
+    }
+    return m;
+  }, [navItems]);
+
+  type NavRenderRow =
+    | { kind: 'section'; label: string }
+    | {
+        kind: 'block';
+        item: Extract<ConsoleSidebarRow, { kind: 'item' }>;
+        hasChildren: boolean;
+        visibleChildren: SubGroup['items'];
+      };
+
+  const navRenderRows = useMemo((): NavRenderRow[] => {
+    if (normalizedQuery) {
+      return navItems.map((n) => ({ kind: 'block' as const, ...n }));
+    }
+    const out: NavRenderRow[] = [];
+    for (const row of sidebarRows) {
+      if (row.kind === 'section') {
+        out.push({ kind: 'section', label: row.label });
+        continue;
+      }
+      const state = navItemStateByKey.get(`${row.domain}-${row.id}`);
+      if (state) out.push({ kind: 'block', ...state });
+    }
+    return out;
+  }, [normalizedQuery, navItems, sidebarRows, navItemStateByKey]);
 
   useEffect(() => {
     if (!showUserMenu) return;
@@ -247,19 +282,32 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
 
       {/* Navigation */}
       <nav className={`flex-1 overflow-y-auto space-y-1 custom-scrollbar pr-1 pb-4 ${mainScrollCompositorClass}`}>
-        {navItems.map(({ item, hasChildren, visibleChildren: children }) => {
+        {navRenderRows.map((row) => {
+          if (row.kind === 'section') {
+            return (
+              <div
+                key={row.label}
+                className={`px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider ${
+                  isDark ? 'text-slate-500' : 'text-slate-400'
+                }`}
+              >
+                {row.label}
+              </div>
+            );
+          }
+          const { item, hasChildren, visibleChildren: children } = row;
           const isExpanded = normalizedQuery ? true : expandedGroups.includes(item.id);
-          const isChildActive = hasChildren && activeSidebar === item.id;
-          const isSelfActive = !hasChildren && activeSidebar === item.id;
+          const isChildActive = hasChildren && activeSidebar === item.id && routeRole === item.domain;
+          const isSelfActive = !hasChildren && activeSidebar === item.id && routeRole === item.domain;
 
           return (
-            <div key={item.id} className="mb-1">
+            <div key={`${item.domain}-${item.id}`} className="mb-1">
               <button
                 type="button"
                 onClick={() =>
                   hasChildren
                     ? onToggleGroup(item.id)
-                    : onSidebarClick(item.id)
+                    : onSidebarClick(item.id, item.domain)
                 }
                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 group/item ${
                   isSelfActive
@@ -335,9 +383,9 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
                           <button
                             key={subItem.id}
                             type="button"
-                            onClick={() => onSubItemClick(subItem.id, item.id)}
+                            onClick={() => onSubItemClick(subItem.id, item.id, item.domain)}
                             className={`w-full text-left px-3 py-2 text-[13px] rounded-lg transition-colors relative ${
-                              activeSubItem === subItem.id
+                              activeSubItem === subItem.id && activeSidebar === item.id && routeRole === item.domain
                                 ? isDark
                                   ? 'bg-white/10 text-neutral-300 font-semibold shadow-[0_2px_8px_rgba(0,0,0,0.15)]'
                                   : 'bg-white/60 text-neutral-800 font-semibold shadow-[0_2px_8px_rgba(0,0,0,0.02)]'
@@ -346,7 +394,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
                                   : 'text-slate-500 hover:text-slate-800 hover:bg-slate-200/40'
                             }`}
                           >
-                            {activeSubItem === subItem.id && (
+                            {activeSubItem === subItem.id && activeSidebar === item.id && routeRole === item.domain && (
                               <div
                                 className={`absolute left-[-20px] top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-neutral-900 ring-4 ${
                                   isDark
@@ -386,7 +434,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
         )}
       </nav>
 
-      {/* 底部：用户卡片（端切换在 ⋮ 展开菜单内） */}
+      {/* 底部：用户卡片 */}
       <div className="mt-auto pt-3 shrink-0 relative" ref={userMenuRef}>
           <AnimatePresence>
             {showUserMenu && (
@@ -399,26 +447,20 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
                   isDark ? 'border-white/10 bg-[#1C1C1E]' : 'border-slate-200 bg-white'
                 }`}
               >
-                {canAccessAdmin && (
-                  <div className="flex flex-col">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowUserMenu(false);
-                        onSwitchMode(layoutIsAdmin ? 'user' : 'admin');
-                      }}
-                      className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-colors ${
-                        isDark
-                          ? 'text-slate-200 hover:bg-white/[0.08]'
-                          : 'text-slate-800 hover:bg-slate-100'
-                      }`}
-                    >
-                      {layoutIsAdmin ? <Box size={15} className="shrink-0 opacity-90" /> : <Cpu size={15} className="shrink-0 opacity-90" />}
-                      <span className="min-w-0">{layoutIsAdmin ? '切换到应用端' : '切换到管理端'}</span>
-                    </button>
-                    <div className={`mx-2 my-1 h-px ${isDark ? 'bg-white/[0.08]' : 'bg-slate-200/80'}`} aria-hidden />
-                  </div>
-                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    onNavigateToProfile();
+                  }}
+                  className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-colors ${
+                    isDark ? 'text-slate-200 hover:bg-white/[0.08]' : 'text-slate-800 hover:bg-slate-100'
+                  }`}
+                >
+                  <User size={15} className="shrink-0 opacity-90" />
+                  个人资料
+                </button>
+                <div className={`mx-2 my-1 h-px ${isDark ? 'bg-white/[0.08]' : 'bg-slate-200/80'}`} aria-hidden />
                 <button
                   type="button"
                   onClick={() => { setShowUserMenu(false); onLogout(); }}
@@ -464,17 +506,16 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
                 >
                   {ROLE_LABELS[platformRole]}
                 </span>
-                {canAccessAdmin && (
-                  <span
-                    className={`text-[9px] px-1.5 py-0.5 rounded-md font-bold whitespace-nowrap ${
-                      isDark
-                        ? 'bg-white/[0.08] text-slate-200 border border-white/[0.12]'
-                        : 'bg-[#F2F4F7] text-[#111827] border border-slate-400/40'
-                    }`}
-                  >
-                    {layoutIsAdmin ? '管理端' : '应用端'}
-                  </span>
-                )}
+                <span
+                  className={`text-[9px] px-1.5 py-0.5 rounded-md font-bold whitespace-nowrap ${
+                    isDark
+                      ? 'bg-white/[0.08] text-slate-200 border border-white/[0.12]'
+                      : 'bg-[#F2F4F7] text-[#111827] border border-slate-400/40'
+                  }`}
+                  title="当前页面路由域"
+                >
+                  {routeRole === 'admin' ? '管理路由' : '应用路由'}
+                </span>
               </div>
             </div>
             <MoreVertical

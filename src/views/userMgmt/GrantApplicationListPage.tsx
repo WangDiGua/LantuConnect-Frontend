@@ -117,7 +117,9 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, showMessage }
           <div className={`flex items-center justify-between border-b px-6 py-4 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
             <div>
               <h2 className={`text-lg font-bold ${textPrimary(theme)}`}>授权申请审批</h2>
-              <p className={`mt-0.5 text-xs ${textMuted(theme)}`}>审批用户对资源的 API Key 授权申请</p>
+              <p className={`mt-0.5 text-xs ${textMuted(theme)}`}>
+                列表范围由后端按角色过滤：资源拥有者审本人资源上的申请；部门管理员审本部拥有者资源；平台管理员可审全部。
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <button type="button" onClick={() => void fetchData()} className={btnGhost(theme)}>

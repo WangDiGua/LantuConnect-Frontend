@@ -96,7 +96,7 @@ import {
   parseResourceType,
 } from '../constants/resourceTypes';
 import { PageSkeleton } from '../components/common/PageSkeleton';
-import { ConsoleSidebar } from '../components/layout/ConsoleSidebar';
+import { ConsoleSidebar, type ConsoleSidebarRow } from '../components/layout/ConsoleSidebar';
 import { Tooltip } from '../components/common/Tooltip';
 import { chromeGpuLayerClass, contentMaxWidth, mainScrollCompositorClass } from '../utils/uiClasses';
 
@@ -127,20 +127,28 @@ function normalizeDeprecatedPage(page: string): string {
   }
 }
 
-const SUB_ITEM_PERM_MAP: Record<string, string> = {
+const SUB_ITEM_PERM_MAP: Record<string, string | string[]> = {
   'provider-list': 'provider:view',
   'provider-create': 'provider:manage',
   'role-management': 'role:manage',
   'organization': 'org:manage',
   'api-key-management': 'api-key:manage',
   'resource-grant-management': 'resource-grant:manage',
-  'grant-applications': 'resource-grant:manage',
+  /** 资源 owner / 部门管理员 / 平台管理员可审；与后端 Grant 工单路由一致 */
+  'grant-applications': ['resource-grant:manage', 'grant-application:review'],
   'developer-applications': 'developer-application:review',
   'alert-rules': 'system:config',
   'health-config': 'system:config',
   'circuit-breaker': 'system:config',
   'skill-external-market': 'system:config',
 };
+
+function subItemMeetsPermission(itemId: string, hasPermission: (perm: string) => boolean): boolean {
+  const perm = SUB_ITEM_PERM_MAP[itemId];
+  if (!perm) return true;
+  const list = Array.isArray(perm) ? perm : [perm];
+  return list.some((p) => hasPermission(p));
+}
 
 const LEGACY_PAGE_TO_TYPE: Record<string, ResourceType> = {
   'agent-list': 'agent',
@@ -298,6 +306,7 @@ const MainContent = React.memo<{
 
         case 'category-management':
         case 'tag-management':
+        case 'system-params':
         case 'model-config':
         case 'security-settings':
         case 'quota-management':
@@ -377,6 +386,8 @@ const MainContent = React.memo<{
         return <MyFavoritesPage theme={t} fontSize={fs} />;
       case 'usage-stats':
         return <UsageStatsPage theme={t} fontSize={fs} />;
+      case 'grant-applications':
+        return <GrantApplicationListPage theme={t} fontSize={fs} showMessage={msg} />;
       case 'my-grant-applications':
         return <MyGrantApplicationsPage theme={t} fontSize={fs} showMessage={msg} />;
       case 'profile':
@@ -712,6 +723,16 @@ const MainLayoutContent: React.FC<{
       navigate(defaultPath('user'), { replace: true });
       return;
     }
+    if (
+      routeRole === 'user' &&
+      normalizedRoutePage === 'grant-applications' &&
+      !hasPermission('grant-application:review') &&
+      !hasPermission('resource-grant:manage')
+    ) {
+      navigate(defaultPath('user'), { replace: true });
+      showMessage('当前账号无授权审批权限', 'info');
+      return;
+    }
     if (routeRole === 'admin' && normalizedRoutePage === 'skill-external-market' && !hasPermission('system:config')) {
       navigate(`${buildPath('admin', 'resource-catalog')}?type=skill`, { replace: true });
       showMessage('当前账号无权访问技能在线市场', 'info');
@@ -766,52 +787,68 @@ const MainLayoutContent: React.FC<{
     return () => document.removeEventListener('fullscreenchange', onFs);
   }, []);
 
-  const sidebarItems = useMemo(() => {
-    if (layoutIsAdmin) {
-      const adminPermMap: Record<string, string> = {
-        'resource-management': 'agent:view',
-        'provider-management': 'provider:manage',
-        'user-management': 'user:manage',
-        'monitoring': 'monitor:view',
-        'system-config': 'system:config',
-      };
-      return ADMIN_SIDEBAR_ITEMS.filter((item) => {
-        if (item.id === 'audit-center') {
-          return hasPermission('agent:audit') || hasPermission('skill:audit') || hasPermission('resource:audit');
-        }
-        const requiredPerm = adminPermMap[item.id];
-        return !requiredPerm || hasPermission(requiredPerm);
-      });
-    }
-    return USER_SIDEBAR_ITEMS.filter((item) => {
-      if (item.id === 'my-publish') return canPublishResources;
-      if (item.id === 'developer-portal') return hasPermission('developer:portal');
-      return true;
+  const userSidebarItems = useMemo(
+    () =>
+      USER_SIDEBAR_ITEMS.filter((item) => {
+        if (item.id === 'my-publish') return canPublishResources;
+        if (item.id === 'developer-portal') return hasPermission('developer:portal');
+        return true;
+      }),
+    [hasPermission, canPublishResources],
+  );
+
+  const adminSidebarItems = useMemo(() => {
+    if (!canAccessAdminView(platformRole)) return [];
+    const adminPermMap: Record<string, string> = {
+      'resource-management': 'agent:view',
+      'provider-management': 'provider:manage',
+      'user-management': 'user:manage',
+      'monitoring': 'monitor:view',
+      'system-config': 'system:config',
+    };
+    return ADMIN_SIDEBAR_ITEMS.filter((item) => {
+      if (item.id === 'audit-center') {
+        return hasPermission('agent:audit') || hasPermission('skill:audit') || hasPermission('resource:audit');
+      }
+      const requiredPerm = adminPermMap[item.id];
+      return !requiredPerm || hasPermission(requiredPerm);
     });
-  }, [layoutIsAdmin, hasPermission, canPublishResources]);
+  }, [platformRole, hasPermission]);
+
+  /** 同一侧栏内合并应用路由与管理路由分组 */
+  const sidebarRows: ConsoleSidebarRow[] = useMemo(() => {
+    const rows: ConsoleSidebarRow[] = [
+      { kind: 'section', label: '应用 / 工作台' },
+      ...userSidebarItems.map((item) => ({ kind: 'item' as const, ...item, domain: 'user' as const })),
+    ];
+    if (adminSidebarItems.length > 0) {
+      rows.push({ kind: 'section', label: '平台管理' });
+      rows.push(
+        ...adminSidebarItems.map((item) => ({ kind: 'item' as const, ...item, domain: 'admin' as const })),
+      );
+    }
+    return rows;
+  }, [userSidebarItems, adminSidebarItems]);
 
   const filteredSubGroupsForSidebarId = useCallback(
-    (sidebarId: string) => {
-      const groups = getNavSubGroups(sidebarId, layoutIsAdmin);
+    (sidebarId: string, domain: ConsoleRole) => {
+      const groups = getNavSubGroups(sidebarId, domain === 'admin');
       return groups
         .map((g) => ({
           ...g,
-          items: g.items.filter((item) => {
-            const perm = SUB_ITEM_PERM_MAP[item.id];
-            return !perm || hasPermission(perm);
-          }),
+          items: g.items.filter((item) => subItemMeetsPermission(item.id, hasPermission)),
         }))
         .filter((g) => g.items.length > 0);
     },
-    [layoutIsAdmin, hasPermission],
+    [hasPermission],
   );
 
   useEffect(() => {
-    const groups = filteredSubGroupsForSidebarId(activeSidebar);
+    const groups = filteredSubGroupsForSidebarId(activeSidebar, consoleRole);
     if (groups.length > 0) {
       setExpandedGroups((prev) => (prev.length === 0 ? [activeSidebar] : prev));
     }
-  }, [activeSidebar, filteredSubGroupsForSidebarId]);
+  }, [activeSidebar, consoleRole, filteredSubGroupsForSidebarId]);
 
   const toggleGroup = (id: string) => {
     setExpandedGroups((prev) =>
@@ -819,36 +856,29 @@ const MainLayoutContent: React.FC<{
     );
   };
 
-  const handleSidebarClick = (id: string) => {
+  const handleSidebarClick = (id: string, domain: ConsoleRole) => {
     setMobileNavOpen(false);
-    const hasChildren = filteredSubGroupsForSidebarId(id).length > 0;
+    const hasChildren = filteredSubGroupsForSidebarId(id, domain).length > 0;
     if (!hasChildren) {
       setExpandedGroups([]);
     }
-    navigate(buildPath(consoleRole, getDefaultPage(consoleRole, id)));
+    navigate(buildPath(domain, getDefaultPage(domain, id)));
   };
 
-  const handleSubItemClick = (subItemId: string, parentSidebarId: string) => {
+  const handleSubItemClick = (subItemId: string, parentSidebarId: string, domain: ConsoleRole) => {
     setMobileNavOpen(false);
-    const pageName = subItemToPage(parentSidebarId, subItemId, layoutIsAdmin);
-    if (layoutIsAdmin && pageName === 'resource-catalog') {
-      navigate(`${buildPath(consoleRole, 'resource-catalog')}?type=agent`);
+    const isAdminNav = domain === 'admin';
+    const pageName = subItemToPage(parentSidebarId, subItemId, isAdminNav);
+    if (isAdminNav && pageName === 'resource-catalog') {
+      navigate(`${buildPath(domain, 'resource-catalog')}?type=agent`);
       return;
     }
-    if (layoutIsAdmin && pageName === 'resource-audit') {
-      navigate(buildPath(consoleRole, 'resource-audit'));
+    if (isAdminNav && pageName === 'resource-audit') {
+      navigate(buildPath(domain, 'resource-audit'));
       return;
     }
-    navigate(buildPath(consoleRole, pageName));
+    navigate(buildPath(domain, pageName));
   };
-
-  const handleSwitchMode = useCallback(
-    (targetRole: ConsoleRole) => {
-      setMobileNavOpen(false);
-      navigate(defaultPath(targetRole));
-    },
-    [navigate],
-  );
 
   useEffect(() => {
     if (!showUserMenu && !showMessagePanel && !showSettingsMenu) return;
@@ -983,8 +1013,8 @@ const MainLayoutContent: React.FC<{
   const displayUserName = authUser?.nickname || authUser?.username || '用户';
 
   const navChildrenForActiveSidebar = useMemo(
-    () => filteredSubGroupsForSidebarId(activeSidebar).flatMap((g) => g.items),
-    [activeSidebar, filteredSubGroupsForSidebarId],
+    () => filteredSubGroupsForSidebarId(activeSidebar, consoleRole).flatMap((g) => g.items),
+    [activeSidebar, consoleRole, filteredSubGroupsForSidebarId],
   );
 
   const hasSecondarySidebar = navChildrenForActiveSidebar.length > 0;
@@ -992,13 +1022,13 @@ const MainLayoutContent: React.FC<{
   /** 顶栏与 chromePageTitle：有子菜单时只显示当前子项，父级由侧栏表达 */
   const headerTitle = useMemo(() => {
     if (!layoutIsAdmin && ['profile', 'preferences'].includes(page)) return '个人设置';
-    const parentItem = sidebarItems.find((i) => i.id === activeSidebar);
+    const parentItem = [...USER_SIDEBAR_ITEMS, ...ADMIN_SIDEBAR_ITEMS].find((i) => i.id === activeSidebar);
     if (!parentItem) return layoutIsAdmin ? '管理后台' : '工作台';
     if (navChildrenForActiveSidebar.length === 0) return parentItem.label;
     const activeChild = navChildrenForActiveSidebar.find((c) => c.id === activeSubItem);
     if (!activeChild) return parentItem.label;
     return activeChild.label;
-  }, [sidebarItems, activeSidebar, activeSubItem, navChildrenForActiveSidebar, layoutIsAdmin]);
+  }, [activeSidebar, activeSubItem, navChildrenForActiveSidebar, layoutIsAdmin, page]);
 
   return (
     <LayoutChromeProvider value={{ hasSecondarySidebar, chromePageTitle: headerTitle }}>
@@ -1029,21 +1059,17 @@ const MainLayoutContent: React.FC<{
         >
           <ConsoleSidebar
             theme={theme}
-            layoutIsAdmin={layoutIsAdmin}
-            consoleRole={consoleRole}
+            routeRole={consoleRole}
             activeSidebar={activeSidebar}
             activeSubItem={activeSubItem}
-            sidebarItems={sidebarItems}
+            sidebarRows={sidebarRows}
             expandedGroups={expandedGroups}
-            canAccessAdmin={canAccessAdminView(platformRole)}
             platformRole={platformRole}
             displayUserName={displayUserName}
             avatarSeed={`${authUser?.id ?? 'user'}-${displayUserName}`}
             onSidebarClick={handleSidebarClick}
             onSubItemClick={handleSubItemClick}
             onToggleGroup={toggleGroup}
-            onSwitchMode={handleSwitchMode}
-            onUserCardClick={() => {}}
             onNavigateToProfile={() => {
               navigate(buildPath('user', 'profile'));
               if (layoutIsAdmin) setRole('user');

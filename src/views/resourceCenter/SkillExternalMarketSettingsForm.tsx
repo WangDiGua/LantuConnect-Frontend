@@ -236,7 +236,7 @@ export const SkillExternalMarketSettingsForm: React.FC<Props> = ({ theme, fontSi
       <p className={`text-sm ${textMuted(theme)}`}>
         按标签页分市场配置；<strong>「生效方式」</strong>决定列表<strong>实际使用哪一类远程源</strong>（单选 SkillHub / SkillsMP / 镜像 / 或全部合并）。静态条目仅在
         provider 为 merge 或 static 时参与展示。配置写入数据库后覆盖{' '}
-        <code className="text-xs opacity-90">skill-external-catalog.yml</code>。SkillsMP Key 留空保留原值。
+        <code className="text-xs opacity-90">application.yml</code> 中的 <code className="text-xs opacity-90">lantu.skill-external-catalog</code>。SkillsMP Key 留空保留原值。
         {keyConfigured ? (
           <span className={`ml-1 font-medium ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>（已配置 Key）</span>
         ) : (

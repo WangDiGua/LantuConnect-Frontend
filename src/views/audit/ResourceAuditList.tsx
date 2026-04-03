@@ -30,6 +30,7 @@ import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { nullDisplay } from '../../utils/errorHandler';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
+import { AccessPolicyBadge } from '../../components/business/AccessPolicyBadge';
 
 interface Props {
   theme: Theme;
@@ -41,7 +42,9 @@ interface Props {
 export const ResourceAuditList: React.FC<Props> = ({ theme, showMessage, defaultType }) => {
   const isDark = theme === 'dark';
   const { platformRole } = useUserRole();
-  const canPublish = platformRole === 'platform_admin';
+  const canPublishResource =
+    platformRole === 'platform_admin' || platformRole === 'dept_admin' || platformRole === 'developer';
+  const canPlatformForceDeprecate = platformRole === 'platform_admin';
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<ResourceAuditItemVO[]>([]);
   const [resourceType, setResourceType] = useState<ResourceType | ''>(defaultType ?? '');
@@ -56,6 +59,8 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, showMessage, default
   const [total, setTotal] = useState(0);
   const [rejectTarget, setRejectTarget] = useState<ResourceAuditItemVO | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [forceDeprecateTarget, setForceDeprecateTarget] = useState<ResourceAuditItemVO | null>(null);
+  const [forceDeprecateReason, setForceDeprecateReason] = useState('');
   const [loadError, setLoadError] = useState<Error | null>(null);
   const [runningActionId, setRunningActionId] = useState<string | null>(null);
   const PAGE_SIZE = 20;
@@ -177,6 +182,7 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, showMessage, default
                   <tr>
                     <th className={tableHeadCell(theme)}>资源名称</th>
                     <th className={tableHeadCell(theme)}>类型</th>
+                    <th className={tableHeadCell(theme)}>消费策略</th>
                     <th className={tableHeadCell(theme)}>状态</th>
                     <th className={tableHeadCell(theme)}>资源编码</th>
                     <th className={tableHeadCell(theme)}>提交者</th>
@@ -191,6 +197,9 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, showMessage, default
                     <tr key={item.id} className={tableBodyRow(theme, idx)}>
                       <td className={`${tableCell()} font-medium ${textPrimary(theme)}`}>{item.displayName}</td>
                       <td className={`${tableCell()} ${textSecondary(theme)}`}>{item.resourceType}</td>
+                      <td className={`${tableCell()} align-middle`}>
+                        <AccessPolicyBadge theme={theme} value={item.accessPolicy} whenMissing="hide" />
+                      </td>
                       <td className={tableCell()}>
                         <span className={statusBadgeClass(item.status, theme)}>
                           <span className={statusDot(item.status)} />
@@ -223,7 +232,7 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, showMessage, default
                           )}
                           {item.status === 'testing' && (
                             <>
-                              {canPublish ? (
+                              {canPublishResource ? (
                                 <button
                                   type="button"
                                   className={mgmtTableActionPositive(theme)}
@@ -233,14 +242,29 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, showMessage, default
                                   {runningActionId === `publish-${item.id}` ? '发布中…' : '发布'}
                                 </button>
                               ) : (
-                                <span className={`text-xs ${textMuted(theme)}`}>待平台管理员发布</span>
+                                <span className={`text-xs ${textMuted(theme)}`}>无发布权限</span>
                               )}
                               <button type="button" className={mgmtTableActionDanger} disabled={!!runningActionId} onClick={() => setRejectTarget(item)}>
                                 驳回
                               </button>
                             </>
                           )}
-                          {item.status !== 'pending_review' && item.status !== 'testing' && (
+                          {item.status === 'published' && canPlatformForceDeprecate && (
+                            <button
+                              type="button"
+                              className={mgmtTableActionDanger}
+                              disabled={!!runningActionId}
+                              onClick={() => {
+                                setForceDeprecateTarget(item);
+                                setForceDeprecateReason('');
+                              }}
+                            >
+                              平台强制下架
+                            </button>
+                          )}
+                          {item.status !== 'pending_review' &&
+                            item.status !== 'testing' &&
+                            !(item.status === 'published' && canPlatformForceDeprecate) && (
                             <span className={`text-xs ${textMuted(theme)}`}>无可执行动作</span>
                           )}
                         </div>
@@ -296,6 +320,58 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, showMessage, default
                 }}
               >
                 {runningActionId === `reject-${rejectTarget.id}` ? '提交中…' : '确认驳回'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {forceDeprecateTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" onClick={() => setForceDeprecateTarget(null)}>
+          <div className={`${bentoCard(theme)} w-full max-w-lg p-4`} onClick={(e) => e.stopPropagation()}>
+            <h3 className={`text-base font-semibold ${textPrimary(theme)}`}>
+              平台强制下架 · {forceDeprecateTarget.displayName}
+            </h3>
+            <p className={`mt-2 text-xs leading-relaxed ${textMuted(theme)}`}>
+              调用 <span className="font-mono">POST /audit/resources/&#123;resourceId&#125;/platform-force-deprecate</span>，资源 id：{forceDeprecateTarget.resourceId || '—'}。
+            </p>
+            <textarea
+              rows={4}
+              value={forceDeprecateReason}
+              onChange={(e) => setForceDeprecateReason(e.target.value)}
+              className={`mt-3 w-full rounded-xl border px-3 py-2 text-sm ${
+                isDark ? 'border-white/10 bg-white/[0.04] text-slate-200' : 'border-slate-200 bg-white text-slate-700'
+              }`}
+              placeholder="下架原因（可选）"
+            />
+            <div className="mt-3 flex justify-end gap-2">
+              <button type="button" className={btnGhost(theme)} onClick={() => setForceDeprecateTarget(null)}>
+                取消
+              </button>
+              <button
+                type="button"
+                className={mgmtTableActionDanger}
+                disabled={runningActionId === `pfd-${forceDeprecateTarget.resourceId}`}
+                onClick={() => {
+                  const rid = forceDeprecateTarget.resourceId;
+                  if (!rid) {
+                    showMessage('缺少资源 ID，无法强制下架', 'error');
+                    return;
+                  }
+                  void runAction(
+                    `pfd-${rid}`,
+                    () =>
+                      resourceAuditService.platformForceDeprecate(rid, {
+                        reason: forceDeprecateReason.trim() || undefined,
+                      }),
+                    '已平台强制下架',
+                  ).finally(() => {
+                    setForceDeprecateTarget(null);
+                    setForceDeprecateReason('');
+                  });
+                }}
+              >
+                {runningActionId === `pfd-${forceDeprecateTarget.resourceId}` ? '执行中…' : '确认下架'}
               </button>
             </div>
           </div>

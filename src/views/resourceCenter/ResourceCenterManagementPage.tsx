@@ -12,6 +12,7 @@ import type {
 import { resourceCenterService } from '../../api/services/resource-center.service';
 import { resourceAuditService } from '../../api/services/resource-audit.service';
 import { useUserRole } from '../../context/UserRoleContext';
+import { AccessPolicyBadge } from '../../components/business/AccessPolicyBadge';
 import { RESOURCE_TYPES, RESOURCE_TYPE_LABEL_ZH } from '../../constants/resourceTypes';
 import { Modal } from '../../components/common/Modal';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
@@ -122,7 +123,10 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
 }) => {
   const isDark = theme === 'dark';
   const { platformRole } = useUserRole();
-  const canPublish = platformRole === 'platform_admin';
+  /** 与 AuditController publish 一致：owner / 部门管理员 / 平台侧开发者账号 */
+  const canPublishResource =
+    platformRole === 'platform_admin' || platformRole === 'dept_admin' || platformRole === 'developer';
+  const isPlatformAdmin = platformRole === 'platform_admin';
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<ResourceCenterItemVO[]>([]);
   const [versionTarget, setVersionTarget] = useState<ResourceCenterItemVO | null>(null);
@@ -138,6 +142,8 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
   const [total, setTotal] = useState(0);
   const [loadError, setLoadError] = useState<Error | null>(null);
   const [confirmAction, setConfirmAction] = useState<{ id: number; type: 'remove' | 'deprecate' | 'withdraw' } | null>(null);
+  const [platformForceTarget, setPlatformForceTarget] = useState<ResourceCenterItemVO | null>(null);
+  const [platformForceReason, setPlatformForceReason] = useState('');
   const [timelineTarget, setTimelineTarget] = useState<ResourceCenterItemVO | null>(null);
   const [timelineLoading, setTimelineLoading] = useState(false);
   const [timelineData, setTimelineData] = useState<LifecycleTimelineVO | null>(null);
@@ -280,7 +286,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                 <RefreshCw size={15} />
                 刷新
               </button>
-              {allowTypeSwitch && activeType === 'skill' && canPublish && onOpenSkillExternalMarket ? (
+              {allowTypeSwitch && activeType === 'skill' && isPlatformAdmin && onOpenSkillExternalMarket ? (
                 <button type="button" onClick={onOpenSkillExternalMarket} className={btnGhost(theme)}>
                   <Store size={15} />
                   在线市场
@@ -428,6 +434,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                             <span className={statusDot(item.status)} />
                             {statusLabel(item.status)}
                           </span>
+                          <AccessPolicyBadge theme={theme} value={item.accessPolicy} />
                           <span className={`text-xs ${textMuted(theme)}`}>
                             {nullDisplay(item.resourceCode)} · {nullDisplay(item.currentVersion, 'v1')}
                             {item.sourceType ? ` · ${item.sourceType}` : ''}
@@ -549,7 +556,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                             {runningActionKey === `remove-${item.id}` ? '删除中…' : '删除'}
                           </button>
                         )}
-                        {item.status === 'testing' && canPublish && (
+                        {item.status === 'testing' && canPublishResource && (
                           <button
                             type="button"
                             disabled={runningActionKey === `publish-${item.id}`}
@@ -559,8 +566,21 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                             {runningActionKey === `publish-${item.id}` ? '发布中…' : '发布上架'}
                           </button>
                         )}
-                        {item.status === 'testing' && !canPublish && (
-                          <span className={`text-xs ${textMuted(theme)}`}>待平台管理员发布</span>
+                        {item.status === 'testing' && !canPublishResource && (
+                          <span className={`text-xs ${textMuted(theme)}`}>无发布权限（须为资源 owner 或部门/平台管理员）</span>
+                        )}
+                        {item.status === 'published' && isPlatformAdmin && (
+                          <button
+                            type="button"
+                            disabled={runningActionKey === `pfdep-${item.id}`}
+                            onClick={() => {
+                              setPlatformForceTarget(item);
+                              setPlatformForceReason('');
+                            }}
+                            className={mgmtTableActionDanger}
+                          >
+                            平台强制下架
+                          </button>
                         )}
                       </div>
                     </div>
@@ -716,6 +736,56 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
           </>
         )}
       </Modal>
+      {platformForceTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
+          onClick={() => setPlatformForceTarget(null)}
+        >
+          <div className={`${bentoCard(theme)} w-full max-w-lg p-4`} onClick={(e) => e.stopPropagation()}>
+            <h3 className={`text-base font-semibold ${textPrimary(theme)}`}>
+              平台强制下架 · {platformForceTarget.displayName}
+            </h3>
+            <p className={`mt-2 text-xs leading-relaxed ${textMuted(theme)}`}>
+              仅平台管理员可操作；资源将进入 deprecated，与开发者自助下线不同。原因会通知资源 owner。
+            </p>
+            <textarea
+              rows={4}
+              value={platformForceReason}
+              onChange={(e) => setPlatformForceReason(e.target.value)}
+              className={`mt-3 w-full rounded-xl border px-3 py-2 text-sm ${
+                isDark ? 'border-white/10 bg-white/[0.04] text-slate-200' : 'border-slate-200 bg-white text-slate-700'
+              }`}
+              placeholder="下架原因（可选，空则记为「平台强制下架」）"
+            />
+            <div className="mt-3 flex justify-end gap-2">
+              <button type="button" className={btnGhost(theme)} onClick={() => setPlatformForceTarget(null)}>
+                取消
+              </button>
+              <button
+                type="button"
+                className={mgmtTableActionDanger}
+                disabled={runningActionKey === `pfdep-${platformForceTarget.id}`}
+                onClick={() => {
+                  const id = platformForceTarget.id;
+                  void runAction(
+                    `pfdep-${id}`,
+                    () =>
+                      resourceAuditService.platformForceDeprecate(id, {
+                        reason: platformForceReason.trim() || undefined,
+                      }),
+                    '已执行平台强制下架',
+                  ).finally(() => {
+                    setPlatformForceTarget(null);
+                    setPlatformForceReason('');
+                  });
+                }}
+              >
+                {runningActionKey === `pfdep-${platformForceTarget.id}` ? '执行中…' : '确认下架'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <ConfirmDialog
         open={!!confirmAction}
         title={confirmAction?.type === 'remove' ? '删除资源' : confirmAction?.type === 'deprecate' ? '下线资源' : '撤回审核'}

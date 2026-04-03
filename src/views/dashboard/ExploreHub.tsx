@@ -258,7 +258,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
     { id: 'dataset', label: '数据集 Data', value: Number(stats?.totalDatasets ?? byTypeMap.dataset ?? 0), icon: Database, page: 'dataset-market' },
     { id: 'total', label: '总资源数', value: totalResources, icon: BookOpen, page: null },
     { id: 'users', label: '活跃师生', value: Number(stats?.totalUsers ?? 0), icon: Users, page: null },
-    { id: 'calls', label: '今日调用', value: Number(stats?.totalCallsToday ?? 0), icon: Activity, page: null },
+    { id: 'calls', label: '今日网关调用', value: Number(stats?.totalCallsToday ?? 0), icon: Activity, page: null },
   ], [byTypeMap.agent, byTypeMap.app, byTypeMap.dataset, byTypeMap.mcp, byTypeMap.skill, stats?.totalAgents, stats?.totalApps, stats?.totalCallsToday, stats?.totalDatasets, stats?.totalMcps, stats?.totalSkills, stats?.totalUsers, totalResources]);
 
   const hotResources = (hubData?.trendingResources ?? []).slice(0, 4);
@@ -410,7 +410,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
                 </h1>
 
                 <p className="text-white/40 text-lg md:text-xl font-light leading-relaxed max-w-xl mb-8">
-                  企业级智能体协同中枢。优雅，强大，深不可测。为顶级科研与教学团队打造。
+                  数字化资产与能力门户：目录发现与按权消费；网关调用量不等同于全部使用量（技能下载等单独统计）。统一注册、审核发布与 API Key / Grant / accessPolicy 详见接入指南。
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">

@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Bot, Zap, Cpu, Clock, ChevronRight, Sparkles,
-  FileText, Rocket, Heart, BarChart3, Bell,
+  FileText, Rocket, Heart, BarChart3, Bell, TrendingUp, LayoutGrid,
 } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import type { UserWorkspace } from '../../types/dto/dashboard';
@@ -19,6 +19,7 @@ import { AnimatedList } from '../../components/common/AnimatedList';
 import { buildPath } from '../../constants/consoleRoutes';
 import { DashboardLayout } from '../../components/layout/PageLayouts';
 import { formatDateTime } from '../../utils/formatDateTime';
+import { useUserRole } from '../../context/UserRoleContext';
 
 interface Props { theme: Theme; fontSize: FontSize; }
 
@@ -43,6 +44,34 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
   const isDark = theme === 'dark';
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
+  const { hasPermission } = useUserRole();
+
+  const quickActions = useMemo(() => {
+    const items: Array<{
+      label: string;
+      icon: typeof Bot;
+      page: string;
+      perm?: string;
+      anyPerm?: readonly string[];
+    }> = [
+      { label: '智能体市场', icon: Bot, page: 'agent-market' },
+      { label: '技能市场', icon: Zap, page: 'skill-market' },
+      {
+        label: '我的发布',
+        icon: Rocket,
+        page: 'my-agents-pub',
+        anyPerm: ['agent:create', 'skill:create', 'mcp:create', 'app:create', 'dataset:create'],
+      },
+      { label: '使用统计', icon: BarChart3, page: 'usage-stats' },
+      { label: '资源成效统计', icon: TrendingUp, page: 'developer-statistics', perm: 'developer:portal' },
+      { label: '快捷入口', icon: LayoutGrid, page: 'quick-access' },
+    ];
+    return items.filter((a) => {
+      if (a.perm && !hasPermission(a.perm)) return false;
+      if (a.anyPerm && !a.anyPerm.some((p) => hasPermission(p))) return false;
+      return true;
+    });
+  }, [hasPermission]);
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<Error | null>(null);
@@ -279,13 +308,8 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
         </motion.div>
 
         {/* Quick Actions */}
-        <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            { label: '智能体市场', icon: Bot, page: 'agent-market' },
-            { label: '技能市场', icon: Zap, page: 'skill-market' },
-            { label: '我的发布', icon: Rocket, page: 'my-agents-pub' },
-            { label: '使用统计', icon: BarChart3, page: 'usage-stats' },
-          ].map((action, i) => (
+        <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {quickActions.map((action, i) => (
             <motion.div key={action.label} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
               transition={{ ...spring, delay: 0.25 + i * 0.03 }}>
               <button type="button" onClick={() => navigate(buildPath('user', action.page))}

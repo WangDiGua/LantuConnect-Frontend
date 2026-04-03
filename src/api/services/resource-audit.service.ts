@@ -22,8 +22,9 @@ function toAuditItem(raw: any): ResourceAuditItemVO {
   const reason = raw?.reason ? String(raw.reason) : raw?.reviewComment ? String(raw.reviewComment) : undefined;
   return {
     id: Number(raw?.id ?? raw?.auditId ?? 0) || 0,
-    resourceId: Number(raw?.resourceId ?? 0) || 0,
-    resourceType: String(raw?.resourceType ?? 'agent') as ResourceAuditItemVO['resourceType'],
+    resourceId: Number(raw?.resourceId ?? raw?.targetId ?? 0) || 0,
+    resourceType: String(raw?.resourceType ?? raw?.targetType ?? 'agent') as ResourceAuditItemVO['resourceType'],
+    accessPolicy: raw?.accessPolicy != null ? String(raw.accessPolicy) : raw?.access_policy != null ? String(raw.access_policy) : undefined,
     resourceCode: raw?.resourceCode ? String(raw.resourceCode) : undefined,
     displayName: String(raw?.displayName ?? raw?.name ?? '未命名资源'),
     description: raw?.description ? String(raw.description) : '',
@@ -51,4 +52,8 @@ export const resourceAuditService = {
 
   publish: (id: number): Promise<void> =>
     http.post<void>(`/audit/resources/${id}/publish`),
+
+  /** 平台强制下架；body 可选 reason（后端空则记为「平台强制下架」） */
+  platformForceDeprecate: (resourceId: number, payload?: ResourceRejectRequest): Promise<void> =>
+    http.post<void>(`/audit/resources/${resourceId}/platform-force-deprecate`, payload ?? {}),
 };

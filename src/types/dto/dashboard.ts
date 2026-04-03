@@ -58,3 +58,22 @@ export interface DataReportsData {
   topSkills: { name: string; calls: number; avgLatency: number }[];
   departmentUsage: { department: string; calls: number; users: number }[];
 }
+
+/** GET /dashboard/owner-resource-stats — 与后端 OwnerDeveloperStatsVO 一致 */
+export interface OwnerResourceTypeInvokeCount {
+  resourceType: string;
+  invokeCount: number;
+  successCount: number;
+}
+
+export interface OwnerDeveloperStatsVO {
+  ownerUserId: number;
+  periodDays: number;
+  periodStart: string;
+  periodEnd: string;
+  gatewayInvokeTotal: number;
+  gatewayInvokeSuccess: number;
+  usageRecordInvokeTotal: number;
+  skillPackDownloadTotal: number;
+  gatewayInvokesByResourceType: OwnerResourceTypeInvokeCount[];
+}

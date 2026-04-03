@@ -7,12 +7,16 @@ export interface MgmtPageShellProps {
   theme: Theme;
   fontSize: FontSize;
   /** 面包屑：自左向右，最后一项为当前页 */
-  breadcrumbSegments: string[];
+  breadcrumbSegments: readonly string[];
   /** 与最后一级标题并列的图标，全站子页统一展示 */
   titleIcon?: LucideIcon;
   description?: string;
   toolbar?: React.ReactNode;
   children: React.ReactNode;
+  /**
+   * 默认在壳内滚动；长表单（如系统参数多字段）可改为由主布局滚动，避免嵌套滚动/gesture 抢轮导致「滚不动」。
+   */
+  contentScroll?: 'inner' | 'document';
 }
 
 export const MgmtPageShell: React.FC<MgmtPageShellProps> = ({
@@ -23,6 +27,7 @@ export const MgmtPageShell: React.FC<MgmtPageShellProps> = ({
   description,
   toolbar,
   children,
+  contentScroll = 'inner',
 }) => {
   const isDark = theme === 'dark';
   const { hasSecondarySidebar } = useLayoutChrome();
@@ -41,11 +46,18 @@ export const MgmtPageShell: React.FC<MgmtPageShellProps> = ({
   const a11yPageHeading =
     description?.trim() ? `${pageTitle} / ${description.trim()}` : pageTitle;
 
+  const docScroll = contentScroll === 'document';
+  const shellOverflow = docScroll ? 'overflow-visible' : 'overflow-hidden';
+  const cardOverflow = docScroll ? 'overflow-visible' : 'overflow-hidden';
+  const bodyScrollClass = docScroll
+    ? 'min-w-0 shrink-0 overflow-visible flex flex-col'
+    : 'flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden flex flex-col';
+
   return (
-    <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden bg-transparent">
+    <div className={`flex-1 flex flex-col min-h-0 min-w-0 ${shellOverflow} bg-transparent`}>
       <div className={`w-full flex-1 min-h-0 min-w-0 flex flex-col ${outerPad}`}>
         <div
-            className={`rounded-[24px] border flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden ${
+            className={`rounded-[24px] border flex-1 min-h-0 min-w-0 flex flex-col ${cardOverflow} ${
             isDark
               ? 'bg-[#1e2435] border-white/[0.09] shadow-[0_2px_20px_-6px_rgba(0,0,0,0.45)]'
               : 'bg-white border-slate-200/50 shadow-[0_2px_8px_-2px_rgba(15,23,42,0.07),0_1px_2px_-1px_rgba(15,23,42,0.05)]'
@@ -151,7 +163,7 @@ export const MgmtPageShell: React.FC<MgmtPageShellProps> = ({
               {toolbar}
             </div>
           ) : null}
-          <div className="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden flex flex-col overscroll-contain">
+          <div className={bodyScrollClass}>
             {children}
           </div>
         </div>

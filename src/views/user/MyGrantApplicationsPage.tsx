@@ -128,11 +128,12 @@ export const MyGrantApplicationsPage: React.FC<Props> = ({ theme }) => {
               <p className={`font-semibold ${textPrimary(theme)}`}>审批通过后怎么用？</p>
               <ul className={`mt-2 list-disc space-y-1.5 pl-4 ${textSecondary(theme)} text-sm`}>
                 <li>
-                  在列表中找「已通过」，点 <strong className={textPrimary(theme)}>前往资源</strong> 打开市场详情试调用。
+                  在列表中找「已通过」，点 <strong className={textPrimary(theme)}>前往资源</strong>：技能市场为<strong className={textPrimary(theme)}>制品下载</strong>，数据集为<strong className={textPrimary(theme)}>目录解析</strong>；Agent / MCP / App 等可走网关试用。
                 </li>
                 <li>
-                  自建接入时使用 <span className="font-mono text-xs">/catalog/resolve</span> 与 <span className="font-mono text-xs">/invoke</span>（流式为 <span className="font-mono text-xs">/invoke-stream</span>）；上述执行向请求<strong className={textPrimary(theme)}>均须</strong>携带有效 <span className="font-mono text-xs">X-Api-Key</span>。细则见{' '}
-                  <strong className={textPrimary(theme)}>API 文档</strong>。
+                  自建接入：<span className="font-mono text-xs">/catalog/resolve</span> 各资源均可用；<span className="font-mono text-xs">/invoke</span>（流式{' '}
+                  <span className="font-mono text-xs">/invoke-stream</span>）适用于 <strong className={textPrimary(theme)}>Agent / MCP / App</strong> 等，<strong className={textPrimary(theme)}>不适用于 skill 与 dataset</strong>。请求须携带有效{' '}
+                  <span className="font-mono text-xs">X-Api-Key</span>。细则见 <strong className={textPrimary(theme)}>API 文档</strong>。
                 </li>
               </ul>
               <div className="mt-3 flex flex-wrap gap-2">
@@ -155,7 +156,7 @@ export const MyGrantApplicationsPage: React.FC<Props> = ({ theme }) => {
               <div className="p-4">
                 <EmptyState
                   title="暂无授权申请"
-                  description="你还没有提交过授权申请。可在资源市场的详情页点击「申请授权」发起。审批通过后，请回到本页使用「前往资源」打开对应市场并试调用。"
+                  description="你还没有提交过授权申请。可在资源市场的详情页点击「申请授权」发起。审批通过后，请回到本页使用「前往资源」打开对应市场（技能为下载制品，数据集为解析目录；其它类型可按文档试 invoke）。"
                 />
               </div>
             ) : (

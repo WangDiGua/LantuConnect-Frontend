@@ -1,21 +1,24 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Zap, Clock, AlertTriangle, RefreshCw, TrendingUp } from 'lucide-react';
+import { Zap, RefreshCw, TrendingUp, Database, Download, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { EChartsOption } from 'echarts';
 import { Theme, FontSize } from '../../types';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
+import { useUserRole } from '../../context/UserRoleContext';
 import { developerStatsService } from '../../api/services/developer-stats.service';
-import type { DeveloperStatistics } from '../../types/dto/explore';
+import type { OwnerDeveloperStatsVO } from '../../types/dto/dashboard';
 import { bentoCard, canvasBodyBg, mainScrollCompositorClass, textPrimary, textMuted } from '../../utils/uiClasses';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
-import { EmptyState } from '../../components/common/EmptyState';
 import { PageError } from '../../components/common/PageError';
 import { EChartCard } from '../../components/charts/EChartCard';
 import { baseAxis, baseGrid, baseLegend, baseTooltip, chartColors } from '../../components/charts/echartsTheme';
+import { RESOURCE_TYPE_LABEL_ZH, parseResourceType } from '../../constants/resourceTypes';
 
 interface Props { theme: Theme; fontSize: FontSize; }
 
 const spring = { type: 'spring' as const, stiffness: 300, damping: 30 };
+
+const PERIOD_OPTIONS = [7, 14, 30, 90] as const;
 
 function formatNum(n: number): string {
   if (n >= 10000) return `${(n / 10000).toFixed(1)}万`;
@@ -23,133 +26,218 @@ function formatNum(n: number): string {
   return String(n);
 }
 
+function labelResourceType(resourceType: string): string {
+  const t = parseResourceType(resourceType);
+  return (t && RESOURCE_TYPE_LABEL_ZH[t]) || resourceType;
+}
+
 export const DeveloperStatsPage: React.FC<Props> = ({ theme }) => {
   const isDark = theme === 'dark';
   const { hasSecondarySidebar } = useLayoutChrome();
+  const { platformRole } = useUserRole();
   const outerPad = hasSecondarySidebar ? 'px-2 sm:px-3 lg:px-4' : 'px-1.5 sm:px-2 lg:px-3';
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<DeveloperStatistics | null>(null);
+  const [data, setData] = useState<OwnerDeveloperStatsVO | null>(null);
   const [error, setError] = useState<Error | null>(null);
+  const [periodDays, setPeriodDays] = useState<number>(7);
+  const [ownerDraft, setOwnerDraft] = useState('');
+  const [ownerUserId, setOwnerUserId] = useState<number | undefined>(undefined);
+
+  const canQueryOtherOwner = platformRole === 'platform_admin' || platformRole === 'dept_admin';
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await developerStatsService.getMyStatistics();
+      const result = await developerStatsService.getOwnerResourceStats({
+        periodDays,
+        ownerUserId,
+      });
       setData(result);
     } catch (e) {
       setData(null);
       setError(e instanceof Error ? e : new Error('统计数据加载失败'));
+    } finally {
+      setLoading(false);
     }
-    finally { setLoading(false); }
-  }, []);
+  }, [periodDays, ownerUserId]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const applyOwnerFilter = () => {
+    const s = ownerDraft.trim();
+    if (!s) {
+      setOwnerUserId(undefined);
+      return;
+    }
+    const id = Number(s);
+    if (!Number.isInteger(id) || id <= 0) return;
+    setOwnerUserId(id);
+  };
 
   const tp = textPrimary(theme);
   const tm = textMuted(theme);
   const cardSurface = bentoCard(theme);
   const c = chartColors(theme);
   const axis = baseAxis(theme);
-  const callsByDay = data?.callsByDay ?? [];
-  const topResources = data?.topResources ?? [];
-  const apiKeyUsage = data?.apiKeyUsage ?? [];
 
-  const trendOption = useMemo<EChartsOption>(() => {
-    const xData = callsByDay.map((d) => (d.date.length >= 10 ? d.date.slice(5) : d.date));
-    const yData = callsByDay.map((d) => d.calls);
-    return {
-      title: { text: '调用趋势（近 7 天）', left: 10, top: 6, textStyle: { fontSize: 13, fontWeight: 600, color: c.text } },
-      grid: baseGrid(),
-      color: [c.series[0]],
-      tooltip: baseTooltip(theme),
-      xAxis: { ...axis.category, data: xData },
-      yAxis: { ...axis.value, minInterval: 1 },
-      series: [{ name: '调用次数', type: 'line', smooth: true, data: yData, areaStyle: { opacity: 0.12 } }],
-    };
-  }, [axis.category, axis.value, c.series, c.text, callsByDay, theme]);
+  const gatewayFail = useMemo(() => {
+    if (!data) return 0;
+    return Math.max(0, data.gatewayInvokeTotal - data.gatewayInvokeSuccess);
+  }, [data]);
 
-  const topResourcesOption = useMemo((): EChartsOption => {
-    const list = [...topResources].sort((a, b) => b.calls - a.calls).slice(0, 8);
+  const byTypeOption = useMemo((): EChartsOption => {
+    const list = [...(data?.gatewayInvokesByResourceType ?? [])].sort((a, b) => b.invokeCount - a.invokeCount);
+    const labels = list.map((x) => labelResourceType(x.resourceType));
+    const success = list.map((x) => x.successCount);
+    const rest = list.map((x) => Math.max(0, x.invokeCount - x.successCount));
     return {
-      title: { text: '热门资源', left: 10, top: 6, textStyle: { fontSize: 13, fontWeight: 600, color: c.text } },
-      grid: { ...baseGrid(), left: '6%', right: '6%', bottom: '4%' },
-      color: [c.series[1]],
-      tooltip: {
-        trigger: 'axis',
-        axisPointer: { type: 'shadow' },
+      title: {
+        text: '按资源类型（网关调用，来自 call_log）',
+        left: 10,
+        top: 6,
+        textStyle: { fontSize: 13, fontWeight: 600, color: c.text },
       },
+      grid: { ...baseGrid(), left: '14%', right: '8%', bottom: '4%' },
+      color: [c.series[1], c.series[3]],
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      legend: { ...baseLegend(theme), data: ['成功', '失败/未计成功'] },
       xAxis: { ...axis.value, minInterval: 1 },
-      yAxis: { ...axis.category, type: 'category', data: list.map((item) => item.name), inverse: true },
+      yAxis: { ...axis.category, type: 'category', data: labels, inverse: true },
       series: [
         {
-          name: '调用次数',
+          name: '成功',
           type: 'bar',
-          data: list.map((item) => item.calls),
-          barMaxWidth: 14,
-          itemStyle: { borderRadius: [0, 6, 6, 0] },
-          label: { show: true, position: 'right', color: c.muted, fontSize: 11 },
-        },
-      ],
-    } as EChartsOption;
-  }, [axis.category, axis.value, c.muted, c.series, c.text, topResources]);
-
-  const apiKeyUsageOption = useMemo<EChartsOption>(() => {
-    const list = [...apiKeyUsage].sort((a, b) => b.calls - a.calls).slice(0, 8);
-    return {
-      title: { text: 'API Key 使用', left: 10, top: 6, textStyle: { fontSize: 13, fontWeight: 600, color: c.text } },
-      grid: { ...baseGrid(), left: '5%', right: '5%', bottom: '4%' },
-      color: [c.series[2]],
-      tooltip: baseTooltip(theme),
-      legend: { ...baseLegend(theme), data: ['调用次数'] },
-      xAxis: {
-        ...axis.category,
-        data: list.map((item) => `${item.keyPrefix}***`),
-        axisLabel: {
-          ...(axis.category && typeof axis.category === 'object' ? (axis.category as any).axisLabel : {}),
-          formatter: (value: string) => (value.length > 14 ? `${value.slice(0, 14)}...` : value),
-        },
-      },
-      yAxis: { ...axis.value, minInterval: 1 },
-      series: [
-        {
-          name: '调用次数',
-          type: 'bar',
-          data: list.map((item) => item.calls),
+          stack: 'total',
+          data: success,
           barMaxWidth: 18,
-          itemStyle: { borderRadius: [6, 6, 0, 0] },
+          itemStyle: { borderRadius: [0, 0, 0, 0] },
+        },
+        {
+          name: '失败/未计成功',
+          type: 'bar',
+          stack: 'total',
+          data: rest,
+          barMaxWidth: 18,
+          itemStyle: { borderRadius: [0, 6, 6, 0] },
         },
       ],
     };
-  }, [apiKeyUsage, axis.category, axis.value, c.series, c.text, theme]);
+  }, [axis.category, axis.value, c.series, c.text, data?.gatewayInvokesByResourceType, theme]);
 
-  if (loading) return <div className={`flex-1 ${canvasBodyBg(theme)} ${outerPad} py-6`}><PageSkeleton type="cards" /></div>;
-  if (error) return <div className={`flex-1 ${canvasBodyBg(theme)} ${outerPad} py-6`}><PageError error={error} onRetry={fetchData} /></div>;
-  if (!data) return <div className={`flex-1 ${canvasBodyBg(theme)} ${outerPad} py-6`}><EmptyState title="暂无统计数据" description="开始使用 API 后，统计数据将在此展示" /></div>;
+  if (loading) {
+    return (
+      <div className={`flex-1 ${canvasBodyBg(theme)} ${outerPad} py-6`}>
+        <PageSkeleton type="cards" />
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className={`flex-1 ${canvasBodyBg(theme)} ${outerPad} py-6`}>
+        <PageError error={error} onRetry={fetchData} />
+      </div>
+    );
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  const periodHint =
+    data.periodStart && data.periodEnd
+      ? `${data.periodStart.slice(0, 10)} — ${data.periodEnd.slice(0, 10)}`
+      : `近 ${data.periodDays} 天`;
 
   return (
     <div className={`flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${outerPad} py-4 sm:py-6 ${canvasBodyBg(theme)}`}>
       <div className="w-full space-y-5">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className={`text-xl font-bold ${tp}`}>开发者统计</h1>
-            <p className={`text-sm ${tm}`}>你的 API 调用数据概览</p>
+            <h1 className={`text-xl font-bold ${tp}`}>开发者资源成效</h1>
+            <p className={`text-sm ${tm}`}>Owner 维度统计 · {periodHint} · 用户 ID {data.ownerUserId}</p>
           </div>
-          <button type="button" onClick={fetchData} className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-white/[0.06]' : 'hover:bg-slate-100'}`}>
+          <button
+            type="button"
+            onClick={fetchData}
+            className={`self-start p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-white/[0.06]' : 'hover:bg-slate-100'}`}
+            aria-label="刷新"
+          >
             <RefreshCw size={16} className={tm} />
           </button>
         </div>
 
-        {/* KPI Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div
+          className={`flex flex-col gap-3 rounded-xl border px-4 py-3 text-sm ${isDark ? 'border-amber-500/25 bg-amber-500/5 text-amber-100/90' : 'border-amber-200 bg-amber-50 text-amber-950'}`}
+        >
+          <div className="flex gap-2">
+            <AlertCircle size={18} className="shrink-0 opacity-90" />
+            <p>
+              网关调用量来自 invoke 类 call_log，不等同于门户全量使用；技能包下载为独立计数。对照项「用量记录 invoke」来自 usage_record，便于与网关口径核对。
+            </p>
+          </div>
+        </div>
+
+        <div className={`flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-end ${cardSurface} p-4`}>
+          <label className={`flex flex-col gap-1 text-xs font-medium ${tm}`}>
+            统计周期（天）
+            <select
+              value={periodDays}
+              onChange={(e) => setPeriodDays(Number(e.target.value))}
+              className={`mt-0.5 rounded-lg border px-3 py-2 text-sm ${isDark ? 'border-white/10 bg-neutral-900 text-neutral-100' : 'border-slate-200 bg-white text-slate-900'}`}
+            >
+              {PERIOD_OPTIONS.map((d) => (
+                <option key={d} value={d}>
+                  近 {d} 天
+                </option>
+              ))}
+            </select>
+          </label>
+          {canQueryOtherOwner ? (
+            <div className={`flex flex-col gap-1 text-xs font-medium ${tm} lg:min-w-[200px]`}>
+              <span>查看指定 Owner（用户 ID）</span>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="留空表示当前登录用户"
+                  value={ownerDraft}
+                  onChange={(e) => setOwnerDraft(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && applyOwnerFilter()}
+                  className={`min-w-0 flex-1 rounded-lg border px-3 py-2 text-sm ${isDark ? 'border-white/10 bg-neutral-900 text-neutral-100 placeholder:text-neutral-500' : 'border-slate-200 bg-white text-slate-900'}`}
+                />
+                <button
+                  type="button"
+                  onClick={applyOwnerFilter}
+                  className={`shrink-0 rounded-lg px-3 py-2 text-sm font-semibold ${isDark ? 'bg-white/10 text-white hover:bg-white/15' : 'bg-slate-900 text-white hover:bg-slate-800'}`}
+                >
+                  应用
+                </button>
+              </div>
+              {platformRole === 'dept_admin' ? (
+                <span className="font-normal opacity-80">部门管理员仅可查询本部门用户。</span>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {[
-            { label: '总调用量', value: formatNum(data.totalCalls), icon: Zap, color: 'text-neutral-800' },
-            { label: '今日调用', value: formatNum(data.todayCalls), icon: TrendingUp, color: 'text-blue-500' },
-            { label: '平均延迟', value: `${data.avgLatencyMs}ms`, icon: Clock, color: 'text-emerald-500' },
-            { label: '错误率', value: `${data.errorRate.toFixed(1)}%`, icon: AlertTriangle, color: 'text-rose-500' },
+            { label: '网关调用（总计）', value: formatNum(data.gatewayInvokeTotal), icon: Zap, color: isDark ? 'text-neutral-100' : 'text-neutral-800' },
+            { label: '网关成功', value: formatNum(data.gatewayInvokeSuccess), icon: TrendingUp, color: 'text-blue-500' },
+            { label: '网关非成功（估算）', value: formatNum(gatewayFail), icon: Zap, color: 'text-rose-500' },
+            { label: '用量记录 invoke', value: formatNum(data.usageRecordInvokeTotal), icon: Database, color: 'text-emerald-500' },
+            { label: '技能包下载', value: formatNum(data.skillPackDownloadTotal), icon: Download, color: 'text-amber-500' },
           ].map((kpi, i) => (
-            <motion.div key={kpi.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring, delay: i * 0.03 }}
-              className={`${cardSurface} p-5`}>
+            <motion.div
+              key={kpi.label}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ ...spring, delay: i * 0.03 }}
+              className={`${cardSurface} p-5`}
+            >
               <kpi.icon size={18} className={`${tm} mb-3`} />
               <div className={`text-2xl font-black ${kpi.color}`}>{kpi.value}</div>
               <div className={`text-xs font-medium mt-1 ${tm}`}>{kpi.label}</div>
@@ -157,28 +245,13 @@ export const DeveloperStatsPage: React.FC<Props> = ({ theme }) => {
           ))}
         </div>
 
-        {/* Call Trend */}
-        {data.callsByDay.length > 0 && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring, delay: 0.12 }}>
-            <EChartCard theme={theme} option={trendOption} minHeight={260} aria-label="开发者调用趋势图" />
-          </motion.div>
-        )}
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          {/* Top Resources */}
-          {data.topResources.length > 0 && (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring, delay: 0.15 }}>
-              <EChartCard theme={theme} option={topResourcesOption} minHeight={280} aria-label="开发者热门资源图" />
-            </motion.div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring, delay: 0.12 }}>
+          {data.gatewayInvokesByResourceType.length > 0 ? (
+            <EChartCard theme={theme} option={byTypeOption} minHeight={Math.max(280, 48 + data.gatewayInvokesByResourceType.length * 36)} aria-label="按资源类型网关调用图" />
+          ) : (
+            <div className={`${cardSurface} p-10 text-center text-sm ${tm}`}>本周期暂无按类型的网关调用数据</div>
           )}
-
-          {/* API Key Usage */}
-          {data.apiKeyUsage.length > 0 && (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring, delay: 0.18 }}>
-              <EChartCard theme={theme} option={apiKeyUsageOption} minHeight={280} aria-label="开发者 API Key 使用图" />
-            </motion.div>
-          )}
-        </div>
+        </motion.div>
       </div>
     </div>
   );

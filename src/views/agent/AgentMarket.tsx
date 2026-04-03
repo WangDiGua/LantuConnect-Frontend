@@ -284,7 +284,7 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
               subtitleOnly
               theme={theme}
               title={chromePageTitle || '智能体市场'}
-              tagline="发现、试用与安装校园场景智能体"
+              tagline="浏览已发布智能体；试用为 resolve + invoke（须有效 X-Api-Key 与 scope；跨 owner 时尚需 Grant 或符合 accessPolicy）"
             />
           </div>
           <div className="flex flex-wrap items-center gap-2 shrink-0">

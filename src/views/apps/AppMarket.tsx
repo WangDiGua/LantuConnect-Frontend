@@ -265,7 +265,7 @@ export const AppMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, themeCo
               subtitleOnly
               theme={theme}
               title={chromePageTitle || '应用广场'}
-              tagline="智能应用一览"
+              tagline="浏览应用资产；以 resolve 获取 launch 为主，invoke 多为 redirect/票据；未走网关 invoke 的打开不计入调用统计"
               suffix={
                 apps.length > 0 ? (
                   <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full ${isDark ? 'bg-white/5 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>{apps.length}</span>

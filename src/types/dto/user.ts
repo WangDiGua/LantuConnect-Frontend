@@ -33,7 +33,7 @@ export interface OrgNode {
 }
 
 // 平台角色
-export type RoleCode = 'platform_admin' | 'dept_admin' | 'developer' | 'user';
+export type RoleCode = 'platform_admin' | 'dept_admin' | 'developer' | 'consumer' | 'user';
 
 export interface PlatformRole {
   id: number;

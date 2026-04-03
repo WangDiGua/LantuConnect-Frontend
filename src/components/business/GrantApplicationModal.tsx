@@ -53,6 +53,13 @@ export const GrantApplicationModal: React.FC<Props> = ({
   const [keysLoading, setKeysLoading] = useState(false);
   const [keysError, setKeysError] = useState<string | null>(null);
 
+  const isSkillOrDataset = resourceType === 'skill' || resourceType === 'dataset';
+
+  useEffect(() => {
+    if (!open) return;
+    setActions(isSkillOrDataset ? ['catalog', 'resolve'] : ['catalog', 'resolve', 'invoke']);
+  }, [open, isSkillOrDataset]);
+
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
@@ -112,9 +119,12 @@ export const GrantApplicationModal: React.FC<Props> = ({
         useCase: useCase.trim() || undefined,
         expiresAt: expiresAt.trim() || undefined,
       });
-      showMessage?.('授权申请已提交，等待管理员审批。通过后在「个人资产 → 我的授权申请」可跳转到资源市场继续调用。', 'success');
+      showMessage?.(
+        '授权申请已提交。资源拥有者、部门或平台管理员审批通过后，可在「个人资产 → 我的授权申请」查看状态并继续在市场获取资源（技能为制品下载，数据集为目录解析，Agent/MCP/App 等为 invoke）。',
+        'success',
+      );
       setApiKeyId('');
-      setActions(['catalog', 'resolve', 'invoke']);
+      setActions(isSkillOrDataset ? ['catalog', 'resolve'] : ['catalog', 'resolve', 'invoke']);
       setUseCase('');
       setExpiresAt('');
       onClose();
@@ -156,6 +166,16 @@ export const GrantApplicationModal: React.FC<Props> = ({
             {resourceType} / {resourceId}
           </p>
         </div>
+
+        {isSkillOrDataset && (
+          <p className={`text-xs leading-relaxed rounded-lg border px-3 py-2 ${isDark ? 'border-amber-500/25 bg-amber-500/10 text-amber-100/90' : 'border-amber-200 bg-amber-50 text-amber-950/90'}`}>
+            <strong className={textPrimary(theme)}>产品说明：</strong>
+            技能包与数据集<strong className={textPrimary(theme)}>不提供</strong>与 Agent/MCP 相同的统一网关{' '}
+            <span className="font-mono">/invoke</span>。技能通过{' '}
+            <span className="font-mono">resolve</span> 与制品下载使用；数据集以目录与{' '}
+            <span className="font-mono">resolve</span> 元数据为主。默认已取消勾选 invoke，避免误解审批范围。
+          </p>
+        )}
 
         <div>
           <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">

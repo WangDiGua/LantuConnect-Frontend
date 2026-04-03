@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
-import { Sliders, Shield, Network, HardDrive, Lock, Loader2 } from 'lucide-react';
+import { Sliders, Shield, Network, HardDrive, Lock, Loader2, Braces } from 'lucide-react';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
 import { useSysParams, useUpdateSysParams, useSysSecurity, useUpdateSysSecurity } from '../../hooks/queries/useSystemConfig';
-import { systemConfigService } from '../../api/services/system-config.service';
+import { securitySettingValueForApi, systemConfigService } from '../../api/services/system-config.service';
 import { quotaService } from '../../api/services/quota.service';
 import type { SystemParam, SecuritySetting } from '../../types/dto/system-config';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
@@ -23,6 +23,42 @@ interface PageProps {
 
 const INPUT_FOCUS = 'focus:ring-2 focus:ring-neutral-900/20 focus:border-neutral-900/35';
 
+/** 与 `application.yml` 注释一致：库内 JSON 合并覆盖 YAML，保存后数秒内生效 */
+const RUNTIME_APP_CONFIG_KEY = 'runtime_app_config';
+
+function isJsonSystemParam(p: SystemParam): boolean {
+  return p.type === 'json' || p.key === RUNTIME_APP_CONFIG_KEY || p.key === 'skill_external_catalog';
+}
+
+function tryFormatJson(value: string): { ok: true; text: string } | { ok: false } {
+  const t = value.trim();
+  if (!t) return { ok: false };
+  try {
+    const formatted = `${JSON.stringify(JSON.parse(t), null, 2)}\n`;
+    return { ok: true, text: formatted };
+  } catch {
+    return { ok: false };
+  }
+}
+
+function validateJsonSystemParams(items: SystemParam[], showMessage: PageProps['showMessage']): boolean {
+  for (const p of items) {
+    if (!isJsonSystemParam(p)) continue;
+    const t = p.value.trim();
+    if (!t) {
+      showMessage(`「${p.description || p.key}」JSON 不能为空，无覆盖可填 {}`, 'error');
+      return false;
+    }
+    try {
+      JSON.parse(t);
+    } catch {
+      showMessage(`「${p.description || p.key}」不是合法 JSON`, 'error');
+      return false;
+    }
+  }
+  return true;
+}
+
 export const SystemParamsPage: React.FC<PageProps> = ({ theme, fontSize, showMessage }) => {
   const isDark = theme === 'dark';
   const inputCls = `${nativeInputClass(theme)} ${INPUT_FOCUS}`;
@@ -37,9 +73,11 @@ export const SystemParamsPage: React.FC<PageProps> = ({ theme, fontSize, showMes
     if (data) setDraft(data.map((p) => ({ ...p })));
   }, [data]);
 
+  const shellProps = { theme, fontSize, titleIcon: Sliders, breadcrumbSegments: ['系统配置', '系统参数'] as const, contentScroll: 'document' as const };
+
   if (isLoading) {
     return (
-      <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={Sliders} breadcrumbSegments={['系统配置', '系统参数']}>
+      <MgmtPageShell {...shellProps}>
         <PageSkeleton type="form" />
       </MgmtPageShell>
     );
@@ -47,7 +85,7 @@ export const SystemParamsPage: React.FC<PageProps> = ({ theme, fontSize, showMes
 
   if (isError) {
     return (
-      <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={Sliders} breadcrumbSegments={['系统配置', '系统参数']}>
+      <MgmtPageShell {...shellProps}>
         <PageError error={error instanceof Error ? error : null} onRetry={() => refetch()} />
       </MgmtPageShell>
     );
@@ -55,39 +93,99 @@ export const SystemParamsPage: React.FC<PageProps> = ({ theme, fontSize, showMes
 
   if (!draft.length) {
     return (
-      <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={Sliders} breadcrumbSegments={['系统配置', '系统参数']}>
+      <MgmtPageShell {...shellProps}>
         <EmptyState title="暂无系统参数" description="后端未返回可编辑参数" />
       </MgmtPageShell>
     );
   }
 
   const save = () => {
-    updateMut.mutate(draft, {
+    const baseline = data ?? [];
+    const changed = draft.filter((p) => {
+      const b = baseline.find((x) => x.key === p.key);
+      if (!b) return true;
+      return b.value !== p.value || b.description !== p.description;
+    });
+    if (changed.length === 0) {
+      showMessage('没有修改项', 'info');
+      setConfirmOpen(false);
+      return;
+    }
+    if (!validateJsonSystemParams(changed, showMessage)) return;
+    updateMut.mutate(changed, {
       onSuccess: () => { showMessage('系统参数已保存', 'success'); setConfirmOpen(false); },
       onError: (e) => showMessage(e instanceof Error ? e.message : '保存失败', 'error'),
     });
   };
 
+  const formatJsonAt = (idx: number) => {
+    const p = draft[idx];
+    if (!p || !isJsonSystemParam(p)) return;
+    const out = tryFormatJson(p.value);
+    if (!out.ok) {
+      showMessage('当前不是合法 JSON，无法格式化（可先修正括号或引号）', 'error');
+      return;
+    }
+    setDraft((prev) => prev.map((x, i) => (i === idx ? { ...x, value: out.text } : x)));
+    showMessage('已格式化', 'success');
+  };
+
   return (
-    <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={Sliders} breadcrumbSegments={['系统配置', '系统参数']}>
-      <div className="px-4 sm:px-6 pb-6">
-        <BentoCard theme={theme} padding="lg" className="max-w-xl">
-          <div className="space-y-4">
+    <MgmtPageShell {...shellProps}>
+      <div className="px-4 sm:px-6 pb-10 max-w-4xl">
+        <BentoCard theme={theme} padding="lg" className="w-full">
+          <div className="space-y-5">
             {draft.map((p, idx) => (
               <div key={p.key}>
-                <label className={`${labelCls} mb-1.5 block`}>
-                  {p.description || p.key}
-                  {p.category ? <span className={`ml-1 ${textMuted(theme)}`}>· {p.category}</span> : ''}
-                </label>
-                <input
-                  className={inputCls}
-                  value={p.value}
-                  disabled={!p.editable}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setDraft((prev) => prev.map((x, i) => (i === idx ? { ...x, value: v } : x)));
-                  }}
-                />
+                <div className="mb-1.5 flex flex-wrap items-start justify-between gap-2">
+                  <label className={`${labelCls} block flex-1 min-w-[12rem]`}>
+                    {p.description || p.key}
+                    {p.category ? <span className={`ml-1 ${textMuted(theme)}`}>· {p.category}</span> : ''}
+                    {p.key === RUNTIME_APP_CONFIG_KEY ? (
+                      <span className={`ml-1 text-xs font-normal ${textMuted(theme)}`}>(运行时合并 YAML，含 lantu / geoip / notification 等)</span>
+                    ) : null}
+                  </label>
+                  {isJsonSystemParam(p) && p.editable ? (
+                    <button
+                      type="button"
+                      className={`${btnSecondary} inline-flex items-center gap-1.5 shrink-0 text-xs py-1.5 px-2.5`}
+                      onClick={() => formatJsonAt(idx)}
+                    >
+                      <Braces size={14} strokeWidth={2} aria-hidden />
+                      格式化 JSON
+                    </button>
+                  ) : null}
+                </div>
+                {isJsonSystemParam(p) ? (
+                  <>
+                    <textarea
+                      className={`${inputCls} min-h-[180px] w-full font-mono text-xs leading-relaxed resize-y`}
+                      value={p.value}
+                      disabled={!p.editable}
+                      spellCheck={false}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setDraft((prev) => prev.map((x, i) => (i === idx ? { ...x, value: v } : x)));
+                      }}
+                    />
+                    {p.key === RUNTIME_APP_CONFIG_KEY && p.value.trim() === '{}' ? (
+                      <p className={`mt-1.5 text-xs leading-relaxed ${textMuted(theme)}`}>
+                        库里目前是空对象 <code className="font-mono">{}</code>，表示<strong className="font-medium text-inherit">不覆盖</strong>
+                        application.yml；有数据后会与 YAML 合并。可点击「格式化 JSON」排版；编辑保存后数秒内后端生效。
+                      </p>
+                    ) : null}
+                  </>
+                ) : (
+                  <input
+                    className={`${inputCls} w-full`}
+                    value={p.value}
+                    disabled={!p.editable}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setDraft((prev) => prev.map((x, i) => (i === idx ? { ...x, value: v } : x)));
+                    }}
+                  />
+                )}
               </div>
             ))}
             <button type="button" className={btnPrimary} onClick={() => setConfirmOpen(true)}>保存</button>
@@ -189,7 +287,18 @@ export const SecuritySettingsPage: React.FC<PageProps> = ({ theme, fontSize, sho
   }
 
   const save = () => {
-    updateMut.mutate(draft, {
+    const baseline = data ?? [];
+    const changed = draft.filter((s) => {
+      const b = baseline.find((x) => x.key === s.key);
+      if (!b) return true;
+      return securitySettingValueForApi(b.value) !== securitySettingValueForApi(s.value);
+    });
+    if (changed.length === 0) {
+      showMessage('没有修改项', 'info');
+      setConfirmOpen(false);
+      return;
+    }
+    updateMut.mutate(changed, {
       onSuccess: () => { showMessage('安全策略已更新', 'success'); setConfirmOpen(false); },
       onError: (e) => showMessage(e instanceof Error ? e.message : '保存失败', 'error'),
     });

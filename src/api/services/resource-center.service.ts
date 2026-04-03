@@ -1,4 +1,5 @@
 import { http } from '../../lib/http';
+import { normalizeAccessPolicy } from '../../utils/accessPolicy';
 import type {
   LifecycleTimelineVO,
   ObservabilitySummaryVO,
@@ -93,6 +94,7 @@ function toResourceItem(raw: any): ResourceCenterItemVO {
           : raw?.isPublic === 0 || raw?.isPublic === '0'
             ? false
             : undefined,
+    accessPolicy: normalizeAccessPolicy(raw?.accessPolicy ?? raw?.access_policy),
     hidden:
       typeof raw?.hidden === 'boolean'
         ? raw.hidden

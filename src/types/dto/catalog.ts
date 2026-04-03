@@ -25,6 +25,8 @@ export interface ResourceCatalogItemVO {
   sourceType?: string;
   updateTime?: string;
   tags?: string[];
+  /** 与后端 ResourceCatalogItemVO.accessPolicy 一致 */
+  accessPolicy?: string;
   categoryName?: string;
   observability?: Record<string, unknown>;
   quality?: Record<string, unknown>;

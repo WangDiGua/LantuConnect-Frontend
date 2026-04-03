@@ -149,7 +149,7 @@ export const SkillDetail: React.FC<Props> = ({ skillId, theme, fontSize: _fontSi
               <h3 className={`text-sm font-bold mb-4 flex items-center gap-2 ${textPrimary(theme)}`}><BarChart3 size={18} className="text-emerald-500" /> 运行指标</h3>
               <div className="space-y-5">
                 {[
-                  { label: '累计调用量', value: formatCallCount(skill.callCount), color: 'text-blue-500' },
+                  { label: '热度（网关 invoke，不含技能包下载）', value: formatCallCount(skill.callCount), color: 'text-blue-500' },
                   { label: '平均成功率', value: `${skill.successRate}%`, color: skill.successRate >= 95 ? 'text-emerald-500' : skill.successRate >= 80 ? 'text-blue-500' : 'text-orange-500', bar: skill.successRate },
                   { label: '平均响应时间', value: skill.avgLatencyMs >= 1000 ? `${(skill.avgLatencyMs / 1000).toFixed(1)}s` : `${skill.avgLatencyMs}ms`, color: skill.avgLatencyMs <= 200 ? 'text-emerald-500' : skill.avgLatencyMs <= 1000 ? 'text-orange-500' : 'text-rose-500' },
                   { label: '质量评分', value: String(skill.qualityScore), color: 'text-neutral-800' },

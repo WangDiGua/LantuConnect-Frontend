@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, Zap, Clock, Activity, MessageSquare, Play, Loader2, Heart } from 'lucide-react';
+import { Search, Zap, Clock, Activity, MessageSquare, Download, Loader2, Heart } from 'lucide-react';
 import type { Theme, FontSize, ThemeColor } from '../../types';
 import type { Skill } from '../../types/dto/skill';
 import type { AgentType, SourceType } from '../../types/dto/agent';
@@ -10,9 +10,8 @@ import { tagService } from '../../api/services/tag.service';
 import { filterTagsForResourceType } from '../../utils/marketTags';
 import type { TagItem } from '../../types/dto/tag';
 import { resourceCatalogService } from '../../api/services/resource-catalog.service';
-import { invokeService } from '../../api/services/invoke.service';
-import { nativeInputClass } from '../../utils/formFieldClasses';
 import { mapInvokeFlowError } from '../../utils/invokeError';
+import { fetchSkillPackBlobDownload, resolveSkillArtifactTarget } from '../../utils/skillArtifactDownload';
 import { safeOpenHttpUrl } from '../../lib/windowNavigate';
 import {
   canvasBodyBg, mainScrollCompositorClass, bentoCard, btnPrimary, btnSecondary,
@@ -58,7 +57,6 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, theme
   const [catalogTags, setCatalogTags] = useState<TagItem[]>([]);
   const [detailSkill, setDetailSkill] = useState<Skill | null>(null);
   const [useSkill, setUseSkill] = useState<Skill | null>(null);
-  const [useParams, setUseParams] = useState<Record<string, string>>({});
   const [useLoading, setUseLoading] = useState(false);
   const [grantModalOpen, setGrantModalOpen] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
@@ -67,12 +65,7 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, theme
   const processedResourceId = useRef<string | null>(null);
   const [gatewayApiKeyDraft, setGatewayApiKeyDraft] = usePersistedGatewayApiKey();
 
-  const getParamFields = useCallback((skill: Skill): { key: string; type: string; required: boolean }[] => {
-    const schema = skill.parametersSchema as { properties?: Record<string, { type: string }>; required?: string[] } | null;
-    if (!schema?.properties) return [{ key: 'input', type: 'string', required: true }];
-    return Object.entries(schema.properties).map(([key, val]) => ({ key, type: val.type || 'string', required: schema.required?.includes(key) ?? false }));
-  }, []);
-  const handleOpenUse = useCallback((skill: Skill) => { setUseSkill(skill); setUseParams({}); setUseResult(null); setUseLoading(false); }, []);
+  const handleOpenUse = useCallback((skill: Skill) => { setUseSkill(skill); setUseResult(null); setUseLoading(false); }, []);
   const handleExecute = useCallback(async () => {
     if (!useSkill) return;
     setUseLoading(true);
@@ -100,7 +93,7 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, theme
         } else if (err instanceof Error && (err.message.includes('X-Api-Key') || err.message.includes('API Key'))) {
           setUseResult('请先填写并绑定 API Key');
         } else {
-          setUseResult(`${mapInvokeFlowError(err, 'resolve')}\n可保留当前参数后重试解析`);
+          setUseResult(`${mapInvokeFlowError(err, 'resolve')}\n请确认 Key 与 resolve 授权后重试`);
         }
         return;
       }
@@ -113,25 +106,39 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, theme
         return;
       }
       if (resolved.invokeType === 'metadata') {
-        setUseResult(`该资源返回元数据：${JSON.stringify(resolved.spec ?? {}, null, 2)}`);
+        setUseResult(`目录返回元数据：${JSON.stringify(resolved.spec ?? {}, null, 2)}`);
         return;
       }
-      try {
-        const res = await invokeService.invoke({
-          resourceType: 'skill',
-          resourceId: String(useSkill.id),
-          payload: useParams as Record<string, unknown>,
-        }, apiKey);
-        setUseResult(`状态: ${res.status} (${res.statusCode})\n耗时: ${res.latencyMs}ms\nTraceId: ${res.traceId}\n\n${res.body}`);
-      } catch (e) {
-        setUseResult(`${mapInvokeFlowError(e, 'invoke')}\n可保留当前参数后重试调用`);
+      if (resolved.invokeType === 'artifact') {
+        const target = resolveSkillArtifactTarget(resolved);
+        if (!target) {
+          setUseResult('解析成功，但未找到可下载的制品地址。请确认技能已上传制品或联系管理员。');
+          return;
+        }
+        if (target.mode === 'open_tab') {
+          if (!safeOpenHttpUrl(target.url)) {
+            setUseResult('公开制品地址无效（仅支持 http/https）');
+            return;
+          }
+          setUseResult(`该技能为公开制品，已尝试打开直链。若未自动下载，请在新页面选择「另存为」。\n${target.url}`);
+          return;
+        }
+        const safeName = `${(useSkill.displayName || useSkill.agentName || 'skill').replace(/[\\/:*?"<>|]+/g, '_')}.zip`;
+        try {
+          await fetchSkillPackBlobDownload(target.url, apiKey, safeName);
+          setUseResult('已开始下载技能包（受控下载不计入网关 invoke 统计）。若被拦截，请检查浏览器下载权限。');
+        } catch (e) {
+          setUseResult(e instanceof Error ? e.message : '下载技能包失败');
+        }
+        return;
       }
+      setUseResult(`解析返回类型：${resolved.invokeType ?? '未知'}。技能市场仅支持制品下载与目录信息，不提供统一 invoke。`);
     } catch (e) {
-      setUseResult(`调用失败: ${e instanceof Error ? e.message : '未知错误'}`);
+      setUseResult(`操作失败: ${e instanceof Error ? e.message : '未知错误'}`);
     } finally {
       setUseLoading(false);
     }
-  }, [useSkill, useParams, gatewayApiKeyDraft]);
+  }, [useSkill, gatewayApiKeyDraft]);
   const handleApplyAuthorization = useCallback(() => {
     if (!useSkill) return;
     setGrantModalOpen(true);
@@ -233,7 +240,7 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, theme
               subtitleOnly
               theme={theme}
               title={chromePageTitle || '技能市场'}
-              tagline="发现与调用可复用技能；支持本地上传或 HTTPS 直链导入技能包发布"
+              tagline="浏览技能包目录并下载制品；网关不接受 skill 的 invoke，调用统计不含下载（见资源成效中的技能包下载指标）"
             />
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:items-end">
@@ -287,13 +294,13 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, theme
                 </div>
                 <div className={`pt-3 border-t mt-auto space-y-3 ${isDark ? 'border-white/[0.08]' : 'border-slate-200/40'}`}>
                   <div className={`flex items-center gap-3 text-xs ${textMuted(theme)}`}>
-                    <span className="flex items-center gap-1"><Activity size={12} />{formatCount(skill.callCount)}</span>
+                    <span className="flex items-center gap-1" title="目录展示热度（网关 invoke 统计，不含技能包本地下载）"><Activity size={12} />{formatCount(skill.callCount)}</span>
                     <span className="flex items-center gap-1"><Clock size={12} />{formatLatency(skill.avgLatencyMs)}</span>
                     {skill.successRate > 0 && <span className="text-emerald-500">{skill.successRate}%</span>}
                     {skill.createTime && <span>{formatDateTime(skill.createTime)}</span>}
                   </div>
                   <div className="flex justify-end">
-                    <button type="button" onClick={(e) => { e.stopPropagation(); handleOpenUse(skill); }} className={`${btnPrimary} px-3 py-1.5 text-xs`}>使用</button>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); handleOpenUse(skill); }} className={`${btnPrimary} px-3 py-1.5 text-xs`}>获取技能包</button>
                   </div>
                 </div>
               </BentoCard>
@@ -320,7 +327,7 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, theme
             <div className="space-y-5">
               <p className={`text-sm leading-relaxed ${textSecondary(theme)}`}>{detailSkill.description || '暂无描述'}</p>
               <div className={`flex flex-wrap gap-3 text-xs ${textMuted(theme)}`}>
-                <span className="flex items-center gap-1"><Activity size={13} /> {formatCount(detailSkill.callCount)} 次调用</span>
+                <span className="flex items-center gap-1" title="目录展示热度（网关 invoke 统计，不含技能包本地下载）"><Activity size={13} /> {formatCount(detailSkill.callCount)} 热度</span>
                 <span className="flex items-center gap-1"><Clock size={13} /> {formatLatency(detailSkill.avgLatencyMs)}</span>
                 {detailSkill.successRate > 0 && <span className="text-emerald-500">{detailSkill.successRate}% 成功率</span>}
                 {detailSkill.qualityScore > 0 && <span>评分: {detailSkill.qualityScore}</span>}
@@ -347,13 +354,13 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, theme
       </Modal>
 
       {/* Use panel */}
-      <Modal open={!!useSkill} onClose={() => { setUseSkill(null); setGrantModalOpen(false); }} title={useSkill ? `使用面板 — ${useSkill.displayName}` : ''} theme={theme} size="md" footer={
+      <Modal open={!!useSkill} onClose={() => { setUseSkill(null); setGrantModalOpen(false); }} title={useSkill ? `获取技能包 — ${useSkill.displayName}` : ''} theme={theme} size="md" footer={
         <><button type="button" className={btnSecondary(theme)} onClick={() => setUseSkill(null)}>关闭</button>
         <button type="button" className={btnSecondary(theme)} onClick={handleApplyAuthorization}>
-          获取授权指引
+          申请 resolve 授权
         </button>
         <button type="button" className={`${btnPrimary} disabled:opacity-50`} disabled={useLoading} onClick={handleExecute}>
-          {useLoading ? <><Loader2 size={14} className="animate-spin" /> 调用中…</> : <><Play size={14} /> 调用</>}
+          {useLoading ? <><Loader2 size={14} className="animate-spin" /> 处理中…</> : <><Download size={14} /> 解析并下载</>}
         </button></>
       }>
         {useSkill && (
@@ -364,18 +371,11 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, theme
               value={gatewayApiKeyDraft}
               onChange={setGatewayApiKeyDraft}
             />
+            <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
+              技能包通过目录解析（resolve）后下载制品；不在此走统一网关 invoke。远程可调用能力请作为 <strong className={textSecondary(theme)}>MCP</strong> 注册。
+            </p>
             <p className={`text-xs ${textMuted(theme)}`}>{useSkill.description || '暂无描述'}</p>
-            {getParamFields(useSkill).map((f) => (
-              <div key={f.key}>
-                <label className={`text-xs font-semibold block mb-1.5 ${textSecondary(theme)}`}>{f.key}{f.required && <span className="text-rose-500 ml-0.5">*</span>}<span className={`ml-2 font-normal ${textMuted(theme)}`}>({f.type})</span></label>
-                {f.type === 'array' || f.type === 'object' ? (
-                  <textarea rows={3} placeholder={`输入 ${f.type} 类型的 JSON…`} value={useParams[f.key] || ''} onChange={(e) => setUseParams((p) => ({ ...p, [f.key]: e.target.value }))} className={`${nativeInputClass(theme)} resize-none`} />
-                ) : (
-                  <input type="text" placeholder={`输入 ${f.key}…`} value={useParams[f.key] || ''} onChange={(e) => setUseParams((p) => ({ ...p, [f.key]: e.target.value }))} className={nativeInputClass(theme)} />
-                )}
-              </div>
-            ))}
-            {useResult && <div className={`rounded-xl p-4 text-sm font-medium ${isDark ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>{useResult}</div>}
+            {useResult && <div className={`rounded-xl p-4 text-sm font-medium whitespace-pre-wrap ${isDark ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>{useResult}</div>}
           </div>
         )}
       </Modal>

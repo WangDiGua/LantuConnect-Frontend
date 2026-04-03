@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, Database, FileText, Table2, Image, Mic, Video, Layers, HardDrive, Play, Loader2, MessageSquare, Heart } from 'lucide-react';
+import { Search, Database, FileText, Table2, Image, Mic, Video, Layers, HardDrive, FileSearch, Loader2, MessageSquare, Heart } from 'lucide-react';
 import type { Theme, FontSize, ThemeColor } from '../../types';
 import type { Dataset, DatasetSourceType, DatasetDataType } from '../../types/dto/dataset';
 import { datasetService } from '../../api/services/dataset.service';
@@ -9,8 +9,6 @@ import { tagService } from '../../api/services/tag.service';
 import { filterTagsForResourceType } from '../../utils/marketTags';
 import type { TagItem } from '../../types/dto/tag';
 import { resourceCatalogService } from '../../api/services/resource-catalog.service';
-import { invokeService } from '../../api/services/invoke.service';
-import { nativeInputClass } from '../../utils/formFieldClasses';
 import { mapInvokeFlowError } from '../../utils/invokeError';
 import { safeOpenHttpUrl } from '../../lib/windowNavigate';
 import {
@@ -67,7 +65,6 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, the
   const [grantModalOpen, setGrantModalOpen] = useState(false);
   const [invoking, setInvoking] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
-  const [invokePayload, setInvokePayload] = useState('{\n  "query": "sample"\n}');
   const [invokeResult, setInvokeResult] = useState<string | null>(null);
   const [gatewayApiKeyDraft, setGatewayApiKeyDraft] = usePersistedGatewayApiKey();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -145,24 +142,10 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, the
     return list;
   }, [datasets, keyword, sourceFilter]);
 
-  const runInvoke = async (ds: Dataset) => {
+  /** 数据集仅支持目录解析（redirect / metadata 等），不提供统一网关 invoke。 */
+  const runResolve = async (ds: Dataset) => {
     setInvoking(true);
     setInvokeResult(null);
-    const trimmed = invokePayload.trim();
-    if (trimmed) {
-      try {
-        const parsed = JSON.parse(trimmed);
-        if (parsed === null || Array.isArray(parsed) || typeof parsed !== 'object') {
-          setInvokeResult('调用参数必须是 JSON 对象');
-          setInvoking(false);
-          return;
-        }
-      } catch {
-        setInvokeResult('调用参数 JSON 解析失败');
-        setInvoking(false);
-        return;
-      }
-    }
     try {
       const apiKey = gatewayApiKeyDraft.trim();
       if (!apiKey) {
@@ -185,7 +168,7 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, the
         } else if (err instanceof Error && (err.message.includes('X-Api-Key') || err.message.includes('API Key'))) {
           setInvokeResult('请先填写并绑定 API Key');
         } else {
-          setInvokeResult(`${mapInvokeFlowError(err, 'resolve')}\n可保留当前参数后重试解析`);
+          setInvokeResult(`${mapInvokeFlowError(err, 'resolve')}\n请确认 Key 与 resolve 授权后重试`);
         }
         return;
       }
@@ -194,22 +177,17 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, the
           setInvokeResult('无法打开该地址（仅支持 http/https）');
           return;
         }
-        setInvokeResult(`该数据集资源为跳转类型，已打开地址：${resolved.endpoint}`);
+        setInvokeResult(`该数据集为跳转类型，已打开地址：${resolved.endpoint}`);
         return;
       }
       if (resolved.invokeType === 'metadata') {
-        setInvokeResult(`该数据集资源返回元数据：${JSON.stringify(resolved.spec ?? {}, null, 2)}`);
+        setInvokeResult(`resolve 元数据：${JSON.stringify(resolved.spec ?? {}, null, 2)}`);
         return;
       }
-      try {
-        const res = await invokeService.invoke(
-          { resourceType: 'dataset', resourceId: String(ds.id), payload: trimmed ? JSON.parse(trimmed) : undefined },
-          apiKey,
-        );
-        setInvokeResult(`状态: ${res.status} (${res.statusCode})\n耗时: ${res.latencyMs}ms\nTraceId: ${res.traceId}\n\n${res.body}`);
-      } catch (e) {
-        setInvokeResult(`${mapInvokeFlowError(e, 'invoke')}\n数据集市场通常支持 resolve -> metadata/redirect；如需推理调用请通过 Agent/Skill/App 链路发起。`);
-      }
+      setInvokeResult(
+        `resolve 返回 invokeType=${resolved.invokeType ?? '未知'}。\n` +
+          '数据集在本平台以目录与元数据为主，不提供与 Agent/MCP/App 相同的统一 invoke；若需消费数据请按业务约定对接或由专用应用承载。',
+      );
     } finally {
       setInvoking(false);
     }
@@ -245,7 +223,7 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, the
               subtitleOnly
               theme={theme}
               title={chromePageTitle || '数据集'}
-              tagline="浏览与检索可用数据集"
+              tagline="浏览数据集目录与 resolve 元数据；不提供统一网关 invoke（数据文件按条目说明或线下协议获取）"
               suffix={
                 datasets.length > 0 ? (
                   <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full ${isDark ? 'bg-white/5 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>{datasets.length}</span>
@@ -335,8 +313,8 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, the
         <button type="button" className={`${btnSecondary(theme)} disabled:opacity-50`} disabled={favoriteLoading || !detailDataset} onClick={() => detailDataset && void handleFavorite(detailDataset)}>
           {favoriteLoading ? <><Loader2 size={14} className="animate-spin" /> 收藏中…</> : <><Heart size={14} /> 收藏</>}
         </button>
-        <button type="button" className={`${btnSecondary(theme)} disabled:opacity-50`} disabled={invoking} onClick={() => detailDataset && void runInvoke(detailDataset)}>
-          {invoking ? <><Loader2 size={14} className="animate-spin" /> 调用中…</> : <><Play size={14} /> 调用</>}
+        <button type="button" className={`${btnSecondary(theme)} disabled:opacity-50`} disabled={invoking} onClick={() => detailDataset && void runResolve(detailDataset)}>
+          {invoking ? <><Loader2 size={14} className="animate-spin" /> 解析中…</> : <><FileSearch size={14} /> 解析目录</>}
         </button>
         <button type="button" className={btnPrimary} onClick={() => { if (detailDataset) setGrantModalOpen(true); }}>申请使用</button></>
       }>
@@ -364,19 +342,15 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, the
                 value={gatewayApiKeyDraft}
                 onChange={setGatewayApiKeyDraft}
               />
+              <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
+                使用您的 API Key 调用 <span className="font-mono text-[11px]">POST /catalog/resolve</span>（resourceType=dataset）查看目录返回；本平台不对数据集暴露统一{' '}
+                <span className="font-mono text-[11px]">/invoke</span>。
+              </p>
               <div>
-                <div className={`text-xs font-semibold mb-2 ${textSecondary(theme)}`}>调用参数（JSON 对象）</div>
-                <textarea
-                  rows={5}
-                  value={invokePayload}
-                  onChange={(e) => setInvokePayload(e.target.value)}
-                  className={`${nativeInputClass(theme)} resize-none font-mono text-xs`}
-                />
-                {invokeResult && (
-                  <pre className={`mt-3 max-h-72 overflow-auto rounded-xl border p-3 text-xs ${
-                    isDark ? 'border-white/10 bg-white/[0.03] text-slate-200' : 'border-slate-200 bg-slate-50 text-slate-700'
-                  }`}>{invokeResult}</pre>
-                )}
+                <div className={`text-xs font-semibold mb-2 ${textSecondary(theme)}`}>resolve 结果</div>
+                <pre className={`mt-3 max-h-72 min-h-[4.5rem] overflow-auto rounded-xl border p-3 text-xs ${
+                  isDark ? 'border-white/10 bg-white/[0.03] text-slate-200' : 'border-slate-200 bg-slate-50 text-slate-700'
+                }`}>{invokeResult ?? '点击「解析目录」后在此展示 resolve 返回。'}</pre>
               </div>
               {(ds.tags ?? []).length > 0 && (
                 <div>

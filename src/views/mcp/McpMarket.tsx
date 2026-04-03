@@ -7,6 +7,7 @@ import { Copy, Eye, EyeOff, Heart, Loader2, MessageSquare, Play, Puzzle, Refresh
 import type { Theme, FontSize, ThemeColor } from '../../types';
 import type { InvokeRequest, InvokeResponse, ResourceCatalogItemVO, ResourceResolveVO } from '../../types/dto/catalog';
 import { resourceCatalogService } from '../../api/services/resource-catalog.service';
+import { AccessPolicyBadge } from '../../components/business/AccessPolicyBadge';
 import { invokeService } from '../../api/services/invoke.service';
 import { sdkService } from '../../api/services/sdk.service';
 import { userActivityService } from '../../api/services/user-activity.service';
@@ -617,7 +618,7 @@ export const McpMarket: React.FC<Props> = ({ theme, showMessage }) => {
                 subtitleOnly
                 theme={theme}
                 title={chromePageTitle || 'MCP 市场'}
-                tagline="浏览、获取授权指引并调用 MCP 资源"
+                tagline="浏览 MCP 资源；统一网关 resolve、invoke 与 invoke-stream（须 Key、scope；Grant 或 accessPolicy 短路规则同其他类型）"
               />
             </div>
             <GlassPanel theme={theme} padding="sm" className="!p-0 w-full sm:w-72">
@@ -705,11 +706,14 @@ export const McpMarket: React.FC<Props> = ({ theme, showMessage }) => {
                       ))}
                     </div>
                   )}
-                  <div className={`mt-auto flex items-center justify-between border-t pt-3 ${isDark ? 'border-white/[0.08]' : 'border-slate-200/40'}`}>
+                  <div className={`mt-auto flex flex-col gap-2 border-t pt-3 ${isDark ? 'border-white/[0.08]' : 'border-slate-200/40'}`}>
+                    <AccessPolicyBadge theme={theme} value={item.accessPolicy} whenMissing="hide" />
+                    <div className="flex items-center justify-between">
                     <span className={`text-xs ${textMuted(theme)}`}>状态：{statusLabel(item.status as any)}</span>
                     <button type="button" className={`${btnPrimary} !px-3 !py-1.5 !text-xs`} onClick={(e) => { e.stopPropagation(); setDetail(item); }}>
                       查看与使用
                     </button>
+                    </div>
                   </div>
                 </BentoCard>
               ))}
@@ -749,6 +753,9 @@ export const McpMarket: React.FC<Props> = ({ theme, showMessage }) => {
           <div className="space-y-5">
             <div className={`rounded-2xl border p-4 ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200 bg-slate-50/70'}`}>
               <p className={`text-xs ${textMuted(theme)}`}>资源编码：{detail.resourceCode || detail.resourceId}</p>
+              <div className="mt-2">
+                <AccessPolicyBadge theme={theme} value={detail.accessPolicy} showHint />
+              </div>
               <p className={`mt-1 text-xs ${textMuted(theme)}`}>调用目标：mcp / {detail.resourceId}</p>
               <p className={`mt-2 text-sm leading-relaxed ${textSecondary(theme)}`}>{detail.description || '暂无描述'}</p>
             </div>

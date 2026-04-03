@@ -1,6 +1,9 @@
 import type { PaginatedData } from '../api';
 import type { ResourceType } from './catalog';
 
+/** 与后端 {@code t_resource.access_policy} / {@code ResourceUpsertRequest.accessPolicy} 一致 */
+export type ResourceAccessPolicy = 'grant_required' | 'open_org' | 'open_platform';
+
 export type ResourceStatus =
   | 'draft'
   | 'pending_review'
@@ -29,6 +32,8 @@ export interface ResourceBaseUpsertRequest {
   providerId?: string | number;
   /** 归属：分类 ID（选填） */
   categoryId?: string | number;
+  /** 消费策略（选填；创建默认 grant_required；更新省略则后端保留原值——前端保存时仍传当前表单值） */
+  accessPolicy?: ResourceAccessPolicy;
 }
 
 export interface ResourceMcpUpsertRequest extends ResourceBaseUpsertRequest {
@@ -138,6 +143,7 @@ export interface ResourceCenterItemVO {
   icon?: string;
   screenshots?: string[];
   isPublic?: boolean;
+  accessPolicy?: string;
   /** agent/app 关联资源 id（与后端 ResourceManageVO 一致） */
   relatedResourceIds?: number[];
   dataType?: string;
@@ -208,6 +214,7 @@ export interface ResourceAuditItemVO {
   id: number;
   resourceId: number;
   resourceType: ResourceType;
+  accessPolicy?: string;
   resourceCode?: string;
   displayName: string;
   description?: string;
@@ -233,7 +240,7 @@ export interface ResourceAuditQuery {
 }
 
 export interface ResourceRejectRequest {
-  reason: string;
+  reason?: string;
 }
 
 export interface LifecycleTimelineEventVO {

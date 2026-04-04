@@ -6,6 +6,7 @@ import { Theme, FontSize } from '../../types';
 import { useUserRole } from '../../context/UserRoleContext';
 import { developerStatsService } from '../../api/services/developer-stats.service';
 import type { OwnerDeveloperStatsVO } from '../../types/dto/dashboard';
+import type { DeveloperStatistics } from '../../types/dto/explore';
 import { bentoCard, textMuted } from '../../utils/uiClasses';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
@@ -36,6 +37,7 @@ export const DeveloperStatsPage: React.FC<Props> = ({ theme, fontSize }) => {
   const { platformRole } = useUserRole();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<OwnerDeveloperStatsVO | null>(null);
+  const [myOverview, setMyOverview] = useState<DeveloperStatistics | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const [periodDays, setPeriodDays] = useState<number>(7);
   const [ownerDraft, setOwnerDraft] = useState('');
@@ -46,18 +48,29 @@ export const DeveloperStatsPage: React.FC<Props> = ({ theme, fontSize }) => {
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
-    try {
-      const result = await developerStatsService.getOwnerResourceStats({
+    const [ownerSettled, mySettled] = await Promise.allSettled([
+      developerStatsService.getOwnerResourceStats({
         periodDays,
         ownerUserId,
-      });
-      setData(result);
-    } catch (e) {
-      setData(null);
-      setError(e instanceof Error ? e : new Error('统计数据加载失败'));
-    } finally {
-      setLoading(false);
+      }),
+      developerStatsService.getMyStatistics(),
+    ]);
+
+    if (mySettled.status === 'fulfilled') {
+      setMyOverview(mySettled.value);
+    } else {
+      setMyOverview(null);
     }
+
+    if (ownerSettled.status === 'fulfilled') {
+      setData(ownerSettled.value);
+      setError(null);
+    } else {
+      setData(null);
+      const e = ownerSettled.reason;
+      setError(e instanceof Error ? e : new Error('统计数据加载失败'));
+    }
+    setLoading(false);
   }, [periodDays, ownerUserId]);
 
   useEffect(() => {
@@ -100,7 +113,7 @@ export const DeveloperStatsPage: React.FC<Props> = ({ theme, fontSize }) => {
       },
       grid: { ...baseGrid(), left: '14%', right: '8%', bottom: '4%' },
       color: [c.series[1], c.series[3]],
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      tooltip: { ...baseTooltip(theme), axisPointer: { type: 'shadow' } },
       legend: { ...baseLegend(theme), data: ['成功', '失败/未计成功'] },
       xAxis: {
         type: 'value',
@@ -127,6 +140,7 @@ export const DeveloperStatsPage: React.FC<Props> = ({ theme, fontSize }) => {
           data: success,
           barMaxWidth: 18,
           itemStyle: { borderRadius: [0, 0, 0, 0] },
+          emphasis: { focus: 'series' },
         },
         {
           name: '失败/未计成功',
@@ -135,6 +149,7 @@ export const DeveloperStatsPage: React.FC<Props> = ({ theme, fontSize }) => {
           data: rest,
           barMaxWidth: 18,
           itemStyle: { borderRadius: [0, 6, 6, 0] },
+          emphasis: { focus: 'series' },
         },
       ],
     };
@@ -205,8 +220,8 @@ export const DeveloperStatsPage: React.FC<Props> = ({ theme, fontSize }) => {
 
   const desc =
     data && periodHint
-      ? `Owner 维度统计 · ${periodHint} · 用户 ID ${data.ownerUserId}`
-      : 'Owner 维度网关调用、用量记录与技能包下载统计';
+      ? `Owner 资源成效 + 个人调用概览 · ${periodHint} · Owner 用户 ID ${data.ownerUserId}`
+      : 'Owner 维度网关调用、用量记录与技能包下载；下方含 GET /developer/my-statistics 个人调用摘要（口径不同）';
 
   const body = (() => {
     if (loading) {
@@ -221,12 +236,79 @@ export const DeveloperStatsPage: React.FC<Props> = ({ theme, fontSize }) => {
     return (
       <div className="w-full space-y-5">
         <div
+          className={`flex flex-col gap-3 rounded-xl border px-4 py-3 text-sm ${isDark ? 'border-sky-500/25 bg-sky-500/5 text-sky-100/90' : 'border-sky-200 bg-sky-50 text-sky-950'}`}
+        >
+          <div className="flex gap-2">
+            <AlertCircle size={18} className="shrink-0 opacity-90" aria-hidden />
+            <div className="space-y-1">
+              <p className="font-medium">个人调用概览（GET /developer/my-statistics）</p>
+              <p className={`text-xs ${isDark ? 'text-sky-200/85' : 'text-sky-900/80'}`}>
+                按当前登录用户在 <span className="font-mono">t_call_log.user_id</span> 聚合，含今日调用、错误率、近 7 日趋势、Top 资源与活跃 API Key；与下方 Owner 成效（资源归属、可选周期）指标<strong>不可逐项相加对比</strong>。
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {myOverview ? (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: '个人总调用（call_log）', value: formatNum(myOverview.totalCalls) },
+              { label: '今日调用', value: formatNum(myOverview.todayCalls) },
+              { label: '错误率', value: `${Number(myOverview.errorRate ?? 0).toFixed(2)}%` },
+              { label: '平均延迟', value: `${Number(myOverview.avgLatencyMs ?? 0).toFixed(0)} ms` },
+            ].map((kpi, i) => (
+              <motion.div
+                key={kpi.label}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ ...spring, delay: i * 0.02 }}
+                className={`${cardSurface} p-4`}
+              >
+                <div className={`text-lg font-bold ${isDark ? 'text-neutral-100' : 'text-neutral-800'}`}>{kpi.value}</div>
+                <div className={`text-xs font-medium mt-1 ${tm}`}>{kpi.label}</div>
+              </motion.div>
+            ))}
+          </div>
+        ) : null}
+
+        {myOverview && (myOverview.topResources.length > 0 || myOverview.apiKeyUsage.length > 0) ? (
+          <div className={`grid gap-3 md:grid-cols-2 ${cardSurface} p-4`}>
+            {myOverview.topResources.length > 0 ? (
+              <div>
+                <div className={`text-xs font-semibold mb-2 ${tm}`}>Top 资源（call_log）</div>
+                <ul className={`space-y-1 text-xs ${isDark ? 'text-neutral-200' : 'text-neutral-700'}`}>
+                  {myOverview.topResources.slice(0, 5).map((r, idx) => (
+                    <li key={`${r.name}-${idx}`} className="flex justify-between gap-2">
+                      <span className="truncate" title={r.name}>{r.name}</span>
+                      <span className="tabular-nums shrink-0">{formatNum(r.calls)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            {myOverview.apiKeyUsage.length > 0 ? (
+              <div>
+                <div className={`text-xs font-semibold mb-2 ${tm}`}>API Key 使用</div>
+                <ul className={`space-y-1 text-xs ${isDark ? 'text-neutral-200' : 'text-neutral-700'}`}>
+                  {myOverview.apiKeyUsage.slice(0, 5).map((k, idx) => (
+                    <li key={`${k.keyPrefix}-${idx}`} className="flex justify-between gap-2">
+                      <span className="truncate font-mono" title={k.keyPrefix}>{k.keyPrefix}</span>
+                      <span className="tabular-nums shrink-0">{formatNum(k.calls)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        <div
           className={`flex flex-col gap-3 rounded-xl border px-4 py-3 text-sm ${isDark ? 'border-amber-500/25 bg-amber-500/5 text-amber-100/90' : 'border-amber-200 bg-amber-50 text-amber-950'}`}
         >
           <div className="flex gap-2">
             <AlertCircle size={18} className="shrink-0 opacity-90" aria-hidden />
             <p>
-              网关调用量来自 invoke 类 call_log，不等同于门户全量使用；技能包下载为独立计数。对照项「用量记录 invoke」来自 usage_record，便于与网关口径核对。
+              <strong>Owner 资源成效</strong>：网关调用量来自归属到你名下资源的 invoke 类 call_log，不等同于门户全量使用；技能包下载为独立计数。「用量记录 invoke」来自 usage_record，便于与网关口径核对。
             </p>
           </div>
         </div>

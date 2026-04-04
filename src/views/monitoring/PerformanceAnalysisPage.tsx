@@ -6,12 +6,12 @@ import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { PageError } from '../../components/common/PageError';
 import { EmptyState } from '../../components/common/EmptyState';
 import { BentoCard } from '../../components/common/BentoCard';
-import {
-  btnPrimary, textSecondary,
-  tableHeadCell, tableBodyRow, tableCell,
-} from '../../utils/uiClasses';
+import { bentoCard, btnPrimary, textSecondary } from '../../utils/uiClasses';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
+import { MgmtDataTable } from '../../components/management/MgmtDataTable';
+import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
+import type { PerformanceMetric } from '../../types/dto/monitoring';
 
 const PAGE_DESC = '各服务 CPU、内存、延迟分位与吞吐指标';
 
@@ -43,6 +43,48 @@ export const PerformanceAnalysisPage: React.FC<Props> = ({ theme, fontSize, show
     const bucket = svc === 'gateway' ? 0 : svc === 'inference' ? 1 : 2;
     return list.filter((_, i) => i % 3 === bucket);
   }, [perfQ.data, svc]);
+
+  const perfColumns = useMemo<MgmtDataTableColumn<PerformanceMetric>[]>(
+    () => [
+      {
+        id: 'ts',
+        header: '采集时间',
+        cell: (r) => <span className="font-mono text-xs whitespace-nowrap">{formatDateTime(r.timestamp)}</span>,
+      },
+      {
+        id: 'cpu',
+        header: 'CPU %',
+        cell: (r) => (
+          <span className={`font-mono tabular-nums whitespace-nowrap ${r.cpu > 80 ? 'text-rose-500 font-semibold' : textSecondary(theme)}`}>{r.cpu}</span>
+        ),
+      },
+      {
+        id: 'mem',
+        header: '内存 %',
+        cell: (r) => (
+          <span className={`font-mono tabular-nums whitespace-nowrap ${r.memory > 85 ? 'text-rose-500 font-semibold' : textSecondary(theme)}`}>{r.memory}</span>
+        ),
+      },
+      {
+        id: 'p50',
+        header: 'P50 ms',
+        cell: (r) => <span className={`font-mono tabular-nums whitespace-nowrap ${textSecondary(theme)}`}>{r.latencyP50}</span>,
+      },
+      {
+        id: 'p99',
+        header: 'P99 ms',
+        cell: (r) => (
+          <span className={`font-mono tabular-nums whitespace-nowrap ${r.latencyP99 > 500 ? 'text-amber-500 font-semibold' : textSecondary(theme)}`}>{r.latencyP99}</span>
+        ),
+      },
+      {
+        id: 'tp',
+        header: '吞吐',
+        cell: (r) => <span className={`font-mono tabular-nums whitespace-nowrap ${textSecondary(theme)}`}>{r.throughput}</span>,
+      },
+    ],
+    [theme],
+  );
 
   const handleExport = () => {
     const date = new Date().toISOString().slice(0, 10);
@@ -110,35 +152,20 @@ export const PerformanceAnalysisPage: React.FC<Props> = ({ theme, fontSize, show
       return <PageError error={perfQ.error as Error} onRetry={() => perfQ.refetch()} />;
     }
     return (
-      <BentoCard theme={theme} padding="sm">
+      <div className={`${bentoCard(theme)} p-4`}>
         {rows.length === 0 ? (
           <EmptyState title="暂无性能样本" description="该分组下没有可用的性能指标数据。" />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-[560px] w-full text-sm">
-              <thead>
-                <tr>
-                  {['采集时间', 'CPU %', '内存 %', 'P50 ms', 'P99 ms', '吞吐'].map((h) => (
-                    <th key={h} className={tableHeadCell(theme)}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r, i) => (
-                  <tr key={`${r.timestamp}-${i}`} className={tableBodyRow(theme, i)}>
-                    <td className={`${tableCell()} whitespace-nowrap`}><span className="font-mono text-xs">{formatDateTime(r.timestamp)}</span></td>
-                    <td className={`${tableCell()} whitespace-nowrap`}><span className={`font-mono tabular-nums ${r.cpu > 80 ? 'text-rose-500 font-semibold' : textSecondary(theme)}`}>{r.cpu}</span></td>
-                    <td className={`${tableCell()} whitespace-nowrap`}><span className={`font-mono tabular-nums ${r.memory > 85 ? 'text-rose-500 font-semibold' : textSecondary(theme)}`}>{r.memory}</span></td>
-                    <td className={`${tableCell()} whitespace-nowrap`}><span className={`font-mono tabular-nums ${textSecondary(theme)}`}>{r.latencyP50}</span></td>
-                    <td className={`${tableCell()} whitespace-nowrap`}><span className={`font-mono tabular-nums ${r.latencyP99 > 500 ? 'text-amber-500 font-semibold' : textSecondary(theme)}`}>{r.latencyP99}</span></td>
-                    <td className={`${tableCell()} whitespace-nowrap`}><span className={`font-mono tabular-nums ${textSecondary(theme)}`}>{r.throughput}</span></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <MgmtDataTable<PerformanceMetric>
+            theme={theme}
+            surface="plain"
+            minWidth="560px"
+            columns={perfColumns}
+            rows={rows}
+            getRowKey={(r, idx) => `${r.timestamp}-${idx}`}
+          />
         )}
-      </BentoCard>
+      </div>
     );
   })();
 

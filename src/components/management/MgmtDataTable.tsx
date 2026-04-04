@@ -15,7 +15,8 @@ export interface MgmtDataTableProps<T> {
   theme: Theme;
   columns: MgmtDataTableColumn<T>[];
   rows: T[];
-  getRowKey: (row: T) => string | number;
+  /** 第二参数为行序索引，便于时间序列等无稳定 id 的行 */
+  getRowKey: (row: T, index: number) => string | number;
   /** 无数据时渲染（不传则由父组件控制是否挂载表格） */
   empty?: React.ReactNode;
   /** table min-width，宽表格便于横向滚动 */
@@ -63,7 +64,7 @@ export function MgmtDataTable<T>({
         </thead>
         <tbody>
           {rows.map((row, idx) => (
-            <tr key={getRowKey(row)} className={tableBodyRow(theme, idx)}>
+            <tr key={getRowKey(row, idx)} className={tableBodyRow(theme, idx)}>
               {columns.map((col) => (
                 <td
                   key={col.id}

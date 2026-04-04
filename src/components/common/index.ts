@@ -36,6 +36,12 @@ export type { EmptyStateProps } from './EmptyState';
 export { ConfirmDialog } from './ConfirmDialog';
 export type { ConfirmDialogProps } from './ConfirmDialog';
 
+export { Modal } from './Modal';
+export type { ModalProps } from './Modal';
+
+export { Button } from './Button';
+export type { ButtonProps, ButtonVariant } from './Button';
+
 export { PageSkeleton } from './PageSkeleton';
 export { ContentLoader } from './ContentLoader';
 export { SplashScreen } from './SplashScreen';

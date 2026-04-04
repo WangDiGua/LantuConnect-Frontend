@@ -7,17 +7,20 @@ import { LantuSelect } from '../../components/common/LantuSelect';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { MultiAvatar } from '../../components/common/MultiAvatar';
 import { SearchInput, FilterSelect, Pagination } from '../../components/common';
+import { MgmtDataTable } from '../../components/management/MgmtDataTable';
+import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
 import { userMgmtService } from '../../api/services/user-mgmt.service';
 import type { UserRecord, RoleRecord } from '../../types/dto/user-mgmt';
 import {
   btnPrimary, btnSecondary,
   mgmtTableActionDanger, mgmtTableActionGhost,
-  textPrimary, textSecondary, textMuted, tableHeadCell, tableBodyRow, tableCell,
+  textPrimary, textSecondary, textMuted,
 } from '../../utils/uiClasses';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { MgmtPageShell } from './MgmtPageShell';
+import { useUserRole } from '../../context/UserRoleContext';
 
 interface UserListPageProps {
   theme: Theme;
@@ -33,10 +36,14 @@ const emptyForm = (): { username: string; email: string; password: string; role:
 
 const PAGE_SIZE = 20;
 const USER_LIST_DESC = '管理平台用户账号、状态与角色绑定';
+const USER_LIST_DESC_REVIEW = '用户目录（只读）：可检索账号信息，不含编辑与角色绑定入口';
 const innerTransition = { type: 'spring' as const, stiffness: 400, damping: 30 };
 function safeText(v: unknown): string { return String(v ?? ''); }
 
 export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, breadcrumbBase }) => {
+  const { hasPermission } = useUserRole();
+  const canMutateUsers = hasPermission('user:create') || hasPermission('user:update');
+  const listDescription = canMutateUsers ? USER_LIST_DESC : USER_LIST_DESC_REVIEW;
   const isDark = theme === 'dark';
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [totalUsers, setTotalUsers] = useState(0);
@@ -77,12 +84,13 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
   useEffect(() => {
+    if (!canMutateUsers) return;
     let cancelled = false;
     void userMgmtService.listRoles()
       .then((rows) => { if (!cancelled) setRoles(rows); })
       .catch((err) => console.error('Failed to load roles:', err));
     return () => { cancelled = true; };
-  }, []);
+  }, [canMutateUsers]);
 
   const totalPages = Math.max(1, Math.ceil(totalUsers / PAGE_SIZE));
   const paginated = useMemo(() => users, [users]);
@@ -93,8 +101,110 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
     setPage(1);
   }, [search, statusFilter]);
 
-  const openCreate = () => { setForm(emptyForm()); setEditingId(null); setMode('create'); };
-  const openEdit = (u: UserRecord) => { setEditingId(u.id); setForm({ username: u.username, email: u.email, password: '', role: u.role, status: u.status === 'locked' ? 'disabled' : u.status }); setMode('edit'); };
+  const openCreate = useCallback(() => { setForm(emptyForm()); setEditingId(null); setMode('create'); }, []);
+  const openEdit = useCallback((u: UserRecord) => {
+    setEditingId(u.id);
+    setForm({ username: u.username, email: u.email, password: '', role: u.role, status: u.status === 'locked' ? 'disabled' : u.status });
+    setMode('edit');
+  }, []);
+
+  const userColumns = useMemo<MgmtDataTableColumn<UserRecord>[]>(() => {
+    const base: MgmtDataTableColumn<UserRecord>[] = [
+      {
+        id: 'user',
+        header: '用户',
+        cell: (u) => (
+          <div className="flex items-center gap-2 min-w-0">
+            <MultiAvatar seed={`${u.id}-${u.username}`} alt={u.username} className="w-8 h-8 rounded-lg border border-white/10 shrink-0" />
+            <span className={`font-semibold truncate ${textPrimary(theme)}`} title={u.username}>{u.username}</span>
+          </div>
+        ),
+      },
+      {
+        id: 'role',
+        header: '角色',
+        cell: (u) => (
+          <span className={`inline-flex shrink-0 items-center whitespace-nowrap text-xs px-2 py-0.5 rounded ${isDark ? 'bg-neutral-900/10 text-neutral-300' : 'bg-neutral-100 text-neutral-900'}`}>
+            {safeText(u.role) || '—'}
+          </span>
+        ),
+      },
+      {
+        id: 'status',
+        header: '状态',
+        cell: (u) => (
+          <span
+            className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+              u.status === 'active'
+                ? isDark
+                  ? 'bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20'
+                  : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/60'
+                : u.status === 'locked'
+                  ? isDark
+                    ? 'bg-amber-500/10 text-amber-400 ring-1 ring-amber-500/20'
+                    : 'bg-amber-50 text-amber-700 ring-1 ring-amber-200/60'
+                  : isDark
+                    ? 'bg-slate-500/10 text-slate-400 ring-1 ring-slate-500/20'
+                    : 'bg-slate-50 text-slate-600 ring-1 ring-slate-200/60'
+            }`}
+          >
+            {u.status === 'active' ? '启用' : u.status === 'locked' ? '已锁定' : '停用'}
+          </span>
+        ),
+      },
+      {
+        id: 'email',
+        header: '邮箱',
+        cellClassName: 'max-w-[10rem]',
+        cell: (u) => (
+          <span className={`block truncate ${textSecondary(theme)}`} title={safeText(u.email)}>{safeText(u.email) || '—'}</span>
+        ),
+      },
+      {
+        id: 'phone',
+        header: '手机',
+        cell: (u) => <span className={textSecondary(theme)}>{safeText(u.phone) || '—'}</span>,
+      },
+      {
+        id: 'dept',
+        header: '部门',
+        cellClassName: 'max-w-[8rem]',
+        cell: (u) => (
+          <span className={`block truncate ${textSecondary(theme)}`} title={safeText(u.department)}>{safeText(u.department) || '—'}</span>
+        ),
+      },
+      {
+        id: 'lastLogin',
+        header: '最后登录',
+        cell: (u) => <span className={`whitespace-nowrap ${textSecondary(theme)}`}>{formatDateTime(u.lastLoginAt)}</span>,
+      },
+      {
+        id: 'created',
+        header: '创建时间',
+        cell: (u) => <span className={`whitespace-nowrap ${textSecondary(theme)}`}>{formatDateTime(u.createdAt)}</span>,
+      },
+    ];
+    if (!canMutateUsers) return base;
+    return [
+      ...base,
+      {
+        id: 'actions',
+        header: '操作',
+        headerClassName: 'text-right',
+        cellClassName: 'text-right',
+        cell: (u) => (
+          <div className="inline-flex flex-nowrap items-center justify-end gap-2">
+            <button type="button" onClick={() => openEdit(u)} className={mgmtTableActionGhost(theme)} aria-label={`编辑用户 ${u.username}`}>
+              编辑
+            </button>
+            <button type="button" onClick={() => setDeleteTarget(u.id)} className={mgmtTableActionDanger} aria-label={`删除用户 ${u.username}`}>
+              删除
+            </button>
+          </div>
+        ),
+      },
+    ];
+  }, [theme, isDark, canMutateUsers, openEdit]);
 
   const saveUser = async () => {
     if (!form.username.trim() || !form.email.trim()) return;
@@ -125,7 +235,7 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
           fontSize={fontSize}
           titleIcon={Users}
           breadcrumbSegments={formSegments}
-          description={USER_LIST_DESC}
+          description={listDescription}
           contentScroll="document"
         >
           <div className="px-4 sm:px-6 pb-8 max-w-xl space-y-4">
@@ -177,16 +287,18 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
         fontSize={fontSize}
         titleIcon={Users}
         breadcrumbSegments={listSegments}
-        description={USER_LIST_DESC}
+        description={listDescription}
         toolbar={
           <div className="flex flex-wrap items-center gap-2 justify-between min-w-0">
             <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1">
               <FilterSelect value={statusFilter} onChange={(v) => { setStatusFilter(v as typeof statusFilter); setPage(1); }} options={[{ value: 'all', label: '全部状态' }, { value: 'active', label: '仅启用' }, { value: 'disabled', label: '仅停用' }]} theme={theme} className="w-full sm:w-32 shrink-0" />
               <div className="flex-1 min-w-[min(100%,200px)]"><SearchInput value={search} onChange={setSearch} placeholder="搜索用户名、邮箱或角色…" theme={theme} /></div>
             </div>
-            <button type="button" onClick={openCreate} className={`shrink-0 ${btnPrimary}`} aria-label="新增用户">
-              <Plus size={15} aria-hidden /> 新增用户
-            </button>
+            {canMutateUsers ? (
+              <button type="button" onClick={openCreate} className={`shrink-0 ${btnPrimary}`} aria-label="新增用户">
+                <Plus size={15} aria-hidden /> 新增用户
+              </button>
+            ) : null}
           </div>
         }
       >
@@ -201,66 +313,14 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
           ) : paginated.length === 0 ? (
             <div className={`text-center py-12 text-sm ${textMuted(theme)}`}>暂无匹配用户</div>
           ) : (
-            <div className="overflow-x-auto min-h-0">
-              <table className="w-full min-w-[1100px] text-sm">
-                <thead className={`border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-                  <tr>
-                    <th className={tableHeadCell(theme)}>用户</th>
-                    <th className={tableHeadCell(theme)}>角色</th>
-                    <th className={tableHeadCell(theme)}>状态</th>
-                    <th className={tableHeadCell(theme)}>邮箱</th>
-                    <th className={tableHeadCell(theme)}>手机</th>
-                    <th className={tableHeadCell(theme)}>部门</th>
-                    <th className={tableHeadCell(theme)}>最后登录</th>
-                    <th className={tableHeadCell(theme)}>创建时间</th>
-                    <th className={`${tableHeadCell(theme)} text-right`}>操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginated.map((u, idx) => (
-                    <tr key={u.id} className={tableBodyRow(theme, idx)}>
-                      <td className={tableCell()}>
-                        <div className="flex items-center gap-2 min-w-0">
-                          <MultiAvatar
-                            seed={`${u.id}-${u.username}`}
-                            alt={u.username}
-                            className="w-8 h-8 rounded-lg border border-white/10 shrink-0"
-                          />
-                          <span className={`font-semibold truncate ${textPrimary(theme)}`} title={u.username}>{u.username}</span>
-                        </div>
-                      </td>
-                      <td className={tableCell()}>
-                        <span className={`inline-flex shrink-0 items-center whitespace-nowrap text-xs px-2 py-0.5 rounded ${isDark ? 'bg-neutral-900/10 text-neutral-300' : 'bg-neutral-100 text-neutral-900'}`}>{safeText(u.role) || '—'}</span>
-                      </td>
-                      <td className={tableCell()}>
-                        <span className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
-                          u.status === 'active' ? (isDark ? 'bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20' : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/60')
-                          : u.status === 'locked' ? (isDark ? 'bg-amber-500/10 text-amber-400 ring-1 ring-amber-500/20' : 'bg-amber-50 text-amber-700 ring-1 ring-amber-200/60')
-                          : (isDark ? 'bg-slate-500/10 text-slate-400 ring-1 ring-slate-500/20' : 'bg-slate-50 text-slate-600 ring-1 ring-slate-200/60')
-                        }`}>
-                          {u.status === 'active' ? '启用' : u.status === 'locked' ? '已锁定' : '停用'}
-                        </span>
-                      </td>
-                      <td className={`${tableCell()} max-w-[10rem] ${textSecondary(theme)}`}>
-                        <span className="block truncate" title={safeText(u.email)}>{safeText(u.email) || '—'}</span>
-                      </td>
-                      <td className={`${tableCell()} ${textSecondary(theme)}`}>{safeText(u.phone) || '—'}</td>
-                      <td className={`${tableCell()} max-w-[8rem] ${textSecondary(theme)}`}>
-                        <span className="block truncate" title={safeText(u.department)}>{safeText(u.department) || '—'}</span>
-                      </td>
-                      <td className={`${tableCell()} whitespace-nowrap ${textSecondary(theme)}`}>{formatDateTime(u.lastLoginAt)}</td>
-                      <td className={`${tableCell()} whitespace-nowrap ${textSecondary(theme)}`}>{formatDateTime(u.createdAt)}</td>
-                      <td className={`${tableCell()} text-right`}>
-                        <div className="inline-flex flex-nowrap items-center justify-end gap-2">
-                          <button type="button" onClick={() => openEdit(u)} className={mgmtTableActionGhost(theme)} aria-label={`编辑用户 ${u.username}`}>编辑</button>
-                          <button type="button" onClick={() => setDeleteTarget(u.id)} className={mgmtTableActionDanger} aria-label={`删除用户 ${u.username}`}>删除</button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <MgmtDataTable<UserRecord>
+              theme={theme}
+              surface="plain"
+              minWidth="1100px"
+              columns={userColumns}
+              rows={paginated}
+              getRowKey={(u) => u.id}
+            />
           )}
           <Pagination theme={theme} page={page} pageSize={PAGE_SIZE} total={totalUsers} onChange={setPage} />
         </div>

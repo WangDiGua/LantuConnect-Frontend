@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Download, ExternalLink, RefreshCw, Settings2, List, Store } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
@@ -8,6 +8,8 @@ import { buildPath } from '../../constants/consoleRoutes';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { Pagination, SearchInput } from '../../components/common';
+import { MgmtDataTable } from '../../components/management/MgmtDataTable';
+import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
 import {
   bentoCard,
   btnGhost,
@@ -87,10 +89,84 @@ export const SkillExternalMarketPage: React.FC<Props> = ({ theme, fontSize, show
     if (tab === 'list') void load();
   }, [load, tab]);
 
-  const goImport = (packUrl: string) => {
-    const q = `?skillTrack=hosted&skillPackUrl=${encodeURIComponent(packUrl.trim())}`;
-    navigate(`${buildPath('admin', 'skill-register')}${q}`);
-  };
+  const goImport = useCallback(
+    (packUrl: string) => {
+      const q = `?skillTrack=hosted&skillPackUrl=${encodeURIComponent(packUrl.trim())}`;
+      navigate(`${buildPath('admin', 'skill-register')}${q}`);
+    },
+    [navigate],
+  );
+
+  const marketColumns = useMemo<MgmtDataTableColumn<SkillExternalCatalogItemVO>[]>(
+    () => [
+      {
+        id: 'name',
+        header: '名称',
+        cellClassName: 'font-medium align-top',
+        cell: (row) => (
+          <div className="flex flex-col gap-0.5">
+            <span className={textPrimary(theme)}>{row.name}</span>
+            {row.sourceUrl ? (
+              <a
+                href={row.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`inline-flex items-center gap-1 text-xs font-normal ${isDark ? 'text-sky-400 hover:text-sky-300' : 'text-sky-600 hover:text-sky-700'}`}
+              >
+                <ExternalLink size={12} />
+                来源页
+              </a>
+            ) : null}
+          </div>
+        ),
+      },
+      {
+        id: 'stars',
+        header: '星标',
+        cellClassName: 'tabular-nums align-top',
+        cell: (row) => <span className={textSecondary(theme)}>{row.stars != null && row.stars > 0 ? row.stars : '—'}</span>,
+      },
+      {
+        id: 'summary',
+        header: '简介',
+        cellClassName: 'min-w-[200px] align-top',
+        cell: (row) => <span className={textSecondary(theme)}>{nullDisplay(row.summary)}</span>,
+      },
+      {
+        id: 'pack',
+        header: 'ZIP / 下载地址',
+        cellClassName: 'min-w-[180px] align-top',
+        cell: (row) => (
+          <a
+            href={row.packUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`inline-flex items-center gap-1 break-all ${isDark ? 'text-sky-400 hover:text-sky-300' : 'text-sky-600 hover:text-sky-700'}`}
+          >
+            <Download size={14} />
+            {row.packUrl}
+          </a>
+        ),
+      },
+      {
+        id: 'license',
+        header: '许可说明',
+        cellClassName: 'min-w-[160px] align-top',
+        cell: (row) => <span className={textSecondary(theme)}>{nullDisplay(row.licenseNote)}</span>,
+      },
+      {
+        id: 'actions',
+        header: '操作',
+        cellClassName: 'align-top',
+        cell: (row) => (
+          <button type="button" className={btnPrimary} onClick={() => goImport(row.packUrl)}>
+            导入到本平台
+          </button>
+        ),
+      },
+    ],
+    [theme, isDark, goImport],
+  );
 
   const densityClass = fontSize === 'small' ? 'text-xs' : fontSize === 'large' ? 'text-base' : 'text-sm';
 
@@ -200,66 +276,14 @@ export const SkillExternalMarketPage: React.FC<Props> = ({ theme, fontSize, show
                   </p>
                 ) : (
                   <>
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full text-left text-sm">
-                        <thead>
-                          <tr className={`border-b ${isDark ? 'border-white/[0.06] text-slate-400' : 'border-slate-200 text-slate-600'}`}>
-                            <th className="whitespace-nowrap px-3 py-2 font-medium">名称</th>
-                            <th className="whitespace-nowrap px-3 py-2 font-medium">星标</th>
-                            <th className="min-w-[200px] px-3 py-2 font-medium">简介</th>
-                            <th className="min-w-[180px] px-3 py-2 font-medium">ZIP / 下载地址</th>
-                            <th className="min-w-[160px] px-3 py-2 font-medium">许可说明</th>
-                            <th className="whitespace-nowrap px-3 py-2 font-medium">操作</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {rows.map((row) => (
-                            <tr
-                              key={row.id}
-                              className={`border-b ${isDark ? 'border-white/[0.04]' : 'border-slate-100'} ${isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-slate-50/80'}`}
-                            >
-                              <td className={`px-3 py-2 font-medium ${textPrimary(theme)}`}>
-                                <div className="flex flex-col gap-0.5">
-                                  <span>{row.name}</span>
-                                  {row.sourceUrl ? (
-                                    <a
-                                      href={row.sourceUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className={`inline-flex items-center gap-1 text-xs font-normal ${isDark ? 'text-sky-400 hover:text-sky-300' : 'text-sky-600 hover:text-sky-700'}`}
-                                    >
-                                      <ExternalLink size={12} />
-                                      来源页
-                                    </a>
-                                  ) : null}
-                                </div>
-                              </td>
-                              <td className={`px-3 py-2 tabular-nums ${textSecondary(theme)}`}>
-                                {row.stars != null && row.stars > 0 ? row.stars : '—'}
-                              </td>
-                              <td className={`px-3 py-2 ${textSecondary(theme)}`}>{nullDisplay(row.summary)}</td>
-                              <td className="px-3 py-2">
-                                <a
-                                  href={row.packUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className={`inline-flex items-center gap-1 break-all ${isDark ? 'text-sky-400 hover:text-sky-300' : 'text-sky-600 hover:text-sky-700'}`}
-                                >
-                                  <Download size={14} />
-                                  {row.packUrl}
-                                </a>
-                              </td>
-                              <td className={`px-3 py-2 ${textSecondary(theme)}`}>{nullDisplay(row.licenseNote)}</td>
-                              <td className="px-3 py-2">
-                                <button type="button" className={btnPrimary} onClick={() => goImport(row.packUrl)}>
-                                  导入到本平台
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                    <MgmtDataTable<SkillExternalCatalogItemVO>
+                      theme={theme}
+                      surface="plain"
+                      minWidth="min(100%, 72rem)"
+                      columns={marketColumns}
+                      rows={rows}
+                      getRowKey={(row) => String(row.id)}
+                    />
                     <div className="mt-4 flex justify-center px-2 pb-2">
                       <Pagination theme={theme} page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} />
                     </div>

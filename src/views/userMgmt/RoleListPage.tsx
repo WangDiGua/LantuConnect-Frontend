@@ -7,12 +7,14 @@ import { nativeInputClass } from '../../utils/formFieldClasses';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { SearchInput, Pagination } from '../../components/common';
 import { EmptyState } from '../../components/common/EmptyState';
+import { MgmtDataTable } from '../../components/management/MgmtDataTable';
+import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
 import { userMgmtService } from '../../api/services/user-mgmt.service';
 import type { RoleRecord } from '../../types/dto/user-mgmt';
 import {
   btnPrimary, btnSecondary,
   mgmtTableActionDanger, mgmtTableActionGhost,
-  textPrimary, textSecondary, textMuted, tableHeadCell, tableBodyRow, tableCell,
+  textPrimary, textSecondary, textMuted,
   tableCellScrollInner,
 } from '../../utils/uiClasses';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
@@ -79,9 +81,103 @@ export const RoleListPage: React.FC<RoleListPageProps> = ({ theme, fontSize, bre
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
 
-  const openCreate = () => { setForm(emptyForm()); setEditingId(null); setMode('create'); };
-  const openEdit = (r: RoleRecord) => { setEditingId(r.id); setForm({ name: r.name, code: r.code, description: r.description, presetIds: presetsFromPermissions(r.permissions) }); setMode('edit'); };
+  const openCreate = useCallback(() => { setForm(emptyForm()); setEditingId(null); setMode('create'); }, []);
+  const openEdit = useCallback((r: RoleRecord) => {
+    setEditingId(r.id);
+    setForm({ name: r.name, code: r.code, description: r.description, presetIds: presetsFromPermissions(r.permissions) });
+    setMode('edit');
+  }, []);
   const togglePreset = (id: string) => setForm((f) => { const n = new Set(f.presetIds); if (n.has(id)) n.delete(id); else n.add(id); return { ...f, presetIds: n }; });
+
+  const roleColumns = useMemo<MgmtDataTableColumn<RoleRecord>[]>(
+    () => [
+      {
+        id: 'name',
+        header: '角色名称',
+        cellClassName: 'font-medium max-w-[10rem]',
+        cell: (r) => <span className={`block truncate ${textPrimary(theme)}`} title={r.name}>{r.name}</span>,
+      },
+      {
+        id: 'code',
+        header: '角色代码',
+        cell: (r) => (
+          <span className={`inline-flex shrink-0 items-center whitespace-nowrap text-xs px-1.5 py-0.5 rounded font-mono ${isDark ? 'bg-white/5 text-slate-500' : 'bg-slate-50 text-slate-500'}`}>
+            {r.code}
+          </span>
+        ),
+      },
+      {
+        id: 'desc',
+        header: '描述',
+        cellClassName: 'max-w-[14rem]',
+        cell: (r) => (
+          <span className={`line-clamp-2 break-words ${textSecondary(theme)}`} title={safeText(r.description)}>{safeText(r.description) || '—'}</span>
+        ),
+      },
+      {
+        id: 'userCount',
+        header: '用户数',
+        cell: (r) => <span className={textSecondary(theme)}>{r.userCount}</span>,
+      },
+      {
+        id: 'system',
+        header: '系统内置',
+        cell: (r) =>
+          r.isSystem ? (
+            <span className={`inline-flex shrink-0 items-center whitespace-nowrap text-[11px] px-1.5 py-0.5 rounded ${isDark ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-50 text-amber-600'}`}>是</span>
+          ) : (
+            <span className={textMuted(theme)}>否</span>
+          ),
+      },
+      {
+        id: 'perms',
+        header: '权限摘要',
+        cellClassName: 'max-w-[min(280px,100%)] align-middle',
+        cell: (r) =>
+          r.permissions?.length > 0 ? (
+            <div className={`${tableCellScrollInner} text-[12px] ${textSecondary(theme)}`} title={r.permissions.join(', ')}>
+              {r.permissions.slice(0, 3).join(', ')}{r.permissions.length > 3 ? ` +${r.permissions.length - 3}` : ''}
+            </div>
+          ) : (
+            '—'
+          ),
+      },
+      {
+        id: 'created',
+        header: '创建时间',
+        cell: (r) => <span className={`whitespace-nowrap ${textSecondary(theme)}`}>{formatDateTime(r.createdAt)}</span>,
+      },
+      {
+        id: 'actions',
+        header: '操作',
+        headerClassName: 'text-right',
+        cellClassName: 'text-right',
+        cell: (r) => (
+          <div className="inline-flex flex-nowrap items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => openEdit(r)}
+              disabled={r.isSystem}
+              className={`${mgmtTableActionGhost(theme)} disabled:opacity-40 disabled:pointer-events-none`}
+              aria-label={r.isSystem ? '系统内置角色不可编辑' : `编辑角色 ${r.name}`}
+            >
+              编辑
+            </button>
+            <button
+              type="button"
+              onClick={() => setDeleteTarget(r.id)}
+              disabled={r.isSystem}
+              className={`${mgmtTableActionDanger} disabled:opacity-40 disabled:pointer-events-none`}
+              aria-label={r.isSystem ? '系统内置角色不可删除' : `删除角色 ${r.name}`}
+            >
+              删除
+            </button>
+          </div>
+        ),
+      },
+    ],
+    [theme, isDark, openEdit],
+  );
 
   const saveRole = async () => {
     if (!form.name.trim() || !form.code.trim()) return;
@@ -208,77 +304,14 @@ export const RoleListPage: React.FC<RoleListPageProps> = ({ theme, fontSize, bre
           ) : paginated.length === 0 ? (
             <div className={`text-center py-12 text-sm ${textMuted(theme)}`}>暂无匹配角色</div>
           ) : (
-            <div className="overflow-x-auto min-h-0">
-              <table className="w-full min-w-[1000px] text-sm">
-                <thead className={`border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-                  <tr>
-                    <th className={tableHeadCell(theme)}>角色名称</th>
-                    <th className={tableHeadCell(theme)}>角色代码</th>
-                    <th className={tableHeadCell(theme)}>描述</th>
-                    <th className={tableHeadCell(theme)}>用户数</th>
-                    <th className={tableHeadCell(theme)}>系统内置</th>
-                    <th className={tableHeadCell(theme)}>权限摘要</th>
-                    <th className={tableHeadCell(theme)}>创建时间</th>
-                    <th className={`${tableHeadCell(theme)} text-right`}>操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginated.map((r, idx) => (
-                    <tr key={r.id} className={tableBodyRow(theme, idx)}>
-                      <td className={`${tableCell()} font-medium max-w-[10rem] ${textPrimary(theme)}`}>
-                        <span className="block truncate" title={r.name}>{r.name}</span>
-                      </td>
-                      <td className={tableCell()}>
-                        <span className={`inline-flex shrink-0 items-center whitespace-nowrap text-xs px-1.5 py-0.5 rounded font-mono ${isDark ? 'bg-white/5 text-slate-500' : 'bg-slate-50 text-slate-500'}`}>{r.code}</span>
-                      </td>
-                      <td className={`${tableCell()} max-w-[14rem] ${textSecondary(theme)}`}>
-                        <span className="line-clamp-2 break-words" title={safeText(r.description)}>{safeText(r.description) || '—'}</span>
-                      </td>
-                      <td className={`${tableCell()} ${textSecondary(theme)}`}>{r.userCount}</td>
-                      <td className={tableCell()}>
-                        {r.isSystem ? (
-                          <span className={`inline-flex shrink-0 items-center whitespace-nowrap text-[11px] px-1.5 py-0.5 rounded ${isDark ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-50 text-amber-600'}`}>是</span>
-                        ) : (
-                          <span className={textMuted(theme)}>否</span>
-                        )}
-                      </td>
-                      <td className={`${tableCell()} max-w-[min(280px,100%)] align-middle ${textSecondary(theme)}`}>
-                        {r.permissions?.length > 0 ? (
-                          <div className={`${tableCellScrollInner} text-[12px]`} title={r.permissions.join(', ')}>
-                            {r.permissions.slice(0, 3).join(', ')}{r.permissions.length > 3 ? ` +${r.permissions.length - 3}` : ''}
-                          </div>
-                        ) : (
-                          '—'
-                        )}
-                      </td>
-                      <td className={`${tableCell()} whitespace-nowrap ${textSecondary(theme)}`}>{formatDateTime(r.createdAt)}</td>
-                      <td className={`${tableCell()} text-right`}>
-                        <div className="inline-flex flex-nowrap items-center justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => openEdit(r)}
-                            disabled={r.isSystem}
-                            className={`${mgmtTableActionGhost(theme)} disabled:opacity-40 disabled:pointer-events-none`}
-                            aria-label={r.isSystem ? '系统内置角色不可编辑' : `编辑角色 ${r.name}`}
-                          >
-                            编辑
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setDeleteTarget(r.id)}
-                            disabled={r.isSystem}
-                            className={`${mgmtTableActionDanger} disabled:opacity-40 disabled:pointer-events-none`}
-                            aria-label={r.isSystem ? '系统内置角色不可删除' : `删除角色 ${r.name}`}
-                          >
-                            删除
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <MgmtDataTable<RoleRecord>
+              theme={theme}
+              surface="plain"
+              minWidth="1000px"
+              columns={roleColumns}
+              rows={paginated}
+              getRowKey={(r) => r.id}
+            />
           )}
           <Pagination theme={theme} page={page} pageSize={PAGE_SIZE} total={filtered.length} onChange={setPage} />
         </div>

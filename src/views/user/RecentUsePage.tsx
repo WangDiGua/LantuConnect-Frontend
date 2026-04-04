@@ -6,11 +6,10 @@ import { userActivityService } from '../../api/services/user-activity.service';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
+import { MgmtDataTable } from '../../components/management/MgmtDataTable';
+import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
 import {
   btnGhost,
-  tableHeadCell,
-  tableBodyRow,
-  tableCell,
   tableCellScrollInnerMono,
   textMuted,
   textPrimary,
@@ -27,8 +26,15 @@ interface Props {
 
 const RECENT_USE_DESC = '按最近调用时间排序';
 
+const TYPE_LABEL: Record<RecentUseItem['targetType'], string> = {
+  agent: 'Agent',
+  skill: 'Skill',
+  mcp: 'MCP',
+  app: '应用',
+  dataset: '数据集',
+};
+
 export const RecentUsePage: React.FC<Props> = ({ theme, fontSize }) => {
-  const isDark = theme === 'dark';
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<RecentUseItem[]>([]);
   const [typeFilter, setTypeFilter] = useState<RecentUseItem['targetType'] | 'all'>('all');
@@ -56,21 +62,48 @@ export const RecentUsePage: React.FC<Props> = ({ theme, fontSize }) => {
     [items, typeFilter],
   );
 
-  const TYPE_LABEL: Record<RecentUseItem['targetType'], string> = {
-    agent: 'Agent',
-    skill: 'Skill',
-    mcp: 'MCP',
-    app: '应用',
-    dataset: '数据集',
-  };
-
-  const statusLabel = (status?: string) => (status === 'success' ? '成功' : status === 'failed' ? '失败' : '—');
-  const statusClass = (status?: string) =>
-    status === 'success'
-      ? 'text-emerald-600'
-      : status === 'failed'
-        ? 'text-rose-600'
-        : textSecondary(theme);
+  const recentColumns = useMemo<MgmtDataTableColumn<RecentUseItem>[]>(() => {
+    const statusLabel = (status?: string) => (status === 'success' ? '成功' : status === 'failed' ? '失败' : '—');
+    const statusClass = (status?: string) =>
+      status === 'success'
+        ? 'text-emerald-600'
+        : status === 'failed'
+          ? 'text-rose-600'
+          : textSecondary(theme);
+    return [
+      {
+        id: 'time',
+        header: '时间',
+        cell: (item) => <span className={`whitespace-nowrap ${textSecondary(theme)}`}>{formatDateTime(item.createTime || item.lastUsedTime, '未知时间')}</span>,
+      },
+      {
+        id: 'name',
+        header: '资源名称',
+        cellClassName: 'max-w-[14rem]',
+        cell: (item) => <span className={`block truncate ${textPrimary(theme)}`} title={item.displayName ?? undefined}>{item.displayName || '—'}</span>,
+      },
+      {
+        id: 'code',
+        header: '资源编码',
+        cellClassName: 'max-w-[200px] align-middle',
+        cell: (item) =>
+          item.targetCode ? <div className={tableCellScrollInnerMono}>{item.targetCode}</div> : <span className={textSecondary(theme)}>—</span>,
+      },
+      { id: 'type', header: '类型', cell: (item) => <span className={textSecondary(theme)}>{TYPE_LABEL[item.targetType] ?? item.targetType}</span> },
+      { id: 'action', header: '动作', cell: (item) => <span className={textSecondary(theme)}>{item.action || '—'}</span> },
+      {
+        id: 'status',
+        header: '状态',
+        cell: (item) => <span className={`whitespace-nowrap text-xs font-semibold ${statusClass(item.status)}`}>{statusLabel(item.status)}</span>,
+      },
+      { id: 'token', header: 'Token', cell: (item) => <span className={textSecondary(theme)}>{typeof item.tokenCost === 'number' ? item.tokenCost : '—'}</span> },
+      {
+        id: 'latency',
+        header: '耗时',
+        cell: (item) => <span className={textSecondary(theme)}>{typeof item.latencyMs === 'number' && item.latencyMs > 0 ? `${item.latencyMs} ms` : '—'}</span>,
+      },
+    ];
+  }, [theme]);
 
   return (
     <MgmtPageShell
@@ -111,38 +144,14 @@ export const RecentUsePage: React.FC<Props> = ({ theme, fontSize }) => {
             ) : filtered.length === 0 ? (
               <div className={`py-10 text-center text-sm ${textMuted(theme)}`}>暂无最近使用记录</div>
             ) : (
-                <table className="w-full min-w-[860px] text-sm">
-                  <thead className={`border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-                    <tr>
-                      <th className={tableHeadCell(theme)}>时间</th>
-                      <th className={tableHeadCell(theme)}>资源名称</th>
-                      <th className={tableHeadCell(theme)}>资源编码</th>
-                      <th className={tableHeadCell(theme)}>类型</th>
-                      <th className={tableHeadCell(theme)}>动作</th>
-                      <th className={tableHeadCell(theme)}>状态</th>
-                      <th className={tableHeadCell(theme)}>Token</th>
-                      <th className={tableHeadCell(theme)}>耗时</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map((item, idx) => (
-                      <tr key={`${item.targetType}-${item.targetId}-${item.id}`} className={tableBodyRow(theme, idx)}>
-                        <td className={`${tableCell()} whitespace-nowrap ${textSecondary(theme)}`}>{formatDateTime(item.createTime || item.lastUsedTime, '未知时间')}</td>
-                        <td className={`${tableCell()} max-w-[14rem] ${textPrimary(theme)}`}>
-                          <span className="block truncate" title={item.displayName ?? undefined}>{item.displayName || '—'}</span>
-                        </td>
-                        <td className={`${tableCell()} max-w-[200px] align-middle ${textSecondary(theme)}`}>
-                          {item.targetCode ? <div className={tableCellScrollInnerMono}>{item.targetCode}</div> : '—'}
-                        </td>
-                        <td className={`${tableCell()} ${textSecondary(theme)}`}>{TYPE_LABEL[item.targetType] ?? item.targetType}</td>
-                        <td className={`${tableCell()} ${textSecondary(theme)}`}>{item.action || '—'}</td>
-                        <td className={`${tableCell()} whitespace-nowrap text-xs font-semibold ${statusClass(item.status)}`}>{statusLabel(item.status)}</td>
-                        <td className={`${tableCell()} ${textSecondary(theme)}`}>{typeof item.tokenCost === 'number' ? item.tokenCost : '—'}</td>
-                        <td className={`${tableCell()} ${textSecondary(theme)}`}>{typeof item.latencyMs === 'number' && item.latencyMs > 0 ? `${item.latencyMs} ms` : '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <MgmtDataTable<RecentUseItem>
+                theme={theme}
+                surface="plain"
+                minWidth="860px"
+                columns={recentColumns}
+                rows={filtered}
+                getRowKey={(item) => `${item.targetType}-${item.targetId}-${item.id}`}
+              />
             )}
       </div>
     </MgmtPageShell>

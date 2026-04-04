@@ -5,11 +5,13 @@ import { nativeInputClass } from '../../utils/formFieldClasses';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { Modal } from '../../components/common/Modal';
 import { SearchInput, Pagination } from '../../components/common';
+import { MgmtDataTable } from '../../components/management/MgmtDataTable';
+import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
 import { userMgmtService } from '../../api/services/user-mgmt.service';
 import type { ApiKeyRecord } from '../../types/dto/user-mgmt';
 import {
   btnPrimary, btnSecondary, btnGhost,
-  textPrimary, textSecondary, textMuted, tableHeadCell, tableBodyRow, tableCell,
+  textPrimary, textSecondary, textMuted,
   tableCellActionChipsRow, tableCellScrollInnerMono,
 } from '../../utils/uiClasses';
 import { PageError } from '../../components/common/PageError';
@@ -76,6 +78,109 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize,
 
   const handleRevoke = useCallback(async () => { if (!revokeTarget) return; try { await userMgmtService.revokeApiKey(revokeTarget); showMessage('API Key 已撤销', 'info'); setRevokeTarget(null); setPage(1); await fetchKeys(); } catch { showMessage('撤销失败', 'error'); } }, [revokeTarget, showMessage, fetchKeys]);
 
+  const apiKeyColumns = useMemo<MgmtDataTableColumn<ApiKeyRecord>[]>(
+    () => [
+      {
+        id: 'name',
+        header: '名称',
+        cellClassName: 'font-medium max-w-[12rem]',
+        cell: (k) => <span className={`block truncate ${textPrimary(theme)}`} title={k.name}>{k.name}</span>,
+      },
+      {
+        id: 'keyId',
+        header: 'Key ID',
+        cellClassName: 'max-w-[140px] align-middle',
+        cell: (k) => <div className={tableCellScrollInnerMono}>{k.id}</div>,
+      },
+      {
+        id: 'masked',
+        header: '密钥',
+        cellClassName: 'max-w-[200px] align-middle',
+        cell: (k) => <div className={tableCellScrollInnerMono}>{k.maskedKey || `${k.prefix}••••••••`}</div>,
+      },
+      {
+        id: 'status',
+        header: '状态',
+        cellClassName: 'align-middle',
+        cell: (k) => (
+          <span
+            className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+              k.status === 'active'
+                ? isDark
+                  ? 'bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20'
+                  : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/60'
+                : isDark
+                  ? 'bg-rose-500/10 text-rose-400 ring-1 ring-rose-500/20'
+                  : 'bg-rose-50 text-rose-700 ring-1 ring-rose-200/60'
+            }`}
+          >
+            {k.status === 'active' ? '有效' : k.status === 'expired' ? '已过期' : '已撤销'}
+          </span>
+        ),
+      },
+      {
+        id: 'scopes',
+        header: '权限',
+        cellClassName: 'max-w-[min(260px,100%)] align-middle',
+        cell: (k) =>
+          k.scopes?.length ? (
+            <div className={tableCellActionChipsRow()}>
+              {k.scopes.map((s) => (
+                <span
+                  key={s}
+                  className={`shrink-0 rounded-md border px-2 py-0.5 text-[11px] font-medium whitespace-nowrap font-mono ${
+                    isDark ? 'border-white/[0.08] bg-white/[0.06]' : 'border-slate-200/80 bg-slate-50'
+                  }`}
+                >
+                  {s}
+                </span>
+              ))}
+            </div>
+          ) : (
+            '—'
+          ),
+      },
+      {
+        id: 'creator',
+        header: '创建者',
+        cell: (k) => <span className={textSecondary(theme)}>{resolvePersonDisplay({ names: [k.createdByName], usernames: [k.createdBy] })}</span>,
+      },
+      {
+        id: 'createdAt',
+        header: '创建时间',
+        cell: (k) => <span className={`whitespace-nowrap ${textSecondary(theme)}`}>{formatDateTime(k.createdAt)}</span>,
+      },
+      {
+        id: 'expires',
+        header: '过期时间',
+        cell: (k) => <span className={`whitespace-nowrap ${textSecondary(theme)}`}>{formatDateTime(k.expiresAt)}</span>,
+      },
+      {
+        id: 'lastUsed',
+        header: '最后使用',
+        cell: (k) => <span className={`whitespace-nowrap ${textSecondary(theme)}`}>{formatDateTime(k.lastUsedAt)}</span>,
+      },
+      {
+        id: 'calls',
+        header: '调用次数',
+        cell: (k) => <span className={textSecondary(theme)}>{k.callCount ?? 0}</span>,
+      },
+      {
+        id: 'actions',
+        header: '操作',
+        headerClassName: 'text-right',
+        cellClassName: 'text-right',
+        cell: (k) =>
+          k.status === 'active' ? (
+            <button type="button" onClick={() => setRevokeTarget(k.id)} className={`${btnGhost(theme)} text-amber-600 dark:text-amber-400`} aria-label={`撤销 API Key：${k.name}`}>
+              <Ban size={14} aria-hidden /> 撤销
+            </button>
+          ) : null,
+      },
+    ],
+    [theme, isDark],
+  );
+
   return (
     <>
       <MgmtPageShell
@@ -119,79 +224,14 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize,
             ) : paginated.length === 0 ? (
               <div className={`text-center py-12 text-sm ${textMuted(theme)}`}>暂无 API Key</div>
             ) : (
-              <table className="w-full min-w-[1100px] text-sm">
-                <thead className={`border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-                  <tr>
-                    <th className={tableHeadCell(theme)}>名称</th>
-                    <th className={tableHeadCell(theme)}>Key ID</th>
-                    <th className={tableHeadCell(theme)}>密钥</th>
-                    <th className={tableHeadCell(theme)}>状态</th>
-                    <th className={tableHeadCell(theme)}>权限</th>
-                    <th className={tableHeadCell(theme)}>创建者</th>
-                    <th className={tableHeadCell(theme)}>创建时间</th>
-                    <th className={tableHeadCell(theme)}>过期时间</th>
-                    <th className={tableHeadCell(theme)}>最后使用</th>
-                    <th className={tableHeadCell(theme)}>调用次数</th>
-                    <th className={`${tableHeadCell(theme)} text-right`}>操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginated.map((k, idx) => (
-                    <tr key={k.id} className={tableBodyRow(theme, idx)}>
-                      <td className={`${tableCell()} font-medium max-w-[12rem] ${textPrimary(theme)}`}>
-                        <span className="block truncate" title={k.name}>{k.name}</span>
-                      </td>
-                      <td className={`${tableCell()} max-w-[140px] align-middle ${textSecondary(theme)}`}>
-                        <div className={tableCellScrollInnerMono}>{k.id}</div>
-                      </td>
-                      <td className={`${tableCell()} max-w-[200px] align-middle ${textSecondary(theme)}`}>
-                        <div className={tableCellScrollInnerMono}>{k.maskedKey || `${k.prefix}••••••••`}</div>
-                      </td>
-                      <td className={`${tableCell()} align-middle`}>
-                        <span className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
-                          k.status === 'active'
-                            ? (isDark ? 'bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20' : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/60')
-                            : (isDark ? 'bg-rose-500/10 text-rose-400 ring-1 ring-rose-500/20' : 'bg-rose-50 text-rose-700 ring-1 ring-rose-200/60')
-                        }`}>
-                          {k.status === 'active' ? '有效' : k.status === 'expired' ? '已过期' : '已撤销'}
-                        </span>
-                      </td>
-                      <td className={`${tableCell()} max-w-[min(260px,100%)] align-middle ${textSecondary(theme)}`}>
-                        {k.scopes?.length ? (
-                          <div className={tableCellActionChipsRow()}>
-                            {k.scopes.map((s) => (
-                              <span
-                                key={s}
-                                className={`shrink-0 rounded-md border px-2 py-0.5 text-[11px] font-medium whitespace-nowrap font-mono ${
-                                  isDark ? 'border-white/[0.08] bg-white/[0.06]' : 'border-slate-200/80 bg-slate-50'
-                                }`}
-                              >
-                                {s}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          '—'
-                        )}
-                      </td>
-                      <td className={`${tableCell()} ${textSecondary(theme)}`}>
-                        {resolvePersonDisplay({ names: [k.createdByName], usernames: [k.createdBy] })}
-                      </td>
-                      <td className={`${tableCell()} whitespace-nowrap ${textSecondary(theme)}`}>{formatDateTime(k.createdAt)}</td>
-                      <td className={`${tableCell()} whitespace-nowrap ${textSecondary(theme)}`}>{formatDateTime(k.expiresAt)}</td>
-                      <td className={`${tableCell()} whitespace-nowrap ${textSecondary(theme)}`}>{formatDateTime(k.lastUsedAt)}</td>
-                      <td className={`${tableCell()} ${textSecondary(theme)}`}>{k.callCount ?? 0}</td>
-                      <td className={`${tableCell()} text-right`}>
-                        {k.status === 'active' && (
-                          <button type="button" onClick={() => setRevokeTarget(k.id)} className={`${btnGhost(theme)} text-amber-600 dark:text-amber-400`} aria-label={`撤销 API Key：${k.name}`}>
-                            <Ban size={14} aria-hidden /> 撤销
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <MgmtDataTable<ApiKeyRecord>
+                theme={theme}
+                surface="plain"
+                minWidth="1100px"
+                columns={apiKeyColumns}
+                rows={paginated}
+                getRowKey={(k) => k.id}
+              />
             )}
           </div>
           <Pagination theme={theme} page={page} pageSize={PAGE_SIZE} total={filtered.length} onChange={setPage} />

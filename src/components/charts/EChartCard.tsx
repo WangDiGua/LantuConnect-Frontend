@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useCallback, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import type { EChartsType } from 'echarts/core';
 import type { EChartsOption } from 'echarts';
 import { Theme } from '../../types';
+import { chartMotion } from './echartsTheme';
 
 // 动态导入echarts以优化初始加载性能
 let echartsInstance: any = null;
@@ -83,28 +84,39 @@ export const EChartCard: React.FC<EChartCardProps> = (props) => {
   const hostRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<EChartsType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [reducedMotion, setReducedMotion] = useState(false);
 
   useEffect(() => {
-    let mounted = true;
-    loadECharts().then((echarts) => {
-      if (!mounted) return;
-      setIsLoading(false);
-      const el = hostRef.current;
-      if (!el) return;
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const apply = () => setReducedMotion(mq.matches);
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, []);
+
+  const resolvedOption = useMemo(
+    () => ({ ...option, ...chartMotion(reducedMotion) }) as EChartsOption,
+    [option, reducedMotion],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    loadECharts().then((echartsMod) => {
+      if (cancelled || !hostRef.current) return;
       if (!chartRef.current) {
-        chartRef.current = echarts.init(el, undefined, { renderer: 'canvas' });
+        chartRef.current = echartsMod.init(hostRef.current, undefined, { renderer: 'canvas' });
       }
-      chartRef.current.setOption(option, true);
+      setIsLoading(false);
     });
     return () => {
-      mounted = false;
+      cancelled = true;
     };
   }, []);
 
   useEffect(() => {
     if (isLoading || !chartRef.current) return;
-    chartRef.current.setOption(option, true);
-  }, [option, isLoading]);
+    chartRef.current.setOption(resolvedOption, true);
+  }, [resolvedOption, isLoading]);
 
   useEffect(() => {
     if (isLoading) return;

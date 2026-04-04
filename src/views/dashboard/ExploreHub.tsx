@@ -19,7 +19,15 @@ import { Modal } from '../../components/common/Modal';
 import { MarkdownView } from '../../components/common/MarkdownView';
 import { MultiAvatar } from '../../components/common/MultiAvatar';
 import { EChartCard } from '../../components/charts/EChartCard';
-import { baseAxis, baseGrid, baseTooltip, chartColors } from '../../components/charts/echartsTheme';
+import {
+  baseAxis,
+  baseGrid,
+  baseTooltip,
+  barSeriesColumnStyle,
+  chartColors,
+  lineSeriesTrendStyle,
+  withAlpha,
+} from '../../components/charts/echartsTheme';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
 import { useUserRole, canAccessAdminView } from '../../context/UserRoleContext';
@@ -399,6 +407,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
 
   const callsTrendOption = useMemo<EChartsOption>(() => {
     const rows = stats?.callsTrend7d ?? [];
+    const lineColor = c.series[0] ?? '#3b82f6';
     return {
       title: {
         text: '调用趋势（近7天）',
@@ -406,6 +415,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
         top: 6,
         textStyle: { fontSize: 13, fontWeight: 600, color: c.text },
       },
+      color: [lineColor],
       grid: { ...baseGrid(), top: 46, left: '6%', right: '6%', bottom: '14%' },
       tooltip: baseTooltip(theme),
       xAxis: {
@@ -416,33 +426,18 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
       series: [
         {
           name: '调用次数',
-          type: 'line',
-          smooth: true,
-          symbol: 'circle',
-          symbolSize: 6,
           data: rows.map((r) => Number(r.calls) || 0),
-          lineStyle: { width: 2.5, color: '#2563eb' },
-          itemStyle: { color: '#2563eb' },
-          areaStyle: {
-            color: {
-              type: 'linear',
-              x: 0,
-              y: 0,
-              x2: 0,
-              y2: 1,
-              colorStops: [
-                { offset: 0, color: 'rgba(37,99,235,0.30)' },
-                { offset: 1, color: 'rgba(37,99,235,0.03)' },
-              ],
-            },
-          },
+          ...lineSeriesTrendStyle(theme, lineColor),
         },
       ],
     };
-  }, [axis.category, axis.value, c.text, stats?.callsTrend7d, theme]);
+  }, [axis.category, axis.value, c.series, c.text, stats?.callsTrend7d, theme]);
 
   const newResourcesTrendOption = useMemo<EChartsOption>(() => {
     const rows = stats?.newResourcesTrend7d ?? [];
+    const isDark = theme === 'dark';
+    const top = isDark ? c.series[4] ?? '#64748b' : c.series[1] ?? '#8b5cf6';
+    const bottom = isDark ? withAlpha(c.muted, 0.95) : withAlpha(top, 0.42);
     return {
       title: {
         text: '新增资源（近7天）',
@@ -450,6 +445,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
         top: 6,
         textStyle: { fontSize: 13, fontWeight: 600, color: c.text },
       },
+      color: [top],
       grid: { ...baseGrid(), top: 46, left: '6%', right: '6%', bottom: '14%' },
       tooltip: baseTooltip(theme),
       xAxis: {
@@ -462,25 +458,11 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
           name: '新增资源',
           type: 'bar',
           data: rows.map((r) => Number(r.count) || 0),
-          barMaxWidth: 20,
-          itemStyle: {
-            borderRadius: [7, 7, 0, 0],
-            color: {
-              type: 'linear',
-              x: 0,
-              y: 0,
-              x2: 0,
-              y2: 1,
-              colorStops: [
-                { offset: 0, color: '#1e2435' },
-                { offset: 1, color: '#64748b' },
-              ],
-            },
-          },
+          ...barSeriesColumnStyle(theme, top, bottom, [7, 7, 0, 0]),
         },
       ],
     };
-  }, [axis.category, axis.value, c.text, stats?.newResourcesTrend7d, theme]);
+  }, [axis.category, axis.value, c.muted, c.series, c.text, stats?.newResourcesTrend7d, theme]);
 
   const navigateToResource = (item: ExploreResourceItem) => {
     navigate(buildUserResourceMarketUrl(item.resourceType));

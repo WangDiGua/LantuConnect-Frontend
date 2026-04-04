@@ -1,5 +1,5 @@
 import React, { useEffect, useId } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import type { Theme } from '../../types';
@@ -25,6 +25,7 @@ export const Modal: React.FC<ModalProps> = ({
   open, onClose, title, theme, size = 'md', contentClassName, children, footer, closeOnBackdrop = true,
 }) => {
   const isDark = theme === 'dark';
+  const reduceMotion = useReducedMotion();
   const titleId = useId();
   const bodyClass = contentClassName ?? 'flex-1 overflow-y-auto px-6 py-4';
 
@@ -47,11 +48,11 @@ export const Modal: React.FC<ModalProps> = ({
         <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: Z.MODAL }}>
           <motion.div
             key="modal-backdrop"
-            initial={{ opacity: 0 }}
+            initial={{ opacity: reduceMotion ? 1 : 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="absolute inset-0 bg-neutral-900/30 backdrop-blur-[2px]"
+            exit={{ opacity: reduceMotion ? 1 : 0 }}
+            transition={{ duration: reduceMotion ? 0 : 0.2 }}
+            className="absolute inset-0 bg-neutral-900/30 backdrop-blur-[2px] motion-reduce:backdrop-blur-none"
             onClick={closeOnBackdrop ? onClose : undefined}
           />
 
@@ -61,11 +62,15 @@ export const Modal: React.FC<ModalProps> = ({
             aria-modal="true"
             aria-labelledby={title ? titleId : undefined}
             aria-label={title ? undefined : '对话框'}
-            initial={{ opacity: 0, scale: 0.96, y: 12 }}
+            initial={reduceMotion ? { opacity: 1, scale: 1, y: 0 } : { opacity: 0, scale: 0.96, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: 12 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            className={`relative w-full ${SIZE_MAP[size]} rounded-[2rem] border flex flex-col max-h-[85vh] overflow-hidden ${
+            exit={reduceMotion ? { opacity: 1, scale: 1, y: 0 } : { opacity: 0, scale: 0.96, y: 12 }}
+            transition={
+              reduceMotion
+                ? { duration: 0 }
+                : { type: 'spring', stiffness: 400, damping: 30 }
+            }
+            className={`relative w-full ${SIZE_MAP[size]} rounded-[2rem] border flex flex-col max-h-[85vh] overflow-hidden motion-reduce:transition-none ${
               isDark
                 ? 'bg-lantu-card border-white/[0.08] shadow-2xl'
                 : 'bg-white border-neutral-200/60 shadow-2xl'

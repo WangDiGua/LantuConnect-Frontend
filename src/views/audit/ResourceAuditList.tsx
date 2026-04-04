@@ -17,12 +17,11 @@ import {
   textMuted,
   textPrimary,
   textSecondary,
-  tableBodyRow,
-  tableCell,
-  tableHeadCell,
 } from '../../utils/uiClasses';
 import { TOOLBAR_ROW_LIST } from '../../utils/toolbarFieldClasses';
 import { FilterSelect, Pagination, SearchInput } from '../../components/common';
+import { MgmtDataTable } from '../../components/management/MgmtDataTable';
+import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
 import { EmptyState } from '../../components/common/EmptyState';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
@@ -99,18 +98,128 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
 
   const rows = useMemo(() => items, [items]);
 
-  const runAction = async (actionKey: string, action: () => Promise<void>, okMsg: string) => {
-    setRunningActionId(actionKey);
-    try {
-      await action();
-      showMessage(okMsg, 'success');
-      await fetchData();
-    } catch (err) {
-      showMessage(err instanceof Error ? err.message : '操作失败', 'error');
-    } finally {
-      setRunningActionId(null);
-    }
-  };
+  const runAction = useCallback(
+    async (actionKey: string, action: () => Promise<void>, okMsg: string) => {
+      setRunningActionId(actionKey);
+      try {
+        await action();
+        showMessage(okMsg, 'success');
+        await fetchData();
+      } catch (err) {
+        showMessage(err instanceof Error ? err.message : '操作失败', 'error');
+      } finally {
+        setRunningActionId(null);
+      }
+    },
+    [fetchData, showMessage],
+  );
+
+  const auditColumns = useMemo<MgmtDataTableColumn<ResourceAuditItemVO>[]>(
+    () => [
+      {
+        id: 'name',
+        header: '资源名称',
+        cellClassName: 'font-medium max-w-[12rem]',
+        cell: (item) => <span className={`block truncate ${textPrimary(theme)}`} title={item.displayName}>{item.displayName}</span>,
+      },
+      { id: 'type', header: '类型', cell: (item) => <span className={textSecondary(theme)}>{item.resourceType}</span> },
+      {
+        id: 'policy',
+        header: '消费策略',
+        cellClassName: 'align-middle',
+        cell: (item) => <AccessPolicyBadge theme={theme} value={item.accessPolicy} whenMissing="hide" />,
+      },
+      {
+        id: 'status',
+        header: '状态',
+        cell: (item) => (
+          <span className={statusBadgeClass(item.status, theme)}>
+            <span className={statusDot(item.status)} />
+            {statusLabel(item.status)}
+          </span>
+        ),
+      },
+      { id: 'code', header: '资源编码', cell: (item) => <span className={textSecondary(theme)}>{nullDisplay(item.resourceCode)}</span> },
+      {
+        id: 'submitter',
+        header: '提交者',
+        cell: (item) => <span className={textSecondary(theme)}>{resolvePersonDisplay({ names: [item.submitterName], usernames: [item.submitter] })}</span>,
+      },
+      { id: 'submitTime', header: '提交时间', cell: (item) => <span className={textSecondary(theme)}>{nullDisplay(formatDateTime(item.submitTime))}</span> },
+      { id: 'reason', header: '审核意见', cell: (item) => <span className={textSecondary(theme)}>{nullDisplay(item.reason)}</span> },
+      {
+        id: 'desc',
+        header: '描述',
+        cellClassName: 'max-w-[14rem]',
+        cell: (item) => (
+          <span className={`line-clamp-2 break-words ${textSecondary(theme)}`} title={item.description ?? undefined}>{nullDisplay(item.description, '暂无描述')}</span>
+        ),
+      },
+      {
+        id: 'actions',
+        header: '操作',
+        headerClassName: 'text-right',
+        cellClassName: 'text-right',
+        cell: (item) => (
+          <div className="inline-flex flex-wrap items-center justify-end gap-1">
+            {item.status === 'pending_review' && (
+              <>
+                <button
+                  type="button"
+                  className={mgmtTableActionPositive(theme)}
+                  disabled={runningActionId === `approve-${item.id}`}
+                  onClick={() => void runAction(`approve-${item.id}`, () => resourceAuditService.approve(item.id), '已通过审核，状态进入 testing')}
+                >
+                  {runningActionId === `approve-${item.id}` ? '处理中…' : '通过'}
+                </button>
+                <button type="button" className={mgmtTableActionDanger} disabled={!!runningActionId} onClick={() => setRejectTarget(item)}>
+                  驳回
+                </button>
+              </>
+            )}
+            {item.status === 'testing' && (
+              <>
+                {canPublishResource ? (
+                  <button
+                    type="button"
+                    className={mgmtTableActionPositive(theme)}
+                    disabled={runningActionId === `publish-${item.id}`}
+                    onClick={() => void runAction(`publish-${item.id}`, () => resourceAuditService.publish(item.id), '已发布，状态进入 published')}
+                  >
+                    {runningActionId === `publish-${item.id}` ? '发布中…' : '发布'}
+                  </button>
+                ) : (
+                  <span className={`text-xs ${textMuted(theme)}`}>无发布权限</span>
+                )}
+                <button type="button" className={mgmtTableActionDanger} disabled={!!runningActionId} onClick={() => setRejectTarget(item)}>
+                  驳回
+                </button>
+              </>
+            )}
+            {item.status === 'published' && canPlatformForceDeprecate && (
+              <button
+                type="button"
+                className={mgmtTableActionDanger}
+                disabled={!!runningActionId}
+                onClick={() => {
+                  setForceDeprecateTarget(item);
+                  setForceDeprecateReason('');
+                }}
+              >
+                平台强制下架
+              </button>
+            )}
+            {item.status !== 'pending_review' &&
+              item.status !== 'testing' &&
+              !(item.status === 'published' && canPlatformForceDeprecate) && (
+              <span className={`text-xs ${textMuted(theme)}`}>无可执行动作</span>
+            )}
+          </div>
+        ),
+      },
+    ],
+    [theme, runningActionId, canPublishResource, canPlatformForceDeprecate, runAction],
+  );
 
   return (
     <>
@@ -178,106 +287,14 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
                 <EmptyState title="暂无审核项" description="当前筛选条件下没有待处理项，可切换筛选后重试。" />
               </div>
             ) : (
-              <table className="w-full min-w-[1200px] text-sm">
-                <thead className={`border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-                  <tr>
-                    <th className={tableHeadCell(theme)}>资源名称</th>
-                    <th className={tableHeadCell(theme)}>类型</th>
-                    <th className={tableHeadCell(theme)}>消费策略</th>
-                    <th className={tableHeadCell(theme)}>状态</th>
-                    <th className={tableHeadCell(theme)}>资源编码</th>
-                    <th className={tableHeadCell(theme)}>提交者</th>
-                    <th className={tableHeadCell(theme)}>提交时间</th>
-                    <th className={tableHeadCell(theme)}>审核意见</th>
-                    <th className={tableHeadCell(theme)}>描述</th>
-                    <th className={`${tableHeadCell(theme)} text-right`}>操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((item, idx) => (
-                    <tr key={item.id} className={tableBodyRow(theme, idx)}>
-                      <td className={`${tableCell()} font-medium max-w-[12rem] ${textPrimary(theme)}`}>
-                        <span className="block truncate" title={item.displayName}>{item.displayName}</span>
-                      </td>
-                      <td className={`${tableCell()} ${textSecondary(theme)}`}>{item.resourceType}</td>
-                      <td className={`${tableCell()} align-middle`}>
-                        <AccessPolicyBadge theme={theme} value={item.accessPolicy} whenMissing="hide" />
-                      </td>
-                      <td className={tableCell()}>
-                        <span className={statusBadgeClass(item.status, theme)}>
-                          <span className={statusDot(item.status)} />
-                          {statusLabel(item.status)}
-                        </span>
-                      </td>
-                      <td className={`${tableCell()} ${textSecondary(theme)}`}>{nullDisplay(item.resourceCode)}</td>
-                      <td className={`${tableCell()} ${textSecondary(theme)}`}>
-                        {resolvePersonDisplay({ names: [item.submitterName], usernames: [item.submitter] })}
-                      </td>
-                      <td className={`${tableCell()} ${textSecondary(theme)}`}>{nullDisplay(formatDateTime(item.submitTime))}</td>
-                      <td className={`${tableCell()} ${textSecondary(theme)}`}>{nullDisplay(item.reason)}</td>
-                      <td className={`${tableCell()} max-w-[14rem] ${textSecondary(theme)}`}>
-                        <span className="line-clamp-2 break-words" title={item.description ?? undefined}>{nullDisplay(item.description, '暂无描述')}</span>
-                      </td>
-                      <td className={`${tableCell()} text-right`}>
-                        <div className="inline-flex flex-wrap items-center justify-end gap-1">
-                          {item.status === 'pending_review' && (
-                            <>
-                              <button
-                                type="button"
-                                className={mgmtTableActionPositive(theme)}
-                                disabled={runningActionId === `approve-${item.id}`}
-                                onClick={() => void runAction(`approve-${item.id}`, () => resourceAuditService.approve(item.id), '已通过审核，状态进入 testing')}
-                              >
-                                {runningActionId === `approve-${item.id}` ? '处理中…' : '通过'}
-                              </button>
-                              <button type="button" className={mgmtTableActionDanger} disabled={!!runningActionId} onClick={() => setRejectTarget(item)}>
-                                驳回
-                              </button>
-                            </>
-                          )}
-                          {item.status === 'testing' && (
-                            <>
-                              {canPublishResource ? (
-                                <button
-                                  type="button"
-                                  className={mgmtTableActionPositive(theme)}
-                                  disabled={runningActionId === `publish-${item.id}`}
-                                  onClick={() => void runAction(`publish-${item.id}`, () => resourceAuditService.publish(item.id), '已发布，状态进入 published')}
-                                >
-                                  {runningActionId === `publish-${item.id}` ? '发布中…' : '发布'}
-                                </button>
-                              ) : (
-                                <span className={`text-xs ${textMuted(theme)}`}>无发布权限</span>
-                              )}
-                              <button type="button" className={mgmtTableActionDanger} disabled={!!runningActionId} onClick={() => setRejectTarget(item)}>
-                                驳回
-                              </button>
-                            </>
-                          )}
-                          {item.status === 'published' && canPlatformForceDeprecate && (
-                            <button
-                              type="button"
-                              className={mgmtTableActionDanger}
-                              disabled={!!runningActionId}
-                              onClick={() => {
-                                setForceDeprecateTarget(item);
-                                setForceDeprecateReason('');
-                              }}
-                            >
-                              平台强制下架
-                            </button>
-                          )}
-                          {item.status !== 'pending_review' &&
-                            item.status !== 'testing' &&
-                            !(item.status === 'published' && canPlatformForceDeprecate) && (
-                            <span className={`text-xs ${textMuted(theme)}`}>无可执行动作</span>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <MgmtDataTable<ResourceAuditItemVO>
+                theme={theme}
+                surface="plain"
+                minWidth="1200px"
+                columns={auditColumns}
+                rows={rows}
+                getRowKey={(item) => item.id}
+              />
             )}
           <Pagination theme={theme} page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} />
         </div>

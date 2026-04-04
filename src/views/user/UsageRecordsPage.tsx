@@ -3,12 +3,11 @@ import { Clock, RefreshCw } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import { userActivityService } from '../../api/services/user-activity.service';
 import type { UsageRecord, RecentUseItem } from '../../types/dto/user-activity';
-import { BentoCard } from '../../components/common/BentoCard';
 import { PageError } from '../../components/common/PageError';
 import { Pagination, SearchInput } from '../../components/common';
-import {
-  btnGhost, textPrimary, textSecondary, textMuted, tableHeadCell, tableBodyRow, tableCell,
-} from '../../utils/uiClasses';
+import { MgmtDataTable } from '../../components/management/MgmtDataTable';
+import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
+import { bentoCard, btnGhost, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
@@ -107,35 +106,108 @@ export const UsageRecordsPage: React.FC<UsageRecordsPageProps> = ({ theme, fontS
     if (page > totalPages) setPage(totalPages);
   }, [rows, page]);
 
-  const typeBadge = (type: string) => {
-    const styles: Record<string, string> = {
-      agent: isDark ? 'bg-blue-500/10 text-blue-400 ring-1 ring-blue-500/20' : 'bg-blue-50 text-blue-700 ring-1 ring-blue-200/60',
-      skill: isDark ? 'bg-neutral-900/10 text-neutral-300 ring-1 ring-neutral-900/20' : 'bg-neutral-100 text-neutral-800 ring-1 ring-neutral-200/60',
-      app:   isDark ? 'bg-amber-500/10 text-amber-400 ring-1 ring-amber-500/20' : 'bg-amber-50 text-amber-700 ring-1 ring-amber-200/60',
-      mcp: isDark ? 'bg-violet-500/10 text-violet-300 ring-1 ring-violet-500/20' : 'bg-violet-50 text-violet-700 ring-1 ring-violet-200/70',
-      dataset: isDark ? 'bg-emerald-500/10 text-emerald-300 ring-1 ring-emerald-500/20' : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/70',
-    };
-    return `inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${styles[type] || ''}`;
-  };
-
-  const statusCls = (status: string) => status === 'success' ? 'text-emerald-500' : 'text-rose-500';
-  const recentStatusLabel = (status?: string) => (status === 'success' ? '成功' : status === 'failed' ? '失败' : '—');
-  const recentStatusClass = (status?: string) =>
-    status === 'success'
-      ? 'text-emerald-600'
-      : status === 'failed'
-        ? 'text-rose-600'
-        : textSecondary(theme);
-
   const tabCls = (active: boolean) => `px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors motion-reduce:transition-none active:scale-[0.97] ${
     active
       ? 'bg-neutral-900 text-white shadow-sm'
       : isDark ? 'bg-white/5 text-slate-400 hover:bg-white/10' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
   }`;
 
+  const usageRecordColumns = useMemo<MgmtDataTableColumn<UsageRecord>[]>(() => {
+    const typeBadge = (type: string) => {
+      const styles: Record<string, string> = {
+        agent: isDark ? 'bg-blue-500/10 text-blue-400 ring-1 ring-blue-500/20' : 'bg-blue-50 text-blue-700 ring-1 ring-blue-200/60',
+        skill: isDark ? 'bg-neutral-900/10 text-neutral-300 ring-1 ring-neutral-900/20' : 'bg-neutral-100 text-neutral-800 ring-1 ring-neutral-200/60',
+        app: isDark ? 'bg-amber-500/10 text-amber-400 ring-1 ring-amber-500/20' : 'bg-amber-50 text-amber-700 ring-1 ring-amber-200/60',
+        mcp: isDark ? 'bg-violet-500/10 text-violet-300 ring-1 ring-violet-500/20' : 'bg-violet-50 text-violet-700 ring-1 ring-violet-200/70',
+        dataset: isDark ? 'bg-emerald-500/10 text-emerald-300 ring-1 ring-emerald-500/20' : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/70',
+      };
+      return `inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${styles[type] || ''}`;
+    };
+    const statusCls = (status: string) => (status === 'success' ? 'text-emerald-500' : 'text-rose-500');
+    return [
+      { id: 'time', header: '时间', cell: (r) => <span className={`whitespace-nowrap ${textSecondary(theme)}`}>{formatDateTime(r.createTime)}</span> },
+      {
+        id: 'name',
+        header: '资源名称',
+        cellClassName: 'max-w-[14rem]',
+        cell: (r) => <span className={`block truncate ${textPrimary(theme)}`} title={r.displayName}>{r.displayName}</span>,
+      },
+      {
+        id: 'type',
+        header: '类型',
+        cell: (r) => <span className={typeBadge(r.type)}>{TYPE_LABEL[r.type] ?? r.type}</span>,
+      },
+      {
+        id: 'status',
+        header: '状态',
+        cell: (r) => <span className={`whitespace-nowrap text-xs font-semibold ${statusCls(r.status)}`}>{r.status === 'success' ? '成功' : '失败'}</span>,
+      },
+      { id: 'action', header: '动作', cell: (r) => <span className={textSecondary(theme)}>{r.action}</span> },
+      {
+        id: 'agent',
+        header: '资源',
+        cellClassName: 'max-w-[10rem]',
+        cell: (r) => <span className={`block truncate ${textSecondary(theme)}`} title={r.agentName || undefined}>{r.agentName || '—'}</span>,
+      },
+      { id: 'token', header: 'Token 消耗', cell: (r) => <span className={textSecondary(theme)}>{r.tokenCost > 0 ? r.tokenCost : '—'}</span> },
+      {
+        id: 'preview',
+        header: '输入预览',
+        cellClassName: 'max-w-[12rem]',
+        cell: (r) =>
+          r.inputPreview ? (
+            <span className={`line-clamp-1 ${textSecondary(theme)}`} title={r.inputPreview}>{r.inputPreview}</span>
+          ) : (
+            <span className={textSecondary(theme)}>—</span>
+          ),
+      },
+      {
+        id: 'latency',
+        header: '耗时',
+        cell: (r) => <span className={textSecondary(theme)}>{r.latencyMs > 0 ? `${(r.latencyMs / 1000).toFixed(1)}s` : '—'}</span>,
+      },
+    ];
+  }, [theme, isDark]);
+
+  const recentUseColumns = useMemo<MgmtDataTableColumn<RecentUseItem>[]>(() => {
+    const recentStatusLabel = (status?: string) => (status === 'success' ? '成功' : status === 'failed' ? '失败' : '—');
+    const recentStatusClass = (status?: string) =>
+      status === 'success'
+        ? 'text-emerald-600'
+        : status === 'failed'
+          ? 'text-rose-600'
+          : textSecondary(theme);
+    return [
+      {
+        id: 'time',
+        header: '时间',
+        cell: (item) => <span className={`whitespace-nowrap ${textSecondary(theme)}`}>{formatDateTime(item.createTime || item.lastUsedTime, '未知时间')}</span>,
+      },
+      {
+        id: 'name',
+        header: '资源名称',
+        cellClassName: 'max-w-[12rem]',
+        cell: (item) => <span className={`block truncate ${textPrimary(theme)}`} title={item.displayName || undefined}>{item.displayName || '—'}</span>,
+      },
+      { id: 'code', header: '资源编码', cell: (item) => <span className={`${textSecondary(theme)} font-mono`}>{item.targetCode || '—'}</span> },
+      { id: 'type', header: '类型', cell: (item) => <span className={textSecondary(theme)}>{TYPE_LABEL[item.targetType] ?? item.targetType}</span> },
+      { id: 'action', header: '动作', cell: (item) => <span className={textSecondary(theme)}>{item.action || '—'}</span> },
+      {
+        id: 'status',
+        header: '状态',
+        cell: (item) => <span className={`whitespace-nowrap text-xs font-semibold ${recentStatusClass(item.status)}`}>{recentStatusLabel(item.status)}</span>,
+      },
+      { id: 'token', header: 'Token', cell: (item) => <span className={textSecondary(theme)}>{typeof item.tokenCost === 'number' ? item.tokenCost : '—'}</span> },
+      {
+        id: 'latency',
+        header: '耗时',
+        cell: (item) => <span className={textSecondary(theme)}>{typeof item.latencyMs === 'number' && item.latencyMs > 0 ? `${item.latencyMs} ms` : '—'}</span>,
+      },
+    ];
+  }, [theme]);
+
   const toolbar = (
-    <BentoCard theme={theme} padding="sm">
-      <div className="space-y-3">
+    <div className={`${bentoCard(theme)} p-4 space-y-3`}>
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" onClick={() => setViewMode('records')} className={tabCls(viewMode === 'records')} aria-pressed={viewMode === 'records'} aria-label="查看使用记录">使用记录</button>
           <button type="button" onClick={() => setViewMode('recent')} className={tabCls(viewMode === 'recent')} aria-pressed={viewMode === 'recent'} aria-label="查看最近使用">最近使用</button>
@@ -193,8 +265,7 @@ export const UsageRecordsPage: React.FC<UsageRecordsPageProps> = ({ theme, fontS
             </button>
           </div>
         )}
-      </div>
-    </BentoCard>
+    </div>
   );
 
   return (
@@ -214,47 +285,17 @@ export const UsageRecordsPage: React.FC<UsageRecordsPageProps> = ({ theme, fontS
           ) : loadError ? (
             <PageError error={loadError} onRetry={fetchData} retryLabel="重试加载使用记录" />
           ) : rows.length === 0 ? (
-            <BentoCard theme={theme}><div className={`py-12 text-center text-sm ${textMuted(theme)}`}>暂无记录</div></BentoCard>
+            <div className={`${bentoCard(theme)} py-12 text-center text-sm ${textMuted(theme)}`}>暂无记录</div>
           ) : (
             <>
-              <div className="overflow-x-auto rounded-2xl border border-transparent">
-                <table className="w-full min-w-[1100px] text-sm">
-                  <thead className={`border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-                    <tr>
-                      <th className={tableHeadCell(theme)}>时间</th>
-                      <th className={tableHeadCell(theme)}>资源名称</th>
-                      <th className={tableHeadCell(theme)}>类型</th>
-                      <th className={tableHeadCell(theme)}>状态</th>
-                      <th className={tableHeadCell(theme)}>动作</th>
-                      <th className={tableHeadCell(theme)}>资源</th>
-                      <th className={tableHeadCell(theme)}>Token 消耗</th>
-                      <th className={tableHeadCell(theme)}>输入预览</th>
-                      <th className={tableHeadCell(theme)}>耗时</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pagedRows.map((record, idx) => (
-                      <tr key={record.id} className={tableBodyRow(theme, idx)}>
-                        <td className={`${tableCell()} whitespace-nowrap ${textSecondary(theme)}`}>{formatDateTime(record.createTime)}</td>
-                        <td className={`${tableCell()} max-w-[14rem] ${textPrimary(theme)}`}>
-                          <span className="block truncate" title={record.displayName}>{record.displayName}</span>
-                        </td>
-                        <td className={tableCell()}><span className={typeBadge(record.type)}>{TYPE_LABEL[record.type] ?? record.type}</span></td>
-                        <td className={`${tableCell()} whitespace-nowrap text-xs font-semibold ${statusCls(record.status)}`}>{record.status === 'success' ? '成功' : '失败'}</td>
-                        <td className={`${tableCell()} ${textSecondary(theme)}`}>{record.action}</td>
-                        <td className={`${tableCell()} max-w-[10rem] ${textSecondary(theme)}`}>
-                          <span className="block truncate" title={record.agentName || undefined}>{record.agentName || '—'}</span>
-                        </td>
-                        <td className={`${tableCell()} ${textSecondary(theme)}`}>{record.tokenCost > 0 ? record.tokenCost : '—'}</td>
-                        <td className={`${tableCell()} max-w-[12rem] ${textSecondary(theme)}`}>
-                          {record.inputPreview ? <span className="line-clamp-1" title={record.inputPreview}>{record.inputPreview}</span> : '—'}
-                        </td>
-                        <td className={`${tableCell()} ${textSecondary(theme)}`}>{record.latencyMs > 0 ? `${(record.latencyMs / 1000).toFixed(1)}s` : '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <MgmtDataTable<UsageRecord>
+                theme={theme}
+                surface="plain"
+                minWidth="1100px"
+                columns={usageRecordColumns}
+                rows={pagedRows}
+                getRowKey={(r) => r.id}
+              />
               <Pagination theme={theme} page={page} pageSize={PAGE_SIZE} total={rows.length} onChange={setPage} />
             </>
           )
@@ -267,36 +308,14 @@ export const UsageRecordsPage: React.FC<UsageRecordsPageProps> = ({ theme, fontS
             ) : recentRows.length === 0 ? (
               <div className={`py-12 text-center text-sm ${textMuted(theme)}`}>暂无最近使用记录</div>
             ) : (
-              <table className="w-full min-w-[860px] text-sm">
-                <thead className={`border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-                  <tr>
-                    <th className={tableHeadCell(theme)}>时间</th>
-                    <th className={tableHeadCell(theme)}>资源名称</th>
-                    <th className={tableHeadCell(theme)}>资源编码</th>
-                    <th className={tableHeadCell(theme)}>类型</th>
-                    <th className={tableHeadCell(theme)}>动作</th>
-                    <th className={tableHeadCell(theme)}>状态</th>
-                    <th className={tableHeadCell(theme)}>Token</th>
-                    <th className={tableHeadCell(theme)}>耗时</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentRows.map((item, idx) => (
-                    <tr key={`${item.targetType}-${item.targetId}-${item.id}`} className={tableBodyRow(theme, idx)}>
-                      <td className={`${tableCell()} whitespace-nowrap ${textSecondary(theme)}`}>{formatDateTime(item.createTime || item.lastUsedTime, '未知时间')}</td>
-                      <td className={`${tableCell()} max-w-[12rem] ${textPrimary(theme)}`}>
-                        <span className="block truncate" title={item.displayName || undefined}>{item.displayName || '—'}</span>
-                      </td>
-                      <td className={`${tableCell()} ${textSecondary(theme)} font-mono`}>{item.targetCode || '—'}</td>
-                      <td className={`${tableCell()} ${textSecondary(theme)}`}>{TYPE_LABEL[item.targetType] ?? item.targetType}</td>
-                      <td className={`${tableCell()} ${textSecondary(theme)}`}>{item.action || '—'}</td>
-                      <td className={`${tableCell()} whitespace-nowrap text-xs font-semibold ${recentStatusClass(item.status)}`}>{recentStatusLabel(item.status)}</td>
-                      <td className={`${tableCell()} ${textSecondary(theme)}`}>{typeof item.tokenCost === 'number' ? item.tokenCost : '—'}</td>
-                      <td className={`${tableCell()} ${textSecondary(theme)}`}>{typeof item.latencyMs === 'number' && item.latencyMs > 0 ? `${item.latencyMs} ms` : '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <MgmtDataTable<RecentUseItem>
+                theme={theme}
+                surface="plain"
+                minWidth="860px"
+                columns={recentUseColumns}
+                rows={recentRows}
+                getRowKey={(item) => `${item.targetType}-${item.targetId}-${item.id}`}
+              />
             )}
           </div>
         )}

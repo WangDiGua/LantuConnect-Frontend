@@ -3,7 +3,16 @@ import type { EChartsOption } from 'echarts';
 import { Theme } from '../../types';
 import type { PerformanceMetric } from '../../types/dto/monitoring';
 import { EChartCard } from './EChartCard';
-import { chartColors, baseGrid, baseTooltip, baseAxis, baseLegend } from './echartsTheme';
+import {
+  barSeriesColumnStyle,
+  baseAxis,
+  baseGrid,
+  baseLegend,
+  baseTooltip,
+  chartColors,
+  lineSeriesTrendStyle,
+  withAlpha,
+} from './echartsTheme';
 
 interface MonitoringOverviewChartsProps {
   theme: Theme;
@@ -41,8 +50,7 @@ export const MonitoringOverviewCharts: React.FC<MonitoringOverviewChartsProps> =
         {
           type: 'bar',
           data: perf12.map((p) => Math.max(0, Number(p.requestRate ?? 0))),
-          barMaxWidth: 14,
-          itemStyle: { borderRadius: [4, 4, 0, 0] },
+          ...barSeriesColumnStyle(theme, c.series[0], withAlpha(c.series[0], 0.5), [5, 5, 0, 0], 14),
         },
       ],
     }),
@@ -59,8 +67,16 @@ export const MonitoringOverviewCharts: React.FC<MonitoringOverviewChartsProps> =
       xAxis: { ...axis.category, data: axisLabels },
       yAxis: { ...axis.value, name: 'ms' },
       series: [
-        { name: 'P50', type: 'line', smooth: true, data: perf12.map((p) => Number(p.p50Latency ?? p.latencyP50 ?? 0)) },
-        { name: 'P99', type: 'line', smooth: true, data: perf12.map((p) => Number(p.p99Latency ?? p.latencyP99 ?? 0)) },
+        {
+          name: 'P50',
+          data: perf12.map((p) => Number(p.p50Latency ?? p.latencyP50 ?? 0)),
+          ...lineSeriesTrendStyle(theme, c.series[0], true),
+        },
+        {
+          name: 'P99',
+          data: perf12.map((p) => Number(p.p99Latency ?? p.latencyP99 ?? 0)),
+          ...lineSeriesTrendStyle(theme, c.series[1] ?? c.series[0], false),
+        },
       ],
     }),
     [theme, c, axis, perf12, axisLabels]

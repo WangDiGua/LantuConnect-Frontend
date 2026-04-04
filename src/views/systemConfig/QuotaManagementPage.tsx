@@ -6,7 +6,7 @@ import { nativeInputClass } from '../../utils/formFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
 import {
   btnPrimary, btnSecondary, mgmtTableActionDanger, mgmtTableActionGhost,
-  tableHeadCell, tableBodyRow, tableCell, textPrimary, textSecondary, textMuted,
+  textPrimary, textSecondary, textMuted,
 } from '../../utils/uiClasses';
 import { TOOLBAR_ROW_LIST, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
 import { Modal } from '../../components/common/Modal';
@@ -17,6 +17,8 @@ import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { quotaService } from '../../api/services/quota.service';
 import type { QuotaItem, RateLimitItem } from '../../types/dto/quota';
 import { formatDateTime } from '../../utils/formatDateTime';
+import { MgmtDataTable } from '../../components/management/MgmtDataTable';
+import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
 
 interface Props {
   theme: Theme;
@@ -138,14 +140,28 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
     return list;
   }, [rateLimits, listKeyword, rlTargetFilter]);
 
-  const openQuotaEdit = (r: QuotaItem) => {
+  const openQuotaEdit = useCallback((r: QuotaItem) => {
     setEditingQuota(r);
     setEditQuotaDraft({
       targetName: r.targetType === 'global' ? '全平台' : r.targetName,
       dailyLimit: r.dailyLimit,
       monthlyLimit: r.monthlyLimit,
     });
-  };
+  }, []);
+
+  const deleteQuotaRow = useCallback(
+    async (r: QuotaItem) => {
+      if (!confirm(`确定删除配额「${r.targetName}」？`)) return;
+      try {
+        await quotaService.deleteQuota(r.id);
+        showMessage('已删除', 'success');
+        await fetchQuotas();
+      } catch {
+        showMessage('删除失败', 'error');
+      }
+    },
+    [fetchQuotas, showMessage],
+  );
 
   const saveQuotaEdit = async () => {
     if (!editingQuota) return;
@@ -216,11 +232,134 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
     } catch (err) { console.error(err); showMessage('添加失败', 'error'); }
   };
 
-  const toggleRL = async (id: number) => {
-    const rl = rateLimits.find(r => r.id === id);
-    if (!rl) return;
-    try { await quotaService.toggleRateLimit(id, !rl.enabled); await fetchRateLimits(); } catch (err) { console.error(err); showMessage('操作失败', 'error'); }
-  };
+  const toggleRL = useCallback(
+    async (id: number) => {
+      const rl = rateLimits.find((r) => r.id === id);
+      if (!rl) return;
+      try {
+        await quotaService.toggleRateLimit(id, !rl.enabled);
+        await fetchRateLimits();
+      } catch (err) {
+        console.error(err);
+        showMessage('操作失败', 'error');
+      }
+    },
+    [rateLimits, fetchRateLimits, showMessage],
+  );
+
+  const quotaColumns = useMemo<MgmtDataTableColumn<QuotaItem>[]>(
+    () => [
+      {
+        id: 'scope',
+        header: '范围',
+        cell: (r) => {
+          const sc = SCOPE_CFG[r.targetType] ?? SCOPE_CFG.global;
+          return (
+            <span className={`inline-flex shrink-0 items-center whitespace-nowrap px-2 py-0.5 rounded-lg text-xs font-medium ${isDark ? sc.dark : sc.light}`}>
+              {sc.label}
+            </span>
+          );
+        },
+      },
+      { id: 'name', header: '名称', cellClassName: `font-medium ${textPrimary(theme)}`, cell: (r) => r.targetName },
+      {
+        id: 'status',
+        header: '状态',
+        cell: (r) => (
+          <span className={`inline-flex shrink-0 items-center whitespace-nowrap text-xs font-medium ${r.enabled ? 'text-emerald-500' : textMuted(theme)}`}>
+            {r.enabled ? '启用' : '停用'}
+          </span>
+        ),
+      },
+      { id: 'dailyLimit', header: '日配额', cellClassName: `text-xs tabular-nums ${textMuted(theme)}`, cell: (r) => formatNum(r.dailyLimit) },
+      {
+        id: 'dailyUsed',
+        header: '日用量',
+        cell: (r) => (
+          <>
+            <div className={`text-xs mb-1 tabular-nums ${textMuted(theme)}`}>{formatNum(r.dailyUsed)}</div>
+            <QuotaProgressBar value={r.dailyUsed} max={r.dailyLimit} theme={theme} />
+          </>
+        ),
+      },
+      { id: 'monthlyLimit', header: '月配额', cellClassName: `text-xs tabular-nums ${textMuted(theme)}`, cell: (r) => formatNum(r.monthlyLimit) },
+      {
+        id: 'monthlyUsed',
+        header: '月用量',
+        cell: (r) => (
+          <>
+            <div className={`text-xs mb-1 tabular-nums ${textMuted(theme)}`}>{formatNum(r.monthlyUsed)}</div>
+            <QuotaProgressBar value={r.monthlyUsed} max={r.monthlyLimit} theme={theme} />
+          </>
+        ),
+      },
+      {
+        id: 'created',
+        header: '创建时间',
+        cellClassName: `whitespace-nowrap text-xs ${textMuted(theme)}`,
+        cell: (r) => formatDateTime(r.createTime),
+      },
+      {
+        id: 'actions',
+        header: '操作',
+        cell: (r) => (
+          <div className="inline-flex flex-wrap items-center justify-end gap-2">
+            <button type="button" className={mgmtTableActionGhost(theme)} onClick={() => openQuotaEdit(r)}>
+              编辑
+            </button>
+            <button type="button" className={mgmtTableActionDanger} onClick={() => void deleteQuotaRow(r)}>
+              删除
+            </button>
+          </div>
+        ),
+      },
+    ],
+    [theme, isDark, openQuotaEdit, deleteQuotaRow],
+  );
+
+  const rateLimitColumns = useMemo<MgmtDataTableColumn<RateLimitItem>[]>(
+    () => [
+      { id: 'name', header: '规则名称', cellClassName: `font-medium ${textPrimary(theme)}`, cell: (r) => r.name },
+      { id: 'target', header: '目标', cellClassName: textSecondary(theme), cell: (r) => r.targetName },
+      {
+        id: 'rpm',
+        header: '请求/分',
+        cellClassName: `font-mono text-center ${textSecondary(theme)}`,
+        cell: (r) => r.maxRequestsPerMin,
+      },
+      {
+        id: 'rph',
+        header: '请求/时',
+        cellClassName: `font-mono text-center ${textMuted(theme)}`,
+        cell: (r) => r.maxRequestsPerHour,
+      },
+      {
+        id: 'enabled',
+        header: '状态',
+        cell: (r) => (
+          <button
+            type="button"
+            onClick={() => void toggleRL(r.id)}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${r.enabled ? 'bg-neutral-900' : isDark ? 'bg-white/20' : 'bg-slate-300'}`}
+            role="switch"
+            aria-checked={r.enabled}
+          >
+            <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${r.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+          </button>
+        ),
+      },
+      {
+        id: 'actions',
+        header: '操作',
+        cell: (r) => (
+          <button type="button" className={mgmtTableActionDanger} onClick={() => setDeleteRlId(r.id)}>
+            删除
+          </button>
+        ),
+      },
+    ],
+    [theme, isDark, toggleRL],
+  );
 
   const tabs = [
     { key: 'quota' as const, label: '配额管理' },
@@ -287,56 +426,14 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
                 </button>
               </div>
               <BentoCard theme={theme} padding="sm" className="overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm min-w-[860px]">
-                    <thead>
-                      <tr>
-                        {['范围', '名称', '状态', '日配额', '日用量', '月配额', '月用量', '创建时间', '操作'].map((h) => (
-                          <th key={h} className={tableHeadCell(theme)}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredQuotas.map((r, i) => {
-                        const sc = SCOPE_CFG[r.targetType] ?? SCOPE_CFG.global;
-                        return (
-                          <tr key={r.id} className={tableBodyRow(theme, i)}>
-                            <td className={tableCell()}>
-                              <span className={`inline-flex shrink-0 items-center whitespace-nowrap px-2 py-0.5 rounded-lg text-xs font-medium ${isDark ? sc.dark : sc.light}`}>{sc.label}</span>
-                            </td>
-                            <td className={`${tableCell()} font-medium ${textPrimary(theme)}`}>{r.targetName}</td>
-                            <td className={tableCell()}>
-                              <span className={`inline-flex shrink-0 items-center whitespace-nowrap text-xs font-medium ${r.enabled ? 'text-emerald-500' : textMuted(theme)}`}>{r.enabled ? '启用' : '停用'}</span>
-                            </td>
-                            <td className={`${tableCell()} text-xs tabular-nums ${textMuted(theme)}`}>{formatNum(r.dailyLimit)}</td>
-                            <td className={tableCell()}>
-                              <div className={`text-xs mb-1 tabular-nums ${textMuted(theme)}`}>{formatNum(r.dailyUsed)}</div>
-                              <QuotaProgressBar value={r.dailyUsed} max={r.dailyLimit} theme={theme} />
-                            </td>
-                            <td className={`${tableCell()} text-xs tabular-nums ${textMuted(theme)}`}>{formatNum(r.monthlyLimit)}</td>
-                            <td className={tableCell()}>
-                              <div className={`text-xs mb-1 tabular-nums ${textMuted(theme)}`}>{formatNum(r.monthlyUsed)}</div>
-                              <QuotaProgressBar value={r.monthlyUsed} max={r.monthlyLimit} theme={theme} />
-                            </td>
-                            <td className={`${tableCell()} whitespace-nowrap text-xs ${textMuted(theme)}`}>{formatDateTime(r.createTime)}</td>
-                            <td className={tableCell()}>
-                              <div className="inline-flex flex-wrap items-center justify-end gap-2">
-                                <button type="button" className={mgmtTableActionGhost(theme)} onClick={() => openQuotaEdit(r)}>编辑</button>
-                                <button
-                                  type="button"
-                                  className={mgmtTableActionDanger}
-                                  onClick={async () => { if (!confirm(`确定删除配额「${r.targetName}」？`)) return; try { await quotaService.deleteQuota(r.id); showMessage('已删除', 'success'); await fetchQuotas(); } catch { showMessage('删除失败', 'error'); } }}
-                                >
-                                  删除
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                <MgmtDataTable<QuotaItem>
+                  theme={theme}
+                  surface="plain"
+                  minWidth="860px"
+                  columns={quotaColumns}
+                  rows={filteredQuotas}
+                  getRowKey={(r) => r.id}
+                />
               </BentoCard>
             </div>
           )}
@@ -372,43 +469,14 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
                 </button>
               </div>
               <BentoCard theme={theme} padding="sm" className="overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm min-w-[820px]">
-                    <thead>
-                      <tr>
-                        {['规则名称', '目标', '请求/分', '请求/时', '状态', '操作'].map((h) => (
-                          <th key={h} className={tableHeadCell(theme)}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredRateLimits.map((r, i) => (
-                        <tr key={r.id} className={tableBodyRow(theme, i)}>
-                          <td className={`${tableCell()} font-medium ${textPrimary(theme)}`}>{r.name}</td>
-                          <td className={`${tableCell()} ${textSecondary(theme)}`}>{r.targetName}</td>
-                          <td className={`${tableCell()} font-mono text-center ${textSecondary(theme)}`}>{r.maxRequestsPerMin}</td>
-                          <td className={`${tableCell()} font-mono text-center ${textMuted(theme)}`}>{r.maxRequestsPerHour}</td>
-                          <td className={tableCell()}>
-                            <button
-                              type="button"
-                              onClick={() => toggleRL(r.id)}
-                              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${r.enabled ? 'bg-neutral-900' : isDark ? 'bg-white/20' : 'bg-slate-300'}`}
-                              role="switch"
-                              aria-checked={r.enabled}
-                            >
-                              <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${r.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
-                            </button>
-                          </td>
-                          <td className={tableCell()}>
-                            <button type="button" className={mgmtTableActionDanger} onClick={() => setDeleteRlId(r.id)}>
-                              删除
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <MgmtDataTable<RateLimitItem>
+                  theme={theme}
+                  surface="plain"
+                  minWidth="820px"
+                  columns={rateLimitColumns}
+                  rows={filteredRateLimits}
+                  getRowKey={(r) => r.id}
+                />
               </BentoCard>
             </div>
           )}

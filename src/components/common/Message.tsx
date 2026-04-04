@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, createContext, useContext, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { CheckCircle, AlertCircle, Info, X, AlertTriangle } from 'lucide-react';
 import { Theme } from '../../types';
 
@@ -34,6 +34,7 @@ interface MessageProviderProps {
 export const MessageProvider: React.FC<MessageProviderProps> = ({ children, theme }) => {
   const [messages, setMessages] = useState<MessageItem[]>([]);
   const lastShownAtRef = useRef<Map<string, number>>(new Map());
+  const reduceMotion = useReducedMotion();
 
   const showMessage = useCallback((content: string, type: MessageType = 'info', duration = 3000) => {
     const now = Date.now();
@@ -75,11 +76,16 @@ export const MessageProvider: React.FC<MessageProviderProps> = ({ children, them
           {messages.map((msg) => (
             <motion.div
               key={msg.id}
-              layout
-              initial={{ opacity: 0, y: -20, scale: 0.9 }}
+              layout={!reduceMotion}
+              initial={reduceMotion ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: -20, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.15 } }}
-              className={`pointer-events-auto flex items-center gap-3 px-4 py-2.5 rounded-xl border shadow-2xl min-w-[240px] max-w-md ${
+              exit={
+                reduceMotion
+                  ? { opacity: 0, transition: { duration: 0 } }
+                  : { opacity: 0, scale: 0.9, transition: { duration: 0.15 } }
+              }
+              transition={reduceMotion ? { duration: 0 } : undefined}
+              className={`pointer-events-auto flex items-center gap-3 px-4 py-2.5 rounded-xl border shadow-2xl min-w-[240px] max-w-md motion-reduce:transition-none ${
                 theme === 'light'
                   ? 'bg-white border-slate-200 text-slate-700'
                   : 'bg-lantu-card border-white/10 text-slate-200'

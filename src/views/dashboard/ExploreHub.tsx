@@ -21,6 +21,8 @@ import { EChartCard } from '../../components/charts/EChartCard';
 import { baseAxis, baseGrid, baseTooltip, chartColors } from '../../components/charts/echartsTheme';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
+import { useUserRole, canAccessAdminView } from '../../context/UserRoleContext';
+import { useMessage } from '../../components/common/Message';
 
 interface ExploreHubProps { theme: Theme; fontSize: FontSize; }
 
@@ -66,17 +68,28 @@ const Card: React.FC<{ children: React.ReactNode; className?: string; isDark?: b
   </div>
 );
 
-const SectionTitle: React.FC<{ title: string; action?: string; icon?: React.ComponentType<{ size?: number; className?: string }>; isDark?: boolean }> = ({ title, action, icon: Icon, isDark = false }) => (
-  <div className="flex items-center justify-between mb-6">
-    <div className="flex items-center gap-2">
-      {Icon && <Icon className={isDark ? 'text-slate-300' : 'text-slate-800'} size={20} />}
-      <h2 className={`text-xl font-bold tracking-tight ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{title}</h2>
+const sectionActionBtn = (isDark: boolean) =>
+  `text-sm font-medium inline-flex items-center gap-1 rounded-lg px-2 py-1 -mr-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
+    isDark
+      ? 'text-slate-400 hover:text-slate-100 focus-visible:ring-sky-400/50 focus-visible:ring-offset-lantu-card'
+      : 'text-slate-500 hover:text-slate-900 focus-visible:ring-neutral-900/25 focus-visible:ring-offset-white'
+  }`;
+
+const SectionTitle: React.FC<{
+  title: string;
+  action?: string;
+  onAction?: () => void;
+  icon?: React.ComponentType<{ size?: number; className?: string }>;
+  isDark?: boolean;
+}> = ({ title, action, onAction, icon: Icon, isDark = false }) => (
+  <div className="flex items-center justify-between gap-3 mb-6">
+    <div className="flex items-center gap-2 min-w-0">
+      {Icon && <Icon className={`shrink-0 ${isDark ? 'text-slate-300' : 'text-slate-800'}`} size={20} />}
+      <h2 className={`text-xl font-bold tracking-tight truncate ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{title}</h2>
     </div>
-    {action && (
-      <button className={`text-sm font-medium flex items-center gap-1 transition-colors ${
-        isDark ? 'text-slate-400 hover:text-slate-100' : 'text-slate-500 hover:text-black'
-      }`}>
-        {action} <ChevronRight size={16} />
+    {action && onAction && (
+      <button type="button" onClick={onAction} className={`shrink-0 ${sectionActionBtn(isDark)}`}>
+        {action} <ChevronRight size={16} className="shrink-0 opacity-70" aria-hidden />
       </button>
     )}
   </div>
@@ -141,7 +154,13 @@ const HubStatCard: React.FC<{
 
   if (clickable) {
     return (
-      <button type="button" onClick={onClick} className={`${shell} cursor-pointer text-left`}>
+      <button
+        type="button"
+        onClick={onClick}
+        className={`${shell} cursor-pointer text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60 focus-visible:ring-offset-2 ${
+          isDark ? 'focus-visible:ring-offset-lantu-card' : 'focus-visible:ring-offset-white'
+        }`}
+      >
         {body}
       </button>
     );
@@ -218,6 +237,8 @@ const HeroCodeTerminal: React.FC = () => {
 
 export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
   const navigate = useNavigate();
+  const { platformRole } = useUserRole();
+  const { showMessage } = useMessage();
   const isDark = theme === 'dark';
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<Error | null>(null);
@@ -394,7 +415,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
                 <button
                   type="button"
                   onClick={() => navigate(buildPath('user', 'resource-center'))}
-                  className="group mb-6 inline-flex max-w-full items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.07] px-4 py-2.5 text-left shadow-lg backdrop-blur-md transition-colors hover:bg-white/[0.1]"
+                  className="group mb-6 inline-flex max-w-full items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.07] px-4 py-2.5 text-left shadow-lg backdrop-blur-md transition-colors hover:bg-white/[0.1] focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/55 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050505]"
                 >
                   <Sparkles className="h-4 w-4 shrink-0 text-sky-400" strokeWidth={2} aria-hidden />
                   <span className="text-sm font-medium text-white">Nexus Pro 2.0 现已发布</span>
@@ -417,14 +438,14 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
                   <button
                     type="button"
                     onClick={() => navigate(buildPath('user', 'resource-center'))}
-                    className="bg-white text-black px-8 py-4 rounded-lg text-sm font-bold hover:bg-gray-200 transition-all flex items-center justify-center gap-2 w-full sm:w-auto"
+                    className="bg-white text-black px-8 py-4 rounded-xl text-sm font-bold hover:bg-neutral-100 active:scale-[0.98] transition-all flex items-center justify-center gap-2 w-full sm:w-auto shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050505]"
                   >
-                    开始发布 <ArrowRight size={16} />
+                    开始发布 <ArrowRight size={16} aria-hidden />
                   </button>
                   <button
                     type="button"
                     onClick={() => navigate(buildPath('user', 'api-docs'))}
-                    className="text-white/40 text-sm font-medium hover:text-white transition-colors border-b border-transparent hover:border-white/40 pb-0.5"
+                    className="text-white/40 text-sm font-medium hover:text-white transition-colors rounded-lg px-1 py-0.5 -ml-1 border border-transparent hover:border-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050505]"
                   >
                     查看文档
                   </button>
@@ -459,15 +480,23 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
             <div className="lg:col-span-8 space-y-10">
               <div>
-                <SectionTitle title="校园热门资源" icon={Flame} action="浏览全部" isDark={isDark} />
+                <SectionTitle
+                  title="校园热门资源"
+                  icon={Flame}
+                  action="浏览全部"
+                  onAction={() => navigate(buildUserResourceMarketUrl('agent'))}
+                  isDark={isDark}
+                />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   {hotResources.map((res, idx) => (
                     <button
                       key={`${res.resourceType}-${res.resourceId}`}
                       type="button"
                       onClick={() => navigateToResource(res)}
-                      className={`rounded-2xl border px-6 pt-6 pb-8 flex flex-col h-full text-left cursor-pointer ${
-                        isDark ? `bg-lantu-card ${HUB_STAT_BASE_DARK}` : `bg-white ${HUB_STAT_BASE_LIGHT}`
+                      className={`rounded-2xl border px-6 pt-6 pb-8 flex flex-col h-full text-left cursor-pointer transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50 focus-visible:ring-offset-2 ${
+                        isDark
+                          ? `bg-lantu-card ${HUB_STAT_BASE_DARK} focus-visible:ring-offset-lantu-card hover:border-white/18 hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)]`
+                          : `bg-white ${HUB_STAT_BASE_LIGHT} focus-visible:ring-offset-white hover:border-slate-200/90 hover:shadow-[0_12px_32px_-8px_rgba(15,23,42,0.1)]`
                       }`}
                     >
                       <div className="flex items-start justify-between mb-4">
@@ -509,7 +538,19 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
               </div>
 
               <div>
-                <SectionTitle title="平台公告" icon={Megaphone} action="历史公告" isDark={isDark} />
+                <SectionTitle
+                  title="平台公告"
+                  icon={Megaphone}
+                  action="历史公告"
+                  onAction={() => {
+                    if (canAccessAdminView(platformRole)) {
+                      navigate(buildPath('admin', 'announcements'));
+                    } else {
+                      showMessage('完整公告列表在管理后台，您可关注本页最新公告。', 'info');
+                    }
+                  }}
+                  isDark={isDark}
+                />
                 <Card className="overflow-hidden" isDark={isDark}>
                   <div className={`divide-y ${isDark ? 'divide-white/10' : 'divide-slate-100'}`}>
                     {announcements.map((item) => (
@@ -517,7 +558,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
                         key={item.id}
                         type="button"
                         onClick={() => setDetailAnnouncement(item)}
-                        className={`w-full p-6 flex gap-5 transition-colors cursor-pointer group text-left ${
+                        className={`w-full p-6 flex gap-5 transition-colors cursor-pointer group text-left rounded-none focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-500/40 ${
                           isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-slate-50/50'
                         }`}
                       >
@@ -651,8 +692,12 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
       >
         {detailAnnouncement && (
           <div className="space-y-3">
-            <div className="text-xs text-slate-500">
-              <span className="px-2 py-0.5 rounded mr-2 bg-slate-100 text-slate-700">
+            <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+              <span
+                className={`px-2 py-0.5 rounded-md mr-2 font-medium ${
+                  isDark ? 'bg-white/10 text-slate-200' : 'bg-slate-100 text-slate-700'
+                }`}
+              >
                 {ANNOUNCEMENT_LABEL[detailAnnouncement.type] ?? detailAnnouncement.type}
               </span>
               发布时间：{formatDateTime(detailAnnouncement.createdAt)}

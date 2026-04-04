@@ -195,8 +195,11 @@ export const LoginPage: React.FC = () => {
           </div>
 
           {serverError && (
-            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-sm text-rose-600 flex items-start gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5 shrink-0" />
+            <div
+              role="alert"
+              className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-sm text-rose-600 flex items-start gap-2"
+            >
+              <div className="w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5 shrink-0" aria-hidden />
               {serverError}
             </div>
           )}
@@ -238,8 +241,8 @@ export const LoginPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors"
-                    tabIndex={-1}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg text-neutral-400 hover:text-neutral-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/20"
+                    aria-label={showPassword ? '隐藏密码' : '显示密码'}
                   >
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -267,9 +270,11 @@ export const LoginPage: React.FC = () => {
                       className={`flex-1 px-4 py-2.5 bg-neutral-50/50 border border-neutral-200 rounded-xl text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-4 focus:ring-neutral-900/5 focus:border-neutral-900 focus:bg-white transition-all duration-300 ${errors.captchaCode ? inputErrorCls : ''}`}
                       {...register('captchaCode')}
                     />
-                    <div
+                    <button
+                      type="button"
                       onClick={refreshCaptcha}
-                      className="w-[124px] shrink-0 bg-neutral-100/80 border border-neutral-200 rounded-xl relative overflow-hidden group cursor-pointer flex items-center justify-center"
+                      aria-label="刷新验证码"
+                      className="group w-[124px] shrink-0 bg-neutral-100/80 border border-neutral-200 rounded-xl relative overflow-hidden cursor-pointer flex items-center justify-center p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/25 focus-visible:ring-offset-2"
                     >
                       {captchaImage ? (
                         <img src={captchaImage} alt="验证码" className="block h-full w-full" />
@@ -278,10 +283,10 @@ export const LoginPage: React.FC = () => {
                           ····
                         </span>
                       )}
-                      <div className="absolute inset-0 bg-neutral-900/5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all backdrop-blur-[2px]">
-                        <RefreshCcw className="w-4 h-4 text-neutral-700" />
+                      <div className="absolute inset-0 bg-neutral-900/5 flex items-center justify-center opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-all backdrop-blur-[2px]">
+                        <RefreshCcw className="w-4 h-4 text-neutral-700" aria-hidden />
                       </div>
-                    </div>
+                    </button>
                   </div>
                 )}
                 {errors.captchaCode && <p className="text-xs text-rose-500 mt-1">{errors.captchaCode.message}</p>}
@@ -303,7 +308,7 @@ export const LoginPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="group relative w-full py-2.5 px-4 bg-neutral-900 hover:bg-neutral-800 disabled:bg-neutral-400 text-white rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all duration-300 overflow-hidden"
+                className="group relative w-full py-2.5 px-4 bg-neutral-900 hover:bg-neutral-800 disabled:bg-neutral-400 text-white rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all duration-300 overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/35 focus-visible:ring-offset-2"
               >
                 <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
                 <span className="relative flex items-center gap-2">
@@ -335,8 +340,8 @@ export const LoginPage: React.FC = () => {
           <div className="flex items-center justify-between text-xs text-neutral-400 pt-8 border-t border-neutral-100 [@media(min-width:1024px)_and_(max-height:800px)]:lg:pt-4 [@media(min-width:1024px)_and_(max-height:680px)]:lg:pt-3 [@media(min-width:1024px)_and_(max-height:800px)]:lg:text-[11px]">
             <span>&copy; 2026 Nexus AI</span>
             <div className="flex gap-4">
-              <a href="#" className="hover:text-neutral-900 transition-colors">Privacy</a>
-              <a href="#" className="hover:text-neutral-900 transition-colors">Terms</a>
+              <a href="#" className="rounded-md hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/25 transition-colors">Privacy</a>
+              <a href="#" className="rounded-md hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/25 transition-colors">Terms</a>
             </div>
           </div>
         </div>

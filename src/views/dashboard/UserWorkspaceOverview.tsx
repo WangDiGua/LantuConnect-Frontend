@@ -208,8 +208,15 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
               className={`${bentoCard(theme)} p-5`}>
               <div className="flex items-center justify-between mb-4">
                 <h2 className={`font-bold text-sm ${tp}`}>我的资源</h2>
-                <button type="button" onClick={() => navigate(buildPath('user', 'resource-center'))}
-                  className={`text-xs font-medium ${ts} hover:text-neutral-800 transition-colors`}>
+                <button
+                  type="button"
+                  onClick={() => navigate(buildPath('user', 'resource-center'))}
+                  className={`text-xs font-medium ${ts} transition-colors rounded-lg px-2 py-1 -mr-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
+                    isDark
+                      ? 'hover:text-neutral-200 focus-visible:ring-sky-400/45 focus-visible:ring-offset-lantu-card'
+                      : 'hover:text-neutral-800 focus-visible:ring-neutral-900/20 focus-visible:ring-offset-white'
+                  }`}
+                >
                   管理 →
                 </button>
               </div>

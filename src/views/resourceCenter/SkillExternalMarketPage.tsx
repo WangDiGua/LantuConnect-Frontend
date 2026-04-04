@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, ExternalLink, RefreshCw, Settings2, List } from 'lucide-react';
+import { ArrowLeft, Download, ExternalLink, RefreshCw, Settings2, List, Store } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { SkillExternalCatalogItemVO } from '../../types/dto/resource-center';
 import { resourceCenterService } from '../../api/services/resource-center.service';
@@ -12,12 +12,11 @@ import {
   bentoCard,
   btnGhost,
   btnPrimary,
-  canvasBodyBg,
-  mainScrollCompositorClass,
   textMuted,
   textPrimary,
   textSecondary,
 } from '../../utils/uiClasses';
+import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { nullDisplay } from '../../utils/errorHandler';
 import { SkillExternalMarketSettingsForm } from './SkillExternalMarketSettingsForm';
 
@@ -30,6 +29,8 @@ interface Props {
 type MarketTab = 'list' | 'settings';
 
 const PAGE_SIZE = 20;
+const PAGE_DESC =
+  '列表数据由管理员在「市场配置」的生效方式中指定（合并多源 / 仅 SkillHub / 仅 SkillsMP / 仅镜像），并在各标签页维护对应站点参数。支持关键字与分页。导入 zip 有结构校验。';
 
 export const SkillExternalMarketPage: React.FC<Props> = ({ theme, fontSize, showMessage }) => {
   const isDark = theme === 'dark';
@@ -93,64 +94,72 @@ export const SkillExternalMarketPage: React.FC<Props> = ({ theme, fontSize, show
 
   const densityClass = fontSize === 'small' ? 'text-xs' : fontSize === 'large' ? 'text-base' : 'text-sm';
 
-  return (
-    <div className={`flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${canvasBodyBg(theme)} ${densityClass}`}>
-      <div className="px-3 py-4 sm:px-4 lg:px-5">
-        <div className={`${bentoCard(theme)} overflow-hidden`}>
-          <div className={`flex flex-wrap items-center justify-between gap-3 border-b px-6 py-4 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-            <div className="flex flex-wrap items-center gap-2">
-              <button type="button" onClick={() => navigate(`${buildPath('admin', 'resource-catalog')}?type=skill`)} className={btnGhost(theme)}>
-                <ArrowLeft size={15} />
-                返回资源中心
-              </button>
-              <div>
-                <h2 className={`text-lg font-bold ${textPrimary(theme)}`}>技能在线市场</h2>
-                <p className={`mt-0.5 text-xs ${textMuted(theme)}`}>
-                  列表数据由管理员在「市场配置」的<strong>生效方式</strong>中指定（合并多源 / 仅 SkillHub / 仅 SkillsMP / 仅镜像），并在各标签页维护对应站点参数。支持关键字与分页。导入
-                  zip 有结构校验。
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <div className={`inline-flex rounded-xl border p-0.5 ${isDark ? 'border-white/[0.08] bg-white/[0.04]' : 'border-slate-200 bg-slate-50'}`}>
-                <button
-                  type="button"
-                  onClick={() => setTab('list')}
-                  className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                    tab === 'list'
-                      ? isDark
-                        ? 'bg-white/10 text-white'
-                        : 'bg-white text-slate-900 shadow-sm'
-                      : `${textMuted(theme)} hover:opacity-90`
-                  }`}
-                >
-                  <List size={15} />
-                  市场列表
-                </button>
-                <button
-                  type="button"
-                  onClick={() => selectMarketTab('settings')}
-                  className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                    tab === 'settings'
-                      ? isDark
-                        ? 'bg-white/10 text-white'
-                        : 'bg-white text-slate-900 shadow-sm'
-                      : `${textMuted(theme)} hover:opacity-90`
-                  }`}
-                >
-                  <Settings2 size={15} />
-                  市场配置
-                </button>
-              </div>
-              {tab === 'list' ? (
-                <button type="button" onClick={() => void load()} className={btnGhost(theme)} disabled={loading}>
-                  <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
-                  刷新
-                </button>
-              ) : null}
-            </div>
-          </div>
+  const toolbar = (
+    <div className={`flex flex-col gap-3 w-full lg:flex-row lg:items-center lg:justify-between ${densityClass}`}>
+      <button
+        type="button"
+        onClick={() => navigate(`${buildPath('admin', 'resource-catalog')}?type=skill`)}
+        className={`${btnGhost(theme)} self-start`}
+        aria-label="返回统一资源中心"
+      >
+        <ArrowLeft size={15} aria-hidden />
+        返回资源中心
+      </button>
+      <div className="flex flex-wrap items-center gap-2">
+        <div className={`inline-flex rounded-xl border p-0.5 ${isDark ? 'border-white/[0.08] bg-white/[0.04]' : 'border-slate-200 bg-slate-50'}`}>
+          <button
+            type="button"
+            onClick={() => setTab('list')}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors motion-reduce:transition-none ${
+              tab === 'list'
+                ? isDark
+                  ? 'bg-white/10 text-white'
+                  : 'bg-white text-slate-900 shadow-sm'
+                : `${textMuted(theme)} hover:opacity-90`
+            }`}
+            aria-pressed={tab === 'list'}
+          >
+            <List size={15} aria-hidden />
+            市场列表
+          </button>
+          <button
+            type="button"
+            onClick={() => selectMarketTab('settings')}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors motion-reduce:transition-none ${
+              tab === 'settings'
+                ? isDark
+                  ? 'bg-white/10 text-white'
+                  : 'bg-white text-slate-900 shadow-sm'
+                : `${textMuted(theme)} hover:opacity-90`
+            }`}
+            aria-pressed={tab === 'settings'}
+          >
+            <Settings2 size={15} aria-hidden />
+            市场配置
+          </button>
+        </div>
+        {tab === 'list' ? (
+          <button type="button" onClick={() => void load()} className={btnGhost(theme)} disabled={loading} aria-label="刷新市场列表">
+            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} aria-hidden />
+            刷新
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
 
+  return (
+    <MgmtPageShell
+      theme={theme}
+      fontSize={fontSize}
+      titleIcon={Store}
+      breadcrumbSegments={['资源目录', '技能在线市场']}
+      description={PAGE_DESC}
+      toolbar={toolbar}
+      contentScroll="document"
+    >
+      <div className={`px-4 sm:px-6 pb-8 ${densityClass}`}>
+        <div className={`${bentoCard(theme)} overflow-hidden`}>
           <div className="p-3">
             {tab === 'settings' ? (
               <SkillExternalMarketSettingsForm
@@ -261,6 +270,6 @@ export const SkillExternalMarketPage: React.FC<Props> = ({ theme, fontSize, show
           </div>
         </div>
       </div>
-    </div>
+    </MgmtPageShell>
   );
 };

@@ -6,15 +6,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { Theme, FontSize } from '../../types';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
-import { btnPrimary, btnSecondary, canvasBodyBg, mainScrollCompositorClass, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import { btnPrimary, btnSecondary, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
 import { Modal } from '../../components/common/Modal';
 import { BentoCard } from '../../components/common/BentoCard';
 import { PortalDropdown } from '../../components/common/PortalDropdown';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { tagService } from '../../api/services/tag.service';
-import { useLayoutChrome } from '../../context/LayoutChromeContext';
-import { PageTitleTagline } from '../../components/common/PageTitleTagline';
+import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import type { TagItem as TagDTO } from '../../types/dto/tag';
 
 interface Props {
@@ -65,8 +64,9 @@ function toLocalTag(dto: TagDTO): LocalTag {
   };
 }
 
+const PAGE_DESC = '管理资源标签，方便分类检索与推荐';
+
 export const TagManagementPage: React.FC<Props> = ({ theme, fontSize, showMessage }) => {
-  const { chromePageTitle } = useLayoutChrome();
   const isDark = theme === 'dark';
   const inputCls = `${nativeInputClass(theme)} ${INPUT_FOCUS}`;
   const tagCategoryOptions = TAG_CATEGORIES.map((c) => ({ value: c, label: c }));
@@ -158,29 +158,32 @@ export const TagManagementPage: React.FC<Props> = ({ theme, fontSize, showMessag
     }
   };
 
-  return (
-    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${canvasBodyBg(theme)}`}>
-      <div className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar px-2 sm:px-3 lg:px-4 py-4 sm:py-6 ${mainScrollCompositorClass}`}>
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className={`shrink-0 rounded-xl p-2.5 ${isDark ? 'bg-white/10' : 'bg-white border border-slate-200/40'}`}>
-              <Tag size={22} className="text-neutral-800" />
-            </div>
-            <PageTitleTagline subtitleOnly theme={theme} title={chromePageTitle || '标签管理'} tagline="管理资源标签，方便分类检索与推荐" />
-          </div>
-          <div className="flex items-center gap-2">
-            <button type="button" onClick={() => setShowBatchAdd(true)} className={`${btnSecondary(theme)} gap-1.5`}>
-              <FileText size={14} />
-              批量管理
-            </button>
-            <button type="button" onClick={() => setShowAddInput(true)} className={`${btnPrimary} gap-1.5`}>
-              <Plus size={14} />
-              新增标签
-            </button>
-          </div>
-        </div>
+  const toolbar = (
+    <div className="flex flex-wrap items-center justify-end gap-2 w-full">
+      <button type="button" onClick={() => setShowBatchAdd(true)} className={`${btnSecondary(theme)} gap-1.5`} aria-label="批量管理标签">
+        <FileText size={14} aria-hidden />
+        批量管理
+      </button>
+      <button type="button" onClick={() => setShowAddInput(true)} className={`${btnPrimary} gap-1.5`} aria-label="新增标签">
+        <Plus size={14} aria-hidden />
+        新增标签
+      </button>
+    </div>
+  );
 
-        <BentoCard theme={theme} padding="sm" className="mb-5">
+  return (
+    <>
+      <MgmtPageShell
+        theme={theme}
+        fontSize={fontSize}
+        titleIcon={Tag}
+        breadcrumbSegments={['系统配置', '标签管理']}
+        description={PAGE_DESC}
+        toolbar={toolbar}
+        contentScroll="document"
+      >
+        <div className="px-4 sm:px-6 pb-8 space-y-5">
+        <BentoCard theme={theme} padding="sm">
           <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center">
             <div className="relative w-full min-w-[8rem] sm:max-w-[16rem] shrink-0">
               <Search size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${textMuted(theme)}`} />
@@ -303,7 +306,8 @@ export const TagManagementPage: React.FC<Props> = ({ theme, fontSize, showMessag
             </div>
           )}
         </BentoCard>
-      </div>
+        </div>
+      </MgmtPageShell>
 
       <Modal open={showBatchAdd} onClose={() => setShowBatchAdd(false)} title="批量添加标签" theme={theme} size="md" footer={
         <>
@@ -331,6 +335,6 @@ export const TagManagementPage: React.FC<Props> = ({ theme, fontSize, showMessag
           </div>
         </div>
       </Modal>
-    </div>
+    </>
   );
 };

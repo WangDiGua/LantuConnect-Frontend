@@ -9,20 +9,19 @@ import { BentoCard } from '../../components/common/BentoCard';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import {
-  canvasBodyBg, textPrimary, textSecondary, textMuted,
+  textPrimary, textSecondary, textMuted,
   tableHeadCell, tableBodyRow, tableCell,
 } from '../../utils/uiClasses';
-import { useLayoutChrome } from '../../context/LayoutChromeContext';
-import { PageTitleTagline } from '../../components/common/PageTitleTagline';
+import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
+
+const PAGE_DESC = '个人使用数据概览与趋势分析';
 
 interface UsageStatsPageProps {
   theme: Theme;
   fontSize: FontSize;
 }
 
-export const UsageStatsPage: React.FC<UsageStatsPageProps> = ({ theme }) => {
-  const { chromePageTitle } = useLayoutChrome();
-  const isDark = theme === 'dark';
+export const UsageStatsPage: React.FC<UsageStatsPageProps> = ({ theme, fontSize }) => {
   const [stats, setStats] = useState<UserUsageStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<Error | null>(null);
@@ -45,7 +44,6 @@ export const UsageStatsPage: React.FC<UsageStatsPageProps> = ({ theme }) => {
         return;
       }
 
-      // 回退：当后端统计聚合未刷新时，使用记录明细做前端实时聚合，避免页面长期全 0。
       const usage = await userActivityService.getUsageRecords({ page: 1, pageSize: 200, range: '30d' });
       const rows = usage.list ?? [];
       const now = new Date();
@@ -93,73 +91,52 @@ export const UsageStatsPage: React.FC<UsageStatsPageProps> = ({ theme }) => {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  if (loading) {
-    return (
-      <div className={`flex-1 ${canvasBodyBg(theme)}`}>
-        <PageSkeleton type="chart" />
-      </div>
-    );
-  }
-
-  if (loadError) {
-    return (
-      <div className={`flex-1 flex flex-col min-h-0 ${canvasBodyBg(theme)}`}>
-        <PageError error={loadError} onRetry={fetchData} retryLabel="重试加载用量统计" />
-      </div>
-    );
-  }
-
-  if (!stats) {
-    return (
-      <div className={`flex-1 flex flex-col items-center justify-center ${canvasBodyBg(theme)}`}>
-        <p className={`text-sm ${textMuted(theme)}`}>暂无统计数据</p>
-      </div>
-    );
-  }
-
   const n = (v: unknown) => {
     const x = Number(v);
     return Number.isFinite(x) ? x : 0;
   };
-  const monthCalls = n(stats.monthCalls);
-  const weekCalls = n(stats.weekCalls);
-  const todayCalls = n(stats.todayCalls);
-  const totalCalls = n(stats.totalCalls);
-  const tokensUsed = n(stats.tokensUsed);
-  const favoriteCount = n(stats.favoriteCount);
 
-  const kpiData: Array<{ label: string; value: string; icon: React.ReactNode; glow: 'indigo' | 'emerald' | 'amber' | 'rose' }> = [
-    { label: '本月调用次数', value: monthCalls.toLocaleString(), icon: <Zap size={16} />, glow: 'indigo' },
-    { label: 'Token 消耗', value: tokensUsed >= 1000 ? `${(tokensUsed / 1000).toFixed(1)}K` : String(tokensUsed), icon: <Coins size={16} />, glow: 'amber' },
-    { label: '本周调用', value: weekCalls.toLocaleString(), icon: <Bot size={16} />, glow: 'emerald' },
-    { label: '收藏数', value: String(favoriteCount), icon: <Star size={16} />, glow: 'rose' },
-  ];
+  const body = (() => {
+    if (loading) {
+      return <PageSkeleton type="chart" />;
+    }
+    if (loadError) {
+      return <PageError error={loadError} onRetry={fetchData} retryLabel="重试加载用量统计" />;
+    }
+    if (!stats) {
+      return (
+        <div className={`py-16 text-center text-sm ${textMuted(theme)}`}>暂无统计数据</div>
+      );
+    }
 
-  const dailyBars = (stats.recentDays ?? []).map((b) => ({
-    date: String(b?.date ?? ''),
-    calls: n(b?.calls),
-  }));
-  const maxBar = Math.max(...dailyBars.map((b) => b.calls), 1);
+    const monthCalls = n(stats.monthCalls);
+    const weekCalls = n(stats.weekCalls);
+    const todayCalls = n(stats.todayCalls);
+    const totalCalls = n(stats.totalCalls);
+    const tokensUsed = n(stats.tokensUsed);
+    const favoriteCount = n(stats.favoriteCount);
 
-  return (
-    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-colors duration-300 ${canvasBodyBg(theme)}`}>
-      <div className="w-full flex-1 min-h-0 overflow-y-auto px-2 sm:px-3 lg:px-4 py-2 sm:py-3 space-y-4">
-        {/* Header */}
-        <div className="flex min-w-0 items-center gap-3">
-          <div className={`shrink-0 rounded-xl p-2 ${isDark ? 'bg-neutral-900/10' : 'bg-neutral-100'}`}>
-            <BarChart3 size={20} className={isDark ? 'text-neutral-300' : 'text-neutral-900'} />
-          </div>
-          <PageTitleTagline subtitleOnly theme={theme} title={chromePageTitle || '用量统计'} tagline="个人使用数据概览与趋势分析" />
-        </div>
+    const kpiData: Array<{ label: string; value: string; icon: React.ReactNode; glow: 'indigo' | 'emerald' | 'amber' | 'rose' }> = [
+      { label: '本月调用次数', value: monthCalls.toLocaleString(), icon: <Zap size={16} aria-hidden />, glow: 'indigo' },
+      { label: 'Token 消耗', value: tokensUsed >= 1000 ? `${(tokensUsed / 1000).toFixed(1)}K` : String(tokensUsed), icon: <Coins size={16} aria-hidden />, glow: 'amber' },
+      { label: '本周调用', value: weekCalls.toLocaleString(), icon: <Bot size={16} aria-hidden />, glow: 'emerald' },
+      { label: '收藏数', value: String(favoriteCount), icon: <Star size={16} aria-hidden />, glow: 'rose' },
+    ];
 
-        {/* KPI Cards */}
+    const dailyBars = (stats.recentDays ?? []).map((b) => ({
+      date: String(b?.date ?? ''),
+      calls: n(b?.calls),
+    }));
+    const maxBar = Math.max(...dailyBars.map((b) => b.calls), 1);
+
+    return (
+      <div className="space-y-4">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {kpiData.map((kpi, i) => (
             <KpiCard key={kpi.label} theme={theme} label={kpi.label} value={kpi.value} icon={kpi.icon} glow={kpi.glow} delay={i * 0.06} />
           ))}
         </div>
 
-        {/* Trend chart */}
         {dailyBars.length > 0 && (
           <BentoCard theme={theme}>
             <h3 className={`text-sm font-bold mb-4 ${textPrimary(theme)}`}>调用趋势（近期）</h3>
@@ -183,7 +160,6 @@ export const UsageStatsPage: React.FC<UsageStatsPageProps> = ({ theme }) => {
           </BentoCard>
         )}
 
-        {/* Summary table */}
         <BentoCard theme={theme} padding="sm">
           <div className="px-4 pt-4 pb-2">
             <h3 className={`text-sm font-bold ${textPrimary(theme)}`}>调用汇总</h3>
@@ -213,6 +189,19 @@ export const UsageStatsPage: React.FC<UsageStatsPageProps> = ({ theme }) => {
           </div>
         </BentoCard>
       </div>
-    </div>
+    );
+  })();
+
+  return (
+    <MgmtPageShell
+      theme={theme}
+      fontSize={fontSize}
+      titleIcon={BarChart3}
+      breadcrumbSegments={['工作台', '用量统计'] as const}
+      description={PAGE_DESC}
+      contentScroll="document"
+    >
+      <div className="px-4 sm:px-6 pb-8">{body}</div>
+    </MgmtPageShell>
   );
 };

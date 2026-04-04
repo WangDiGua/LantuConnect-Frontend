@@ -9,11 +9,10 @@ import type { ConsoleRole } from '../../constants/consoleRoutes';
 import { buildPath, buildUserResourceMarketUrl } from '../../constants/consoleRoutes';
 import { BentoCard } from '../../components/common/BentoCard';
 import {
-  canvasBodyBg, glassSidebar, textPrimary, textSecondary, textMuted,
+  glassSidebar, textPrimary, textSecondary, textMuted,
   btnSecondary,
 } from '../../utils/uiClasses';
-import { useLayoutChrome } from '../../context/LayoutChromeContext';
-import { PageTitleTagline } from '../../components/common/PageTitleTagline';
+import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { env } from '../../config/env';
 
 /** 后端 servlet context-path，与文档中的完整 URL 展示一致 */
@@ -107,8 +106,7 @@ function proseH3(theme: Theme, children: React.ReactNode) {
 
 export interface ApiDocsPageProps { theme: Theme; fontSize: FontSize; }
 
-export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme }) => {
-  const { chromePageTitle } = useLayoutChrome();
+export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const consoleRole: ConsoleRole = pathname.startsWith('/admin') ? 'admin' : 'user';
@@ -140,27 +138,24 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme }) => {
     </button>
   );
 
-  return (
-    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-colors duration-300 ${canvasBodyBg(theme)}`}>
-      <div className="w-full flex-1 min-h-0 flex flex-col px-2 sm:px-3 lg:px-4 py-2 sm:py-3">
-        <div className="mb-3 flex min-w-0 shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className={`shrink-0 rounded-xl p-2 ${isDark ? 'bg-emerald-500/15' : 'bg-emerald-50'}`}>
-              <BookOpen size={20} className={isDark ? 'text-emerald-400' : 'text-emerald-600'} />
-            </div>
-            <PageTitleTagline
-              subtitleOnly
-              theme={theme}
-              title={chromePageTitle || '开发者文档'}
-              tagline="从浏览资源到完成调用的使用指南 · 接口与示例见「接口参考」"
-            />
-          </div>
-          <div className={`flex shrink-0 rounded-xl p-1 ${isDark ? 'bg-white/[0.06]' : 'bg-slate-200/80'}`}>
-            {tabBtn('guide', '使用指南')}
-            {tabBtn('reference', '接口参考')}
-          </div>
-        </div>
+  const docsToolbar = (
+    <div className={`flex shrink-0 rounded-xl p-1 ${isDark ? 'bg-white/[0.06]' : 'bg-slate-200/80'}`}>
+      {tabBtn('guide', '使用指南')}
+      {tabBtn('reference', '接口参考')}
+    </div>
+  );
 
+  return (
+    <MgmtPageShell
+      theme={theme}
+      fontSize={fontSize}
+      titleIcon={BookOpen}
+      breadcrumbSegments={['开发者中心', '接入指南']}
+      description="从浏览资源到完成调用的使用指南 · 接口与示例见「接口参考」"
+      toolbar={docsToolbar}
+      contentScroll="document"
+    >
+      <div className="min-h-0 w-full flex flex-col px-4 sm:px-6 pb-8">
         {viewMode === 'guide' && (
           <div
             className={`flex-1 min-h-0 flex rounded-[24px] overflow-hidden border ${
@@ -487,6 +482,6 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme }) => {
           </>
         )}
       </div>
-    </div>
+    </MgmtPageShell>
   );
 };

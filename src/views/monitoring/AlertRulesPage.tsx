@@ -24,13 +24,12 @@ import type { AlertRule } from '../../types/dto/monitoring';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
 import {
-  canvasBodyBg, bentoCardHover, btnPrimary, btnSecondary, btnGhost,
+  bentoCardHover, btnPrimary, btnSecondary, btnGhost,
   mgmtTableActionDanger, mgmtTableActionGhost,
   textPrimary, textSecondary, textMuted,
 } from '../../utils/uiClasses';
 import { TOOLBAR_ROW_LIST, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
-import { useLayoutChrome } from '../../context/LayoutChromeContext';
-import { PageTitleTagline } from '../../components/common/PageTitleTagline';
+import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 
 interface Props {
   theme: Theme;
@@ -91,8 +90,10 @@ function ruleSummary(r: AlertRule) {
   return `${r.metric} ${op} ${r.threshold} → ${ch}`;
 }
 
-export const AlertRulesPage: React.FC<Props> = ({ theme, showMessage }) => {
-  const { chromePageTitle } = useLayoutChrome();
+const PAGE_DESC = '配置告警阈值与通知渠道';
+const BREADCRUMB = ['监控中心', '告警规则'] as const;
+
+export const AlertRulesPage: React.FC<Props> = ({ theme, fontSize, showMessage }) => {
   const isDark = theme === 'dark';
   const rulesQ = useAlertRules();
   const metricsQ = useAlertRuleMetrics();
@@ -211,113 +212,111 @@ export const AlertRulesPage: React.FC<Props> = ({ theme, showMessage }) => {
     );
   });
 
-  if (rulesQ.isLoading) {
-    return (
-      <div className={`flex-1 flex flex-col min-h-0 ${canvasBodyBg(theme)}`}>
-        <div className="p-4"><PageSkeleton type="form" /></div>
+  const toolbar = rules.length > 0 ? (
+    <div className={`${TOOLBAR_ROW_LIST} flex-col sm:flex-row justify-between min-w-0 gap-3 w-full sm:items-center`}>
+      <div className={`${TOOLBAR_ROW_LIST} min-w-0 flex-1`}>
+        <div className="relative min-w-[8rem] shrink-0 sm:max-w-[14rem]">
+          <Search className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${textMuted(theme)}`} size={16} aria-hidden />
+          <input
+            type="search"
+            value={ruleSearch}
+            onChange={(e) => setRuleSearch(e.target.value)}
+            placeholder="搜索规则名、指标…"
+            className={toolbarSearchInputClass(theme)}
+            aria-label="搜索告警规则"
+          />
+        </div>
+        <LantuSelect
+          theme={theme}
+          value={severityFilter}
+          onChange={setSeverityFilter}
+          options={SEVERITY_FILTER_OPTIONS}
+          placeholder="级别"
+          className="!w-36 shrink-0"
+          triggerClassName="w-full !min-w-0"
+        />
       </div>
-    );
-  }
+      <button type="button" onClick={() => { form.reset(); setShowCreateModal(true); }} className={`${btnPrimary} shrink-0 w-full sm:w-auto`} aria-label="添加告警规则">
+        <Plus size={15} aria-hidden />
+        添加规则
+      </button>
+    </div>
+  ) : (
+    <div className="flex justify-end w-full">
+      <button type="button" onClick={() => { form.reset(); setShowCreateModal(true); }} className={btnPrimary} aria-label="添加告警规则">
+        <Plus size={15} aria-hidden />
+        添加规则
+      </button>
+    </div>
+  );
 
-  if (rulesQ.isError) {
-    return (
-      <div className={`flex-1 flex flex-col min-h-0 ${canvasBodyBg(theme)}`}>
-        <PageError error={rulesQ.error as Error} onRetry={() => rulesQ.refetch()} />
-      </div>
-    );
-  }
+  const listBlock = rules.length === 0 ? (
+    <BentoCard theme={theme}>
+      <EmptyState title="暂无告警规则" description="创建规则后，将按阈值与渠道进行通知。" />
+    </BentoCard>
+  ) : filteredRules.length === 0 ? (
+    <BentoCard theme={theme}>
+      <EmptyState title="无匹配规则" description="请调整关键词或级别筛选。" />
+    </BentoCard>
+  ) : (
+    <AnimatedList className="space-y-2">
+      {filteredRules.map((r) => {
+        const sev = SEV_STYLE[r.severity] ?? SEV_STYLE.info;
+        return (
+          <motion.div
+            key={r.id}
+            className={`${bentoCardHover(theme)} p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4`}
+          >
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={`font-semibold ${textPrimary(theme)}`}>{r.name}</span>
+                <span className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${isDark ? sev.dark : sev.light}`}>
+                  {SEV_LABEL[r.severity] ?? r.severity}
+                </span>
+                <span className={`inline-flex shrink-0 items-center whitespace-nowrap text-xs px-1.5 py-0.5 rounded ${isDark ? 'bg-white/5 text-slate-500' : 'bg-slate-50 text-slate-400'}`}>
+                  {r.enabled ? '已启用' : '已停用'}
+                </span>
+              </div>
+              <div className={`text-xs mt-0.5 ${textMuted(theme)}`}>{ruleSummary(r)}</div>
+            </div>
+            <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
+              <button type="button" onClick={() => openEdit(r)} className={mgmtTableActionGhost(theme)}>
+                编辑
+              </button>
+              <button type="button" onClick={() => setDeleteTarget(r)} className={mgmtTableActionDanger}>
+                删除
+              </button>
+              <button type="button" onClick={() => setDryRunRule(r)} className={btnGhost(theme)}>
+                试跑
+              </button>
+            </div>
+          </motion.div>
+        );
+      })}
+    </AnimatedList>
+  );
+
+  const shellBody = rulesQ.isLoading ? (
+    <PageSkeleton type="form" />
+  ) : rulesQ.isError ? (
+    <PageError error={rulesQ.error as Error} onRetry={() => rulesQ.refetch()} />
+  ) : (
+    <div className="space-y-4">{listBlock}</div>
+  );
 
   return (
-    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-colors duration-300 ${canvasBodyBg(theme)}`}>
-      <div className="w-full flex-1 min-h-0 overflow-y-auto px-2 sm:px-3 lg:px-4 py-2 sm:py-3 space-y-4">
-        {/* Header */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className={`shrink-0 rounded-xl p-2 ${isDark ? 'bg-amber-500/15' : 'bg-amber-50'}`}>
-              <Bell size={20} className={isDark ? 'text-amber-400' : 'text-amber-600'} />
-            </div>
-            <PageTitleTagline subtitleOnly theme={theme} title={chromePageTitle || '告警规则'} tagline="配置告警阈值与通知渠道" />
-          </div>
-          <button type="button" onClick={() => { form.reset(); setShowCreateModal(true); }} className={`${btnPrimary} shrink-0 self-start sm:self-auto`}>
-            <Plus size={15} />
-            添加规则
-          </button>
-        </div>
-
-        {rules.length > 0 && (
-          <div className={`${TOOLBAR_ROW_LIST} justify-between min-w-0`}>
-            <div className={`${TOOLBAR_ROW_LIST} min-w-0 flex-1`}>
-              <div className="relative min-w-[8rem] shrink-0 sm:max-w-[14rem]">
-                <Search className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${textMuted(theme)}`} size={16} />
-                <input
-                  type="search"
-                  value={ruleSearch}
-                  onChange={(e) => setRuleSearch(e.target.value)}
-                  placeholder="搜索规则名、指标…"
-                  className={toolbarSearchInputClass(theme)}
-                  aria-label="搜索告警规则"
-                />
-              </div>
-              <LantuSelect
-                theme={theme}
-                value={severityFilter}
-                onChange={setSeverityFilter}
-                options={SEVERITY_FILTER_OPTIONS}
-                placeholder="级别"
-                className="!w-36 shrink-0"
-                triggerClassName="w-full !min-w-0"
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Rules list */}
-        {rules.length === 0 ? (
-          <BentoCard theme={theme}>
-            <EmptyState title="暂无告警规则" description="创建规则后，将按阈值与渠道进行通知。" />
-          </BentoCard>
-        ) : filteredRules.length === 0 ? (
-          <BentoCard theme={theme}>
-            <EmptyState title="无匹配规则" description="请调整关键词或级别筛选。" />
-          </BentoCard>
-        ) : (
-          <AnimatedList className="space-y-2">
-            {filteredRules.map((r) => {
-              const sev = SEV_STYLE[r.severity] ?? SEV_STYLE.info;
-              return (
-                <motion.div
-                  key={r.id}
-                  className={`${bentoCardHover(theme)} p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4`}
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`font-semibold ${textPrimary(theme)}`}>{r.name}</span>
-                      <span className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${isDark ? sev.dark : sev.light}`}>
-                        {SEV_LABEL[r.severity] ?? r.severity}
-                      </span>
-                      <span className={`inline-flex shrink-0 items-center whitespace-nowrap text-xs px-1.5 py-0.5 rounded ${isDark ? 'bg-white/5 text-slate-500' : 'bg-slate-50 text-slate-400'}`}>
-                        {r.enabled ? '已启用' : '已停用'}
-                      </span>
-                    </div>
-                    <div className={`text-xs mt-0.5 ${textMuted(theme)}`}>{ruleSummary(r)}</div>
-                  </div>
-                  <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
-                    <button type="button" onClick={() => openEdit(r)} className={mgmtTableActionGhost(theme)}>
-                      编辑
-                    </button>
-                    <button type="button" onClick={() => setDeleteTarget(r)} className={mgmtTableActionDanger}>
-                      删除
-                    </button>
-                    <button type="button" onClick={() => setDryRunRule(r)} className={btnGhost(theme)}>
-                      试跑
-                    </button>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </AnimatedList>
-        )}
-      </div>
+    <>
+      <MgmtPageShell
+        theme={theme}
+        fontSize={fontSize}
+        titleIcon={Bell}
+        breadcrumbSegments={BREADCRUMB}
+        description={PAGE_DESC}
+        toolbar={!rulesQ.isLoading && !rulesQ.isError ? toolbar : undefined}
+        contentScroll="document"
+      >
+        <div className="px-4 sm:px-6 pb-8">{shellBody}</div>
+      </MgmtPageShell>
 
       {/* Create Modal */}
       <Modal
@@ -542,6 +541,6 @@ export const AlertRulesPage: React.FC<Props> = ({ theme, showMessage }) => {
           }
         }}
       />
-    </div>
+    </>
   );
 };

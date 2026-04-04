@@ -7,12 +7,13 @@ import { PageError } from '../../components/common/PageError';
 import { EmptyState } from '../../components/common/EmptyState';
 import { BentoCard } from '../../components/common/BentoCard';
 import {
-  canvasBodyBg, btnPrimary, textPrimary, textSecondary, textMuted,
+  btnPrimary, textSecondary,
   tableHeadCell, tableBodyRow, tableCell,
 } from '../../utils/uiClasses';
-import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { formatDateTime } from '../../utils/formatDateTime';
-import { PageTitleTagline } from '../../components/common/PageTitleTagline';
+import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
+
+const PAGE_DESC = '各服务 CPU、内存、延迟分位与吞吐指标';
 
 interface Props {
   theme: Theme;
@@ -26,8 +27,9 @@ const SERVICES = [
   { key: 'worker', label: 'Worker' },
 ];
 
-export const PerformanceAnalysisPage: React.FC<Props> = ({ theme, showMessage }) => {
-  const { chromePageTitle } = useLayoutChrome();
+const BREADCRUMB = ['监控中心', '性能分析'] as const;
+
+export const PerformanceAnalysisPage: React.FC<Props> = ({ theme, fontSize, showMessage }) => {
   const isDark = theme === 'dark';
   const [svc, setSvc] = useState('gateway');
   const perfQ = usePerformanceMetrics();
@@ -41,22 +43,6 @@ export const PerformanceAnalysisPage: React.FC<Props> = ({ theme, showMessage })
     const bucket = svc === 'gateway' ? 0 : svc === 'inference' ? 1 : 2;
     return list.filter((_, i) => i % 3 === bucket);
   }, [perfQ.data, svc]);
-
-  if (perfQ.isLoading) {
-    return (
-      <div className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-colors duration-300 ${canvasBodyBg(theme)}`}>
-        <div className="p-4 sm:p-6"><PageSkeleton type="table" rows={4} /></div>
-      </div>
-    );
-  }
-
-  if (perfQ.isError) {
-    return (
-      <div className={`flex-1 flex flex-col min-h-0 ${canvasBodyBg(theme)}`}>
-        <PageError error={perfQ.error as Error} onRetry={() => perfQ.refetch()} />
-      </div>
-    );
-  }
 
   const handleExport = () => {
     const date = new Date().toISOString().slice(0, 10);
@@ -81,76 +67,92 @@ export const PerformanceAnalysisPage: React.FC<Props> = ({ theme, showMessage })
     showMessage('分析快照已导出', 'success');
   };
 
-  return (
-    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-colors duration-300 ${canvasBodyBg(theme)}`}>
-      <div className="w-full flex-1 min-h-0 overflow-y-auto px-2 sm:px-3 lg:px-4 py-2 sm:py-3 space-y-4">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className={`shrink-0 rounded-xl p-2 ${isDark ? 'bg-neutral-900/10' : 'bg-neutral-100'}`}>
-              <BarChart3 size={20} className={isDark ? 'text-neutral-300' : 'text-neutral-900'} />
-            </div>
-            <PageTitleTagline subtitleOnly theme={theme} title={chromePageTitle || '性能分析'} tagline="各服务 CPU、内存、延迟分位与吞吐指标" />
-          </div>
-          <button type="button" onClick={handleExport} className={btnPrimary}>
-            <Download size={15} />
-            导出快照
-          </button>
-        </div>
+  const tabCls = (active: boolean) =>
+    `px-4 py-2 rounded-xl text-sm font-semibold transition-colors motion-reduce:transition-none active:scale-[0.97] ${
+      active
+        ? 'bg-neutral-900 text-white shadow-sm'
+        : isDark
+          ? 'bg-white/5 text-slate-400 hover:bg-white/10'
+          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+    }`;
 
-        {/* Service tabs */}
-        <BentoCard theme={theme} padding="sm">
+  const toolbar =
+    !perfQ.isLoading && !perfQ.isError ? (
+      <div className="flex flex-col gap-3 w-full sm:flex-row sm:items-start sm:justify-between">
+        <BentoCard theme={theme} padding="sm" className="min-w-0 flex-1">
           <div className="flex flex-wrap gap-2">
             {SERVICES.map((s) => (
               <button
                 key={s.key}
                 type="button"
                 onClick={() => setSvc(s.key)}
-                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all active:scale-[0.97] ${
-                  svc === s.key
-                    ? 'bg-neutral-900 text-white shadow-sm hover:shadow-[var(--shadow-glow-indigo)]'
-                    : isDark
-                      ? 'bg-white/5 text-slate-400 hover:bg-white/10'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
+                className={tabCls(svc === s.key)}
+                aria-pressed={svc === s.key}
+                aria-label={`查看 ${s.label} 指标`}
               >
                 {s.label}
               </button>
             ))}
           </div>
         </BentoCard>
-
-        {/* Performance table */}
-        <BentoCard theme={theme} padding="sm">
-          {rows.length === 0 ? (
-            <EmptyState title="暂无性能样本" description="该分组下没有可用的性能指标数据。" />
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-[560px] w-full text-sm">
-                <thead>
-                  <tr>
-                    {['采集时间', 'CPU %', '内存 %', 'P50 ms', 'P99 ms', '吞吐'].map((h) => (
-                      <th key={h} className={tableHeadCell(theme)}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((r, i) => (
-                    <tr key={`${r.timestamp}-${i}`} className={tableBodyRow(theme, i)}>
-                      <td className={`${tableCell()} whitespace-nowrap`}><span className="font-mono text-xs">{formatDateTime(r.timestamp)}</span></td>
-                      <td className={`${tableCell()} whitespace-nowrap`}><span className={`font-mono tabular-nums ${r.cpu > 80 ? 'text-rose-500 font-semibold' : textSecondary(theme)}`}>{r.cpu}</span></td>
-                      <td className={`${tableCell()} whitespace-nowrap`}><span className={`font-mono tabular-nums ${r.memory > 85 ? 'text-rose-500 font-semibold' : textSecondary(theme)}`}>{r.memory}</span></td>
-                      <td className={`${tableCell()} whitespace-nowrap`}><span className={`font-mono tabular-nums ${textSecondary(theme)}`}>{r.latencyP50}</span></td>
-                      <td className={`${tableCell()} whitespace-nowrap`}><span className={`font-mono tabular-nums ${r.latencyP99 > 500 ? 'text-amber-500 font-semibold' : textSecondary(theme)}`}>{r.latencyP99}</span></td>
-                      <td className={`${tableCell()} whitespace-nowrap`}><span className={`font-mono tabular-nums ${textSecondary(theme)}`}>{r.throughput}</span></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </BentoCard>
+        <button type="button" onClick={handleExport} className={`${btnPrimary} shrink-0 self-start`} aria-label="导出性能分析快照 JSON">
+          <Download size={15} aria-hidden />
+          导出快照
+        </button>
       </div>
-    </div>
+    ) : undefined;
+
+  const body = (() => {
+    if (perfQ.isLoading) {
+      return <PageSkeleton type="table" rows={4} />;
+    }
+    if (perfQ.isError) {
+      return <PageError error={perfQ.error as Error} onRetry={() => perfQ.refetch()} />;
+    }
+    return (
+      <BentoCard theme={theme} padding="sm">
+        {rows.length === 0 ? (
+          <EmptyState title="暂无性能样本" description="该分组下没有可用的性能指标数据。" />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-[560px] w-full text-sm">
+              <thead>
+                <tr>
+                  {['采集时间', 'CPU %', '内存 %', 'P50 ms', 'P99 ms', '吞吐'].map((h) => (
+                    <th key={h} className={tableHeadCell(theme)}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r, i) => (
+                  <tr key={`${r.timestamp}-${i}`} className={tableBodyRow(theme, i)}>
+                    <td className={`${tableCell()} whitespace-nowrap`}><span className="font-mono text-xs">{formatDateTime(r.timestamp)}</span></td>
+                    <td className={`${tableCell()} whitespace-nowrap`}><span className={`font-mono tabular-nums ${r.cpu > 80 ? 'text-rose-500 font-semibold' : textSecondary(theme)}`}>{r.cpu}</span></td>
+                    <td className={`${tableCell()} whitespace-nowrap`}><span className={`font-mono tabular-nums ${r.memory > 85 ? 'text-rose-500 font-semibold' : textSecondary(theme)}`}>{r.memory}</span></td>
+                    <td className={`${tableCell()} whitespace-nowrap`}><span className={`font-mono tabular-nums ${textSecondary(theme)}`}>{r.latencyP50}</span></td>
+                    <td className={`${tableCell()} whitespace-nowrap`}><span className={`font-mono tabular-nums ${r.latencyP99 > 500 ? 'text-amber-500 font-semibold' : textSecondary(theme)}`}>{r.latencyP99}</span></td>
+                    <td className={`${tableCell()} whitespace-nowrap`}><span className={`font-mono tabular-nums ${textSecondary(theme)}`}>{r.throughput}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </BentoCard>
+    );
+  })();
+
+  return (
+    <MgmtPageShell
+      theme={theme}
+      fontSize={fontSize}
+      titleIcon={BarChart3}
+      breadcrumbSegments={BREADCRUMB}
+      description={PAGE_DESC}
+      toolbar={toolbar}
+      contentScroll="document"
+    >
+      <div className="px-4 sm:px-6 pb-8 space-y-4">{body}</div>
+    </MgmtPageShell>
   );
 };

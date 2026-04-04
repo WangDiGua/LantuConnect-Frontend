@@ -4,8 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { Wrench, X } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import {
-  canvasBodyBg,
-  mainScrollCompositorClass,
   bentoCard,
   btnPrimary,
   btnSecondary,
@@ -26,13 +24,16 @@ import { PublishResourceCard } from '../../components/business/PublishResourceCa
 import { userActivityService } from '../../api/services/user-activity.service';
 import type { MyPublishItem } from '../../types/dto/user-activity';
 import { buildPath } from '../../constants/consoleRoutes';
+import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
+
+const PAGE_DESC = '管理您提交的技能，跟踪审核进度';
 
 interface Props {
   theme: Theme;
   fontSize: FontSize;
 }
 
-export const MySkillList: React.FC<Props> = ({ theme }) => {
+export const MySkillList: React.FC<Props> = ({ theme, fontSize }) => {
   const isDark = theme === 'dark';
   const navigate = useNavigate();
   const { showMessage } = useMessage();
@@ -61,63 +62,60 @@ export const MySkillList: React.FC<Props> = ({ theme }) => {
     showMessage(`已撤回「${skill.displayName}」的审核申请`, 'success');
   };
 
-  return (
-    <div className={`flex min-h-0 flex-1 flex-col overflow-hidden ${canvasBodyBg(theme)}`}>
-      <div
-        className={`z-20 flex shrink-0 items-center justify-between border-b px-4 py-4 sm:px-6 ${
-          isDark ? 'border-white/[0.06]' : 'border-slate-100'
-        }`}
-      >
-        <div className="flex items-center gap-3">
-          <div className={`rounded-xl p-2 ${isDark ? 'bg-purple-500/15' : 'bg-purple-50'}`}>
-            <Wrench size={20} className={isDark ? 'text-purple-400' : 'text-purple-600'} />
-          </div>
-          <div>
-            <h2 className={`text-lg font-bold ${textPrimary(theme)}`}>我的 Skill</h2>
-            <p className={`text-sm ${textMuted(theme)}`}>管理您提交的技能，跟踪审核进度</p>
-          </div>
-        </div>
-        <span
-          className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
-            isDark ? 'bg-white/5 text-slate-400' : 'border border-slate-100 bg-slate-50 text-slate-500'
-          }`}
-        >
-          共 {skills.length} 个
-        </span>
-      </div>
+  const toolbar = (
+    <span
+      className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+        isDark ? 'bg-white/5 text-slate-400' : 'border border-slate-100 bg-slate-50 text-slate-500'
+      }`}
+    >
+      共 {skills.length} 个
+    </span>
+  );
 
-      <div className={`custom-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 ${mainScrollCompositorClass}`}>
-        {loading ? (
-          <PageSkeleton type="cards" />
-        ) : skills.length === 0 ? (
-          <EmptyState
-            title="暂无已提交的 Skill"
-            description="创建并提交后，可在此查看审核进度与发布状态。"
-            action={
-              <button
-                type="button"
-                className={btnPrimary}
-                onClick={() => navigate(buildPath('user', 'submit-skill'))}
-              >
-                去提交新 Skill
-              </button>
-            }
-          />
-        ) : (
-          <AnimatedList className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {skills.map((skill) => (
-              <PublishResourceCard
-                key={skill.id}
-                theme={theme}
-                item={skill}
-                callCountLabel="热度（网关 invoke）"
-                onView={() => setViewTarget(skill)}
-                onWithdraw={() => setWithdrawTarget(skill)}
-              />
-            ))}
-          </AnimatedList>
-        )}
-      </div>
+  return (
+    <>
+      <MgmtPageShell
+        theme={theme}
+        fontSize={fontSize}
+        titleIcon={Wrench}
+        breadcrumbSegments={['工作台', '我的 Skill'] as const}
+        description={PAGE_DESC}
+        toolbar={toolbar}
+        contentScroll="document"
+      >
+        <div className="px-4 sm:px-6 pb-8">
+          {loading ? (
+            <PageSkeleton type="cards" />
+          ) : skills.length === 0 ? (
+            <EmptyState
+              title="暂无已提交的 Skill"
+              description="创建并提交后，可在此查看审核进度与发布状态。"
+              action={
+                <button
+                  type="button"
+                  className={btnPrimary}
+                  onClick={() => navigate(buildPath('user', 'submit-skill'))}
+                >
+                  去提交新 Skill
+                </button>
+              }
+            />
+          ) : (
+            <AnimatedList className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              {skills.map((skill) => (
+                <PublishResourceCard
+                  key={skill.id}
+                  theme={theme}
+                  item={skill}
+                  callCountLabel="热度（网关 invoke）"
+                  onView={() => setViewTarget(skill)}
+                  onWithdraw={() => setWithdrawTarget(skill)}
+                />
+              ))}
+            </AnimatedList>
+          )}
+        </div>
+      </MgmtPageShell>
 
       <AnimatePresence>
         {withdrawTarget && (
@@ -141,8 +139,9 @@ export const MySkillList: React.FC<Props> = ({ theme }) => {
                   type="button"
                   onClick={() => setWithdrawTarget(null)}
                   className={`rounded-lg p-1.5 ${isDark ? 'hover:bg-white/10' : 'hover:bg-slate-100'}`}
+                  aria-label="关闭"
                 >
-                  <X size={18} className={textMuted(theme)} />
+                  <X size={18} className={textMuted(theme)} aria-hidden />
                 </button>
               </div>
               <p className={`mb-6 text-sm ${textSecondary(theme)}`}>
@@ -201,6 +200,6 @@ export const MySkillList: React.FC<Props> = ({ theme }) => {
           </div>
         )}
       </Modal>
-    </div>
+    </>
   );
 };

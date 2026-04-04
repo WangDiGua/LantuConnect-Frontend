@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Zap, RefreshCw, TrendingUp, Database, Download, AlertCircle } from 'lucide-react';
+import { Zap, RefreshCw, TrendingUp, Database, Download, AlertCircle, BarChart3 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { EChartsOption } from 'echarts';
 import { Theme, FontSize } from '../../types';
-import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { useUserRole } from '../../context/UserRoleContext';
 import { developerStatsService } from '../../api/services/developer-stats.service';
 import type { OwnerDeveloperStatsVO } from '../../types/dto/dashboard';
-import { bentoCard, canvasBodyBg, mainScrollCompositorClass, textPrimary, textMuted } from '../../utils/uiClasses';
+import { bentoCard, textMuted } from '../../utils/uiClasses';
+import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { PageError } from '../../components/common/PageError';
 import { EChartCard } from '../../components/charts/EChartCard';
@@ -31,11 +31,9 @@ function labelResourceType(resourceType: string): string {
   return (t && RESOURCE_TYPE_LABEL_ZH[t]) || resourceType;
 }
 
-export const DeveloperStatsPage: React.FC<Props> = ({ theme }) => {
+export const DeveloperStatsPage: React.FC<Props> = ({ theme, fontSize }) => {
   const isDark = theme === 'dark';
-  const { hasSecondarySidebar } = useLayoutChrome();
   const { platformRole } = useUserRole();
-  const outerPad = hasSecondarySidebar ? 'px-2 sm:px-3 lg:px-4' : 'px-1.5 sm:px-2 lg:px-3';
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<OwnerDeveloperStatsVO | null>(null);
   const [error, setError] = useState<Error | null>(null);
@@ -77,7 +75,6 @@ export const DeveloperStatsPage: React.FC<Props> = ({ theme }) => {
     setOwnerUserId(id);
   };
 
-  const tp = textPrimary(theme);
   const tm = textMuted(theme);
   const cardSurface = bentoCard(theme);
   const c = chartColors(theme);
@@ -143,66 +140,22 @@ export const DeveloperStatsPage: React.FC<Props> = ({ theme }) => {
     };
   }, [c.border, c.muted, c.series, c.text, data?.gatewayInvokesByResourceType, theme]);
 
-  if (loading) {
-    return (
-      <div className={`flex-1 ${canvasBodyBg(theme)} ${outerPad} py-6`}>
-        <PageSkeleton type="cards" />
-      </div>
-    );
-  }
-  if (error) {
-    return (
-      <div className={`flex-1 ${canvasBodyBg(theme)} ${outerPad} py-6`}>
-        <PageError error={error} onRetry={fetchData} />
-      </div>
-    );
-  }
-
-  if (!data) {
-    return null;
-  }
-
   const periodHint =
-    data.periodStart && data.periodEnd
+    data?.periodStart && data?.periodEnd
       ? `${data.periodStart.slice(0, 10)} — ${data.periodEnd.slice(0, 10)}`
-      : `近 ${data.periodDays} 天`;
+      : data ? `近 ${data.periodDays} 天` : '';
 
-  return (
-    <div className={`flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${outerPad} py-4 sm:py-6 ${canvasBodyBg(theme)}`}>
-      <div className="w-full space-y-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className={`text-xl font-bold ${tp}`}>开发者资源成效</h1>
-            <p className={`text-sm ${tm}`}>Owner 维度统计 · {periodHint} · 用户 ID {data.ownerUserId}</p>
-          </div>
-          <button
-            type="button"
-            onClick={fetchData}
-            className={`self-start p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-white/[0.06]' : 'hover:bg-slate-100'}`}
-            aria-label="刷新"
-          >
-            <RefreshCw size={16} className={tm} />
-          </button>
-        </div>
-
-        <div
-          className={`flex flex-col gap-3 rounded-xl border px-4 py-3 text-sm ${isDark ? 'border-amber-500/25 bg-amber-500/5 text-amber-100/90' : 'border-amber-200 bg-amber-50 text-amber-950'}`}
-        >
-          <div className="flex gap-2">
-            <AlertCircle size={18} className="shrink-0 opacity-90" />
-            <p>
-              网关调用量来自 invoke 类 call_log，不等同于门户全量使用；技能包下载为独立计数。对照项「用量记录 invoke」来自 usage_record，便于与网关口径核对。
-            </p>
-          </div>
-        </div>
-
-        <div className={`flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-end ${cardSurface} p-4`}>
+  const statsToolbar =
+    !loading && !error && data ? (
+      <div className="flex flex-col gap-3 w-full lg:flex-row lg:flex-wrap lg:items-end lg:justify-between">
+        <div className={`flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-end ${cardSurface} p-4 flex-1 min-w-0`}>
           <label className={`flex flex-col gap-1 text-xs font-medium ${tm}`}>
             统计周期（天）
             <select
               value={periodDays}
               onChange={(e) => setPeriodDays(Number(e.target.value))}
               className={`mt-0.5 rounded-lg border px-3 py-2 text-sm ${isDark ? 'border-white/10 bg-neutral-900 text-neutral-100' : 'border-slate-200 bg-white text-slate-900'}`}
+              aria-label="选择统计周期天数"
             >
               {PERIOD_OPTIONS.map((d) => (
                 <option key={d} value={d}>
@@ -223,6 +176,7 @@ export const DeveloperStatsPage: React.FC<Props> = ({ theme }) => {
                   onChange={(e) => setOwnerDraft(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && applyOwnerFilter()}
                   className={`min-w-0 flex-1 rounded-lg border px-3 py-2 text-sm ${isDark ? 'border-white/10 bg-neutral-900 text-neutral-100 placeholder:text-neutral-500' : 'border-slate-200 bg-white text-slate-900'}`}
+                  aria-label="指定 Owner 用户 ID"
                 />
                 <button
                   type="button"
@@ -237,6 +191,44 @@ export const DeveloperStatsPage: React.FC<Props> = ({ theme }) => {
               ) : null}
             </div>
           ) : null}
+        </div>
+        <button
+          type="button"
+          onClick={fetchData}
+          className={`shrink-0 self-end p-2 rounded-lg transition-colors motion-reduce:transition-none ${isDark ? 'hover:bg-white/[0.06]' : 'hover:bg-slate-100'}`}
+          aria-label="刷新统计数据"
+        >
+          <RefreshCw size={16} className={tm} aria-hidden />
+        </button>
+      </div>
+    ) : undefined;
+
+  const desc =
+    data && periodHint
+      ? `Owner 维度统计 · ${periodHint} · 用户 ID ${data.ownerUserId}`
+      : 'Owner 维度网关调用、用量记录与技能包下载统计';
+
+  const body = (() => {
+    if (loading) {
+      return <PageSkeleton type="cards" />;
+    }
+    if (error) {
+      return <PageError error={error} onRetry={fetchData} />;
+    }
+    if (!data) {
+      return null;
+    }
+    return (
+      <div className="w-full space-y-5">
+        <div
+          className={`flex flex-col gap-3 rounded-xl border px-4 py-3 text-sm ${isDark ? 'border-amber-500/25 bg-amber-500/5 text-amber-100/90' : 'border-amber-200 bg-amber-50 text-amber-950'}`}
+        >
+          <div className="flex gap-2">
+            <AlertCircle size={18} className="shrink-0 opacity-90" aria-hidden />
+            <p>
+              网关调用量来自 invoke 类 call_log，不等同于门户全量使用；技能包下载为独立计数。对照项「用量记录 invoke」来自 usage_record，便于与网关口径核对。
+            </p>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -269,6 +261,20 @@ export const DeveloperStatsPage: React.FC<Props> = ({ theme }) => {
           )}
         </motion.div>
       </div>
-    </div>
+    );
+  })();
+
+  return (
+    <MgmtPageShell
+      theme={theme}
+      fontSize={fontSize}
+      titleIcon={BarChart3}
+      breadcrumbSegments={['开发者中心', '开发者统计']}
+      description={desc}
+      toolbar={statsToolbar}
+      contentScroll="document"
+    >
+      <div className="px-4 sm:px-6 pb-8">{body}</div>
+    </MgmtPageShell>
   );
 };

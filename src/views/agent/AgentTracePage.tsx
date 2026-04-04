@@ -7,10 +7,9 @@ import { SearchInput } from '../../components/common';
 import { monitoringService } from '../../api/services/monitoring.service';
 import type { TraceSpan as TraceSpanDTO } from '../../types/dto/monitoring';
 import {
-  canvasBodyBg, bentoCard, textPrimary, textSecondary, textMuted,
+  textPrimary, textSecondary, textMuted,
 } from '../../utils/uiClasses';
-import { useLayoutChrome } from '../../context/LayoutChromeContext';
-import { PageTitleTagline } from '../../components/common/PageTitleTagline';
+import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 
 interface AgentTracePageProps {
@@ -85,8 +84,9 @@ const SpanTree: React.FC<SpanTreeProps> = ({ span, depth, theme, expanded, toggl
   );
 };
 
-export const AgentTracePage: React.FC<AgentTracePageProps> = ({ theme }) => {
-  const { chromePageTitle } = useLayoutChrome();
+const PAGE_DESC = '按 Trace ID 查看调用链路与各阶段耗时';
+
+export const AgentTracePage: React.FC<AgentTracePageProps> = ({ theme, fontSize }) => {
   const isDark = theme === 'dark';
   const [q, setQ] = useState('');
   const [traceList, setTraceList] = useState<TraceListItem[]>([]);
@@ -136,22 +136,23 @@ export const AgentTracePage: React.FC<AgentTracePageProps> = ({ theme }) => {
     });
   };
 
-  return (
-    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-colors duration-300 ${canvasBodyBg(theme)}`}>
-      <div className="w-full flex-1 min-h-0 overflow-y-auto px-2 sm:px-3 lg:px-4 py-2 sm:py-3 space-y-4">
-        {/* Header */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className={`shrink-0 rounded-xl p-2 ${isDark ? 'bg-emerald-500/15' : 'bg-emerald-50'}`}>
-              <GitBranch size={20} className={isDark ? 'text-emerald-400' : 'text-emerald-600'} />
-            </div>
-            <PageTitleTagline subtitleOnly theme={theme} title={chromePageTitle || '调用追踪'} tagline="按 Trace ID 查看调用链路与各阶段耗时" />
-          </div>
-          <div className="w-full shrink-0 sm:max-w-xs">
-            <SearchInput value={q} onChange={setQ} placeholder="Trace ID 或路由…" theme={theme} />
-          </div>
-        </div>
+  const traceToolbar = (
+    <div className="w-full max-w-md sm:ml-auto">
+      <SearchInput value={q} onChange={setQ} placeholder="Trace ID 或路由…" theme={theme} />
+    </div>
+  );
 
+  return (
+    <MgmtPageShell
+      theme={theme}
+      fontSize={fontSize}
+      titleIcon={GitBranch}
+      breadcrumbSegments={['Agent 运维', '调用追踪']}
+      description={PAGE_DESC}
+      toolbar={traceToolbar}
+      contentScroll="document"
+    >
+      <div className="px-4 sm:px-6 pb-8 space-y-4">
         {loading ? (
           <PageSkeleton type="table" />
         ) : (
@@ -197,6 +198,6 @@ export const AgentTracePage: React.FC<AgentTracePageProps> = ({ theme }) => {
           </div>
         )}
       </div>
-    </div>
+    </MgmtPageShell>
   );
 };

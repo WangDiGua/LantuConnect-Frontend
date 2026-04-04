@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Download, Plus, RefreshCw, Store } from 'lucide-react';
+import { Boxes, Download, Plus, RefreshCw, Store } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { ResourceType } from '../../types/dto/catalog';
 import type {
@@ -29,8 +29,6 @@ import {
   mgmtTableActionDanger,
   mgmtTableActionGhost,
   mgmtTableActionPositive,
-  canvasBodyBg,
-  mainScrollCompositorClass,
   statusBadgeClass,
   statusDot,
   statusLabel,
@@ -40,6 +38,7 @@ import {
 } from '../../utils/uiClasses';
 import { nullDisplay } from '../../utils/errorHandler';
 import { formatDateTime } from '../../utils/formatDateTime';
+import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 
 function skillSubmitBlocked(item: ResourceCenterItemVO): boolean {
   if (item.resourceType !== 'skill') return false;
@@ -114,6 +113,7 @@ interface Props {
 
 export const ResourceCenterManagementPage: React.FC<Props> = ({
   theme,
+  fontSize,
   showMessage,
   resourceType,
   allowTypeSwitch = false,
@@ -272,55 +272,60 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
     }
   };
 
-  return (
-    <div className={`flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${canvasBodyBg(theme)}`}>
-      <div className="px-3 py-4 sm:px-4 lg:px-5">
-        <div className={`${bentoCard(theme)} overflow-hidden`}>
-          <div className={`flex items-center justify-between border-b px-6 py-4 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-            <div>
-              <h2 className={`text-lg font-bold ${textPrimary(theme)}`}>{title}</h2>
-              <p className={`mt-0.5 text-xs ${textMuted(theme)}`}>资源中心闭环：注册、提审、发布、版本、下线</p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <button type="button" onClick={() => void fetchData()} className={btnGhost(theme)}>
-                <RefreshCw size={15} />
-                刷新
-              </button>
-              {allowTypeSwitch && activeType === 'skill' && isPlatformAdmin && onOpenSkillExternalMarket ? (
-                <button type="button" onClick={onOpenSkillExternalMarket} className={btnGhost(theme)}>
-                  <Store size={15} />
-                  在线市场
-                </button>
-              ) : null}
-              {activeType === 'skill' ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => onNavigateRegister('skill', undefined, { skillTrack: 'hosted' })}
-                    className={btnPrimary}
-                  >
-                    <Plus size={15} />
-                    注册技能（托管分发）
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onNavigateRegister('skill', undefined, { skillTrack: 'mountable' })}
-                    className={btnSecondary(theme)}
-                  >
-                    <Plus size={15} />
-                    注册技能（可挂载）
-                  </button>
-                </div>
-              ) : (
-                <button type="button" onClick={() => onNavigateRegister(activeType)} className={btnPrimary}>
-                  <Plus size={15} />
-                  注册{RESOURCE_TYPE_LABEL_ZH[activeType]}
-                </button>
-              )}
-            </div>
-          </div>
+  const shellToolbar = (
+    <div className="flex flex-wrap items-center justify-end gap-2 w-full">
+      <button type="button" onClick={() => void fetchData()} className={btnGhost(theme)} aria-label="刷新资源列表">
+        <RefreshCw size={15} aria-hidden />
+        刷新
+      </button>
+      {allowTypeSwitch && activeType === 'skill' && isPlatformAdmin && onOpenSkillExternalMarket ? (
+        <button type="button" onClick={onOpenSkillExternalMarket} className={btnGhost(theme)} aria-label="打开技能在线市场">
+          <Store size={15} aria-hidden />
+          在线市场
+        </button>
+      ) : null}
+      {activeType === 'skill' ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onNavigateRegister('skill', undefined, { skillTrack: 'hosted' })}
+            className={btnPrimary}
+          >
+            <Plus size={15} aria-hidden />
+            注册技能（托管分发）
+          </button>
+          <button
+            type="button"
+            onClick={() => onNavigateRegister('skill', undefined, { skillTrack: 'mountable' })}
+            className={btnSecondary(theme)}
+          >
+            <Plus size={15} aria-hidden />
+            注册技能（可挂载）
+          </button>
+        </div>
+      ) : (
+        <button type="button" onClick={() => onNavigateRegister(activeType)} className={btnPrimary}>
+          <Plus size={15} aria-hidden />
+          注册{RESOURCE_TYPE_LABEL_ZH[activeType]}
+        </button>
+      )}
+    </div>
+  );
 
-          {allowTypeSwitch && (
+  return (
+    <>
+      <MgmtPageShell
+        theme={theme}
+        fontSize={fontSize}
+        titleIcon={Boxes}
+        breadcrumbSegments={['统一资源中心', title]}
+        description="资源中心闭环：注册、提审、发布、版本、下线"
+        toolbar={shellToolbar}
+        contentScroll="document"
+      >
+        <div className="px-4 sm:px-6 pb-8">
+          <div className={`${bentoCard(theme)} overflow-hidden`}>
+            {allowTypeSwitch && (
             <div className={`flex flex-wrap items-center gap-2 border-b px-6 py-3 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
               {RESOURCE_TYPES.map((type) => (
                 <button
@@ -601,7 +606,8 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
             <Pagination theme={theme} page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} />
           </div>
         </div>
-      </div>
+        </div>
+      </MgmtPageShell>
 
       <Modal
         open={!!versionTarget}
@@ -869,6 +875,6 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
           </div>
         )}
       </Modal>
-    </div>
+    </>
   );
 };

@@ -9,10 +9,9 @@ import { BentoCard } from '../../components/common/BentoCard';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
 import {
-  canvasBodyBg, btnPrimary, btnGhost, textPrimary, textSecondary, textMuted,
+  btnPrimary, btnGhost, textPrimary, textSecondary, textMuted,
 } from '../../utils/uiClasses';
-import { useLayoutChrome } from '../../context/LayoutChromeContext';
-import { PageTitleTagline } from '../../components/common/PageTitleTagline';
+import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { env } from '../../config/env';
 import { buildPath } from '../../constants/consoleRoutes';
@@ -94,8 +93,7 @@ function CopyBtn({ text, isDark }: { text: string; isDark: boolean }) {
 
 export interface ApiPlaygroundPageProps { theme: Theme; fontSize: FontSize; }
 
-export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme }) => {
-  const { chromePageTitle } = useLayoutChrome();
+export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme, fontSize }) => {
   const navigate = useNavigate();
   const isDark = theme === 'dark';
   const [method, setMethod] = useState('GET');
@@ -232,34 +230,31 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme }) =
 
   const loadHistory = (entry: HistoryEntry) => { setMethod(entry.method); setUrl(entry.url); setBody(entry.body); setResponse({ status: entry.status, time: entry.time, body: entry.responseBody, headers: {} }); };
 
-  return (
-    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-colors duration-300 ${canvasBodyBg(theme)}`}>
-      <div className="w-full flex-1 min-h-0 flex flex-col px-2 sm:px-3 lg:px-4 py-2 sm:py-3">
-        {/* Header */}
-        <div className="flex min-w-0 flex-wrap items-center gap-3 mb-4 shrink-0">
-          <div className={`shrink-0 rounded-xl p-2 ${isDark ? 'bg-emerald-500/15' : 'bg-emerald-50'}`}>
-            <Terminal size={20} className={isDark ? 'text-emerald-400' : 'text-emerald-600'} />
-          </div>
-          <div className="min-w-0 flex-1 flex flex-wrap items-center gap-x-3 gap-y-2">
-            <PageTitleTagline
-              subtitleOnly
-              theme={theme}
-              title={chromePageTitle || 'API Playground'}
-              tagline="调试请求；POST /catalog/resolve、/invoke、/invoke-stream 须 X-Api-Key（已尝试填入与市场共用的本地密钥）"
-            />
-            <button
-              type="button"
-              className={`inline-flex items-center gap-1 rounded-xl border px-3 py-1.5 text-xs font-medium ${
-                isDark ? 'border-white/15 text-slate-200 hover:bg-white/5' : 'border-slate-200 text-slate-700 hover:bg-slate-50'
-              }`}
-              onClick={() => navigate(buildPath('user', 'api-docs'))}
-            >
-              <BookOpen size={14} />
-              接入指南
-            </button>
-          </div>
-        </div>
+  const playgroundToolbar = (
+    <button
+      type="button"
+      className={`inline-flex items-center gap-1 rounded-xl border px-3 py-1.5 text-xs font-medium ${
+        isDark ? 'border-white/15 text-slate-200 hover:bg-white/5' : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+      }`}
+      onClick={() => navigate(buildPath('user', 'api-docs'))}
+      aria-label="打开接入指南"
+    >
+      <BookOpen size={14} aria-hidden />
+      接入指南
+    </button>
+  );
 
+  return (
+    <MgmtPageShell
+      theme={theme}
+      fontSize={fontSize}
+      titleIcon={Terminal}
+      breadcrumbSegments={['开发者中心', 'API Playground']}
+      description="调试请求；POST /catalog/resolve、/invoke、/invoke-stream 须 X-Api-Key（已尝试填入与市场共用的本地密钥）"
+      toolbar={playgroundToolbar}
+      contentScroll="document"
+    >
+      <div className="px-4 sm:px-6 pb-8 w-full flex flex-col min-h-0">
         <div className="flex-1 min-h-0 flex flex-col lg:flex-row gap-4 overflow-hidden">
           {/* Request panel */}
           <GlassPanel theme={theme} padding="sm" className="lg:w-1/2 flex flex-col overflow-hidden">
@@ -396,6 +391,6 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme }) =
           </BentoCard>
         )}
       </div>
-    </div>
+    </MgmtPageShell>
   );
 };

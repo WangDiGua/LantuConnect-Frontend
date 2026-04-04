@@ -7,12 +7,11 @@ import { BentoCard } from '../../components/common/BentoCard';
 import { PageError } from '../../components/common/PageError';
 import { Pagination, SearchInput } from '../../components/common';
 import {
-  canvasBodyBg, bentoCard, btnGhost, textPrimary, textSecondary, textMuted, tableHeadCell, tableBodyRow, tableCell,
+  btnGhost, textPrimary, textSecondary, textMuted, tableHeadCell, tableBodyRow, tableCell,
 } from '../../utils/uiClasses';
-import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { formatDateTime } from '../../utils/formatDateTime';
-import { PageTitleTagline } from '../../components/common/PageTitleTagline';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
+import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 
 type TimeFilter = 'today' | '7d' | '30d';
 type TypeFilter = 'all' | 'agent' | 'skill' | 'app' | 'mcp' | 'dataset';
@@ -26,9 +25,9 @@ interface UsageRecordsPageProps {
 
 const TYPE_LABEL: Record<string, string> = { agent: 'Agent', skill: 'Skill', app: '应用', mcp: 'MCP', dataset: '数据集' };
 const PAGE_SIZE = 20;
+const PAGE_DESC = '最近使用与调用明细统一查看';
 
-export const UsageRecordsPage: React.FC<UsageRecordsPageProps> = ({ theme, initialView = 'records' }) => {
-  const { chromePageTitle } = useLayoutChrome();
+export const UsageRecordsPage: React.FC<UsageRecordsPageProps> = ({ theme, fontSize, initialView = 'records' }) => {
   const isDark = theme === 'dark';
   const [viewMode, setViewMode] = useState<ViewMode>(initialView);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('7d');
@@ -38,6 +37,11 @@ export const UsageRecordsPage: React.FC<UsageRecordsPageProps> = ({ theme, initi
   const [records, setRecords] = useState<UsageRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<Error | null>(null);
+
+  const breadcrumbSegments = useMemo(
+    () => ['工作台', viewMode === 'records' ? '使用记录' : '最近使用'] as const,
+    [viewMode],
+  );
 
   const fetchData = useCallback(() => {
     setLoadError(null);
@@ -123,87 +127,87 @@ export const UsageRecordsPage: React.FC<UsageRecordsPageProps> = ({ theme, initi
         ? 'text-rose-600'
         : textSecondary(theme);
 
-  const tabCls = (active: boolean) => `px-3 py-1.5 rounded-xl text-xs font-semibold transition-all active:scale-[0.97] ${
+  const tabCls = (active: boolean) => `px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors motion-reduce:transition-none active:scale-[0.97] ${
     active
       ? 'bg-neutral-900 text-white shadow-sm'
       : isDark ? 'bg-white/5 text-slate-400 hover:bg-white/10' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
   }`;
 
-  return (
-    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-colors duration-300 ${canvasBodyBg(theme)}`}>
-      <div className="w-full flex-1 min-h-0 overflow-y-auto px-2 sm:px-3 lg:px-4 py-2 sm:py-3 space-y-4">
-        {/* Header */}
-        <div className="flex min-w-0 items-center gap-3">
-          <div className={`shrink-0 rounded-xl p-2 ${isDark ? 'bg-blue-500/15' : 'bg-blue-50'}`}>
-            <Clock size={20} className={isDark ? 'text-blue-400' : 'text-blue-600'} />
-          </div>
-          <PageTitleTagline subtitleOnly theme={theme} title={chromePageTitle || '使用活动'} tagline="最近使用与调用明细统一查看" />
+  const toolbar = (
+    <BentoCard theme={theme} padding="sm">
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" onClick={() => setViewMode('records')} className={tabCls(viewMode === 'records')} aria-pressed={viewMode === 'records'} aria-label="查看使用记录">使用记录</button>
+          <button type="button" onClick={() => setViewMode('recent')} className={tabCls(viewMode === 'recent')} aria-pressed={viewMode === 'recent'} aria-label="查看最近使用">最近使用</button>
         </div>
-
-        {/* Filters */}
-        <BentoCard theme={theme} padding="sm">
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <button type="button" onClick={() => setViewMode('records')} className={tabCls(viewMode === 'records')}>使用记录</button>
-              <button type="button" onClick={() => setViewMode('recent')} className={tabCls(viewMode === 'recent')}>最近使用</button>
+        {viewMode === 'records' ? (
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className={`text-xs font-semibold ${textMuted(theme)}`}>时间</span>
+              <div className="flex flex-wrap gap-1.5">
+                {([{ label: '今天', value: 'today' as TimeFilter }, { label: '近7天', value: '7d' as TimeFilter }, { label: '近30天', value: '30d' as TimeFilter }]).map((tb) => (
+                  <button key={tb.value} type="button" onClick={() => setTimeFilter(tb.value)} className={tabCls(timeFilter === tb.value)} aria-pressed={timeFilter === tb.value}>{tb.label}</button>
+                ))}
+              </div>
             </div>
-            {viewMode === 'records' ? (
-              <div className="flex flex-wrap items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <span className={`text-xs font-semibold ${textMuted(theme)}`}>时间</span>
-                  <div className="flex gap-1.5">
-                    {([{ label: '今天', value: 'today' as TimeFilter }, { label: '近7天', value: '7d' as TimeFilter }, { label: '近30天', value: '30d' as TimeFilter }]).map((tb) => (
-                      <button key={tb.value} type="button" onClick={() => setTimeFilter(tb.value)} className={tabCls(timeFilter === tb.value)}>{tb.label}</button>
-                    ))}
-                  </div>
-                </div>
-                <div className={`h-5 w-px ${isDark ? 'bg-white/10' : 'bg-slate-200'}`} />
-                <div className="flex items-center gap-2">
-                  <span className={`text-xs font-semibold ${textMuted(theme)}`}>类型</span>
-                  <div className="flex gap-1.5">
-                    {([
-                      { label: '全部', value: 'all' as TypeFilter },
-                      { label: 'Agent', value: 'agent' as TypeFilter },
-                      { label: 'Skill', value: 'skill' as TypeFilter },
-                      { label: '应用', value: 'app' as TypeFilter },
-                      { label: 'MCP', value: 'mcp' as TypeFilter },
-                      { label: '数据集', value: 'dataset' as TypeFilter },
-                    ]).map((tb) => (
-                      <button key={tb.value} type="button" onClick={() => { setTypeFilter(tb.value); setPage(1); }} className={tabCls(typeFilter === tb.value)}>{tb.label}</button>
-                    ))}
-                  </div>
-                </div>
-                <div className="ml-auto min-w-[220px] flex-1">
-                  <SearchInput value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="搜索资源名、动作、输入内容…" theme={theme} />
-                </div>
+            <div className={`h-5 w-px shrink-0 ${isDark ? 'bg-white/10' : 'bg-slate-200'}`} aria-hidden />
+            <div className="flex items-center gap-2 min-w-0">
+              <span className={`text-xs font-semibold shrink-0 ${textMuted(theme)}`}>类型</span>
+              <div className="flex flex-wrap gap-1.5">
+                {([
+                  { label: '全部', value: 'all' as TypeFilter },
+                  { label: 'Agent', value: 'agent' as TypeFilter },
+                  { label: 'Skill', value: 'skill' as TypeFilter },
+                  { label: '应用', value: 'app' as TypeFilter },
+                  { label: 'MCP', value: 'mcp' as TypeFilter },
+                  { label: '数据集', value: 'dataset' as TypeFilter },
+                ]).map((tb) => (
+                  <button key={tb.value} type="button" onClick={() => { setTypeFilter(tb.value); setPage(1); }} className={tabCls(typeFilter === tb.value)} aria-pressed={typeFilter === tb.value}>{tb.label}</button>
+                ))}
               </div>
-            ) : (
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <span className={`text-xs font-semibold ${textMuted(theme)}`}>类型</span>
-                  <div className="flex gap-1.5">
-                    {([
-                      { label: '全部', value: 'all' as const },
-                      { label: 'Agent', value: 'agent' as const },
-                      { label: 'Skill', value: 'skill' as const },
-                      { label: 'MCP', value: 'mcp' as const },
-                      { label: '应用', value: 'app' as const },
-                      { label: '数据集', value: 'dataset' as const },
-                    ]).map((tb) => (
-                      <button key={tb.value} type="button" onClick={() => setRecentTypeFilter(tb.value)} className={tabCls(recentTypeFilter === tb.value)}>{tb.label}</button>
-                    ))}
-                  </div>
-                </div>
-                <button type="button" onClick={() => void fetchRecent()} className={btnGhost(theme)}>
-                  <RefreshCw size={15} />
-                  刷新
-                </button>
-              </div>
-            )}
+            </div>
+            <div className="ml-auto min-w-[220px] w-full sm:w-auto sm:flex-1 max-w-md">
+              <SearchInput value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="搜索资源名、动作、输入内容…" theme={theme} />
+            </div>
           </div>
-        </BentoCard>
+        ) : (
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className={`text-xs font-semibold shrink-0 ${textMuted(theme)}`}>类型</span>
+              <div className="flex flex-wrap gap-1.5">
+                {([
+                  { label: '全部', value: 'all' as const },
+                  { label: 'Agent', value: 'agent' as const },
+                  { label: 'Skill', value: 'skill' as const },
+                  { label: 'MCP', value: 'mcp' as const },
+                  { label: '应用', value: 'app' as const },
+                  { label: '数据集', value: 'dataset' as const },
+                ]).map((tb) => (
+                  <button key={tb.value} type="button" onClick={() => setRecentTypeFilter(tb.value)} className={tabCls(recentTypeFilter === tb.value)} aria-pressed={recentTypeFilter === tb.value}>{tb.label}</button>
+                ))}
+              </div>
+            </div>
+            <button type="button" onClick={() => void fetchRecent()} className={btnGhost(theme)} aria-label="刷新最近使用列表">
+              <RefreshCw size={15} aria-hidden />
+              刷新
+            </button>
+          </div>
+        )}
+      </div>
+    </BentoCard>
+  );
 
-        {/* Table rows */}
+  return (
+    <MgmtPageShell
+      theme={theme}
+      fontSize={fontSize}
+      titleIcon={Clock}
+      breadcrumbSegments={breadcrumbSegments}
+      description={PAGE_DESC}
+      toolbar={toolbar}
+      contentScroll="document"
+    >
+      <div className="px-4 sm:px-6 pb-8 space-y-4">
         {viewMode === 'records' ? (
           loading ? (
             <PageSkeleton type="table" />
@@ -212,8 +216,8 @@ export const UsageRecordsPage: React.FC<UsageRecordsPageProps> = ({ theme, initi
           ) : rows.length === 0 ? (
             <BentoCard theme={theme}><div className={`py-12 text-center text-sm ${textMuted(theme)}`}>暂无记录</div></BentoCard>
           ) : (
-            <div className={`${bentoCard(theme)} overflow-hidden`}>
-              <div className="overflow-auto">
+            <>
+              <div className="overflow-x-auto rounded-2xl border border-transparent">
                 <table className="w-full min-w-[1100px] text-sm">
                   <thead className={`border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
                     <tr>
@@ -232,13 +236,17 @@ export const UsageRecordsPage: React.FC<UsageRecordsPageProps> = ({ theme, initi
                     {pagedRows.map((record, idx) => (
                       <tr key={record.id} className={tableBodyRow(theme, idx)}>
                         <td className={`${tableCell()} whitespace-nowrap ${textSecondary(theme)}`}>{formatDateTime(record.createTime)}</td>
-                        <td className={`${tableCell()} ${textPrimary(theme)}`}>{record.displayName}</td>
+                        <td className={`${tableCell()} max-w-[14rem] ${textPrimary(theme)}`}>
+                          <span className="block truncate" title={record.displayName}>{record.displayName}</span>
+                        </td>
                         <td className={tableCell()}><span className={typeBadge(record.type)}>{TYPE_LABEL[record.type] ?? record.type}</span></td>
                         <td className={`${tableCell()} whitespace-nowrap text-xs font-semibold ${statusCls(record.status)}`}>{record.status === 'success' ? '成功' : '失败'}</td>
                         <td className={`${tableCell()} ${textSecondary(theme)}`}>{record.action}</td>
-                        <td className={`${tableCell()} ${textSecondary(theme)}`}>{record.agentName || '—'}</td>
+                        <td className={`${tableCell()} max-w-[10rem] ${textSecondary(theme)}`}>
+                          <span className="block truncate" title={record.agentName || undefined}>{record.agentName || '—'}</span>
+                        </td>
                         <td className={`${tableCell()} ${textSecondary(theme)}`}>{record.tokenCost > 0 ? record.tokenCost : '—'}</td>
-                        <td className={`${tableCell()} ${textSecondary(theme)}`}>
+                        <td className={`${tableCell()} max-w-[12rem] ${textSecondary(theme)}`}>
                           {record.inputPreview ? <span className="line-clamp-1" title={record.inputPreview}>{record.inputPreview}</span> : '—'}
                         </td>
                         <td className={`${tableCell()} ${textSecondary(theme)}`}>{record.latencyMs > 0 ? `${(record.latencyMs / 1000).toFixed(1)}s` : '—'}</td>
@@ -247,13 +255,11 @@ export const UsageRecordsPage: React.FC<UsageRecordsPageProps> = ({ theme, initi
                   </tbody>
                 </table>
               </div>
-              <div className={`px-4 border-t ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-                <Pagination theme={theme} page={page} pageSize={PAGE_SIZE} total={rows.length} onChange={setPage} />
-              </div>
-            </div>
+              <Pagination theme={theme} page={page} pageSize={PAGE_SIZE} total={rows.length} onChange={setPage} />
+            </>
           )
         ) : (
-          <div className={`${bentoCard(theme)} overflow-hidden`}>
+          <div className="overflow-x-auto rounded-2xl border border-transparent">
             {recentLoading ? (
               <PageSkeleton type="table" />
             ) : recentError ? (
@@ -261,40 +267,40 @@ export const UsageRecordsPage: React.FC<UsageRecordsPageProps> = ({ theme, initi
             ) : recentRows.length === 0 ? (
               <div className={`py-12 text-center text-sm ${textMuted(theme)}`}>暂无最近使用记录</div>
             ) : (
-              <div className="overflow-auto">
-                <table className="w-full min-w-[860px] text-sm">
-                  <thead className={`border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-                    <tr>
-                      <th className={tableHeadCell(theme)}>时间</th>
-                      <th className={tableHeadCell(theme)}>资源名称</th>
-                      <th className={tableHeadCell(theme)}>资源编码</th>
-                      <th className={tableHeadCell(theme)}>类型</th>
-                      <th className={tableHeadCell(theme)}>动作</th>
-                      <th className={tableHeadCell(theme)}>状态</th>
-                      <th className={tableHeadCell(theme)}>Token</th>
-                      <th className={tableHeadCell(theme)}>耗时</th>
+              <table className="w-full min-w-[860px] text-sm">
+                <thead className={`border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+                  <tr>
+                    <th className={tableHeadCell(theme)}>时间</th>
+                    <th className={tableHeadCell(theme)}>资源名称</th>
+                    <th className={tableHeadCell(theme)}>资源编码</th>
+                    <th className={tableHeadCell(theme)}>类型</th>
+                    <th className={tableHeadCell(theme)}>动作</th>
+                    <th className={tableHeadCell(theme)}>状态</th>
+                    <th className={tableHeadCell(theme)}>Token</th>
+                    <th className={tableHeadCell(theme)}>耗时</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentRows.map((item, idx) => (
+                    <tr key={`${item.targetType}-${item.targetId}-${item.id}`} className={tableBodyRow(theme, idx)}>
+                      <td className={`${tableCell()} whitespace-nowrap ${textSecondary(theme)}`}>{formatDateTime(item.createTime || item.lastUsedTime, '未知时间')}</td>
+                      <td className={`${tableCell()} max-w-[12rem] ${textPrimary(theme)}`}>
+                        <span className="block truncate" title={item.displayName || undefined}>{item.displayName || '—'}</span>
+                      </td>
+                      <td className={`${tableCell()} ${textSecondary(theme)} font-mono`}>{item.targetCode || '—'}</td>
+                      <td className={`${tableCell()} ${textSecondary(theme)}`}>{TYPE_LABEL[item.targetType] ?? item.targetType}</td>
+                      <td className={`${tableCell()} ${textSecondary(theme)}`}>{item.action || '—'}</td>
+                      <td className={`${tableCell()} whitespace-nowrap text-xs font-semibold ${recentStatusClass(item.status)}`}>{recentStatusLabel(item.status)}</td>
+                      <td className={`${tableCell()} ${textSecondary(theme)}`}>{typeof item.tokenCost === 'number' ? item.tokenCost : '—'}</td>
+                      <td className={`${tableCell()} ${textSecondary(theme)}`}>{typeof item.latencyMs === 'number' && item.latencyMs > 0 ? `${item.latencyMs} ms` : '—'}</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {recentRows.map((item, idx) => (
-                      <tr key={`${item.targetType}-${item.targetId}-${item.id}`} className={tableBodyRow(theme, idx)}>
-                        <td className={`${tableCell()} whitespace-nowrap ${textSecondary(theme)}`}>{formatDateTime(item.createTime || item.lastUsedTime, '未知时间')}</td>
-                        <td className={`${tableCell()} ${textPrimary(theme)}`}>{item.displayName || '—'}</td>
-                        <td className={`${tableCell()} ${textSecondary(theme)} font-mono`}>{item.targetCode || '—'}</td>
-                        <td className={`${tableCell()} ${textSecondary(theme)}`}>{TYPE_LABEL[item.targetType] ?? item.targetType}</td>
-                        <td className={`${tableCell()} ${textSecondary(theme)}`}>{item.action || '—'}</td>
-                        <td className={`${tableCell()} whitespace-nowrap text-xs font-semibold ${recentStatusClass(item.status)}`}>{recentStatusLabel(item.status)}</td>
-                        <td className={`${tableCell()} ${textSecondary(theme)}`}>{typeof item.tokenCost === 'number' ? item.tokenCost : '—'}</td>
-                        <td className={`${tableCell()} ${textSecondary(theme)}`}>{typeof item.latencyMs === 'number' && item.latencyMs > 0 ? `${item.latencyMs} ms` : '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
             )}
           </div>
         )}
       </div>
-    </div>
+    </MgmtPageShell>
   );
 };

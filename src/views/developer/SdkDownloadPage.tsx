@@ -7,10 +7,9 @@ import { buildPath } from '../../constants/consoleRoutes';
 import { BentoCard } from '../../components/common/BentoCard';
 import { Modal } from '../../components/common/Modal';
 import {
-  canvasBodyBg, btnPrimary, btnSecondary, textPrimary, textSecondary, textMuted,
+  btnPrimary, btnSecondary, textPrimary, textSecondary, textMuted,
 } from '../../utils/uiClasses';
-import { useLayoutChrome } from '../../context/LayoutChromeContext';
-import { PageTitleTagline } from '../../components/common/PageTitleTagline';
+import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 
 /** 与后端 SdkGatewayController `/sdk/v1` 一致；实际请求为 `基地址 + /sdk/v1/...`（基地址含 context-path，默认 `/regis`） */
 const SDK_V1_ENDPOINTS: { method: string; path: string; note: string }[] = [
@@ -115,8 +114,7 @@ function CopyBtn({ text, isDark }: { text: string; isDark: boolean }) {
 
 export interface SdkDownloadPageProps { theme: Theme; fontSize: FontSize; }
 
-export const SdkDownloadPage: React.FC<SdkDownloadPageProps> = ({ theme }) => {
-  const { chromePageTitle } = useLayoutChrome();
+export const SdkDownloadPage: React.FC<SdkDownloadPageProps> = ({ theme, fontSize }) => {
   const isDark = theme === 'dark';
   const navigate = useNavigate();
   const [roadmapModal, setRoadmapModal] = useState<SdkRoadmapInfo | null>(null);
@@ -125,22 +123,16 @@ export const SdkDownloadPage: React.FC<SdkDownloadPageProps> = ({ theme }) => {
   const apiBaseHint = env.VITE_API_BASE_URL;
 
   return (
-    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-colors duration-300 ${canvasBodyBg(theme)}`}>
-      <div className="w-full flex-1 min-h-0 overflow-y-auto px-2 sm:px-3 lg:px-4 py-2 sm:py-3 space-y-4">
-        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className={`shrink-0 rounded-xl p-2 ${isDark ? 'bg-emerald-500/15' : 'bg-emerald-50'}`}>
-              <Download size={20} className={isDark ? 'text-emerald-400' : 'text-emerald-700'} />
-            </div>
-            <PageTitleTagline
-              subtitleOnly
-              theme={theme}
-              title={chromePageTitle || 'SDK 与集成'}
-              tagline="后端 SDK v1 HTTP 网关已就绪；多语言封装包规划中"
-            />
-          </div>
-        </div>
-
+    <>
+      <MgmtPageShell
+        theme={theme}
+        fontSize={fontSize}
+        titleIcon={Download}
+        breadcrumbSegments={['开发者中心', 'SDK 下载']}
+        description="后端 SDK v1 HTTP 网关已就绪；多语言封装包规划中"
+        contentScroll="document"
+      >
+        <div className="px-4 sm:px-6 pb-8 space-y-4">
         <div
           className={`rounded-2xl border px-4 py-3 text-sm leading-relaxed ${
             isDark ? 'border-white/[0.08] bg-white/[0.03]' : 'border-slate-200 bg-white'
@@ -238,7 +230,8 @@ export const SdkDownloadPage: React.FC<SdkDownloadPageProps> = ({ theme }) => {
             ))}
           </div>
         </div>
-      </div>
+        </div>
+      </MgmtPageShell>
 
       <Modal open={!!roadmapModal} onClose={() => setRoadmapModal(null)} title={roadmapModal ? `${roadmapModal.name}` : ''} theme={theme} size="sm" footer={<button type="button" className={btnSecondary(theme)} onClick={() => setRoadmapModal(null)}>关闭</button>}>
         {roadmapModal && (
@@ -248,6 +241,6 @@ export const SdkDownloadPage: React.FC<SdkDownloadPageProps> = ({ theme }) => {
           </div>
         )}
       </Modal>
-    </div>
+    </>
   );
 };

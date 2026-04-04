@@ -10,15 +10,14 @@ import { EmptyState } from '../../components/common/EmptyState';
 import { userMgmtService } from '../../api/services/user-mgmt.service';
 import type { RoleRecord } from '../../types/dto/user-mgmt';
 import {
-  canvasBodyBg, bentoCard, bentoCardHover, btnPrimary, btnSecondary, btnGhost,
+  btnPrimary, btnSecondary,
   mgmtTableActionDanger, mgmtTableActionGhost,
   textPrimary, textSecondary, textMuted, tableHeadCell, tableBodyRow, tableCell,
   tableCellScrollInner,
 } from '../../utils/uiClasses';
-import { useLayoutChrome } from '../../context/LayoutChromeContext';
-import { PageTitleTagline } from '../../components/common/PageTitleTagline';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { formatDateTime } from '../../utils/formatDateTime';
+import { MgmtPageShell } from './MgmtPageShell';
 
 interface RoleListPageProps { theme: Theme; fontSize: FontSize; breadcrumbBase: string[]; }
 type ViewMode = 'list' | 'create' | 'edit';
@@ -28,11 +27,11 @@ function presetsFromPermissions(perms: string[]): Set<string> { const s = new Se
 
 const emptyForm = () => ({ name: '', code: '', description: '', presetIds: new Set<string>(['agent', 'audit']) });
 const PAGE_SIZE = 20;
+const ROLE_LIST_DESC = '管理系统角色与权限分组预设';
 const springT = { type: 'spring' as const, stiffness: 400, damping: 30 };
 function safeText(v: unknown): string { return String(v ?? ''); }
 
-export const RoleListPage: React.FC<RoleListPageProps> = ({ theme }) => {
-  const { chromePageTitle } = useLayoutChrome();
+export const RoleListPage: React.FC<RoleListPageProps> = ({ theme, fontSize, breadcrumbBase }) => {
   const isDark = theme === 'dark';
   const [roles, setRoles] = useState<RoleRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,6 +46,12 @@ export const RoleListPage: React.FC<RoleListPageProps> = ({ theme }) => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
 
+  const listSegments = useMemo(() => [...breadcrumbBase] as const, [breadcrumbBase]);
+  const formSegments = useMemo(
+    () => [...breadcrumbBase, mode === 'create' ? '新建角色' : '编辑角色'] as const,
+    [breadcrumbBase, mode],
+  );
+
   const fetchRoles = useCallback(async () => {
     setLoading(true);
     setErrorMsg(null);
@@ -58,7 +63,7 @@ export const RoleListPage: React.FC<RoleListPageProps> = ({ theme }) => {
       setLoading(false);
     }
   }, []);
-  useEffect(() => { fetchRoles(); }, [fetchRoles]);
+  useEffect(() => { void fetchRoles(); }, [fetchRoles]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -130,14 +135,24 @@ export const RoleListPage: React.FC<RoleListPageProps> = ({ theme }) => {
 
   if (mode !== 'list') {
     return (
-      <div className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-colors duration-300 ${canvasBodyBg(theme)}`}>
-        <div className="w-full flex-1 min-h-0 overflow-y-auto px-2 sm:px-3 lg:px-4 py-2 sm:py-3 space-y-4 max-w-2xl">
-          <div className="flex items-center gap-2">
-            <button type="button" onClick={() => { setMode('list'); setEditingId(null); }} className={btnSecondary(theme)}><ArrowLeft size={15} /> 返回列表</button>
-            <button type="button" onClick={saveRole} disabled={saving} className={btnPrimary}>
-              {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />} {saving ? '保存中…' : '保存'}
+      <MgmtPageShell
+        theme={theme}
+        fontSize={fontSize}
+        titleIcon={Fingerprint}
+        breadcrumbSegments={formSegments}
+        description={ROLE_LIST_DESC}
+        contentScroll="document"
+      >
+        <div className="px-4 sm:px-6 pb-8 max-w-2xl space-y-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" onClick={() => { setMode('list'); setEditingId(null); }} className={btnSecondary(theme)} aria-label="返回角色列表">
+              <ArrowLeft size={15} aria-hidden /> 返回列表
+            </button>
+            <button type="button" onClick={() => void saveRole()} disabled={saving} className={btnPrimary} aria-label="保存角色">
+              {saving ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Save size={15} aria-hidden />} {saving ? '保存中…' : '保存'}
             </button>
           </div>
+          {errorMsg ? <p className={`text-sm ${isDark ? 'text-rose-400' : 'text-rose-600'}`}>{errorMsg}</p> : null}
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={springT} className="space-y-4">
             <div><label className={labelCls}>角色名称</label><input className={nativeInputClass(theme)} value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="如：学科助理" /></div>
             <div><label className={labelCls}>角色代码</label><input className={nativeInputClass(theme)} value={form.code} onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))} placeholder="英文标识" /></div>
@@ -156,37 +171,44 @@ export const RoleListPage: React.FC<RoleListPageProps> = ({ theme }) => {
             </div>
           </motion.div>
         </div>
-      </div>
+      </MgmtPageShell>
     );
   }
 
   return (
-    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-colors duration-300 ${canvasBodyBg(theme)}`}>
-      <div className="w-full flex-1 min-h-0 flex flex-col px-2 sm:px-3 lg:px-4 py-2 sm:py-3">
-        <div className={`${bentoCard(theme)} overflow-hidden flex-1 min-h-0 flex flex-col`}>
-          <div className={`flex items-center justify-between px-6 py-4 border-b shrink-0 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-            <div className="flex min-w-0 items-center gap-3">
-              <div className={`shrink-0 rounded-xl p-2 ${isDark ? 'bg-neutral-900/10' : 'bg-neutral-100'}`}><Fingerprint size={20} className={isDark ? 'text-neutral-300' : 'text-neutral-900'} /></div>
-              <PageTitleTagline
-                subtitleOnly
-                theme={theme}
-                title={chromePageTitle || '角色管理'}
-                suffix={filtered.length > 0 ? <span className={`text-xs font-normal ${textMuted(theme)}`}>共 {filtered.length} 个</span> : undefined}
-              />
+    <>
+      <MgmtPageShell
+        theme={theme}
+        fontSize={fontSize}
+        titleIcon={Fingerprint}
+        breadcrumbSegments={listSegments}
+        description={ROLE_LIST_DESC}
+        toolbar={
+          <div className="flex flex-wrap items-center gap-2 justify-between min-w-0">
+            <div className="min-w-0 flex-1 max-w-md">
+              <SearchInput value={search} onChange={setSearch} placeholder="搜索名称、代码或描述…" theme={theme} />
             </div>
-            <button type="button" onClick={openCreate} className={btnPrimary}><Plus size={15} /> 新建角色</button>
+            <button type="button" onClick={openCreate} className={`shrink-0 ${btnPrimary}`} aria-label="新建角色">
+              <Plus size={15} aria-hidden /> 新建角色
+            </button>
           </div>
-          <div className={`px-4 py-3 border-b shrink-0 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-            <SearchInput value={search} onChange={setSearch} placeholder="搜索名称、代码或描述…" theme={theme} />
-          </div>
-          <div className="flex-1 min-h-0 overflow-auto">
-            {errorMsg ? (
-              <EmptyState title="角色数据加载失败" description={errorMsg} action={<button type="button" onClick={fetchRoles} className={btnSecondary(theme)}>重试</button>} />
-            ) : loading && roles.length === 0 ? (
-              <PageSkeleton type="table" />
-            ) : paginated.length === 0 ? (
-              <div className={`text-center py-12 text-sm ${textMuted(theme)}`}>暂无匹配角色</div>
-            ) : (
+        }
+      >
+        <div className="px-4 sm:px-6 pb-6 flex flex-col min-h-0 flex-1">
+          {infoMsg ? (
+            <p className={`text-xs mb-2 ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>{infoMsg}</p>
+          ) : null}
+          {filtered.length > 0 ? (
+            <p className={`text-xs mb-2 ${textMuted(theme)}`}>共 {filtered.length} 个角色</p>
+          ) : null}
+          {errorMsg ? (
+            <EmptyState title="角色数据加载失败" description={errorMsg} action={<button type="button" onClick={() => void fetchRoles()} className={btnSecondary(theme)}>重试</button>} />
+          ) : loading && roles.length === 0 ? (
+            <PageSkeleton type="table" />
+          ) : paginated.length === 0 ? (
+            <div className={`text-center py-12 text-sm ${textMuted(theme)}`}>暂无匹配角色</div>
+          ) : (
+            <div className="overflow-x-auto min-h-0">
               <table className="w-full min-w-[1000px] text-sm">
                 <thead className={`border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
                   <tr>
@@ -203,11 +225,15 @@ export const RoleListPage: React.FC<RoleListPageProps> = ({ theme }) => {
                 <tbody>
                   {paginated.map((r, idx) => (
                     <tr key={r.id} className={tableBodyRow(theme, idx)}>
-                      <td className={`${tableCell()} font-medium ${textPrimary(theme)}`}>{r.name}</td>
+                      <td className={`${tableCell()} font-medium max-w-[10rem] ${textPrimary(theme)}`}>
+                        <span className="block truncate" title={r.name}>{r.name}</span>
+                      </td>
                       <td className={tableCell()}>
                         <span className={`inline-flex shrink-0 items-center whitespace-nowrap text-xs px-1.5 py-0.5 rounded font-mono ${isDark ? 'bg-white/5 text-slate-500' : 'bg-slate-50 text-slate-500'}`}>{r.code}</span>
                       </td>
-                      <td className={`${tableCell()} ${textSecondary(theme)}`}>{safeText(r.description) || '—'}</td>
+                      <td className={`${tableCell()} max-w-[14rem] ${textSecondary(theme)}`}>
+                        <span className="line-clamp-2 break-words" title={safeText(r.description)}>{safeText(r.description) || '—'}</span>
+                      </td>
                       <td className={`${tableCell()} ${textSecondary(theme)}`}>{r.userCount}</td>
                       <td className={tableCell()}>
                         {r.isSystem ? (
@@ -233,7 +259,7 @@ export const RoleListPage: React.FC<RoleListPageProps> = ({ theme }) => {
                             onClick={() => openEdit(r)}
                             disabled={r.isSystem}
                             className={`${mgmtTableActionGhost(theme)} disabled:opacity-40 disabled:pointer-events-none`}
-                            title={r.isSystem ? '系统内置角色不可编辑' : '编辑'}
+                            aria-label={r.isSystem ? '系统内置角色不可编辑' : `编辑角色 ${r.name}`}
                           >
                             编辑
                           </button>
@@ -242,7 +268,7 @@ export const RoleListPage: React.FC<RoleListPageProps> = ({ theme }) => {
                             onClick={() => setDeleteTarget(r.id)}
                             disabled={r.isSystem}
                             className={`${mgmtTableActionDanger} disabled:opacity-40 disabled:pointer-events-none`}
-                            title={r.isSystem ? '系统内置角色不可删除' : '删除'}
+                            aria-label={r.isSystem ? '系统内置角色不可删除' : `删除角色 ${r.name}`}
                           >
                             删除
                           </button>
@@ -252,19 +278,14 @@ export const RoleListPage: React.FC<RoleListPageProps> = ({ theme }) => {
                   ))}
                 </tbody>
               </table>
-            )}
-          </div>
-          <div className={`px-4 border-t shrink-0 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-            <Pagination theme={theme} page={page} pageSize={PAGE_SIZE} total={filtered.length} onChange={setPage} />
-          </div>
+            </div>
+          )}
+          <Pagination theme={theme} page={page} pageSize={PAGE_SIZE} total={filtered.length} onChange={setPage} />
         </div>
-      </div>
-      {infoMsg && (
-        <div className={`mx-4 mb-2 text-xs ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>{infoMsg}</div>
-      )}
+      </MgmtPageShell>
       {!errorMsg && (
         <ConfirmDialog open={!!deleteTarget} title="删除角色" message="确定删除该角色？" confirmText="删除" variant="danger" loading={deleting} onConfirm={handleDelete} onCancel={() => setDeleteTarget(null)} />
       )}
-    </div>
+    </>
   );
 };

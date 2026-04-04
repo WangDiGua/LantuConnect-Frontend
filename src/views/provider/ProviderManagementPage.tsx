@@ -13,12 +13,11 @@ import {
   btnGhost,
   btnPrimary,
   btnSecondary,
-  canvasBodyBg,
-  mainScrollCompositorClass,
   textMuted,
   textPrimary,
   textSecondary,
 } from '../../utils/uiClasses';
+import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { formatDateTime } from '../../utils/formatDateTime';
 
 interface Props {
@@ -36,8 +35,12 @@ const TYPE_OPTIONS: Array<{ value: '' | ProviderType; label: string }> = [
   { value: 'cloud', label: '云服务' },
 ];
 
+const LIST_DESC = '仅维护 Provider 元数据，授权关系请走资源授权管理。';
+const CREATE_DESC = 'Provider 页面只维护元数据；资源授权请在「资源授权管理」中执行。';
+
 export const ProviderManagementPage: React.FC<Props> = ({
   theme,
+  fontSize,
   mode,
   showMessage,
   onOpenGrantManagement,
@@ -137,14 +140,17 @@ export const ProviderManagementPage: React.FC<Props> = ({
 
   if (mode === 'create') {
     return (
-      <div className={`flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${canvasBodyBg(theme)}`}>
-        <div className="px-3 py-4 sm:px-4 lg:px-5">
+      <MgmtPageShell
+        theme={theme}
+        fontSize={fontSize}
+        titleIcon={Plus}
+        breadcrumbSegments={['Provider 管理', '新建 Provider']}
+        description={CREATE_DESC}
+        contentScroll="document"
+      >
+        <div className="px-4 sm:px-6 pb-8">
           <div className={`${bentoCard(theme)} overflow-hidden p-6`}>
-            <h2 className={`text-lg font-bold ${textPrimary(theme)}`}>新建 Provider</h2>
-            <p className={`mt-1 text-xs ${textMuted(theme)}`}>
-              Provider 页面只维护元数据；资源授权请在“资源授权管理”中执行。
-            </p>
-            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="mt-0 grid grid-cols-1 gap-3 md:grid-cols-2">
               <input className={nativeInputClass(theme)} placeholder="providerCode" value={form.providerCode} onChange={(e) => setForm((prev) => ({ ...prev, providerCode: e.target.value }))} />
               <input className={nativeInputClass(theme)} placeholder="providerName" value={form.providerName} onChange={(e) => setForm((prev) => ({ ...prev, providerName: e.target.value }))} />
               <FilterSelect value={form.providerType} onChange={(v) => setForm((prev) => ({ ...prev, providerType: v as ProviderType }))} options={TYPE_OPTIONS.filter((opt) => opt.value !== '') as Array<{ value: ProviderType; label: string }>} theme={theme} />
@@ -153,44 +159,45 @@ export const ProviderManagementPage: React.FC<Props> = ({
               <textarea className={`md:col-span-2 ${nativeInputClass(theme)} resize-none`} rows={3} placeholder="description (optional)" value={form.description} onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))} />
             </div>
             <div className="mt-4 flex items-center gap-2">
-              <button type="button" className={btnPrimary} onClick={() => void createProvider()} disabled={creating}>
-                <Plus size={14} />
+              <button type="button" className={btnPrimary} onClick={() => void createProvider()} disabled={creating} aria-label="创建 Provider">
+                <Plus size={14} aria-hidden />
                 {creating ? '创建中...' : '创建 Provider'}
               </button>
-              <button type="button" className={btnSecondary(theme)} onClick={onOpenGrantManagement}>
+              <button type="button" className={btnSecondary(theme)} onClick={onOpenGrantManagement} aria-label="打开资源授权管理">
                 去资源授权管理
-                <ArrowRight size={14} />
+                <ArrowRight size={14} aria-hidden />
               </button>
             </div>
           </div>
         </div>
-      </div>
+      </MgmtPageShell>
     );
   }
 
-  return (
-    <div className={`flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${canvasBodyBg(theme)}`}>
-      <div className="px-3 py-4 sm:px-4 lg:px-5">
-        <div className={`${bentoCard(theme)} overflow-hidden`}>
-          <div className={`flex items-center justify-between border-b px-6 py-4 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-            <div className="flex items-center gap-3">
-              <Server size={18} className="text-neutral-800" />
-              <div>
-                <h2 className={`text-lg font-bold ${textPrimary(theme)}`}>Provider 列表</h2>
-                <p className={`text-xs ${textMuted(theme)}`}>仅维护 Provider 元数据，授权关系请走资源授权管理。</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button type="button" className={btnGhost(theme)} onClick={() => void loadData()}>
-                <RefreshCw size={14} />
-                刷新
-              </button>
-              <button type="button" className={btnSecondary(theme)} onClick={onOpenGrantManagement}>
-                去授权管理
-              </button>
-            </div>
-          </div>
+  const listToolbar = (
+    <div className="flex flex-wrap items-center justify-end gap-2 w-full">
+      <button type="button" className={btnGhost(theme)} onClick={() => void loadData()} aria-label="刷新 Provider 列表">
+        <RefreshCw size={14} aria-hidden />
+        刷新
+      </button>
+      <button type="button" className={btnSecondary(theme)} onClick={onOpenGrantManagement} aria-label="打开资源授权管理">
+        去授权管理
+      </button>
+    </div>
+  );
 
+  return (
+    <MgmtPageShell
+      theme={theme}
+      fontSize={fontSize}
+      titleIcon={Server}
+      breadcrumbSegments={['Provider 管理', 'Provider 列表']}
+      description={LIST_DESC}
+      toolbar={listToolbar}
+      contentScroll="document"
+    >
+      <div className="px-4 sm:px-6 pb-8">
+        <div className={`${bentoCard(theme)} overflow-hidden`}>
           <div className={`px-6 py-3 border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
             <div className="flex flex-wrap items-center gap-2">
               <FilterSelect
@@ -242,6 +249,6 @@ export const ProviderManagementPage: React.FC<Props> = ({
           </div>
         </div>
       </div>
-    </div>
+    </MgmtPageShell>
   );
 };

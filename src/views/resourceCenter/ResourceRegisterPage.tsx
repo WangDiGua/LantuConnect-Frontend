@@ -11,7 +11,8 @@ import { useAuthStore } from '../../stores/authStore';
 import { LantuSelect } from '../../components/common/LantuSelect';
 import { filterTagsForResourceType } from '../../utils/marketTags';
 import { buildPath } from '../../constants/consoleRoutes';
-import { bentoCard, btnPrimary, btnSecondary, canvasBodyBg, mainScrollCompositorClass, textMuted, textPrimary } from '../../utils/uiClasses';
+import { bentoCard, btnPrimary, btnSecondary, textMuted, textPrimary } from '../../utils/uiClasses';
+import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 
 interface Props {
   theme: Theme;
@@ -190,6 +191,7 @@ function parseRelatedIds(value: string): { ids: number[]; invalidTokens: string[
 
 export const ResourceRegisterPage: React.FC<Props> = ({
   theme,
+  fontSize,
   showMessage,
   resourceType,
   resourceId,
@@ -947,44 +949,46 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     }
   };
 
-  return (
-    <div className={`flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${canvasBodyBg(theme)}`}>
-      <div className="px-3 py-4 sm:px-4 lg:px-5">
-        <div className={`${bentoCard(theme)} overflow-hidden`}>
-          <div className={`flex items-center justify-between border-b px-6 py-4 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-            <div className="max-w-3xl">
-              <h2 className={`text-lg font-bold ${textPrimary(theme)}`}>
-                {resourceId ? '编辑' : '注册'}
-                {TYPE_LABEL[resourceType]}
-              </h2>
-              <div className={`mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs ${textMuted(theme)}`}>
-                <span>{skillRegisterGuideLine}</span>
-                <button
-                  type="button"
-                  className={`inline-flex items-center gap-1 font-medium ${isDark ? 'text-sky-400 hover:text-sky-300' : 'text-sky-600 hover:text-sky-700'}`}
-                  onClick={() => navigate(buildPath('user', 'api-docs'))}
-                >
-                  <BookOpen size={12} />
-                  接入指南
-                </button>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button type="button" className={btnSecondary(theme)} onClick={onBack}>
-                <ArrowLeft size={15} />
-                返回
-              </button>
-              <button type="button" className={btnGhostStyle(theme)} onClick={() => void save(false)} disabled={loading}>
-                <Save size={15} />
-                保存
-              </button>
-              <button type="button" className={btnPrimary} onClick={() => void save(true)} disabled={loading}>
-                <Send size={15} />
-                保存并提审
-              </button>
-            </div>
-          </div>
+  const registerPageTitle = `${resourceId ? '编辑' : '注册'}${TYPE_LABEL[resourceType]}`;
 
+  return (
+    <MgmtPageShell
+      theme={theme}
+      fontSize={fontSize}
+      titleIcon={FileCheck}
+      breadcrumbSegments={['统一资源中心', registerPageTitle]}
+      description={skillRegisterGuideLine}
+      toolbar={
+        <div className="flex flex-wrap items-center justify-between gap-3 w-full">
+          <button
+            type="button"
+            className={`inline-flex items-center gap-1 text-sm font-medium ${isDark ? 'text-sky-400 hover:text-sky-300' : 'text-sky-600 hover:text-sky-700'}`}
+            onClick={() => navigate(buildPath('user', 'api-docs'))}
+            aria-label="打开接入指南"
+          >
+            <BookOpen size={14} aria-hidden />
+            接入指南
+          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" className={btnSecondary(theme)} onClick={onBack} aria-label="返回资源列表">
+              <ArrowLeft size={15} aria-hidden />
+              返回
+            </button>
+            <button type="button" className={btnGhostStyle(theme)} onClick={() => void save(false)} disabled={loading} aria-label="保存草稿">
+              <Save size={15} aria-hidden />
+              保存
+            </button>
+            <button type="button" className={btnPrimary} onClick={() => void save(true)} disabled={loading} aria-label="保存并提交审核">
+              <Send size={15} aria-hidden />
+              保存并提审
+            </button>
+          </div>
+        </div>
+      }
+      contentScroll="document"
+    >
+      <div className="px-4 sm:px-6 pb-8">
+        <div className={`${bentoCard(theme)} overflow-hidden`}>
           <div className="grid grid-cols-1 gap-3 p-4 md:grid-cols-2">
             <div className="md:col-span-2">
               <div
@@ -1838,7 +1842,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
           </div>
         </div>
       </div>
-    </div>
+    </MgmtPageShell>
   );
 };
 

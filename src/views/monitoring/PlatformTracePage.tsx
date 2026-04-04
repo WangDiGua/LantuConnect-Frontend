@@ -8,11 +8,10 @@ import { PageError } from '../../components/common/PageError';
 import { EmptyState } from '../../components/common/EmptyState';
 import { BentoCard } from '../../components/common/BentoCard';
 import { nativeInputClass } from '../../utils/formFieldClasses';
-import {
-  canvasBodyBg, btnPrimary, btnGhost, textPrimary, textSecondary, textMuted,
-} from '../../utils/uiClasses';
-import { useLayoutChrome } from '../../context/LayoutChromeContext';
-import { PageTitleTagline } from '../../components/common/PageTitleTagline';
+import { btnPrimary, btnGhost, textSecondary, textMuted } from '../../utils/uiClasses';
+import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
+
+const PAGE_DESC = '输入 Trace ID 查看完整调用链路';
 
 interface Props {
   theme: Theme;
@@ -44,9 +43,9 @@ function formatTraceTree(spans: TraceSpan[], traceId: string): string {
   return `trace=${traceId}\n` + walk(roots, '');
 }
 
-export const PlatformTracePage: React.FC<Props> = ({ theme, showMessage }) => {
-  const { chromePageTitle } = useLayoutChrome();
-  const isDark = theme === 'dark';
+const BREADCRUMB = ['监控中心', '全链路 Trace'] as const;
+
+export const PlatformTracePage: React.FC<Props> = ({ theme, fontSize, showMessage }) => {
   const [traceId, setTraceId] = useState('');
   const [detail, setDetail] = useState<string | null>(null);
   const tracesQ = useTraces();
@@ -55,22 +54,6 @@ export const PlatformTracePage: React.FC<Props> = ({ theme, showMessage }) => {
     const spans = tracesQ.data ?? [];
     return [...new Set(spans.map((s) => s.traceId))];
   }, [tracesQ.data]);
-
-  if (tracesQ.isLoading) {
-    return (
-      <div className={`flex-1 flex flex-col min-h-0 ${canvasBodyBg(theme)}`}>
-        <div className="p-4 sm:p-6 max-w-2xl"><PageSkeleton type="detail" /></div>
-      </div>
-    );
-  }
-
-  if (tracesQ.isError) {
-    return (
-      <div className={`flex-1 flex flex-col min-h-0 ${canvasBodyBg(theme)}`}>
-        <PageError error={tracesQ.error as Error} onRetry={() => tracesQ.refetch()} />
-      </div>
-    );
-  }
 
   const spans = tracesQ.data ?? [];
 
@@ -83,58 +66,58 @@ export const PlatformTracePage: React.FC<Props> = ({ theme, showMessage }) => {
     showMessage('已加载 Trace', 'success');
   };
 
-  return (
-    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-colors duration-300 ${canvasBodyBg(theme)}`}>
-      <div className="w-full flex-1 min-h-0 overflow-y-auto px-2 sm:px-3 lg:px-4 py-2 sm:py-3 space-y-4 max-w-3xl">
-        {/* Header */}
-        <div className="flex min-w-0 items-center gap-3">
-          <div className={`shrink-0 rounded-xl p-2 ${isDark ? 'bg-neutral-900/10' : 'bg-neutral-100'}`}>
-            <GitBranch size={20} className={isDark ? 'text-neutral-300' : 'text-neutral-900'} />
+  const toolbar = !tracesQ.isLoading && !tracesQ.isError ? (
+    <div className="space-y-3 w-full">
+      {traceIds.length > 0 && (
+        <BentoCard theme={theme} padding="sm">
+          <div className="flex flex-wrap gap-2 items-center">
+            <span className={`text-xs font-semibold ${textMuted(theme)}`}>快速选择</span>
+            {traceIds.slice(0, 6).map((id) => (
+              <button
+                key={id}
+                type="button"
+                className={`${btnGhost(theme)} !text-xs font-mono`}
+                onClick={() => {
+                  setTraceId(id);
+                  const tree = formatTraceTree(spans, id);
+                  setDetail(tree || null);
+                  if (tree) showMessage('已加载 Trace', 'success');
+                }}
+                title={id}
+                aria-label={`加载 Trace ${id}`}
+              >
+                {id.length > 14 ? `${id.slice(0, 8)}…` : id}
+              </button>
+            ))}
           </div>
-          <PageTitleTagline subtitleOnly theme={theme} title={chromePageTitle || '全链路 Trace'} tagline="输入 Trace ID 查看完整调用链路" />
-        </div>
+        </BentoCard>
+      )}
+      <div className="flex flex-wrap gap-2">
+        <input
+          className={`${nativeInputClass(theme)} flex-1 min-w-[200px]`}
+          placeholder="Trace ID"
+          value={traceId}
+          onChange={(e) => setTraceId(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && runLookup()}
+          aria-label="Trace ID"
+        />
+        <button type="button" className={btnPrimary} onClick={runLookup}>查询</button>
+      </div>
+    </div>
+  ) : undefined;
 
-        {/* Quick select */}
-        {traceIds.length > 0 && (
-          <BentoCard theme={theme} padding="sm">
-            <div className="flex flex-wrap gap-2 items-center">
-              <span className={`text-xs font-semibold ${textMuted(theme)}`}>快速选择</span>
-              {traceIds.slice(0, 6).map((id) => (
-                <button
-                  key={id}
-                  type="button"
-                  className={btnGhost(theme) + ' !text-xs font-mono'}
-                  onClick={() => {
-                    setTraceId(id);
-                    const tree = formatTraceTree(spans, id);
-                    setDetail(tree || null);
-                    if (tree) showMessage('已加载 Trace', 'success');
-                  }}
-                  title={id}
-                >
-                  {id.length > 14 ? `${id.slice(0, 8)}…` : id}
-                </button>
-              ))}
-            </div>
-          </BentoCard>
-        )}
-
-        {/* Search */}
-        <div className="flex flex-wrap gap-2">
-          <input
-            className={`${nativeInputClass(theme)} flex-1 min-w-[200px]`}
-            placeholder="Trace ID"
-            value={traceId}
-            onChange={(e) => setTraceId(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && runLookup()}
-          />
-          <button type="button" className={btnPrimary} onClick={runLookup}>查询</button>
-        </div>
-
+  const body = (() => {
+    if (tracesQ.isLoading) {
+      return <div className="max-w-2xl"><PageSkeleton type="detail" /></div>;
+    }
+    if (tracesQ.isError) {
+      return <PageError error={tracesQ.error as Error} onRetry={() => tracesQ.refetch()} />;
+    }
+    return (
+      <div className="space-y-4 max-w-3xl">
         {spans.length === 0 && !detail && (
           <EmptyState title="暂无 Trace 数据" description="后端未返回 Span，或链路采集未开启。" />
         )}
-
         {detail && (
           <BentoCard theme={theme}>
             <pre className={`text-xs font-mono whitespace-pre-wrap ${textSecondary(theme)}`}>
@@ -143,6 +126,20 @@ export const PlatformTracePage: React.FC<Props> = ({ theme, showMessage }) => {
           </BentoCard>
         )}
       </div>
-    </div>
+    );
+  })();
+
+  return (
+    <MgmtPageShell
+      theme={theme}
+      fontSize={fontSize}
+      titleIcon={GitBranch}
+      breadcrumbSegments={BREADCRUMB}
+      description={PAGE_DESC}
+      toolbar={toolbar}
+      contentScroll="document"
+    >
+      <div className="px-4 sm:px-6 pb-8">{body}</div>
+    </MgmtPageShell>
   );
 };

@@ -4,8 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { Bot, X } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import {
-  canvasBodyBg,
-  mainScrollCompositorClass,
   bentoCard,
   btnPrimary,
   btnSecondary,
@@ -26,13 +24,16 @@ import { PublishResourceCard } from '../../components/business/PublishResourceCa
 import { userActivityService } from '../../api/services/user-activity.service';
 import type { MyPublishItem } from '../../types/dto/user-activity';
 import { buildPath } from '../../constants/consoleRoutes';
+import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
+
+const PAGE_DESC = '管理您提交的 Agent，跟踪审核进度';
 
 interface Props {
   theme: Theme;
   fontSize: FontSize;
 }
 
-export const MyAgentList: React.FC<Props> = ({ theme }) => {
+export const MyAgentList: React.FC<Props> = ({ theme, fontSize }) => {
   const isDark = theme === 'dark';
   const navigate = useNavigate();
   const { showMessage } = useMessage();
@@ -61,62 +62,60 @@ export const MyAgentList: React.FC<Props> = ({ theme }) => {
     showMessage(`已撤回「${agent.displayName}」的审核申请`, 'success');
   };
 
-  return (
-    <div className={`flex min-h-0 flex-1 flex-col overflow-hidden ${canvasBodyBg(theme)}`}>
-      <div
-        className={`z-20 flex shrink-0 items-center justify-between border-b px-4 py-4 sm:px-6 ${
-          isDark ? 'border-white/[0.06]' : 'border-slate-100'
-        }`}
-      >
-        <div className="flex items-center gap-3">
-          <div className={`rounded-xl p-2 ${isDark ? 'bg-violet-500/15' : 'bg-violet-50'}`}>
-            <Bot size={20} className={isDark ? 'text-violet-400' : 'text-violet-600'} />
-          </div>
-          <div>
-            <h2 className={`text-lg font-bold ${textPrimary(theme)}`}>我的 Agent</h2>
-            <p className={`text-sm ${textMuted(theme)}`}>管理您提交的 Agent，跟踪审核进度</p>
-          </div>
-        </div>
-        <span
-          className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
-            isDark ? 'bg-white/5 text-slate-400' : 'border border-slate-100 bg-slate-50 text-slate-500'
-          }`}
-        >
-          共 {agents.length} 个
-        </span>
-      </div>
+  const toolbar = (
+    <span
+      className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+        isDark ? 'bg-white/5 text-slate-400' : 'border border-slate-100 bg-slate-50 text-slate-500'
+      }`}
+    >
+      共 {agents.length} 个
+    </span>
+  );
 
-      <div className={`custom-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 ${mainScrollCompositorClass}`}>
-        {loading ? (
-          <PageSkeleton type="cards" />
-        ) : agents.length === 0 ? (
-          <EmptyState
-            title="暂无已提交的 Agent"
-            description="创建并提交后，可在此查看审核进度与发布状态。"
-            action={
-              <button
-                type="button"
-                className={btnPrimary}
-                onClick={() => navigate(buildPath('user', 'submit-agent'))}
-              >
-                去提交新 Agent
-              </button>
-            }
-          />
-        ) : (
-          <AnimatedList className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {agents.map((agent) => (
-              <PublishResourceCard
-                key={agent.id}
-                theme={theme}
-                item={agent}
-                onView={() => setViewTarget(agent)}
-                onWithdraw={() => setWithdrawTarget(agent)}
-              />
-            ))}
-          </AnimatedList>
-        )}
-      </div>
+  return (
+    <>
+      <MgmtPageShell
+        theme={theme}
+        fontSize={fontSize}
+        titleIcon={Bot}
+        breadcrumbSegments={['工作台', '我的 Agent'] as const}
+        description={PAGE_DESC}
+        toolbar={toolbar}
+        contentScroll="document"
+      >
+        <div className="px-4 sm:px-6 pb-8">
+          {loading ? (
+            <PageSkeleton type="cards" />
+          ) : agents.length === 0 ? (
+            <EmptyState
+              title="暂无已提交的 Agent"
+              description="创建并提交后，可在此查看审核进度与发布状态。"
+              action={
+                <button
+                  type="button"
+                  className={btnPrimary}
+                  onClick={() => navigate(buildPath('user', 'submit-agent'))}
+                >
+                  去提交新 Agent
+                </button>
+              }
+            />
+          ) : (
+            <AnimatedList className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              {agents.map((agent) => (
+                <PublishResourceCard
+                  key={agent.id}
+                  theme={theme}
+                  item={agent}
+                  callCountLabel="热度（网关 invoke）"
+                  onView={() => setViewTarget(agent)}
+                  onWithdraw={() => setWithdrawTarget(agent)}
+                />
+              ))}
+            </AnimatedList>
+          )}
+        </div>
+      </MgmtPageShell>
 
       <AnimatePresence>
         {withdrawTarget && (
@@ -140,8 +139,9 @@ export const MyAgentList: React.FC<Props> = ({ theme }) => {
                   type="button"
                   onClick={() => setWithdrawTarget(null)}
                   className={`rounded-lg p-1.5 ${isDark ? 'hover:bg-white/10' : 'hover:bg-slate-100'}`}
+                  aria-label="关闭"
                 >
-                  <X size={18} className={textMuted(theme)} />
+                  <X size={18} className={textMuted(theme)} aria-hidden />
                 </button>
               </div>
               <p className={`mb-6 text-sm ${textSecondary(theme)}`}>
@@ -171,7 +171,7 @@ export const MyAgentList: React.FC<Props> = ({ theme }) => {
               {[
                 { label: '名称', value: viewTarget.displayName, bold: true },
                 { label: '状态', value: null, badge: true },
-                { label: '调用次数', value: String(viewTarget.callCount) },
+                { label: '热度（网关 invoke）', value: String(viewTarget.callCount) },
                 { label: '创建时间', value: viewTarget.createTime },
               ].map((item) => (
                 <div key={item.label}>
@@ -200,6 +200,6 @@ export const MyAgentList: React.FC<Props> = ({ theme }) => {
           </div>
         )}
       </Modal>
-    </div>
+    </>
   );
 };

@@ -9,22 +9,21 @@ import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { AnimatedList } from '../../components/common/AnimatedList';
 import {
-  canvasBodyBg, btnPrimary, btnSecondary, textPrimary, textSecondary, textMuted,
+  btnPrimary, btnSecondary, textPrimary, textSecondary, textMuted,
 } from '../../utils/uiClasses';
 import { formatDateTime } from '../../utils/formatDateTime';
-import { useLayoutChrome } from '../../context/LayoutChromeContext';
-import { PageTitleTagline } from '../../components/common/PageTitleTagline';
+import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 
 type TabFilter = 'all' | 'agent' | 'skill' | 'app' | 'mcp' | 'dataset';
 const TYPE_LABEL: Record<string, string> = { agent: 'Agent', skill: 'Skill', app: '应用', mcp: 'MCP', dataset: '数据集' };
+const PAGE_DESC = '管理您收藏的 Agent、Skill、MCP、数据集和应用';
 
 interface MyFavoritesPageProps {
   theme: Theme;
   fontSize: FontSize;
 }
 
-export const MyFavoritesPage: React.FC<MyFavoritesPageProps> = ({ theme }) => {
-  const { chromePageTitle } = useLayoutChrome();
+export const MyFavoritesPage: React.FC<MyFavoritesPageProps> = ({ theme, fontSize }) => {
   const isDark = theme === 'dark';
   const [tab, setTab] = useState<TabFilter>('all');
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
@@ -58,11 +57,11 @@ export const MyFavoritesPage: React.FC<MyFavoritesPageProps> = ({ theme }) => {
 
   const TypeIcon = ({ type }: { type: string }) => {
     switch (type) {
-      case 'agent': return <Bot size={12} />;
-      case 'skill': return <Wrench size={12} />;
-      case 'mcp': return <Blocks size={12} />;
-      case 'dataset': return <Database size={12} />;
-      default: return <AppWindow size={12} />;
+      case 'agent': return <Bot size={12} aria-hidden />;
+      case 'skill': return <Wrench size={12} aria-hidden />;
+      case 'mcp': return <Blocks size={12} aria-hidden />;
+      case 'dataset': return <Database size={12} aria-hidden />;
+      default: return <AppWindow size={12} aria-hidden />;
     }
   };
 
@@ -74,38 +73,49 @@ export const MyFavoritesPage: React.FC<MyFavoritesPageProps> = ({ theme }) => {
 
   const handleUse = (name: string) => showMessage(`正在打开「${name}」...`, 'success');
 
-  const tabCls = (active: boolean) => `px-4 py-2 rounded-xl text-sm font-semibold transition-all active:scale-[0.97] ${
+  const tabCls = (active: boolean) => `px-4 py-2 rounded-xl text-sm font-semibold transition-colors motion-reduce:transition-none active:scale-[0.97] ${
     active
-      ? 'bg-neutral-900 text-white shadow-sm hover:shadow-[var(--shadow-glow-indigo)]'
+      ? 'bg-neutral-900 text-white shadow-sm'
       : isDark ? 'bg-white/5 text-slate-400 hover:bg-white/10' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80'
   }`;
 
+  const toolbar = (
+    <BentoCard theme={theme} padding="sm">
+      <div className="flex flex-wrap gap-2">
+        {([
+          { label: '全部', value: 'all' as TabFilter },
+          { label: 'Agent', value: 'agent' as TabFilter },
+          { label: 'Skill', value: 'skill' as TabFilter },
+          { label: '应用', value: 'app' as TabFilter },
+          { label: 'MCP', value: 'mcp' as TabFilter },
+          { label: '数据集', value: 'dataset' as TabFilter },
+        ]).map((t) => (
+          <button
+            key={t.value}
+            type="button"
+            onClick={() => setTab(t.value)}
+            className={tabCls(tab === t.value)}
+            aria-pressed={tab === t.value}
+            aria-label={`按类型筛选：${t.label}`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+    </BentoCard>
+  );
+
   return (
-    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-colors duration-300 ${canvasBodyBg(theme)}`}>
-      <div className="w-full flex-1 min-h-0 overflow-y-auto px-2 sm:px-3 lg:px-4 py-2 sm:py-3 space-y-4">
-        {/* Header */}
-        <div className="flex min-w-0 items-center gap-3">
-          <div className={`shrink-0 rounded-xl p-2 ${isDark ? 'bg-amber-500/15' : 'bg-amber-50'}`}>
-            <Star size={20} className={isDark ? 'text-amber-400' : 'text-amber-600'} />
-          </div>
-          <PageTitleTagline subtitleOnly theme={theme} title={chromePageTitle || '我的收藏'} tagline="管理您收藏的 Agent、Skill、MCP、数据集和应用" />
-        </div>
-
-        {/* Tabs */}
-        <div className="flex gap-2">
-          {([
-            { label: '全部', value: 'all' as TabFilter },
-            { label: 'Agent', value: 'agent' as TabFilter },
-            { label: 'Skill', value: 'skill' as TabFilter },
-            { label: '应用', value: 'app' as TabFilter },
-            { label: 'MCP', value: 'mcp' as TabFilter },
-            { label: '数据集', value: 'dataset' as TabFilter },
-          ]).map((t) => (
-            <button key={t.value} type="button" onClick={() => setTab(t.value)} className={tabCls(tab === t.value)}>{t.label}</button>
-          ))}
-        </div>
-
-        {/* Grid */}
+    <MgmtPageShell
+      theme={theme}
+      fontSize={fontSize}
+      titleIcon={Star}
+      breadcrumbSegments={['工作台', '我的收藏'] as const}
+      description={PAGE_DESC}
+      toolbar={toolbar}
+      contentScroll="document"
+    >
+      <div className="px-4 sm:px-6 pb-8">
         {loading ? (
           <PageSkeleton type="cards" />
         ) : loadError ? (
@@ -113,7 +123,7 @@ export const MyFavoritesPage: React.FC<MyFavoritesPageProps> = ({ theme }) => {
         ) : filtered.length === 0 ? (
           <BentoCard theme={theme} className="flex items-center justify-center p-12">
             <div className="text-center">
-              <HeartOff size={40} className={`mx-auto mb-3 ${textMuted(theme)}`} />
+              <HeartOff size={40} className={`mx-auto mb-3 ${textMuted(theme)}`} aria-hidden />
               <p className={`text-sm ${textMuted(theme)}`}>暂无收藏项</p>
             </div>
           </BentoCard>
@@ -122,12 +132,12 @@ export const MyFavoritesPage: React.FC<MyFavoritesPageProps> = ({ theme }) => {
             {filtered.map((item) => (
               <BentoCard key={item.id} theme={theme} hover glow="indigo" padding="sm" className="flex flex-col gap-3 p-4">
                 <div className="flex items-start gap-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0 ${isDark ? 'bg-white/[0.04]' : 'bg-slate-50'}`}>
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0 ${isDark ? 'bg-white/[0.04]' : 'bg-slate-50'}`} aria-hidden>
                     {item.icon || '📦'}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className={`text-sm font-semibold truncate ${textPrimary(theme)}`}>{item.displayName}</span>
+                      <span className={`text-sm font-semibold truncate ${textPrimary(theme)}`} title={item.displayName}>{item.displayName}</span>
                       <span className={typeBadge(item.targetType)}>
                         <TypeIcon type={item.targetType} />
                         {TYPE_LABEL[item.targetType] ?? item.targetType}
@@ -138,9 +148,14 @@ export const MyFavoritesPage: React.FC<MyFavoritesPageProps> = ({ theme }) => {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 mt-auto pt-1">
-                  <button type="button" onClick={() => handleUse(item.displayName)} className={`flex-1 ${btnPrimary} !py-1.5 text-center`}>使用</button>
-                  <button type="button" onClick={() => handleRemoveFavorite(item.id, item.displayName)} className={`${btnSecondary(theme)} !py-1.5`}>
-                    <Heart size={14} className="fill-current" />
+                  <button type="button" onClick={() => handleUse(item.displayName)} className={`flex-1 ${btnPrimary} !py-1.5 text-center`} aria-label={`使用 ${item.displayName}`}>使用</button>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveFavorite(item.id, item.displayName)}
+                    className={`${btnSecondary(theme)} !py-1.5`}
+                    aria-label={`取消收藏 ${item.displayName}`}
+                  >
+                    <Heart size={14} className="fill-current" aria-hidden />
                   </button>
                 </div>
               </BentoCard>
@@ -148,6 +163,6 @@ export const MyFavoritesPage: React.FC<MyFavoritesPageProps> = ({ theme }) => {
           </AnimatedList>
         )}
       </div>
-    </div>
+    </MgmtPageShell>
   );
 };

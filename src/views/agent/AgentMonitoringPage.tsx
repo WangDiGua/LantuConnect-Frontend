@@ -8,11 +8,10 @@ import { monitoringService } from '../../api/services/monitoring.service';
 import type { KpiMetric, PerformanceMetric } from '../../types/dto/monitoring';
 import { useQualityHistory } from '../../hooks/queries/useMonitoring';
 import {
-  canvasBodyBg, textPrimary, textSecondary, textMuted,
+  textPrimary, textSecondary, textMuted,
   tableHeadCell, tableBodyRow, tableCell,
 } from '../../utils/uiClasses';
-import { useLayoutChrome } from '../../context/LayoutChromeContext';
-import { PageTitleTagline } from '../../components/common/PageTitleTagline';
+import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 
 interface AgentMonitoringPageProps {
@@ -39,8 +38,9 @@ const QUALITY_RESOURCE_TYPE_OPTIONS = [
   { value: 'dataset', label: 'Dataset' },
 ] as const;
 
-export const AgentMonitoringPage: React.FC<AgentMonitoringPageProps> = ({ theme }) => {
-  const { chromePageTitle } = useLayoutChrome();
+const PAGE_DESC = '各 Agent 调用 QPS、延迟分位与错误概况';
+
+export const AgentMonitoringPage: React.FC<AgentMonitoringPageProps> = ({ theme, fontSize }) => {
   const isDark = theme === 'dark';
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
@@ -100,22 +100,23 @@ export const AgentMonitoringPage: React.FC<AgentMonitoringPageProps> = ({ theme 
 
   const maxP99 = Math.max(...latencyRows.map((r) => r.p99), 1);
 
-  return (
-    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-colors duration-300 ${canvasBodyBg(theme)}`}>
-      <div className="w-full flex-1 min-h-0 overflow-y-auto px-2 sm:px-3 lg:px-4 py-2 sm:py-3 space-y-4">
-        {/* Header */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className={`shrink-0 rounded-xl p-2 ${isDark ? 'bg-blue-500/15' : 'bg-blue-50'}`}>
-              <LineChart size={20} className={isDark ? 'text-blue-400' : 'text-blue-600'} />
-            </div>
-            <PageTitleTagline subtitleOnly theme={theme} title={chromePageTitle || '运行监控'} tagline="各 Agent 调用 QPS、延迟分位与错误概况" />
-          </div>
-          <div className="w-full shrink-0 sm:max-w-xs">
-            <SearchInput value={q} onChange={setQ} placeholder="按名称筛选…" theme={theme} />
-          </div>
-        </div>
+  const monitoringToolbar = (
+    <div className="w-full max-w-md sm:ml-auto">
+      <SearchInput value={q} onChange={setQ} placeholder="按名称筛选…" theme={theme} />
+    </div>
+  );
 
+  return (
+    <MgmtPageShell
+      theme={theme}
+      fontSize={fontSize}
+      titleIcon={LineChart}
+      breadcrumbSegments={['Agent 运维', '运行监控']}
+      description={PAGE_DESC}
+      toolbar={monitoringToolbar}
+      contentScroll="document"
+    >
+      <div className="px-4 sm:px-6 pb-8 space-y-4">
         {loading && kpis.length === 0 ? (
           <PageSkeleton type="chart" />
         ) : (
@@ -239,6 +240,6 @@ export const AgentMonitoringPage: React.FC<AgentMonitoringPageProps> = ({ theme 
           </>
         )}
       </div>
-    </div>
+    </MgmtPageShell>
   );
 };

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { Activity, RefreshCw, Search, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { Theme, FontSize } from '../../types';
@@ -11,19 +10,18 @@ import { PageError } from '../../components/common/PageError';
 import { EmptyState } from '../../components/common/EmptyState';
 import { KpiCard } from '../../components/common/KpiCard';
 import { BentoCard } from '../../components/common/BentoCard';
-import {
-  canvasBodyBg, btnPrimary, btnGhost, textPrimary, textSecondary, textMuted,
-} from '../../utils/uiClasses';
-import { useLayoutChrome } from '../../context/LayoutChromeContext';
-import { PageTitleTagline } from '../../components/common/PageTitleTagline';
+import { btnPrimary, btnGhost, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
+
+const PAGE_DESC = '调用量、成功率与延迟趋势汇总';
+const BREADCRUMB = ['监控中心', '监控概览'] as const;
 
 interface MonitoringOverviewPageProps {
   theme: Theme;
   fontSize: FontSize;
 }
 
-export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ theme }) => {
-  const { chromePageTitle } = useLayoutChrome();
+export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ theme, fontSize }) => {
   const isDark = theme === 'dark';
   const navigate = useNavigate();
   const [autoRefresh, setAutoRefresh] = useState(false);
@@ -46,32 +44,48 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ 
     }
   }, [autoRefresh, kpisQ, performanceQ]);
 
-  if (kpisQ.isLoading) {
-    return (
-      <div className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-colors duration-300 ${canvasBodyBg(theme)}`}>
-        <div className="w-full flex-1 min-h-0 px-2 sm:px-3 lg:px-4 py-2 sm:py-3">
-          <PageSkeleton type="cards" />
-        </div>
+  const toolbar =
+    !kpisQ.isLoading && !kpisQ.isError && (kpisQ.data ?? []).length > 0 ? (
+      <div className="flex flex-wrap items-center gap-2 w-full justify-end">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={autoRefresh}
+            onChange={(e) => setAutoRefresh(e.target.checked)}
+            className="toggle toggle-primary toggle-sm"
+            aria-label="每 5 秒自动刷新 KPI 与性能数据"
+          />
+          <span className={`text-xs font-medium ${textSecondary(theme)}`}>自动刷新</span>
+        </label>
+        <button
+          type="button"
+          onClick={() => {
+            void kpisQ.refetch();
+            void performanceQ.refetch();
+          }}
+          className={btnGhost(theme)}
+          aria-label="立即刷新监控数据"
+        >
+          <RefreshCw size={15} aria-hidden />
+        </button>
       </div>
-    );
-  }
+    ) : undefined;
 
-  if (kpisQ.isError) {
-    return (
-      <div className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-colors duration-300 ${canvasBodyBg(theme)}`}>
-        <PageError error={kpisQ.error as Error} onRetry={() => kpisQ.refetch()} />
-      </div>
-    );
-  }
+  const body = (() => {
+    if (kpisQ.isLoading) {
+      return <PageSkeleton type="cards" />;
+    }
+    if (kpisQ.isError) {
+      return <PageError error={kpisQ.error as Error} onRetry={() => kpisQ.refetch()} />;
+    }
 
-  const kpis = kpisQ.data ?? [];
-  const alertList = alertsQ.data?.list ?? [];
-  const firingCount = alertList.filter((a) => a.status === 'firing').length;
-  const resolvedCount = alertList.filter((a) => a.status === 'resolved').length;
+    const kpis = kpisQ.data ?? [];
+    const alertList = alertsQ.data?.list ?? [];
+    const firingCount = alertList.filter((a) => a.status === 'firing').length;
+    const resolvedCount = alertList.filter((a) => a.status === 'resolved').length;
 
-  if (kpis.length === 0) {
-    return (
-      <div className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-colors duration-300 ${canvasBodyBg(theme)}`}>
+    if (kpis.length === 0) {
+      return (
         <EmptyState
           title="暂无监控数据"
           description="KPI 指标为空，请检查监控采集服务是否已启用。"
@@ -81,47 +95,13 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ 
             </button>
           }
         />
-      </div>
-    );
-  }
+      );
+    }
 
-  const GLOW: Array<'indigo' | 'emerald' | 'amber' | 'rose'> = ['indigo', 'emerald', 'amber', 'rose'];
+    const GLOW: Array<'indigo' | 'emerald' | 'amber' | 'rose'> = ['indigo', 'emerald', 'amber', 'rose'];
 
-  return (
-    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-colors duration-300 ${canvasBodyBg(theme)}`}>
-      <div className="w-full flex-1 min-h-0 overflow-y-auto px-2 sm:px-3 lg:px-4 py-2 sm:py-3 space-y-4">
-        {/* Header */}
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className={`shrink-0 rounded-xl p-2 ${isDark ? 'bg-neutral-900/10' : 'bg-neutral-100'}`}>
-              <Activity size={20} className={isDark ? 'text-neutral-300' : 'text-neutral-900'} />
-            </div>
-            <PageTitleTagline subtitleOnly theme={theme} title={chromePageTitle || '监控概览'} tagline="调用量、成功率与延迟趋势汇总" />
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={autoRefresh}
-                onChange={(e) => setAutoRefresh(e.target.checked)}
-                className="toggle toggle-primary toggle-sm"
-              />
-              <span className={`text-xs font-medium ${textSecondary(theme)}`}>自动刷新</span>
-            </label>
-            <button
-              type="button"
-              onClick={() => {
-                void kpisQ.refetch();
-                void performanceQ.refetch();
-              }}
-              className={btnGhost(theme)}
-            >
-              <RefreshCw size={15} />
-            </button>
-          </div>
-        </div>
-
-        {/* KPI Cards */}
+    return (
+      <div className="space-y-4">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {kpis.map((k, i) => (
             <KpiCard
@@ -138,17 +118,15 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ 
           ))}
         </div>
 
-        {/* Charts */}
         <BentoCard theme={theme}>
           <MonitoringOverviewCharts theme={theme} performance={performanceQ.data ?? []} />
         </BentoCard>
 
-        {/* Quick Links */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <BentoCard theme={theme} hover glow="indigo">
             <div className="flex items-center gap-3">
               <div className={`p-2.5 rounded-xl ${isDark ? 'bg-neutral-900/10' : 'bg-neutral-100'}`}>
-                <Search size={18} className={isDark ? 'text-neutral-300' : 'text-neutral-900'} />
+                <Search size={18} className={isDark ? 'text-neutral-300' : 'text-neutral-900'} aria-hidden />
               </div>
               <div className="min-w-0">
                 <p className={`font-semibold text-sm ${textPrimary(theme)}`}>调用日志</p>
@@ -157,7 +135,7 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ 
             </div>
             <button
               type="button"
-              className="mt-3 text-xs text-neutral-800 hover:text-neutral-900"
+              className="mt-3 text-xs text-neutral-800 hover:text-neutral-900 dark:text-neutral-200 dark:hover:text-white"
               onClick={() => navigate(buildPath('admin', 'call-logs'))}
             >
               查看日志
@@ -166,7 +144,7 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ 
           <BentoCard theme={theme} hover glow="emerald">
             <div className="flex items-center gap-3">
               <div className={`p-2.5 rounded-xl ${isDark ? 'bg-emerald-500/15' : 'bg-emerald-50'}`}>
-                <Shield size={18} className={isDark ? 'text-emerald-400' : 'text-emerald-600'} />
+                <Shield size={18} className={isDark ? 'text-emerald-400' : 'text-emerald-600'} aria-hidden />
               </div>
               <div className="min-w-0">
                 <p className={`font-semibold text-sm ${textPrimary(theme)}`}>告警管理</p>
@@ -194,10 +172,24 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ 
         </div>
 
         <p className={`text-xs ${textMuted(theme)}`}>
-          <Activity size={12} className="inline mr-1 opacity-70" />
+          <Activity size={12} className="inline mr-1 opacity-70" aria-hidden />
           KPI 与图表均来自监控服务实时数据。
         </p>
       </div>
-    </div>
+    );
+  })();
+
+  return (
+    <MgmtPageShell
+      theme={theme}
+      fontSize={fontSize}
+      titleIcon={Activity}
+      breadcrumbSegments={BREADCRUMB}
+      description={PAGE_DESC}
+      toolbar={toolbar}
+      contentScroll="document"
+    >
+      <div className="px-4 sm:px-6 pb-8">{body}</div>
+    </MgmtPageShell>
   );
 };

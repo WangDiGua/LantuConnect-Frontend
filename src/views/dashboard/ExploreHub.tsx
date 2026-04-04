@@ -616,31 +616,57 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
   /** 与主画布（MainLayout 圆角卡片）留出足够内边距，避免区块贴边 */
   const pageContainer = 'w-full px-4 sm:px-5 lg:px-6 xl:px-8';
 
+  /** Hero：暗色主题与 #0f1117 画布区分层次 + 提升副文案对比（WCAG 友好） */
+  const heroRingOffset = isDark ? 'focus-visible:ring-offset-[#0c0e14]' : 'focus-visible:ring-offset-[#0a0a0a]';
+  const heroShellClass = isDark
+    ? `w-full relative overflow-hidden rounded-[2.5rem] border border-white/[0.11] bg-gradient-to-b from-[#12151f] via-[#0c0e14] to-[#07080c] py-6 md:py-7 px-8 md:px-12 lg:px-14 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_28px_56px_-16px_rgba(0,0,0,0.72),0_0_0_1px_rgba(0,0,0,0.4)]`
+    : `w-full relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-[#0a0a0a] py-6 md:py-7 px-8 md:px-12 lg:px-14 shadow-[0_28px_56px_-16px_rgba(15,23,42,0.45)]`;
+  const heroGridStyle: React.CSSProperties = {
+    backgroundImage: isDark
+      ? 'linear-gradient(to right, rgba(255,255,255,0.052) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.052) 1px, transparent 1px)'
+      : 'linear-gradient(to right, rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.06) 1px, transparent 1px)',
+    backgroundSize: '48px 48px',
+  };
+  const heroVignetteFrom = isDark ? '#0c0e14' : '#0a0a0a';
+  const heroLeadClass = isDark
+    ? 'text-slate-400 text-lg md:text-xl font-normal leading-relaxed max-w-xl mb-8'
+    : 'text-slate-300 text-lg md:text-xl font-light leading-relaxed max-w-xl mb-8';
+
   return (
     <div className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${mainScrollPadBottom}`}>
       <div className={`min-h-screen pt-2 sm:pt-3 pb-20 ${canvasBodyBg(theme)}`}>
         <div className={pageContainer}>
-          <div
-            className="w-full relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-[#050505] py-6 md:py-7 px-8 md:px-12 lg:px-14 shadow-2xl"
-            style={{
-              backgroundImage: 'linear-gradient(to right, rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.04) 1px, transparent 1px)',
-              backgroundSize: '48px 48px',
-            }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-[#050505] via-transparent to-[#050505] pointer-events-none" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-[#050505] pointer-events-none" />
+          <div className={heroShellClass} style={heroGridStyle}>
+            <div
+              className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/[0.04] via-transparent to-transparent"
+              aria-hidden
+            />
+            <div
+              className="pointer-events-none absolute inset-0"
+              style={{
+                background: `linear-gradient(to right, ${heroVignetteFrom}, transparent 28%, transparent 72%, ${heroVignetteFrom})`,
+              }}
+              aria-hidden
+            />
+            <div
+              className="pointer-events-none absolute inset-0"
+              style={{
+                background: `linear-gradient(to top, ${heroVignetteFrom}, transparent 35%, transparent 65%, ${heroVignetteFrom})`,
+              }}
+              aria-hidden
+            />
 
             <div className="relative z-10 w-full lg:flex lg:items-center lg:justify-between lg:gap-10">
               <div className="w-full lg:max-w-[58%]">
                 <button
                   type="button"
                   onClick={() => navigate(buildPath('user', 'resource-center'))}
-                  className="group mb-6 inline-flex max-w-full items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.07] px-4 py-2.5 text-left shadow-lg backdrop-blur-md transition-colors hover:bg-white/[0.1] focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/55 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050505]"
+                  className={`group mb-6 inline-flex max-w-full items-center gap-2.5 rounded-full border border-white/[0.12] bg-white/[0.08] px-4 py-2.5 text-left shadow-lg backdrop-blur-md transition-colors hover:border-white/[0.16] hover:bg-white/[0.11] focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/55 focus-visible:ring-offset-2 ${heroRingOffset}`}
                 >
                   <Sparkles className="h-4 w-4 shrink-0 text-sky-400" strokeWidth={2} aria-hidden />
                   <span className="text-sm font-medium text-white">Nexus Pro 2.0 现已发布</span>
                   <ChevronRight
-                    className="ml-0.5 h-4 w-4 shrink-0 text-white/45 transition-transform group-hover:translate-x-0.5"
+                    className="ml-0.5 h-4 w-4 shrink-0 text-slate-500 transition-transform group-hover:translate-x-0.5 group-hover:text-slate-400"
                     strokeWidth={2}
                     aria-hidden
                   />
@@ -650,7 +676,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
                   Build the future<br />of campus AI.
                 </h1>
 
-                <p className="text-white/40 text-lg md:text-xl font-light leading-relaxed max-w-xl mb-8">
+                <p className={heroLeadClass}>
                   数字化资产与能力门户：目录发现与按权消费；网关调用量不等同于全部使用量（技能下载等单独统计）。统一注册、审核发布与 API Key / Grant / accessPolicy 详见接入指南。
                 </p>
 
@@ -658,14 +684,14 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
                   <button
                     type="button"
                     onClick={() => navigate(buildPath('user', 'resource-center'))}
-                    className="bg-white text-black px-8 py-4 rounded-xl text-sm font-bold hover:bg-neutral-100 active:scale-[0.98] transition-all flex items-center justify-center gap-2 w-full sm:w-auto shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050505]"
+                    className={`bg-white text-black px-8 py-4 rounded-xl text-sm font-bold hover:bg-neutral-100 active:scale-[0.98] transition-all flex items-center justify-center gap-2 w-full sm:w-auto shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 ${heroRingOffset}`}
                   >
                     开始发布 <ArrowRight size={16} aria-hidden />
                   </button>
                   <button
                     type="button"
                     onClick={() => navigate(buildPath('user', 'api-docs'))}
-                    className="text-white/40 text-sm font-medium hover:text-white transition-colors rounded-lg px-1 py-0.5 -ml-1 border border-transparent hover:border-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050505]"
+                    className={`text-slate-400 text-sm font-medium hover:text-white transition-colors rounded-lg px-2 py-1 -ml-1 border border-transparent hover:border-white/15 hover:bg-white/[0.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/45 focus-visible:ring-offset-2 ${heroRingOffset}`}
                   >
                     查看文档
                   </button>

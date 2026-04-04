@@ -93,7 +93,7 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
     showMessage,
   });
 
-  const { tags, activeTag, setActiveTag, hotTags } = useMarketTags({
+  const { tags, activeTag, setActiveTag } = useMarketTags({
     resourceType: 'agent',
   });
 
@@ -191,31 +191,6 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
             placeholder="搜索智能体名称、能力、提供方或标签…"
           />
         </div>
-
-        {hotTags.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-4 items-center">
-            <span className={`text-xs font-medium shrink-0 ${textMuted(theme)}`}>热门：</span>
-            {hotTags.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setActiveTag(activeTag === t.name ? null : t.name)}
-                className={`text-xs px-3 py-1 rounded-full border transition-colors ${
-                  activeTag === t.name
-                    ? 'bg-neutral-900 text-white border-neutral-900'
-                    : isDark
-                      ? 'border-white/10 hover:bg-white/5 text-slate-300'
-                      : 'border-slate-200 hover:bg-slate-50 text-slate-600'
-                }`}
-              >
-                {t.name}
-                {t.usageCount && t.usageCount > 0 && (
-                  <span className="ml-1 opacity-70 tabular-nums">·{t.usageCount}</span>
-                )}
-              </button>
-            ))}
-          </div>
-        )}
 
         <MarketTagFilter
           theme={theme}

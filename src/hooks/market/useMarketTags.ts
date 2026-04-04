@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { tagService } from '../../api/services/tag.service';
 import { filterTagsForResourceType } from '../../utils/marketTags';
 import type { UseMarketTagsOptions, UseMarketTagsReturn } from './types';
@@ -40,13 +40,10 @@ export function useMarketTags(options: UseMarketTagsOptions): UseMarketTagsRetur
     };
   }, [resourceType, autoLoad]);
 
-  const hotTags = useMemo(() => tags.slice(0, 10), [tags]);
-
   return {
     tags,
     loading,
     activeTag,
     setActiveTag,
-    hotTags,
   };
 }

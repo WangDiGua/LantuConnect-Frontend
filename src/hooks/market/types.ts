@@ -68,7 +68,6 @@ export interface UseMarketTagsReturn {
   loading: boolean;
   activeTag: string | null;
   setActiveTag: (tag: string | null) => void;
-  hotTags: Array<{ id: string | number; name: string; usageCount?: number }>;
 }
 
 export interface UseMarketFavoriteOptions {

@@ -8,8 +8,6 @@ import {
   ExternalLink,
   Trash2,
   Edit2,
-  ChevronLeft,
-  ChevronRight,
   MoreHorizontal,
 } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
@@ -20,7 +18,7 @@ import { PageError } from '../../components/common/PageError';
 import { EmptyState } from '../../components/common/EmptyState';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { Modal } from '../../components/common/Modal';
-import { SearchInput, FilterSelect } from '../../components/common';
+import { SearchInput, FilterSelect, Pagination } from '../../components/common';
 import { AnimatedList } from '../../components/common/AnimatedList';
 import { PortalDropdown } from '../../components/common/PortalDropdown';
 import { AgentDetail } from './AgentDetail';
@@ -119,7 +117,6 @@ export const AgentList: React.FC<AgentListProps> = ({
 
   const agents: Agent[] = data?.list ?? [];
   const total = data?.total ?? 0;
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const handleDelete = () => {
     if (!deleteTarget) return;
@@ -412,39 +409,9 @@ export const AgentList: React.FC<AgentListProps> = ({
             </ContentLoader>
           </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className={`px-4 py-3 border-t shrink-0 flex items-center justify-between ${
-              isDark ? 'border-white/[0.06]' : 'border-slate-100'
-            }`}>
-              <span className={`text-sm ${textMuted(theme)}`}>
-                �?{total} 条，�?{page}/{totalPages} �?              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  className={`p-2 rounded-xl transition-colors ${
-                    page === 1
-                      ? isDark ? 'text-slate-600 cursor-not-allowed' : 'text-slate-300 cursor-not-allowed'
-                      : isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  <ChevronLeft size={16} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                  className={`p-2 rounded-xl transition-colors ${
-                    page === totalPages
-                      ? isDark ? 'text-slate-600 cursor-not-allowed' : 'text-slate-300 cursor-not-allowed'
-                      : isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  <ChevronRight size={16} />
-                </button>
-              </div>
+          {total > 0 && (
+            <div className={`px-4 py-1 border-t shrink-0 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+              <Pagination theme={theme} page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} />
             </div>
           )}
         </div>

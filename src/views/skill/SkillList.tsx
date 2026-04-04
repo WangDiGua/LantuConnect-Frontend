@@ -1,13 +1,14 @@
 // @deprecated - This file is no longer used in the current routing. Replaced by unified resource management.
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Trash2, Eye, MoreHorizontal, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, Eye, MoreHorizontal } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { Skill, SkillListQuery, McpServer } from '../../types/dto/skill';
 import type { AgentStatus, SourceType } from '../../types/dto/agent';
 import { skillService } from '../../api/services/skill.service';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
+import { Pagination } from '../../components/common';
 import {
   canvasBodyBg,
   mainScrollCompositorClass,
@@ -165,7 +166,7 @@ export const SkillList: React.FC<Props> = ({ theme, fontSize }) => {
     return map;
   }, [groupByServer, skills]);
 
-  const totalPages = Math.max(1, Math.ceil(total / (query.pageSize || 20)));
+  const listPageSize = query.pageSize || 20;
 
   if (viewMode === 'create') {
     return <SkillCreate theme={theme} fontSize={fontSize} onBack={handleBackToList} onSuccess={() => { handleBackToList(); showMessage('Skill 注册成功', 'success'); }} />;
@@ -342,28 +343,15 @@ export const SkillList: React.FC<Props> = ({ theme, fontSize }) => {
             )}
           </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className={`px-4 py-3 border-t shrink-0 flex items-center justify-between ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-              <span className={`text-sm ${textMuted(theme)}`}>共 {total} 条，第 {query.page}/{totalPages} 页</span>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  disabled={query.page === 1}
-                  onClick={() => setQuery((q) => ({ ...q, page: Math.max(1, (q.page ?? 1) - 1) }))}
-                  className={`p-2 rounded-xl transition-colors ${query.page === 1 ? (isDark ? 'text-slate-600 cursor-not-allowed' : 'text-slate-300 cursor-not-allowed') : (isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-600 hover:bg-slate-100')}`}
-                >
-                  <ChevronLeft size={16} />
-                </button>
-                <button
-                  type="button"
-                  disabled={query.page === totalPages}
-                  onClick={() => setQuery((q) => ({ ...q, page: Math.min(totalPages, (q.page ?? 1) + 1) }))}
-                  className={`p-2 rounded-xl transition-colors ${query.page === totalPages ? (isDark ? 'text-slate-600 cursor-not-allowed' : 'text-slate-300 cursor-not-allowed') : (isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-600 hover:bg-slate-100')}`}
-                >
-                  <ChevronRight size={16} />
-                </button>
-              </div>
+          {total > 0 && (
+            <div className={`px-4 py-1 border-t shrink-0 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+              <Pagination
+                theme={theme}
+                page={query.page ?? 1}
+                pageSize={listPageSize}
+                total={total}
+                onChange={(p) => setQuery((q) => ({ ...q, page: p }))}
+              />
             </div>
           )}
         </div>

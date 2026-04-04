@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, MoreHorizontal, ChevronLeft, ChevronRight, Server } from 'lucide-react';
+import { Plus, MoreHorizontal, Server } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { Provider, ProviderType, ProviderStatus } from '../../types/dto/provider';
 import { providerService } from '../../api/services/provider.service';
@@ -22,6 +22,7 @@ import { PortalDropdown } from '../../components/common/PortalDropdown';
 import { ProviderCreate } from './ProviderCreate';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
+import { Pagination } from '../../components/common';
 
 interface Props { theme: Theme; fontSize: FontSize; showMessage?: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void; }
 type ViewMode = 'list' | 'create' | 'edit';
@@ -92,8 +93,6 @@ export const ProviderList: React.FC<Props> = ({ theme, fontSize, showMessage }) 
 
   if (viewMode === 'create') return <ProviderCreate theme={theme} fontSize={fontSize} onBack={() => { setViewMode('list'); fetchData(); }} showMessage={showMessage} />;
   if (viewMode === 'edit' && editingProvider) return <ProviderCreate theme={theme} fontSize={fontSize} onBack={() => { setViewMode('list'); setEditingProvider(null); fetchData(); }} showMessage={showMessage} editProvider={editingProvider} />;
-
-  const totalPages = Math.ceil(total / pageSize);
 
   return (
     <div className={`flex-1 flex flex-col min-h-0 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} transition-colors duration-300 ${canvasBodyBg(theme)}`}>
@@ -200,15 +199,9 @@ export const ProviderList: React.FC<Props> = ({ theme, fontSize, showMessage }) 
             )}
           </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className={`px-4 py-3 border-t shrink-0 flex items-center justify-between ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-              <span className={`text-sm ${textMuted(theme)}`}>共 {total} 条</span>
-              <div className="flex items-center gap-2">
-                <button type="button" disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className={`p-2 rounded-xl transition-colors ${page <= 1 ? (isDark ? 'text-slate-600 cursor-not-allowed' : 'text-slate-300 cursor-not-allowed') : (isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-600 hover:bg-slate-100')}`}><ChevronLeft size={16} /></button>
-                <span className={`text-xs font-medium ${textSecondary(theme)}`}>{page} / {totalPages}</span>
-                <button type="button" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)} className={`p-2 rounded-xl transition-colors ${page >= totalPages ? (isDark ? 'text-slate-600 cursor-not-allowed' : 'text-slate-300 cursor-not-allowed') : (isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-600 hover:bg-slate-100')}`}><ChevronRight size={16} /></button>
-              </div>
+          {total > 0 && (
+            <div className={`px-4 py-1 border-t shrink-0 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+              <Pagination theme={theme} page={page} pageSize={pageSize} total={total} onChange={setPage} />
             </div>
           )}
         </div>

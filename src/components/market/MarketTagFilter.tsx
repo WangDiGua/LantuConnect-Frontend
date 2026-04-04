@@ -59,9 +59,6 @@ export const MarketTagFilter: React.FC<MarketTagFilterProps> = ({
           className={buttonClass(activeTag === tag.name)}
         >
           {tag.name}
-          {tag.usageCount !== undefined && tag.usageCount > 0 && (
-            <span className="ml-1 opacity-70 tabular-nums">·{tag.usageCount}</span>
-          )}
         </button>
       ))}
     </div>

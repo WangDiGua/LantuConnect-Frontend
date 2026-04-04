@@ -6,3 +6,6 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Trae 等工具在本机生成的 skills 软链目录，与 .agents/skills 重复
+.trae/

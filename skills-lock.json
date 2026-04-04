@@ -1,10 +1,45 @@
 {
   "version": 1,
   "skills": {
+    "claude-api": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "dcc7954d95d291fbac8d90b199c81a8b475eb7f0d339bd63334ada7251b5ff89"
+    },
     "find-skills": {
       "source": "vercel-labs/skills",
       "sourceType": "github",
       "computedHash": "645b891da1edbae76ab79c7b088d4e73397464f8396edaf773c0e01971ce75d6"
+    },
+    "frontend-design": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "516bd2154eb843a8240e43d5b285229129853114ad7075a5e141e1c08e408c84"
+    },
+    "mcp-builder": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "f08cbdec74dba480ec5217363446dae154b7576b8c3d9b4cb17aff234f15973b"
+    },
+    "vercel-composition-patterns": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "computedHash": "575757e3e25761c8c562d6e395d29f0b76c98b1273c0bd72d88e6ab1bc9c7d42"
+    },
+    "vercel-react-best-practices": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "computedHash": "43ca6c197f8ec13055079da7053232d477068b03ca443f9ac1bc819b95cdd432"
+    },
+    "web-design-guidelines": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "computedHash": "d8e7d3afe37dcc8a97b99ffb5afdb4d0919ae0092ea8b68f44eb201f035e33ac"
+    },
+    "webapp-testing": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "5a6a18c0137cfbabec058e86fc1c8f6919d846a7b2a34ee978cc8ced866ee2e5"
     }
   }
 }

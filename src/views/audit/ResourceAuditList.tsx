@@ -43,7 +43,7 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, showMessage, default
   const isDark = theme === 'dark';
   const { platformRole } = useUserRole();
   const canPublishResource =
-    platformRole === 'platform_admin' || platformRole === 'dept_admin' || platformRole === 'developer';
+    platformRole === 'platform_admin' || platformRole === 'reviewer' || platformRole === 'developer';
   const canPlatformForceDeprecate = platformRole === 'platform_admin';
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<ResourceAuditItemVO[]>([]);

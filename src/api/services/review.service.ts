@@ -51,6 +51,6 @@ export const reviewService = {
   toggleHelpful: (reviewId: number) =>
     http.post<void>(`/reviews/${reviewId}/helpful`),
 
-  /** 逻辑删除；需登录且 X-User-Id，作者本人或 platform_admin / dept_admin */
+  /** 逻辑删除；需登录且 X-User-Id，作者本人或 platform_admin / reviewer */
   remove: (reviewId: number) => http.delete<void>(`/reviews/${reviewId}`),
 };

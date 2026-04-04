@@ -14,7 +14,7 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({ children, requiredRole }) 
     return <Navigate to="/login" replace />;
   }
 
-  if (requiredRole === 'admin' && user.role !== 'platform_admin' && user.role !== 'dept_admin') {
+  if (requiredRole === 'admin' && user.role !== 'platform_admin' && user.role !== 'reviewer') {
     return <Navigate to="/" replace />;
   }
 

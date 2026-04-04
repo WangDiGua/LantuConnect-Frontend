@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Loader2, Send } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Loader2, LayoutDashboard, Send } from 'lucide-react';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { useAuthStore } from '../../stores/authStore';
 import { useMessage } from '../../components/common/Message';
@@ -7,6 +8,7 @@ import { authService } from '../../api/services/auth.service';
 import { developerApplicationService } from '../../api/services/developer-application.service';
 import { tokenStorage } from '../../lib/security';
 import { env } from '../../config/env';
+import { defaultPath } from '../../constants/consoleRoutes';
 import type { DeveloperApplicationCreateRequest, DeveloperApplicationVO } from '../../types/dto/developer-application';
 
 function statusLabel(status: DeveloperApplicationVO['status']): string {
@@ -23,7 +25,13 @@ function statusClass(status: DeveloperApplicationVO['status']): string {
   return 'bg-slate-500/10 text-slate-500';
 }
 
-export const DeveloperOnboardingPage: React.FC = () => {
+export interface DeveloperOnboardingPageProps {
+  /** true：嵌入 MainLayout 内容区，去掉全屏壳与重复入口按钮 */
+  embedded?: boolean;
+}
+
+export const DeveloperOnboardingPage: React.FC<DeveloperOnboardingPageProps> = ({ embedded = false }) => {
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const { showMessage } = useMessage();
@@ -84,17 +92,21 @@ export const DeveloperOnboardingPage: React.FC = () => {
     }
   };
 
+  const shellCls = embedded
+    ? 'flex-1 min-h-0 p-4 sm:p-5'
+    : 'min-h-screen bg-slate-50 p-4 dark:bg-lantu-canvas sm:p-6';
+
   return (
-    <div className="min-h-screen bg-slate-50 p-4 dark:bg-[#0f1117] sm:p-6">
+    <div className={shellCls}>
       <div className="mx-auto w-full max-w-3xl">
-        <div className="mb-4 rounded-2xl border border-slate-200 bg-white p-5 dark:border-white/[0.06] dark:bg-[#161b28]">
+        <div className="mb-4 rounded-2xl border border-slate-200 bg-white p-5 dark:border-white/[0.06] dark:bg-lantu-card">
           <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">开发者入驻申请</h1>
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            当前账号尚未获得开发者角色。提交申请后，你将获得资源调用与开发能力。
+            消费者（及尚未赋权的账号）可在此申请成为开发者。通过后，你将获得五类资源的登记、维护及与自身资源相关的审核与发布流程；未通过前仍可使用已上架资源与个人 API Key 等消费侧能力。
           </p>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-white/[0.06] dark:bg-[#161b28]">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-white/[0.06] dark:bg-lantu-card">
           {loadingMine ? (
             <PageSkeleton type="form" />
           ) : (
@@ -159,22 +171,34 @@ export const DeveloperOnboardingPage: React.FC = () => {
                     {submitting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
                     提交申请
                   </button>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      const accessToken = tokenStorage.get(env.VITE_TOKEN_KEY) ?? useAuthStore.getState().token;
-                      try {
-                        if (accessToken) await authService.logout(accessToken);
-                      } catch {
-                        /* still exit locally */
-                      }
-                      logout();
-                      window.location.hash = '#/login';
-                    }}
-                    className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 dark:border-white/[0.1] dark:text-slate-300"
-                  >
-                    退出登录
-                  </button>
+                  {!embedded && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => navigate(defaultPath())}
+                        className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-800 dark:border-white/[0.1] dark:text-slate-100"
+                      >
+                        <LayoutDashboard size={16} />
+                        进入工作台（浏览资源与设置）
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const accessToken = tokenStorage.get(env.VITE_TOKEN_KEY) ?? useAuthStore.getState().token;
+                          try {
+                            if (accessToken) await authService.logout(accessToken);
+                          } catch {
+                            /* still exit locally */
+                          }
+                          logout();
+                          window.location.hash = '#/login';
+                        }}
+                        className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 dark:border-white/[0.1] dark:text-slate-300"
+                      >
+                        退出登录
+                      </button>
+                    </>
+                  )}
                 </div>
               </form>
             </>

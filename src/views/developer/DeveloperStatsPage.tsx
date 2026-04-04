@@ -11,7 +11,7 @@ import { bentoCard, canvasBodyBg, mainScrollCompositorClass, textPrimary, textMu
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { PageError } from '../../components/common/PageError';
 import { EChartCard } from '../../components/charts/EChartCard';
-import { baseAxis, baseGrid, baseLegend, baseTooltip, chartColors } from '../../components/charts/echartsTheme';
+import { baseGrid, baseLegend, baseTooltip, chartColors } from '../../components/charts/echartsTheme';
 import { RESOURCE_TYPE_LABEL_ZH, parseResourceType } from '../../constants/resourceTypes';
 
 interface Props { theme: Theme; fontSize: FontSize; }
@@ -43,7 +43,7 @@ export const DeveloperStatsPage: React.FC<Props> = ({ theme }) => {
   const [ownerDraft, setOwnerDraft] = useState('');
   const [ownerUserId, setOwnerUserId] = useState<number | undefined>(undefined);
 
-  const canQueryOtherOwner = platformRole === 'platform_admin' || platformRole === 'dept_admin';
+  const canQueryOtherOwner = platformRole === 'platform_admin' || platformRole === 'reviewer';
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -81,7 +81,6 @@ export const DeveloperStatsPage: React.FC<Props> = ({ theme }) => {
   const tm = textMuted(theme);
   const cardSurface = bentoCard(theme);
   const c = chartColors(theme);
-  const axis = baseAxis(theme);
 
   const gatewayFail = useMemo(() => {
     if (!data) return 0;
@@ -93,6 +92,8 @@ export const DeveloperStatsPage: React.FC<Props> = ({ theme }) => {
     const labels = list.map((x) => labelResourceType(x.resourceType));
     const success = list.map((x) => x.successCount);
     const rest = list.map((x) => Math.max(0, x.invokeCount - x.successCount));
+    const axisLine = { lineStyle: { color: c.border } };
+    const axisLabel = { color: c.muted, fontSize: 11 };
     return {
       title: {
         text: '按资源类型（网关调用，来自 call_log）',
@@ -104,8 +105,23 @@ export const DeveloperStatsPage: React.FC<Props> = ({ theme }) => {
       color: [c.series[1], c.series[3]],
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
       legend: { ...baseLegend(theme), data: ['成功', '失败/未计成功'] },
-      xAxis: { ...axis.value, minInterval: 1 },
-      yAxis: { ...axis.category, type: 'category', data: labels, inverse: true },
+      xAxis: {
+        type: 'value',
+        minInterval: 1,
+        axisLine: { show: false },
+        axisTick: { show: false },
+        axisLabel,
+        splitLine: { lineStyle: { color: c.border, type: 'dashed' as const } },
+      },
+      yAxis: {
+        type: 'category',
+        data: labels,
+        inverse: true,
+        axisLine,
+        axisTick: { show: false },
+        axisLabel,
+        splitLine: { show: false },
+      },
       series: [
         {
           name: '成功',
@@ -125,7 +141,7 @@ export const DeveloperStatsPage: React.FC<Props> = ({ theme }) => {
         },
       ],
     };
-  }, [axis.category, axis.value, c.series, c.text, data?.gatewayInvokesByResourceType, theme]);
+  }, [c.border, c.muted, c.series, c.text, data?.gatewayInvokesByResourceType, theme]);
 
   if (loading) {
     return (
@@ -216,8 +232,8 @@ export const DeveloperStatsPage: React.FC<Props> = ({ theme }) => {
                   应用
                 </button>
               </div>
-              {platformRole === 'dept_admin' ? (
-                <span className="font-normal opacity-80">部门管理员仅可查询本部门用户。</span>
+              {platformRole === 'reviewer' ? (
+                <span className="font-normal opacity-80">审核员可全平台查询任意 Owner（与后端一致）。</span>
               ) : null}
             </div>
           ) : null}

@@ -74,8 +74,17 @@ export function buildUserResourceMarketUrl(
   return `${buildPath('user', 'resource-market')}?${params.toString()}`;
 }
 
-export function defaultPath(role: ConsoleRole): string {
-  return role === 'admin' ? '/admin/dashboard' : '/user/hub';
+/**
+ * 登录后与无有效恢复路径时的默认落地：**统一应用工作台**（与后端统一控制台/统一 RBAC 对齐）。
+ * 平台治理类页面仍使用 `/admin/:page` 直达；`ConsoleRole` 仅表示 URL 分区，不表示两套产品身份。
+ */
+export function defaultPath(_role?: ConsoleRole): string {
+  return '/user/hub';
+}
+
+/** 管理概览页（原「管理路由」首页），供侧栏/书签直达 */
+export function adminOverviewPath(): string {
+  return '/admin/dashboard';
 }
 
 export function parseRoute(pathname: string): { role: ConsoleRole; page: string; id?: string } | null {

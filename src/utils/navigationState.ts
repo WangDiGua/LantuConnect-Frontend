@@ -1,5 +1,5 @@
 import { encryptStorage, decryptStorage } from '../lib/security';
-import { defaultPath, type ConsoleRole } from '../constants/consoleRoutes';
+import { defaultPath } from '../constants/consoleRoutes';
 
 export const NAV_STORAGE_KEY = 'lantu-main-nav';
 
@@ -8,7 +8,7 @@ export interface PersistedNavState {
 }
 
 const DEFAULTS: PersistedNavState = {
-  lastPath: '/admin/dashboard',
+  lastPath: defaultPath(),
 };
 
 const MAX_LAST_PATH_LEN = 2048;

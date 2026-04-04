@@ -19,6 +19,9 @@ import {
 import { formatDateTime } from '../../utils/formatDateTime';
 import { Pagination } from '../../components/common/Pagination';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
+import type { PlatformRoleCode } from '../../types/dto/auth';
+import { PLATFORM_ROLE_LABELS } from '../../constants/platformRoles';
+import { normalizeRole } from '../../context/UserRoleContext';
 
 interface UserProfileProps { theme: Theme; fontSize: FontSize; }
 
@@ -56,14 +59,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({ theme }) => {
   const user = useAuthStore((s) => s.user);
   const displayName = user?.nickname || user?.username || 'User Name';
   const displayEmail = user?.email || 'user@nexus-ai.edu.cn';
-  const roleLabels: Record<string, string> = {
-    platform_admin: '平台管理员',
-    dept_admin: '部门管理员',
-    developer: '开发者',
-    consumer: '消费者',
-    user: '普通用户',
-  };
-  const displayRole = roleLabels[user?.role ?? 'user'] ?? '普通用户';
+  const platformRole: PlatformRoleCode = normalizeRole(user?.role);
+  const displayRole = PLATFORM_ROLE_LABELS[platformRole] ?? PLATFORM_ROLE_LABELS.user;
   const displayDept = user?.department || '未设置';
 
   const fileInputRef = useRef<HTMLInputElement>(null);

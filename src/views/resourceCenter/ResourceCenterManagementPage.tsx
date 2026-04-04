@@ -125,7 +125,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
   const { platformRole } = useUserRole();
   /** 与 AuditController publish 一致：owner / 部门管理员 / 平台侧开发者账号 */
   const canPublishResource =
-    platformRole === 'platform_admin' || platformRole === 'dept_admin' || platformRole === 'developer';
+    platformRole === 'platform_admin' || platformRole === 'reviewer' || platformRole === 'developer';
   const isPlatformAdmin = platformRole === 'platform_admin';
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<ResourceCenterItemVO[]>([]);

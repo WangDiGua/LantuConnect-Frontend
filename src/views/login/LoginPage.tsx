@@ -12,7 +12,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { ApiException } from '../../types/api';
 import { useMessage } from '../../components/common/Message';
 import { defaultPath } from '../../constants/consoleRoutes';
-import { isUnassignedRole, normalizeRole, platformRoleToConsoleRole } from '../../context/UserRoleContext';
+import { normalizeRole } from '../../context/UserRoleContext';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -87,8 +87,7 @@ export const LoginPage: React.FC = () => {
       const userWithNormalized = { ...res.user, role: normalized };
       login(res.token, res.refreshToken, userWithNormalized, values.username);
       showMessage('登录成功，欢迎回来', 'success');
-      if (isUnassignedRole(normalized)) { navigate('/onboarding/developer', { replace: true }); return; }
-      navigate(defaultPath(platformRoleToConsoleRole(normalized)), { replace: true });
+      navigate(defaultPath(), { replace: true });
     } catch (err) {
       const errorMsg = err instanceof ApiException ? err.message : '登录失败，请稍后重试';
       setServerError(errorMsg);

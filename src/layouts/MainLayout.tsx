@@ -741,7 +741,7 @@ const MainLayoutContent: React.FC<{
       DEVELOPER_PORTAL_PAGES.has(normalizedRoutePage) &&
       !hasPermission('developer:portal')
     ) {
-      navigate(defaultPath('user'), { replace: true });
+      navigate(defaultPath(), { replace: true });
       return;
     }
     if (
@@ -750,7 +750,7 @@ const MainLayoutContent: React.FC<{
       !hasPermission('grant-application:review') &&
       !hasPermission('resource-grant:manage')
     ) {
-      navigate(defaultPath('user'), { replace: true });
+      navigate(defaultPath(), { replace: true });
       showMessage('当前账号无授权审批权限', 'info');
       return;
     }
@@ -761,14 +761,14 @@ const MainLayoutContent: React.FC<{
     }
     if (!routeValid) {
       if (routeRole === 'admin' || routeRole === 'user') {
-        navigate(defaultPath(routeRole), { replace: true });
+        navigate(defaultPath(), { replace: true });
       } else {
         navigate('/404', { replace: true });
       }
       return;
     }
     if (routeRole === 'admin' && !canAccessAdminView(platformRole)) {
-      navigate(defaultPath('user'), { replace: true });
+      navigate(defaultPath(), { replace: true });
     }
     if (
       routeRole === 'user' &&
@@ -1122,7 +1122,7 @@ const MainLayoutContent: React.FC<{
             }}
             onLogoClick={() => {
               setExpandedGroups([]);
-              navigate(defaultPath(consoleRole));
+              navigate(defaultPath());
               setMobileNavOpen(false);
             }}
             filteredSubGroupsForSidebarId={filteredSubGroupsForSidebarId}

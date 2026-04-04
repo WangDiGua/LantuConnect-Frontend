@@ -33,7 +33,14 @@ export interface OrgNode {
 }
 
 // 平台角色
-export type RoleCode = 'platform_admin' | 'dept_admin' | 'developer' | 'consumer' | 'user';
+/** 库表 t_platform_role.role_code；含旧值兼容只读展示 */
+export type RoleCode =
+  | 'platform_admin'
+  | 'reviewer'
+  | 'developer'
+  | 'user'
+  | 'dept_admin'
+  | 'consumer';
 
 export interface PlatformRole {
   id: number;

@@ -1,8 +1,8 @@
+/** 与后端平台角色一致：user=终端用户，reviewer=全平台审核员，platform_admin=平台超管 */
 export type PlatformRoleCode =
   | 'platform_admin'
-  | 'dept_admin'
+  | 'reviewer'
   | 'developer'
-  | 'consumer'
   | 'user'
   | 'unassigned';
 

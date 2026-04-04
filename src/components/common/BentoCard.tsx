@@ -8,7 +8,7 @@ interface Props {
   children: React.ReactNode;
   className?: string;
   hover?: boolean;
-  glow?: 'indigo' | 'emerald' | 'amber' | 'rose';
+  glow?: 'indigo' | 'emerald' | 'amber' | 'rose' | 'cyan';
   padding?: 'sm' | 'md' | 'lg';
   onClick?: () => void;
 }
@@ -18,6 +18,7 @@ const GLOW_MAP = {
   emerald: 'hover:shadow-[var(--shadow-glow-emerald)]',
   amber: 'hover:shadow-[var(--shadow-glow-amber)]',
   rose: 'hover:shadow-[var(--shadow-glow-rose)]',
+  cyan: 'hover:shadow-[var(--shadow-glow-cyan)]',
 };
 
 const PAD_MAP = { sm: 'p-4', md: 'p-6', lg: 'p-8' };

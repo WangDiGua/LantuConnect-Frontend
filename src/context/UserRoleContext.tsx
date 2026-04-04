@@ -7,17 +7,21 @@ const ROLE_ALIAS: Record<string, PlatformRoleCode> = {
   platform_admin: 'platform_admin',
   admin: 'platform_admin',
   super_admin: 'platform_admin',
-  dept_admin: 'dept_admin',
-  department_admin: 'dept_admin',
+  reviewer: 'reviewer',
+  /** @deprecated 后端已改为 reviewer */
+  dept_admin: 'reviewer',
+  department_admin: 'reviewer',
+  auditor: 'reviewer',
   developer: 'developer',
   dev: 'developer',
-  consumer: 'consumer',
+  user: 'user',
+  /** @deprecated 后端已改为 user */
+  consumer: 'user',
+  student: 'user',
+  teacher: 'user',
   unassigned: 'unassigned',
   no_role: 'unassigned',
   none: 'unassigned',
-  user: 'user',
-  student: 'user',
-  teacher: 'user',
 };
 
 /** Map any backend role string to a canonical PlatformRoleCode. */
@@ -31,8 +35,12 @@ export function normalizeRole(raw?: string | null): PlatformRoleCode {
   return mapped ?? 'user';
 }
 
-export function platformRoleToConsoleRole(platformRole?: PlatformRoleCode | null): UserRole {
-  return platformRole === 'platform_admin' || platformRole === 'dept_admin' ? 'admin' : 'user';
+/**
+ * 控制台壳层**初始**路由域：统一为应用侧 `user`。
+ * 超管/审核员等是否可打开 `/admin/*` 由 {@link canAccessAdminView} 与权限点决定，不再按角色默认进「管理首页」。
+ */
+export function platformRoleToConsoleRole(_platformRole?: PlatformRoleCode | null): UserRole {
+  return 'user';
 }
 
 const ROLE_PERMISSIONS: Record<PlatformRoleCode, string[]> = {
@@ -48,15 +56,17 @@ const ROLE_PERMISSIONS: Record<PlatformRoleCode, string[]> = {
     'system:config', 'monitor:view', 'audit:manage', 'resource:audit',
     'developer:portal', 'developer-application:review',
   ],
-  dept_admin: [
+  /** 全平台审核：与后端 reviewer 权限一致；不含用户/组织治理、Provider、系统参数（仅超管） */
+  reviewer: [
     'agent:view', 'agent:create', 'agent:edit', 'agent:audit',
     'skill:view', 'skill:create', 'skill:edit', 'skill:audit',
-    'mcp:view', 'mcp:create', 'mcp:edit',
-    'app:view', 'app:create', 'app:edit',
-    'dataset:view', 'dataset:create', 'dataset:edit',
+    'mcp:view', 'mcp:create', 'mcp:edit', 'mcp:audit',
+    'app:view', 'app:create', 'app:edit', 'app:audit',
+    'dataset:view', 'dataset:create', 'dataset:edit', 'dataset:audit',
     'resource:audit',
-    'provider:view',
-    'user:manage', 'resource-grant:manage', 'grant-application:review', 'monitor:view',
+    'resource-grant:manage', 'grant-application:review', 'developer-application:review',
+    'monitor:view',
+    'developer:portal',
   ],
   developer: [
     'agent:view', 'agent:create', 'agent:edit', 'agent:publish',
@@ -68,17 +78,17 @@ const ROLE_PERMISSIONS: Record<PlatformRoleCode, string[]> = {
     'developer:portal',
   ],
   /**
-   * 后端 consumer：agent:read / skill:read / app:view / dataset:read（mcp 与 skill 共用 skill:read）。
-   * 额外带上 *:view 与快捷入口等现有前端判权一致。
+   * 终端用户（user）：已发布资源只读/调用侧；后端为 agent:read / skill:read / app:view / dataset:read。
    */
-  consumer: [
+  user: [
     'agent:read', 'skill:read', 'app:view', 'dataset:read',
     'agent:view', 'skill:view', 'dataset:view',
   ],
-  user: [
-    'agent:view', 'skill:view', 'app:view', 'dataset:view',
+  /** 与 user 同屏体验：未分配平台角色时仍可进工作台浏览目录与个人设置；接口以 JWT 为准 */
+  unassigned: [
+    'agent:read', 'skill:read', 'app:view', 'dataset:read',
+    'agent:view', 'skill:view', 'dataset:view',
   ],
-  unassigned: [],
 };
 
 export function getPermissions(platformRole?: PlatformRoleCode | null): string[] {
@@ -90,7 +100,7 @@ export function checkPermission(platformRole: PlatformRoleCode | undefined | nul
 }
 
 export function canAccessAdminView(platformRole?: PlatformRoleCode | null): boolean {
-  return platformRole === 'platform_admin' || platformRole === 'dept_admin';
+  return platformRole === 'platform_admin' || platformRole === 'reviewer';
 }
 
 export function isUnassignedRole(platformRole?: PlatformRoleCode | null): boolean {

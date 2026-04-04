@@ -498,16 +498,6 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
                 >
                   {PLATFORM_ROLE_LABELS[platformRole]}
                 </span>
-                <span
-                  className={`text-[9px] px-1.5 py-0.5 rounded-md font-bold whitespace-nowrap ${
-                    isDark
-                      ? 'bg-white/[0.08] text-slate-200 border border-white/[0.12]'
-                      : 'bg-[#F2F4F7] text-[#111827] border border-slate-400/40'
-                  }`}
-                  title="当前页面路由域"
-                >
-                  {routeRole === 'admin' ? '管理路由' : '应用路由'}
-                </span>
               </div>
             </div>
             <MoreVertical

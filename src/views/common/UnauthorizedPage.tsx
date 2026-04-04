@@ -88,7 +88,7 @@ export const UnauthorizedPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => navigate('/login')}
-                className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-black dark:bg-white text-white dark:text-neutral-900 font-medium hover:bg-gray-800 dark:hover:bg-neutral-200 transition-colors duration-200 w-fit"
+                className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-black dark:bg-white text-white dark:text-neutral-900 font-medium hover:bg-gray-800 dark:hover:bg-neutral-200 transition-colors duration-200 motion-reduce:transition-none w-fit min-h-11 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-lantu-card"
               >
                 重新登录
                 <LogIn size={18} />

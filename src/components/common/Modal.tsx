@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useId } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { createPortal } from 'react-dom';
@@ -25,6 +25,7 @@ export const Modal: React.FC<ModalProps> = ({
   open, onClose, title, theme, size = 'md', contentClassName, children, footer, closeOnBackdrop = true,
 }) => {
   const isDark = theme === 'dark';
+  const titleId = useId();
   const bodyClass = contentClassName ?? 'flex-1 overflow-y-auto px-6 py-4';
 
   useEffect(() => {
@@ -58,7 +59,8 @@ export const Modal: React.FC<ModalProps> = ({
             key="modal-content"
             role="dialog"
             aria-modal="true"
-            aria-label={title}
+            aria-labelledby={title ? titleId : undefined}
+            aria-label={title ? undefined : '对话框'}
             initial={{ opacity: 0, scale: 0.96, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 12 }}
@@ -71,13 +73,18 @@ export const Modal: React.FC<ModalProps> = ({
           >
             {title && (
               <div className={`flex items-start justify-between px-6 py-5 shrink-0`}>
-                <h3 className={`text-xl font-semibold tracking-tight ${isDark ? 'text-neutral-100' : 'text-neutral-900'}`}>{title}</h3>
+                <h3 id={titleId} className={`text-xl font-semibold tracking-tight ${isDark ? 'text-neutral-100' : 'text-neutral-900'}`}>
+                  {title}
+                </h3>
                 <button
                   type="button"
                   onClick={onClose}
-                  className={`p-2 -mr-2 rounded-full transition-colors ${isDark ? 'hover:bg-white/10 text-neutral-400' : 'hover:bg-neutral-100 text-neutral-400'}`}
+                  aria-label="关闭"
+                  className={`p-2 -mr-2 rounded-full min-h-10 min-w-10 inline-flex items-center justify-center transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 ${
+                    isDark ? 'hover:bg-white/10 text-neutral-400 focus-visible:ring-offset-lantu-card' : 'hover:bg-neutral-100 text-neutral-400 focus-visible:ring-offset-white'
+                  }`}
                 >
-                  <X size={20} />
+                  <X size={20} aria-hidden />
                 </button>
               </div>
             )}
@@ -86,9 +93,12 @@ export const Modal: React.FC<ModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className={`absolute top-3 right-3 p-2 rounded-full transition-colors z-10 ${isDark ? 'hover:bg-white/10 text-neutral-400' : 'hover:bg-neutral-100 text-neutral-400'}`}
+                aria-label="关闭"
+                className={`absolute top-3 right-3 p-2 rounded-full min-h-10 min-w-10 inline-flex items-center justify-center transition-colors motion-reduce:transition-none z-10 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 ${
+                  isDark ? 'hover:bg-white/10 text-neutral-400 focus-visible:ring-offset-lantu-card' : 'hover:bg-neutral-100 text-neutral-400 focus-visible:ring-offset-white'
+                }`}
               >
-                <X size={20} />
+                <X size={20} aria-hidden />
               </button>
             )}
 

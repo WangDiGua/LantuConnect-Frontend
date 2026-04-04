@@ -2,6 +2,7 @@ import React from 'react';
 import { Search, X } from 'lucide-react';
 import { Theme } from '../../types';
 import { toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
+import { iconButton } from '../../utils/uiClasses';
 
 export interface SearchInputProps {
   value: string;
@@ -37,6 +38,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
           isDark ? 'text-neutral-500' : 'text-neutral-400'
         }`}
         size={16}
+        aria-hidden
       />
       <input
         type="text"
@@ -53,14 +55,11 @@ export const SearchInput: React.FC<SearchInputProps> = ({
         <button
           type="button"
           onClick={handleClear}
-          className={`absolute right-3.5 top-1/2 -translate-y-1/2 p-1 rounded-lg transition-colors ${
-            isDark
-              ? 'text-neutral-500 hover:bg-white/5 hover:text-neutral-300'
-              : 'text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600'
-          }`}
+          className={`absolute right-2 top-1/2 -translate-y-1/2 ${iconButton(theme)} !min-h-8 !min-w-8`}
           title="清除"
+          aria-label="清除搜索"
         >
-          <X size={14} />
+          <X size={14} aria-hidden />
         </button>
       )}
     </div>

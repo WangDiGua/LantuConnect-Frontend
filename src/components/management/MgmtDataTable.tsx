@@ -53,6 +53,7 @@ export function MgmtDataTable<T>({
             {columns.map((col) => (
               <th
                 key={col.id}
+                scope="col"
                 className={[tableHeadCell(theme), col.headerClassName ?? ''].filter(Boolean).join(' ')}
               >
                 {col.header}

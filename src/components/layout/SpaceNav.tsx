@@ -104,7 +104,7 @@ export const SpaceNav: React.FC<SpaceNavProps> = ({
                       whileHover={{ x: 2 }}
                       whileTap={{ scale: 0.97 }}
                       onClick={() => onItemClick(item)}
-                      className={`w-full flex items-center gap-2.5 px-2.5 py-[7px] rounded-lg transition-all text-left ${sizeClass(fontSize)} ${
+                      className={`w-full min-h-10 flex items-center gap-2.5 px-2.5 py-[7px] rounded-lg transition-all motion-reduce:transition-none text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${sizeClass(fontSize)} ${
                         active
                           ? isLight
                             ? 'bg-white shadow-sm font-semibold'

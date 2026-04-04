@@ -126,13 +126,13 @@ export const EChartCard: React.FC<EChartCardProps> = (props) => {
 
   const isDark = theme === 'dark';
   const shell = useHubStatSurface
-    ? `rounded-[24px] border overflow-hidden ${
+    ? `rounded-[24px] border overflow-hidden motion-reduce:transition-none ${
         isDark
           ? 'border-white/10 bg-lantu-card shadow-[0_2px_10px_rgba(0,0,0,0.2)]'
-          : 'border-gray-100 bg-white shadow-[0_2px_10px_rgba(0,0,0,0.02)]'
+          : 'border-slate-200/50 bg-white shadow-[0_2px_8px_-2px_rgba(15,23,42,0.07)]'
       }`
     : `rounded-[24px] border shadow-none overflow-hidden ${
-        isDark ? 'border-white/10 bg-lantu-card' : 'border-slate-200/80 bg-white'
+        isDark ? 'border-white/10 bg-lantu-card' : 'border-slate-200/50 bg-white'
       }`;
   return (
     <div className={`${shell} ${className}`}>

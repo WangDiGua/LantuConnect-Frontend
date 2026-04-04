@@ -32,19 +32,23 @@ function buildPageNumbers(current: number, totalPages: number): (number | 'ellip
 
 function navBtnClass(theme: Theme) {
   const d = theme === 'dark';
-  return `inline-flex items-center justify-center w-8 h-8 rounded-lg text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
-    d ? 'text-slate-300 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100'
+  return `inline-flex items-center justify-center min-h-9 min-w-9 w-9 h-9 rounded-lg text-sm transition-colors motion-reduce:transition-none disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 ${
+    d
+      ? 'text-slate-300 hover:bg-white/10 focus-visible:ring-offset-lantu-card'
+      : 'text-slate-600 hover:bg-slate-100 focus-visible:ring-offset-white'
   }`;
 }
 
 function pageBtnClass(active: boolean, theme: Theme) {
   const d = theme === 'dark';
+  const ring = 'focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2';
+  const ringOff = d ? 'focus-visible:ring-offset-lantu-card' : 'focus-visible:ring-offset-white';
   if (active) {
-    return `inline-flex items-center justify-center w-8 h-8 rounded-lg text-sm font-semibold transition-colors shadow-sm ${
+    return `inline-flex items-center justify-center min-h-9 min-w-9 w-9 h-9 rounded-lg text-sm font-semibold transition-colors motion-reduce:transition-none shadow-sm ${ring} ${ringOff} ${
       d ? 'bg-white text-neutral-900' : 'bg-neutral-900 text-white'
     }`;
   }
-  return `inline-flex items-center justify-center w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
+  return `inline-flex items-center justify-center min-h-9 min-w-9 w-9 h-9 rounded-lg text-sm font-medium transition-colors motion-reduce:transition-none ${ring} ${ringOff} ${
     d ? 'text-slate-300 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100'
   }`;
 }

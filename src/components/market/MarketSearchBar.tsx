@@ -24,13 +24,14 @@ export const MarketSearchBar: React.FC<MarketSearchBarProps> = ({
         <Search
           size={16}
           className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+          aria-hidden
         />
         <input
           type="text"
           placeholder={placeholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className={`w-full bg-transparent pl-9 pr-3 py-2.5 text-sm outline-none ${textPrimary(theme)}`}
+          className={`w-full bg-transparent pl-9 pr-3 py-2.5 text-sm rounded-lg outline-none transition-shadow motion-reduce:transition-none focus-visible:ring-2 focus-visible:ring-sky-500/35 focus-visible:ring-inset ${textPrimary(theme)}`}
         />
       </div>
     </GlassPanel>

@@ -18,7 +18,12 @@ function shellClasses(base: string, className?: string): string {
 
 /** Dashboard layout: balanced content width with generous section rhythm. */
 export const DashboardLayout: React.FC<BaseLayoutProps> = ({ children, className }) => (
-  <div className={shellClasses(`mx-auto w-full ${contentMaxWidth} ${contentPaddingX} py-5 sm:py-6 ${sectionGap}`, className)}>
+  <div
+    className={shellClasses(
+      `mx-auto w-full ${contentMaxWidth} ${contentPaddingX} py-5 sm:py-6 ${sectionGap}`,
+      className,
+    )}
+  >
     {children}
   </div>
 );

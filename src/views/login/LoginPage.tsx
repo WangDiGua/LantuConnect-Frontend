@@ -13,6 +13,7 @@ import { ApiException } from '../../types/api';
 import { useMessage } from '../../components/common/Message';
 import { defaultPath } from '../../constants/consoleRoutes';
 import { normalizeRole } from '../../context/UserRoleContext';
+import { fieldErrorText, inputBase, inputBaseError, labelBase } from '../../utils/uiClasses';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -100,8 +101,8 @@ export const LoginPage: React.FC = () => {
     setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
   };
 
-  const inputCls = 'w-full pl-10 pr-4 py-2.5 bg-neutral-50/50 border border-neutral-200 rounded-xl text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-4 focus:ring-neutral-900/5 focus:border-neutral-900 focus:bg-white transition-all duration-300';
-  const inputErrorCls = '!border-rose-400 focus:!border-rose-500 focus:!ring-rose-500/10';
+  const formTheme = 'light' as const;
+  const inputCls = `${inputBase(formTheme)} pl-10 pr-4`;
 
   /** 左栏日食尺寸：随视口高度收紧，保证 lg+ 一屏内无需滚动 */
   const eclipseSize =
@@ -207,7 +208,7 @@ export const LoginPage: React.FC = () => {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 [@media(min-width:1024px)_and_(max-height:820px)]:lg:space-y-4 [@media(min-width:1024px)_and_(max-height:720px)]:lg:space-y-3">
             <div className="space-y-4 [@media(min-width:1024px)_and_(max-height:780px)]:lg:space-y-3 [@media(min-width:1024px)_and_(max-height:680px)]:lg:space-y-2.5">
               <div className="space-y-2">
-                <label className="text-[13px] font-medium text-neutral-700">学工号 (ID)</label>
+                <label className={labelBase(formTheme)}>学工号 (ID)</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                     <Mail className="w-4 h-4 text-neutral-400" />
@@ -216,16 +217,16 @@ export const LoginPage: React.FC = () => {
                     type="text"
                     autoComplete="username"
                     placeholder="e.g. 20230001"
-                    className={`${inputCls} ${errors.username ? inputErrorCls : ''}`}
+                    className={`${inputCls} ${errors.username ? inputBaseError() : ''}`}
                     {...register('username')}
                   />
                 </div>
-                {errors.username && <p className="text-xs text-rose-500">{errors.username.message}</p>}
+                {errors.username && <p className={fieldErrorText()}>{errors.username.message}</p>}
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-[13px] font-medium text-neutral-700">密码 (Password)</label>
+                  <label className={labelBase(formTheme)}>密码 (Password)</label>
                 </div>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -235,7 +236,7 @@ export const LoginPage: React.FC = () => {
                     type={showPassword ? 'text' : 'password'}
                     autoComplete="current-password"
                     placeholder="••••••••"
-                    className={`${inputCls} !pr-10 ${errors.password ? inputErrorCls : ''}`}
+                    className={`${inputCls} !pr-10 ${errors.password ? inputBaseError() : ''}`}
                     {...register('password')}
                   />
                   <button
@@ -247,11 +248,11 @@ export const LoginPage: React.FC = () => {
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
-                {errors.password && <p className="text-xs text-rose-500">{errors.password.message}</p>}
+                {errors.password && <p className={fieldErrorText()}>{errors.password.message}</p>}
               </div>
 
               <div className="space-y-2">
-                <label className="text-[13px] font-medium text-neutral-700">安全验证 (Verification)</label>
+                <label className={labelBase(formTheme)}>安全验证 (Verification)</label>
                 {captchaLoading ? (
                   <div className="h-11 flex items-center justify-center">
                     <Loader2 size={18} className="animate-spin text-neutral-400" />
@@ -267,7 +268,7 @@ export const LoginPage: React.FC = () => {
                       type="text"
                       autoComplete="off"
                       placeholder="输入右侧代码"
-                      className={`flex-1 px-4 py-2.5 bg-neutral-50/50 border border-neutral-200 rounded-xl text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-4 focus:ring-neutral-900/5 focus:border-neutral-900 focus:bg-white transition-all duration-300 ${errors.captchaCode ? inputErrorCls : ''}`}
+                      className={`flex-1 min-w-0 ${inputBase(formTheme)} ${errors.captchaCode ? inputBaseError() : ''}`}
                       {...register('captchaCode')}
                     />
                     <button
@@ -289,7 +290,7 @@ export const LoginPage: React.FC = () => {
                     </button>
                   </div>
                 )}
-                {errors.captchaCode && <p className="text-xs text-rose-500 mt-1">{errors.captchaCode.message}</p>}
+                {errors.captchaCode && <p className={`${fieldErrorText()} mt-1`}>{errors.captchaCode.message}</p>}
               </div>
             </div>
 

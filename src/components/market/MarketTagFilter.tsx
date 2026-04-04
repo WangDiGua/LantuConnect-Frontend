@@ -27,9 +27,13 @@ export const MarketTagFilter: React.FC<MarketTagFilterProps> = ({
   const isDark = theme === 'dark';
 
   const buttonClass = (isActive: boolean) =>
-    `px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+    `min-h-9 px-4 py-1.5 rounded-full text-sm font-medium transition-all motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 ${
+      isDark ? 'focus-visible:ring-offset-lantu-elevated' : 'focus-visible:ring-offset-white'
+    } ${
       isActive
-        ? 'bg-neutral-900 text-white shadow-sm shadow-neutral-900/15'
+        ? isDark
+          ? 'bg-white text-neutral-900 shadow-sm'
+          : 'bg-neutral-900 text-white shadow-sm shadow-neutral-900/15'
         : isDark
           ? 'text-slate-400 hover:bg-white/5'
           : 'text-slate-600 hover:bg-slate-100'

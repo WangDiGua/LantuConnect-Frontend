@@ -72,6 +72,7 @@ export const ErrorPage: React.FC<Props> = ({ code = 500, title, message, primary
 
           <div className="flex items-center justify-center gap-3">
             <button
+              type="button"
               onClick={() => window.location.reload()}
               className={btnSecondary(theme)}
             >

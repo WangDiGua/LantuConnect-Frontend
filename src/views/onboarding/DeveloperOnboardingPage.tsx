@@ -10,6 +10,9 @@ import { tokenStorage } from '../../lib/security';
 import { env } from '../../config/env';
 import { defaultPath } from '../../constants/consoleRoutes';
 import type { DeveloperApplicationCreateRequest, DeveloperApplicationVO } from '../../types/dto/developer-application';
+import type { Theme } from '../../types';
+import { nativeInputClass } from '../../utils/formFieldClasses';
+import { btnPrimary, btnSecondary } from '../../utils/uiClasses';
 
 function statusLabel(status: DeveloperApplicationVO['status']): string {
   if (status === 'pending') return '审核中';
@@ -32,6 +35,10 @@ export interface DeveloperOnboardingPageProps {
 
 export const DeveloperOnboardingPage: React.FC<DeveloperOnboardingPageProps> = ({ embedded = false }) => {
   const navigate = useNavigate();
+  const theme: Theme =
+    typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme') === 'dark'
+      ? 'dark'
+      : 'light';
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const { showMessage } = useMessage();
@@ -131,7 +138,7 @@ export const DeveloperOnboardingPage: React.FC<DeveloperOnboardingPageProps> = (
                   <input
                     value={form.contactEmail}
                     onChange={(e) => setForm((prev) => ({ ...prev, contactEmail: e.target.value }))}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-700 dark:border-white/[0.08] dark:bg-white/[0.02] dark:text-slate-100"
+                    className={nativeInputClass(theme)}
                     placeholder="请输入可联系邮箱"
                   />
                 </div>
@@ -140,7 +147,7 @@ export const DeveloperOnboardingPage: React.FC<DeveloperOnboardingPageProps> = (
                   <input
                     value={form.contactPhone ?? ''}
                     onChange={(e) => setForm((prev) => ({ ...prev, contactPhone: e.target.value }))}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-700 dark:border-white/[0.08] dark:bg-white/[0.02] dark:text-slate-100"
+                    className={nativeInputClass(theme)}
                     placeholder="请输入联系电话"
                   />
                 </div>
@@ -149,7 +156,7 @@ export const DeveloperOnboardingPage: React.FC<DeveloperOnboardingPageProps> = (
                   <input
                     value={form.companyName ?? ''}
                     onChange={(e) => setForm((prev) => ({ ...prev, companyName: e.target.value }))}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-700 dark:border-white/[0.08] dark:bg-white/[0.02] dark:text-slate-100"
+                    className={nativeInputClass(theme)}
                     placeholder="请输入单位或组织名称"
                   />
                 </div>
@@ -158,7 +165,7 @@ export const DeveloperOnboardingPage: React.FC<DeveloperOnboardingPageProps> = (
                   <textarea
                     value={form.applyReason}
                     onChange={(e) => setForm((prev) => ({ ...prev, applyReason: e.target.value }))}
-                    className="h-32 w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-neutral-700 dark:border-white/[0.08] dark:bg-white/[0.02] dark:text-slate-100"
+                    className={`h-32 w-full resize-none ${nativeInputClass(theme)}`}
                     placeholder="请说明你的使用场景、计划与预期收益"
                   />
                 </div>
@@ -166,7 +173,7 @@ export const DeveloperOnboardingPage: React.FC<DeveloperOnboardingPageProps> = (
                   <button
                     type="submit"
                     disabled={!canSubmit || submitting}
-                    className="inline-flex items-center gap-2 rounded-xl bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+                    className={`${btnPrimary} gap-2`}
                   >
                     {submitting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
                     提交申请
@@ -176,7 +183,7 @@ export const DeveloperOnboardingPage: React.FC<DeveloperOnboardingPageProps> = (
                       <button
                         type="button"
                         onClick={() => navigate(defaultPath())}
-                        className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-800 dark:border-white/[0.1] dark:text-slate-100"
+                        className={`${btnSecondary(theme)} gap-2`}
                       >
                         <LayoutDashboard size={16} />
                         进入工作台（浏览资源与设置）
@@ -193,7 +200,7 @@ export const DeveloperOnboardingPage: React.FC<DeveloperOnboardingPageProps> = (
                           logout();
                           window.location.hash = '#/login';
                         }}
-                        className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 dark:border-white/[0.1] dark:text-slate-300"
+                        className={btnSecondary(theme)}
                       >
                         退出登录
                       </button>

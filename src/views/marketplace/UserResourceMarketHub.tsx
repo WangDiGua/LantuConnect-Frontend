@@ -57,7 +57,9 @@ export const UserResourceMarketHub: React.FC<Props> = ({ theme, fontSize, themeC
                 role="tab"
                 aria-selected={active}
                 onClick={() => setTab(key)}
-                className={`rounded-xl px-3 py-2 text-xs font-semibold transition-colors sm:text-sm ${
+                className={`min-h-9 rounded-xl px-3 py-2 text-xs font-semibold transition-colors motion-reduce:transition-none sm:text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 ${
+                  isDark ? 'focus-visible:ring-offset-lantu-card' : 'focus-visible:ring-offset-white'
+                } ${
                   active
                     ? isDark
                       ? 'bg-white/12 text-white shadow-sm'

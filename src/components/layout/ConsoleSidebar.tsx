@@ -301,7 +301,9 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
                     ? onToggleGroup(item.id)
                     : onSidebarClick(item.id, item.domain)
                 }
-                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 group/item ${
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 motion-reduce:transition-none group/item focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 ${
+                  isDark ? 'focus-visible:ring-offset-lantu-surface' : 'focus-visible:ring-offset-white'
+                } ${
                   isSelfActive
                     ? isDark
                       ? 'bg-white/10 text-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.15)]'
@@ -376,7 +378,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
                             key={subItem.id}
                             type="button"
                             onClick={() => onSubItemClick(subItem.id, item.id, item.domain)}
-                            className={`w-full text-left px-3 py-2 text-[13px] rounded-lg transition-colors relative ${
+                            className={`w-full text-left px-3 py-2 text-[13px] rounded-lg transition-colors relative focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-inset ${
                               activeSubItem === subItem.id && activeSidebar === item.id && routeRole === item.domain
                                 ? isDark
                                   ? 'bg-white/10 text-neutral-300 font-semibold shadow-[0_2px_8px_rgba(0,0,0,0.15)]'
@@ -443,7 +445,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
                     setShowUserMenu(false);
                     onNavigateToProfile();
                   }}
-                  className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-colors ${
+                  className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-inset ${
                     isDark ? 'text-slate-200 hover:bg-white/[0.08]' : 'text-slate-800 hover:bg-slate-100'
                   }`}
                 >
@@ -454,7 +456,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
                 <button
                   type="button"
                   onClick={() => { setShowUserMenu(false); onLogout(); }}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium text-red-500 hover:bg-red-500/10 transition-colors"
+                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium text-red-500 hover:bg-red-500/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/45 focus-visible:ring-inset"
                 >
                   <LogOut size={15} />
                   退出登录
@@ -465,10 +467,10 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
           <button
             type="button"
             onClick={() => setShowUserMenu((v) => !v)}
-            className={`w-full rounded-[16px] p-2.5 flex items-center gap-3 transition-all group/user ${
+            className={`w-full rounded-[16px] p-2.5 flex items-center gap-3 transition-all motion-reduce:transition-none group/user focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 ${
               isDark
-                ? 'bg-white/[0.06] shadow-[0_2px_12px_rgba(0,0,0,0.15)] border border-white/10 hover:bg-white/[0.1]'
-                : 'bg-white shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-slate-200/50 hover:shadow-md'
+                ? 'bg-white/[0.06] shadow-[0_2px_12px_rgba(0,0,0,0.15)] border border-white/10 hover:bg-white/[0.1] focus-visible:ring-offset-lantu-surface'
+                : 'bg-white shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-slate-200/50 hover:shadow-md focus-visible:ring-offset-white'
             }`}
           >
             <MultiAvatar

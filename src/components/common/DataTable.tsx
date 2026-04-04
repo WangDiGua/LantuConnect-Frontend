@@ -131,6 +131,7 @@ export function DataTable<T extends Record<string, any>>({
               {columns.map((column) => (
                 <th
                   key={column.key}
+                  scope="col"
                   className={`px-6 py-3.5 text-[12px] font-medium uppercase tracking-wider ${column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : 'text-left'} ${isDark ? 'text-neutral-500' : 'text-neutral-500'}`}
                   style={{ minWidth: column.minWidth }}
                 >
@@ -138,9 +139,13 @@ export function DataTable<T extends Record<string, any>>({
                     <span>{column.label}</span>
                     {column.sortable !== false && enableSorting && (
                       <button
+                        type="button"
                         onClick={() => handleSort(column.key)}
-                        className={`p-1 rounded-lg transition-colors ${isDark ? 'hover:bg-white/5' : 'hover:bg-neutral-100'}`}
+                        className={`min-h-9 min-w-9 inline-flex items-center justify-center rounded-lg transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 ${
+                          isDark ? 'hover:bg-white/5 focus-visible:ring-offset-lantu-card' : 'hover:bg-neutral-100 focus-visible:ring-offset-white'
+                        }`}
                         title="排序"
+                        aria-label={`按 ${column.label} 排序`}
                       >
                         {getSortIcon(column.key)}
                       </button>
@@ -149,7 +154,7 @@ export function DataTable<T extends Record<string, any>>({
                 </th>
               ))}
               {rowActions && rowActions.length > 0 && (
-                <th className={`px-6 py-3.5 text-[12px] font-medium uppercase tracking-wider text-right ${isDark ? 'text-neutral-500' : 'text-neutral-500'}`}>
+                <th scope="col" className={`px-6 py-3.5 text-[12px] font-medium uppercase tracking-wider text-right ${isDark ? 'text-neutral-500' : 'text-neutral-500'}`}>
                   操作
                 </th>
               )}
@@ -197,14 +202,15 @@ export function DataTable<T extends Record<string, any>>({
                         {rowActions.map((action, actionIndex) => (
                           <button
                             key={actionIndex}
+                            type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               action.onClick(row);
                             }}
-                            className={`px-2.5 py-1 rounded-lg text-[12px] font-medium transition-colors ${
+                            className={`min-h-9 px-2.5 py-1 rounded-lg text-[12px] font-medium transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 ${
                               action.variant === 'danger'
-                                ? isDark ? 'text-red-400 hover:bg-red-500/10' : 'text-red-600 hover:bg-red-50'
-                                : isDark ? 'text-neutral-300 hover:bg-white/5' : 'text-neutral-700 hover:bg-neutral-50'
+                                ? isDark ? 'text-red-400 hover:bg-red-500/10 focus-visible:ring-red-400/35 focus-visible:ring-offset-lantu-card' : 'text-red-600 hover:bg-red-50 focus-visible:ring-offset-white'
+                                : isDark ? 'text-neutral-300 hover:bg-white/5 focus-visible:ring-offset-lantu-card' : 'text-neutral-700 hover:bg-neutral-50 focus-visible:ring-offset-white'
                             }`}
                             title={action.label}
                           >
@@ -228,16 +234,20 @@ export function DataTable<T extends Record<string, any>>({
           </div>
           <div className="flex items-center gap-1">
             <button
+              type="button"
+              aria-label="上一页"
               onClick={() => pagination.onPageChange(pagination.currentPage - 1)}
               disabled={pagination.currentPage === 1}
-              className={`h-8 w-8 inline-flex items-center justify-center rounded-lg text-[13px] transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${isDark ? 'text-neutral-300 hover:bg-white/5' : 'text-neutral-600 hover:bg-neutral-100'}`}
+              className={`h-9 w-9 min-h-9 min-w-9 inline-flex items-center justify-center rounded-lg text-[13px] transition-colors motion-reduce:transition-none disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 ${isDark ? 'text-neutral-300 hover:bg-white/5 focus-visible:ring-offset-lantu-card' : 'text-neutral-600 hover:bg-neutral-100 focus-visible:ring-offset-white'}`}
             >
               <ChevronLeft size={16} />
             </button>
             <button
+              type="button"
+              aria-label="下一页"
               onClick={() => pagination.onPageChange(pagination.currentPage + 1)}
               disabled={pagination.currentPage === pagination.totalPages}
-              className={`h-8 w-8 inline-flex items-center justify-center rounded-lg text-[13px] transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${isDark ? 'text-neutral-300 hover:bg-white/5' : 'text-neutral-600 hover:bg-neutral-100'}`}
+              className={`h-9 w-9 min-h-9 min-w-9 inline-flex items-center justify-center rounded-lg text-[13px] transition-colors motion-reduce:transition-none disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 ${isDark ? 'text-neutral-300 hover:bg-white/5 focus-visible:ring-offset-lantu-card' : 'text-neutral-600 hover:bg-neutral-100 focus-visible:ring-offset-white'}`}
             >
               <ChevronRight size={16} />
             </button>

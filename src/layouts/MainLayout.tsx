@@ -1086,7 +1086,7 @@ const MainLayoutContent: React.FC<{
 
         {/* Floating Sidebar */}
         <aside
-          className={`${chromeGpuLayerClass} fixed inset-y-0 left-0 z-50 flex h-full w-[240px] shrink-0 flex-col px-3 py-2 transition-transform duration-200 ease-out lg:static lg:z-auto lg:translate-x-0 ${
+          className={`${chromeGpuLayerClass} fixed inset-y-0 left-0 z-50 flex h-full w-[240px] shrink-0 flex-col px-3 py-2 transition-transform duration-200 ease-out motion-reduce:transition-none lg:static lg:z-auto lg:translate-x-0 ${
             'bg-lantu-chrome'
           } lg:bg-transparent ${
             mobileNavOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
@@ -1149,7 +1149,9 @@ const MainLayoutContent: React.FC<{
               {/* Mobile hamburger */}
               <button
                 type="button"
-                className={`rounded-xl p-2 lg:hidden ${isDark ? 'hover:bg-white/10' : 'hover:bg-slate-100'}`}
+                className={`rounded-xl p-2 lg:hidden min-h-10 min-w-10 inline-flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 ${
+                  isDark ? 'hover:bg-white/10 focus-visible:ring-offset-lantu-card' : 'hover:bg-slate-100 focus-visible:ring-offset-white'
+                }`}
                 aria-label="打开菜单"
                 onClick={() => setMobileNavOpen(true)}
               >
@@ -1204,10 +1206,10 @@ const MainLayoutContent: React.FC<{
                       setShowUserMenu(false);
                       setShowMessagePanel(false);
                     }}
-                    className={`relative inline-flex h-9 w-9 shrink-0 items-center justify-center p-0 transition-colors rounded-full ${
+                    className={`relative inline-flex h-9 w-9 shrink-0 items-center justify-center p-0 transition-colors motion-reduce:transition-none rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 ${
                       isDark
-                        ? 'text-slate-400 hover:text-slate-200 bg-white/[0.04] hover:bg-white/[0.08]'
-                        : 'text-slate-400 hover:text-slate-800 bg-slate-100/50 hover:bg-slate-100'
+                        ? 'text-slate-400 hover:text-slate-200 bg-white/[0.04] hover:bg-white/[0.08] focus-visible:ring-offset-lantu-card'
+                        : 'text-slate-400 hover:text-slate-800 bg-slate-100/50 hover:bg-slate-100 focus-visible:ring-offset-white'
                     }`}
                     aria-label="外观与主题"
                   >
@@ -1241,10 +1243,10 @@ const MainLayoutContent: React.FC<{
                       setShowUserMenu(false);
                       setShowSettingsMenu(false);
                     }}
-                    className={`relative inline-flex h-9 w-9 shrink-0 items-center justify-center p-0 transition-colors rounded-full ${
+                    className={`relative inline-flex h-9 w-9 shrink-0 items-center justify-center p-0 transition-colors motion-reduce:transition-none rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 ${
                       isDark
-                        ? `text-slate-400 hover:text-slate-200 bg-white/[0.04] hover:bg-white/[0.08] ${showMessagePanel ? 'bg-white/10' : ''}`
-                        : `text-slate-400 hover:text-slate-800 bg-slate-100/50 hover:bg-slate-100 ${showMessagePanel ? 'bg-slate-100' : ''}`
+                        ? `text-slate-400 hover:text-slate-200 bg-white/[0.04] hover:bg-white/[0.08] focus-visible:ring-offset-lantu-card ${showMessagePanel ? 'bg-white/10' : ''}`
+                        : `text-slate-400 hover:text-slate-800 bg-slate-100/50 hover:bg-slate-100 focus-visible:ring-offset-white ${showMessagePanel ? 'bg-slate-100' : ''}`
                     }`}
                     aria-label={
                       messageUnreadCount > 0 ? `消息通知，${messageUnreadCount} 条未读` : '消息通知'
@@ -1274,10 +1276,10 @@ const MainLayoutContent: React.FC<{
                       setShowSettingsMenu(false);
                       setShowUserMenu(false);
                     }}
-                    className={`inline-flex h-9 w-9 shrink-0 items-center justify-center p-0 transition-colors rounded-full ${
+                    className={`inline-flex h-9 w-9 shrink-0 items-center justify-center p-0 transition-colors motion-reduce:transition-none rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 ${
                       isDark
-                        ? 'text-slate-400 hover:text-slate-200 bg-white/[0.04] hover:bg-white/[0.08]'
-                        : 'text-slate-400 hover:text-slate-800 bg-slate-100/50 hover:bg-slate-100'
+                        ? 'text-slate-400 hover:text-slate-200 bg-white/[0.04] hover:bg-white/[0.08] focus-visible:ring-offset-lantu-card'
+                        : 'text-slate-400 hover:text-slate-800 bg-slate-100/50 hover:bg-slate-100 focus-visible:ring-offset-white'
                     }`}
                     aria-label={isFullscreen ? '退出全屏' : '全屏'}
                   >

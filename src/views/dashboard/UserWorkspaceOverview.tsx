@@ -10,7 +10,7 @@ import type { UserWorkspace } from '../../types/dto/dashboard';
 import type { UserDashboardData } from '../../types/dto/explore';
 import { dashboardService } from '../../api/services/dashboard.service';
 import { useAuthStore } from '../../stores/authStore';
-import { bentoCard, bentoCardHover, canvasBodyBg, mainScrollCompositorClass, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import { bentoCard, bentoCardHover, canvasBodyBg, cardHeading, mainScrollCompositorClass, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { BentoCard } from '../../components/common/BentoCard';
@@ -170,7 +170,7 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
         {quota && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring, delay: 0.15 }}
             className={`${bentoCard(theme)} p-5`}>
-            <h2 className={`font-bold text-sm mb-4 ${tp}`}>调用配额</h2>
+            <h2 className={`${cardHeading(theme)} mb-4`}>调用配额</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[
                 { label: '日配额', used: quota.dailyUsed, limit: quota.dailyLimit },
@@ -207,7 +207,7 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring, delay: 0.18 }}
               className={`${bentoCard(theme)} p-5`}>
               <div className="flex items-center justify-between mb-4">
-                <h2 className={`font-bold text-sm ${tp}`}>我的资源</h2>
+                <h2 className={cardHeading(theme)}>我的资源</h2>
                 <button
                   type="button"
                   onClick={() => navigate(buildPath('user', 'resource-center'))}
@@ -240,7 +240,7 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
           {activities.length > 0 && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring, delay: 0.2 }}
               className={`${bentoCard(theme)} p-5`}>
-              <h2 className={`font-bold text-sm mb-4 ${tp}`}>最近动态</h2>
+              <h2 className={`${cardHeading(theme)} mb-4`}>最近动态</h2>
               <div className="space-y-3">
                 {activities.slice(0, 6).map((a, idx) => {
                   const act = String(a.action ?? 'invoke').toLowerCase();

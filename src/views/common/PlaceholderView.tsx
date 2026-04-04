@@ -3,6 +3,7 @@ import { LayoutDashboard } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { TITLE_SIZE_CLASSES } from '../../constants/theme';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
+import { pageBg, textMuted } from '../../utils/uiClasses';
 
 interface PlaceholderViewProps {
   title: string;
@@ -28,7 +29,7 @@ export const PlaceholderView: React.FC<PlaceholderViewProps> = ({ title, theme, 
         <h1 className={`${TITLE_SIZE_CLASSES[fontSize]} font-bold tracking-tight mb-3 transition-all`}>
           {title}
         </h1>
-        <p className="text-base text-slate-500 mb-8 transition-all">
+        <p className={`text-base mb-8 transition-all ${textMuted(theme)}`}>
           正在为您准备 {title} 的相关内容...
         </p>
       </div>

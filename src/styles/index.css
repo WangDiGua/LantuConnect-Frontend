@@ -226,3 +226,10 @@
   100% { box-shadow: 0 0 5px rgba(23, 23, 23, 0.08); }
 }
 .animate-glow { animation: glow 2s ease-in-out infinite; }
+
+/* 装饰性动效：系统请求减少动效时关闭（加载用 spinner 等保留 animate-spin） */
+@media (prefers-reduced-motion: reduce) {
+  .animate-glow {
+    animation: none !important;
+  }
+}

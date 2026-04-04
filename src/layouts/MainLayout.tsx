@@ -39,6 +39,7 @@ const UserManagementModule = lazy(() => import('../views/userMgmt/UserManagement
 const SystemConfigModule = lazy(() => import('../views/systemConfig/SystemConfigModule').then(m => ({ default: m.SystemConfigModule })));
 const MonitoringModule = lazy(() => import('../views/monitoring/MonitoringModule').then(m => ({ default: m.MonitoringModule })));
 const MyPublishHubPage = lazy(() => import('../views/publish/MyPublishHubPage').then(m => ({ default: m.MyPublishHubPage })));
+const MyPublishListRoute = lazy(() => import('../views/publish/MyPublishListRoute').then(m => ({ default: m.MyPublishListRoute })));
 const UserSettingsHubPage = lazy(() => import('../views/user/UserSettingsHubPage').then(m => ({ default: m.UserSettingsHubPage })));
 const UsageRecordsPage = lazy(() => import('../views/user/UsageRecordsPage').then(m => ({ default: m.UsageRecordsPage })));
 const MyFavoritesPage = lazy(() => import('../views/user/MyFavoritesPage').then(m => ({ default: m.MyFavoritesPage })));
@@ -120,8 +121,9 @@ function normalizeDeprecatedPage(page: string): string {
     case 'submit-skill':
       return 'my-agents-pub';
     case 'my-agents':
+      return 'my-publish-agent';
     case 'my-skills':
-      return 'my-agents-pub';
+      return 'my-publish-skill';
     default:
       return page;
   }
@@ -378,6 +380,13 @@ const MainContent = React.memo<{
 
       case 'my-agents-pub':
         return <MyPublishHubPage theme={t} fontSize={fs} />;
+
+      case 'my-publish-agent':
+      case 'my-publish-skill':
+      case 'my-publish-mcp':
+      case 'my-publish-app':
+      case 'my-publish-dataset':
+        return <MyPublishListRoute theme={t} fontSize={fs} page={p} />;
 
       case 'usage-records':
         return <UsageRecordsPage theme={t} fontSize={fs} initialView="records" />;
@@ -802,7 +811,24 @@ const MainLayoutContent: React.FC<{
     if (
       routeRole === 'user' &&
       !layoutIsAdmin &&
-      ['resource-center', 'agent-list', 'agent-register', 'skill-list', 'skill-register', 'mcp-server-list', 'mcp-register', 'app-list', 'app-register', 'dataset-list', 'dataset-register'].includes(page) &&
+      [
+        'resource-center',
+        'my-publish-agent',
+        'my-publish-skill',
+        'my-publish-mcp',
+        'my-publish-app',
+        'my-publish-dataset',
+        'agent-list',
+        'agent-register',
+        'skill-list',
+        'skill-register',
+        'mcp-server-list',
+        'mcp-register',
+        'app-list',
+        'app-register',
+        'dataset-list',
+        'dataset-register',
+      ].includes(page) &&
       !canAccessUserPublishingShell
     ) {
       navigate(buildPath('user', 'hub'), { replace: true });

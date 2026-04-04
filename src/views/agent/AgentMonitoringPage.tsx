@@ -5,7 +5,7 @@ import { FilterSelect, SearchInput } from '../../components/common';
 import { KpiCard } from '../../components/common/KpiCard';
 import { BentoCard } from '../../components/common/BentoCard';
 import { monitoringService } from '../../api/services/monitoring.service';
-import type { KpiMetric, PerformanceMetric } from '../../types/dto/monitoring';
+import type { CallSummaryByResourceRow, KpiMetric, PerformanceMetric } from '../../types/dto/monitoring';
 import { useQualityHistory } from '../../hooks/queries/useMonitoring';
 import {
   kpiGridGap, pageBlockStack,
@@ -39,7 +39,22 @@ const QUALITY_RESOURCE_TYPE_OPTIONS = [
   { value: 'dataset', label: 'Dataset' },
 ] as const;
 
-const PAGE_DESC = '各 Agent 调用 QPS、延迟分位与错误概况';
+const PAGE_DESC =
+  '网关层 KPI、近 24 小时按小时的吞吐/延迟曲线、五类资源调用占比与按资源维度的质量历史。';
+
+const PERF_RESOURCE_OPTIONS = [
+  { value: 'all', label: '全部资源类型' },
+  ...QUALITY_RESOURCE_TYPE_OPTIONS,
+  { value: 'unknown', label: '未分类' },
+] as const;
+
+function resourceSummaryLabel(type: string): string {
+  const t = type.toLowerCase();
+  const hit = QUALITY_RESOURCE_TYPE_OPTIONS.find((o) => o.value === t);
+  if (hit) return hit.label;
+  if (t === 'unknown') return '未分类';
+  return type || '—';
+}
 
 export const AgentMonitoringPage: React.FC<AgentMonitoringPageProps> = ({ theme, fontSize }) => {
   const isDark = theme === 'dark';
@@ -47,6 +62,8 @@ export const AgentMonitoringPage: React.FC<AgentMonitoringPageProps> = ({ theme,
   const [page, setPage] = useState(1);
   const [kpis, setKpis] = useState<KpiMetric[]>([]);
   const [perfMetrics, setPerfMetrics] = useState<PerformanceMetric[]>([]);
+  const [callSummaryByResource, setCallSummaryByResource] = useState<CallSummaryByResourceRow[]>([]);
+  const [perfResourceType, setPerfResourceType] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [qualityResourceType, setQualityResourceType] = useState<string>('agent');
   const [qualityResourceId, setQualityResourceId] = useState('');
@@ -63,20 +80,25 @@ export const AgentMonitoringPage: React.FC<AgentMonitoringPageProps> = ({ theme,
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [kpiResult, perfResult] = await Promise.all([
+      const perfRt = perfResourceType === 'all' ? undefined : perfResourceType;
+      const [kpiResult, perfResult, summaryResult] = await Promise.all([
         monitoringService.getKpis(),
-        monitoringService.getPerformanceMetrics(),
+        monitoringService.getPerformanceMetrics(perfRt),
+        monitoringService.getCallSummaryByResource(24),
       ]);
       setKpis(kpiResult);
       setPerfMetrics(perfResult);
+      setCallSummaryByResource(summaryResult);
     } catch (err) {
       console.error('Failed to load monitoring data:', err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [perfResourceType]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    void fetchData();
+  }, [fetchData]);
 
   const latencyRows: LatencyRow[] = useMemo(() => {
     return perfMetrics.map((m, i) => ({
@@ -103,16 +125,24 @@ export const AgentMonitoringPage: React.FC<AgentMonitoringPageProps> = ({ theme,
 
   const monitoringToolbar = (
     <div className="w-full max-w-md sm:ml-auto">
-      <SearchInput value={q} onChange={setQ} placeholder="按名称筛选…" theme={theme} />
+      <SearchInput
+        value={q}
+        onChange={setQ}
+        placeholder="按名称筛选…"
+        theme={theme}
+        ariaLabel="按节点名称筛选监控表格"
+      />
     </div>
   );
+
+  const maxSummaryCalls = Math.max(...callSummaryByResource.map((r) => r.calls), 1);
 
   return (
     <MgmtPageShell
       theme={theme}
       fontSize={fontSize}
       titleIcon={LineChart}
-      breadcrumbSegments={['Agent 运维', '运行监控']}
+      breadcrumbSegments={['资源与运营', '运行监控']}
       description={PAGE_DESC}
       toolbar={monitoringToolbar}
       contentScroll="document"
@@ -139,12 +169,58 @@ export const AgentMonitoringPage: React.FC<AgentMonitoringPageProps> = ({ theme,
               ))}
             </div>
 
+            <BentoCard theme={theme}>
+              <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h3 className={`text-sm font-bold ${textPrimary(theme)}`}>近 24h 调用分布（按资源类型）</h3>
+                  <p className={`mt-1 text-xs leading-relaxed ${textMuted(theme)}`}>
+                    与 <span className="font-mono">GET /monitoring/call-summary-by-resource</span>{' '}
+                    一致；未带类型的历史请求归入「未分类」。
+                  </p>
+                </div>
+                <div className="w-full sm:w-56 shrink-0">
+                  <p className={`mb-1 text-xs font-medium ${textSecondary(theme)}`}>性能曲线筛选（网关日志）</p>
+                  <FilterSelect
+                    value={perfResourceType}
+                    onChange={setPerfResourceType}
+                    options={[...PERF_RESOURCE_OPTIONS]}
+                    theme={theme}
+                  />
+                </div>
+              </div>
+              {callSummaryByResource.length === 0 ? (
+                <p className={`text-sm ${textMuted(theme)}`}>暂无近 24 小时调用，可先执行仓库内 sql/seed_resource_ops_demo.sql 注入演示数据。</p>
+              ) : (
+                <ul className="space-y-3" aria-label="各资源类型调用量">
+                  {callSummaryByResource.map((row) => (
+                    <li key={row.type} className="flex items-center gap-3">
+                      <span className={`w-24 shrink-0 text-xs sm:w-28 ${textSecondary(theme)}`}>
+                        {resourceSummaryLabel(row.type)}
+                      </span>
+                      <div className={`flex-1 h-2 rounded-full overflow-hidden ${isDark ? 'bg-white/10' : 'bg-slate-200'}`}>
+                        <div
+                          className="h-full rounded-full bg-indigo-500/90 dark:bg-indigo-400/90"
+                          style={{ width: `${Math.min(100, (row.calls / maxSummaryCalls) * 100)}%` }}
+                        />
+                      </div>
+                      <span className={`w-28 shrink-0 text-right text-xs font-mono tabular-nums ${textMuted(theme)}`}>
+                        {row.calls} 次 · 失败 {row.errors} · 均延 {row.avgLatencyMs}ms
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </BentoCard>
+
             {/* P99 Bar Chart */}
             <BentoCard theme={theme}>
               <div className="flex items-center gap-2 mb-4">
-                <Activity size={18} className={textMuted(theme)} />
-                <h3 className={`text-sm font-bold ${textPrimary(theme)}`}>P99 延迟对比</h3>
+                <Activity size={18} className={textMuted(theme)} aria-hidden />
+                <h3 className={`text-sm font-bold ${textPrimary(theme)}`}>按小时桶的延迟均值（示意 P99）</h3>
               </div>
+              <p className={`mb-3 text-xs ${textMuted(theme)}`}>
+                数据来自当前筛选条件下的 <span className="font-mono">t_call_log</span> 聚合；每条为整点小时桶。
+              </p>
               <div className="space-y-3">
                 {filtered.slice(0, 5).map((r) => (
                   <div key={r.agentName} className="flex items-center gap-3">

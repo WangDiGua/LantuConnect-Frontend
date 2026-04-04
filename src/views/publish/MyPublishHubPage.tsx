@@ -6,6 +6,7 @@ import type { ResourceType } from '../../types/dto/catalog';
 import { resourceCenterService } from '../../api/services/resource-center.service';
 import { buildPath } from '../../constants/consoleRoutes';
 import { RESOURCE_TYPES, RESOURCE_TYPE_LABEL_ZH } from '../../constants/resourceTypes';
+import { MY_PUBLISH_LIST_PAGE_BY_TYPE } from './myPublishListConfigs';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import {
   bentoCard,
@@ -75,7 +76,9 @@ export const MyPublishHubPage: React.FC<Props> = ({ theme }) => {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className={`text-lg font-bold ${textPrimary(theme)}`}>发布总览</h2>
-              <p className={`mt-1 text-sm ${textMuted(theme)}`}>集中查看五类资源发布状态，点击卡片进入对应管理视图。</p>
+              <p className={`mt-1 text-sm ${textMuted(theme)}`}>
+                集中查看五类资源发布状态；点击卡片进入该类「我的发布」卡片列表（与统一资源中心同一套数据，支持审核/撤回/发布）。也可用右上角进入表格型统一资源中心。
+              </p>
             </div>
             <button
               type="button"
@@ -101,7 +104,7 @@ export const MyPublishHubPage: React.FC<Props> = ({ theme }) => {
                   <button
                     key={type}
                     type="button"
-                    onClick={() => navigate(`${buildPath('user', 'resource-center')}?type=${type}`)}
+                    onClick={() => navigate(buildPath('user', MY_PUBLISH_LIST_PAGE_BY_TYPE[type]))}
                     className={`${bentoCardHover(theme)} text-left p-4 transition-all`}
                   >
                     <div className="flex items-center justify-between">

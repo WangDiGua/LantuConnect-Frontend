@@ -226,6 +226,15 @@ export const systemConfigService = {
     }
   },
 
+  /** GET：已保存的管理端白名单 CIDR（来自 t_system_param.admin_network_allowlist） */
+  getNetworkAllowlist: async (): Promise<string[]> => {
+    const raw = await http.get<unknown>('/system-config/network/allowlist');
+    if (raw && typeof raw === 'object' && Array.isArray((raw as { rules?: unknown }).rules)) {
+      return (raw as { rules: unknown[] }).rules.map((x) => String(x));
+    }
+    return [];
+  },
+
   applyNetworkWhitelist: (rules: string[]) =>
     http.post<void>('/system-config/network/apply', { rules }),
 

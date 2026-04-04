@@ -60,7 +60,7 @@ export const AuditLogPage: React.FC<AuditLogPageProps> = ({
 
   useEffect(() => {
     setPage(1);
-  }, [search, actionFilter, onlyFail]);
+  }, [search, actionFilter, resourceTypeFilter, onlyFail]);
 
   const exportCsv = () => {
     const header = ['time', 'operator', 'action', 'resource', 'ip', 'result'];

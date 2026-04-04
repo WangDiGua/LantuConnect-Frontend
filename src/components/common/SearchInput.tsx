@@ -8,6 +8,8 @@ export interface SearchInputProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  /** 可访问名称；不设时读屏依赖 placeholder */
+  ariaLabel?: string;
   onClear?: () => void;
   className?: string;
   theme: Theme;
@@ -18,6 +20,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
   value,
   onChange,
   placeholder = '搜索...',
+  ariaLabel,
   onClear,
   className = '',
   theme,
@@ -49,6 +52,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         disabled={disabled}
+        aria-label={ariaLabel}
         className={toolbarSearchInputClass(theme)}
       />
       {hasValue && (

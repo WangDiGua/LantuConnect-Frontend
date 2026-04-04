@@ -80,7 +80,12 @@ function toResourceItem(raw: any): ResourceCenterItemVO {
     createTime: raw?.createTime ? String(raw.createTime) : undefined,
     updateTime: raw?.updateTime ? String(raw.updateTime) : undefined,
     submitTime: raw?.submitTime ? String(raw.submitTime) : undefined,
-    ownerId: raw?.ownerId ? String(raw.ownerId) : undefined,
+    ownerId:
+      raw?.ownerId != null && raw?.ownerId !== ''
+        ? String(raw.ownerId)
+        : raw?.createdBy != null && raw?.createdBy !== ''
+          ? String(raw.createdBy)
+          : undefined,
     ownerName: raw?.ownerName ? String(raw.ownerName) : raw?.createdByName ? String(raw.createdByName) : undefined,
     endpoint: raw?.endpoint ? String(raw.endpoint) : undefined,
     protocol: raw?.protocol ? String(raw.protocol) : undefined,

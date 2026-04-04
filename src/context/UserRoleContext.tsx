@@ -132,7 +132,8 @@ export const UserRoleProvider: React.FC<{
 }) => {
   const [role, setRole] = useState<UserRole>(initialRole);
   const permissions = useMemo(() => {
-    if (Array.isArray(serverPermissions)) {
+    // 仅当真数组且非空时采用服务端权限；[] 视为未下发（避免菜单与 Casbin 全空）
+    if (Array.isArray(serverPermissions) && serverPermissions.length > 0) {
       return serverPermissions.map((p) => p.trim().toLowerCase()).filter(Boolean);
     }
     return getPermissions(platformRole);

@@ -79,7 +79,7 @@ export const SystemParamsPage: React.FC<PageProps> = ({ theme, fontSize, showMes
     titleIcon: Sliders,
     breadcrumbSegments: ['系统配置', '系统参数'] as const,
     contentScroll: 'document' as const,
-    description: '维护全局键值对与 JSON 覆盖项（如 runtime_app_config）。保存后数秒内合并进运行时配置；涉及鉴权/观测的项请与「安全设置」「监控中心」变更节奏协调。',
+    description: '维护全局键值对与 JSON 覆盖项（如 runtime_app_config）。保存后数秒内合并进运行时配置；与五类统一资源（Agent / Skill / MCP / App / Dataset）相关的运行时开关也可放在 JSON 覆盖中。涉及鉴权/观测的项请与「安全设置」「监控中心」节奏协调。',
   };
 
   if (isLoading) {
@@ -347,15 +347,34 @@ export const SecuritySettingsPage: React.FC<PageProps> = ({ theme, fontSize, sho
 export const NetworkConfigPage: React.FC<PageProps> = ({ theme, fontSize, showMessage }) => {
   const inputCls = `${nativeInputClass(theme)} ${INPUT_FOCUS}`;
   const labelCls = `text-sm font-medium ${textSecondary(theme)}`;
-  const [allowlist, setAllowlist] = useState('10.0.0.0/8\n172.16.0.0/12');
+  const [allowlist, setAllowlist] = useState('');
   const [saving, setSaving] = useState(false);
+  const [loadingList, setLoadingList] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      setLoadingList(true);
+      try {
+        const rules = await systemConfigService.getNetworkAllowlist();
+        if (!cancelled && rules.length > 0) {
+          setAllowlist(rules.join('\n'));
+        }
+      } catch {
+        if (!cancelled) showMessage('加载已保存白名单失败，可手动填写后应用', 'info');
+      } finally {
+        if (!cancelled) setLoadingList(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const handleApply = async () => {
     const rules = allowlist.split('\n').map((l) => l.trim()).filter(Boolean);
     setSaving(true);
     try {
       await systemConfigService.applyNetworkWhitelist(rules);
-      showMessage('白名单已下发至网关', 'success');
+      showMessage('白名单已保存到系统参数并触发下发流程（集成 mock 时仅落库）', 'success');
     } catch (e) {
       showMessage(e instanceof Error ? e.message : '下发失败', 'error');
     } finally {
@@ -369,17 +388,20 @@ export const NetworkConfigPage: React.FC<PageProps> = ({ theme, fontSize, showMe
       fontSize={fontSize}
       titleIcon={Network}
       breadcrumbSegments={['系统配置', '网络配置']}
-      description="管理端访问白名单下发；与 Agent/Skill/MCP/App/Dataset 的公网开放范围策略在网关上可分别配置，此处侧重控制台接入。"
+      description="管理端访问白名单：内容持久化到 admin_network_allowlist 系统参数，刷新页面会回显已保存条目。五类统一资源的公网暴露策略在网关与本平台其它模块分别配置。"
     >
       <div className="px-4 sm:px-6 pb-6">
         <BentoCard theme={theme} padding="lg" className="max-w-xl">
           <div className="space-y-4">
+            {loadingList ? (
+              <p className={`text-sm ${textMuted(theme)}`}>正在加载已保存白名单…</p>
+            ) : null}
             <div>
               <label className={`${labelCls} mb-1.5 block`}>管理端 IP 白名单（每行一个 CIDR）</label>
-              <textarea className={`${inputCls} min-h-[120px] font-mono text-xs`} value={allowlist} onChange={(e) => setAllowlist(e.target.value)} aria-label="IP 白名单 CIDR 列表" />
-              <p className={`text-xs mt-1.5 leading-relaxed ${textMuted(theme)}`}>每行一条，例如 10.0.0.0/8；提交后由后端记录并驱动网关策略（详见接口实现）。</p>
+              <textarea className={`${inputCls} min-h-[120px] font-mono text-xs`} value={allowlist} onChange={(e) => setAllowlist(e.target.value)} aria-label="IP 白名单 CIDR 列表" disabled={loadingList} />
+              <p className={`text-xs mt-1.5 leading-relaxed ${textMuted(theme)}`}>每行一条，例如 10.0.0.0/8；点击应用后写入数据库并于关闭集成 mock 时可接真实网关下发。</p>
             </div>
-            <button type="button" className={`${btnPrimary} disabled:opacity-50`} disabled={saving} onClick={handleApply}>
+            <button type="button" className={`${btnPrimary} disabled:opacity-50`} disabled={saving || loadingList} onClick={handleApply}>
               {saving ? <><Loader2 size={14} className="animate-spin" /> 应用中…</> : '应用'}
             </button>
           </div>
@@ -503,7 +525,7 @@ export const AccessControlPage: React.FC<PageProps> = ({ theme, fontSize, showMe
       fontSize={fontSize}
       titleIcon={Lock}
       breadcrumbSegments={['系统配置', '访问控制']}
-      description="路径模式与 Casbin 角色（如 platform_admin、authenticated）；发布后对全站 API 生效。细粒度资源授权另见资源中心与授权申请。"
+      description="路径模式 + 角色列表（逗号分隔）；GET /system-config/acl 返回的 rules 来自 api_path_acl_rules 落库数据，roleCatalog 为平台角色速查。发布后规则持久化，全站生效依赖网关/Casbin 加载任务。"
     >
       <div className="px-4 sm:px-6 pb-6">
         {loadingRules ? (

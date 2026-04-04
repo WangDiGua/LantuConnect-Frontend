@@ -1,16 +1,18 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { GitBranch, ChevronDown, ChevronRight } from 'lucide-react';
+import { GitBranch, ChevronDown, ChevronRight, RefreshCw } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import { BentoCard } from '../../components/common/BentoCard';
 import { GlassPanel } from '../../components/common/GlassPanel';
 import { SearchInput } from '../../components/common';
+import { EmptyState } from '../../components/common/EmptyState';
 import { monitoringService } from '../../api/services/monitoring.service';
 import type { TraceSpan as TraceSpanDTO } from '../../types/dto/monitoring';
 import {
-  pageBlockStack, textPrimary, textSecondary, textMuted,
+  btnGhost, pageBlockStack, textPrimary, textSecondary, textMuted,
 } from '../../utils/uiClasses';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
+import { TOOLBAR_ROW_LIST } from '../../utils/toolbarFieldClasses';
 
 interface AgentTracePageProps {
   theme: Theme;
@@ -34,15 +36,77 @@ interface TraceListItem {
   route: string;
 }
 
+interface TraceGroup {
+  traceId: string;
+  listItem: TraceListItem;
+  rootDisplay: DisplaySpan;
+}
+
 function dtoToDisplaySpan(dto: TraceSpanDTO): DisplaySpan {
   return {
-    id: dto.id, name: dto.operationName, service: dto.serviceName || dto.service,
-    durationMs: dto.duration, status: dto.status, children: dto.children?.map(dtoToDisplaySpan),
+    id: dto.id,
+    name: dto.operationName,
+    service: dto.serviceName || dto.service,
+    durationMs: dto.duration,
+    status: dto.status,
+    children: dto.children?.map(dtoToDisplaySpan),
   };
 }
 
-function dtoToListItem(dto: TraceSpanDTO): TraceListItem {
-  return { traceId: dto.traceId, startedAt: dto.startTime, durationMs: dto.duration, status: dto.status, route: dto.operationName };
+/** 将同一 trace 下的扁平 span 组装为树（对齐 GET /monitoring/traces 扁平分页返回） */
+function buildTraceGroups(flat: TraceSpanDTO[]): TraceGroup[] {
+  const byTrace = new Map<string, TraceSpanDTO[]>();
+  for (const s of flat) {
+    const tid = s.traceId || '';
+    if (!tid) continue;
+    const arr = byTrace.get(tid) ?? [];
+    arr.push(s);
+    byTrace.set(tid, arr);
+  }
+
+  const groups: TraceGroup[] = [];
+  for (const [traceId, spans] of byTrace) {
+    const byId = new Map<string, TraceSpanDTO & { children?: TraceSpanDTO[] }>();
+    for (const s of spans) {
+      byId.set(s.id, { ...s, children: [] });
+    }
+    let rootDto: TraceSpanDTO | null = null;
+    for (const s of spans) {
+      if (!s.parentId) {
+        rootDto = s;
+        break;
+      }
+    }
+    if (!rootDto) rootDto = spans[0];
+
+    for (const s of spans) {
+      const node = byId.get(s.id)!;
+      if (s.parentId) {
+        const p = byId.get(s.parentId);
+        if (p) {
+          if (!p.children) p.children = [];
+          p.children.push(node);
+        }
+      }
+    }
+    const rootNode = byId.get(rootDto.id);
+    if (!rootNode) continue;
+
+    const rootDisplay = dtoToDisplaySpan(rootNode);
+    const maxDur = spans.reduce((m, x) => Math.max(m, x.duration), 0);
+    const anyErr = spans.some((x) => x.status === 'error');
+    const listItem: TraceListItem = {
+      traceId,
+      startedAt: rootDto.startTime,
+      durationMs: maxDur,
+      status: anyErr ? 'error' : 'ok',
+      route: rootDto.operationName,
+    };
+    groups.push({ traceId, listItem, rootDisplay });
+  }
+
+  groups.sort((a, b) => String(b.listItem.startedAt).localeCompare(String(a.listItem.startedAt)));
+  return groups;
 }
 
 type SpanTreeProps = { span: DisplaySpan; depth: number; theme: Theme; expanded: Set<string>; toggle: (id: string) => void };
@@ -58,11 +122,13 @@ const SpanTree: React.FC<SpanTreeProps> = ({ span, depth, theme, expanded, toggl
         type="button"
         onClick={() => hasChildren && toggle(span.id)}
         className={`w-full text-left flex items-start gap-2 py-2 rounded-lg px-2 -mx-2 ${hasChildren ? (isDark ? 'hover:bg-white/5' : 'hover:bg-slate-50') : ''}`}
+        aria-expanded={hasChildren ? open : undefined}
+        aria-label={hasChildren ? `${open ? '折叠' : '展开'}子跨度：${span.name}` : `${span.name}，${span.durationMs} 毫秒`}
       >
         {hasChildren ? (
-          open ? <ChevronDown size={16} className="shrink-0 mt-0.5 text-slate-400" /> : <ChevronRight size={16} className="shrink-0 mt-0.5 text-slate-400" />
+          open ? <ChevronDown size={16} className="shrink-0 mt-0.5 text-slate-400" aria-hidden /> : <ChevronRight size={16} className="shrink-0 mt-0.5 text-slate-400" aria-hidden />
         ) : (
-          <span className="w-4 shrink-0" />
+          <span className="w-4 shrink-0" aria-hidden />
         )}
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -84,13 +150,12 @@ const SpanTree: React.FC<SpanTreeProps> = ({ span, depth, theme, expanded, toggl
   );
 };
 
-const PAGE_DESC = '按 Trace ID 查看调用链路与各阶段耗时';
+const PAGE_DESC = '数据源：GET /monitoring/traces。网关对 Agent / Skill / MCP / App / Dataset 的调用可共享 TraceId；列表按 Trace 聚合，右侧为拼接后的调用树。';
 
 export const AgentTracePage: React.FC<AgentTracePageProps> = ({ theme, fontSize }) => {
   const isDark = theme === 'dark';
   const [q, setQ] = useState('');
-  const [traceList, setTraceList] = useState<TraceListItem[]>([]);
-  const [traceSpans, setTraceSpans] = useState<DisplaySpan[]>([]);
+  const [groups, setGroups] = useState<TraceGroup[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -98,35 +163,38 @@ export const AgentTracePage: React.FC<AgentTracePageProps> = ({ theme, fontSize 
   const fetchTraces = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await monitoringService.listTraces();
-      const spans = result.list.map(dtoToDisplaySpan);
-      const listItems = result.list.map(dtoToListItem);
-      setTraceSpans(spans);
-      setTraceList(listItems);
-      if (listItems.length > 0) {
-        setSelectedId(listItems[0].traceId);
-        if (spans.length > 0) setExpanded(new Set([spans[0].id]));
+      const result = await monitoringService.listTraces({ page: 1, pageSize: 100 });
+      const built = buildTraceGroups(result.list);
+      setGroups(built);
+      if (built.length > 0) {
+        const first = built[0];
+        setSelectedId(first.traceId);
+        setExpanded(new Set([first.rootDisplay.id]));
+      } else {
+        setSelectedId(null);
+        setExpanded(new Set());
       }
     } catch (err) {
       console.error('Failed to load traces:', err);
+      setGroups([]);
+      setSelectedId(null);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => { fetchTraces(); }, [fetchTraces]);
+  useEffect(() => { void fetchTraces(); }, [fetchTraces]);
 
   const list = useMemo(() => {
     const t = q.trim().toLowerCase();
-    if (!t) return traceList;
-    return traceList.filter((x) => x.traceId.toLowerCase().includes(t) || x.route.toLowerCase().includes(t));
-  }, [q, traceList]);
+    if (!t) return groups;
+    return groups.filter((g) => g.traceId.toLowerCase().includes(t) || g.listItem.route.toLowerCase().includes(t));
+  }, [q, groups]);
 
-  const selectedSpan = useMemo(() => {
-    if (!selectedId) return traceSpans[0] ?? null;
-    const idx = traceList.findIndex(t => t.traceId === selectedId);
-    return traceSpans[idx] ?? traceSpans[0] ?? null;
-  }, [selectedId, traceList, traceSpans]);
+  const selectedGroup = useMemo(() => {
+    if (!selectedId) return list[0] ?? null;
+    return list.find((g) => g.traceId === selectedId) ?? list[0] ?? null;
+  }, [selectedId, list]);
 
   const toggle = (id: string) => {
     setExpanded((prev) => {
@@ -137,8 +205,25 @@ export const AgentTracePage: React.FC<AgentTracePageProps> = ({ theme, fontSize 
   };
 
   const traceToolbar = (
-    <div className="w-full max-w-md sm:ml-auto">
-      <SearchInput value={q} onChange={setQ} placeholder="Trace ID 或路由…" theme={theme} />
+    <div className={`${TOOLBAR_ROW_LIST} w-full justify-end flex-wrap gap-2`}>
+      <SearchInput
+        value={q}
+        onChange={setQ}
+        placeholder="Trace ID 或入口路由…"
+        theme={theme}
+        ariaLabel="按 Trace ID 或路由筛选"
+        className="max-w-md flex-1 min-w-[12rem]"
+      />
+      <button
+        type="button"
+        className={btnGhost(theme)}
+        onClick={() => void fetchTraces()}
+        disabled={loading}
+        aria-label="刷新 Trace 列表"
+      >
+        <RefreshCw size={16} className={loading ? 'animate-spin' : ''} aria-hidden />
+        刷新
+      </button>
     </div>
   );
 
@@ -147,7 +232,7 @@ export const AgentTracePage: React.FC<AgentTracePageProps> = ({ theme, fontSize 
       theme={theme}
       fontSize={fontSize}
       titleIcon={GitBranch}
-      breadcrumbSegments={['Agent 运维', '调用追踪']}
+      breadcrumbSegments={['资源与运营', '调用追踪']}
       description={PAGE_DESC}
       toolbar={traceToolbar}
       contentScroll="document"
@@ -155,27 +240,32 @@ export const AgentTracePage: React.FC<AgentTracePageProps> = ({ theme, fontSize 
       <div className={`px-4 sm:px-6 pb-8 ${pageBlockStack}`}>
         {loading ? (
           <PageSkeleton type="table" />
+        ) : list.length === 0 ? (
+          <EmptyState
+            title="暂无 Trace"
+            description="尚未记录调用链路。完成若干次网关调用后刷新；本地演示库可执行 sql/migrations 中的 resource_ops 演示脚本写入示例数据。"
+          />
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,320px)_1fr] gap-4">
-            {/* Trace List */}
             <GlassPanel theme={theme} padding="sm" className="max-h-[520px] flex flex-col overflow-hidden">
               <div className={`px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider border-b shrink-0 ${isDark ? 'border-white/[0.06] text-slate-500' : 'border-slate-100 text-slate-400'}`}>
-                最近 Trace
+                最近 Trace（已聚合）
               </div>
               <ul className="overflow-y-auto flex-1">
-                {list.map((item) => (
-                  <li key={item.traceId} className={`border-b last:border-0 ${isDark ? 'border-white/[0.04]' : 'border-slate-100'}`}>
+                {list.map((g) => (
+                  <li key={g.traceId} className={`border-b last:border-0 ${isDark ? 'border-white/[0.04]' : 'border-slate-100'}`}>
                     <button
                       type="button"
-                      onClick={() => setSelectedId(item.traceId)}
-                      className={`w-full text-left px-4 py-3 transition-colors ${selectedId === item.traceId ? (isDark ? 'bg-neutral-900/10' : 'bg-neutral-100/60') : (isDark ? 'hover:bg-white/[0.04]' : 'hover:bg-slate-50')}`}
+                      onClick={() => setSelectedId(g.traceId)}
+                      className={`w-full text-left px-4 py-3 transition-colors ${selectedId === g.traceId ? (isDark ? 'bg-neutral-900/10' : 'bg-neutral-100/60') : (isDark ? 'hover:bg-white/[0.04]' : 'hover:bg-slate-50')}`}
+                      aria-current={selectedId === g.traceId ? 'true' : undefined}
                     >
-                      <div className={`font-mono text-xs truncate ${textPrimary(theme)}`}>{item.traceId}</div>
-                      <div className={`text-[11px] mt-1 ${textMuted(theme)}`}>{item.route}</div>
+                      <div className={`font-mono text-xs truncate ${textPrimary(theme)}`}>{g.traceId}</div>
+                      <div className={`text-[11px] mt-1 ${textMuted(theme)}`}>{g.listItem.route}</div>
                       <div className="flex justify-between mt-1.5 text-[11px]">
-                        <span className={textMuted(theme)}>{item.startedAt}</span>
-                        <span className={`tabular-nums ${textSecondary(theme)}`}>{item.durationMs} ms</span>
-                        <span className={item.status === 'error' ? 'text-rose-500 font-semibold' : 'text-emerald-500'}>{item.status}</span>
+                        <span className={textMuted(theme)}>{g.listItem.startedAt}</span>
+                        <span className={`tabular-nums ${textSecondary(theme)}`}>{g.listItem.durationMs} ms</span>
+                        <span className={g.listItem.status === 'error' ? 'text-rose-500 font-semibold' : 'text-emerald-500'}>{g.listItem.status}</span>
                       </div>
                     </button>
                   </li>
@@ -183,16 +273,15 @@ export const AgentTracePage: React.FC<AgentTracePageProps> = ({ theme, fontSize 
               </ul>
             </GlassPanel>
 
-            {/* Trace Detail */}
             <BentoCard theme={theme} className="min-h-[320px]">
               <h3 className={`text-sm font-bold mb-4 ${textPrimary(theme)}`}>
                 调用链
-                {selectedId && <span className={`ml-2 font-mono text-xs font-normal ${textMuted(theme)}`}>{selectedId}</span>}
+                {selectedGroup && <span className={`ml-2 font-mono text-xs font-normal ${textMuted(theme)}`}>{selectedGroup.traceId}</span>}
               </h3>
-              {selectedSpan ? (
-                <SpanTree span={selectedSpan} depth={0} theme={theme} expanded={expanded} toggle={toggle} />
+              {selectedGroup ? (
+                <SpanTree span={selectedGroup.rootDisplay} depth={0} theme={theme} expanded={expanded} toggle={toggle} />
               ) : (
-                <p className={`text-sm ${textMuted(theme)}`}>暂无 Trace 数据</p>
+                <p className={`text-sm ${textMuted(theme)}`}>请选择一条 Trace</p>
               )}
             </BentoCard>
           </div>

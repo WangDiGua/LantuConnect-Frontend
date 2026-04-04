@@ -12,6 +12,7 @@ import type {
 import { resourceCenterService } from '../../api/services/resource-center.service';
 import { resourceAuditService } from '../../api/services/resource-audit.service';
 import { useUserRole } from '../../context/UserRoleContext';
+import { useAuthStore } from '../../stores/authStore';
 import { AccessPolicyBadge } from '../../components/business/AccessPolicyBadge';
 import { RESOURCE_TYPES, RESOURCE_TYPE_LABEL_ZH } from '../../constants/resourceTypes';
 import { Modal } from '../../components/common/Modal';
@@ -49,6 +50,12 @@ function skillSubmitBlocked(item: ResourceCenterItemVO): boolean {
 function skillCanDownloadArtifact(item: ResourceCenterItemVO): boolean {
   if (item.resourceType !== 'skill') return false;
   return Boolean(item.artifactUri?.trim());
+}
+
+function isCatalogItemOwner(item: ResourceCenterItemVO, userId: number): boolean {
+  if (!Number.isFinite(userId)) return false;
+  if (item.ownerId == null || item.ownerId === '') return false;
+  return Number(item.ownerId) === userId;
 }
 
 function isActionAllowed(item: ResourceCenterItemVO, action: string): boolean {
@@ -122,10 +129,17 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
   onOpenSkillExternalMarket,
 }) => {
   const isDark = theme === 'dark';
-  const { platformRole } = useUserRole();
+  const authUser = useAuthStore((s) => s.user);
+  const myUserId = authUser?.id ? Number(authUser.id) : NaN;
+  const { platformRole, hasPermission } = useUserRole();
   /** 与 AuditController publish 一致：owner / 部门管理员 / 平台侧开发者账号 */
   const canPublishResource =
     platformRole === 'platform_admin' || platformRole === 'reviewer' || platformRole === 'developer';
+  /** 待审核：与 ResourceAuditList / POST .../audit/resources/:id/approve|reject 一致 */
+  const canAuditPendingInCatalog =
+    platformRole === 'platform_admin' ||
+    platformRole === 'reviewer' ||
+    hasPermission('resource:audit');
   const isPlatformAdmin = platformRole === 'platform_admin';
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<ResourceCenterItemVO[]>([]);
@@ -144,6 +158,8 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
   const [confirmAction, setConfirmAction] = useState<{ id: number; type: 'remove' | 'deprecate' | 'withdraw' } | null>(null);
   const [platformForceTarget, setPlatformForceTarget] = useState<ResourceCenterItemVO | null>(null);
   const [platformForceReason, setPlatformForceReason] = useState('');
+  const [auditRejectTarget, setAuditRejectTarget] = useState<ResourceCenterItemVO | null>(null);
+  const [auditRejectReason, setAuditRejectReason] = useState('');
   const [timelineTarget, setTimelineTarget] = useState<ResourceCenterItemVO | null>(null);
   const [timelineLoading, setTimelineLoading] = useState(false);
   const [timelineData, setTimelineData] = useState<LifecycleTimelineVO | null>(null);
@@ -319,7 +335,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
         fontSize={fontSize}
         titleIcon={Boxes}
         breadcrumbSegments={['统一资源中心', title]}
-        description="资源中心闭环：注册、提审、发布、版本、下线"
+        description="资源中心闭环：注册、提审、审核（待审核时审核员可在此通过/驳回）、测试发布、版本、下线"
         toolbar={shellToolbar}
         contentScroll="document"
       >
@@ -531,7 +547,37 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                             {runningActionKey === `submit-${item.id}` ? '提交中…' : '提交审核'}
                           </button>
                         )}
-                        {isActionAllowed(item, 'withdraw') && (
+                        {item.status === 'pending_review' && canAuditPendingInCatalog && (
+                          <>
+                            <button
+                              type="button"
+                              disabled={runningActionKey === `audit-approve-${item.id}`}
+                              title="与「资源审核」台一致：通过后进入测试中（testing）"
+                              onClick={() =>
+                                void runAction(
+                                  `audit-approve-${item.id}`,
+                                  () => resourceAuditService.approve(item.id),
+                                  '已通过审核，资源进入测试中',
+                                )
+                              }
+                              className={mgmtTableActionPositive(theme)}
+                            >
+                              {runningActionKey === `audit-approve-${item.id}` ? '处理中…' : '通过审核'}
+                            </button>
+                            <button
+                              type="button"
+                              className={mgmtTableActionDanger}
+                              disabled={!!runningActionKey}
+                              onClick={() => {
+                                setAuditRejectTarget(item);
+                                setAuditRejectReason('');
+                              }}
+                            >
+                              驳回
+                            </button>
+                          </>
+                        )}
+                        {isActionAllowed(item, 'withdraw') && isCatalogItemOwner(item, myUserId) && (
                           <button
                             type="button"
                             disabled={runningActionKey === `withdraw-${item.id}`}
@@ -742,6 +788,60 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
           </>
         )}
       </Modal>
+      {auditRejectTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
+          onClick={() => setAuditRejectTarget(null)}
+        >
+          <div className={`${bentoCard(theme)} w-full max-w-lg p-4`} onClick={(e) => e.stopPropagation()}>
+            <h3 className={`text-base font-semibold ${textPrimary(theme)}`}>
+              驳回资源审核 · {auditRejectTarget.displayName}
+            </h3>
+            <p className={`mt-1 text-xs leading-relaxed ${textMuted(theme)}`}>
+              与「资源审核」台相同接口：<span className="font-mono">POST /audit/resources/{'{id}'}/reject</span>，id 为资源主键。
+            </p>
+            <textarea
+              rows={4}
+              value={auditRejectReason}
+              onChange={(e) => setAuditRejectReason(e.target.value)}
+              className={`mt-3 w-full rounded-xl border px-3 py-2 text-sm ${
+                isDark ? 'border-white/10 bg-white/[0.04] text-slate-200' : 'border-slate-200 bg-white text-slate-700'
+              }`}
+              placeholder="请输入驳回原因"
+            />
+            <div className="mt-3 flex justify-end gap-2">
+              <button type="button" className={btnGhost(theme)} onClick={() => setAuditRejectTarget(null)}>
+                取消
+              </button>
+              <button
+                type="button"
+                className={btnPrimary}
+                disabled={runningActionKey === `audit-reject-${auditRejectTarget.id}`}
+                onClick={async () => {
+                  if (!auditRejectReason.trim()) {
+                    showMessage('驳回原因不能为空', 'warning');
+                    return;
+                  }
+                  setRunningActionKey(`audit-reject-${auditRejectTarget.id}`);
+                  try {
+                    await resourceAuditService.reject(auditRejectTarget.id, { reason: auditRejectReason.trim() });
+                    showMessage('已驳回', 'success');
+                    setAuditRejectReason('');
+                    setAuditRejectTarget(null);
+                    await fetchData();
+                  } catch (err) {
+                    showMessage(err instanceof Error ? err.message : '驳回失败', 'error');
+                  } finally {
+                    setRunningActionKey(null);
+                  }
+                }}
+              >
+                {runningActionKey === `audit-reject-${auditRejectTarget.id}` ? '提交中…' : '确认驳回'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {platformForceTarget && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"

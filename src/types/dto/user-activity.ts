@@ -59,7 +59,7 @@ export interface RecentUseItem {
   lastUsedTime?: string;
 }
 
-/** 「我的 Agent / Skill」等发布列表项（见 /user/my-agents、/user/my-skills） */
+/** 发布列表卡片项（可由 /user/my-agents 等或统一资源中心 `/resource-center/resources/mine` 映射而来；五类资源结构一致） */
 export interface MyPublishItem {
   id: number;
   displayName: string;

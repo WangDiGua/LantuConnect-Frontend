@@ -7,11 +7,84 @@ import type {
   UsageStatsData,
   DataReportsData,
 } from '../../types/dto/dashboard';
-import type { ExploreHubData, AdminRealtimeData, UserDashboardData, AnnouncementItem } from '../../types/dto/explore';
+import type {
+  ExploreHubData,
+  AdminRealtimeData,
+  UserDashboardData,
+  AnnouncementItem,
+  ExploreResourceItem,
+  ContributorItem,
+} from '../../types/dto/explore';
 
 function num(v: unknown, fallback = 0): number {
   const n = Number(v);
   return Number.isFinite(n) ? n : fallback;
+}
+
+function optNum(v: unknown): number | null {
+  if (v == null || v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function normalizeExploreResourceItem(raw: unknown): ExploreResourceItem {
+  const x = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const publishedRaw = x.publishedAt ?? x.published_at ?? x.updateTime ?? x.update_time;
+  let publishedAt = '';
+  if (publishedRaw != null) {
+    if (typeof publishedRaw === 'string') publishedAt = publishedRaw;
+    else if (Array.isArray(publishedRaw) && publishedRaw.length >= 3) {
+      const ys = Number(publishedRaw[0]);
+      const ms = Number(publishedRaw[1]);
+      const ds = Number(publishedRaw[2]);
+      const hs = publishedRaw.length > 3 ? Number(publishedRaw[3]) : 0;
+      const mis = publishedRaw.length > 4 ? Number(publishedRaw[4]) : 0;
+      const ss = publishedRaw.length > 5 ? Number(publishedRaw[5]) : 0;
+      if (Number.isFinite(ys) && Number.isFinite(ms) && Number.isFinite(ds)) {
+        publishedAt = new Date(ys, ms - 1, ds, hs, mis, ss).toISOString();
+      }
+    } else {
+      publishedAt = String(publishedRaw);
+    }
+  }
+  const callRaw = x.callCount ?? x.call_count;
+  return {
+    resourceType: String(x.resourceType ?? x.resource_type ?? '').toLowerCase(),
+    resourceId: String(x.resourceId ?? x.resource_id ?? ''),
+    resourceCode:
+      x.resourceCode == null && x.resource_code == null ? undefined : String(x.resourceCode ?? x.resource_code),
+    displayName: String(x.displayName ?? x.display_name ?? '未命名'),
+    description: String(x.description ?? ''),
+    status: x.status == null ? undefined : String(x.status),
+    icon: x.icon == null ? undefined : String(x.icon),
+    categoryName:
+      x.categoryName == null && x.category_name == null ? undefined : String(x.categoryName ?? x.category_name),
+    callCount: callRaw == null ? null : num(callRaw),
+    rating: optNum(x.rating),
+    favoriteCount:
+      x.favoriteCount == null && x.favorite_count == null ? null : num(x.favoriteCount ?? x.favorite_count),
+    reviewCount:
+      x.reviewCount == null && x.review_count == null ? null : num(x.reviewCount ?? x.review_count),
+    reason: x.reason == null ? undefined : String(x.reason),
+    author: x.author == null ? undefined : String(x.author),
+    publishedAt: publishedAt || '',
+  };
+}
+
+function normalizeContributorItem(raw: unknown): ContributorItem {
+  const x = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  return {
+    userId: String(x.userId ?? x.user_id ?? ''),
+    username: String(x.username ?? ''),
+    userName:
+      x.userName == null ? (x.user_name == null ? undefined : String(x.user_name)) : String(x.userName),
+    avatar: x.avatar == null ? undefined : String(x.avatar),
+    resourceCount: num(x.resourceCount ?? x.resource_count),
+    totalCalls: num(x.totalCalls ?? x.total_calls),
+    weeklyNewResources: num(x.weeklyNewResources ?? x.weekly_new_resources ?? 0),
+    weeklyCalls: num(x.weeklyCalls ?? x.weekly_calls ?? 0),
+    likeCount: num(x.likeCount ?? x.like_count ?? 0),
+  };
 }
 
 function normalizeUsageStatsData(raw: unknown): UsageStatsData {
@@ -188,11 +261,11 @@ function normalizeExploreHubData(raw: unknown): ExploreHubData {
       newResourcesTrend7d,
       byType,
     },
-    trendingResources: extractArray(o.trendingResources),
-    recentPublished: extractArray(o.recentPublished),
-    recommendedForUser: extractArray(o.recommendedForUser),
+    trendingResources: extractArray(o.trendingResources).map(normalizeExploreResourceItem),
+    recentPublished: extractArray(o.recentPublished).map(normalizeExploreResourceItem),
+    recommendedForUser: extractArray(o.recommendedForUser).map(normalizeExploreResourceItem),
     announcements,
-    topContributors: extractArray(o.topContributors),
+    topContributors: extractArray(o.topContributors).map(normalizeContributorItem),
   };
 }
 

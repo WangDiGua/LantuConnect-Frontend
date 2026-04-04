@@ -4,6 +4,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   Bot, Wrench, Cpu, AppWindow, Database, BookOpen, Users, Sparkles,
   Activity, Flame, ChevronRight, Award, Megaphone, ArrowRight,
+  Star, Heart, MessageCircle, Clock,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { EChartsOption } from 'echarts';
@@ -94,6 +95,112 @@ const SectionTitle: React.FC<{
     )}
   </div>
 );
+
+const hubResourceCardClass = (isDark: boolean) =>
+  `rounded-2xl border px-6 pt-6 pb-8 flex flex-col h-full text-left cursor-pointer transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50 focus-visible:ring-offset-2 ${
+    isDark
+      ? `bg-lantu-card ${HUB_STAT_BASE_DARK} focus-visible:ring-offset-lantu-card hover:border-white/18 hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)]`
+      : `bg-white ${HUB_STAT_BASE_LIGHT} focus-visible:ring-offset-white hover:border-slate-200/90 hover:shadow-[0_12px_32px_-8px_rgba(15,23,42,0.1)]`
+  }`;
+
+const HubResourceCard: React.FC<{
+  item: ExploreResourceItem;
+  isDark: boolean;
+  onOpen: (item: ExploreResourceItem) => void;
+  rank?: number;
+  showReason?: boolean;
+}> = ({ item, isDark, onOpen, rank, showReason }) => {
+  const authorLabel = item.author?.trim() || '平台资源';
+  const metaMuted = isDark ? 'text-slate-500' : 'text-slate-400';
+  const showRating = item.rating != null && item.rating > 0 && !Number.isNaN(Number(item.rating));
+  const fav = item.favoriteCount != null ? Number(item.favoriteCount) : 0;
+  const rev = item.reviewCount != null ? Number(item.reviewCount) : 0;
+  return (
+    <button type="button" onClick={() => onOpen(item)} className={hubResourceCardClass(isDark)}>
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex flex-wrap items-center gap-2 min-w-0">
+          <span
+            className={`text-xs font-bold px-2.5 py-1 rounded-lg shrink-0 ${
+              isDark ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-600'
+            }`}
+          >
+            {TYPE_LABEL[item.resourceType] ?? item.resourceType}
+          </span>
+          {showReason && item.reason?.trim() ? (
+            <span
+              className={`text-[10px] font-semibold px-2 py-0.5 rounded-md truncate max-w-[200px] ${
+                isDark ? 'bg-sky-500/15 text-sky-200 border border-sky-400/25' : 'bg-sky-50 text-sky-800 border border-sky-100'
+              }`}
+              title={item.reason}
+            >
+              {item.reason}
+            </span>
+          ) : null}
+        </div>
+        {rank != null ? (
+          <div
+            className={`w-8 h-8 rounded-full border flex items-center justify-center text-xs font-bold shrink-0 ${
+              isDark ? 'bg-white/5 border-white/10 text-slate-400' : 'bg-slate-50 border-slate-100 text-slate-400'
+            }`}
+          >
+            {rank}
+          </div>
+        ) : null}
+      </div>
+
+      <h4 className={`font-bold text-lg mb-2 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{item.displayName}</h4>
+      <p className={`text-sm leading-relaxed flex-grow ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{item.description}</p>
+
+      <div className={`flex flex-wrap gap-x-3 gap-y-1 mt-4 text-xs ${metaMuted}`}>
+        {showRating ? (
+          <span className="inline-flex items-center gap-1">
+            <Star size={13} className="shrink-0 opacity-80" aria-hidden />
+            {Number(item.rating).toFixed(1)}
+          </span>
+        ) : null}
+        {fav > 0 ? (
+          <span className="inline-flex items-center gap-1">
+            <Heart size={13} className="shrink-0 opacity-80" aria-hidden />
+            {formatCount(fav)}
+          </span>
+        ) : null}
+        {rev > 0 ? (
+          <span className="inline-flex items-center gap-1">
+            <MessageCircle size={13} className="shrink-0 opacity-80" aria-hidden />
+            {formatCount(rev)}
+          </span>
+        ) : null}
+        {item.publishedAt ? (
+          <span className="inline-flex items-center gap-1 min-w-0">
+            <Clock size={13} className="shrink-0 opacity-80" aria-hidden />
+            <span className="truncate">{formatDateTime(item.publishedAt)}</span>
+          </span>
+        ) : null}
+      </div>
+
+      <div
+        className={`flex items-center justify-between mt-6 pt-4 border-t ${
+          isDark ? 'border-white/10' : 'border-slate-100'
+        }`}
+      >
+        <div className={`flex items-center gap-2 text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+          <div
+            className={`w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-[10px] ${
+              isDark ? 'bg-gradient-to-br from-slate-600 to-slate-700' : 'bg-gradient-to-br from-slate-200 to-slate-300'
+            }`}
+          >
+            {authorLabel.charAt(0)}
+          </div>
+          {authorLabel}
+        </div>
+        <div className={`text-xs font-medium flex items-center gap-1.5 ${isDark ? 'text-slate-400' : 'text-slate-400'}`}>
+          <Activity size={14} aria-hidden />
+          {item.callCount == null ? '—' : formatCount(item.callCount)}
+        </div>
+      </div>
+    </button>
+  );
+};
 
 /** 探索页顶部 8 宫格指标：网格内等分变宽 + 巨型水印悬浮动效 */
 const HubStatCard: React.FC<{
@@ -283,6 +390,8 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
   ], [byTypeMap.agent, byTypeMap.app, byTypeMap.dataset, byTypeMap.mcp, byTypeMap.skill, stats?.totalAgents, stats?.totalApps, stats?.totalCallsToday, stats?.totalDatasets, stats?.totalMcps, stats?.totalSkills, stats?.totalUsers, totalResources]);
 
   const hotResources = (hubData?.trendingResources ?? []).slice(0, 4);
+  const recentItems = (hubData?.recentPublished ?? []).slice(0, 4);
+  const recommendedItems = (hubData?.recommendedForUser ?? []).slice(0, 4);
   const announcements = (hubData?.announcements ?? []).slice(0, 3);
   const contributors = [...(hubData?.topContributors ?? [])].sort((a, b) => b.totalCalls - a.totalCalls);
   const c = chartColors(theme);
@@ -489,51 +598,64 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
                 />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   {hotResources.map((res, idx) => (
-                    <button
+                    <HubResourceCard
                       key={`${res.resourceType}-${res.resourceId}`}
-                      type="button"
-                      onClick={() => navigateToResource(res)}
-                      className={`rounded-2xl border px-6 pt-6 pb-8 flex flex-col h-full text-left cursor-pointer transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50 focus-visible:ring-offset-2 ${
-                        isDark
-                          ? `bg-lantu-card ${HUB_STAT_BASE_DARK} focus-visible:ring-offset-lantu-card hover:border-white/18 hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)]`
-                          : `bg-white ${HUB_STAT_BASE_LIGHT} focus-visible:ring-offset-white hover:border-slate-200/90 hover:shadow-[0_12px_32px_-8px_rgba(15,23,42,0.1)]`
-                      }`}
-                    >
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-2">
-                          <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${
-                            isDark ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-600'
-                          }`}>
-                            {TYPE_LABEL[res.resourceType] ?? res.resourceType}
-                          </span>
-                        </div>
-                        <div className={`w-8 h-8 rounded-full border flex items-center justify-center text-xs font-bold ${
-                          isDark ? 'bg-white/5 border-white/10 text-slate-400' : 'bg-slate-50 border-slate-100 text-slate-400'
-                        }`}>
-                          {idx + 1}
-                        </div>
-                      </div>
-
-                      <h4 className={`font-bold text-lg mb-2 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{res.displayName}</h4>
-                      <p className={`text-sm leading-relaxed flex-grow ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{res.description}</p>
-
-                      <div className={`flex items-center justify-between mt-6 pt-4 border-t ${
-                        isDark ? 'border-white/10' : 'border-slate-100'
-                      }`}>
-                        <div className={`flex items-center gap-2 text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-[10px] ${
-                            isDark ? 'bg-gradient-to-br from-slate-600 to-slate-700' : 'bg-gradient-to-br from-slate-200 to-slate-300'
-                          }`}>
-                            {(res.author?.trim() || res.displayName).charAt(0)}
-                          </div>
-                          {res.author?.trim() || '平台资源'}
-                        </div>
-                        <div className={`text-xs font-medium flex items-center gap-1.5 ${isDark ? 'text-slate-400' : 'text-slate-400'}`}>
-                          <Activity size={14} /> {formatCount(res.callCount)}
-                        </div>
-                      </div>
-                    </button>
+                      item={res}
+                      isDark={isDark}
+                      onOpen={navigateToResource}
+                      rank={idx + 1}
+                    />
                   ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                <div>
+                  <SectionTitle
+                    title="最新上架"
+                    icon={BookOpen}
+                    action="资源中心"
+                    onAction={() => navigate(buildPath('user', 'resource-center'))}
+                    isDark={isDark}
+                  />
+                  {recentItems.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      {recentItems.map((res) => (
+                        <HubResourceCard
+                          key={`recent-${res.resourceType}-${res.resourceId}`}
+                          item={res}
+                          isDark={isDark}
+                          onOpen={navigateToResource}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <p className={`text-sm ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>暂无最新上架资源</p>
+                  )}
+                </div>
+                <div>
+                  <SectionTitle
+                    title="为你推荐"
+                    icon={Sparkles}
+                    action="去逛逛"
+                    onAction={() => navigate(buildUserResourceMarketUrl('agent'))}
+                    isDark={isDark}
+                  />
+                  {recommendedItems.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      {recommendedItems.map((res) => (
+                        <HubResourceCard
+                          key={`rec-${res.resourceType}-${res.resourceId}`}
+                          item={res}
+                          isDark={isDark}
+                          onOpen={navigateToResource}
+                          showReason
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <p className={`text-sm ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>暂无个性化推荐，可多使用资源与收藏以便生成推荐</p>
+                  )}
                 </div>
               </div>
 
@@ -626,6 +748,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
                         }`}>
                           <MultiAvatar
                             seed={`${contributors[0].userId}-${contributors[0].username}`}
+                            imageUrl={contributors[0].avatar}
                             alt={contributors[0].username}
                             className="w-16 h-16 rounded-full object-cover"
                           />
@@ -652,6 +775,26 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
                           <div className={`font-bold text-lg ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{formatCount(contributors[0].totalCalls)}</div>
                         </div>
                       </div>
+
+                      <div className={`w-full grid grid-cols-3 gap-3 border-t pt-5 mt-4 ${
+                        isDark ? 'border-white/10' : 'border-slate-200/60'
+                      }`}>
+                        <div>
+                          <div className={`text-xs mb-1 font-medium ${isDark ? 'text-slate-400' : 'text-slate-400'}`}>本周新作</div>
+                          <div className={`font-bold text-base ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                            {contributors[0].weeklyNewResources ?? 0}
+                            <span className={`text-xs font-normal ${isDark ? 'text-slate-400' : 'text-slate-400'}`}> 个</span>
+                          </div>
+                        </div>
+                        <div>
+                          <div className={`text-xs mb-1 font-medium ${isDark ? 'text-slate-400' : 'text-slate-400'}`}>本周调用</div>
+                          <div className={`font-bold text-base ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{formatCount(contributors[0].weeklyCalls ?? 0)}</div>
+                        </div>
+                        <div>
+                          <div className={`text-xs mb-1 font-medium ${isDark ? 'text-slate-400' : 'text-slate-400'}`}>资源获赞</div>
+                          <div className={`font-bold text-base ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{formatCount(contributors[0].likeCount ?? 0)}</div>
+                        </div>
+                      </div>
                     </div>
 
                     <div className="mt-5 space-y-2">
@@ -659,17 +802,25 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
                         <div key={c.userId} className={`flex items-center justify-between p-3 rounded-xl cursor-pointer transition-colors border border-transparent ${
                           isDark ? 'hover:bg-white/[0.03] hover:border-white/10' : 'hover:bg-slate-50 hover:border-slate-100'
                         }`}>
-                          <div className="flex items-center gap-4">
-                            <div className={`font-bold text-sm w-8 h-8 flex items-center justify-center rounded-lg ${
+                          <div className="flex items-center gap-4 min-w-0">
+                            <div className={`font-bold text-sm w-8 h-8 flex items-center justify-center rounded-lg shrink-0 ${
                               isDark ? 'text-slate-300 bg-white/10' : 'text-slate-400 bg-slate-100'
                             }`}>
                               0{i + 2}
                             </div>
-                            <div className={`text-sm font-bold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
+                            <MultiAvatar
+                              seed={`${c.userId}-${c.username}`}
+                              imageUrl={c.avatar}
+                              alt={c.username}
+                              className="w-9 h-9 rounded-full object-cover shrink-0"
+                            />
+                            <div className={`text-sm font-bold truncate ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
                               {resolvePersonDisplay({ names: [c.userName], usernames: [c.username], ids: [c.userId] })}
                             </div>
                           </div>
-                          <ChevronRight size={16} className={isDark ? 'text-slate-500' : 'text-slate-300'} />
+                          <span className={`text-xs shrink-0 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                            {formatCount(c.totalCalls)} 次调用
+                          </span>
                         </div>
                       ))}
                     </div>

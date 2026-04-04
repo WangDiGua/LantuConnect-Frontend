@@ -12,6 +12,9 @@ export interface ExploreResourceItem {
   /** 后端可能返回 null（尚无评分） */
   rating: number | null;
   favoriteCount?: number | null;
+  reviewCount?: number | null;
+  /** 探索页「为你推荐」等场景由后端生成的说明 */
+  reason?: string | null;
   author?: string | null;
   publishedAt: string;
 }
@@ -39,6 +42,9 @@ export interface ContributorItem {
   avatar?: string;
   resourceCount: number;
   totalCalls: number;
+  weeklyNewResources?: number;
+  weeklyCalls?: number;
+  likeCount?: number;
 }
 
 export interface ExploreHubData {

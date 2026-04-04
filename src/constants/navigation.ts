@@ -246,6 +246,7 @@ export const USER_WORKSPACE_GROUPS = [
     title: '我的',
     items: [
       { id: 'overview', icon: LayoutGrid, label: '工作台总览' },
+      { id: 'developer-onboarding', icon: Rocket, label: '开发者入驻' },
       { id: 'my-favorites', icon: Heart, label: '我的收藏' },
     ],
   },
@@ -270,14 +271,8 @@ export const USER_MY_SPACE_GROUPS = [
 
 export const USER_MARKETPLACE_GROUPS = [
   {
-    title: '按类型浏览',
-    items: [
-      { id: 'agent-market', icon: Bot, label: 'Agent 市场' },
-      { id: 'skill-market', icon: Wrench, label: '技能市场' },
-      { id: 'mcp-market', icon: Puzzle, label: 'MCP 市场' },
-      { id: 'app-market', icon: AppWindow, label: '应用广场' },
-      { id: 'dataset-market', icon: Database, label: '数据集' },
-    ],
+    title: '浏览',
+    items: [{ id: 'resource-market', icon: Store, label: '资源浏览' }],
   },
 ];
 

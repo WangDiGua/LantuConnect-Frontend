@@ -1,6 +1,18 @@
 import type { ResourceType } from '../types/dto/catalog';
+import { parseResourceType } from './resourceTypes';
 
 export type ConsoleRole = 'admin' | 'user';
+
+/** 用户端旧版「五市场」路由 slug → 统一资源市场 `?tab=`（见 `resource-market`） */
+export const USER_LEGACY_MARKET_PAGE_TO_TAB: Record<string, ResourceType> = {
+  'agent-market': 'agent',
+  'skill-market': 'skill',
+  'mcp-market': 'mcp',
+  'app-market': 'app',
+  'dataset-market': 'dataset',
+};
+
+export const USER_LEGACY_MARKET_PAGES = new Set(Object.keys(USER_LEGACY_MARKET_PAGE_TO_TAB));
 
 /** 管理端旧版「五入口」列表页，重定向至 resource-catalog?type= */
 export const ADMIN_LEGACY_RESOURCE_LIST_PAGES = new Set([
@@ -49,6 +61,19 @@ export function buildPath(role: ConsoleRole, page: string, id?: string | number)
   return id !== undefined ? `${base}/${id}` : base;
 }
 
+/** 用户统一资源市场 URL（`/user/resource-market?tab=`，可选 deep link `resourceId`） */
+export function buildUserResourceMarketUrl(
+  tabInput: string | null | undefined,
+  extra?: { resourceId?: string | number | null },
+): string {
+  const tab = parseResourceType(tabInput) ?? 'agent';
+  const params = new URLSearchParams({ tab });
+  if (extra?.resourceId != null && String(extra.resourceId).length > 0) {
+    params.set('resourceId', String(extra.resourceId));
+  }
+  return `${buildPath('user', 'resource-market')}?${params.toString()}`;
+}
+
 export function defaultPath(role: ConsoleRole): string {
   return role === 'admin' ? '/admin/dashboard' : '/user/hub';
 }
@@ -82,8 +107,15 @@ const ADMIN_SIDEBAR_PAGES: Record<string, string[]> = {
 
 const USER_SIDEBAR_PAGES: Record<string, string[]> = {
   'hub': ['hub'],
-  'workspace': ['workspace', 'authorized-skills', 'my-favorites', 'quick-access'],
-  'marketplace': ['agent-market', 'skill-market', 'mcp-market', 'app-market', 'dataset-market'],
+  'workspace': ['workspace', 'developer-onboarding', 'authorized-skills', 'my-favorites', 'quick-access'],
+  'marketplace': [
+    'resource-market',
+    'agent-market',
+    'skill-market',
+    'mcp-market',
+    'app-market',
+    'dataset-market',
+  ],
   'developer-portal': ['api-docs', 'sdk-download', 'api-playground', 'developer-statistics'],
   'my-publish': [
     'my-agents-pub',
@@ -133,6 +165,9 @@ export function pageToSubItem(page: string, sidebarId: string | null, isAdmin: b
   }
   if (isAdmin && sidebarId === 'audit-center' && ADMIN_RESOURCE_AUDIT_PAGES.has(page)) {
     return 'resource-audit';
+  }
+  if (!isAdmin && sidebarId === 'marketplace' && (page === 'resource-market' || USER_LEGACY_MARKET_PAGES.has(page))) {
+    return 'resource-market';
   }
   return page;
 }

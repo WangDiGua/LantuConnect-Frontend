@@ -1,13 +1,5 @@
-/** Console `page` slug for user/admin market routes (see `consoleRoutes`). */
-const RESOURCE_TYPE_TO_MARKET_PAGE: Record<string, string> = {
-  mcp: 'mcp-market',
-  agent: 'agent-market',
-  skill: 'skill-market',
-  app: 'app-market',
-  dataset: 'dataset-market',
-};
-
-export function marketPageForResourceType(resourceType: string): string | null {
-  const key = resourceType.trim().toLowerCase();
-  return RESOURCE_TYPE_TO_MARKET_PAGE[key] ?? null;
-}
+/**
+ * 用户端资源市场已合并为 `/user/resource-market?tab=`，
+ * 请使用 `buildUserResourceMarketUrl`（定义于 `constants/consoleRoutes`）。
+ */
+export { buildUserResourceMarketUrl } from '../constants/consoleRoutes';

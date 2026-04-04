@@ -9,7 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import type { EChartsOption } from 'echarts';
 import type { Theme, FontSize } from '../../types';
 import { mainScrollPadBottom, mainScrollCompositorClass, canvasBodyBg } from '../../utils/uiClasses';
-import { buildPath } from '../../constants/consoleRoutes';
+import { buildPath, buildUserResourceMarketUrl } from '../../constants/consoleRoutes';
 import { dashboardService } from '../../api/services/dashboard.service';
 import type { ExploreHubData, ExploreResourceItem, AnnouncementItem } from '../../types/dto/explore';
 import { PageError } from '../../components/common/PageError';
@@ -251,14 +251,14 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
   );
 
   const statsData = useMemo(() => [
-    { id: 'agent', label: '智能体 Agent', value: Number(stats?.totalAgents ?? byTypeMap.agent ?? 0), icon: Bot, page: 'agent-market' },
-    { id: 'skill', label: '技能 Skill', value: Number(stats?.totalSkills ?? byTypeMap.skill ?? 0), icon: Wrench, page: 'skill-market' },
-    { id: 'mcp', label: '服务 MCP', value: Number(stats?.totalMcps ?? byTypeMap.mcp ?? 0), icon: Cpu, page: 'mcp-market' },
-    { id: 'app', label: '应用 App', value: Number(stats?.totalApps ?? byTypeMap.app ?? 0), icon: AppWindow, page: 'app-market' },
-    { id: 'dataset', label: '数据集 Data', value: Number(stats?.totalDatasets ?? byTypeMap.dataset ?? 0), icon: Database, page: 'dataset-market' },
-    { id: 'total', label: '总资源数', value: totalResources, icon: BookOpen, page: null },
-    { id: 'users', label: '活跃师生', value: Number(stats?.totalUsers ?? 0), icon: Users, page: null },
-    { id: 'calls', label: '今日网关调用', value: Number(stats?.totalCallsToday ?? 0), icon: Activity, page: null },
+    { id: 'agent', label: '智能体 Agent', value: Number(stats?.totalAgents ?? byTypeMap.agent ?? 0), icon: Bot, marketTab: 'agent' as const },
+    { id: 'skill', label: '技能 Skill', value: Number(stats?.totalSkills ?? byTypeMap.skill ?? 0), icon: Wrench, marketTab: 'skill' as const },
+    { id: 'mcp', label: '服务 MCP', value: Number(stats?.totalMcps ?? byTypeMap.mcp ?? 0), icon: Cpu, marketTab: 'mcp' as const },
+    { id: 'app', label: '应用 App', value: Number(stats?.totalApps ?? byTypeMap.app ?? 0), icon: AppWindow, marketTab: 'app' as const },
+    { id: 'dataset', label: '数据集 Data', value: Number(stats?.totalDatasets ?? byTypeMap.dataset ?? 0), icon: Database, marketTab: 'dataset' as const },
+    { id: 'total', label: '总资源数', value: totalResources, icon: BookOpen, marketTab: null },
+    { id: 'users', label: '活跃师生', value: Number(stats?.totalUsers ?? 0), icon: Users, marketTab: null },
+    { id: 'calls', label: '今日网关调用', value: Number(stats?.totalCallsToday ?? 0), icon: Activity, marketTab: null },
   ], [byTypeMap.agent, byTypeMap.app, byTypeMap.dataset, byTypeMap.mcp, byTypeMap.skill, stats?.totalAgents, stats?.totalApps, stats?.totalCallsToday, stats?.totalDatasets, stats?.totalMcps, stats?.totalSkills, stats?.totalUsers, totalResources]);
 
   const hotResources = (hubData?.trendingResources ?? []).slice(0, 4);
@@ -353,7 +353,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
   }, [axis.category, axis.value, c.text, stats?.newResourcesTrend7d, theme]);
 
   const navigateToResource = (item: ExploreResourceItem) => {
-    navigate(buildPath('user', `${item.resourceType}-market`));
+    navigate(buildUserResourceMarketUrl(item.resourceType));
   };
 
   if (loading) {
@@ -449,8 +449,8 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
                 icon={stat.icon}
                 value={formatCount(stat.value)}
                 label={stat.label}
-                clickable={Boolean(stat.page)}
-                onClick={stat.page ? () => navigate(buildPath('user', stat.page)) : undefined}
+                clickable={Boolean(stat.marketTab)}
+                onClick={stat.marketTab ? () => navigate(buildUserResourceMarketUrl(stat.marketTab)) : undefined}
                 isDark={isDark}
               />
             ))}

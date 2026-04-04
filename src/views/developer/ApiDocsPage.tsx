@@ -6,7 +6,7 @@ import {
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { Theme, FontSize } from '../../types';
 import type { ConsoleRole } from '../../constants/consoleRoutes';
-import { buildPath } from '../../constants/consoleRoutes';
+import { buildPath, buildUserResourceMarketUrl } from '../../constants/consoleRoutes';
 import { BentoCard } from '../../components/common/BentoCard';
 import {
   canvasBodyBg, glassSidebar, textPrimary, textSecondary, textMuted,
@@ -58,7 +58,7 @@ const API_CATEGORIES: ApiCategory[] = [
     { method: 'POST', path: '/grant-applications', description: '提交 Grant 申请工单。**须 X-User-Id**。通过后建立授权；提交会通知资源 owner 与平台管理员（与后端通知策略一致）。', params: [{ name: 'body', type: 'GrantApplicationRequest', required: true, description: '含 resourceType、resourceId、granteeApiKeyId、actions 等' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { applicationId: 10001 } }, null, 2) },
     { method: 'GET', path: '/grant-applications/mine', description: '分页查询**我发起的**申请。**须 X-User-Id**。', params: [{ name: 'status', type: 'string', required: false, description: '状态筛选' }, { name: 'keyword / q', type: 'string', required: false, description: '关键字，二选一' }, { name: 'page', type: 'number', required: false, description: '页码' }, { name: 'pageSize', type: 'number', required: false, description: '每页条数' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { list: [], total: 0, page: 1, pageSize: 20 } }, null, 2) },
     { method: 'GET', path: '/grant-applications/pending', description: '**待我审批**的申请列表。**须 X-User-Id**。可见范围由后端按操作者角色过滤：平台管理员全量；部门管理员仅 owner 属本部门的待办；开发者仅本人名下资源上的待办。**并非**仅平台管理员可见。', params: [{ name: 'status', type: 'string', required: false, description: '状态筛选' }, { name: 'keyword / q', type: 'string', required: false, description: '关键字' }, { name: 'page', type: 'number', required: false, description: '页码' }, { name: 'pageSize', type: 'number', required: false, description: '每页条数' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { list: [], total: 0, page: 1, pageSize: 20 } }, null, 2) },
-    { method: 'POST', path: '/grant-applications/{id}/approve', description: '审批通过。调用者须通过服务层校验（资源 owner / 同部门 dept_admin / platform_admin 等与直接 Grant 管理能力一致）。', params: [{ name: 'id', type: 'number', required: true, description: '申请 ID（路径参数）' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: null }, null, 2) },
+    { method: 'POST', path: '/grant-applications/{id}/approve', description: '审批通过。调用者须通过服务层校验（资源 owner / 全平台 reviewer / platform_admin 等与直接 Grant 管理能力一致）。', params: [{ name: 'id', type: 'number', required: true, description: '申请 ID（路径参数）' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: null }, null, 2) },
     { method: 'POST', path: '/grant-applications/{id}/reject', description: '驳回申请；body 含驳回原因。**权限同 approve**。', params: [{ name: 'id', type: 'number', required: true, description: '申请 ID' }, { name: 'reason', type: 'string', required: false, description: 'ResourceRejectRequest.reason' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: null }, null, 2) },
   ]},
   { id: 'owner-dashboard', label: 'Owner 资源成效', endpoints: [
@@ -224,8 +224,8 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme }) => {
 
                 <section id="doc-roles" className="mt-14 space-y-4">
                   {proseH2(theme, '账号与角色')}
-                  {prosePara(theme, '登录后，你的能力取决于平台分配的角色：开发者可以创建与管理自己的资源；部门/平台管理员负责审核与发布；预置角色 consumer（市场访客）仅具目录只读能力，适合「只逛市场」账号；普通师生常以使用方身份浏览并申请调用。若账号尚无开发者角色，通常需要先完成入驻申请，再通过管理员审批。')}
-                  {prosePara(theme, '前端路由里的 admin / user 只是视图壳层，不是后端角色名：管理后台与「我的」工作台是两套导航域，与 platform_admin / dept_admin / developer / consumer 等后端角色不同，判权以 JWT + 后端接口为准（见对接手册 §2.8）。')}
+                  {prosePara(theme, '登录后，你的能力取决于平台分配的角色：平台管理员负责全平台治理；部门管理员管理本部门的开发者与消费者；开发者负责五类资源的登记/维护及与自身资源相关的审核流；消费者使用已上架资源（目录浏览、Grant、个人 API Key 调用等），可申请开发者入驻，并进行个人资料与安全设置——不包含资源注册、发布与平台级审核。自助注册账号通常默认为消费者；若账号尚无开发者角色而需要登记资源，可先提交入驻申请，由管理员审批开通。')}
+                  {prosePara(theme, '前端路由里的 admin / user 只是视图壳层，不是后端角色名：管理后台与「我的」工作台是两套导航域，与 platform_admin / reviewer / developer / user 等后端角色不同，判权以 JWT + 后端接口为准（见对接手册 §2.8）。')}
                   {prosePara(theme, '下文「完成一次调用」对个人开发者与师生用户同样适用：执行向（resolve / invoke / invoke-stream）都必须携带本人有效 API Key；仅浏览目录可主要靠登录态。调用他人名下资源时，在 Key 与 scope 之外还需要 Grant、或资源配置的访问策略允许短路（见「消费策略与授权」）。')}
                 </section>
 
@@ -236,7 +236,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme }) => {
                     <button type="button" onClick={() => go('hub')} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${btnSecondary(theme)}`}>
                       <Library size={16} /> 探索发现
                     </button>
-                    <button type="button" onClick={() => go('skill-market')} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${btnSecondary(theme)}`}>
+                    <button type="button" onClick={() => navigate(buildUserResourceMarketUrl('skill'))} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${btnSecondary(theme)}`}>
                       <Library size={16} /> 技能市场
                     </button>
                   </div>
@@ -272,12 +272,12 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme }) => {
                 <section id="doc-access-policy" className="mt-14 space-y-4">
                   {proseH2(theme, '资源消费策略与授权')}
                   {prosePara(theme, '除 API Key scope 与 per-resource Grant 外，每条资源可有 accessPolicy（注册/更新时写入，默认 grant_required）：grant_required 须 Grant（及 Key scope）；open_org 在「Key 为用户 Key 且与资源 owner 同部门（menu_id）」时可免 Grant；open_platform 在租户内已认证 Key 且 scope 满足时可免 Grant。策略仅短路 Grant 校验，资源仍须 published，且不改变 skill 禁止 invoke、dataset 无统一 invoke 等产品边界（详见 PRODUCT_DEFINITION §4）。')}
-                  {prosePara(theme, 'Grant 工单：提交 POST /grant-applications 后，待办会按角色出现在「授权审批待办」中——资源 owner、本部 dept_admin、platform_admin 均可审批，并非仅超级管理员。通过后与直接 POST /resource-grants 等效建立授权。')}
+                  {prosePara(theme, 'Grant 工单：提交 POST /grant-applications 后，待办会出现在「授权审批待办」中——资源 owner、全平台 reviewer、platform_admin 均可审批。通过后与直接 POST /resource-grants 等效建立授权。')}
                 </section>
 
                 <section id="doc-publish" className="mt-14 space-y-4">
                   {proseH2(theme, '发布资源（资源作者）')}
-                  {prosePara(theme, '在「我的发布 / 资源中心」创建资源后，状态从草稿开始：提交审核 → 审核通过后进入 testing → **须再执行「发布」**才变为 published 并在目录中对调用方可见。请牢记：审核通过不等于已经上架。发布动作可由 owner、与 owner 同部门的 dept_admin 或 platform_admin/admin 执行（与 Grant 代管范围一致）。')}
+                  {prosePara(theme, '在「我的发布 / 资源中心」创建资源后，状态从草稿开始：提交审核 → 审核通过后进入 testing → **须再执行「发布」**才变为 published 并在目录中对调用方可见。请牢记：审核通过不等于已经上架。发布动作可由 owner、全平台 reviewer 或 platform_admin/admin 执行（与 Grant 代管范围一致）。')}
                   {prosePara(theme, '下架、版本管理与 accessPolicy 等也在同一工作流中维护；具体按钮以控制台当前菜单为准。')}
                   <div className="flex flex-wrap gap-2 pt-1">
                     <button type="button" onClick={() => go('resource-center')} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${btnSecondary(theme)}`}>
@@ -384,7 +384,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme }) => {
               <div>
                 <h4 className={`text-xs font-semibold ${textPrimary(theme)}`}>3. Resource Grant（第三层）</h4>
                 <ul className={`mt-1.5 list-disc pl-4 text-xs space-y-1 ${textSecondary(theme)}`}>
-                  <li>访问<strong>非本人拥有</strong>的已发布资源时，除 scope 外还须具备 Grant（<span className="font-mono">POST /resource-grants</span> 或由工单审批），或资源 <span className="font-mono">accessPolicy</span> 允许在网关侧短路 Grant（仍须 published 与 scope）。待办由<strong>资源拥有者</strong>、<strong>同部门 dept_admin</strong>（本部 owner 资源）或<strong>平台管理员</strong>处理；入口为「授权审批待办」与后台同源列表。</li>
+                  <li>访问<strong>非本人拥有</strong>的已发布资源时，除 scope 外还须具备 Grant（<span className="font-mono">POST /resource-grants</span> 或由工单审批），或资源 <span className="font-mono">accessPolicy</span> 允许在网关侧短路 Grant（仍须 published 与 scope）。待办由<strong>资源拥有者</strong>、<strong>全平台审核员 reviewer</strong>或<strong>平台超管</strong>处理；入口为「授权审批待办」与后台同源列表。</li>
                   <li>Grant 中 <span className="font-mono">granteeApiKeyId</span> 为 API Key 的<strong>记录 id</strong>，与请求头中的完整 <span className="font-mono">X-Api-Key</span> 明文不同。</li>
                   <li><strong>常见误区：</strong>仅有 scope、对非自有资源无 Grant，会 403。</li>
                 </ul>

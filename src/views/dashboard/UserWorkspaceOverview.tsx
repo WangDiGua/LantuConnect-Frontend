@@ -16,7 +16,8 @@ import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { BentoCard } from '../../components/common/BentoCard';
 import { KpiCard } from '../../components/common/KpiCard';
 import { AnimatedList } from '../../components/common/AnimatedList';
-import { buildPath } from '../../constants/consoleRoutes';
+import { buildPath, buildUserResourceMarketUrl } from '../../constants/consoleRoutes';
+import type { ResourceType } from '../../types/dto/catalog';
 import { DashboardLayout } from '../../components/layout/PageLayouts';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { useUserRole } from '../../context/UserRoleContext';
@@ -51,11 +52,12 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
       label: string;
       icon: typeof Bot;
       page: string;
+      marketTab?: ResourceType;
       perm?: string;
       anyPerm?: readonly string[];
     }> = [
-      { label: '智能体市场', icon: Bot, page: 'agent-market' },
-      { label: '技能市场', icon: Zap, page: 'skill-market' },
+      { label: '智能体市场', icon: Bot, page: 'resource-market', marketTab: 'agent' },
+      { label: '技能市场', icon: Zap, page: 'resource-market', marketTab: 'skill' },
       {
         label: '我的发布',
         icon: Rocket,
@@ -113,8 +115,8 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
 
   const recentItems = workspace
     ? [
-        ...workspace.recentAgents.map((a) => ({ id: a.id, name: a.displayName, type: '智能体' as const, time: formatDateTime(a.lastUsedTime), icon: a.icon, marketPage: 'agent-market' })),
-        ...workspace.recentSkills.map((s) => ({ id: s.id, name: s.displayName, type: '技能' as const, time: formatDateTime(s.lastUsedTime), icon: s.icon, marketPage: 'skill-market' })),
+        ...workspace.recentAgents.map((a) => ({ id: a.id, name: a.displayName, type: '智能体' as const, time: formatDateTime(a.lastUsedTime), icon: a.icon, marketTab: 'agent' as const })),
+        ...workspace.recentSkills.map((s) => ({ id: s.id, name: s.displayName, type: '技能' as const, time: formatDateTime(s.lastUsedTime), icon: s.icon, marketTab: 'skill' as const })),
       ].slice(0, 5)
     : [];
 
@@ -282,7 +284,7 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
                 <div key="empty" className={`px-5 py-8 text-center text-sm ${tm}`}>暂无使用记录</div>,
               ] : recentItems.map((r) => (
                 <div key={`${r.id}-${r.type}-${r.time}`}
-                  onClick={() => navigate(buildPath('user', r.marketPage))}
+                  onClick={() => navigate(buildUserResourceMarketUrl(r.marketTab))}
                   className={`flex items-center gap-4 px-5 py-3.5 transition-colors cursor-pointer ${isDark ? 'hover:bg-white/[0.04]' : 'hover:bg-slate-50'}`}>
                   <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
                     r.type === '智能体' ? 'bg-blue-500/10 text-blue-500' : 'bg-neutral-900/10 text-neutral-800'
@@ -312,7 +314,7 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
           {quickActions.map((action, i) => (
             <motion.div key={action.label} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
               transition={{ ...spring, delay: 0.25 + i * 0.03 }}>
-              <button type="button" onClick={() => navigate(buildPath('user', action.page))}
+              <button type="button" onClick={() => navigate(action.marketTab ? buildUserResourceMarketUrl(action.marketTab) : buildPath('user', action.page))}
                 className={`w-full p-4 flex items-center gap-3 text-left ${bentoCardHover(theme)}`}>
                 <action.icon size={18} className={ts} />
                 <span className={`text-sm font-bold ${tp}`}>{action.label}</span>

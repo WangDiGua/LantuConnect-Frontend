@@ -11,7 +11,7 @@ import {
 import { Theme, ThemeMode, ThemeColor, FontSize, FontFamily, AnimationStyle } from '../types';
 import { FONT_FAMILY_CLASSES, getRootFontSizePx } from '../constants/theme';
 import { LayoutChromeProvider } from '../context/LayoutChromeContext';
-import { UserRoleProvider, useUserRole, platformRoleToConsoleRole, canAccessAdminView, isUnassignedRole, normalizeRole } from '../context/UserRoleContext';
+import { UserRoleProvider, useUserRole, platformRoleToConsoleRole, canAccessAdminView, normalizeRole } from '../context/UserRoleContext';
 import { useAuthStore } from '../stores/authStore';
 import { authService } from '../api/services/auth.service';
 import { notificationService } from '../api/services/notification.service';
@@ -28,16 +28,12 @@ import { MessagePanel, INITIAL_MESSAGE_UNREAD_COUNT } from '../components/busine
 const Overview = lazy(() => import('../views/dashboard/Overview').then(m => ({ default: m.Overview })));
 const ExploreHub = lazy(() => import('../views/dashboard/ExploreHub').then(m => ({ default: m.ExploreHub })));
 const UserWorkspaceOverview = lazy(() => import('../views/dashboard/UserWorkspaceOverview').then(m => ({ default: m.UserWorkspaceOverview })));
+const DeveloperOnboardingPage = lazy(() => import('../views/onboarding/DeveloperOnboardingPage').then(m => ({ default: m.DeveloperOnboardingPage })));
 const QuickAccess = lazy(() => import('../views/dashboard/QuickAccess').then(m => ({ default: m.QuickAccess })));
 const PlaceholderView = lazy(() => import('../views/common/PlaceholderView').then(m => ({ default: m.PlaceholderView })));
 const AgentDetail = lazy(() => import('../views/agent/AgentDetail').then(m => ({ default: m.AgentDetail })));
-const AgentMarket = lazy(() => import('../views/agent/AgentMarket').then(m => ({ default: m.AgentMarket })));
 const AgentMonitoringPage = lazy(() => import('../views/agent/AgentMonitoringPage').then(m => ({ default: m.AgentMonitoringPage })));
 const AgentTracePage = lazy(() => import('../views/agent/AgentTracePage').then(m => ({ default: m.AgentTracePage })));
-const SkillMarket = lazy(() => import('../views/skill/SkillMarket').then(m => ({ default: m.SkillMarket })));
-const McpMarket = lazy(() => import('../views/mcp/McpMarket').then(m => ({ default: m.McpMarket })));
-const AppMarket = lazy(() => import('../views/apps/AppMarket').then(m => ({ default: m.AppMarket })));
-const DatasetMarket = lazy(() => import('../views/dataset/DatasetMarket').then(m => ({ default: m.DatasetMarket })));
 const ProviderManagementPage = lazy(() => import('../views/provider/ProviderManagementPage').then(m => ({ default: m.ProviderManagementPage })));
 const UserManagementModule = lazy(() => import('../views/userMgmt/UserManagementModule').then(m => ({ default: m.UserManagementModule })));
 const SystemConfigModule = lazy(() => import('../views/systemConfig/SystemConfigModule').then(m => ({ default: m.SystemConfigModule })));
@@ -62,6 +58,9 @@ const DeveloperStatsPage = lazy(() => import('../views/developer/DeveloperStatsP
 const DataReportsPage = lazy(() => import('../views/dashboard/DataReportsPage').then(m => ({ default: m.DataReportsPage })));
 const HealthCheckOverview = lazy(() => import('../views/dashboard/HealthCheckOverview').then(m => ({ default: m.HealthCheckOverview })));
 const UsageStatsOverview = lazy(() => import('../views/dashboard/UsageStatsOverview').then(m => ({ default: m.UsageStatsOverview })));
+const UserResourceMarketHub = lazy(() =>
+  import('../views/marketplace/UserResourceMarketHub').then((m) => ({ default: m.UserResourceMarketHub })),
+);
 
 import { useMessage } from '../components/common/Message';
 import { readPersistedNavState, writePersistedNavState } from '../utils/navigationState';
@@ -86,6 +85,7 @@ import {
   pageToSubItem,
   ADMIN_LEGACY_RESOURCE_LIST_PAGES,
   ADMIN_LEGACY_AUDIT_PAGE_DEFAULT_TYPE,
+  USER_LEGACY_MARKET_PAGE_TO_TAB,
   type ConsoleRole,
 } from '../constants/consoleRoutes';
 import type { ResourceType } from '../types/dto/catalog';
@@ -134,7 +134,7 @@ const SUB_ITEM_PERM_MAP: Record<string, string | string[]> = {
   'organization': 'org:manage',
   'api-key-management': 'api-key:manage',
   'resource-grant-management': 'resource-grant:manage',
-  /** 资源 owner / 部门管理员 / 平台管理员可审；与后端 Grant 工单路由一致 */
+  /** 资源 owner / 审核员 / 超管可审；与后端 Grant 工单一致 */
   'grant-applications': ['resource-grant:manage', 'grant-application:review'],
   'developer-applications': 'developer-application:review',
   'alert-rules': 'system:config',
@@ -327,6 +327,8 @@ const MainContent = React.memo<{
         return <ExploreHub theme={t} fontSize={fs} />;
       case 'workspace':
         return <UserWorkspaceOverview theme={t} fontSize={fs} />;
+      case 'developer-onboarding':
+        return <DeveloperOnboardingPage embedded />;
       case 'resource-center':
         return (
           <ResourceCenterManagementPage
@@ -366,16 +368,8 @@ const MainContent = React.memo<{
       case 'recent-use':
         return <UsageRecordsPage theme={t} fontSize={fs} initialView="recent" />;
 
-      case 'agent-market':
-        return <AgentMarket theme={t} fontSize={fs} themeColor={tc} showMessage={msg} />;
-      case 'skill-market':
-        return <SkillMarket theme={t} fontSize={fs} showMessage={msg} />;
-      case 'mcp-market':
-        return <McpMarket theme={t} fontSize={fs} showMessage={msg} />;
-      case 'app-market':
-        return <AppMarket theme={t} fontSize={fs} showMessage={msg} />;
-      case 'dataset-market':
-        return <DatasetMarket theme={t} fontSize={fs} showMessage={msg} />;
+      case 'resource-market':
+        return <UserResourceMarketHub theme={t} fontSize={fs} themeColor={tc} showMessage={msg} />;
 
       case 'my-agents-pub':
         return <MyPublishHubPage theme={t} fontSize={fs} />;
@@ -511,9 +505,6 @@ export const MainLayout: React.FC = () => {
   }
 
   const pRole = normalizeRole(user.role);
-  if (isUnassignedRole(pRole)) {
-    return <Navigate to="/onboarding/developer" replace />;
-  }
   const consoleRole = platformRoleToConsoleRole(pRole);
 
   return (
@@ -567,6 +558,7 @@ const MainLayoutContent: React.FC<{
   const routeId = route?.id;
   const normalizedRoutePage = routePage ? normalizeDeprecatedPage(routePage) : undefined;
   const queryType = parseResourceType(new URLSearchParams(location.search).get('type'));
+  const marketTabQuery = parseResourceType(new URLSearchParams(location.search).get('tab'));
   const isStandaloneUserSettingsPage = routeRole === 'user' && ['profile', 'preferences'].includes(normalizedRoutePage ?? '');
   const routeValid = !!(routeRole && normalizedRoutePage && (findSidebarForPage(routeRole, normalizedRoutePage) || isStandaloneUserSettingsPage));
 
@@ -685,6 +677,35 @@ const MainLayoutContent: React.FC<{
       const type = LEGACY_PAGE_TO_TYPE[normalizedRoutePage];
       if (type) {
         navigate(`${buildPath('user', 'resource-center')}?type=${type}`, { replace: true });
+        return;
+      }
+    }
+    if (routeRole === 'user' && normalizedRoutePage && USER_LEGACY_MARKET_PAGE_TO_TAB[normalizedRoutePage]) {
+      const tab = USER_LEGACY_MARKET_PAGE_TO_TAB[normalizedRoutePage];
+      const sp = new URLSearchParams(location.search);
+      const q = new URLSearchParams();
+      q.set('tab', tab);
+      const rid = sp.get('resourceId');
+      if (rid) q.set('resourceId', rid);
+      const next = `${buildPath('user', 'resource-market')}?${q}`;
+      if (`${location.pathname}${location.search}` !== next) {
+        navigate(next, { replace: true });
+      }
+      return;
+    }
+    if (routeRole === 'user' && normalizedRoutePage === 'resource-market') {
+      const sp = new URLSearchParams(location.search);
+      const tabRaw = sp.get('tab');
+      const tabOk = parseResourceType(tabRaw);
+      if (!tabRaw || !tabOk) {
+        const q = new URLSearchParams();
+        q.set('tab', 'agent');
+        const rid = sp.get('resourceId');
+        if (rid) q.set('resourceId', rid);
+        const next = `${buildPath('user', 'resource-market')}?${q}`;
+        if (`${location.pathname}${location.search}` !== next) {
+          navigate(next, { replace: true });
+        }
         return;
       }
     }
@@ -836,11 +857,20 @@ const MainLayoutContent: React.FC<{
       return groups
         .map((g) => ({
           ...g,
-          items: g.items.filter((item) => subItemMeetsPermission(item.id, hasPermission)),
+          items: g.items.filter((item) => {
+            if (item.id === 'developer-onboarding') {
+              return (
+                platformRole !== 'developer' &&
+                platformRole !== 'platform_admin' &&
+                platformRole !== 'reviewer'
+              );
+            }
+            return subItemMeetsPermission(item.id, hasPermission);
+          }),
         }))
         .filter((g) => g.items.length > 0);
     },
-    [hasPermission],
+    [hasPermission, platformRole],
   );
 
   useEffect(() => {
@@ -875,6 +905,10 @@ const MainLayoutContent: React.FC<{
     }
     if (isAdminNav && pageName === 'resource-audit') {
       navigate(buildPath(domain, 'resource-audit'));
+      return;
+    }
+    if (!isAdminNav && pageName === 'resource-market') {
+      navigate(`${buildPath(domain, 'resource-market')}?tab=agent`);
       return;
     }
     navigate(buildPath(domain, pageName));
@@ -1007,8 +1041,9 @@ const MainLayoutContent: React.FC<{
     if (page === 'resource-center') return `${page}?type=${queryType ?? 'agent'}`;
     if (page === 'resource-catalog') return `${page}?type=${resourceTypeQuery ?? 'agent'}`;
     if (page === 'resource-audit') return `${page}?type=${resourceTypeQuery ?? 'all'}`;
+    if (page === 'resource-market') return `resource-market?tab=${marketTabQuery ?? 'agent'}`;
     return routeId ? `${page}/${routeId}` : page;
-  }, [page, routeId, queryType, resourceTypeQuery]);
+  }, [page, routeId, queryType, resourceTypeQuery, marketTabQuery]);
 
   const displayUserName = authUser?.nickname || authUser?.username || '用户';
 

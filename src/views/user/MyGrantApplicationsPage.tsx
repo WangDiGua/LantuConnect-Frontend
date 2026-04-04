@@ -28,8 +28,7 @@ import {
 import type { DomainStatus } from '../../utils/uiClasses';
 import { nullDisplay } from '../../utils/errorHandler';
 import { expiryRelativeToNow, formatDateTime } from '../../utils/formatDateTime';
-import { buildPath, type ConsoleRole } from '../../constants/consoleRoutes';
-import { marketPageForResourceType } from '../../utils/marketDeepLink';
+import { buildPath, buildUserResourceMarketUrl, type ConsoleRole } from '../../constants/consoleRoutes';
 
 interface Props {
   theme: Theme;
@@ -242,13 +241,12 @@ export const MyGrantApplicationsPage: React.FC<Props> = ({ theme }) => {
                       <td className={`${tableCell()} ${textSecondary(theme)} max-w-[200px] break-words`}>{nullDisplay(item.rejectReason)}</td>
                       <td className={`${tableCell()} align-middle`}>
                         {(() => {
-                          const market = marketPageForResourceType(item.resourceType);
-                          if (item.status === 'approved' && market) {
+                          if (item.status === 'approved') {
                             return (
                               <button
                                 type="button"
                                 className={`text-xs font-semibold ${isDark ? 'text-neutral-300 hover:text-neutral-300' : 'text-neutral-900 hover:text-neutral-800'} underline-offset-2 hover:underline`}
-                                onClick={() => navigate(`${buildPath(consoleRole, market)}?resourceId=${item.resourceId}`)}
+                                onClick={() => navigate(buildUserResourceMarketUrl(item.resourceType, { resourceId: item.resourceId }))}
                               >
                                 前往资源
                               </button>

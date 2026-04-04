@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Theme, FontSize } from '../../types';
 import type { GrantApplicationVO } from '../../types/dto/grant-application';
 import { grantApplicationService } from '../../api/services';
@@ -14,17 +14,16 @@ import {
   textMuted,
   textPrimary,
   textSecondary,
-  tableBodyRow,
-  tableCell,
   tableCellActionChipsRow,
   tableCellScrollInnerMono,
-  tableHeadCell,
   mgmtTableActionDanger,
   mgmtTableActionPositive,
   type DomainStatus,
 } from '../../utils/uiClasses';
 import { TOOLBAR_ROW_LIST } from '../../utils/toolbarFieldClasses';
 import { FilterSelect, Pagination, SearchInput } from '../../components/common';
+import { MgmtDataTable } from '../../components/management/MgmtDataTable';
+import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
 import { EmptyState } from '../../components/common/EmptyState';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
@@ -110,6 +109,133 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, showMessage }
     }
   };
 
+  const columns = useMemo<MgmtDataTableColumn<GrantApplicationVO>[]>(
+    () => [
+      {
+        id: 'id',
+        header: 'ID',
+        cell: (item) => <span className={`font-medium ${textPrimary(theme)}`}>{item.id}</span>,
+      },
+      {
+        id: 'resourceType',
+        header: '资源类型',
+        cell: (item) => <span className={textSecondary(theme)}>{nullDisplay(item.resourceType)}</span>,
+      },
+      {
+        id: 'resourceId',
+        header: '资源ID',
+        cell: (item) => <span className={textSecondary(theme)}>{item.resourceId}</span>,
+      },
+      {
+        id: 'apiKeyId',
+        header: 'API Key',
+        cell: (item) =>
+          item.apiKeyId ? (
+            <div className={`max-w-[200px] font-mono ${textSecondary(theme)}`}>
+              <div className={tableCellScrollInnerMono}>{item.apiKeyId}</div>
+            </div>
+          ) : (
+            <span className={textSecondary(theme)}>{nullDisplay(undefined)}</span>
+          ),
+      },
+      {
+        id: 'actions',
+        header: '操作权限',
+        cell: (item) =>
+          item.actions?.length ? (
+            <div className={`max-w-[min(260px,100%)] ${textSecondary(theme)}`}>
+              <div className={tableCellActionChipsRow()}>
+                {item.actions.map((a) => (
+                  <span
+                    key={a}
+                    className={`shrink-0 rounded-md border px-2 py-0.5 text-[11px] font-medium whitespace-nowrap ${
+                      isDark ? 'border-white/[0.08] bg-white/[0.06]' : 'border-slate-200/80 bg-slate-50'
+                    }`}
+                  >
+                    {a}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <span className={textSecondary(theme)}>{nullDisplay(undefined)}</span>
+          ),
+      },
+      {
+        id: 'useCase',
+        header: '使用场景',
+        cell: (item) => <span className={textSecondary(theme)}>{nullDisplay(item.useCase)}</span>,
+      },
+      {
+        id: 'status',
+        header: '状态',
+        cell: (item) => {
+          const domainStatus = grantToDomainStatus(item.status);
+          return (
+            <span className={statusBadgeClass(domainStatus, theme)}>
+              <span className={statusDot(domainStatus)} />
+              {statusLabel(domainStatus)}
+            </span>
+          );
+        },
+      },
+      {
+        id: 'people',
+        header: '申请人 / 审核人',
+        cell: (item) => (
+          <span className={textSecondary(theme)}>
+            <div>申请：{resolvePersonDisplay({ names: [item.applicantName], ids: [item.applicantId] })}</div>
+            <div className={`text-[11px] ${textMuted(theme)}`}>
+              审核：{resolvePersonDisplay({ names: [item.reviewerName], ids: [item.reviewerId] })}
+            </div>
+          </span>
+        ),
+      },
+      {
+        id: 'createTime',
+        header: '申请时间',
+        cell: (item) => (
+          <span className={`whitespace-nowrap ${textSecondary(theme)}`}>{nullDisplay(formatDateTime(item.createTime))}</span>
+        ),
+      },
+      {
+        id: 'ops',
+        header: '操作',
+        headerClassName: 'text-right',
+        cellClassName: 'text-right',
+        cell: (item) => (
+          <div className="inline-flex items-center justify-end gap-1">
+            {item.status === 'pending' ? (
+              <>
+                <button
+                  type="button"
+                  className={mgmtTableActionPositive(theme)}
+                  disabled={runningActionId === `approve-${item.id}`}
+                  onClick={() =>
+                    void runAction(`approve-${item.id}`, () => grantApplicationService.approve(item.id), '已通过该授权申请')
+                  }
+                >
+                  {runningActionId === `approve-${item.id}` ? '处理中…' : '通过'}
+                </button>
+                <button
+                  type="button"
+                  className={mgmtTableActionDanger}
+                  disabled={!!runningActionId}
+                  onClick={() => setRejectTarget(item)}
+                >
+                  驳回
+                </button>
+              </>
+            ) : (
+              <span className={`text-xs ${textMuted(theme)}`}>无可执行动作</span>
+            )}
+          </div>
+        ),
+      },
+    ],
+    [isDark, runningActionId, runAction, showMessage, theme],
+  );
+
   return (
     <div className={`flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${canvasBodyBg(theme)}`}>
       <div className="px-3 py-4 sm:px-4 lg:px-5">
@@ -167,103 +293,14 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, showMessage }
                 />
               </div>
             ) : (
-              <table className="w-full min-w-[1200px] text-sm">
-                <thead className={`border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-                  <tr>
-                    <th className={tableHeadCell(theme)}>ID</th>
-                    <th className={tableHeadCell(theme)}>资源类型</th>
-                    <th className={tableHeadCell(theme)}>资源ID</th>
-                    <th className={tableHeadCell(theme)}>API Key</th>
-                    <th className={tableHeadCell(theme)}>操作权限</th>
-                    <th className={tableHeadCell(theme)}>使用场景</th>
-                    <th className={tableHeadCell(theme)}>状态</th>
-                    <th className={tableHeadCell(theme)}>申请人 / 审核人</th>
-                    <th className={tableHeadCell(theme)}>申请时间</th>
-                    <th className={`${tableHeadCell(theme)} text-right`}>操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((item, idx) => {
-                    const domainStatus = grantToDomainStatus(item.status);
-                    return (
-                      <tr key={item.id} className={tableBodyRow(theme, idx)}>
-                        <td className={`${tableCell()} font-medium ${textPrimary(theme)}`}>{item.id}</td>
-                        <td className={`${tableCell()} ${textSecondary(theme)}`}>{nullDisplay(item.resourceType)}</td>
-                        <td className={`${tableCell()} ${textSecondary(theme)}`}>{item.resourceId}</td>
-                        <td className={`${tableCell()} max-w-[200px] align-middle font-mono ${textSecondary(theme)}`}>
-                          {item.apiKeyId ? (
-                            <div className={tableCellScrollInnerMono}>{item.apiKeyId}</div>
-                          ) : (
-                            nullDisplay(undefined)
-                          )}
-                        </td>
-                        <td className={`${tableCell()} max-w-[min(260px,100%)] align-middle ${textSecondary(theme)}`}>
-                          {item.actions?.length ? (
-                            <div className={tableCellActionChipsRow()}>
-                              {item.actions.map((a) => (
-                                <span
-                                  key={a}
-                                  className={`shrink-0 rounded-md border px-2 py-0.5 text-[11px] font-medium whitespace-nowrap ${
-                                    isDark ? 'border-white/[0.08] bg-white/[0.06]' : 'border-slate-200/80 bg-slate-50'
-                                  }`}
-                                >
-                                  {a}
-                                </span>
-                              ))}
-                            </div>
-                          ) : (
-                            nullDisplay(undefined)
-                          )}
-                        </td>
-                        <td className={`${tableCell()} ${textSecondary(theme)}`}>{nullDisplay(item.useCase)}</td>
-                        <td className={`${tableCell()} align-middle`}>
-                          <span className={statusBadgeClass(domainStatus, theme)}>
-                            <span className={statusDot(domainStatus)} />
-                            {statusLabel(domainStatus)}
-                          </span>
-                        </td>
-                        <td className={`${tableCell()} ${textSecondary(theme)}`}>
-                          <div>申请：{resolvePersonDisplay({ names: [item.applicantName], ids: [item.applicantId] })}</div>
-                          <div className={`text-[11px] ${textMuted(theme)}`}>
-                            审核：{resolvePersonDisplay({ names: [item.reviewerName], ids: [item.reviewerId] })}
-                          </div>
-                        </td>
-                        <td className={`${tableCell()} whitespace-nowrap ${textSecondary(theme)}`}>
-                          {nullDisplay(formatDateTime(item.createTime))}
-                        </td>
-                        <td className={`${tableCell()} text-right`}>
-                          <div className="inline-flex items-center gap-1">
-                            {item.status === 'pending' ? (
-                              <>
-                                <button
-                                  type="button"
-                                  className={mgmtTableActionPositive(theme)}
-                                  disabled={runningActionId === `approve-${item.id}`}
-                                  onClick={() =>
-                                    void runAction(`approve-${item.id}`, () => grantApplicationService.approve(item.id), '已通过该授权申请')
-                                  }
-                                >
-                                  {runningActionId === `approve-${item.id}` ? '处理中…' : '通过'}
-                                </button>
-                                <button
-                                  type="button"
-                                  className={mgmtTableActionDanger}
-                                  disabled={!!runningActionId}
-                                  onClick={() => setRejectTarget(item)}
-                                >
-                                  驳回
-                                </button>
-                              </>
-                            ) : (
-                              <span className={`text-xs ${textMuted(theme)}`}>无可执行动作</span>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <MgmtDataTable<GrantApplicationVO>
+                theme={theme}
+                columns={columns}
+                rows={rows}
+                getRowKey={(item) => item.id}
+                minWidth="1200px"
+                surface="plain"
+              />
             )}
           </div>
           <div className={`px-4 border-t ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>

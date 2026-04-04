@@ -162,22 +162,77 @@ export interface UserListQuery extends PaginationParams {
   status?: 'active' | 'disabled' | 'locked';
 }
 
+function strTrim(v: unknown): string {
+  if (v == null) return '';
+  return String(v).trim();
+}
+
+function optStr(v: unknown): string | undefined {
+  const s = strTrim(v);
+  return s || undefined;
+}
+
+function normalizeUserStatus(raw: unknown): UserRecord['status'] {
+  const s = String(raw ?? 'active').toLowerCase();
+  if (s === 'disabled' || s === 'inactive') return 'disabled';
+  if (s === 'locked') return 'locked';
+  return 'active';
+}
+
+/** 将后端 t_user / 用户管理 VO 对齐到前端 UserRecord（mail、userId、lastLoginTime 等） */
+export function mapUserRecord(raw: unknown): UserRecord {
+  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const major = optStr(o.major);
+  const className = optStr(o.className ?? o.class_name);
+  const deptParts = [major, className].filter(Boolean) as string[];
+  const department = deptParts.length
+    ? deptParts.join(' · ')
+    : optStr(o.department ?? o.deptName ?? o.dept_name ?? o.orgName ?? o.org_name);
+  const lastLoginRaw = o.lastLoginTime ?? o.lastLoginAt ?? (o as { lastLogintime?: unknown }).lastLogintime;
+  const lastLoginAt = optStr(lastLoginRaw);
+  const email = strTrim(o.mail ?? o.email);
+  const phone = optStr(o.mobile ?? o.phone);
+  const id = strTrim(o.userId ?? o.id) || '0';
+
+  const rec: UserRecord = {
+    id,
+    username: strTrim(o.username),
+    email: email || '',
+    role: String(o.role ?? ''),
+    status: normalizeUserStatus(o.status),
+    createdAt: strTrim(o.createTime ?? o.createdAt),
+    updatedAt: strTrim(o.updateTime ?? o.updatedAt),
+  };
+  if (phone) rec.phone = phone;
+  const av = optStr(o.headImage ?? o.avatar);
+  if (av) rec.avatar = av;
+  if (department) rec.department = department;
+  if (lastLoginAt) rec.lastLoginAt = lastLoginAt;
+  return rec;
+}
+
 export const userMgmtService = {
   listUsers: async (params?: UserListQuery) => {
     const raw = await http.get<unknown>('/user-mgmt/users', { params });
-    return normalizePaginated<UserRecord>(raw);
+    return normalizePaginated<UserRecord>(raw, mapUserRecord);
   },
 
-  createUser: (data: CreateUserPayload) =>
-    http.post<UserRecord>('/user-mgmt/users', data),
+  createUser: async (data: CreateUserPayload) => {
+    const row = await http.post<unknown>('/user-mgmt/users', data);
+    return mapUserRecord(row);
+  },
 
-  updateUser: (id: string, data: Partial<CreateUserPayload>) =>
-    http.put<UserRecord>(`/user-mgmt/users/${id}`, data),
+  updateUser: async (id: string, data: Partial<CreateUserPayload>) => {
+    const row = await http.put<unknown>(`/user-mgmt/users/${id}`, data);
+    return mapUserRecord(row);
+  },
 
   deleteUser: (id: string) => http.delete(`/user-mgmt/users/${id}`),
 
-  getUserById: (id: string) =>
-    http.get<UserRecord>(`/user-mgmt/users/${id}`),
+  getUserById: async (id: string) => {
+    const row = await http.get<unknown>(`/user-mgmt/users/${id}`);
+    return mapUserRecord(row);
+  },
 
   getUserOrg: (userId: string) =>
     http.get<{ orgId: string; orgName: string }>(`/user-mgmt/users/${userId}/org`),

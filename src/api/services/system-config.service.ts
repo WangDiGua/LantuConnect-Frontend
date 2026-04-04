@@ -131,6 +131,54 @@ function normalizeRateLimitsListPayload(raw: unknown): RateLimitRule[] {
   return [];
 }
 
+function mapModelConfigRecord(raw: unknown): ModelConfig {
+  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const num = (v: unknown, d = 0) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : d;
+  };
+  return {
+    id: String(o.id ?? ''),
+    name: String(o.name ?? ''),
+    provider: String(o.provider ?? ''),
+    modelId: String(o.modelId ?? o.model_id ?? ''),
+    endpoint: String(o.endpoint ?? ''),
+    apiKey: o.apiKey == null && o.api_key == null ? undefined : String(o.apiKey ?? o.api_key),
+    maxTokens: num(o.maxTokens ?? o.max_tokens),
+    temperature: num(o.temperature, 0.7),
+    topP: num(o.topP ?? o.top_p, 1),
+    enabled: o.enabled === undefined ? true : Boolean(o.enabled),
+    rateLimit: num(o.rateLimit ?? o.rate_limit),
+    costPerToken: num(o.costPerToken ?? o.cost_per_token),
+    description: o.description == null ? undefined : String(o.description),
+    createdAt: String(o.createdAt ?? o.createTime ?? o.create_time ?? ''),
+    updatedAt: String(o.updatedAt ?? o.updateTime ?? o.update_time ?? ''),
+  };
+}
+
+function mapAuditLogEntryRecord(raw: unknown): AuditLogEntry {
+  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const resultRaw = String(o.result ?? 'success').toLowerCase();
+  const result: AuditLogEntry['result'] = resultRaw === 'failure' || resultRaw === 'failed' || resultRaw === 'error' ? 'failure' : 'success';
+  const createdAt = String(o.createdAt ?? o.createTime ?? o.create_time ?? o.created_at ?? o.time ?? '');
+  return {
+    id: String(o.id ?? ''),
+    userId: String(o.userId ?? o.user_id ?? ''),
+    username: String(o.username ?? o.userName ?? o.user_name ?? ''),
+    action: String(o.action ?? ''),
+    resource: String(o.resource ?? ''),
+    resourceId: o.resourceId == null && o.resource_id == null ? undefined : String(o.resourceId ?? o.resource_id),
+    details: String(o.details ?? o.detail ?? ''),
+    ip: String(o.ip ?? ''),
+    userAgent: String(o.userAgent ?? o.user_agent ?? ''),
+    result,
+    createdAt,
+    time: String(o.time ?? createdAt),
+    operator: String(o.operator ?? o.username ?? ''),
+    target: String(o.target ?? o.resource ?? ''),
+  };
+}
+
 function mapAnnouncementRecord(raw: unknown): AnnouncementItem {
   const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
   return {
@@ -153,20 +201,26 @@ function mapAnnouncementRecord(raw: unknown): AnnouncementItem {
 export const systemConfigService = {
   listModelConfigs: async (params?: PaginationParams) => {
     const raw = await http.get<unknown>('/system-config/model-configs', { params });
-    return normalizePaginated<ModelConfig>(raw);
+    return normalizePaginated<ModelConfig>(raw, mapModelConfigRecord);
   },
 
-  createModelConfig: (data: CreateModelConfigDTO) =>
-    http.post<ModelConfig>('/system-config/model-configs', data),
+  createModelConfig: async (data: CreateModelConfigDTO) => {
+    const row = await http.post<unknown>('/system-config/model-configs', data);
+    return mapModelConfigRecord(row);
+  },
 
-  updateModelConfig: (id: string, data: Partial<CreateModelConfigDTO>) =>
-    http.put<ModelConfig>(`/system-config/model-configs/${id}`, data),
+  updateModelConfig: async (id: string, data: Partial<CreateModelConfigDTO>) => {
+    const row = await http.put<unknown>(`/system-config/model-configs/${id}`, data);
+    return mapModelConfigRecord(row);
+  },
 
   deleteModelConfig: (id: string) =>
     http.delete(`/system-config/model-configs/${id}`),
 
-  getModelConfigById: (id: string) =>
-    http.get<ModelConfig>(`/system-config/model-configs/${id}`),
+  getModelConfigById: async (id: string) => {
+    const row = await http.get<unknown>(`/system-config/model-configs/${id}`);
+    return mapModelConfigRecord(row);
+  },
 
   listRateLimits: async () => {
     const raw = await http.get<unknown>('/system-config/rate-limits');
@@ -187,7 +241,7 @@ export const systemConfigService = {
 
   listAuditLogs: async (params?: AuditLogQueryParams) => {
     const raw = await http.get<unknown>('/system-config/audit-logs', { params });
-    return normalizePaginated<AuditLogEntry>(raw);
+    return normalizePaginated<AuditLogEntry>(raw, mapAuditLogEntryRecord);
   },
 
   getParams: async () => {

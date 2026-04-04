@@ -9,6 +9,7 @@ import type {
   ResourceResolveRequest,
   ResourceResolveVO,
 } from '../../types/dto/catalog';
+import { normalizeCatalogItem } from './resource-catalog.service';
 
 export const sdkService = {
   listResources: async (apiKey: string, params?: ResourceCatalogQueryRequest) => {
@@ -16,7 +17,7 @@ export const sdkService = {
       params,
       headers: { 'X-Api-Key': apiKey },
     });
-    return normalizePaginated<ResourceCatalogItemVO>(raw);
+    return normalizePaginated<ResourceCatalogItemVO>(raw, normalizeCatalogItem);
   },
 
   getResource: (apiKey: string, resourceType: string, resourceId: string | number, include?: string) =>

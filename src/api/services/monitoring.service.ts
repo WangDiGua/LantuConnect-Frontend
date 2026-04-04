@@ -181,6 +181,96 @@ function mapKpiMetric(raw: unknown): KpiMetric {
   };
 }
 
+function mapCallLogStatus(raw: unknown): CallLogEntry['status'] {
+  const s = String(raw ?? 'success').toLowerCase();
+  if (s === 'error' || s === 'failure' || s === 'failed') return 'error';
+  if (s === 'timeout') return 'timeout';
+  return 'success';
+}
+
+function mapCallLogEntry(raw: unknown): CallLogEntry {
+  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  return {
+    id: String(o.id ?? ''),
+    traceId: String(o.traceId ?? o.trace_id ?? ''),
+    agentId: String(o.agentId ?? o.agent_id ?? ''),
+    agentName: String(o.agentName ?? o.agent_name ?? ''),
+    userId: String(o.userId ?? o.user_id ?? ''),
+    model: String(o.model ?? ''),
+    method: String(o.method ?? ''),
+    status: mapCallLogStatus(o.status),
+    statusCode: parseNum(o.statusCode ?? o.status_code, 0),
+    latencyMs: parseNum(o.latencyMs ?? o.latency_ms, 0),
+    inputTokens: parseNum(o.inputTokens ?? o.input_tokens, 0),
+    outputTokens: parseNum(o.outputTokens ?? o.output_tokens, 0),
+    cost: parseNum(o.cost, 0),
+    errorMessage: o.errorMessage == null && o.error_message == null ? undefined : String(o.errorMessage ?? o.error_message),
+    ip: String(o.ip ?? ''),
+    createdAt: String(o.createdAt ?? o.createTime ?? o.create_time ?? o.created_at ?? ''),
+  };
+}
+
+function mapAlertSeverity(raw: unknown): AlertRecord['severity'] {
+  const s = String(raw ?? 'info').toLowerCase();
+  return s === 'critical' || s === 'warning' || s === 'info' ? s : 'info';
+}
+
+function mapAlertStatus(raw: unknown): AlertRecord['status'] {
+  const s = String(raw ?? 'firing').toLowerCase();
+  return s === 'resolved' || s === 'silenced' || s === 'firing' ? s : 'firing';
+}
+
+function mapAlertRecordRow(raw: unknown): AlertRecord {
+  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const labels = o.labels && typeof o.labels === 'object' ? (o.labels as Record<string, string>) : {};
+  return {
+    id: String(o.id ?? ''),
+    ruleId: String(o.ruleId ?? o.rule_id ?? ''),
+    ruleName: String(o.ruleName ?? o.rule_name ?? ''),
+    severity: mapAlertSeverity(o.severity),
+    status: mapAlertStatus(o.status),
+    message: String(o.message ?? ''),
+    source: String(o.source ?? ''),
+    labels,
+    firedAt: String(o.firedAt ?? o.fired_at ?? o.fire_time ?? ''),
+    resolvedAt:
+      o.resolvedAt == null && o.resolved_at == null ? undefined : String(o.resolvedAt ?? o.resolved_at ?? ''),
+  };
+}
+
+function mapTraceSpanRow(raw: unknown): TraceSpan {
+  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const parentRaw = o.parentId ?? o.parent_id;
+  const parentId =
+    parentRaw === null || parentRaw === undefined || parentRaw === '' ? null : String(parentRaw);
+  const st = String(o.status ?? 'ok').toLowerCase();
+  const status: TraceSpan['status'] = st === 'error' ? 'error' : 'ok';
+  const tags = o.tags && typeof o.tags === 'object' ? (o.tags as Record<string, string>) : {};
+  const logsRaw = o.logs;
+  const logs = Array.isArray(logsRaw)
+    ? (logsRaw as Record<string, unknown>[]).map((lg) => ({
+        timestamp: String(lg.timestamp ?? lg.time ?? ''),
+        message: String(lg.message ?? ''),
+      }))
+    : [];
+  const ch = o.children;
+  const children = Array.isArray(ch) ? ch.map(mapTraceSpanRow) : undefined;
+  return {
+    id: String(o.id ?? ''),
+    traceId: String(o.traceId ?? o.trace_id ?? ''),
+    parentId,
+    operationName: String(o.operationName ?? o.operation_name ?? ''),
+    service: String(o.service ?? ''),
+    serviceName: String(o.serviceName ?? o.service_name ?? ''),
+    startTime: String(o.startTime ?? o.start_time ?? ''),
+    duration: parseNum(o.duration, 0),
+    status,
+    tags,
+    logs,
+    ...(children?.length ? { children } : {}),
+  };
+}
+
 export const monitoringService = {
   /** 与后端 `GET /monitoring/alert-rule-metrics` 对齐；失败时回退默认三项。 */
   listAlertRuleMetrics: async (): Promise<string[]> => {
@@ -200,7 +290,7 @@ export const monitoringService = {
 
   listCallLogs: async (params?: CallLogListParams) => {
     const raw = await http.get<unknown>('/monitoring/call-logs', { params });
-    return normalizePaginated<CallLogEntry>(raw);
+    return normalizePaginated<CallLogEntry>(raw, mapCallLogEntry);
   },
 
   listAlerts: async (params?: AlertListParams) => {
@@ -212,7 +302,7 @@ export const monitoringService = {
         ...(statusFilter ? { status: statusFilter } : {}),
       },
     });
-    return normalizePaginated<AlertRecord>(raw);
+    return normalizePaginated<AlertRecord>(raw, mapAlertRecordRow);
   },
 
   listAlertRules: async () => {
@@ -242,7 +332,7 @@ export const monitoringService = {
 
   listTraces: async (params?: PaginationParams) => {
     const raw = await http.get<unknown>('/monitoring/traces', { params });
-    return normalizePaginated<TraceSpan>(raw);
+    return normalizePaginated<TraceSpan>(raw, mapTraceSpanRow);
   },
 
   getPerformanceMetrics: async () => {

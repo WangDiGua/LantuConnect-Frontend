@@ -23,7 +23,6 @@ import { Modal } from '../../components/common/Modal';
 import { ResourceReviewsSection } from '../../components/business/ResourceReviewsSection';
 import { GrantApplicationModal } from '../../components/business/GrantApplicationModal';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
-import { MarketLayout } from '../../components/layout/PageLayouts';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
@@ -231,7 +230,7 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, theme
 
   return (
     <div className={`flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${canvasBodyBg(theme)}`}>
-      <MarketLayout>
+      <div className="px-0 py-4 sm:py-5">
         <div className={`${bentoCard(theme)} overflow-hidden p-4 sm:p-6 lg:p-8`}>
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
@@ -320,7 +319,7 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, theme
           </div>
         )}
         </div>
-      </MarketLayout>
+      </div>
 
       {/* Detail + Reviews Modal */}
       <Modal open={!!detailSkill} onClose={() => setDetailSkill(null)} theme={theme} size="lg">

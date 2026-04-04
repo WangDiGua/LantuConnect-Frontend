@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Highlight, themes } from 'prism-react-renderer';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -295,8 +295,24 @@ const agent = new Nexus.Agent({
 await agent.deploy();
 console.log('✨ 智能体已上线');`;
 
+/** 默认光斑中心（右上偏外），与视觉稿类似 */
+const HERO_TERMINAL_SPOTLIGHT_DEFAULT =
+  'radial-gradient(520px circle at 72% 18%, rgba(255,255,255,0.16), rgba(34,211,238,0.07) 38%, transparent 70%)';
+
 const HeroCodeTerminal: React.FC = () => {
   const [typedCode, setTypedCode] = useState('');
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const spotlightRef = useRef<HTMLDivElement>(null);
+  const rafRef = useRef<number>(0);
+  const [reduceMotion, setReduceMotion] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const apply = () => setReduceMotion(mq.matches);
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, []);
 
   useEffect(() => {
     let i = 0;
@@ -311,11 +327,66 @@ const HeroCodeTerminal: React.FC = () => {
     return () => window.clearInterval(typingInterval);
   }, []);
 
+  const updateSpotlight = useCallback((clientX: number, clientY: number) => {
+    const wrap = wrapRef.current;
+    const spot = spotlightRef.current;
+    if (!wrap || !spot) return;
+    const r = wrap.getBoundingClientRect();
+    const x = ((clientX - r.left) / Math.max(r.width, 1)) * 100;
+    const y = ((clientY - r.top) / Math.max(r.height, 1)) * 100;
+    spot.style.background = `radial-gradient(520px circle at ${x}% ${y}%, rgba(255,255,255,0.22), rgba(34,211,238,0.08) 40%, transparent 72%)`;
+  }, []);
+
+  const onMouseMove = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (reduceMotion) return;
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      const cx = e.clientX;
+      const cy = e.clientY;
+      rafRef.current = requestAnimationFrame(() => updateSpotlight(cx, cy));
+    },
+    [reduceMotion, updateSpotlight],
+  );
+
+  const onMouseLeave = useCallback(() => {
+    const spot = spotlightRef.current;
+    if (spot) spot.style.background = HERO_TERMINAL_SPOTLIGHT_DEFAULT;
+  }, []);
+
   return (
     <div
-      className="relative w-[420px] max-w-full shrink-0 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl"
-      style={{ transform: 'rotate(-2deg)' }}
+      className="shrink-0 p-10 -m-10 max-w-[calc(100%+5rem)]"
+      onMouseMove={onMouseMove}
+      onMouseLeave={onMouseLeave}
     >
+      <div
+        ref={wrapRef}
+        role="img"
+        aria-label="示例代码窗口：deploy 智能体"
+        className="relative w-[420px] max-w-full shrink-0 rounded-2xl"
+        style={{ transform: 'rotate(-2deg)' }}
+      >
+      {/* 边缘彩色晕圈：锥形渐变 + 强 blur，不随鼠标移动 */}
+      <div
+        className="pointer-events-none absolute -inset-3 z-0 rounded-[1.35rem] opacity-[0.92]"
+        style={{
+          background:
+            'conic-gradient(from 200deg at 45% 45%, rgba(34,211,238,0.5), rgba(99,102,241,0.28), rgba(244,114,182,0.12), rgba(34,211,238,0.45))',
+          filter: 'blur(18px)',
+        }}
+        aria-hidden
+      />
+      {/* 白光晕：光心随指针在卡片坐标系内移动；移出后回到默认 */}
+      <div
+        ref={spotlightRef}
+        className="pointer-events-none absolute -inset-8 z-0 rounded-[2rem] motion-reduce:opacity-100"
+        style={{
+          filter: 'blur(36px)',
+          background: HERO_TERMINAL_SPOTLIGHT_DEFAULT,
+        }}
+        aria-hidden
+      />
+      <div className="relative z-10 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl shadow-black/50">
       <div className="flex items-center px-4 py-3 border-b border-white/5">
         <div className="flex gap-1.5">
           <div className="w-3 h-3 rounded-full bg-red-500/80" />
@@ -346,6 +417,8 @@ const HeroCodeTerminal: React.FC = () => {
           <span className="inline-block w-2 h-4 bg-blue-400 ml-1 align-text-bottom animate-pulse" aria-hidden />
         </div>
       </div>
+      </div>
+    </div>
     </div>
   );
 };
@@ -545,7 +618,6 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
 
               <div className="hidden lg:flex lg:w-[38%] lg:min-w-0 lg:justify-end">
                 <div className="relative shrink-0 w-[420px] max-w-full">
-                  <div className="absolute -inset-8 bg-indigo-500/10 blur-3xl pointer-events-none" />
                   <HeroCodeTerminal />
                 </div>
               </div>

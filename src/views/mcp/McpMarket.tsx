@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { tagService } from '../../api/services/tag.service';
 import { filterTagsForResourceType } from '../../utils/marketTags';
 import type { TagItem } from '../../types/dto/tag';
-import { Copy, Eye, EyeOff, Heart, Loader2, MessageSquare, Play, Puzzle, RefreshCw, Search, Send } from 'lucide-react';
+import { Copy, Eye, EyeOff, Heart, Loader2, MessageSquare, Play, Puzzle, RefreshCw, Search, Send, Star } from 'lucide-react';
 import type { Theme, FontSize, ThemeColor } from '../../types';
 import type { InvokeRequest, InvokeResponse, ResourceCatalogItemVO, ResourceResolveVO } from '../../types/dto/catalog';
 import { resourceCatalogService } from '../../api/services/resource-catalog.service';
@@ -14,6 +14,7 @@ import { userActivityService } from '../../api/services/user-activity.service';
 import { mapInvokeFlowError } from '../../utils/invokeError';
 import { MAX_STORED_API_KEY_LENGTH, readBoundedLocalStorage } from '../../lib/safeStorage';
 import { safeOpenHttpUrl } from '../../lib/windowNavigate';
+import { resolvePersonDisplay } from '../../utils/personDisplay';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { BentoCard } from '../../components/common/BentoCard';
 import { GlassPanel } from '../../components/common/GlassPanel';
@@ -26,6 +27,7 @@ import {
   btnPrimary,
   btnSecondary,
   canvasBodyBg,
+  iconMuted,
   mainScrollCompositorClass,
   statusLabel,
   textMuted,
@@ -623,7 +625,7 @@ export const McpMarket: React.FC<Props> = ({ theme, showMessage }) => {
             </div>
             <GlassPanel theme={theme} padding="sm" className="!p-0 w-full sm:w-72">
               <div className="relative">
-                <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <Search size={16} className={`pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 ${iconMuted(theme)}`} />
                 <input
                   type="text"
                   name="mcp-market-search"
@@ -696,6 +698,12 @@ export const McpMarket: React.FC<Props> = ({ theme, showMessage }) => {
                     <div className="min-w-0 flex-1">
                       <h3 className={`truncate font-semibold ${textPrimary(theme)}`}>{item.displayName}</h3>
                       <p className={`truncate text-xs font-mono ${textMuted(theme)}`}>{item.resourceCode || item.resourceId}</p>
+                      <p
+                        className={`mt-0.5 truncate text-[11px] ${textMuted(theme)}`}
+                        title={resolvePersonDisplay({ names: [item.createdByName], ids: [item.createdBy ?? undefined] })}
+                      >
+                        {resolvePersonDisplay({ names: [item.createdByName], ids: [item.createdBy ?? undefined] })}
+                      </p>
                     </div>
                   </div>
                   <p className={`mb-3 line-clamp-2 text-sm ${textSecondary(theme)}`}>{item.description || '暂无描述'}</p>
@@ -708,6 +716,12 @@ export const McpMarket: React.FC<Props> = ({ theme, showMessage }) => {
                   )}
                   <div className={`mt-auto flex flex-col gap-2 border-t pt-3 ${isDark ? 'border-white/[0.08]' : 'border-slate-200/40'}`}>
                     <AccessPolicyBadge theme={theme} value={item.accessPolicy} whenMissing="hide" />
+                    <div className={`flex items-center gap-1 text-[11px] tabular-nums ${textMuted(theme)}`} title="目录评分与评论数">
+                      <Star size={12} className="shrink-0 text-amber-500 fill-amber-500" />
+                      <span>{item.ratingAvg != null ? item.ratingAvg.toFixed(1) : '—'}</span>
+                      <span className="mx-1 opacity-40">·</span>
+                      <span>{Number(item.reviewCount ?? 0)} 条评价</span>
+                    </div>
                     <div className="flex items-center justify-between">
                     <span className={`text-xs ${textMuted(theme)}`}>状态：{statusLabel(item.status as any)}</span>
                     <button type="button" className={`${btnPrimary} !px-3 !py-1.5 !text-xs`} onClick={(e) => { e.stopPropagation(); setDetail(item); }}>

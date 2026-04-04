@@ -1,7 +1,7 @@
 import React from 'react';
 import { Search } from 'lucide-react';
 import type { MarketThemeProps } from '../../hooks/market/types';
-import { textPrimary } from '../../utils/uiClasses';
+import { iconMuted, textPrimary } from '../../utils/uiClasses';
 import { GlassPanel } from '../common/GlassPanel';
 
 interface MarketSearchBarProps extends MarketThemeProps {
@@ -23,7 +23,7 @@ export const MarketSearchBar: React.FC<MarketSearchBarProps> = ({
       <div className="relative">
         <Search
           size={16}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+          className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${iconMuted(theme)}`}
           aria-hidden
         />
         <input

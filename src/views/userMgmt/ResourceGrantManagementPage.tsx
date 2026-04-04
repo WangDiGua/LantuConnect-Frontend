@@ -5,7 +5,7 @@ import { MgmtPageShell } from './MgmtPageShell';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { TOOLBAR_ROW_LIST, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
-import { btnGhost, btnPrimary, btnSecondary, mgmtTableActionDanger, textMuted, textPrimary, textSecondary } from '../../utils/uiClasses';
+import { btnGhost, btnPrimary, btnSecondary, iconMuted, mgmtTableActionDanger, textMuted, textPrimary, textSecondary } from '../../utils/uiClasses';
 import { resourceGrantService } from '../../api/services/resource-grant.service';
 import { nullDisplay } from '../../utils/errorHandler';
 import type { ResourceType } from '../../types/dto/catalog';
@@ -272,7 +272,7 @@ export const ResourceGrantManagementPage: React.FC<Props> = ({ theme, fontSize, 
             {rows.length > 0 && (
               <div className={`${TOOLBAR_ROW_LIST} min-w-0`}>
                 <div className="relative min-w-0 flex-1 sm:max-w-xs">
-                  <Search size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${textMuted(theme)}`} />
+                  <Search size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${iconMuted(theme)}`} />
                   <input
                     type="search"
                     value={granteeKeyword}

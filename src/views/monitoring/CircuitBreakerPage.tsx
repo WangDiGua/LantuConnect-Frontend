@@ -3,7 +3,7 @@ import { AlertTriangle, Zap, RotateCcw, Search } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { nativeInputClass } from '../../utils/formFieldClasses';
-import { btnPrimary, btnSecondary, btnGhost, mgmtTableActionGhost, tableHeadCell, tableBodyRow, tableCell, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import { btnPrimary, btnSecondary, btnGhost, iconMuted, mgmtTableActionGhost, tableHeadCell, tableBodyRow, tableCell, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
 import { TOOLBAR_ROW_LIST, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
 import { Modal } from '../../components/common/Modal';
@@ -105,7 +105,7 @@ export const CircuitBreakerPage: React.FC<Props> = ({ theme, fontSize, showMessa
   const toolbar = (
     <div className={`${TOOLBAR_ROW_LIST} min-w-0`}>
       <div className="relative min-w-0 flex-1 shrink sm:max-w-md">
-        <Search className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${textMuted(theme)}`} size={16} />
+        <Search className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${iconMuted(theme)}`} size={16} />
         <input
           type="search"
           placeholder="搜索名称或降级 Agent…"

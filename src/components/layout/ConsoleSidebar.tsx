@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { ChevronDown, MoreVertical, LogOut, Search, Command, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Theme } from '../../types';
-import { mainScrollCompositorClass } from '../../utils/uiClasses';
+import { iconMuted, mainScrollCompositorClass } from '../../utils/uiClasses';
 import type { ConsoleRole } from '../../constants/consoleRoutes';
 import type { PlatformRoleCode } from '../../types/dto/auth';
 import { PLATFORM_ROLE_LABELS } from '../../constants/platformRoles';
@@ -221,8 +221,8 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
                   ? 'text-slate-100'
                   : 'text-gray-900'
                 : isDark
-                  ? 'text-slate-500 group-hover:text-slate-400'
-                  : 'text-gray-400 group-hover:text-gray-600',
+                  ? `${iconMuted(theme)} group-hover:text-slate-300`
+                  : `${iconMuted(theme)} group-hover:text-gray-600`,
             ].join(' ')}
             aria-hidden
           />
@@ -273,15 +273,13 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
       </div>
 
       {/* Navigation */}
-      <nav className={`flex-1 overflow-y-auto space-y-1 custom-scrollbar pr-1 pb-4 ${mainScrollCompositorClass}`}>
+      <nav className={`flex-1 overflow-y-auto space-y-1.5 custom-scrollbar pr-1 pb-4 ${mainScrollCompositorClass}`}>
         {navRenderRows.map((row) => {
           if (row.kind === 'section') {
             return (
               <div
                 key={row.label}
-                className={`px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider ${
-                  isDark ? 'text-slate-500' : 'text-slate-400'
-                }`}
+                className="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400"
               >
                 {row.label}
               </div>
@@ -302,7 +300,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
                     ? onToggleGroup(item.id)
                     : onSidebarClick(item.id, item.domain)
                 }
-                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 motion-reduce:transition-none group/item focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 ${
+                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl transition-all duration-200 motion-reduce:transition-none group/item focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 ${
                   isDark ? 'focus-visible:ring-offset-lantu-surface' : 'focus-visible:ring-offset-white'
                 } ${
                   isSelfActive
@@ -327,7 +325,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
                           ? 'text-neutral-300'
                           : 'text-neutral-900'
                         : isDark
-                          ? 'text-slate-500 group-hover/item:text-slate-400'
+                          ? 'text-slate-400 group-hover/item:text-slate-300'
                           : 'text-slate-400 group-hover/item:text-slate-500'
                     }
                   />
@@ -351,7 +349,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
                           ? 'rotate-180 text-neutral-300'
                           : 'rotate-180 text-neutral-800'
                         : isDark
-                          ? 'text-slate-500'
+                          ? 'text-slate-400'
                           : 'text-slate-400'
                     }`}
                   />
@@ -422,7 +420,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
           );
         })}
         {navItems.length === 0 && normalizedQuery && (
-          <div className={`px-2 py-5 text-center text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+          <div className="px-2 py-5 text-center text-xs text-slate-400">
             未找到匹配菜单
           </div>
         )}

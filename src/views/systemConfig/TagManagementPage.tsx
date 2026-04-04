@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { Theme, FontSize } from '../../types';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
-import { btnPrimary, btnSecondary, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import { btnPrimary, btnSecondary, iconMuted, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
 import { Modal } from '../../components/common/Modal';
 import { BentoCard } from '../../components/common/BentoCard';
 import { PortalDropdown } from '../../components/common/PortalDropdown';
@@ -186,7 +186,7 @@ export const TagManagementPage: React.FC<Props> = ({ theme, fontSize, showMessag
         <BentoCard theme={theme} padding="sm">
           <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center">
             <div className="relative w-full min-w-[8rem] sm:max-w-[16rem] shrink-0">
-              <Search size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${textMuted(theme)}`} />
+              <Search size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${iconMuted(theme)}`} />
               <input type="search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="搜索标签…" className={`${inputCls} !pl-9`} aria-label="搜索标签" />
             </div>
             <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">

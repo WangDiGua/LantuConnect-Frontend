@@ -25,7 +25,7 @@ import { nativeInputClass } from '../../utils/formFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
 import {
   bentoCardHover, btnPrimary, btnSecondary, btnGhost,
-  mgmtTableActionDanger, mgmtTableActionGhost,
+  iconMuted, mgmtTableActionDanger, mgmtTableActionGhost,
   textPrimary, textSecondary, textMuted,
 } from '../../utils/uiClasses';
 import { TOOLBAR_ROW_LIST, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
@@ -216,7 +216,7 @@ export const AlertRulesPage: React.FC<Props> = ({ theme, fontSize, showMessage }
     <div className={`${TOOLBAR_ROW_LIST} flex-col sm:flex-row justify-between min-w-0 gap-3 w-full sm:items-center`}>
       <div className={`${TOOLBAR_ROW_LIST} min-w-0 flex-1`}>
         <div className="relative min-w-[8rem] shrink-0 sm:max-w-[14rem]">
-          <Search className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${textMuted(theme)}`} size={16} aria-hidden />
+          <Search className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${iconMuted(theme)}`} size={16} aria-hidden />
           <input
             type="search"
             value={ruleSearch}

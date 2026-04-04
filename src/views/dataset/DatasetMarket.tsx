@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, Database, FileText, Table2, Image, Mic, Video, Layers, HardDrive, FileSearch, Loader2, MessageSquare, Heart } from 'lucide-react';
+import { Search, Database, FileText, Table2, Image, Mic, Video, Layers, HardDrive, FileSearch, Loader2, MessageSquare, Heart, Star } from 'lucide-react';
 import type { Theme, FontSize, ThemeColor } from '../../types';
 import type { Dataset, DatasetSourceType, DatasetDataType } from '../../types/dto/dataset';
 import { datasetService } from '../../api/services/dataset.service';
@@ -13,7 +13,7 @@ import { mapInvokeFlowError } from '../../utils/invokeError';
 import { safeOpenHttpUrl } from '../../lib/windowNavigate';
 import {
   canvasBodyBg, mainScrollCompositorClass, bentoCard, btnPrimary, btnSecondary,
-  textPrimary, textSecondary, textMuted, techBadge,
+  iconMuted, textPrimary, textSecondary, textMuted, techBadge,
 } from '../../utils/uiClasses';
 import { BentoCard } from '../../components/common/BentoCard';
 import { GlassPanel } from '../../components/common/GlassPanel';
@@ -233,7 +233,7 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, the
           </div>
           <GlassPanel theme={theme} padding="sm" className="!p-0 w-full sm:w-72">
             <div className="relative">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <Search size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${iconMuted(theme)}`} />
               <input type="text" placeholder="搜索数据集…" value={keyword} onChange={(e) => setKeyword(e.target.value)} className={`w-full bg-transparent pl-9 pr-3 py-2.5 text-sm outline-none ${textPrimary(theme)}`} />
             </div>
           </GlassPanel>
@@ -282,12 +282,16 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, the
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${dtBadge.cls}`}>{dtBadge.label}</span>
                     <span className={techBadge(theme)}>{ds.format.toUpperCase()}</span>
                   </div>
-                  <div className={`flex items-center gap-4 text-xs mb-3 ${textMuted(theme)}`}>
+                  <div className={`flex flex-wrap items-center gap-x-4 gap-y-1 text-xs mb-3 ${textMuted(theme)}`}>
                     <span className="flex items-center gap-1"><HardDrive size={12} />{formatFileSize(ds.fileSize)}</span>
                     <span>{formatCount(ds.recordCount)} 条记录</span>
-                    {(ds as any).createdByName || (ds as any).createdBy ? (
-                      <span>{resolvePersonDisplay({ names: [(ds as any).createdByName], ids: [(ds as any).createdBy] })}</span>
-                    ) : null}
+                    <span>{resolvePersonDisplay({ names: [ds.createdByName], ids: [ds.createdBy] })}</span>
+                    <span className="inline-flex items-center gap-0.5 tabular-nums" title="目录评分与评论数">
+                      <Star size={12} className="text-amber-500 fill-amber-500 shrink-0" />
+                      {ds.ratingAvg != null ? ds.ratingAvg.toFixed(1) : '—'}
+                      <span className="mx-1 opacity-40">·</span>
+                      {Number(ds.reviewCount ?? 0)} 条评价
+                    </span>
                     {ds.createTime && <span>{formatDateTime(ds.createTime)}</span>}
                   </div>
                   {(ds.tags ?? []).length > 0 && (

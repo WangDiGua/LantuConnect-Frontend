@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, LayoutGrid, ExternalLink, MessageSquare, Loader2, Heart } from 'lucide-react';
+import { Search, LayoutGrid, ExternalLink, MessageSquare, Loader2, Heart, Star } from 'lucide-react';
 import type { Theme, FontSize, ThemeColor } from '../../types';
 import type { SmartApp, EmbedType } from '../../types/dto/smart-app';
 import { smartAppService } from '../../api/services/smart-app.service';
@@ -14,7 +14,7 @@ import { ApiException } from '../../types/api';
 import { env } from '../../config/env';
 import {
   canvasBodyBg, mainScrollCompositorClass, bentoCard, btnPrimary, btnSecondary,
-  textPrimary, textSecondary, textMuted, techBadge,
+  iconMuted, textPrimary, textSecondary, textMuted, techBadge,
 } from '../../utils/uiClasses';
 import { BentoCard } from '../../components/common/BentoCard';
 import { GlassPanel } from '../../components/common/GlassPanel';
@@ -29,6 +29,7 @@ import { formatDateTime } from '../../utils/formatDateTime';
 import { usePersistedGatewayApiKey } from '../../hooks/usePersistedGatewayApiKey';
 import { GatewayApiKeyInput } from '../../components/common/GatewayApiKeyInput';
 import { safeOpenHttpUrl } from '../../lib/windowNavigate';
+import { resolvePersonDisplay } from '../../utils/personDisplay';
 
 interface Props { theme: Theme; fontSize: FontSize; themeColor?: ThemeColor; showMessage?: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void; }
 
@@ -275,7 +276,7 @@ export const AppMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, themeCo
           </div>
           <GlassPanel theme={theme} padding="sm" className="!p-0 w-full sm:w-72">
             <div className="relative">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <Search size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${iconMuted(theme)}`} />
               <input type="text" placeholder="搜索应用…" value={keyword} onChange={(e) => setKeyword(e.target.value)} className={`w-full bg-transparent pl-9 pr-3 py-2.5 text-sm outline-none ${textPrimary(theme)}`} />
             </div>
           </GlassPanel>
@@ -314,7 +315,14 @@ export const AppMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, themeCo
                   ))}
                 </div>
                 <div className={`flex items-center justify-between gap-2 pt-3 border-t mt-auto ${isDark ? 'border-white/[0.08]' : 'border-slate-200/40'}`}>
-                  <div className={`text-[11px] ${textMuted(theme)}`}>
+                  <div className={`text-[11px] flex flex-wrap items-center gap-x-2 gap-y-0.5 min-w-0 ${textMuted(theme)}`}>
+                    <span className="truncate max-w-[9rem]">
+                      {resolvePersonDisplay({ names: [app.createdByName], ids: [app.createdBy ?? undefined] })}
+                    </span>
+                    <span className="inline-flex items-center gap-0.5 tabular-nums shrink-0" title="目录评分与评论数">
+                      <Star size={11} className="text-amber-500" aria-hidden />
+                      {app.ratingAvg != null ? app.ratingAvg.toFixed(1) : '—'} ({app.reviewCount ?? 0})
+                    </span>
                     {app.categoryName && <span>{app.categoryName} · </span>}
                     {app.createTime && <span>{formatDateTime(app.createTime)}</span>}
                   </div>
@@ -405,7 +413,18 @@ export const AppMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, themeCo
                 </button>
               </div>
               {detailTab === 'overview' ? (
-                <p className={`text-sm leading-relaxed ${textSecondary(theme)}`}>{detailApp.description || '暂无描述'}</p>
+                <>
+                  <div className={`flex flex-wrap gap-3 text-xs ${textMuted(theme)}`}>
+                    <span>
+                      创建者：{resolvePersonDisplay({ names: [detailApp.createdByName], ids: [detailApp.createdBy ?? undefined] })}
+                    </span>
+                    <span className="inline-flex items-center gap-0.5 tabular-nums">
+                      <Star size={13} className="text-amber-500 shrink-0" aria-hidden />
+                      目录评分 {detailApp.ratingAvg != null ? detailApp.ratingAvg.toFixed(1) : '—'}（{detailApp.reviewCount ?? 0} 条）
+                    </span>
+                  </div>
+                  <p className={`text-sm leading-relaxed ${textSecondary(theme)}`}>{detailApp.description || '暂无描述'}</p>
+                </>
               ) : (
                 <div>
                   <h4 className={`font-bold text-base mb-4 flex items-center gap-2 ${textPrimary(theme)}`}><MessageSquare size={18} className="text-blue-500" /> 评分与评论</h4>

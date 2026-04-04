@@ -1,6 +1,6 @@
 import React from 'react';
 import type { MarketThemeProps } from '../../hooks/market/types';
-import { textMuted } from '../../utils/uiClasses';
+import { textMuted, textSecondary } from '../../utils/uiClasses';
 
 interface MarketEmptyStateProps extends MarketThemeProps {
   title?: string;
@@ -14,7 +14,7 @@ export const MarketEmptyState: React.FC<MarketEmptyStateProps> = ({
 }) => {
   return (
     <div className="text-center py-20">
-      <p className={`text-lg font-medium ${textMuted(theme)}`}>{title}</p>
+      <p className={`text-lg font-medium ${textSecondary(theme)}`}>{title}</p>
       <p className={`text-sm mt-1 ${textMuted(theme)}`}>{description}</p>
     </div>
   );

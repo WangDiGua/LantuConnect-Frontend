@@ -14,6 +14,7 @@ import { PageSkeleton } from '../../components/common/PageSkeleton';
 import {
   btnPrimary,
   btnSecondary,
+  iconMuted,
   mgmtTableActionDanger,
   mgmtTableActionGhost,
   textPrimary,
@@ -156,7 +157,7 @@ export const ModelConfigPage: React.FC<ModelConfigPageProps> = ({
       toolbar={
         <div className={`${TOOLBAR_ROW_LIST} justify-between`}>
           <div className="relative flex-1 min-w-0 sm:max-w-md">
-            <Search className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${textMuted(theme)}`} size={16} />
+            <Search className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${iconMuted(theme)}`} size={16} />
             <input type="search" placeholder="搜索名称、提供方、模型 ID…" value={search} onChange={(e) => setSearch(e.target.value)} className={toolbarSearchInputClass(theme)} />
           </div>
           <button type="button" onClick={openCreate} className={`${btnPrimary} gap-1.5 shrink-0`}>

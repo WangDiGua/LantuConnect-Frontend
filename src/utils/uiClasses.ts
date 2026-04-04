@@ -10,7 +10,7 @@ export function pageBg(_theme: Theme) {
   return 'bg-lantu-canvas';
 }
 
-export const mainScrollPadX = 'px-4 sm:px-5 lg:px-6';
+export const mainScrollPadX = 'px-5 sm:px-6 lg:px-8';
 export const mainScrollPadBottom = 'pb-6 sm:pb-8';
 /** flex 滚动区需要 min-h-0；勿在业务页根再套 overscroll-y-contain（会阻断滚轮到 MainLayout 主滚动） */
 export const mainScrollCompositorClass = 'min-h-0';
@@ -20,8 +20,8 @@ export const pageScrollShell = `${mainScrollCompositorClass} ${mainScrollPadX} $
 export const chromeGpuLayerClass = 'transform-gpu';
 /** 主内容区在侧栏与画布内横向占满，不再用 1400px 人为缩窄；可读性由内部卡片/栅格控制 */
 export const contentMaxWidth = 'max-w-none';
-export const contentPaddingX = 'px-3 sm:px-4 lg:px-6';
-export const sectionGap = 'space-y-6';
+export const contentPaddingX = 'px-4 sm:px-5 lg:px-7';
+export const sectionGap = 'space-y-8';
 export const cardGap = 'gap-4';
 export const detailRailWidth = 'xl:grid-cols-[minmax(0,1.8fr)_minmax(320px,1fr)]';
 
@@ -291,6 +291,18 @@ export function iconButton(theme: Theme) {
       ? 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5 focus-visible:ring-sky-400/45 focus-visible:ring-offset-lantu-card'
       : 'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 focus-visible:ring-neutral-900/22 focus-visible:ring-offset-white'
   }`;
+}
+
+/** 顶栏、画布内工具按钮等 Lucide 图标（暗色对比度高于 neutral-400） */
+export function iconChrome(theme: Theme) {
+  return D(theme)
+    ? 'text-slate-300 hover:text-slate-100'
+    : 'text-slate-500 hover:text-slate-800';
+}
+
+/** 搜索框前缀、侧栏搜索等次要装饰图标 */
+export function iconMuted(theme: Theme) {
+  return D(theme) ? 'text-slate-400' : 'text-slate-500';
 }
 
 /** 卡片/按钮等标准动效时长（配合 motion-reduce） */

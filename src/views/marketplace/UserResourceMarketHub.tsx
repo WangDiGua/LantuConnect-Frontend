@@ -8,7 +8,7 @@ import { SkillMarket } from '../skill/SkillMarket';
 import { McpMarket } from '../mcp/McpMarket';
 import { AppMarket } from '../apps/AppMarket';
 import { DatasetMarket } from '../dataset/DatasetMarket';
-import { textSecondary } from '../../utils/uiClasses';
+import { textMuted, textSecondary } from '../../utils/uiClasses';
 
 interface Props {
   theme: Theme;
@@ -39,14 +39,18 @@ export const UserResourceMarketHub: React.FC<Props> = ({ theme, fontSize, themeC
   );
 
   const ts = textSecondary(theme);
+  const tm = textMuted(theme);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-5">
       <div
-        className={`shrink-0 rounded-2xl border px-2 py-2 sm:px-3 ${
+        className={`shrink-0 rounded-2xl border px-4 py-4 sm:px-5 sm:py-5 ${
           isDark ? 'border-white/[0.08] bg-white/[0.03]' : 'border-slate-200/80 bg-white/80 shadow-sm'
         }`}
       >
+        <p className={`mb-3 px-0.5 text-[11px] leading-snug sm:text-xs ${tm}`}>
+          各类型列表卡片均展示<strong className="font-semibold">创建者</strong>与<strong className="font-semibold">目录评分·评论数</strong>（无数据时显示「—」或 0，与统一目录接口一致）。
+        </p>
         <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="资源类型">
           {RESOURCE_TYPES.map((key) => {
             const active = tab === key;

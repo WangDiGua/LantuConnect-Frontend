@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, Zap, Clock, Activity, MessageSquare, Download, Loader2, Heart } from 'lucide-react';
+import { Search, Zap, Clock, Activity, MessageSquare, Download, Loader2, Heart, Star } from 'lucide-react';
 import type { Theme, FontSize, ThemeColor } from '../../types';
 import type { Skill } from '../../types/dto/skill';
 import type { AgentType, SourceType } from '../../types/dto/agent';
@@ -15,7 +15,7 @@ import { fetchSkillPackBlobDownload, resolveSkillArtifactTarget } from '../../ut
 import { safeOpenHttpUrl } from '../../lib/windowNavigate';
 import {
   canvasBodyBg, mainScrollCompositorClass, bentoCard, btnPrimary, btnSecondary,
-  textPrimary, textSecondary, textMuted, techBadge,
+  iconMuted, textPrimary, textSecondary, textMuted, techBadge,
 } from '../../utils/uiClasses';
 import { BentoCard } from '../../components/common/BentoCard';
 import { GlassPanel } from '../../components/common/GlassPanel';
@@ -32,6 +32,7 @@ import { buildPath } from '../../constants/consoleRoutes';
 import { usePersistedGatewayApiKey } from '../../hooks/usePersistedGatewayApiKey';
 import { GatewayApiKeyInput } from '../../components/common/GatewayApiKeyInput';
 import { ApiException } from '../../types/api';
+import { resolvePersonDisplay } from '../../utils/personDisplay';
 
 interface Props { theme: Theme; fontSize: FontSize; themeColor?: ThemeColor; showMessage?: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void; }
 
@@ -253,7 +254,7 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, theme
             </button>
           <GlassPanel theme={theme} padding="sm" className="!p-0 w-full sm:w-72">
             <div className="relative">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <Search size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${iconMuted(theme)}`} />
               <input type="text" placeholder="搜索技能…" value={keyword} onChange={(e) => setKeyword(e.target.value)} className={`w-full bg-transparent pl-9 pr-3 py-2.5 text-sm outline-none ${textPrimary(theme)}`} />
             </div>
           </GlassPanel>
@@ -293,7 +294,18 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, theme
                   ))}
                 </div>
                 <div className={`pt-3 border-t mt-auto space-y-3 ${isDark ? 'border-white/[0.08]' : 'border-slate-200/40'}`}>
-                  <div className={`flex items-center gap-3 text-xs ${textMuted(theme)}`}>
+                  <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 text-xs ${textMuted(theme)}`}>
+                    <span
+                      className="truncate max-w-[10rem]"
+                      title={resolvePersonDisplay({ names: [skill.createdByName], ids: [skill.createdBy ?? undefined] })}
+                    >
+                      {resolvePersonDisplay({ names: [skill.createdByName], ids: [skill.createdBy ?? undefined] })}
+                    </span>
+                    <span className="inline-flex items-center gap-0.5 tabular-nums" title="目录聚合评分与评论数">
+                      <Star size={12} className="shrink-0 text-amber-500" aria-hidden />
+                      <span>{skill.ratingAvg != null ? skill.ratingAvg.toFixed(1) : '—'}</span>
+                      <span className="opacity-80">({skill.reviewCount ?? 0})</span>
+                    </span>
                     <span className="flex items-center gap-1" title="目录展示热度（网关 invoke 统计，不含技能包本地下载）"><Activity size={12} />{formatCount(skill.callCount)}</span>
                     <span className="flex items-center gap-1"><Clock size={12} />{formatLatency(skill.avgLatencyMs)}</span>
                     {skill.successRate > 0 && <span className="text-emerald-500">{skill.successRate}%</span>}
@@ -327,6 +339,13 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, theme
             <div className="space-y-5">
               <p className={`text-sm leading-relaxed ${textSecondary(theme)}`}>{detailSkill.description || '暂无描述'}</p>
               <div className={`flex flex-wrap gap-3 text-xs ${textMuted(theme)}`}>
+                <span>
+                  创建者：{resolvePersonDisplay({ names: [detailSkill.createdByName], ids: [detailSkill.createdBy ?? undefined] })}
+                </span>
+                <span className="inline-flex items-center gap-0.5 tabular-nums">
+                  <Star size={13} className="text-amber-500 shrink-0" aria-hidden />
+                  目录评分 {detailSkill.ratingAvg != null ? detailSkill.ratingAvg.toFixed(1) : '—'}（{detailSkill.reviewCount ?? 0} 条）
+                </span>
                 <span className="flex items-center gap-1" title="目录展示热度（网关 invoke 统计，不含技能包本地下载）"><Activity size={13} /> {formatCount(detailSkill.callCount)} 热度</span>
                 <span className="flex items-center gap-1"><Clock size={13} /> {formatLatency(detailSkill.avgLatencyMs)}</span>
                 {detailSkill.successRate > 0 && <span className="text-emerald-500">{detailSkill.successRate}% 成功率</span>}

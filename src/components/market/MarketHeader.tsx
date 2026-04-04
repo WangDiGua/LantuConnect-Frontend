@@ -18,18 +18,19 @@ export const MarketHeader: React.FC<MarketHeaderProps> = ({
   icon: Icon,
   title,
   tagline,
-  iconColor = 'text-neutral-800',
+  iconColor,
   chromePageTitle,
   suffix,
   actions,
 }) => {
   const isDark = theme === 'dark';
+  const resolvedIconColor = iconColor ?? (isDark ? 'text-slate-300' : 'text-neutral-800');
 
   return (
     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-5">
       <div className="flex min-w-0 items-center gap-3">
         <div className={`shrink-0 rounded-xl p-2 ${isDark ? 'bg-neutral-900/10' : 'bg-neutral-100'}`}>
-          <Icon size={22} className={iconColor} />
+          <Icon size={22} className={resolvedIconColor} />
         </div>
         <PageTitleTagline
           subtitleOnly

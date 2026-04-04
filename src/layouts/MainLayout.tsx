@@ -98,7 +98,7 @@ import {
 import { PageSkeleton } from '../components/common/PageSkeleton';
 import { ConsoleSidebar, type ConsoleSidebarRow } from '../components/layout/ConsoleSidebar';
 import { Tooltip } from '../components/common/Tooltip';
-import { chromeGpuLayerClass, contentMaxWidth, mainScrollCompositorClass } from '../utils/uiClasses';
+import { chromeGpuLayerClass, contentMaxWidth, iconChrome, mainScrollCompositorClass } from '../utils/uiClasses';
 
 const springTransition = { type: 'spring' as const, stiffness: 300, damping: 30 };
 
@@ -130,9 +130,13 @@ function normalizeDeprecatedPage(page: string): string {
 const SUB_ITEM_PERM_MAP: Record<string, string | string[]> = {
   'provider-list': 'provider:view',
   'provider-create': 'provider:manage',
+  /** 超管 user:manage；审核员只读目录为 user:read（与后端 GET /user-mgmt/users 一致） */
+  'user-list': ['user:manage', 'user:read'],
   'role-management': 'role:manage',
   'organization': 'org:manage',
   'api-key-management': 'api-key:manage',
+  'token-management': ['api-key:manage', 'apikey:read'],
+  'network-config': 'system:config',
   'resource-grant-management': 'resource-grant:manage',
   /** 资源 owner / 审核员 / 超管可审；与后端 Grant 工单一致 */
   'grant-applications': ['resource-grant:manage', 'grant-application:review'],
@@ -277,6 +281,7 @@ const MainContent = React.memo<{
         case 'role-management':
         case 'organization':
         case 'api-key-management':
+        case 'token-management':
         case 'resource-grant-management':
           return <UserManagementModule activeSubItem={p} theme={t} fontSize={fs} showMessage={msg} />;
         case 'provider-list':
@@ -309,6 +314,7 @@ const MainContent = React.memo<{
         case 'system-params':
         case 'model-config':
         case 'security-settings':
+        case 'network-config':
         case 'quota-management':
         case 'rate-limit-policy':
         case 'access-control':
@@ -382,6 +388,8 @@ const MainContent = React.memo<{
         return <UsageStatsPage theme={t} fontSize={fs} />;
       case 'grant-applications':
         return <GrantApplicationListPage theme={t} fontSize={fs} showMessage={msg} />;
+      case 'developer-applications':
+        return <DeveloperApplicationListPage theme={t} fontSize={fs} showMessage={msg} />;
       case 'my-grant-applications':
         return <MyGrantApplicationsPage theme={t} fontSize={fs} showMessage={msg} />;
       case 'profile':
@@ -509,9 +517,10 @@ export const MainLayout: React.FC = () => {
 
   return (
     <UserRoleProvider
-      key={`${user?.id ?? 'anon'}-${user?.role ?? 'user'}`}
+      key={`${user?.id ?? 'anon'}-${user?.role ?? 'user'}-${(user?.permissions?.length ?? 'x')}`}
       initialRole={consoleRole}
       platformRole={pRole}
+      serverPermissions={user.permissions}
     >
       <Routes>
         <Route path="/" element={<ConsoleHomeRedirect />} />
@@ -663,6 +672,12 @@ const MainLayoutContent: React.FC<{
     hasPermission('app:create') ||
     hasPermission('dataset:create');
 
+  /** 用户壳「我的发布」路由：开发者靠 create 权限；审核员/超管可代管资源注册中心（与后端 requireManageableResource 一致） */
+  const canAccessUserPublishingShell =
+    canPublishResources ||
+    platformRole === 'reviewer' ||
+    platformRole === 'platform_admin';
+
   // Route validation & redirect (allow admin users to access user views for mode switcher)
   useEffect(() => {
     if (routeRole && routePage && normalizedRoutePage && routePage !== normalizedRoutePage) {
@@ -754,6 +769,15 @@ const MainLayoutContent: React.FC<{
       showMessage('当前账号无授权审批权限', 'info');
       return;
     }
+    if (
+      routeRole === 'user' &&
+      normalizedRoutePage === 'developer-applications' &&
+      !hasPermission('developer-application:review')
+    ) {
+      navigate(defaultPath(), { replace: true });
+      showMessage('当前账号无入驻审批权限', 'info');
+      return;
+    }
     if (routeRole === 'admin' && normalizedRoutePage === 'skill-external-market' && !hasPermission('system:config')) {
       navigate(`${buildPath('admin', 'resource-catalog')}?type=skill`, { replace: true });
       showMessage('当前账号无权访问技能在线市场', 'info');
@@ -774,12 +798,12 @@ const MainLayoutContent: React.FC<{
       routeRole === 'user' &&
       !layoutIsAdmin &&
       ['resource-center', 'agent-list', 'agent-register', 'skill-list', 'skill-register', 'mcp-server-list', 'mcp-register', 'app-list', 'app-register', 'dataset-list', 'dataset-register'].includes(page) &&
-      !canPublishResources
+      !canAccessUserPublishingShell
     ) {
       navigate(buildPath('user', 'hub'), { replace: true });
       showMessage('当前账号暂无统一资源发布权限', 'info');
     }
-  }, [routeValid, routeRole, routePage, normalizedRoutePage, routeId, queryType, consoleRole, platformRole, navigate, layoutIsAdmin, page, canPublishResources, showMessage, hasPermission, location.pathname, location.search]);
+  }, [routeValid, routeRole, routePage, normalizedRoutePage, routeId, queryType, consoleRole, platformRole, navigate, layoutIsAdmin, page, canAccessUserPublishingShell, showMessage, hasPermission, location.pathname, location.search]);
 
   useEffect(() => {
     const wantRole = consoleRole === 'admin' ? 'admin' : 'user';
@@ -820,7 +844,6 @@ const MainLayoutContent: React.FC<{
   const adminSidebarItems = useMemo(() => {
     if (!canAccessAdminView(platformRole)) return [];
     const adminPermMap: Record<string, string> = {
-      'user-management': 'user:manage',
       'monitoring': 'monitor:view',
       'system-config': 'system:config',
     };
@@ -832,6 +855,15 @@ const MainLayoutContent: React.FC<{
           hasPermission('skill:audit') ||
           hasPermission('resource:audit') ||
           hasPermission('provider:manage')
+        );
+      }
+      if (item.id === 'user-management') {
+        return (
+          hasPermission('user:manage') ||
+          hasPermission('user:read') ||
+          hasPermission('developer-application:review') ||
+          hasPermission('grant-application:review') ||
+          hasPermission('resource-grant:manage')
         );
       }
       const requiredPerm = adminPermMap[item.id];
@@ -858,7 +890,7 @@ const MainLayoutContent: React.FC<{
     (sidebarId: string, domain: ConsoleRole) => {
       const groups = getNavSubGroups(sidebarId, domain === 'admin');
       return groups
-        .filter((g) => !(domain === 'user' && g.requiresPublish && !canPublishResources))
+        .filter((g) => !(domain === 'user' && g.requiresPublish && !canAccessUserPublishingShell))
         .map((g) => ({
           ...g,
           items: g.items.filter((item) => {
@@ -874,7 +906,7 @@ const MainLayoutContent: React.FC<{
         }))
         .filter((g) => g.items.length > 0);
     },
-    [hasPermission, platformRole, canPublishResources],
+    [hasPermission, platformRole, canAccessUserPublishingShell],
   );
 
   useEffect(() => {
@@ -1212,8 +1244,8 @@ const MainLayoutContent: React.FC<{
                     }}
                     className={`relative inline-flex h-9 w-9 shrink-0 items-center justify-center p-0 transition-colors motion-reduce:transition-none rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 ${
                       isDark
-                        ? 'text-slate-400 hover:text-slate-200 bg-white/[0.04] hover:bg-white/[0.08] focus-visible:ring-offset-lantu-card'
-                        : 'text-slate-400 hover:text-slate-800 bg-slate-100/50 hover:bg-slate-100 focus-visible:ring-offset-white'
+                        ? `${iconChrome(theme)} bg-white/[0.04] hover:bg-white/[0.08] focus-visible:ring-offset-lantu-card`
+                        : `${iconChrome(theme)} bg-slate-100/50 hover:bg-slate-100 focus-visible:ring-offset-white`
                     }`}
                     aria-label="外观与主题"
                   >
@@ -1249,8 +1281,8 @@ const MainLayoutContent: React.FC<{
                     }}
                     className={`relative inline-flex h-9 w-9 shrink-0 items-center justify-center p-0 transition-colors motion-reduce:transition-none rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 ${
                       isDark
-                        ? `text-slate-400 hover:text-slate-200 bg-white/[0.04] hover:bg-white/[0.08] focus-visible:ring-offset-lantu-card ${showMessagePanel ? 'bg-white/10' : ''}`
-                        : `text-slate-400 hover:text-slate-800 bg-slate-100/50 hover:bg-slate-100 focus-visible:ring-offset-white ${showMessagePanel ? 'bg-slate-100' : ''}`
+                        ? `${iconChrome(theme)} bg-white/[0.04] hover:bg-white/[0.08] focus-visible:ring-offset-lantu-card ${showMessagePanel ? 'bg-white/10' : ''}`
+                        : `${iconChrome(theme)} bg-slate-100/50 hover:bg-slate-100 focus-visible:ring-offset-white ${showMessagePanel ? 'bg-slate-100' : ''}`
                     }`}
                     aria-label={
                       messageUnreadCount > 0 ? `消息通知，${messageUnreadCount} 条未读` : '消息通知'
@@ -1282,8 +1314,8 @@ const MainLayoutContent: React.FC<{
                     }}
                     className={`inline-flex h-9 w-9 shrink-0 items-center justify-center p-0 transition-colors motion-reduce:transition-none rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 ${
                       isDark
-                        ? 'text-slate-400 hover:text-slate-200 bg-white/[0.04] hover:bg-white/[0.08] focus-visible:ring-offset-lantu-card'
-                        : 'text-slate-400 hover:text-slate-800 bg-slate-100/50 hover:bg-slate-100 focus-visible:ring-offset-white'
+                        ? `${iconChrome(theme)} bg-white/[0.04] hover:bg-white/[0.08] focus-visible:ring-offset-lantu-card`
+                        : `${iconChrome(theme)} bg-slate-100/50 hover:bg-slate-100 focus-visible:ring-offset-white`
                     }`}
                     aria-label={isFullscreen ? '退出全屏' : '全屏'}
                   >

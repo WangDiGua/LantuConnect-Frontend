@@ -1,8 +1,8 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  /** 为 true 时不使用 React StrictMode（开发环境避免 effect 双跑、接口双请求） */
-  readonly VITE_DISABLE_STRICT_MODE?: string;
+  /** 为 true 时启用 React StrictMode（开发态会双跑 effect，易见接口重复请求；默认不启用） */
+  readonly VITE_ENABLE_STRICT_MODE?: string;
   /** API 根路径（一般为后端 context-path，如 /regis），默认见 src/config/defaultApiBase.ts */
   readonly VITE_API_BASE_URL?: string;
   /** dev server 代理目标，默认 http://localhost:8080 */

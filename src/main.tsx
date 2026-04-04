@@ -15,13 +15,18 @@ document.documentElement.style.fontSize = getRootFontSizePx(appearance.fontSize)
 
 const root = document.getElementById('root')!;
 
-/** `npm run dev:stable`（mode=no-strict）时关闭 StrictMode，避免开发态接口被请求两次 */
-const strictOff = import.meta.env.VITE_DISABLE_STRICT_MODE === 'true';
+/**
+ * 默认不启用 StrictMode：React 19 在开发态会对 effect 双跑以暴露副作用问题，会导致同一请求发两次。
+ * 需要排查副作用时再在 .env.development 设置 VITE_ENABLE_STRICT_MODE=true。
+ */
+const strictOn = import.meta.env.VITE_ENABLE_STRICT_MODE === 'true';
 
 createRoot(root).render(
-  strictOff ? <App /> : (
+  strictOn ? (
     <StrictMode>
       <App />
     </StrictMode>
+  ) : (
+    <App />
   ),
 );

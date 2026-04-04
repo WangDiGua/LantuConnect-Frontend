@@ -55,7 +55,7 @@ function contentSecurityPolicyPlugin(mode: string, env: Record<string, string>):
 }
 
 export default defineConfig(({ mode }) => {
-  /** no-strict：仍用 development 的 .env（API 代理等）；关闭 StrictMode 见下方 define */
+  /** no-strict：与 development 共用 .env（API 代理等），保留与旧 `dev:stable` 脚本兼容 */
   const env = mode === 'no-strict' ? loadEnv('development', '.', '') : loadEnv(mode, '.', '');
   const proxyTarget = env.VITE_API_PROXY_TARGET || 'http://localhost:8080';
   const apiBase = (env.VITE_API_BASE_URL || DEFAULT_API_BASE_PATH).replace(/\/$/, '');
@@ -65,10 +65,6 @@ export default defineConfig(({ mode }) => {
 
   return {
     base,
-    define:
-      mode === 'no-strict'
-        ? { 'import.meta.env.VITE_DISABLE_STRICT_MODE': JSON.stringify('true') }
-        : undefined,
     plugins: [react(), tailwindcss(), contentSecurityPolicyPlugin(mode, env)],
     resolve: {
       alias: {

@@ -65,7 +65,7 @@ export const Modal: React.FC<ModalProps> = ({
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
             className={`relative w-full ${SIZE_MAP[size]} rounded-[2rem] border flex flex-col max-h-[85vh] overflow-hidden ${
               isDark
-                ? 'bg-[#1a1f2e] border-white/[0.08] shadow-2xl'
+                ? 'bg-lantu-card border-white/[0.08] shadow-2xl'
                 : 'bg-white border-neutral-200/60 shadow-2xl'
             }`}
           >

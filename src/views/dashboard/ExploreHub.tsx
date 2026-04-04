@@ -54,12 +54,12 @@ const HUB_STAT_BASE_DARK = 'border-white/10 shadow-[0_2px_10px_rgba(0,0,0,0.2)]'
 const HUB_STAT_HOVER_LIGHT =
   'hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] hover:border-gray-200 hover:bg-gradient-to-br hover:from-white hover:to-gray-50';
 const HUB_STAT_HOVER_DARK =
-  'hover:shadow-[0_20px_50px_rgba(0,0,0,0.45)] hover:border-white/20 hover:bg-gradient-to-br hover:from-[#171b22] hover:to-[#1e2433]';
+  'hover:shadow-[0_20px_50px_rgba(0,0,0,0.45)] hover:border-white/20 hover:bg-gradient-to-br hover:from-lantu-card hover:to-lantu-elevated';
 
 const Card: React.FC<{ children: React.ReactNode; className?: string; isDark?: boolean }> = ({ children, className = '', isDark = false }) => (
   <div
     className={`rounded-2xl border overflow-hidden ${
-      isDark ? `bg-[#171b22] ${HUB_STAT_BASE_DARK}` : `bg-white ${HUB_STAT_BASE_LIGHT}`
+      isDark ? `bg-lantu-card ${HUB_STAT_BASE_DARK}` : `bg-white ${HUB_STAT_BASE_LIGHT}`
     } ${className}`}
   >
     {children}
@@ -95,7 +95,7 @@ const HubStatCard: React.FC<{
     'group relative w-full min-w-0 h-[156px] rounded-[20px] border flex flex-col items-center justify-center overflow-hidden',
     'transition-all duration-500 ease-out hover:-translate-y-2',
     isDark
-      ? `bg-[#171b22] ${HUB_STAT_BASE_DARK} ${HUB_STAT_HOVER_DARK}`
+      ? `bg-lantu-card ${HUB_STAT_BASE_DARK} ${HUB_STAT_HOVER_DARK}`
       : `bg-white ${HUB_STAT_BASE_LIGHT} ${HUB_STAT_HOVER_LIGHT}`,
   ].join(' ');
 
@@ -342,8 +342,8 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
               x2: 0,
               y2: 1,
               colorStops: [
-                { offset: 0, color: '#0f172a' },
-                { offset: 1, color: '#475569' },
+                { offset: 0, color: '#1e2435' },
+                { offset: 1, color: '#64748b' },
               ],
             },
           },
@@ -467,7 +467,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
                       type="button"
                       onClick={() => navigateToResource(res)}
                       className={`rounded-2xl border px-6 pt-6 pb-8 flex flex-col h-full text-left cursor-pointer ${
-                        isDark ? `bg-[#171b22] ${HUB_STAT_BASE_DARK}` : `bg-white ${HUB_STAT_BASE_LIGHT}`
+                        isDark ? `bg-lantu-card ${HUB_STAT_BASE_DARK}` : `bg-white ${HUB_STAT_BASE_LIGHT}`
                       }`}
                     >
                       <div className="flex items-start justify-between mb-4">
@@ -576,7 +576,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
                       className={`rounded-2xl p-6 flex flex-col items-center justify-center text-center border mt-2 ${
                         isDark
                           ? 'bg-white/[0.03] border-white/10 shadow-[0_2px_10px_rgba(0,0,0,0.2)]'
-                          : 'bg-[#F8F9FA] border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)]'
+                          : 'bg-neutral-50 border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)]'
                       }`}
                     >
                       <div className="relative mb-4">

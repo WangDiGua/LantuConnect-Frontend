@@ -5,6 +5,7 @@ import type { Theme } from '../../types';
 import { mainScrollCompositorClass } from '../../utils/uiClasses';
 import type { ConsoleRole } from '../../constants/consoleRoutes';
 import type { PlatformRoleCode } from '../../types/dto/auth';
+import { PLATFORM_ROLE_LABELS } from '../../constants/platformRoles';
 import { Logo } from '../common/Logo';
 import { MultiAvatar } from '../common/MultiAvatar';
 
@@ -45,15 +46,6 @@ export interface ConsoleSidebarProps {
   onLogoClick?: () => void;
   filteredSubGroupsForSidebarId: (id: string, domain: ConsoleRole) => SubGroup[];
 }
-
-const ROLE_LABELS: Record<PlatformRoleCode, string> = {
-  platform_admin: '超级管理员',
-  dept_admin: '部门管理员',
-  developer: '开发者',
-  consumer: '消费者',
-  user: '用户',
-  unassigned: '待入驻用户',
-};
 
 export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
   theme,
@@ -397,9 +389,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
                             {activeSubItem === subItem.id && activeSidebar === item.id && routeRole === item.domain && (
                               <div
                                 className={`absolute left-[-20px] top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-neutral-900 ring-4 ${
-                                  isDark
-                                    ? 'ring-[#0f1117]'
-                                    : 'ring-[#EFEFF1]'
+                                  'ring-lantu-chrome'
                                 }`}
                               />
                             )}
@@ -444,7 +434,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
                 exit={{ opacity: 0, y: 8, scale: 0.96 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                 className={`absolute bottom-full left-0 right-0 mb-2 rounded-xl border p-1.5 shadow-xl z-50 ${
-                  isDark ? 'border-white/10 bg-[#1C1C1E]' : 'border-slate-200 bg-white'
+                  isDark ? 'border-white/10 bg-lantu-card' : 'border-slate-200 bg-white'
                 }`}
               >
                 <button
@@ -504,7 +494,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
                       : 'bg-neutral-100 text-neutral-900 border border-neutral-200/80'
                   }`}
                 >
-                  {ROLE_LABELS[platformRole]}
+                  {PLATFORM_ROLE_LABELS[platformRole]}
                 </span>
                 <span
                   className={`text-[9px] px-1.5 py-0.5 rounded-md font-bold whitespace-nowrap ${

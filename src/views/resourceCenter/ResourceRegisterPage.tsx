@@ -1910,7 +1910,7 @@ const ThemedSelect: React.FC<{
           id={listboxId}
           role="listbox"
           className={`absolute z-30 mt-1 max-h-56 w-full overflow-auto rounded-xl border py-1 shadow-lg ${
-            isDark ? 'border-white/10 bg-[#1a1f2e]' : 'border-slate-200 bg-white'
+            isDark ? 'border-white/10 bg-lantu-card' : 'border-slate-200 bg-white'
           }`}
         >
           {options.map((option) => {

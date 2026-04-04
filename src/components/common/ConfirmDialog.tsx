@@ -70,7 +70,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 12 }}
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            className="relative w-full max-w-sm rounded-[2rem] border p-6 bg-white dark:bg-[#1a1f2e] border-neutral-200/60 dark:border-white/[0.08] shadow-2xl"
+            className="relative w-full max-w-sm rounded-[2rem] border p-6 bg-white dark:bg-lantu-card border-neutral-200/60 dark:border-white/[0.08] shadow-2xl"
           >
             <h3 id={titleId} className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 tracking-tight">{title}</h3>
             <p id={messageId} className="mt-2 text-[13px] text-neutral-500 dark:text-neutral-400 leading-relaxed">{message}</p>

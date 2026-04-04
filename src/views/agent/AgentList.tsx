@@ -370,7 +370,7 @@ export const AgentList: React.FC<AgentListProps> = ({
                           onClose={() => setOpenMenuId(null)}
                           anchorEl={menuTriggerRefs.current.get(agent.id) ?? null}
                           className={`w-32 rounded-xl border shadow-xl py-1 ${
-                            isDark ? 'bg-[#1a1f2e] border-white/10' : 'bg-white border-slate-200'
+                            isDark ? 'bg-lantu-card border-white/10' : 'bg-white border-slate-200'
                           }`}
                         >
                           <button

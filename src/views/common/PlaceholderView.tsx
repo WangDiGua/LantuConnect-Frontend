@@ -21,7 +21,7 @@ export const PlaceholderView: React.FC<PlaceholderViewProps> = ({ title, theme, 
     >
       <div className="max-w-2xl w-full text-center">
         <div className={`mb-6 inline-flex p-4 rounded-[24px] transition-colors border shadow-none ${
-          theme === 'light' ? 'bg-white border-slate-200/80 text-slate-400' : 'bg-[#1C1C1E] border-white/10 text-slate-500'
+          theme === 'light' ? 'bg-white border-slate-200/80 text-slate-400' : 'bg-lantu-card border-white/10 text-slate-500'
         }`}>
           <LayoutDashboard size={40} />
         </div>

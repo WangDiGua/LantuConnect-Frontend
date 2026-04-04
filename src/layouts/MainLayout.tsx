@@ -1072,7 +1072,7 @@ const MainLayoutContent: React.FC<{
         data-theme={theme === 'dark' ? 'dark' : 'light'}
         className={`h-screen p-3 md:p-4 flex overflow-hidden selection:bg-neutral-200 selection:text-neutral-900 ${
           FONT_FAMILY_CLASSES[fontFamily]
-        } ${isDark ? 'bg-[#0f1117]' : 'bg-[#EFEFF1]'}`}
+        } bg-lantu-chrome`}
       >
         {/* Mobile backdrop */}
         {mobileNavOpen && (
@@ -1087,7 +1087,7 @@ const MainLayoutContent: React.FC<{
         {/* Floating Sidebar */}
         <aside
           className={`${chromeGpuLayerClass} fixed inset-y-0 left-0 z-50 flex h-full w-[240px] shrink-0 flex-col px-3 py-2 transition-transform duration-200 ease-out lg:static lg:z-auto lg:translate-x-0 ${
-            isDark ? 'bg-[#0f1117]' : 'bg-[#EFEFF1]'
+            'bg-lantu-chrome'
           } lg:bg-transparent ${
             mobileNavOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
           }`}
@@ -1133,7 +1133,7 @@ const MainLayoutContent: React.FC<{
         <main
           className={`${chromeGpuLayerClass} flex-1 overflow-hidden flex flex-col relative ${
             isDark
-              ? 'bg-[#1a1f2e] rounded-[24px] md:rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-white/[0.06]'
+              ? 'bg-lantu-card rounded-[24px] md:rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-white/[0.06]'
               : 'bg-slate-50 rounded-[24px] md:rounded-[32px] shadow-[0_8px_30px_rgb(15,23,42,0.05)] border border-slate-200/45'
           }`}
         >
@@ -1141,7 +1141,7 @@ const MainLayoutContent: React.FC<{
           <header
             className={`${chromeGpuLayerClass} h-[72px] flex items-center justify-between px-4 sm:px-5 lg:px-6 shrink-0 z-10 sticky top-0 border-b ${
               isDark
-                ? 'bg-[#1a1f2e]/80 backdrop-blur-md border-white/[0.06]'
+                ? 'bg-lantu-card/80 backdrop-blur-md border-white/[0.06]'
                 : 'bg-slate-50/90 backdrop-blur-md border-slate-200/35'
             }`}
           >
@@ -1173,7 +1173,7 @@ const MainLayoutContent: React.FC<{
                       exit={{ opacity: 0, y: -6, scale: 0.98 }}
                       transition={springTransition}
                       className={`absolute right-0 top-full z-[60] mt-1.5 w-[min(22rem,calc(100vw-1.25rem))] sm:w-96 rounded-xl border p-2 shadow-xl ${
-                        isDark ? 'border-white/10 bg-[#1C1C1E]' : 'border-gray-200 bg-white'
+                        isDark ? 'border-white/10 bg-lantu-card' : 'border-gray-200 bg-white'
                       }`}
                     >
                       <div
@@ -1254,7 +1254,7 @@ const MainLayoutContent: React.FC<{
                     {messageUnreadCount > 0 && (
                       <span
                         className={`absolute -right-1 -top-1 flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 px-1 text-[10px] font-bold leading-none text-white shadow-sm ${
-                          isDark ? 'border-[#1a1f2e] bg-rose-500' : 'border-white bg-rose-500'
+                          isDark ? 'border-lantu-card bg-rose-500' : 'border-white bg-rose-500'
                         }`}
                       >
                         {messageUnreadCount > 99 ? '99+' : messageUnreadCount}

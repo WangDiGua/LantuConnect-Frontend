@@ -6,8 +6,8 @@ const D = (t: Theme) => t === 'dark';
    Page & Surface — Canvas layout
    ═══════════════════════════════════════════ */
 
-export function pageBg(theme: Theme) {
-  return D(theme) ? 'bg-[#0f1117]' : 'bg-[#FAFAFA]';
+export function pageBg(_theme: Theme) {
+  return 'bg-lantu-canvas';
 }
 
 export const mainScrollPadX = 'px-4 sm:px-5 lg:px-6';
@@ -33,7 +33,7 @@ export function canvasBodyBg(theme: Theme) {
 
 export function canvasCard(theme: Theme) {
   return D(theme)
-    ? 'bg-[#1e2435] rounded-2xl md:rounded-3xl shadow-[0_2px_24px_-6px_rgba(0,0,0,0.45)] border border-white/[0.09]'
+    ? 'bg-lantu-elevated rounded-2xl md:rounded-3xl shadow-[0_2px_24px_-6px_rgba(0,0,0,0.45)] border border-white/[0.09]'
     : 'bg-white rounded-2xl md:rounded-3xl shadow-[0_2px_12px_-4px_rgba(15,23,42,0.07)] border border-slate-200/45';
 }
 
@@ -43,13 +43,13 @@ export function canvasCard(theme: Theme) {
 
 export function glassSidebar(theme: Theme) {
   return D(theme)
-    ? 'bg-[#141820]/70 backdrop-blur-2xl border-r border-white/[0.06]'
+    ? 'bg-lantu-surface/70 backdrop-blur-2xl border-r border-white/[0.06]'
     : 'bg-[#FDFDFD] backdrop-blur-2xl border-r border-neutral-200';
 }
 
 export function glassPanel(theme: Theme) {
   return D(theme)
-    ? 'bg-[#1a1f2e]/55 backdrop-blur-xl border border-white/[0.08] rounded-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]'
+    ? 'bg-lantu-card/55 backdrop-blur-xl border border-white/[0.08] rounded-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]'
     : 'bg-white/80 backdrop-blur-md border border-slate-200/35 rounded-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.85),0_1px_2px_rgba(15,23,42,0.04)]';
 }
 
@@ -68,7 +68,7 @@ const CARD_HOVER_DARK =
 export function bentoCard(theme: Theme) {
   return `rounded-2xl border transition-all duration-200 ${
     D(theme)
-      ? `bg-[#1e2435] border-white/[0.09] ${CARD_SHADE_DARK}`
+      ? `bg-lantu-elevated border-white/[0.09] ${CARD_SHADE_DARK}`
       : `bg-white border-slate-200/50 ${CARD_SHADE_LIGHT}`
   }`;
 }

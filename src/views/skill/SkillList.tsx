@@ -231,7 +231,7 @@ export const SkillList: React.FC<Props> = ({ theme, fontSize }) => {
         <button type="button" ref={(el) => { if (el) menuTriggerRefs.current.set(skill.id, el); }} onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === skill.id ? null : skill.id); }} className={btnGhost(theme)}>
           <MoreHorizontal size={16} />
         </button>
-        <PortalDropdown open={openMenuId === skill.id} onClose={() => setOpenMenuId(null)} anchorEl={menuTriggerRefs.current.get(skill.id) ?? null} className={`w-32 rounded-xl border shadow-xl py-1 ${isDark ? 'bg-[#1a1f2e] border-white/10' : 'bg-white border-slate-200'}`}>
+        <PortalDropdown open={openMenuId === skill.id} onClose={() => setOpenMenuId(null)} anchorEl={menuTriggerRefs.current.get(skill.id) ?? null} className={`w-32 rounded-xl border shadow-xl py-1 ${isDark ? 'bg-lantu-card border-white/10' : 'bg-white border-slate-200'}`}>
           <button type="button" onClick={() => { handleViewDetail(skill.id); setOpenMenuId(null); }} className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 ${isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`}>
             <Eye size={14} /> 查看
           </button>

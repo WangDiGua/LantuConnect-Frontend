@@ -71,7 +71,7 @@ export const OverviewAnalyticsGrid: React.FC<OverviewAnalyticsGridProps> = ({ th
           radius: ['42%', '68%'],
           center: ['50%', '54%'],
           avoidLabelOverlap: true,
-          itemStyle: { borderRadius: 6, borderColor: theme === 'dark' ? '#1C1C1E' : '#fff', borderWidth: 2 },
+          itemStyle: { borderRadius: 6, borderColor: theme === 'dark' ? '#1a1f2e' : '#fff', borderWidth: 2 },
           label: { color: c.muted, fontSize: 11 },
           data: [
             { value: 842, name: '2xx 成功' },

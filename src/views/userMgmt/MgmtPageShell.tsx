@@ -59,7 +59,7 @@ export const MgmtPageShell: React.FC<MgmtPageShellProps> = ({
         <div
             className={`rounded-[24px] border flex-1 min-h-0 min-w-0 flex flex-col ${cardOverflow} ${
             isDark
-              ? 'bg-[#1e2435] border-white/[0.09] shadow-[0_2px_20px_-6px_rgba(0,0,0,0.45)]'
+              ? 'bg-lantu-elevated border-white/[0.09] shadow-[0_2px_20px_-6px_rgba(0,0,0,0.45)]'
               : 'bg-white border-slate-200/50 shadow-[0_2px_8px_-2px_rgba(15,23,42,0.07),0_1px_2px_-1px_rgba(15,23,42,0.05)]'
           }`}
         >
@@ -157,7 +157,7 @@ export const MgmtPageShell: React.FC<MgmtPageShellProps> = ({
           {toolbar ? (
             <div
               className={`shrink-0 px-4 sm:px-6 py-3 border-b ${
-                isDark ? 'border-white/10 bg-[#1C1C1E]/50' : 'border-slate-200 bg-slate-50/50'
+                isDark ? 'border-white/10 bg-lantu-card/50' : 'border-slate-200 bg-slate-50/50'
               }`}
             >
               {toolbar}

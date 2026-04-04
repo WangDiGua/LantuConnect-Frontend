@@ -60,7 +60,7 @@ export const LantuSelect: React.FC<LantuSelectProps> = ({
     return () => document.removeEventListener('keydown', onKey);
   }, [open, close]);
 
-  const menuSurface = isDark ? 'bg-[#1a1f2e] border-white/10' : 'bg-white border-neutral-200';
+  const menuSurface = isDark ? 'bg-lantu-card border-white/10' : 'bg-white border-neutral-200';
   const itemBase = isDark ? 'text-neutral-300' : 'text-neutral-600';
   const itemHover = isDark ? 'hover:bg-white/5' : 'hover:bg-neutral-50';
   const itemActive = isDark ? 'bg-white/10 font-medium text-white' : 'bg-neutral-50/80 font-medium text-neutral-900';

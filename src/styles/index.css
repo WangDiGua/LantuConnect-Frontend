@@ -24,6 +24,14 @@
   --font-outfit: "Outfit", sans-serif;
   --font-garamond: "Cormorant Garamond", serif;
   --font-anton: "Anton", sans-serif;
+  /* 语义色见 @layer base :root，此处为 Tailwind 别名 */
+  --color-lantu-canvas: var(--canvas-bg);
+  --color-lantu-chrome: var(--bg-chrome);
+  --color-lantu-card: var(--bg-card);
+  --color-lantu-surface: var(--bg-surface);
+  --color-lantu-elevated: var(--bg-elevated);
+  --color-lantu-subtle: var(--bg-subtle);
+  --color-lantu-border: var(--border-default);
 }
 
 /* ═══════════════════════════════════════════════════
@@ -40,6 +48,10 @@
     --canvas-bg: #FAFAFA;
     --canvas-card-bg: #ffffff;
     --canvas-card-radius: 1rem;
+    /** 侧栏/顶栏外侧壳层（略深于画布时用于层次） */
+    --bg-chrome: #EFEFF1;
+    /** 列表/看板上略抬升的卡片（亮色与白卡一致） */
+    --bg-elevated: #ffffff;
 
     /* Surface & Background */
     --bg-page-from: #FAFAFA;
@@ -77,6 +89,8 @@
   [data-theme="dark"] {
     --canvas-bg: #0f1117;
     --canvas-card-bg: #1a1f2e;
+    --bg-chrome: #0f1117;
+    --bg-elevated: #1e2435;
 
     --bg-page-from: #0f1117;
     --bg-page-to: #0f1117;

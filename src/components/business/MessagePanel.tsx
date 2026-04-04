@@ -200,7 +200,7 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
     void fetchNotifications(reset);
   };
 
-  const surface = isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200';
+  const surface = isDark ? 'bg-lantu-card border-white/10' : 'bg-white border-slate-200';
   const dropdownClassName = `z-[60] overflow-hidden rounded-[24px] border shadow-xl ${
     usePortal
       ? `fixed w-[min(calc(100vw-1.5rem),380px)] ${surface}`
@@ -418,7 +418,7 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
               transition={{ duration: 0.2 }}
               onClick={(e) => e.stopPropagation()}
               className={`rounded-[24px] border shadow-xl max-w-md w-full overflow-hidden ${
-                isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200'
+                isDark ? 'bg-lantu-card border-white/10' : 'bg-white border-slate-200'
               }`}
             >
               {(() => {

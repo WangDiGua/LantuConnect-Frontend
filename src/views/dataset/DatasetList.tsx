@@ -162,7 +162,7 @@ export const DatasetList: React.FC<Props> = ({ theme, fontSize, showMessage }) =
                       {/* Mobile menu */}
                       <div className="sm:hidden shrink-0">
                         <button type="button" ref={(el) => { if (el) menuTriggerRefs.current.set(ds.id, el); }} onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === ds.id ? null : ds.id); }} className={btnGhost(theme)}><MoreHorizontal size={16} /></button>
-                        <PortalDropdown open={openMenuId === ds.id} onClose={() => setOpenMenuId(null)} anchorEl={menuTriggerRefs.current.get(ds.id) ?? null} className={`w-32 rounded-xl border shadow-xl py-1 ${isDark ? 'bg-[#1a1f2e] border-white/10' : 'bg-white border-slate-200'}`}>
+                        <PortalDropdown open={openMenuId === ds.id} onClose={() => setOpenMenuId(null)} anchorEl={menuTriggerRefs.current.get(ds.id) ?? null} className={`w-32 rounded-xl border shadow-xl py-1 ${isDark ? 'bg-lantu-card border-white/10' : 'bg-white border-slate-200'}`}>
                           <button type="button" onClick={() => { setSelectedDatasetId(String(ds.id)); setOpenMenuId(null); }} className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 ${isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`}><ExternalLink size={14} /> 详情</button>
                           <button type="button" onClick={() => { setDeleteTarget({ id: ds.id, name: ds.displayName }); setOpenMenuId(null); }} className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 ${isDark ? 'text-rose-400 hover:bg-rose-500/10' : 'text-rose-500 hover:bg-rose-50'}`}><Trash2 size={14} /> 删除</button>
                         </PortalDropdown>

@@ -60,7 +60,7 @@ export const AppearanceMenu: React.FC<AppearanceMenuProps> = ({
       className={`rounded-xl min-w-0 ${
         embedded
           ? `shadow-none border-0 w-full ${theme === 'light' ? 'bg-slate-50' : 'bg-black/20'} px-3 py-3 sm:px-4 sm:py-4`
-          : `p-5 rounded-[24px] border shadow-2xl w-[min(22rem,calc(100vw-2rem))] ${theme === 'light' ? 'bg-white border-slate-200' : 'bg-[#1C1C1E] border-white/10'}`
+          : `p-5 rounded-[24px] border shadow-2xl w-[min(22rem,calc(100vw-2rem))] ${theme === 'light' ? 'bg-white border-slate-200' : 'bg-lantu-card border-white/10'}`
       }`}
     >
       <div className="flex flex-col gap-6">

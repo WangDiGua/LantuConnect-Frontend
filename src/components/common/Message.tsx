@@ -82,7 +82,7 @@ export const MessageProvider: React.FC<MessageProviderProps> = ({ children, them
               className={`pointer-events-auto flex items-center gap-3 px-4 py-2.5 rounded-xl border shadow-2xl min-w-[240px] max-w-md ${
                 theme === 'light'
                   ? 'bg-white border-slate-200 text-slate-700'
-                  : 'bg-[#1C1C1E] border-white/10 text-slate-200'
+                  : 'bg-lantu-card border-white/10 text-slate-200'
               }`}
             >
               <div className="flex-shrink-0">

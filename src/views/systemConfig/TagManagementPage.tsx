@@ -272,7 +272,7 @@ export const TagManagementPage: React.FC<Props> = ({ theme, fontSize, showMessag
                       onClose={() => setExpandedTagId(null)}
                       anchorEl={tagTriggerRefs.current.get(tag.id) ?? null}
                       align="left"
-                      className={`w-64 rounded-xl border p-3 shadow-xl ${isDark ? 'bg-[#1a1f2e] border-white/[0.06]' : 'bg-white border-slate-200'}`}
+                      className={`w-64 rounded-xl border p-3 shadow-xl ${isDark ? 'bg-lantu-card border-white/[0.06]' : 'bg-white border-slate-200'}`}
                     >
                       <div className="flex items-center justify-between mb-2">
                         <span className={`font-bold text-sm ${textPrimary(theme)}`}>{tag.name}</span>

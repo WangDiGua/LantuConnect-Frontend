@@ -922,7 +922,7 @@ export const McpMarket: React.FC<Props> = ({ theme, showMessage }) => {
               <div>
                 <p className={`mb-1 text-xs font-semibold ${textSecondary(theme)}`}>流式输出（实时）</p>
                 <pre className={`max-h-[28vh] overflow-auto rounded-xl border p-3 text-xs leading-relaxed whitespace-pre-wrap ${
-                  isDark ? 'border-white/10 bg-[#0f172a]' : 'border-slate-200 bg-white'
+                  isDark ? 'border-white/10 bg-lantu-card' : 'border-slate-200 bg-white'
                 }`}>
                   {invokeStreamOutput || (invoking ? '等待首包…' : '')}
                 </pre>
@@ -1090,7 +1090,7 @@ export const McpMarket: React.FC<Props> = ({ theme, showMessage }) => {
                     body（{invokeBodyView?.asJson ? 'JSON' : '文本'}）
                   </p>
                   <pre className={`max-h-[44vh] overflow-auto rounded-xl border p-3 text-xs leading-relaxed whitespace-pre-wrap ${
-                    isDark ? 'border-white/10 bg-[#0f172a]' : 'border-slate-200 bg-white'
+                    isDark ? 'border-white/10 bg-lantu-card' : 'border-slate-200 bg-white'
                   }`}>
                     {invokeBodyView?.text || ''}
                   </pre>

@@ -473,7 +473,7 @@ export const SkillCreate: React.FC<Props> = ({ theme, fontSize: _fontSize, onBac
   return (
     <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${canvasBodyBg(theme)}`}>
       <div className={`shrink-0 z-20 border-b px-4 sm:px-6 py-4 flex items-center gap-4 backdrop-blur-xl ${
-        isDark ? 'border-white/[0.06] bg-[#0c0f17]/80' : 'border-slate-200/40 bg-white/80'
+        isDark ? 'border-white/[0.06] bg-lantu-surface/80' : 'border-slate-200/40 bg-white/80'
       }`}>
         <button type="button" onClick={onBack} className={btnGhost(theme)}>
           <ArrowLeft size={20} />

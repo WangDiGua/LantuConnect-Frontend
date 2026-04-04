@@ -121,7 +121,7 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
           width: 8px;
           height: 8px;
           opacity: 0.35;
-          background: ${isDark ? '#fff' : '#0f172a'};
+          background: ${isDark ? '#fff' : '#1e2435'};
         }
         .hero-swiper .swiper-pagination-bullet-active {
           opacity: 1;

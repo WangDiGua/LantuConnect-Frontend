@@ -34,7 +34,7 @@ export const ErrorPage: React.FC<Props> = ({ code = 500, title, message, primary
   return (
     <div className={`min-h-screen flex items-center justify-center p-6 bg-gradient-to-br ${
       isDark
-        ? 'from-[#0c0f17] via-[#111827] to-neutral-950/30'
+        ? 'from-lantu-canvas via-lantu-subtle to-neutral-950/30'
         : 'from-slate-100 via-[#e8eef5] to-neutral-50'
     }`}>
       <motion.div

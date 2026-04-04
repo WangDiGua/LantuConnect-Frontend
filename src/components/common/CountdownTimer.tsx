@@ -108,7 +108,7 @@ export const CountdownTimer: React.FC<CountdownTimerProps> = ({
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             className={`relative rounded-[24px] border p-6 max-w-md w-full shadow-2xl ${
-              isDark ? 'bg-[#1C1C1E] border-white/10' : 'bg-white border-slate-200/80'
+              isDark ? 'bg-lantu-card border-white/10' : 'bg-white border-slate-200/80'
             }`}
             onClick={(e) => e.stopPropagation()}
           >

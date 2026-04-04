@@ -295,15 +295,20 @@ const agent = new Nexus.Agent({
 await agent.deploy();
 console.log('✨ 智能体已上线');`;
 
-/** 默认光斑中心（右上偏外），与视觉稿类似 */
-const HERO_TERMINAL_SPOTLIGHT_DEFAULT =
-  'radial-gradient(520px circle at 72% 18%, rgba(255,255,255,0.16), rgba(34,211,238,0.07) 38%, transparent 70%)';
+/** 默认高光中心（%），略偏右上，静止态 */
+const HERO_GLOW_DEFAULT_PCT = { x: 68, y: 22 };
+
+function heroTerminalSpotlightGradient(x: number, y: number): string {
+  return `radial-gradient(95% 88% at ${x.toFixed(2)}% ${y.toFixed(2)}%, rgba(255,255,255,0.09) 0%, rgba(186,230,253,0.04) 34%, rgba(165,180,252,0.025) 52%, transparent 72%)`;
+}
 
 const HeroCodeTerminal: React.FC = () => {
   const [typedCode, setTypedCode] = useState('');
   const wrapRef = useRef<HTMLDivElement>(null);
   const spotlightRef = useRef<HTMLDivElement>(null);
-  const rafRef = useRef<number>(0);
+  const glowRafRef = useRef<number>(0);
+  const glowPosRef = useRef({ ...HERO_GLOW_DEFAULT_PCT });
+  const glowTargetRef = useRef({ ...HERO_GLOW_DEFAULT_PCT });
   const [reduceMotion, setReduceMotion] = useState(false);
 
   useEffect(() => {
@@ -327,31 +332,68 @@ const HeroCodeTerminal: React.FC = () => {
     return () => window.clearInterval(typingInterval);
   }, []);
 
-  const updateSpotlight = useCallback((clientX: number, clientY: number) => {
-    const wrap = wrapRef.current;
+  const runGlowTick = useCallback(() => {
     const spot = spotlightRef.current;
-    if (!wrap || !spot) return;
-    const r = wrap.getBoundingClientRect();
-    const x = ((clientX - r.left) / Math.max(r.width, 1)) * 100;
-    const y = ((clientY - r.top) / Math.max(r.height, 1)) * 100;
-    spot.style.background = `radial-gradient(520px circle at ${x}% ${y}%, rgba(255,255,255,0.22), rgba(34,211,238,0.08) 40%, transparent 72%)`;
+    if (!spot) {
+      glowRafRef.current = 0;
+      return;
+    }
+    const cur = glowPosRef.current;
+    const tgt = glowTargetRef.current;
+    const k = 0.13;
+    cur.x += (tgt.x - cur.x) * k;
+    cur.y += (tgt.y - cur.y) * k;
+    spot.style.background = heroTerminalSpotlightGradient(cur.x, cur.y);
+    const settled = Math.abs(tgt.x - cur.x) < 0.12 && Math.abs(tgt.y - cur.y) < 0.12;
+    if (settled) {
+      cur.x = tgt.x;
+      cur.y = tgt.y;
+      spot.style.background = heroTerminalSpotlightGradient(cur.x, cur.y);
+      glowRafRef.current = 0;
+      return;
+    }
+    glowRafRef.current = requestAnimationFrame(runGlowTick);
   }, []);
+
+  const scheduleGlow = useCallback(() => {
+    if (glowRafRef.current) return;
+    glowRafRef.current = requestAnimationFrame(runGlowTick);
+  }, [runGlowTick]);
 
   const onMouseMove = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       if (reduceMotion) return;
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      const cx = e.clientX;
-      const cy = e.clientY;
-      rafRef.current = requestAnimationFrame(() => updateSpotlight(cx, cy));
+      const wrap = wrapRef.current;
+      if (!wrap) return;
+      const r = wrap.getBoundingClientRect();
+      glowTargetRef.current = {
+        x: ((e.clientX - r.left) / Math.max(r.width, 1)) * 100,
+        y: ((e.clientY - r.top) / Math.max(r.height, 1)) * 100,
+      };
+      scheduleGlow();
     },
-    [reduceMotion, updateSpotlight],
+    [reduceMotion, scheduleGlow],
   );
 
   const onMouseLeave = useCallback(() => {
-    const spot = spotlightRef.current;
-    if (spot) spot.style.background = HERO_TERMINAL_SPOTLIGHT_DEFAULT;
-  }, []);
+    glowTargetRef.current = { ...HERO_GLOW_DEFAULT_PCT };
+    if (reduceMotion) {
+      const spot = spotlightRef.current;
+      if (spot) {
+        glowPosRef.current = { ...HERO_GLOW_DEFAULT_PCT };
+        spot.style.background = heroTerminalSpotlightGradient(HERO_GLOW_DEFAULT_PCT.x, HERO_GLOW_DEFAULT_PCT.y);
+      }
+      return;
+    }
+    scheduleGlow();
+  }, [reduceMotion, scheduleGlow]);
+
+  useEffect(
+    () => () => {
+      if (glowRafRef.current) cancelAnimationFrame(glowRafRef.current);
+    },
+    [],
+  );
 
   return (
     <div
@@ -366,27 +408,41 @@ const HeroCodeTerminal: React.FC = () => {
         className="relative w-[420px] max-w-full shrink-0 rounded-2xl"
         style={{ transform: 'rotate(-2deg)' }}
       >
-      {/* 边缘彩色晕圈：锥形渐变 + 强 blur，不随鼠标移动 */}
+      {/* 环境光晕：双层椭圆径向 + 大半径 blur，低饱和避免「塑料霓虹」 */}
       <div
-        className="pointer-events-none absolute -inset-3 z-0 rounded-[1.35rem] opacity-[0.92]"
+        className="pointer-events-none absolute -inset-[10px] z-0 rounded-[1.2rem] opacity-50"
+        style={{
+          background: `
+            radial-gradient(ellipse 130% 95% at 18% 12%, rgba(56,189,248,0.11), transparent 58%),
+            radial-gradient(ellipse 110% 130% at 92% 88%, rgba(129,140,248,0.08), transparent 55%)
+          `,
+          filter: 'blur(26px)',
+        }}
+        aria-hidden
+      />
+      {/* 贴边薄晕：略提高边缘存在感，仍弱于主体 */}
+      <div
+        className="pointer-events-none absolute -inset-[5px] z-0 rounded-[1.15rem] opacity-[0.35]"
         style={{
           background:
-            'conic-gradient(from 200deg at 45% 45%, rgba(34,211,238,0.5), rgba(99,102,241,0.28), rgba(244,114,182,0.12), rgba(34,211,238,0.45))',
-          filter: 'blur(18px)',
+            'linear-gradient(145deg, rgba(255,255,255,0.05) 0%, transparent 42%, rgba(125,211,252,0.04) 100%)',
+          filter: 'blur(8px)',
         }}
         aria-hidden
       />
-      {/* 白光晕：光心随指针在卡片坐标系内移动；移出后回到默认 */}
+      {/* 高光：插值跟随指针，椭圆形渐变 + 柔化 blur */}
       <div
         ref={spotlightRef}
-        className="pointer-events-none absolute -inset-8 z-0 rounded-[2rem] motion-reduce:opacity-100"
+        className="pointer-events-none absolute -inset-10 z-0 rounded-[2rem]"
         style={{
-          filter: 'blur(36px)',
-          background: HERO_TERMINAL_SPOTLIGHT_DEFAULT,
+          filter: 'blur(44px)',
+          background: heroTerminalSpotlightGradient(HERO_GLOW_DEFAULT_PCT.x, HERO_GLOW_DEFAULT_PCT.y),
         }}
         aria-hidden
       />
-      <div className="relative z-10 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl shadow-black/50">
+      <div
+        className="relative z-10 overflow-hidden rounded-2xl border border-white/[0.09] bg-black/40 shadow-[0_24px_48px_-12px_rgba(0,0,0,0.55),0_0_0_1px_rgba(255,255,255,0.04),0_0_70px_-28px_rgba(56,189,248,0.12)] backdrop-blur-xl"
+      >
       <div className="flex items-center px-4 py-3 border-b border-white/5">
         <div className="flex gap-1.5">
           <div className="w-3 h-3 rounded-full bg-red-500/80" />

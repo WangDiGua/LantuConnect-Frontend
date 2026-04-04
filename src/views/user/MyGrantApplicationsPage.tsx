@@ -8,11 +8,10 @@ import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { EmptyState } from '../../components/common/EmptyState';
 import { Pagination, FilterSelect } from '../../components/common';
+import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
+import { TOOLBAR_ROW_LIST } from '../../utils/toolbarFieldClasses';
 import {
-  bentoCard,
   btnGhost,
-  canvasBodyBg,
-  mainScrollCompositorClass,
   statusBadgeClass,
   statusDot,
   statusLabel,
@@ -36,6 +35,8 @@ interface Props {
   showMessage?: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void;
 }
 
+const MY_GRANT_DESC = '查看已提交的资源授权申请及审批状态';
+
 const STATUS_MAP: Record<string, DomainStatus> = {
   pending: 'pending_review',
   approved: 'published',
@@ -53,7 +54,7 @@ const EXPIRY_BADGE_STATUS: Record<'expired' | 'active', DomainStatus> = {
   active: 'published',
 };
 
-export const MyGrantApplicationsPage: React.FC<Props> = ({ theme }) => {
+export const MyGrantApplicationsPage: React.FC<Props> = ({ theme, fontSize }) => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const consoleRole: ConsoleRole = pathname.startsWith('/admin') ? 'admin' : 'user';
@@ -88,42 +89,45 @@ export const MyGrantApplicationsPage: React.FC<Props> = ({ theme }) => {
     void fetchData();
   }, [fetchData]);
 
-  return (
-    <div className={`flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${canvasBodyBg(theme)}`}>
-      <div className="px-3 py-4 sm:px-4 lg:px-5">
-        <div className={`${bentoCard(theme)} overflow-hidden`}>
-          <div className={`flex items-center justify-between border-b px-6 py-4 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-            <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-xl ${isDark ? 'bg-neutral-900/10' : 'bg-neutral-100'}`}>
-                <FileCheck size={20} className={isDark ? 'text-neutral-300' : 'text-neutral-900'} />
-              </div>
-              <div>
-                <h2 className={`text-lg font-bold ${textPrimary(theme)}`}>我的授权申请</h2>
-                <p className={`mt-0.5 text-xs ${textMuted(theme)}`}>查看已提交的资源授权申请及审批状态</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <FilterSelect
-                value={statusFilter}
-                onChange={(v) => { setStatusFilter(v); setPage(1); }}
-                options={[
-                  { value: 'all', label: '全部状态' },
-                  { value: 'pending', label: '待审批' },
-                  { value: 'approved', label: '已通过' },
-                  { value: 'rejected', label: '已驳回' },
-                ]}
-                theme={theme}
-                className="w-32"
-              />
-              <button type="button" onClick={() => void fetchData()} className={btnGhost(theme)} disabled={loading}>
-                <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-                刷新
-              </button>
-            </div>
-          </div>
+  const crumb = consoleRole === 'admin' ? (['管理控制台', '我的授权申请'] as const) : (['工作台', '我的授权申请'] as const);
 
+  return (
+    <MgmtPageShell
+      theme={theme}
+      fontSize={fontSize}
+      titleIcon={FileCheck}
+      breadcrumbSegments={crumb}
+      description={MY_GRANT_DESC}
+      toolbar={
+        <div className={`${TOOLBAR_ROW_LIST} justify-between min-w-0 gap-3`}>
+          <FilterSelect
+            value={statusFilter}
+            onChange={(v) => { setStatusFilter(v); setPage(1); }}
+            options={[
+              { value: 'all', label: '全部状态' },
+              { value: 'pending', label: '待审批' },
+              { value: 'approved', label: '已通过' },
+              { value: 'rejected', label: '已驳回' },
+            ]}
+            theme={theme}
+            className="w-32 shrink-0"
+          />
+          <button
+            type="button"
+            onClick={() => void fetchData()}
+            className={`shrink-0 ${btnGhost(theme)}`}
+            disabled={loading}
+            aria-label="刷新授权申请列表"
+          >
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} aria-hidden />
+            刷新
+          </button>
+        </div>
+      }
+    >
+      <div className="px-4 sm:px-6 pb-6 flex flex-col min-h-0 flex-1">
           {!loadError && (
-            <div className={`mx-6 mb-4 rounded-xl border px-4 py-3 text-sm ${isDark ? 'border-neutral-900/25 bg-neutral-900/10' : 'border-neutral-200 bg-neutral-100/90'}`}>
+            <div className={`mb-4 rounded-xl border px-4 py-3 text-sm ${isDark ? 'border-neutral-900/25 bg-neutral-900/10' : 'border-neutral-200 bg-neutral-100/90'}`}>
               <p className={`font-semibold ${textPrimary(theme)}`}>审批通过后怎么用？</p>
               <ul className={`mt-2 list-disc space-y-1.5 pl-4 ${textSecondary(theme)} text-sm`}>
                 <li>
@@ -268,11 +272,8 @@ export const MyGrantApplicationsPage: React.FC<Props> = ({ theme }) => {
             )}
           </div>
 
-          <div className={`px-4 border-t ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-            <Pagination theme={theme} page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} />
-          </div>
-        </div>
+          <Pagination theme={theme} page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} />
       </div>
-    </div>
+    </MgmtPageShell>
   );
 };

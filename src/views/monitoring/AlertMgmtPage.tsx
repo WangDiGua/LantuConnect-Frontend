@@ -10,12 +10,11 @@ import { AnimatedList } from '../../components/common/AnimatedList';
 import { SearchInput, FilterSelect, Pagination } from '../../components/common';
 import type { AlertRecord } from '../../types/dto/monitoring';
 import {
-  canvasBodyBg, bentoCard, bentoCardHover,
+  bentoCardHover,
   textPrimary, textSecondary, textMuted,
 } from '../../utils/uiClasses';
-import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { formatDateTime } from '../../utils/formatDateTime';
-import { PageTitleTagline } from '../../components/common/PageTitleTagline';
+import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 
 interface AlertMgmtPageProps {
   theme: Theme;
@@ -39,8 +38,9 @@ const STATUS_LABEL: Record<AlertRecord['status'], string> = {
 };
 
 function safeText(v: unknown): string { return String(v ?? ''); }
-export const AlertMgmtPage: React.FC<AlertMgmtPageProps> = ({ theme }) => {
-  const { chromePageTitle } = useLayoutChrome();
+const ALERT_DESC = '运行期告警列表';
+
+export const AlertMgmtPage: React.FC<AlertMgmtPageProps> = ({ theme, fontSize }) => {
   const isDark = theme === 'dark';
   const [q, setQ] = useState('');
   const [debouncedQ, setDebouncedQ] = useState('');
@@ -76,45 +76,44 @@ export const AlertMgmtPage: React.FC<AlertMgmtPageProps> = ({ theme }) => {
 
   if (alertsQ.isError) {
     return (
-      <div className={`flex-1 flex flex-col min-h-0 ${canvasBodyBg(theme)}`}>
-        <PageError error={alertsQ.error as Error} onRetry={() => alertsQ.refetch()} />
-      </div>
+      <MgmtPageShell
+        theme={theme}
+        fontSize={fontSize}
+        titleIcon={Shield}
+        breadcrumbSegments={['监控中心', '告警管理']}
+        description={ALERT_DESC}
+      >
+        <div className="px-4 sm:px-6 py-4">
+          <PageError error={alertsQ.error as Error} onRetry={() => alertsQ.refetch()} />
+        </div>
+      </MgmtPageShell>
     );
   }
 
   return (
-    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-colors duration-300 ${canvasBodyBg(theme)}`}>
-      <div className="w-full flex-1 min-h-0 flex flex-col px-2 sm:px-3 lg:px-4 py-2 sm:py-3">
-        <div className={`${bentoCard(theme)} overflow-hidden flex-1 min-h-0 flex flex-col`}>
-          {/* Header */}
-          <div className={`flex items-center justify-between px-6 py-4 border-b shrink-0 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-            <div className="flex min-w-0 items-center gap-3">
-              <div className={`shrink-0 rounded-xl p-2 ${isDark ? 'bg-rose-500/15' : 'bg-rose-50'}`}>
-                <Shield size={20} className={isDark ? 'text-rose-400' : 'text-rose-600'} />
-              </div>
-              <PageTitleTagline subtitleOnly theme={theme} title={chromePageTitle || '告警管理'} tagline="运行期告警列表" />
-            </div>
+    <MgmtPageShell
+      theme={theme}
+      fontSize={fontSize}
+      titleIcon={Shield}
+      breadcrumbSegments={['监控中心', '告警管理']}
+      description={ALERT_DESC}
+      toolbar={
+        <div className="flex flex-wrap items-center gap-2 min-w-0">
+          <FilterSelect value={severity} onChange={(v) => { setSeverity(v); setPage(1); }} options={[{ value: 'all', label: '全部级别' }, { value: 'critical', label: '严重' }, { value: 'warning', label: '警告' }, { value: 'info', label: '通知' }]} theme={theme} className="w-full sm:w-32" />
+          <FilterSelect value={statusF} onChange={(v) => { setStatusF(v); setPage(1); }} options={[{ value: 'all', label: '全部状态' }, { value: 'firing', label: '触发中' }, { value: 'resolved', label: '已恢复' }, { value: 'silenced', label: '已静默' }]} theme={theme} className="w-full sm:w-32" />
+          <div className="flex-1 min-w-[min(100%,200px)]">
+            <SearchInput value={q} onChange={setQ} placeholder="规则名、消息、来源…" theme={theme} />
           </div>
-
-          {/* Filters */}
-          <div className={`px-4 py-3 border-b shrink-0 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-            <div className="flex flex-wrap items-center gap-2">
-              <FilterSelect value={severity} onChange={(v) => { setSeverity(v); setPage(1); }} options={[{ value: 'all', label: '全部级别' }, { value: 'critical', label: '严重' }, { value: 'warning', label: '警告' }, { value: 'info', label: '通知' }]} theme={theme} className="w-full sm:w-32" />
-              <FilterSelect value={statusF} onChange={(v) => { setStatusF(v); setPage(1); }} options={[{ value: 'all', label: '全部状态' }, { value: 'firing', label: '触发中' }, { value: 'resolved', label: '已恢复' }, { value: 'silenced', label: '已静默' }]} theme={theme} className="w-full sm:w-32" />
-              <div className="flex-1 min-w-[min(100%,200px)]">
-                <SearchInput value={q} onChange={setQ} placeholder="规则名、消息、来源…" theme={theme} />
-              </div>
-            </div>
-          </div>
-
-          {/* Card rows */}
-          <div className="flex-1 min-h-0 overflow-auto">
-            {alertsQ.isLoading ? (
-              <div className="p-4"><PageSkeleton type="table" rows={6} /></div>
-            ) : rows.length === 0 ? (
-              <EmptyState title={debouncedQ || severity !== 'all' || statusF !== 'all' ? '无匹配告警' : '暂无告警'} description="系统运行正常。" icon={<Shield size={24} />} />
+        </div>
+      }
+    >
+      <div className="px-4 sm:px-6 pb-6 flex flex-col min-h-0 flex-1">
+        {alertsQ.isLoading ? (
+            <div className="py-2"><PageSkeleton type="table" rows={6} /></div>
+        ) : rows.length === 0 ? (
+              <EmptyState title={debouncedQ || severity !== 'all' || statusF !== 'all' ? '无匹配告警' : '暂无告警'} description="系统运行正常。" icon={<Shield size={24} aria-hidden />} />
             ) : (
-              <AnimatedList className="p-3 space-y-2">
+              <AnimatedList className="space-y-2">
                 {rows.map((r) => {
                   const sevBadge = SEVERITY_STYLE[r.severity];
                   return (
@@ -124,7 +123,7 @@ export const AlertMgmtPage: React.FC<AlertMgmtPageProps> = ({ theme }) => {
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`font-semibold ${textPrimary(theme)}`}>{safeText(r.ruleName) || '未命名规则'}</span>
+                          <span className={`font-semibold truncate min-w-0 ${textPrimary(theme)}`} title={safeText(r.ruleName)}>{safeText(r.ruleName) || '未命名规则'}</span>
                           <span className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${isDark ? sevBadge.dark : sevBadge.light}`}>
                             {sevBadge.label}
                           </span>
@@ -133,7 +132,7 @@ export const AlertMgmtPage: React.FC<AlertMgmtPageProps> = ({ theme }) => {
                             <span className={`text-[11px] font-medium ${textSecondary(theme)}`}>{STATUS_LABEL[r.status]}</span>
                           </span>
                         </div>
-                        <p className={`text-xs mt-1 line-clamp-1 ${textMuted(theme)}`}>{safeText(r.message) || '—'}</p>
+                        <p className={`text-xs mt-1 line-clamp-2 ${textMuted(theme)}`} title={safeText(r.message)}>{safeText(r.message) || '—'}</p>
                       </div>
                       <div className="hidden lg:flex items-center gap-6 shrink-0">
                         <div className="text-right">
@@ -150,15 +149,10 @@ export const AlertMgmtPage: React.FC<AlertMgmtPageProps> = ({ theme }) => {
                 })}
               </AnimatedList>
             )}
-          </div>
-
-          {total > 0 && (
-            <div className={`px-4 py-1 border-t shrink-0 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-              <Pagination theme={theme} page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} />
-            </div>
-          )}
-        </div>
+        {total > 0 ? (
+          <Pagination theme={theme} page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} />
+        ) : null}
       </div>
-    </div>
+    </MgmtPageShell>
   );
 };

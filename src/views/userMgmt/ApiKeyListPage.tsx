@@ -8,23 +8,23 @@ import { SearchInput, Pagination } from '../../components/common';
 import { userMgmtService } from '../../api/services/user-mgmt.service';
 import type { ApiKeyRecord } from '../../types/dto/user-mgmt';
 import {
-  canvasBodyBg, bentoCard, bentoCardHover, btnPrimary, btnSecondary, btnGhost,
+  btnPrimary, btnSecondary, btnGhost,
   textPrimary, textSecondary, textMuted, tableHeadCell, tableBodyRow, tableCell,
   tableCellActionChipsRow, tableCellScrollInnerMono,
 } from '../../utils/uiClasses';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
-import { useLayoutChrome } from '../../context/LayoutChromeContext';
-import { PageTitleTagline } from '../../components/common/PageTitleTagline';
 import { formatDateTime } from '../../utils/formatDateTime';
+import { MgmtPageShell } from './MgmtPageShell';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
 
 interface ApiKeyListPageProps { theme: Theme; fontSize: FontSize; showMessage: (msg: string, type?: 'success' | 'error' | 'info') => void; breadcrumbSegments: string[]; }
 
 const PAGE_SIZE = 20;
 
-export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, showMessage }) => {
-  const { chromePageTitle } = useLayoutChrome();
+const API_KEY_DESC = '完整密钥仅在创建时显示一次';
+
+export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize, showMessage, breadcrumbSegments }) => {
   const isDark = theme === 'dark';
   const [keys, setKeys] = useState<ApiKeyRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,18 +77,32 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, showMessa
   const handleRevoke = useCallback(async () => { if (!revokeTarget) return; try { await userMgmtService.revokeApiKey(revokeTarget); showMessage('API Key 已撤销', 'info'); setRevokeTarget(null); setPage(1); await fetchKeys(); } catch { showMessage('撤销失败', 'error'); } }, [revokeTarget, showMessage, fetchKeys]);
 
   return (
-    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-colors duration-300 ${canvasBodyBg(theme)}`}>
-      <div className="w-full flex-1 min-h-0 flex flex-col px-2 sm:px-3 lg:px-4 py-2 sm:py-3">
-        <div className={`${bentoCard(theme)} overflow-hidden flex-1 min-h-0 flex flex-col`}>
-          <div className={`flex items-center justify-between px-6 py-4 border-b shrink-0 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-            <div className="flex min-w-0 items-center gap-3">
-              <div className={`shrink-0 rounded-xl p-2 ${isDark ? 'bg-amber-500/15' : 'bg-amber-50'}`}><Zap size={20} className={isDark ? 'text-amber-400' : 'text-amber-600'} /></div>
-              <PageTitleTagline subtitleOnly theme={theme} title={chromePageTitle || 'API Key 管理'} tagline="完整密钥仅在创建时显示一次" />
+    <>
+      <MgmtPageShell
+        theme={theme}
+        fontSize={fontSize}
+        titleIcon={Zap}
+        breadcrumbSegments={breadcrumbSegments}
+        description={API_KEY_DESC}
+        toolbar={
+          <div className="flex flex-wrap items-center gap-2 justify-between min-w-0">
+            <div className="min-w-0 flex-1 max-w-xl">
+              <SearchInput value={search} onChange={setSearch} placeholder="搜索名称或前缀…" theme={theme} />
             </div>
-            <button type="button" onClick={() => { setCreateOpen(true); setNewName(''); setRevealedOnce(null); setCopied(false); }} className={btnPrimary}><Plus size={15} /> 创建 API Key</button>
+            <button
+              type="button"
+              onClick={() => { setCreateOpen(true); setNewName(''); setRevealedOnce(null); setCopied(false); }}
+              className={`shrink-0 ${btnPrimary}`}
+              aria-label="创建新的 API Key"
+            >
+              <Plus size={15} aria-hidden /> 创建 API Key
+            </button>
           </div>
+        }
+      >
+        <div className="px-4 sm:px-6 pb-6 flex flex-col min-h-0 flex-1">
           <div
-            className={`mx-4 mt-3 shrink-0 rounded-xl border px-3 py-2 text-xs ${
+            className={`mb-4 shrink-0 rounded-xl border px-3 py-2 text-xs ${
               isDark ? 'border-amber-500/25 bg-amber-500/[0.07] text-amber-100/90' : 'border-amber-200 bg-amber-50 text-amber-950'
             }`}
           >
@@ -97,10 +111,7 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, showMessa
               创建响应中的完整明文字段用于 <span className="font-mono">X-Api-Key</span>；列表字段不可充当密钥。个人用户请用偏好设置创建。细则见开发者 <span className="font-mono">API 文档</span> 页。
             </p>
           </div>
-          <div className={`px-4 py-3 border-b shrink-0 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-            <SearchInput value={search} onChange={setSearch} placeholder="搜索名称或前缀…" theme={theme} />
-          </div>
-          <div className="flex-1 min-h-0 overflow-auto">
+          <div className="min-h-0 flex-1 overflow-x-auto">
             {loading && keys.length === 0 ? (
               <PageSkeleton type="table" />
             ) : loadError ? (
@@ -127,7 +138,9 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, showMessa
                 <tbody>
                   {paginated.map((k, idx) => (
                     <tr key={k.id} className={tableBodyRow(theme, idx)}>
-                      <td className={`${tableCell()} font-medium ${textPrimary(theme)}`}>{k.name}</td>
+                      <td className={`${tableCell()} font-medium max-w-[12rem] ${textPrimary(theme)}`}>
+                        <span className="block truncate" title={k.name}>{k.name}</span>
+                      </td>
                       <td className={`${tableCell()} max-w-[140px] align-middle ${textSecondary(theme)}`}>
                         <div className={tableCellScrollInnerMono}>{k.id}</div>
                       </td>
@@ -170,7 +183,9 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, showMessa
                       <td className={`${tableCell()} ${textSecondary(theme)}`}>{k.callCount ?? 0}</td>
                       <td className={`${tableCell()} text-right`}>
                         {k.status === 'active' && (
-                          <button type="button" onClick={() => setRevokeTarget(k.id)} className={`${btnGhost(theme)} !text-amber-500`}><Ban size={14} /> 撤销</button>
+                          <button type="button" onClick={() => setRevokeTarget(k.id)} className={`${btnGhost(theme)} text-amber-600 dark:text-amber-400`} aria-label={`撤销 API Key：${k.name}`}>
+                            <Ban size={14} aria-hidden /> 撤销
+                          </button>
                         )}
                       </td>
                     </tr>
@@ -179,11 +194,9 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, showMessa
               </table>
             )}
           </div>
-          <div className={`px-4 border-t shrink-0 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-            <Pagination theme={theme} page={page} pageSize={PAGE_SIZE} total={filtered.length} onChange={setPage} />
-          </div>
+          <Pagination theme={theme} page={page} pageSize={PAGE_SIZE} total={filtered.length} onChange={setPage} />
         </div>
-      </div>
+      </MgmtPageShell>
 
       {/* Create / Reveal Modal */}
       <Modal open={createOpen || !!revealedOnce} onClose={revealedOnce ? () => {} : closeReveal} title={revealedOnce ? '请保存您的密钥' : '新建 API Key'} theme={theme} size="sm" closeOnBackdrop={!revealedOnce} footer={
@@ -208,6 +221,6 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, showMessa
       </Modal>
 
       <ConfirmDialog open={!!revokeTarget} title="撤销 API Key" message="撤销后该 Key 将不可用，确定继续？" confirmText="撤销" variant="warning" onConfirm={handleRevoke} onCancel={() => setRevokeTarget(null)} />
-    </div>
+    </>
   );
 };

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ClipboardList } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { GrantApplicationVO } from '../../types/dto/grant-application';
 import { grantApplicationService } from '../../api/services';
@@ -6,8 +7,6 @@ import {
   bentoCard,
   btnGhost,
   btnPrimary,
-  canvasBodyBg,
-  mainScrollCompositorClass,
   statusBadgeClass,
   statusDot,
   statusLabel,
@@ -30,6 +29,7 @@ import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { nullDisplay } from '../../utils/errorHandler';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
+import { MgmtPageShell } from './MgmtPageShell';
 
 interface Props {
   theme: Theme;
@@ -37,13 +37,16 @@ interface Props {
   showMessage: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void;
 }
 
+const GRANT_PAGE_DESC =
+  '列表范围由后端按角色过滤：资源拥有者审本人资源上的申请；部门管理员审本部拥有者资源；平台管理员可审全部。';
+
 function grantToDomainStatus(status: GrantApplicationVO['status']): DomainStatus {
   if (status === 'pending') return 'pending_review';
   if (status === 'approved') return 'published';
   return 'rejected';
 }
 
-export const GrantApplicationListPage: React.FC<Props> = ({ theme, showMessage }) => {
+export const GrantApplicationListPage: React.FC<Props> = ({ theme, fontSize, showMessage }) => {
   const isDark = theme === 'dark';
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<GrantApplicationVO[]>([]);
@@ -237,24 +240,16 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, showMessage }
   );
 
   return (
-    <div className={`flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${canvasBodyBg(theme)}`}>
-      <div className="px-3 py-4 sm:px-4 lg:px-5">
-        <div className={`${bentoCard(theme)} overflow-hidden`}>
-          <div className={`flex items-center justify-between border-b px-6 py-4 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-            <div>
-              <h2 className={`text-lg font-bold ${textPrimary(theme)}`}>授权申请审批</h2>
-              <p className={`mt-0.5 text-xs ${textMuted(theme)}`}>
-                列表范围由后端按角色过滤：资源拥有者审本人资源上的申请；部门管理员审本部拥有者资源；平台管理员可审全部。
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button type="button" onClick={() => void fetchData()} className={btnGhost(theme)}>
-                刷新
-              </button>
-            </div>
-          </div>
-          <div className={`px-4 py-3 border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-            <div className={`${TOOLBAR_ROW_LIST} min-w-0`}>
+    <>
+      <MgmtPageShell
+        theme={theme}
+        fontSize={fontSize}
+        titleIcon={ClipboardList}
+        breadcrumbSegments={['用户与权限', '授权申请审批']}
+        description={GRANT_PAGE_DESC}
+        toolbar={
+          <div className={`${TOOLBAR_ROW_LIST} min-w-0 justify-between gap-3`}>
+            <div className={`${TOOLBAR_ROW_LIST} min-w-0 flex-1`}>
               <FilterSelect
                 value={statusFilter}
                 onChange={(v) => {
@@ -279,35 +274,37 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, showMessage }
                 />
               </div>
             </div>
+            <button type="button" onClick={() => void fetchData()} className={`shrink-0 ${btnGhost(theme)}`} aria-label="刷新列表">
+              刷新
+            </button>
           </div>
-          <div className="overflow-auto">
-            {loading ? (
-              <PageSkeleton type="table" rows={8} />
-            ) : loadError ? (
-              <PageError error={loadError} onRetry={() => void fetchData()} retryLabel="重试加载列表" />
-            ) : rows.length === 0 ? (
-              <div className="p-4">
-                <EmptyState
-                  title={debouncedSearch || statusFilter !== 'all' ? '无匹配申请' : '暂无授权申请'}
-                  description={debouncedSearch || statusFilter !== 'all' ? '请调整关键词或状态筛选。' : '当前筛选条件下没有申请记录，可切换筛选后重试。'}
-                />
-              </div>
-            ) : (
-              <MgmtDataTable<GrantApplicationVO>
-                theme={theme}
-                columns={columns}
-                rows={rows}
-                getRowKey={(item) => item.id}
-                minWidth="1200px"
-                surface="plain"
+        }
+      >
+        <div className="px-4 sm:px-6 pb-6 flex flex-col min-h-0 flex-1">
+          {loading ? (
+            <PageSkeleton type="table" rows={8} />
+          ) : loadError ? (
+            <PageError error={loadError} onRetry={() => void fetchData()} retryLabel="重试加载列表" />
+          ) : rows.length === 0 ? (
+            <div className="py-2">
+              <EmptyState
+                title={debouncedSearch || statusFilter !== 'all' ? '无匹配申请' : '暂无授权申请'}
+                description={debouncedSearch || statusFilter !== 'all' ? '请调整关键词或状态筛选。' : '当前筛选条件下没有申请记录，可切换筛选后重试。'}
               />
-            )}
-          </div>
-          <div className={`px-4 border-t ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-            <Pagination theme={theme} page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} />
-          </div>
+            </div>
+          ) : (
+            <MgmtDataTable<GrantApplicationVO>
+              theme={theme}
+              columns={columns}
+              rows={rows}
+              getRowKey={(item) => item.id}
+              minWidth="1200px"
+              surface="plain"
+            />
+          )}
+          <Pagination theme={theme} page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} />
         </div>
-      </div>
+      </MgmtPageShell>
 
       {rejectTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" onClick={() => setRejectTarget(null)}>
@@ -357,6 +354,6 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, showMessage }
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };

@@ -5,11 +5,9 @@ import type { RecentUseItem } from '../../types/dto/user-activity';
 import { userActivityService } from '../../api/services/user-activity.service';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
+import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import {
-  bentoCard,
   btnGhost,
-  canvasBodyBg,
-  mainScrollCompositorClass,
   tableHeadCell,
   tableBodyRow,
   tableCell,
@@ -27,7 +25,9 @@ interface Props {
   showMessage?: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void;
 }
 
-export const RecentUsePage: React.FC<Props> = ({ theme }) => {
+const RECENT_USE_DESC = '按最近调用时间排序';
+
+export const RecentUsePage: React.FC<Props> = ({ theme, fontSize }) => {
   const isDark = theme === 'dark';
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<RecentUseItem[]>([]);
@@ -73,42 +73,37 @@ export const RecentUsePage: React.FC<Props> = ({ theme }) => {
         : textSecondary(theme);
 
   return (
-    <div className={`flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${canvasBodyBg(theme)}`}>
-      <div className="px-3 py-4 sm:px-4 lg:px-5">
-        <div className={`${bentoCard(theme)} overflow-hidden`}>
-          <div className={`flex items-center justify-between border-b px-6 py-4 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-            <div className="flex items-center gap-3">
-              <div className={`rounded-xl p-2 ${isDark ? 'bg-blue-500/15' : 'bg-blue-50'}`}>
-                <Clock3 size={20} className={isDark ? 'text-blue-400' : 'text-blue-600'} />
-              </div>
-              <div>
-                <h2 className={`text-lg font-bold ${textPrimary(theme)}`}>最近使用</h2>
-                <p className={`text-xs ${textMuted(theme)}`}>按最近调用时间排序</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <LantuSelect
-                theme={theme}
-                value={typeFilter}
-                onChange={(next) => setTypeFilter(next as RecentUseItem['targetType'] | 'all')}
-                options={[
-                  { value: 'all', label: '全部类型' },
-                  { value: 'agent', label: 'Agent' },
-                  { value: 'skill', label: 'Skill' },
-                  { value: 'mcp', label: 'MCP' },
-                  { value: 'app', label: 'App' },
-                  { value: 'dataset', label: 'Dataset' },
-                ]}
-                className="w-32"
-                triggerClassName="!min-h-[2rem] !px-2.5 !py-1.5 !text-xs"
-              />
-              <button type="button" onClick={() => void fetchData()} className={btnGhost(theme)}>
-                <RefreshCw size={15} />
-                刷新
-              </button>
-            </div>
-          </div>
-          <div className="p-3">
+    <MgmtPageShell
+      theme={theme}
+      fontSize={fontSize}
+      titleIcon={Clock3}
+      breadcrumbSegments={['使用记录', '最近使用']}
+      description={RECENT_USE_DESC}
+      toolbar={
+        <div className="flex flex-wrap items-center gap-2 justify-end min-w-0">
+          <LantuSelect
+            theme={theme}
+            value={typeFilter}
+            onChange={(next) => setTypeFilter(next as RecentUseItem['targetType'] | 'all')}
+            options={[
+              { value: 'all', label: '全部类型' },
+              { value: 'agent', label: 'Agent' },
+              { value: 'skill', label: 'Skill' },
+              { value: 'mcp', label: 'MCP' },
+              { value: 'app', label: 'App' },
+              { value: 'dataset', label: 'Dataset' },
+            ]}
+            className="w-32"
+            triggerClassName="!min-h-[2rem] !px-2.5 !py-1.5 !text-xs"
+          />
+          <button type="button" onClick={() => void fetchData()} className={btnGhost(theme)} aria-label="刷新最近使用记录">
+            <RefreshCw size={15} aria-hidden />
+            刷新
+          </button>
+        </div>
+      }
+    >
+      <div className="px-4 sm:px-6 pb-6 flex flex-col min-h-0 flex-1 overflow-x-auto">
             {loading ? (
               <PageSkeleton type="table" rows={8} />
             ) : loadError ? (
@@ -116,7 +111,6 @@ export const RecentUsePage: React.FC<Props> = ({ theme }) => {
             ) : filtered.length === 0 ? (
               <div className={`py-10 text-center text-sm ${textMuted(theme)}`}>暂无最近使用记录</div>
             ) : (
-              <div className="overflow-auto">
                 <table className="w-full min-w-[860px] text-sm">
                   <thead className={`border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
                     <tr>
@@ -134,7 +128,9 @@ export const RecentUsePage: React.FC<Props> = ({ theme }) => {
                     {filtered.map((item, idx) => (
                       <tr key={`${item.targetType}-${item.targetId}-${item.id}`} className={tableBodyRow(theme, idx)}>
                         <td className={`${tableCell()} whitespace-nowrap ${textSecondary(theme)}`}>{formatDateTime(item.createTime || item.lastUsedTime, '未知时间')}</td>
-                        <td className={`${tableCell()} ${textPrimary(theme)}`}>{item.displayName || '—'}</td>
+                        <td className={`${tableCell()} max-w-[14rem] ${textPrimary(theme)}`}>
+                          <span className="block truncate" title={item.displayName ?? undefined}>{item.displayName || '—'}</span>
+                        </td>
                         <td className={`${tableCell()} max-w-[200px] align-middle ${textSecondary(theme)}`}>
                           {item.targetCode ? <div className={tableCellScrollInnerMono}>{item.targetCode}</div> : '—'}
                         </td>
@@ -147,11 +143,8 @@ export const RecentUsePage: React.FC<Props> = ({ theme }) => {
                     ))}
                   </tbody>
                 </table>
-              </div>
             )}
-          </div>
-        </div>
       </div>
-    </div>
+    </MgmtPageShell>
   );
 };

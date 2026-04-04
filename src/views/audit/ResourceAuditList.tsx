@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ClipboardCheck } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { ResourceType } from '../../types/dto/catalog';
 import type { ResourceAuditItemVO } from '../../types/dto/resource-center';
@@ -8,8 +9,6 @@ import {
   bentoCard,
   btnGhost,
   btnPrimary,
-  canvasBodyBg,
-  mainScrollCompositorClass,
   mgmtTableActionDanger,
   mgmtTableActionPositive,
   statusBadgeClass,
@@ -31,6 +30,7 @@ import { formatDateTime } from '../../utils/formatDateTime';
 import { nullDisplay } from '../../utils/errorHandler';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
 import { AccessPolicyBadge } from '../../components/business/AccessPolicyBadge';
+import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 
 interface Props {
   theme: Theme;
@@ -39,7 +39,9 @@ interface Props {
   defaultType?: ResourceType;
 }
 
-export const ResourceAuditList: React.FC<Props> = ({ theme, showMessage, defaultType }) => {
+const AUDIT_DESC = '支持 approve / reject / publish';
+
+export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessage, defaultType }) => {
   const isDark = theme === 'dark';
   const { platformRole } = useUserRole();
   const canPublishResource =
@@ -111,15 +113,16 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, showMessage, default
   };
 
   return (
-    <div className={`flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${canvasBodyBg(theme)}`}>
-      <div className="px-3 py-4 sm:px-4 lg:px-5">
-        <div className={`${bentoCard(theme)} overflow-hidden`}>
-          <div className={`flex items-center justify-between border-b px-6 py-4 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-            <div>
-              <h2 className={`text-lg font-bold ${textPrimary(theme)}`}>统一资源审核台</h2>
-              <p className={`mt-0.5 text-xs ${textMuted(theme)}`}>支持 approve / reject / publish</p>
-            </div>
-            <div className="flex items-center gap-2">
+    <>
+      <MgmtPageShell
+        theme={theme}
+        fontSize={fontSize}
+        titleIcon={ClipboardCheck}
+        breadcrumbSegments={['资源审核', '统一资源审核台']}
+        description={AUDIT_DESC}
+        toolbar={
+          <div className={`${TOOLBAR_ROW_LIST} min-w-0 justify-between gap-3 flex-wrap`}>
+            <div className={`${TOOLBAR_ROW_LIST} min-w-0 flex-1 flex-wrap`}>
               <FilterSelect
                 value={resourceType}
                 onChange={(v) => { setResourceType(v as ResourceType | ''); setPage(1); }}
@@ -132,15 +135,8 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, showMessage, default
                   { value: 'dataset', label: 'Dataset' },
                 ]}
                 theme={theme}
-                className="w-36"
+                className="w-36 shrink-0"
               />
-              <button type="button" onClick={() => void fetchData()} className={btnGhost(theme)}>
-                刷新
-              </button>
-            </div>
-          </div>
-          <div className={`px-4 py-3 border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-            <div className={`${TOOLBAR_ROW_LIST} min-w-0`}>
               <FilterSelect
                 value={statusFilter}
                 onChange={(v) => { setStatusFilter(v as typeof statusFilter); setPage(1); }}
@@ -154,7 +150,7 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, showMessage, default
                 theme={theme}
                 className="w-36 shrink-0"
               />
-              <div className="min-w-0 flex-1 shrink">
+              <div className="min-w-0 flex-1 shrink basis-[min(100%,240px)]">
                 <SearchInput
                   value={search}
                   onChange={(value) => {
@@ -166,8 +162,13 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, showMessage, default
                 />
               </div>
             </div>
+            <button type="button" onClick={() => void fetchData()} className={`shrink-0 ${btnGhost(theme)}`} aria-label="刷新审核列表">
+              刷新
+            </button>
           </div>
-          <div className="overflow-auto">
+        }
+      >
+        <div className="px-4 sm:px-6 pb-6 flex flex-col min-h-0 flex-1 overflow-x-auto">
             {loading ? (
               <PageSkeleton type="table" rows={8} />
             ) : loadError ? (
@@ -195,7 +196,9 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, showMessage, default
                 <tbody>
                   {rows.map((item, idx) => (
                     <tr key={item.id} className={tableBodyRow(theme, idx)}>
-                      <td className={`${tableCell()} font-medium ${textPrimary(theme)}`}>{item.displayName}</td>
+                      <td className={`${tableCell()} font-medium max-w-[12rem] ${textPrimary(theme)}`}>
+                        <span className="block truncate" title={item.displayName}>{item.displayName}</span>
+                      </td>
                       <td className={`${tableCell()} ${textSecondary(theme)}`}>{item.resourceType}</td>
                       <td className={`${tableCell()} align-middle`}>
                         <AccessPolicyBadge theme={theme} value={item.accessPolicy} whenMissing="hide" />
@@ -212,7 +215,9 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, showMessage, default
                       </td>
                       <td className={`${tableCell()} ${textSecondary(theme)}`}>{nullDisplay(formatDateTime(item.submitTime))}</td>
                       <td className={`${tableCell()} ${textSecondary(theme)}`}>{nullDisplay(item.reason)}</td>
-                      <td className={`${tableCell()} ${textSecondary(theme)}`}>{nullDisplay(item.description, '暂无描述')}</td>
+                      <td className={`${tableCell()} max-w-[14rem] ${textSecondary(theme)}`}>
+                        <span className="line-clamp-2 break-words" title={item.description ?? undefined}>{nullDisplay(item.description, '暂无描述')}</span>
+                      </td>
                       <td className={`${tableCell()} text-right`}>
                         <div className="inline-flex flex-wrap items-center justify-end gap-1">
                           {item.status === 'pending_review' && (
@@ -274,12 +279,9 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, showMessage, default
                 </tbody>
               </table>
             )}
-          </div>
-          <div className={`px-4 border-t ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-            <Pagination theme={theme} page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} />
-          </div>
+          <Pagination theme={theme} page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} />
         </div>
-      </div>
+      </MgmtPageShell>
 
       {rejectTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" onClick={() => setRejectTarget(null)}>
@@ -377,6 +379,6 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, showMessage, default
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };

@@ -8,14 +8,13 @@ import { SearchInput, FilterSelect, Pagination } from '../../components/common';
 import { userMgmtService } from '../../api/services/user-mgmt.service';
 import type { TokenRecord } from '../../types/dto/user-mgmt';
 import {
-  canvasBodyBg, bentoCard, bentoCardHover, btnGhost,
+  bentoCardHover, btnGhost,
   textPrimary, textSecondary, textMuted,
   tableCellScrollInner,
 } from '../../utils/uiClasses';
-import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { formatDateTime } from '../../utils/formatDateTime';
-import { PageTitleTagline } from '../../components/common/PageTitleTagline';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
+import { MgmtPageShell } from './MgmtPageShell';
 
 interface TokenListPageProps { theme: Theme; fontSize: FontSize; showMessage: (msg: string, type?: 'success' | 'error' | 'info') => void; breadcrumbSegments: string[]; }
 
@@ -27,8 +26,7 @@ const STATUS_STYLE: Record<string, { light: string; dark: string; label: string 
   expired: { light: 'bg-slate-50 text-slate-600 ring-1 ring-slate-200/60',       dark: 'bg-slate-500/10 text-slate-400 ring-1 ring-slate-500/20',       label: '已过期' },
 };
 
-export const TokenListPage: React.FC<TokenListPageProps> = ({ theme, showMessage }) => {
-  const { chromePageTitle } = useLayoutChrome();
+export const TokenListPage: React.FC<TokenListPageProps> = ({ theme, fontSize, showMessage, breadcrumbSegments }) => {
   const isDark = theme === 'dark';
   const [tokens, setTokens] = useState<TokenRecord[]>([]);
   const [total, setTotal] = useState(0);
@@ -81,65 +79,82 @@ export const TokenListPage: React.FC<TokenListPageProps> = ({ theme, showMessage
   };
 
   return (
-    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden transition-colors duration-300 ${canvasBodyBg(theme)}`}>
-      <div className="w-full flex-1 min-h-0 flex flex-col px-2 sm:px-3 lg:px-4 py-2 sm:py-3">
-        <div className={`${bentoCard(theme)} overflow-hidden flex-1 min-h-0 flex flex-col`}>
-          <div className={`flex items-center justify-between px-6 py-4 border-b shrink-0 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-            <div className="flex min-w-0 items-center gap-3">
-              <div className={`shrink-0 rounded-xl p-2 ${isDark ? 'bg-cyan-500/15' : 'bg-cyan-50'}`}><Shield size={20} className={isDark ? 'text-cyan-400' : 'text-cyan-600'} /></div>
-              <PageTitleTagline subtitleOnly theme={theme} title={chromePageTitle || 'Token 管理'} tagline="查看访问令牌与有效期" />
+    <>
+      <MgmtPageShell
+        theme={theme}
+        fontSize={fontSize}
+        titleIcon={Shield}
+        breadcrumbSegments={breadcrumbSegments}
+        description="查看访问令牌与有效期"
+        toolbar={
+          <div className="flex flex-wrap items-center gap-2 min-w-0">
+            <FilterSelect
+              value={statusFilter}
+              onChange={(v) => { setStatusFilter(v as typeof statusFilter); setPage(1); }}
+              options={[
+                { value: 'all', label: '全部状态' },
+                { value: 'active', label: '有效' },
+                { value: 'revoked', label: '已撤销' },
+                { value: 'expired', label: '已过期' },
+              ]}
+              theme={theme}
+              className="w-full sm:w-32"
+            />
+            <div className="flex-1 min-w-[min(100%,200px)]">
+              <SearchInput value={search} onChange={setSearch} placeholder="搜索名称或 scope…" theme={theme} />
             </div>
           </div>
-          <div className={`px-4 py-3 border-b shrink-0 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-            <div className="flex flex-wrap items-center gap-2">
-              <FilterSelect value={statusFilter} onChange={(v) => { setStatusFilter(v as typeof statusFilter); setPage(1); }} options={[{ value: 'all', label: '全部状态' }, { value: 'active', label: '有效' }, { value: 'revoked', label: '已撤销' }, { value: 'expired', label: '已过期' }]} theme={theme} className="w-full sm:w-32" />
-              <div className="flex-1 min-w-[min(100%,200px)]"><SearchInput value={search} onChange={setSearch} placeholder="搜索名称或 scope…" theme={theme} /></div>
+        }
+      >
+        <div className="px-4 sm:px-6 pb-6 flex flex-col min-h-0 flex-1">
+          {loading && tokens.length === 0 ? (
+            <PageSkeleton type="table" />
+          ) : tokens.length === 0 ? (
+            <div className={`text-center py-12 text-sm ${textMuted(theme)}`}>
+              {debouncedSearch || statusFilter !== 'all' ? '无匹配 Token' : '暂无 Token'}
             </div>
-          </div>
-          <div className="flex-1 min-h-0 overflow-auto">
-            {loading && tokens.length === 0 ? (
-              <PageSkeleton type="table" />
-            ) : tokens.length === 0 ? (
-              <div className={`text-center py-12 text-sm ${textMuted(theme)}`}>
-                {debouncedSearch || statusFilter !== 'all' ? '无匹配 Token' : '暂无 Token'}
-              </div>
-            ) : (
-              <AnimatedList className="p-3 space-y-2">
-                {tokens.map((t) => {
-                  const ss = STATUS_STYLE[t.status] ?? STATUS_STYLE.expired;
-                  return (
-                    <motion.div key={t.id} className={`${bentoCardHover(theme)} p-4 flex items-center gap-4`}>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`font-semibold ${textPrimary(theme)}`}>{t.name}</span>
-                          <span className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${isDark ? ss.dark : ss.light}`}>{ss.label}</span>
-                        </div>
-                        <div className={`mt-0.5 flex min-w-0 flex-wrap items-baseline gap-x-1 text-xs ${textMuted(theme)}`}>
-                          <div className={`max-w-full min-w-0 font-mono ${tableCellScrollInner}`}>{t.scopes.join(', ')}</div>
-                          <span className="shrink-0 whitespace-nowrap">· 过期 {formatDateTime(t.expiresAt)}</span>
-                        </div>
+          ) : (
+            <AnimatedList className="space-y-2">
+              {tokens.map((t) => {
+                const ss = STATUS_STYLE[t.status] ?? STATUS_STYLE.expired;
+                return (
+                  <motion.div key={t.id} className={`${bentoCardHover(theme)} p-4 flex items-center gap-4`}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`font-semibold truncate min-w-0 ${textPrimary(theme)}`} title={t.name}>{t.name}</span>
+                        <span className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${isDark ? ss.dark : ss.light}`}>{ss.label}</span>
                       </div>
-                      <div className="hidden lg:block text-right shrink-0">
-                        <div className={`text-xs uppercase tracking-wider ${textMuted(theme)}`}>创建</div>
-                        <div className={`whitespace-nowrap text-xs ${textSecondary(theme)}`}>{formatDateTime(t.createdAt)}</div>
+                      <div className={`mt-0.5 flex min-w-0 flex-wrap items-baseline gap-x-1 text-xs ${textMuted(theme)}`}>
+                        <div className={`max-w-full min-w-0 font-mono ${tableCellScrollInner}`}>{t.scopes.join(', ')}</div>
+                        <span className="shrink-0 whitespace-nowrap">· 过期 {formatDateTime(t.expiresAt)}</span>
                       </div>
-                      {t.status === 'active' && (
-                        <button type="button" onClick={() => setRevokeTarget(t.id)} className={`${btnGhost(theme)} !text-amber-500`}><Ban size={14} /> 撤销</button>
-                      )}
-                    </motion.div>
-                  );
-                })}
-              </AnimatedList>
-            )}
-          </div>
-          {total > 0 && (
-            <div className={`px-4 py-1 border-t shrink-0 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-              <Pagination theme={theme} page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} />
-            </div>
+                    </div>
+                    <div className="hidden lg:block text-right shrink-0">
+                      <div className={`text-xs uppercase tracking-wider ${textMuted(theme)}`}>创建</div>
+                      <div className={`whitespace-nowrap text-xs ${textSecondary(theme)}`}>{formatDateTime(t.createdAt)}</div>
+                    </div>
+                    {t.status === 'active' && (
+                      <button
+                        type="button"
+                        onClick={() => setRevokeTarget(t.id)}
+                        className={`shrink-0 ${btnGhost(theme)} text-amber-600 dark:text-amber-400`}
+                        aria-label={`撤销 Token：${t.name}`}
+                      >
+                        <Ban size={14} className="shrink-0" aria-hidden />
+                        撤销
+                      </button>
+                    )}
+                  </motion.div>
+                );
+              })}
+            </AnimatedList>
           )}
+          {total > 0 ? (
+            <Pagination theme={theme} page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} />
+          ) : null}
         </div>
-      </div>
+      </MgmtPageShell>
       <ConfirmDialog open={!!revokeTarget} title="撤销 Token" message="确定撤销该 Token？客户端需重新登录。" confirmText="撤销" variant="warning" onConfirm={handleRevoke} onCancel={() => setRevokeTarget(null)} />
-    </div>
+    </>
   );
 };

@@ -1,10 +1,12 @@
 import { http } from '../../lib/http';
-import type { PaginatedData, PaginationParams } from '../../types/api';
+import type { PaginationParams } from '../../types/api';
 
 /** 审计日志列表 query（与网关约定：未支持时由后端忽略） */
 export type AuditLogQueryParams = PaginationParams & {
   action?: string;
   keyword?: string;
+  /** 五类资源关键字：匹配 action / resource 模糊包含 */
+  resourceType?: string;
   /** 仅失败或仅成功；不传表示全部 */
   result?: 'success' | 'failure';
 };
@@ -25,16 +27,14 @@ function mapAclRuleRow(raw: unknown): AclRuleRow {
 import { extractArray, normalizePaginated } from '../../utils/normalizeApiPayload';
 import type {
   AuditLogEntry,
-  CreateModelConfigDTO,
   CreateRateLimitDTO,
-  ModelConfig,
   RateLimitRule,
   SecuritySetting,
   SystemParam,
 } from '../../types/dto/system-config';
 import type { AnnouncementItem } from '../../types/dto/explore';
 
-const RATE_LIMIT_TARGETS = new Set<RateLimitRule['target']>(['user', 'role', 'ip', 'api_key', 'global']);
+const RATE_LIMIT_TARGETS = new Set<RateLimitRule['target']>(['user', 'role', 'ip', 'api_key', 'global', 'path']);
 const RATE_LIMIT_ACTIONS = new Set<RateLimitRule['action']>(['reject', 'queue', 'throttle']);
 
 /** 与后端 SystemParam 序列化字段对齐（含 updateTime → updatedAt） */
@@ -131,31 +131,6 @@ function normalizeRateLimitsListPayload(raw: unknown): RateLimitRule[] {
   return [];
 }
 
-function mapModelConfigRecord(raw: unknown): ModelConfig {
-  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
-  const num = (v: unknown, d = 0) => {
-    const n = Number(v);
-    return Number.isFinite(n) ? n : d;
-  };
-  return {
-    id: String(o.id ?? ''),
-    name: String(o.name ?? ''),
-    provider: String(o.provider ?? ''),
-    modelId: String(o.modelId ?? o.model_id ?? ''),
-    endpoint: String(o.endpoint ?? ''),
-    apiKey: o.apiKey == null && o.api_key == null ? undefined : String(o.apiKey ?? o.api_key),
-    maxTokens: num(o.maxTokens ?? o.max_tokens),
-    temperature: num(o.temperature, 0.7),
-    topP: num(o.topP ?? o.top_p, 1),
-    enabled: o.enabled === undefined ? true : Boolean(o.enabled),
-    rateLimit: num(o.rateLimit ?? o.rate_limit),
-    costPerToken: num(o.costPerToken ?? o.cost_per_token),
-    description: o.description == null ? undefined : String(o.description),
-    createdAt: String(o.createdAt ?? o.createTime ?? o.create_time ?? ''),
-    updatedAt: String(o.updatedAt ?? o.updateTime ?? o.update_time ?? ''),
-  };
-}
-
 function mapAuditLogEntryRecord(raw: unknown): AuditLogEntry {
   const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
   const resultRaw = String(o.result ?? 'success').toLowerCase();
@@ -199,29 +174,6 @@ function mapAnnouncementRecord(raw: unknown): AnnouncementItem {
 }
 
 export const systemConfigService = {
-  listModelConfigs: async (params?: PaginationParams) => {
-    const raw = await http.get<unknown>('/system-config/model-configs', { params });
-    return normalizePaginated<ModelConfig>(raw, mapModelConfigRecord);
-  },
-
-  createModelConfig: async (data: CreateModelConfigDTO) => {
-    const row = await http.post<unknown>('/system-config/model-configs', data);
-    return mapModelConfigRecord(row);
-  },
-
-  updateModelConfig: async (id: string, data: Partial<CreateModelConfigDTO>) => {
-    const row = await http.put<unknown>(`/system-config/model-configs/${id}`, data);
-    return mapModelConfigRecord(row);
-  },
-
-  deleteModelConfig: (id: string) =>
-    http.delete(`/system-config/model-configs/${id}`),
-
-  getModelConfigById: async (id: string) => {
-    const row = await http.get<unknown>(`/system-config/model-configs/${id}`);
-    return mapModelConfigRecord(row);
-  },
-
   listRateLimits: async () => {
     const raw = await http.get<unknown>('/system-config/rate-limits');
     return normalizeRateLimitsListPayload(raw);

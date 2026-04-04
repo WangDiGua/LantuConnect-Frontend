@@ -43,7 +43,6 @@ import {
   Boxes,
   Tag,
   Heart,
-  Cpu,
   ClipboardCheck,
   Code2,
   Terminal,
@@ -53,6 +52,7 @@ import {
   Plus,
   Store,
   Braces,
+  ScrollText,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -163,6 +163,7 @@ export const ADMIN_USER_MANAGEMENT_GROUPS: NavSubGroup[] = [
     title: '凭证',
     items: [
       { id: 'api-key-management', icon: Key, label: 'API Key 管理' },
+      { id: 'token-management', icon: ScrollText, label: 'Token 管理' },
       { id: 'resource-grant-management', icon: Share2, label: '资源授权管理' },
       { id: 'grant-applications', icon: ClipboardCheck, label: '授权申请审批' },
     ],
@@ -206,8 +207,8 @@ export const ADMIN_SYSTEM_CONFIG_GROUPS: NavSubGroup[] = [
     items: [
       { id: 'tag-management', icon: Tag, label: '标签管理' },
       { id: 'system-params', icon: Braces, label: '系统参数' },
-      { id: 'model-config', icon: Cpu, label: '模型配置' },
       { id: 'security-settings', icon: Shield, label: '安全设置' },
+      { id: 'network-config', icon: Globe2, label: '网络配置' },
     ],
   },
   {
@@ -259,6 +260,7 @@ export const USER_WORKSPACE_GROUPS: NavSubGroup[] = [
       { id: 'overview', icon: LayoutGrid, label: '工作台总览' },
       { id: 'developer-onboarding', icon: Rocket, label: '开发者入驻' },
       { id: 'my-favorites', icon: Heart, label: '我的收藏' },
+      { id: 'authorized-skills', icon: Key, label: '已授权技能' },
     ],
   },
 ];
@@ -272,10 +274,11 @@ export const USER_MY_SPACE_GROUPS: NavSubGroup[] = [
     ],
   },
   {
-    title: '授权',
+    title: '授权与入驻',
     items: [
       { id: 'grant-applications', icon: ClipboardCheck, label: '授权审批待办' },
       { id: 'my-grant-applications', icon: ClipboardCheck, label: '我的授权申请' },
+      { id: 'developer-applications', icon: Rocket, label: '入驻审批' },
     ],
   },
 ];

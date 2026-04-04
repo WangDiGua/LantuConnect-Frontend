@@ -22,7 +22,6 @@ export const ADMIN_ROUTE_MAPPING: Record<string, string> = {
   '资源监控': 'resource-monitoring',
   '使用统计': 'usage-statistics',
   '健康检查': 'health-check',
-  '模型配置': 'model-config',
   '系统参数': 'system-params',
   '安全设置': 'security-settings',
   '网络配置': 'network-config',

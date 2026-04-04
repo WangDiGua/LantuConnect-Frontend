@@ -23,6 +23,10 @@ export interface SmartApp {
   sortOrder: number;
   createTime: string;
   updateTime: string;
+  createdBy?: number;
+  createdByName?: string;
+  ratingAvg?: number;
+  reviewCount?: number;
 }
 
 export interface SmartAppCreatePayload {

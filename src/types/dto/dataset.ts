@@ -26,6 +26,9 @@ export interface Dataset {
   isPublic: boolean;
   createdBy?: number;
   createdByName?: string;
+  /** 目录聚合；无评论时可为 null */
+  ratingAvg?: number | null;
+  reviewCount?: number | null;
   createTime: string;
   updateTime: string;
   deleted?: number;

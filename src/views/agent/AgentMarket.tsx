@@ -34,6 +34,7 @@ interface MarketCard {
   tags: string[];
   installs: string;
   rating: string;
+  reviewCount: number;
   featured: boolean;
 }
 
@@ -44,16 +45,29 @@ function agentToCard(agent: Agent): MarketCard {
       : agent.categoryName
         ? [agent.categoryName, agent.agentType]
         : [agent.agentType];
+  const authorFromCatalog =
+    agent.createdByName?.trim()
+    || (agent.createdBy != null ? `用户 #${agent.createdBy}` : '');
+  const author =
+    authorFromCatalog
+    || (agent.sourceType === 'internal' ? '校内团队' : agent.sourceType === 'partner' ? '合作伙伴' : '云服务');
+  const ratingStr =
+    agent.ratingAvg != null && Number.isFinite(agent.ratingAvg)
+      ? agent.ratingAvg.toFixed(1)
+      : agent.qualityScore > 0
+        ? (agent.qualityScore / 20).toFixed(1)
+        : '—';
   return {
     id: String(agent.id),
     name: agent.displayName,
     emoji: agent.icon || '🤖',
     description: agent.description,
-    author: agent.sourceType === 'internal' ? '校内团队' : agent.sourceType === 'partner' ? '合作伙伴' : '云服务',
+    author,
     tags,
     installs: agent.callCount > 1000 ? `${(agent.callCount / 1000).toFixed(1)}K` : String(agent.callCount),
-    rating: agent.qualityScore > 0 ? (agent.qualityScore / 20).toFixed(1) : '4.5',
-    featured: agent.qualityScore >= 80,
+    rating: ratingStr,
+    reviewCount: Math.max(0, Math.floor(Number(agent.reviewCount ?? 0)) || 0),
+    featured: agent.qualityScore >= 80 || (agent.ratingAvg != null && agent.ratingAvg >= 4.5),
   };
 }
 
@@ -243,6 +257,8 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
                               {a.rating}
                             </span>
                             <span className="mx-2 opacity-40">|</span>
+                            <span>{a.reviewCount} 条评价</span>
+                            <span className="mx-2 opacity-40">|</span>
                             <span>{a.installs} 次安装</span>
                           </div>
                           <div className="flex gap-2">
@@ -308,10 +324,11 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
                     </div>
                     <div className={`flex items-center justify-between gap-2 mt-auto pt-2 border-t border-dashed ${isDark ? 'border-white/[0.08]' : 'border-slate-200/40'}`}>
                       <span className={`text-[11px] tabular-nums ${textMuted(theme)}`}>
-                        <span className="inline-flex items-center gap-0.5 mr-2">
+                        <span className="inline-flex items-center gap-0.5 mr-1">
                           <Star size={11} className="text-amber-500 fill-amber-500" />
                           {a.rating}
                         </span>
+                        <span className="mr-2 opacity-80">({a.reviewCount})</span>
                         {a.installs} 安装
                       </span>
                       <button
@@ -348,6 +365,7 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
                       <Star size={12} className="text-amber-500 fill-amber-500" />
                       {detailAgent.rating}
                     </span>
+                    <span className={`text-xs ${textMuted(theme)}`}>{detailAgent.reviewCount} 条评价</span>
                     <span className={`text-xs ${textMuted(theme)}`}>{detailAgent.installs} 次安装</span>
                   </div>
                 </div>

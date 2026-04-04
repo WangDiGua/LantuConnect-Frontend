@@ -36,7 +36,7 @@ interface Props {
 
 const INPUT_FOCUS = 'focus:ring-2 focus:ring-neutral-900/20 focus:border-neutral-900/35';
 const SENSITIVE_PAGE_SIZE = 20;
-const PAGE_DESCRIPTION = '维护平台敏感词规则，支持批量导入与启用控制';
+const PAGE_DESCRIPTION = '维护平台敏感词规则，支持批量导入与启用控制。分类建议使用 agent、skill、mcp、app、dataset 等与五类资源一致的命名，便于按场景运营与审计；亦可用 general 表示全站。';
 
 const ENABLED_FILTER_OPTIONS = [
   { value: '', label: '全部状态' },

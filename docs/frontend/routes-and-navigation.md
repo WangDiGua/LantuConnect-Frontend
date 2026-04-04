@@ -77,7 +77,7 @@
 | `provider-management` | `provider-list`, `provider-create` |
 | `user-management` | `user-list`, `role-management`, `organization`, `api-key-management`, `resource-grant-management`, `grant-applications`, `developer-applications` |
 | `monitoring` | `monitoring-overview`, `call-logs`, `performance-analysis`, `alert-management`, `alert-rules`, `health-config`, `circuit-breaker` |
-| `system-config` | `tag-management`, `model-config`, `security-settings`, `quota-management`, `rate-limit-policy`, `access-control`, `audit-log`, `sensitive-words`, `announcements` |
+| `system-config` | `tag-management`, `security-settings`, `quota-management`, `rate-limit-policy`, `access-control`, `audit-log`, `sensitive-words`, `announcements` |
 
 子菜单文案与图标见 [`navigation.ts`](../../src/constants/navigation.ts) 中 `ADMIN_*_GROUPS`。管理端 **资源** 侧栏在 UI 上以「统一资源中心 + Agent 运维」分组展示；`agent-list` 等为历史 slug，仍挂在 `resource-management` 下以便 `findSidebarForPage` 校验。
 
@@ -122,7 +122,7 @@
 | `grant-applications` | `GrantApplicationListPage` |
 | `developer-applications` | `DeveloperApplicationListPage` |
 | `monitoring-overview` / `call-logs` / `performance-analysis` / `alert-management` / `alert-rules` / `health-config` / `circuit-breaker` | `MonitoringModule` |
-| `category-management` / `tag-management` / `model-config` / … / `announcements` | `SystemConfigModule`（注：`category-management` 会先在 URL 层归一到 `tag-management`） |
+| `category-management` / `tag-management` / … / `announcements` | `SystemConfigModule`（注：`category-management` 会先在 URL 层归一到 `tag-management`；~~`model-config`~~ 已移除） |
 | 其它已知 slug | `PlaceholderView` |
 
 **说明**：`category-management` 仅在经过 `normalizeDeprecatedPage` 后以 `tag-management` 渲染；`system-config` 的 `switch` 仍保留 `case 'category-management'` 为兼容。

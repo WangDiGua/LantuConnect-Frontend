@@ -44,6 +44,22 @@ export interface ResourceMcpUpsertRequest extends ResourceBaseUpsertRequest {
   authConfig?: Record<string, unknown>;
 }
 
+/** POST /resource-center/resources/mcp/connectivity-probe */
+export interface McpConnectivityProbeRequest {
+  endpoint: string;
+  authType?: string;
+  authConfig?: Record<string, unknown>;
+  transport?: string;
+}
+
+export interface McpConnectivityProbeResult {
+  ok: boolean;
+  statusCode: number;
+  latencyMs: number;
+  message: string;
+  bodyPreview?: string;
+}
+
 export type SkillPackValidationStatus = 'none' | 'pending' | 'valid' | 'invalid';
 
 /** 技能包分片上传进度（大文件断点续传） */

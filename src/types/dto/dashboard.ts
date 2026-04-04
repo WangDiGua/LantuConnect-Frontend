@@ -40,7 +40,6 @@ export interface HealthSummary {
 export interface UsageStatsPoint {
   date: string;
   calls: number;
-  tokens: number;
   users: number;
 }
 
@@ -48,14 +47,29 @@ export interface UsageStatsData {
   range: string;
   points: UsageStatsPoint[];
   totalCalls: number;
-  totalTokens: number;
   activeUsers: number;
+  /** 来自 UsageStatsVO.breakdown.callsByResourceType */
+  callsByResourceType?: { type: string; calls: number; successRate: number }[];
+}
+
+export interface DataReportResourceRow {
+  name: string;
+  calls: number;
+  successRate: number;
+  resourceType?: string;
 }
 
 export interface DataReportsData {
   range: string;
-  topAgents: { name: string; calls: number; successRate: number }[];
-  topSkills: { name: string; calls: number; avgLatency: number }[];
+  /** 按网关 method（POST /invoke 等）聚合 */
+  methodBreakdown?: { path: string; requests: number; avgLatencyMs: number }[];
+  callsByResourceType: { type: string; calls: number; successRate: number }[];
+  topResources: DataReportResourceRow[];
+  topAgents: DataReportResourceRow[];
+  topSkills: DataReportResourceRow[];
+  topMcps: DataReportResourceRow[];
+  topApps: DataReportResourceRow[];
+  topDatasets: DataReportResourceRow[];
   departmentUsage: { department: string; calls: number; users: number }[];
 }
 

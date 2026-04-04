@@ -110,7 +110,7 @@
 - `circuit-breaker` -> `/health/circuit-breakers*`：已完成
 - `category-management`（下线）-> 归并 `tag-management`：已完成（旧 slug 自动重定向）
 - `tag-management` -> `/tags*`：已完成
-- `model-config` -> `/system-config/model-configs*`：已完成
+- ~~`model-config` -> `/system-config/model-configs*`~~：**已移除**（全栈下线，勿再集成该路径）
 - `security-settings` -> `/system-config/security`：已完成
 - `quota-management` -> `/quotas*`,`/rate-limits*`：已完成
 - `rate-limit-policy` -> `/system-config/rate-limits*`：已完成

@@ -78,8 +78,12 @@ export interface AdminRealtimeData {
   userGrowth: { date: string; newUsers: number; totalUsers: number }[];
   pendingAudits: number;
   activeAlerts: number;
-  topResourcesByCall: { name: string; type: string; calls: number }[];
+  topResourcesByCall: { name: string; type: string; calls: number; successRate?: number }[];
   systemHealth: { component: string; status: 'healthy' | 'degraded' | 'down' }[];
+  /** 各类型已发布资源存量（t_resource 未删除） */
+  publishedResourceCounts?: Partial<Record<'agent' | 'skill' | 'mcp' | 'app' | 'dataset', number>>;
+  /** 近 7 日按 resource_type 网关调用量 */
+  callsByResourceType7d?: { type: string; calls: number }[];
 }
 
 export interface UserDashboardData {
@@ -105,14 +109,16 @@ export interface UserDashboardData {
   unreadNotifications: number;
 }
 
+/**
+ * GET /catalog/resources/{type}/{id}/stats — 与后端 ResourceStatsVO 对齐。
+ */
 export interface ResourceStatsVO {
-  totalCalls: number;
-  todayCalls: number;
+  callCount: number;
   successRate: number;
-  avgLatencyMs: number;
+  /** 无评论时后端为 null */
+  rating: number | null;
   favoriteCount: number;
-  reviewCount: number;
-  averageRating: number;
+  /** 后端 callTrend 为 day + cnt，前端统一为 date + calls */
   callTrend: { date: string; calls: number }[];
   relatedResources: ExploreResourceItem[];
 }

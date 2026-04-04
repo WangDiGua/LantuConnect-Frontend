@@ -15,6 +15,8 @@ export interface HealthConfigItem {
 export interface CircuitBreakerItem {
   id: number;
   agentName: string;
+  /** 统一资源类型 agent/skill/mcp/app/dataset */
+  resourceType?: string;
   displayName: string;
   currentState: 'CLOSED' | 'OPEN' | 'HALF_OPEN';
   failureThreshold: number;

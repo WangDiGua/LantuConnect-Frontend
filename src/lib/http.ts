@@ -165,6 +165,9 @@ function ensureRequiredHeaders(config: InternalAxiosRequestConfig): void {
   if (path.startsWith('/catalog/resources') && !hasUserId && !hasApiKey) {
     throw new ApiException({ code: 1001, status: 400, message: '浏览目录接口必须至少提供 X-User-Id（登录）或 X-Api-Key' });
   }
+  if (path === '/reviews/page' && !hasUserId && !hasApiKey) {
+    throw new ApiException({ code: 1001, status: 400, message: '调用 /reviews/page 必须至少提供 X-User-Id（登录）或 X-Api-Key' });
+  }
 }
 
 function mapErrorMessage(status: number, code?: number, fallback?: string): string {

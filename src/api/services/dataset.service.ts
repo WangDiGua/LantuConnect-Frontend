@@ -21,6 +21,8 @@ function deprecatedWriteError<T>(): Promise<T> {
 
 function toDataset(item: ResourceCatalogItemVO): Dataset {
   const id = Number(item.resourceId) || 0;
+  const createdBy =
+    item.createdBy != null && Number.isFinite(Number(item.createdBy)) ? Number(item.createdBy) : undefined;
   return {
     id,
     name: item.displayName || item.resourceCode || String(item.resourceId),
@@ -32,8 +34,10 @@ function toDataset(item: ResourceCatalogItemVO): Dataset {
     tags: item.tags,
     status: (item.status as Dataset['status']) || 'draft',
     isPublic: true,
-    createdBy: (item as any).createdBy ? Number((item as any).createdBy) : undefined,
-    createdByName: (item as any).createdByName ? String((item as any).createdByName) : undefined,
+    createdBy,
+    createdByName: item.createdByName ?? undefined,
+    ratingAvg: item.ratingAvg ?? undefined,
+    reviewCount: item.reviewCount != null ? Number(item.reviewCount) : undefined,
     createTime: item.updateTime || '',
     updateTime: item.updateTime || '',
     datasetName: item.resourceCode || '',

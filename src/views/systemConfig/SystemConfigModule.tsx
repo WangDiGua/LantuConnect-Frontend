@@ -1,7 +1,6 @@
 import React from 'react';
 import { Theme, FontSize } from '../../types';
 import { PlaceholderView } from '../common/PlaceholderView';
-import { ModelConfigPage } from './ModelConfigPage';
 import { RateLimitPage } from './RateLimitPage';
 import { AuditLogPage } from './AuditLogPage';
 import {
@@ -22,7 +21,7 @@ export interface SystemConfigModuleProps {
   showMessage: (msg: string, type?: 'success' | 'error' | 'info') => void;
 }
 
-/** 侧栏「系统配置」子菜单：模型配置 / 限流策略 / 审计日志 */
+/** 侧栏「系统配置」子菜单：限流策略 / 审计日志等 */
 export const SystemConfigModule: React.FC<SystemConfigModuleProps> = ({
   activeSubItem,
   theme,
@@ -30,15 +29,6 @@ export const SystemConfigModule: React.FC<SystemConfigModuleProps> = ({
   showMessage,
 }) => {
   switch (activeSubItem) {
-    case 'model-config':
-      return (
-        <ModelConfigPage
-          theme={theme}
-          fontSize={fontSize}
-          showMessage={showMessage}
-          breadcrumbSegments={['系统配置', '模型配置']}
-        />
-      );
     case 'rate-limit':
     case 'rate-limit-policy':
       return (

@@ -57,7 +57,7 @@ const MD_LOCALE = {
   lines: '行数',
 };
 
-const PAGE_DESCRIPTION = '发布与维护面向师生的平台公告与通知';
+const PAGE_DESCRIPTION = '发布与维护面向师生的平台公告与通知；支持 Markdown。维护类公告可配合「监控中心」排障信息，形成统一运营入口。';
 
 export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage }) => {
   const isDark = theme === 'dark';

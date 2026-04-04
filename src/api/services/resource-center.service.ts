@@ -6,6 +6,8 @@ import type {
   ResourceCenterItemVO,
   ResourceCenterListQuery,
   ResourceCenterPage,
+  McpConnectivityProbeRequest,
+  McpConnectivityProbeResult,
   ResourceUpsertRequest,
   ResourceVersionCreateRequest,
   ResourceVersionVO,
@@ -499,6 +501,10 @@ export const resourceCenterService = {
     const raw = await http.get<unknown>(`/resource-center/resources/${id}`);
     return toResourceItem(raw);
   },
+
+  /** 登记前探测 MCP 可达性（initialize）；不创建资源 */
+  probeMcpConnectivity: async (body: McpConnectivityProbeRequest): Promise<McpConnectivityProbeResult> =>
+    http.post<McpConnectivityProbeResult>('/resource-center/resources/mcp/connectivity-probe', body),
 
   create: async (payload: ResourceUpsertRequest): Promise<ResourceCenterItemVO> => {
     const raw = await http.post<unknown>('/resource-center/resources', payload);

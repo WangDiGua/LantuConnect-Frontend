@@ -6,6 +6,7 @@ import type {
   HealthSummary,
   UsageStatsData,
   DataReportsData,
+  DataReportResourceRow,
 } from '../../types/dto/dashboard';
 import type {
   ExploreHubData,
@@ -27,7 +28,7 @@ function optNum(v: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-function normalizeExploreResourceItem(raw: unknown): ExploreResourceItem {
+export function normalizeExploreResourceItem(raw: unknown): ExploreResourceItem {
   const x = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
   const publishedRaw = x.publishedAt ?? x.published_at ?? x.updateTime ?? x.update_time;
   let publishedAt = '';
@@ -89,19 +90,43 @@ function normalizeContributorItem(raw: unknown): ContributorItem {
 
 function normalizeUsageStatsData(raw: unknown): UsageStatsData {
   const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
-  const pointsRaw = extractArray(o.points);
-  const points = pointsRaw.map((p: any) => ({
+  const agg = o.aggregates && typeof o.aggregates === 'object' ? (o.aggregates as Record<string, unknown>) : {};
+  let pointsRaw = extractArray(o.points);
+  if (pointsRaw.length === 0) {
+    const series = extractArray(o.series);
+    pointsRaw = series.map((row: unknown) => {
+      const x = row && typeof row === 'object' ? (row as Record<string, unknown>) : {};
+      return {
+        date: String(x.day ?? x.date ?? ''),
+        calls: num(x.cnt ?? x.calls ?? x.count),
+        users: 0,
+      };
+    });
+  }
+  const points = pointsRaw.map((p: Record<string, unknown>) => ({
     date: String(p?.date ?? p?.statDate ?? p?.day ?? ''),
-    calls: num(p?.calls ?? p?.callCount ?? p?.invokeCount),
-    tokens: num(p?.tokens ?? p?.tokenCount ?? p?.totalTokens),
+    calls: num(p?.calls ?? p?.callCount ?? p?.invokeCount ?? p?.cnt),
     users: num(p?.users ?? p?.activeUsers ?? p?.userCount),
   }));
+  const totalCallsFromPoints = points.reduce((s, pt) => s + pt.calls, 0);
+  const breakdown =
+    o.breakdown && typeof o.breakdown === 'object' ? (o.breakdown as Record<string, unknown>) : {};
+  const callsByResourceType = extractArray(breakdown.callsByResourceType).map((item: unknown) => {
+    const x = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+    return {
+      type: String(x.type ?? x.resource_type ?? '').toLowerCase(),
+      calls: num(x.calls ?? x.cnt),
+      successRate: num(x.successRate ?? x.success_rate),
+    };
+  });
   return {
-    range: String(o.range ?? '7d'),
+    range: String(o.range ?? agg.range ?? '7d'),
     points,
-    totalCalls: num(o.totalCalls ?? o.total_calls),
-    totalTokens: num(o.totalTokens ?? o.total_tokens),
-    activeUsers: num(o.activeUsers ?? o.active_users),
+    totalCalls: num(
+      o.totalCalls ?? o.total_calls ?? agg.callLogsToday ?? (totalCallsFromPoints > 0 ? totalCallsFromPoints : 0),
+    ),
+    activeUsers: num(o.activeUsers ?? o.active_users ?? agg.activeUsers),
+    callsByResourceType: callsByResourceType.length > 0 ? callsByResourceType : undefined,
   };
 }
 
@@ -190,13 +215,62 @@ function normalizeHealthSummary(raw: unknown): HealthSummary {
   };
 }
 
+function mapDataReportResourceRow(raw: unknown): DataReportResourceRow {
+  const x = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  return {
+    name: String(x.name ?? x.agent_name ?? ''),
+    calls: num(x.calls ?? x.cnt),
+    successRate: num(x.successRate ?? x.success_rate),
+    resourceType:
+      x.resourceType == null && x.resource_type == null
+        ? undefined
+        : String(x.resourceType ?? x.resource_type ?? '').toLowerCase(),
+  };
+}
+
 function normalizeDataReportsData(raw: unknown): DataReportsData {
   const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const methodRows = extractArray(o.rows).map((item: unknown) => {
+    const x = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+    return {
+      path: String(x.path ?? ''),
+      requests: num(x.requests ?? x.cnt),
+      avgLatencyMs: num(x.avgLatencyMs ?? x.avg_latency_ms),
+    };
+  });
+  const callsByResourceType = extractArray(o.callsByResourceType).map((item: unknown) => {
+    const x = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+    return {
+      type: String(x.type ?? x.resource_type ?? '').toLowerCase(),
+      calls: num(x.calls ?? x.cnt),
+      successRate: num(x.successRate ?? x.success_rate),
+    };
+  });
+  const topResources = extractArray(o.topResources).map(mapDataReportResourceRow);
+  const topAgents = extractArray(o.topAgents).map(mapDataReportResourceRow);
+  const topSkills = extractArray(o.topSkills).map(mapDataReportResourceRow);
+  const topMcps = extractArray(o.topMcps ?? o.top_mcps).map(mapDataReportResourceRow);
+  const topApps = extractArray(o.topApps ?? o.top_apps).map(mapDataReportResourceRow);
+  const topDatasets = extractArray(o.topDatasets ?? o.top_datasets).map(mapDataReportResourceRow);
+  const departmentUsage = extractArray(o.departmentUsage).map((item: unknown) => {
+    const x = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+    return {
+      department: String(x.department ?? x.dept ?? ''),
+      calls: num(x.calls ?? x.cnt),
+      users: num(x.users ?? x.userCount),
+    };
+  });
   return {
     range: String(o.range ?? '7d'),
-    topAgents: extractArray(o.topAgents),
-    topSkills: extractArray(o.topSkills),
-    departmentUsage: extractArray(o.departmentUsage),
+    methodBreakdown: methodRows.length > 0 ? methodRows : undefined,
+    callsByResourceType,
+    topResources,
+    topAgents,
+    topSkills,
+    topMcps,
+    topApps,
+    topDatasets,
+    departmentUsage,
   };
 }
 
@@ -300,8 +374,27 @@ function normalizeAdminRealtime(raw: unknown): AdminRealtimeData {
       name: String(x.name ?? x.agent_name ?? ''),
       type: String(x.type ?? x.resource_type ?? 'resource'),
       calls: num(x.calls ?? x.cnt ?? x.count),
+      successRate: num(x.successRate ?? x.success_rate),
     };
   });
+  const publishedRaw = o.publishedResourceCounts ?? o.published_resource_counts;
+  let publishedResourceCounts: AdminRealtimeData['publishedResourceCounts'];
+  if (publishedRaw && typeof publishedRaw === 'object') {
+    const pr = publishedRaw as Record<string, unknown>;
+    publishedResourceCounts = {
+      agent: num(pr.agent),
+      skill: num(pr.skill),
+      mcp: num(pr.mcp),
+      app: num(pr.app),
+      dataset: num(pr.dataset),
+    };
+  }
+  const callsByResourceType7d = extractArray(o.callsByResourceType7d ?? o.calls_by_resource_type_7d).map(
+    (item: unknown) => {
+      const x = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+      return { type: String(x.type ?? x.resource_type ?? '').toLowerCase(), calls: num(x.calls ?? x.cnt) };
+    },
+  );
   const systemHealth = extractArray(o.systemHealth).map((item: unknown) => {
     const x = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
     const statusRaw = String(x.status ?? x.health_status ?? '').toLowerCase();
@@ -323,6 +416,8 @@ function normalizeAdminRealtime(raw: unknown): AdminRealtimeData {
     activeAlerts: num(o.activeAlerts),
     topResourcesByCall,
     systemHealth,
+    publishedResourceCounts,
+    callsByResourceType7d: callsByResourceType7d.length > 0 ? callsByResourceType7d : undefined,
   };
 }
 

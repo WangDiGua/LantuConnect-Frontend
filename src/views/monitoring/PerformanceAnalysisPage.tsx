@@ -12,8 +12,9 @@ import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { MgmtDataTable } from '../../components/management/MgmtDataTable';
 import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
 import type { PerformanceMetric } from '../../types/dto/monitoring';
+import { RESOURCE_TYPE_LABEL } from '../../constants/resourceTypes';
 
-const PAGE_DESC = '各服务 CPU、内存、延迟分位与吞吐指标';
+const PAGE_DESC = '按统一资源类型查看近 24 小时网关调用延迟与吞吐（数据来自 t_call_log 按小时聚合）';
 
 interface Props {
   theme: Theme;
@@ -21,28 +22,24 @@ interface Props {
   showMessage: (msg: string, type?: 'success' | 'error' | 'info') => void;
 }
 
-const SERVICES = [
-  { key: 'gateway', label: 'Gateway' },
-  { key: 'inference', label: 'Inference' },
-  { key: 'worker', label: 'Worker' },
+const RESOURCE_TABS: { key: string; label: string }[] = [
+  { key: 'all', label: '全部' },
+  { key: 'agent', label: RESOURCE_TYPE_LABEL.agent },
+  { key: 'skill', label: RESOURCE_TYPE_LABEL.skill },
+  { key: 'mcp', label: RESOURCE_TYPE_LABEL.mcp },
+  { key: 'app', label: RESOURCE_TYPE_LABEL.app },
+  { key: 'dataset', label: RESOURCE_TYPE_LABEL.dataset },
+  { key: 'unknown', label: '未分类' },
 ];
 
 const BREADCRUMB = ['监控中心', '性能分析'] as const;
 
 export const PerformanceAnalysisPage: React.FC<Props> = ({ theme, fontSize, showMessage }) => {
   const isDark = theme === 'dark';
-  const [svc, setSvc] = useState('gateway');
-  const perfQ = usePerformanceMetrics();
+  const [resourceTab, setResourceTab] = useState('all');
+  const perfQ = usePerformanceMetrics(resourceTab === 'all' ? undefined : resourceTab);
 
-  const rows = useMemo(() => {
-    const list = perfQ.data ?? [];
-    if (list.length === 0) return [];
-    const key = (svc === 'gateway' ? 'gateway' : svc === 'inference' ? 'inference' : 'worker').toLowerCase();
-    const byService = list.filter((m) => m.service && String(m.service).toLowerCase() === key);
-    if (byService.length > 0) return byService;
-    const bucket = svc === 'gateway' ? 0 : svc === 'inference' ? 1 : 2;
-    return list.filter((_, i) => i % 3 === bucket);
-  }, [perfQ.data, svc]);
+  const rows = useMemo(() => perfQ.data ?? [], [perfQ.data]);
 
   const perfColumns = useMemo<MgmtDataTableColumn<PerformanceMetric>[]>(
     () => [
@@ -52,17 +49,19 @@ export const PerformanceAnalysisPage: React.FC<Props> = ({ theme, fontSize, show
         cell: (r) => <span className="font-mono text-xs whitespace-nowrap">{formatDateTime(r.timestamp)}</span>,
       },
       {
-        id: 'cpu',
-        header: 'CPU %',
+        id: 'req',
+        header: '请求量',
         cell: (r) => (
-          <span className={`font-mono tabular-nums whitespace-nowrap ${r.cpu > 80 ? 'text-rose-500 font-semibold' : textSecondary(theme)}`}>{r.cpu}</span>
+          <span className={`font-mono tabular-nums whitespace-nowrap ${textSecondary(theme)}`}>{r.requestRate}</span>
         ),
       },
       {
-        id: 'mem',
-        header: '内存 %',
+        id: 'err',
+        header: '错误率',
         cell: (r) => (
-          <span className={`font-mono tabular-nums whitespace-nowrap ${r.memory > 85 ? 'text-rose-500 font-semibold' : textSecondary(theme)}`}>{r.memory}</span>
+          <span className={`font-mono tabular-nums whitespace-nowrap ${r.errorRate > 0.05 ? 'text-amber-500 font-semibold' : textSecondary(theme)}`}>
+            {(r.errorRate * 100).toFixed(1)}%
+          </span>
         ),
       },
       {
@@ -90,7 +89,7 @@ export const PerformanceAnalysisPage: React.FC<Props> = ({ theme, fontSize, show
     const date = new Date().toISOString().slice(0, 10);
     const snapshot = {
       exportTime: new Date().toISOString(),
-      service: svc,
+      resourceType: resourceTab,
       metrics: rows.map((r) => ({
         timestamp: r.timestamp, cpu: r.cpu, memory: r.memory,
         latencyP50: r.latencyP50, latencyP99: r.latencyP99, throughput: r.throughput,
@@ -123,14 +122,14 @@ export const PerformanceAnalysisPage: React.FC<Props> = ({ theme, fontSize, show
       <div className="flex flex-col gap-3 w-full sm:flex-row sm:items-start sm:justify-between">
         <BentoCard theme={theme} padding="sm" className="min-w-0 flex-1">
           <div className="flex flex-wrap gap-2">
-            {SERVICES.map((s) => (
+            {RESOURCE_TABS.map((s) => (
               <button
                 key={s.key}
                 type="button"
-                onClick={() => setSvc(s.key)}
-                className={tabCls(svc === s.key)}
-                aria-pressed={svc === s.key}
-                aria-label={`查看 ${s.label} 指标`}
+                onClick={() => setResourceTab(s.key)}
+                className={tabCls(resourceTab === s.key)}
+                aria-pressed={resourceTab === s.key}
+                aria-label={`查看 ${s.label} 调用性能`}
               >
                 {s.label}
               </button>

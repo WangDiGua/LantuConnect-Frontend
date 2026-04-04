@@ -19,20 +19,26 @@ export interface QualityHistoryPoint {
   qualityScore: number;
 }
 
+/** 与 GET /monitoring/call-summary-by-resource 单行一致 */
+export interface CallSummaryByResourceRow {
+  type: string;
+  calls: number;
+  errors: number;
+  avgLatencyMs: number;
+}
+
 export interface CallLogEntry {
   id: string;
   traceId: string;
   agentId: string;
   agentName: string;
+  /** 统一资源类型 agent/skill/mcp/app/dataset；缺省表示历史未写入 */
+  resourceType?: string;
   userId: string;
-  model: string;
   method: string;
   status: 'success' | 'error' | 'timeout';
   statusCode: number;
   latencyMs: number;
-  inputTokens: number;
-  outputTokens: number;
-  cost: number;
   errorMessage?: string;
   ip: string;
   createdAt: string;

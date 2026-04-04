@@ -1,8 +1,11 @@
+export type QuotaResourceCategory = 'all' | 'agent' | 'skill' | 'mcp' | 'app' | 'dataset';
+
 export interface QuotaItem {
   id: number;
   targetType: 'user' | 'department' | 'global';
   targetId: number | null;
   targetName: string;
+  resourceCategory: QuotaResourceCategory;
   dailyLimit: number;
   monthlyLimit: number;
   dailyUsed: number;
@@ -13,17 +16,20 @@ export interface QuotaItem {
 }
 
 export interface QuotaCreatePayload {
-  targetType: 'user' | 'department' | 'global';
-  targetId?: number;
-  targetName: string;
+  subjectType: 'user' | 'department' | 'global';
+  subjectName: string;
+  subjectId?: string;
+  resourceCategory?: QuotaResourceCategory;
   dailyLimit: number;
   monthlyLimit: number;
 }
 
+export type ResourceRateLimitTarget = 'agent' | 'skill' | 'mcp' | 'app' | 'dataset';
+
 export interface RateLimitItem {
   id: number;
   name: string;
-  targetType: 'agent' | 'skill' | 'global';
+  targetType: ResourceRateLimitTarget | 'quota' | 'global';
   targetId: number | null;
   targetName: string;
   maxRequestsPerMin: number;
@@ -36,8 +42,8 @@ export interface RateLimitItem {
 
 export interface RateLimitCreatePayload {
   name: string;
-  targetType: 'agent' | 'skill' | 'global';
-  targetId?: number;
+  targetType: ResourceRateLimitTarget;
+  targetId: number;
   targetName: string;
   maxRequestsPerMin: number;
   maxRequestsPerHour: number;

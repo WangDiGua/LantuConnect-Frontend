@@ -14,6 +14,7 @@ import { BentoCard } from '../../components/common/BentoCard';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { healthService } from '../../api/services/health.service';
 import type { HealthConfigItem } from '../../types/dto/health';
+import { RESOURCE_TYPE_LABEL } from '../../constants/resourceTypes';
 
 interface Props {
   theme: Theme;
@@ -31,7 +32,12 @@ const STATUS_CFG: Record<HealthStatus, { dot: string; label: string; badge: { li
   down:     { dot: 'bg-red-500',     label: '不可用', badge: { light: 'bg-red-100 text-red-800',         dark: 'bg-red-500/20 text-red-300'       } },
 };
 
-const TYPE_LABEL: Record<string, string> = { mcp: 'MCP', http_api: 'HTTP API', builtin: '内置' };
+const TYPE_LABEL: Record<string, string> = {
+  ...RESOURCE_TYPE_LABEL,
+  mcp: 'MCP',
+  http_api: 'HTTP API',
+  builtin: '内置',
+};
 
 function safeText(v: unknown): string { return String(v ?? ''); }
 
@@ -55,6 +61,7 @@ export const HealthConfigPage: React.FC<Props> = ({ theme, fontSize, showMessage
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
   const [editingId, setEditingId] = useState<number | null>(null);
   const [draft, setDraft] = useState<Partial<HealthConfigItem>>({});
 
@@ -70,6 +77,7 @@ export const HealthConfigPage: React.FC<Props> = ({ theme, fontSize, showMessage
 
   const filtered = data.filter((r) => {
     if (statusFilter !== 'all' && r.healthStatus !== statusFilter) return false;
+    if (typeFilter !== 'all' && String(r.agentType ?? '').toLowerCase() !== typeFilter) return false;
     const term = q.trim().toLowerCase();
     if (!term) return true;
     return safeText(r.displayName).toLowerCase().includes(term) || safeText(r.checkUrl).toLowerCase().includes(term);
@@ -123,12 +131,27 @@ export const HealthConfigPage: React.FC<Props> = ({ theme, fontSize, showMessage
         onChange={setStatusFilter}
         options={healthStatusFilterOptions}
       />
+      <LantuSelect
+        theme={theme}
+        className="!w-[7.5rem] shrink-0"
+        triggerClassName={INPUT_FOCUS}
+        value={typeFilter}
+        onChange={setTypeFilter}
+        options={[
+          { value: 'all', label: '全部类型' },
+          { value: 'agent', label: '智能体' },
+          { value: 'skill', label: '技能' },
+          { value: 'mcp', label: 'MCP' },
+          { value: 'app', label: '应用' },
+          { value: 'dataset', label: '数据集' },
+        ]}
+      />
       <button type="button" onClick={() => setShowCreateModal(true)} className={`${btnPrimary} shrink-0`}>新增检查</button>
     </div>
   );
 
   return (
-    <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={ShieldCheck} breadcrumbSegments={['监控中心', '健康检查']} description="管理 Agent / Skill 的健康检查策略，实时查看连通性状态" toolbar={toolbar}>
+    <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={ShieldCheck} breadcrumbSegments={['监控中心', '健康检查']} description="按统一资源类型（智能体 / 技能 / MCP / 应用 / 数据集）配置 HTTP/TCP 探测，定时任务更新 health_status" toolbar={toolbar}>
       <div className="min-w-0 px-4 sm:px-6 pb-6">
         {loading ? (
           <PageSkeleton type="table" />

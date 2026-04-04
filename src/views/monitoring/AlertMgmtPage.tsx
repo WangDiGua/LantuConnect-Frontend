@@ -15,6 +15,13 @@ import {
 } from '../../utils/uiClasses';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
+import { resourceTypeLabel } from '../../constants/resourceTypes';
+
+function alertResourceBadgeText(r: AlertRecord): string | null {
+  const L = r.labels ?? {};
+  const rt = L.resource_type || L.resourceType;
+  return rt ? resourceTypeLabel(rt) : null;
+}
 
 interface AlertMgmtPageProps {
   theme: Theme;
@@ -38,7 +45,7 @@ const STATUS_LABEL: Record<AlertRecord['status'], string> = {
 };
 
 function safeText(v: unknown): string { return String(v ?? ''); }
-const ALERT_DESC = '运行期告警列表';
+const ALERT_DESC = '运行期告警列表；支持按 labels 中的 resource_type 筛选（与五类统一资源对齐）';
 
 export const AlertMgmtPage: React.FC<AlertMgmtPageProps> = ({ theme, fontSize }) => {
   const isDark = theme === 'dark';
@@ -46,6 +53,7 @@ export const AlertMgmtPage: React.FC<AlertMgmtPageProps> = ({ theme, fontSize })
   const [debouncedQ, setDebouncedQ] = useState('');
   const [severity, setSeverity] = useState<string>('all');
   const [statusF, setStatusF] = useState<string>('all');
+  const [resourceType, setResourceType] = useState<string>('all');
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -55,7 +63,7 @@ export const AlertMgmtPage: React.FC<AlertMgmtPageProps> = ({ theme, fontSize })
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedQ, severity, statusF]);
+  }, [debouncedQ, severity, statusF, resourceType]);
 
   const alertParams = useMemo(
     () => ({
@@ -64,8 +72,9 @@ export const AlertMgmtPage: React.FC<AlertMgmtPageProps> = ({ theme, fontSize })
       ...(debouncedQ ? { keyword: debouncedQ } : {}),
       ...(severity !== 'all' ? { severity } : {}),
       alertStatus: statusF,
+      ...(resourceType !== 'all' ? { resourceType } : {}),
     }),
-    [page, debouncedQ, severity, statusF],
+    [page, debouncedQ, severity, statusF, resourceType],
   );
 
   const alertsQ = useAlerts(alertParams);
@@ -101,6 +110,22 @@ export const AlertMgmtPage: React.FC<AlertMgmtPageProps> = ({ theme, fontSize })
         <div className="flex flex-wrap items-center gap-2 min-w-0">
           <FilterSelect value={severity} onChange={(v) => { setSeverity(v); setPage(1); }} options={[{ value: 'all', label: '全部级别' }, { value: 'critical', label: '严重' }, { value: 'warning', label: '警告' }, { value: 'info', label: '通知' }]} theme={theme} className="w-full sm:w-32" />
           <FilterSelect value={statusF} onChange={(v) => { setStatusF(v); setPage(1); }} options={[{ value: 'all', label: '全部状态' }, { value: 'firing', label: '触发中' }, { value: 'resolved', label: '已恢复' }, { value: 'silenced', label: '已静默' }]} theme={theme} className="w-full sm:w-32" />
+          <FilterSelect
+            value={resourceType}
+            onChange={(v) => { setResourceType(v); setPage(1); }}
+            options={[
+              { value: 'all', label: '全部资源类型' },
+              { value: 'agent', label: '智能体' },
+              { value: 'skill', label: '技能' },
+              { value: 'mcp', label: 'MCP' },
+              { value: 'app', label: '应用' },
+              { value: 'dataset', label: '数据集' },
+              { value: 'unknown', label: '未分类' },
+            ]}
+            theme={theme}
+            className="w-full sm:w-36"
+            aria-label="按资源类型筛选告警"
+          />
           <div className="flex-1 min-w-[min(100%,200px)]">
             <SearchInput value={q} onChange={setQ} placeholder="规则名、消息、来源…" theme={theme} />
           </div>
@@ -111,11 +136,12 @@ export const AlertMgmtPage: React.FC<AlertMgmtPageProps> = ({ theme, fontSize })
         {alertsQ.isLoading ? (
             <div className="py-2"><PageSkeleton type="table" rows={6} /></div>
         ) : rows.length === 0 ? (
-              <EmptyState title={debouncedQ || severity !== 'all' || statusF !== 'all' ? '无匹配告警' : '暂无告警'} description="系统运行正常。" icon={<Shield size={24} aria-hidden />} />
+              <EmptyState title={debouncedQ || severity !== 'all' || statusF !== 'all' || resourceType !== 'all' ? '无匹配告警' : '暂无告警'} description="系统运行正常。" icon={<Shield size={24} aria-hidden />} />
             ) : (
               <AnimatedList className="space-y-2">
                 {rows.map((r) => {
                   const sevBadge = SEVERITY_STYLE[r.severity];
+                  const resBadge = alertResourceBadgeText(r);
                   return (
                     <motion.div
                       key={r.id}
@@ -131,6 +157,11 @@ export const AlertMgmtPage: React.FC<AlertMgmtPageProps> = ({ theme, fontSize })
                             <span className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[r.status]}`} />
                             <span className={`text-[11px] font-medium ${textSecondary(theme)}`}>{STATUS_LABEL[r.status]}</span>
                           </span>
+                          {resBadge ? (
+                            <span className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-semibold ${isDark ? 'bg-violet-500/15 text-violet-300' : 'bg-violet-50 text-violet-800'}`}>
+                              {resBadge}
+                            </span>
+                          ) : null}
                         </div>
                         <p className={`text-xs mt-1 line-clamp-2 ${textMuted(theme)}`} title={safeText(r.message)}>{safeText(r.message) || '—'}</p>
                       </div>

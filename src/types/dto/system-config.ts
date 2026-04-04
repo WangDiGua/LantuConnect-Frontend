@@ -1,39 +1,7 @@
-export interface ModelConfig {
-  id: string;
-  name: string;
-  provider: string;
-  modelId: string;
-  endpoint: string;
-  apiKey?: string;
-  maxTokens: number;
-  temperature: number;
-  topP: number;
-  enabled: boolean;
-  rateLimit: number;
-  costPerToken: number;
-  description?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CreateModelConfigDTO {
-  name: string;
-  provider: string;
-  modelId: string;
-  endpoint: string;
-  apiKey?: string;
-  maxTokens: number;
-  temperature?: number;
-  topP?: number;
-  rateLimit?: number;
-  costPerToken?: number;
-  description?: string;
-}
-
 export interface RateLimitRule {
   id: string;
   name: string;
-  target: 'user' | 'role' | 'ip' | 'api_key' | 'global';
+  target: 'user' | 'role' | 'ip' | 'api_key' | 'global' | 'path';
   targetValue?: string;
   windowMs: number;
   maxRequests: number;
@@ -42,6 +10,8 @@ export interface RateLimitRule {
   action: 'reject' | 'queue' | 'throttle';
   enabled: boolean;
   priority: number;
+  /** all 或 agent/skill/mcp/app/dataset：仅对该类资源的网关调用生效 */
+  resourceScope?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -56,6 +26,7 @@ export interface CreateRateLimitDTO {
   burstLimit?: number;
   action: RateLimitRule['action'];
   priority?: number;
+  resourceScope?: string | null;
 }
 
 export interface AuditLogEntry {

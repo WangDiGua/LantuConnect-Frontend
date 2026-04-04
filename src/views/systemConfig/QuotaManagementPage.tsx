@@ -15,7 +15,7 @@ import { BentoCard } from '../../components/common/BentoCard';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { quotaService } from '../../api/services/quota.service';
-import type { QuotaItem, RateLimitItem } from '../../types/dto/quota';
+import type { QuotaItem, QuotaResourceCategory, RateLimitItem, ResourceRateLimitTarget } from '../../types/dto/quota';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { MgmtDataTable } from '../../components/management/MgmtDataTable';
 import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
@@ -36,17 +36,41 @@ const QUOTA_TARGET_TYPE_OPTIONS = [
 
 const QUOTA_SCOPE_FILTER_OPTIONS = [{ value: '', label: '全部范围' }, ...QUOTA_TARGET_TYPE_OPTIONS];
 
-const RL_TARGET_FILTER_OPTIONS = [
-  { value: '', label: '全部目标' },
-  { value: 'global', label: '全局' },
+const QUOTA_RESOURCE_FILTER_OPTIONS: { value: QuotaResourceCategory | ''; label: string }[] = [
+  { value: '', label: '全部资源维度' },
+  { value: 'all', label: '通用 (all)' },
   { value: 'agent', label: 'Agent' },
   { value: 'skill', label: 'Skill' },
+  { value: 'mcp', label: 'MCP' },
+  { value: 'app', label: 'App' },
+  { value: 'dataset', label: 'Dataset' },
+];
+
+const RL_TARGET_FILTER_OPTIONS = [
+  { value: '', label: '全部目标' },
+  { value: 'agent', label: 'Agent' },
+  { value: 'skill', label: 'Skill' },
+  { value: 'mcp', label: 'MCP' },
+  { value: 'app', label: 'App' },
+  { value: 'dataset', label: 'Dataset' },
+  { value: 'quota', label: '配额绑定' },
 ];
 
 const SCOPE_CFG: Record<string, { label: string; light: string; dark: string }> = {
   global:     { label: '全局', light: 'bg-blue-100 text-blue-800',     dark: 'bg-blue-500/20 text-blue-300' },
   department: { label: '部门', light: 'bg-neutral-100 text-neutral-800', dark: 'bg-neutral-500/20 text-neutral-300' },
   user:       { label: '用户', light: 'bg-teal-100 text-teal-800',     dark: 'bg-teal-500/20 text-teal-300' },
+};
+
+const RESOURCE_DIM_CFG: Record<string, { label: string; light: string; dark: string }> = {
+  all:     { label: '通用',     light: 'bg-slate-100 text-slate-800', dark: 'bg-slate-500/20 text-slate-300' },
+  agent:   { label: 'Agent',   light: 'bg-violet-100 text-violet-800', dark: 'bg-violet-500/20 text-violet-200' },
+  skill:   { label: 'Skill',   light: 'bg-indigo-100 text-indigo-800', dark: 'bg-indigo-500/20 text-indigo-200' },
+  mcp:     { label: 'MCP',     light: 'bg-cyan-100 text-cyan-800', dark: 'bg-cyan-500/20 text-cyan-200' },
+  app:     { label: 'App',     light: 'bg-amber-100 text-amber-900', dark: 'bg-amber-500/20 text-amber-200' },
+  dataset: { label: 'Dataset', light: 'bg-rose-100 text-rose-800', dark: 'bg-rose-500/20 text-rose-200' },
+  global:  { label: '其他',    light: 'bg-neutral-100 text-neutral-800', dark: 'bg-neutral-500/20 text-neutral-300' },
+  quota:   { label: '配额',    light: 'bg-blue-100 text-blue-800', dark: 'bg-blue-500/20 text-blue-200' },
 };
 
 function QuotaProgressBar({ value, max, theme }: { value: number; max: number; theme: Theme }) {
@@ -86,16 +110,37 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
   const [loadError, setLoadError] = useState<Error | null>(null);
 
   const [showQuotaModal, setShowQuotaModal] = useState(false);
-  const [quotaDraft, setQuotaDraft] = useState<{ targetType: string; targetName: string; dailyLimit: number; monthlyLimit: number }>({ targetType: 'global', targetName: '全平台', dailyLimit: 10000, monthlyLimit: 200000 });
+  const [quotaDraft, setQuotaDraft] = useState<{
+    targetType: string;
+    targetName: string;
+    subjectId: string;
+    resourceCategory: QuotaResourceCategory;
+    dailyLimit: number;
+    monthlyLimit: number;
+  }>({ targetType: 'global', targetName: '全平台', subjectId: '', resourceCategory: 'all', dailyLimit: 10000, monthlyLimit: 200000 });
 
   const [showRLModal, setShowRLModal] = useState(false);
-  const [rlDraft, setRlDraft] = useState<{ name: string; targetType: string; targetName: string; maxRequestsPerMin: number; maxRequestsPerHour: number; maxConcurrent: number }>({ name: '', targetType: 'global', targetName: '全局', maxRequestsPerMin: 60, maxRequestsPerHour: 1000, maxConcurrent: 10 });
+  const [rlDraft, setRlDraft] = useState<{
+    name: string;
+    targetType: ResourceRateLimitTarget;
+    targetId: number;
+    targetName: string;
+    maxRequestsPerMin: number;
+    maxRequestsPerHour: number;
+    maxConcurrent: number;
+  }>({ name: '', targetType: 'agent', targetId: 1, targetName: '', maxRequestsPerMin: 60, maxRequestsPerHour: 1000, maxConcurrent: 10 });
 
   const [listKeyword, setListKeyword] = useState('');
   const [quotaScopeFilter, setQuotaScopeFilter] = useState('');
+  const [quotaResourceFilter, setQuotaResourceFilter] = useState<QuotaResourceCategory | ''>('');
   const [rlTargetFilter, setRlTargetFilter] = useState('');
   const [editingQuota, setEditingQuota] = useState<QuotaItem | null>(null);
-  const [editQuotaDraft, setEditQuotaDraft] = useState({ targetName: '', dailyLimit: 0, monthlyLimit: 0 });
+  const [editQuotaDraft, setEditQuotaDraft] = useState({
+    targetName: '',
+    dailyLimit: 0,
+    monthlyLimit: 0,
+    resourceCategory: 'all' as QuotaResourceCategory,
+  });
   const [savingQuotaEdit, setSavingQuotaEdit] = useState(false);
   const [deleteRlId, setDeleteRlId] = useState<number | null>(null);
   const [deletingRl, setDeletingRl] = useState(false);
@@ -127,10 +172,11 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
   const filteredQuotas = useMemo(() => {
     let list = quotas;
     if (quotaScopeFilter) list = list.filter((r) => r.targetType === quotaScopeFilter);
+    if (quotaResourceFilter) list = list.filter((r) => r.resourceCategory === quotaResourceFilter);
     const q = listKeyword.trim().toLowerCase();
     if (q) list = list.filter((r) => r.targetName.toLowerCase().includes(q));
     return list;
-  }, [quotas, listKeyword, quotaScopeFilter]);
+  }, [quotas, listKeyword, quotaScopeFilter, quotaResourceFilter]);
 
   const filteredRateLimits = useMemo(() => {
     let list = rateLimits;
@@ -146,6 +192,7 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
       targetName: r.targetType === 'global' ? '全平台' : r.targetName,
       dailyLimit: r.dailyLimit,
       monthlyLimit: r.monthlyLimit,
+      resourceCategory: r.resourceCategory ?? 'all',
     });
   }, []);
 
@@ -169,11 +216,10 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
     try {
       await quotaService.updateQuota({
         id: editingQuota.id,
-        targetType: editingQuota.targetType,
-        targetId: editingQuota.targetId ?? undefined,
         targetName: editingQuota.targetType === 'global' ? '全平台' : editQuotaDraft.targetName.trim(),
         dailyLimit: editQuotaDraft.dailyLimit,
         monthlyLimit: editQuotaDraft.monthlyLimit,
+        resourceCategory: editQuotaDraft.resourceCategory,
       });
       showMessage('配额已更新', 'success');
       setEditingQuota(null);
@@ -203,13 +249,22 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
   const addQuota = async () => {
     try {
       await quotaService.createQuota({
-        targetType: quotaDraft.targetType as 'user' | 'department' | 'global',
-        targetName: quotaDraft.targetType === 'global' ? '全平台' : quotaDraft.targetName,
+        subjectType: quotaDraft.targetType as 'user' | 'department' | 'global',
+        subjectName: quotaDraft.targetType === 'global' ? '全平台' : quotaDraft.targetName.trim() || '未命名',
+        subjectId: quotaDraft.targetType === 'global' ? undefined : quotaDraft.subjectId.trim() || undefined,
+        resourceCategory: quotaDraft.resourceCategory,
         dailyLimit: quotaDraft.dailyLimit,
         monthlyLimit: quotaDraft.monthlyLimit,
       });
       setShowQuotaModal(false);
-      setQuotaDraft({ targetType: 'global', targetName: '全平台', dailyLimit: 10000, monthlyLimit: 200000 });
+      setQuotaDraft({
+        targetType: 'global',
+        targetName: '全平台',
+        subjectId: '',
+        resourceCategory: 'all',
+        dailyLimit: 10000,
+        monthlyLimit: 200000,
+      });
       showMessage('配额规则已添加', 'success');
       await fetchQuotas();
     } catch (err) { console.error(err); showMessage('添加失败', 'error'); }
@@ -217,16 +272,26 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
 
   const addRateLimit = async () => {
     try {
+      const label = rlDraft.targetName.trim() || `${rlDraft.targetType} #${rlDraft.targetId}`;
       await quotaService.createRateLimit({
         name: rlDraft.name || '未命名规则',
-        targetType: rlDraft.targetType as 'agent' | 'skill' | 'global',
-        targetName: rlDraft.targetName,
+        targetType: rlDraft.targetType,
+        targetId: rlDraft.targetId,
+        targetName: label,
         maxRequestsPerMin: rlDraft.maxRequestsPerMin,
         maxRequestsPerHour: rlDraft.maxRequestsPerHour,
         maxConcurrent: rlDraft.maxConcurrent,
       });
       setShowRLModal(false);
-      setRlDraft({ name: '', targetType: 'global', targetName: '全局', maxRequestsPerMin: 60, maxRequestsPerHour: 1000, maxConcurrent: 10 });
+      setRlDraft({
+        name: '',
+        targetType: 'agent',
+        targetId: 1,
+        targetName: '',
+        maxRequestsPerMin: 60,
+        maxRequestsPerHour: 1000,
+        maxConcurrent: 10,
+      });
       showMessage('限流规则已添加', 'success');
       await fetchRateLimits();
     } catch (err) { console.error(err); showMessage('添加失败', 'error'); }
@@ -257,6 +322,18 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
           return (
             <span className={`inline-flex shrink-0 items-center whitespace-nowrap px-2 py-0.5 rounded-lg text-xs font-medium ${isDark ? sc.dark : sc.light}`}>
               {sc.label}
+            </span>
+          );
+        },
+      },
+      {
+        id: 'rescat',
+        header: '资源维度',
+        cell: (r) => {
+          const rc = RESOURCE_DIM_CFG[r.resourceCategory] ?? RESOURCE_DIM_CFG.all;
+          return (
+            <span className={`inline-flex shrink-0 items-center whitespace-nowrap px-2 py-0.5 rounded-lg text-xs font-medium ${isDark ? rc.dark : rc.light}`}>
+              {rc.label}
             </span>
           );
         },
@@ -320,6 +397,18 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
   const rateLimitColumns = useMemo<MgmtDataTableColumn<RateLimitItem>[]>(
     () => [
       { id: 'name', header: '规则名称', cellClassName: `font-medium ${textPrimary(theme)}`, cell: (r) => r.name },
+      {
+        id: 'scope',
+        header: '类型',
+        cell: (r) => {
+          const rc = RESOURCE_DIM_CFG[r.targetType] ?? RESOURCE_DIM_CFG.global;
+          return (
+            <span className={`inline-flex shrink-0 px-2 py-0.5 rounded-lg text-xs font-medium ${isDark ? rc.dark : rc.light}`}>
+              {rc.label}
+            </span>
+          );
+        },
+      },
       { id: 'target', header: '目标', cellClassName: textSecondary(theme), cell: (r) => r.targetName },
       {
         id: 'rpm',
@@ -386,7 +475,7 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
   );
 
   return (
-    <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={CreditCard} breadcrumbSegments={['系统配置', '配额管理']} description="管理调用配额与限流策略，按全局 / 部门 / 用户维度配置用量上限">
+    <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={CreditCard} breadcrumbSegments={['系统配置', '配额管理']} description="按全局 / 部门 / 用户配置用量，并按 Agent、Skill、MCP、App、Dataset 五类资源拆分配额；资源级限流与「限流策略」页的全局/用户规则互补。">
       {tabBar}
 
       {loading && quotas.length === 0 && rateLimits.length === 0 ? (
@@ -419,6 +508,15 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
                     className="!w-36 shrink-0"
                     triggerClassName="w-full !min-w-0"
                   />
+                  <LantuSelect
+                    theme={theme}
+                    value={quotaResourceFilter}
+                    onChange={(v) => setQuotaResourceFilter(v as QuotaResourceCategory | '')}
+                    options={QUOTA_RESOURCE_FILTER_OPTIONS}
+                    placeholder="资源维度"
+                    className="!w-40 shrink-0"
+                    triggerClassName="w-full !min-w-0"
+                  />
                 </div>
                 <button type="button" onClick={() => setShowQuotaModal(true)} className={`${btnPrimary} gap-1.5 shrink-0`}>
                   <Plus size={15} />
@@ -429,7 +527,7 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
                 <MgmtDataTable<QuotaItem>
                   theme={theme}
                   surface="plain"
-                  minWidth="860px"
+                  minWidth="960px"
                   columns={quotaColumns}
                   rows={filteredQuotas}
                   getRowKey={(r) => r.id}
@@ -495,11 +593,28 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
               options={QUOTA_TARGET_TYPE_OPTIONS}
             />
           </div>
+          <div>
+            <label className={`${labelCls} mb-1.5 block`}>配额作用的资源类型</label>
+            <LantuSelect
+              theme={theme}
+              triggerClassName={INPUT_FOCUS}
+              value={quotaDraft.resourceCategory}
+              onChange={(v) => setQuotaDraft((p) => ({ ...p, resourceCategory: v as QuotaResourceCategory }))}
+              options={QUOTA_RESOURCE_FILTER_OPTIONS.filter((o) => o.value !== '')}
+            />
+            <p className={`text-xs mt-1 ${textMuted(theme)}`}>「通用」对所有类型调用累计用量；细分维度需与网关传入的 resourceType 一致。</p>
+          </div>
           {quotaDraft.targetType !== 'global' && (
-            <div>
-              <label className={`${labelCls} mb-1.5 block`}>{quotaDraft.targetType === 'department' ? '部门名称' : '用户标识'}</label>
-              <input className={inputCls} placeholder={quotaDraft.targetType === 'department' ? '如：信息工程学院' : '如：王五 (2022003)'} value={quotaDraft.targetName} onChange={(e) => setQuotaDraft((p) => ({ ...p, targetName: e.target.value }))} />
-            </div>
+            <>
+              <div>
+                <label className={`${labelCls} mb-1.5 block`}>主体 ID（数字，选填）</label>
+                <input className={inputCls} inputMode="numeric" placeholder="对应部门或用户在平台上的 ID" value={quotaDraft.subjectId} onChange={(e) => setQuotaDraft((p) => ({ ...p, subjectId: e.target.value }))} />
+              </div>
+              <div>
+                <label className={`${labelCls} mb-1.5 block`}>{quotaDraft.targetType === 'department' ? '部门显示名称' : '用户显示名称'}</label>
+                <input className={inputCls} placeholder={quotaDraft.targetType === 'department' ? '如：信息工程学院' : '如：王五'} value={quotaDraft.targetName} onChange={(e) => setQuotaDraft((p) => ({ ...p, targetName: e.target.value }))} />
+              </div>
+            </>
           )}
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -532,8 +647,18 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
         {editingQuota && (
           <div className="space-y-4">
             <p className={`text-xs ${textMuted(theme)}`}>
-              范围：{editingQuota.targetType} · 用量为只读；可调整日/月配额上限与非全局时的对象名称。
+              范围：{editingQuota.targetType} · 资源维度：{editingQuota.resourceCategory} · 用量为只读；可调整日/月上限、显示名称与资源维度。
             </p>
+            <div>
+              <label className={`${labelCls} mb-1.5 block`}>资源维度</label>
+              <LantuSelect
+                theme={theme}
+                triggerClassName={INPUT_FOCUS}
+                value={editQuotaDraft.resourceCategory}
+                onChange={(v) => setEditQuotaDraft((p) => ({ ...p, resourceCategory: v as QuotaResourceCategory }))}
+                options={QUOTA_RESOURCE_FILTER_OPTIONS.filter((o) => o.value !== '')}
+              />
+            </div>
             {editingQuota.targetType !== 'global' && (
               <div>
                 <label className={`${labelCls} mb-1.5 block`}>对象名称</label>
@@ -565,11 +690,32 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
         onConfirm={() => void deleteRateLimitRow()}
       />
 
-      <Modal open={showRLModal} onClose={() => setShowRLModal(false)} title="新增限流规则" theme={theme} size="md" footer={<><button type="button" onClick={() => setShowRLModal(false)} className={btnSecondary(theme)}>取消</button><button type="button" onClick={addRateLimit} className={btnPrimary}>添加</button></>}>
+      <Modal open={showRLModal} onClose={() => setShowRLModal(false)} title="新增资源级限流" theme={theme} size="md" footer={<><button type="button" onClick={() => setShowRLModal(false)} className={btnSecondary(theme)}>取消</button><button type="button" onClick={addRateLimit} className={btnPrimary}>添加</button></>}>
         <div className="space-y-4">
+          <p className={`text-xs ${textMuted(theme)}`}>绑定到统一资源表中的实例（resourceType + t_resource.id），网关调用时自动匹配。HTTP 路径限流请在「限流策略」页配置。</p>
           <div>
             <label className={`${labelCls} mb-1.5 block`}>规则名称</label>
             <input className={inputCls} placeholder="如：智能问答 Agent" value={rlDraft.name} onChange={(e) => setRlDraft((p) => ({ ...p, name: e.target.value }))} />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className={`${labelCls} mb-1.5 block`}>资源类型</label>
+              <LantuSelect
+                theme={theme}
+                triggerClassName={INPUT_FOCUS}
+                value={rlDraft.targetType}
+                onChange={(v) => setRlDraft((p) => ({ ...p, targetType: v as ResourceRateLimitTarget }))}
+                options={RL_TARGET_FILTER_OPTIONS.filter((o) => o.value && o.value !== 'quota')}
+              />
+            </div>
+            <div>
+              <label className={`${labelCls} mb-1.5 block`}>资源 ID（t_resource）</label>
+              <input type="number" min={1} className={inputCls} value={rlDraft.targetId || ''} onChange={(e) => setRlDraft((p) => ({ ...p, targetId: Number(e.target.value) || 1 }))} />
+            </div>
+          </div>
+          <div>
+            <label className={`${labelCls} mb-1.5 block`}>显示名称（选填）</label>
+            <input className={inputCls} placeholder="列表中展示，默认可由系统自动拼接" value={rlDraft.targetName} onChange={(e) => setRlDraft((p) => ({ ...p, targetName: e.target.value }))} />
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div>

@@ -38,7 +38,7 @@ interface Props {
 }
 
 const GRANT_PAGE_DESC =
-  '列表范围由后端按角色过滤：资源拥有者审本人资源上的申请；部门管理员审本部拥有者资源；平台管理员可审全部。';
+  '待办范围由后端按角色过滤：platform_admin、admin、reviewer 可查看职责范围内的全部申请；其余用户仅能看到「自己是资源创建者」的资源上的申请。「全部状态」包含待审批、已通过、已驳回。';
 
 function grantToDomainStatus(status: GrantApplicationVO['status']): DomainStatus {
   if (status === 'pending') return 'pending_review';
@@ -75,7 +75,7 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, fontSize, sho
     setLoadError(null);
     try {
       const pageData = await grantApplicationService.listPending({
-        status: statusFilter === 'all' ? undefined : statusFilter,
+        status: statusFilter === 'all' ? 'all' : statusFilter,
         page,
         pageSize: PAGE_SIZE,
         ...(debouncedSearch ? { keyword: debouncedSearch } : {}),
@@ -288,8 +288,12 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, fontSize, sho
           ) : rows.length === 0 ? (
             <div className="py-2">
               <EmptyState
-                title={debouncedSearch || statusFilter !== 'all' ? '无匹配申请' : '暂无授权申请'}
-                description={debouncedSearch || statusFilter !== 'all' ? '请调整关键词或状态筛选。' : '当前筛选条件下没有申请记录，可切换筛选后重试。'}
+                title={debouncedSearch || statusFilter !== 'all' ? '无匹配申请' : '暂无待你处理的授权申请'}
+                description={
+                  debouncedSearch || statusFilter !== 'all'
+                    ? '请调整关键词或状态筛选。'
+                    : '若你不是任何资源的创建者，且账号不具有平台或审核角色，此处通常为空。有申请待审时，资源所有者会收到系统通知；也可在「我的授权申请」查看你自己提交的工单。'
+                }
               />
             </div>
           ) : (

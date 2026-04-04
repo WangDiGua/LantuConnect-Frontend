@@ -312,7 +312,6 @@ const MainContent = React.memo<{
         case 'category-management':
         case 'tag-management':
         case 'system-params':
-        case 'model-config':
         case 'security-settings':
         case 'network-config':
         case 'quota-management':

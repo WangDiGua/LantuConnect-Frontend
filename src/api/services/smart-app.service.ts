@@ -30,6 +30,8 @@ function parseEmbedFromSpec(spec: Record<string, unknown> | undefined): EmbedTyp
 
 function toSmartApp(item: ResourceCatalogItemVO | CatalogResourceDetailVO): SmartApp {
   const id = Number(item.resourceId) || 0;
+  const createdBy =
+    item.createdBy != null && Number.isFinite(Number(item.createdBy)) ? Number(item.createdBy) : undefined;
   const detail = item as CatalogResourceDetailVO;
   const spec = detail.spec && typeof detail.spec === 'object' && !Array.isArray(detail.spec)
     ? (detail.spec as Record<string, unknown>)
@@ -60,6 +62,10 @@ function toSmartApp(item: ResourceCatalogItemVO | CatalogResourceDetailVO): Smar
     sortOrder: 0,
     createTime: item.updateTime || '',
     updateTime: item.updateTime || '',
+    createdBy,
+    createdByName: item.createdByName ?? undefined,
+    ratingAvg: item.ratingAvg ?? undefined,
+    reviewCount: item.reviewCount != null ? Number(item.reviewCount) : undefined,
   };
 }
 

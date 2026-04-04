@@ -5,6 +5,8 @@ export type CallLogListParams = PaginationParams & {
   keyword?: string;
   /** success | error | timeout；不传表示全部 */
   status?: string;
+  /** agent/skill/mcp/app/dataset；all 或不传为全部；unknown 为未分类调用 */
+  resourceType?: string;
 };
 
 export type AlertListParams = PaginationParams & {
@@ -12,6 +14,7 @@ export type AlertListParams = PaginationParams & {
   severity?: string;
   /** firing | resolved | silenced；不传表示全部 */
   alertStatus?: string;
+  resourceType?: string;
 };
 import { extractArray, normalizePaginated } from '../../utils/normalizeApiPayload';
 import type {
@@ -21,6 +24,7 @@ import type {
   AlertRuleDryRunResult,
   CallLogEntry,
   CreateAlertRulePayload,
+  CallSummaryByResourceRow,
   KpiMetric,
   PerformanceMetric,
   QualityHistoryPoint,
@@ -190,20 +194,19 @@ function mapCallLogStatus(raw: unknown): CallLogEntry['status'] {
 
 function mapCallLogEntry(raw: unknown): CallLogEntry {
   const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const rtRaw = o.resourceType ?? o.resource_type;
+  const resourceType = rtRaw == null || String(rtRaw).trim() === '' ? undefined : String(rtRaw).toLowerCase();
   return {
     id: String(o.id ?? ''),
     traceId: String(o.traceId ?? o.trace_id ?? ''),
     agentId: String(o.agentId ?? o.agent_id ?? ''),
     agentName: String(o.agentName ?? o.agent_name ?? ''),
+    resourceType,
     userId: String(o.userId ?? o.user_id ?? ''),
-    model: String(o.model ?? ''),
     method: String(o.method ?? ''),
     status: mapCallLogStatus(o.status),
     statusCode: parseNum(o.statusCode ?? o.status_code, 0),
     latencyMs: parseNum(o.latencyMs ?? o.latency_ms, 0),
-    inputTokens: parseNum(o.inputTokens ?? o.input_tokens, 0),
-    outputTokens: parseNum(o.outputTokens ?? o.output_tokens, 0),
-    cost: parseNum(o.cost, 0),
     errorMessage: o.errorMessage == null && o.error_message == null ? undefined : String(o.errorMessage ?? o.error_message),
     ip: String(o.ip ?? ''),
     createdAt: String(o.createdAt ?? o.createTime ?? o.create_time ?? o.created_at ?? ''),
@@ -222,7 +225,13 @@ function mapAlertStatus(raw: unknown): AlertRecord['status'] {
 
 function mapAlertRecordRow(raw: unknown): AlertRecord {
   const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
-  const labels = o.labels && typeof o.labels === 'object' ? (o.labels as Record<string, string>) : {};
+  let labels: Record<string, string> = {};
+  const lr = o.labels;
+  if (lr && typeof lr === 'object' && !Array.isArray(lr)) {
+    for (const [k, v] of Object.entries(lr as Record<string, unknown>)) {
+      labels[k] = v == null ? '' : String(v);
+    }
+  }
   return {
     id: String(o.id ?? ''),
     ruleId: String(o.ruleId ?? o.rule_id ?? ''),
@@ -289,17 +298,24 @@ export const monitoringService = {
   },
 
   listCallLogs: async (params?: CallLogListParams) => {
-    const raw = await http.get<unknown>('/monitoring/call-logs', { params });
+    const { resourceType, ...rest } = params ?? {};
+    const raw = await http.get<unknown>('/monitoring/call-logs', {
+      params: {
+        ...rest,
+        ...(resourceType && resourceType !== 'all' ? { resourceType } : {}),
+      },
+    });
     return normalizePaginated<CallLogEntry>(raw, mapCallLogEntry);
   },
 
   listAlerts: async (params?: AlertListParams) => {
-    const { alertStatus, ...rest } = params ?? {};
+    const { alertStatus, resourceType, ...rest } = params ?? {};
     const statusFilter = alertStatus && alertStatus !== 'all' ? alertStatus : undefined;
     const raw = await http.get<unknown>('/monitoring/alerts', {
       params: {
         ...rest,
         ...(statusFilter ? { status: statusFilter } : {}),
+        ...(resourceType && resourceType !== 'all' ? { resourceType } : {}),
       },
     });
     return normalizePaginated<AlertRecord>(raw, mapAlertRecordRow);
@@ -335,9 +351,25 @@ export const monitoringService = {
     return normalizePaginated<TraceSpan>(raw, mapTraceSpanRow);
   },
 
-  getPerformanceMetrics: async () => {
-    const raw = await http.get<unknown>('/monitoring/performance');
+  getPerformanceMetrics: async (resourceType?: string) => {
+    const raw = await http.get<unknown>('/monitoring/performance', {
+      params: resourceType && resourceType !== 'all' ? { resourceType } : {},
+    });
     return extractArray(raw).map((item, idx) => mapPerformanceMetric(item, idx));
+  },
+
+  getCallSummaryByResource: async (hours = 24): Promise<CallSummaryByResourceRow[]> => {
+    const raw = await http.get<unknown>('/monitoring/call-summary-by-resource', { params: { hours } });
+    return extractArray(raw).map((item: unknown) => {
+      const x = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+      const t = String(x.type ?? x.resource_type ?? '').toLowerCase();
+      return {
+        type: t || 'unknown',
+        calls: parseNum(x.calls, 0),
+        errors: parseNum(x.errors, 0),
+        avgLatencyMs: parseNum(x.avgLatencyMs ?? x.avg_latency_ms, 0),
+      };
+    });
   },
 
   getQualityHistory: async (resourceType: string, resourceId: number, params?: { from?: string; to?: string }) => {

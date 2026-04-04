@@ -122,13 +122,21 @@ export const UserRoleProvider: React.FC<{
   children: ReactNode;
   initialRole?: UserRole;
   platformRole?: PlatformRoleCode;
+  /** 非空时优先采用服务端权限集，与 Casbin/API 一致，避免仅按 platformRole 推测导致菜单与 403 不一致 */
+  serverPermissions?: string[] | null;
 }> = ({
   children,
   initialRole = 'user',
   platformRole = 'user',
+  serverPermissions,
 }) => {
   const [role, setRole] = useState<UserRole>(initialRole);
-  const permissions = useMemo(() => getPermissions(platformRole), [platformRole]);
+  const permissions = useMemo(() => {
+    if (Array.isArray(serverPermissions)) {
+      return serverPermissions.map((p) => p.trim().toLowerCase()).filter(Boolean);
+    }
+    return getPermissions(platformRole);
+  }, [serverPermissions, platformRole]);
   const hasPermission = useMemo(
     () => (perm: string) => permissions.includes(perm),
     [permissions],

@@ -6,7 +6,6 @@ export interface UsageRecord {
   action: string;
   inputPreview: string;
   outputPreview: string;
-  tokenCost: number;
   latencyMs: number;
   status: 'success' | 'failed';
   createTime: string;
@@ -27,7 +26,6 @@ export interface UserUsageStats {
   weekCalls: number;
   monthCalls: number;
   totalCalls: number;
-  tokensUsed: number;
   favoriteCount: number;
   recentDays: { date: string; calls: number }[];
 }
@@ -38,8 +36,13 @@ export interface AuthorizedSkillItem {
   displayName: string;
   description: string;
   status?: string;
-  grantScope?: string;
-  grantedAt?: string;
+  /** 技能资源编码（后端 AuthorizedSkillVO.agentName） */
+  agentName?: string;
+  /** own | public */
+  source?: string;
+  packFormat?: string;
+  updateTime?: string;
+  lastUsedTime?: string;
 }
 
 export interface RecentUseItem {
@@ -51,7 +54,6 @@ export interface RecentUseItem {
   description?: string;
   action?: string;
   status?: 'success' | 'failed' | string;
-  tokenCost?: number;
   latencyMs?: number;
   createTime?: string;
   lastUsedTime?: string;

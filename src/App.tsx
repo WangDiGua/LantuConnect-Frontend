@@ -67,7 +67,13 @@ function AuthBinder() {
     fetchingRef.current = true;
     authService.getCurrentUser()
       .then((u) => {
-        const normalized = { ...u, role: normalizeRole(u.role) };
+        const normalized = {
+          ...u,
+          role: normalizeRole(u.role),
+          permissions: Array.isArray(u.permissions)
+            ? u.permissions.map((p) => String(p).trim().toLowerCase()).filter(Boolean)
+            : u.permissions,
+        };
         setUser(normalized);
       })
       .catch(() => {

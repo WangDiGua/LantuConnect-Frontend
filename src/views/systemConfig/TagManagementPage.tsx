@@ -12,6 +12,7 @@ import { BentoCard } from '../../components/common/BentoCard';
 import { PortalDropdown } from '../../components/common/PortalDropdown';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
+import { EmptyState } from '../../components/common/EmptyState';
 import { tagService } from '../../api/services/tag.service';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import type { TagItem as TagDTO } from '../../types/dto/tag';
@@ -49,10 +50,32 @@ const CATEGORY_ICON: Record<TagCategory, React.ElementType> = {
 const INPUT_FOCUS = 'focus:ring-2 focus:ring-neutral-900/20 focus:border-neutral-900/35';
 
 function normalizeTagCategory(raw: string | undefined | null): TagCategory {
-  const s = String(raw ?? '').trim();
-  if (/^mcp$/i.test(s)) return 'MCP';
-  if (TAG_CATEGORIES.includes(s as TagCategory)) return s as TagCategory;
-  return '通用';
+  const lower = String(raw ?? '').trim().toLowerCase();
+  switch (lower) {
+    case 'agent': return 'Agent';
+    case 'skill': return 'Skill';
+    case 'mcp': return 'MCP';
+    case 'app': return '应用';
+    case 'dataset': return '数据集';
+    case 'general': return '通用';
+    default: {
+      const t = String(raw ?? '').trim();
+      if (TAG_CATEGORIES.includes(t as TagCategory)) return t as TagCategory;
+      return '通用';
+    }
+  }
+}
+
+/** 与后端 t_tag.category 一致：agent / skill / mcp / app / dataset / general */
+function tagCategoryToApi(cat: TagCategory): string {
+  switch (cat) {
+    case 'Agent': return 'agent';
+    case 'Skill': return 'skill';
+    case 'MCP': return 'mcp';
+    case '应用': return 'app';
+    case '数据集': return 'dataset';
+    case '通用': return 'general';
+  }
 }
 
 function toLocalTag(dto: TagDTO): LocalTag {
@@ -64,7 +87,7 @@ function toLocalTag(dto: TagDTO): LocalTag {
   };
 }
 
-const PAGE_DESC = '管理资源标签，方便分类检索与推荐';
+const PAGE_DESC = '按 Agent、Skill、MCP、应用、数据集与通用维度维护标签，供统一资源目录筛选与推荐；保存后与 t_tag.category 同步。';
 
 export const TagManagementPage: React.FC<Props> = ({ theme, fontSize, showMessage }) => {
   const isDark = theme === 'dark';
@@ -117,7 +140,7 @@ export const TagManagementPage: React.FC<Props> = ({ theme, fontSize, showMessag
     if (!name) return;
     if (tags.some((t) => t.name === name)) { showMessage('标签名称已存在', 'error'); return; }
     try {
-      await tagService.create({ name, category: newTagCategory });
+      await tagService.create({ name, category: tagCategoryToApi(newTagCategory) });
       setNewTagName('');
       showMessage(`标签「${name}」已添加`, 'success');
       await fetchTags();
@@ -131,7 +154,7 @@ export const TagManagementPage: React.FC<Props> = ({ theme, fontSize, showMessag
     const lines = batchText.split('\n').map((l) => l.trim()).filter(Boolean);
     if (lines.length === 0) return;
     const existing = new Set(tags.map((t) => t.name));
-    const newItems = lines.filter(l => !existing.has(l)).map(name => ({ name, category: batchCategory as string }));
+    const newItems = lines.filter(l => !existing.has(l)).map((name) => ({ name, category: tagCategoryToApi(batchCategory) }));
     if (newItems.length === 0) { showMessage('所有标签均已存在', 'info'); return; }
     try {
       await tagService.batchCreate(newItems);
@@ -246,7 +269,10 @@ export const TagManagementPage: React.FC<Props> = ({ theme, fontSize, showMessag
           ) : loadError ? (
             <PageError error={loadError} onRetry={fetchTags} retryLabel="重试加载标签" />
           ) : filteredTags.length === 0 ? (
-            <p className={`text-center py-10 ${textMuted(theme)}`}>暂无匹配的标签</p>
+            <EmptyState
+              title={tags.length === 0 ? '尚未创建标签' : '无匹配标签'}
+              description={tags.length === 0 ? '新增或批量导入后，可在五类资源市场上用于筛选与运营位展示。' : '调整搜索词或分类筛选后再试。'}
+            />
           ) : (
             <div className="flex flex-wrap gap-2">
               {filteredTags.map((tag) => {
@@ -295,7 +321,9 @@ export const TagManagementPage: React.FC<Props> = ({ theme, fontSize, showMessag
                           </button>
                         </div>
                       </div>
-                      <div className={`text-xs mb-2 ${textMuted(theme)}`}>分类: {tag.category} · 使用次数: {tag.usageCount}</div>
+                      <div className={`text-xs mb-2 ${textMuted(theme)}`}>
+                        分类: {tag.category}（{tagCategoryToApi(tag.category)}）· 引用: {tag.usageCount}
+                      </div>
                       {isConfirming && tag.usageCount > 0 && (
                         <p className="text-[11px] text-red-500 mt-2">此标签正在被 {tag.usageCount} 个资源使用，删除后将从所有资源中移除。</p>
                       )}

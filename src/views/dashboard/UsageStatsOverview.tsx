@@ -8,6 +8,7 @@ import {
 import { BarChart3, Zap, Users, TrendingUp } from 'lucide-react';
 import { dashboardService } from '../../api/services/dashboard.service';
 import type { UsageStatsData } from '../../types/dto/dashboard';
+import { RESOURCE_TYPE_LABEL } from '../../constants/resourceTypes';
 import { BentoCard } from '../../components/common/BentoCard';
 import { KpiCard } from '../../components/common/KpiCard';
 import { PageError } from '../../components/common/PageError';
@@ -59,7 +60,7 @@ export const UsageStatsOverview: React.FC<Props> = ({ theme }) => {
         </div>
         <div>
           <h2 className={`text-lg font-bold ${textPrimary(theme)}`}>使用统计</h2>
-          <p className={`text-xs ${textSecondary(theme)}`}>全平台智能体/技能调用量与用户活跃度概览</p>
+          <p className={`text-xs ${textSecondary(theme)}`}>全平台网关调用趋势；下方按资源类型汇总（智能体 / 技能 / MCP / 应用 / 数据集）</p>
         </div>
       </div>
 
@@ -118,6 +119,48 @@ export const UsageStatsOverview: React.FC<Props> = ({ theme }) => {
                 </div>
               </BentoCard>
             </motion.div>
+
+            {data?.callsByResourceType && data.callsByResourceType.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.2 }}
+              >
+                <BentoCard theme={theme} padding="sm" className="!p-0 overflow-hidden">
+                  <div className={`px-5 py-3.5 border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+                    <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400">当前区间内 · 按资源类型调用</h3>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                      <thead>
+                        <tr>
+                          <th className={tableHeadCell(theme)}>资源类型</th>
+                          <th className={`${tableHeadCell(theme)} text-right`}>调用次数</th>
+                          <th className={`${tableHeadCell(theme)} text-right`}>成功率</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.callsByResourceType.map((row, i) => (
+                          <tr key={row.type} className={tableBodyRow(theme, i)}>
+                            <td className={tableCell()}>
+                              <span className={`font-medium ${textPrimary(theme)}`}>
+                                {RESOURCE_TYPE_LABEL[row.type] ?? row.type}
+                              </span>
+                            </td>
+                            <td className={`${tableCell()} text-right tabular-nums ${textSecondary(theme)}`}>
+                              {row.calls.toLocaleString()}
+                            </td>
+                            <td className={`${tableCell()} text-right tabular-nums ${textMuted(theme)}`}>
+                              {row.successRate.toFixed(1)}%
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </BentoCard>
+              </motion.div>
+            )}
 
             <motion.div
               initial={{ opacity: 0, y: 16 }}

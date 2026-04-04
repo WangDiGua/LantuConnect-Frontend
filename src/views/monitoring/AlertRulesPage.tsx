@@ -47,6 +47,8 @@ const METRIC_OPTIONS = [
   { value: 'http_5xx_rate', label: '5xx 比例' },
   { value: 'latency_p99', label: 'P99 延迟' },
   { value: 'error_rate', label: '错误率' },
+  { value: 'gateway_invoke_total_1h', label: '网关调用量（1h）' },
+  { value: 'gateway_invoke_errors_1h', label: '网关失败次数（1h）' },
 ];
 
 const OPERATOR_OPTIONS = [
@@ -90,7 +92,7 @@ function ruleSummary(r: AlertRule) {
   return `${r.metric} ${op} ${r.threshold} → ${ch}`;
 }
 
-const PAGE_DESC = '配置告警阈值与通知渠道';
+const PAGE_DESC = '配置告警阈值与通知渠道。记录入库时建议在 labels 中写入 resource_type（五类统一资源），以便「告警管理」按类型筛选。';
 const BREADCRUMB = ['监控中心', '告警规则'] as const;
 
 export const AlertRulesPage: React.FC<Props> = ({ theme, fontSize, showMessage }) => {

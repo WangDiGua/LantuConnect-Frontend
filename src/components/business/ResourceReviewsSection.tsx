@@ -59,6 +59,10 @@ export const ResourceReviewsSection: React.FC<Props> = ({ targetType, targetId, 
   const isAiry = appearance === 'airy';
   const user = useAuthStore((s) => s.user);
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewTotal, setReviewTotal] = useState(0);
+  const [reviewPage, setReviewPage] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const pageSize = 20;
   const [summary, setSummary] = useState<ReviewSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [myRating, setMyRating] = useState(0);
@@ -82,11 +86,13 @@ export const ResourceReviewsSection: React.FC<Props> = ({ targetType, targetId, 
     setLoading(true);
     setLoadError(null);
     Promise.all([
-      reviewService.list(targetType, targetId),
+      reviewService.pageList(targetType, targetId, 1, pageSize),
       reviewService.summary(targetType, targetId),
     ])
-      .then(([reviewList, summaryData]) => {
-        setReviews(reviewList);
+      .then(([pageData, summaryData]) => {
+        setReviews(pageData.list);
+        setReviewTotal(pageData.total);
+        setReviewPage(1);
         setSummary(summaryData);
         setHelpedByMe({});
       })
@@ -97,12 +103,28 @@ export const ResourceReviewsSection: React.FC<Props> = ({ targetType, targetId, 
       .finally(() => setLoading(false));
   }, [showMessage, targetId, targetType]);
 
+  const loadMore = useCallback(async () => {
+    if (loadingMore || reviews.length >= reviewTotal) return;
+    const nextPage = reviewPage + 1;
+    setLoadingMore(true);
+    try {
+      const pageData = await reviewService.pageList(targetType, targetId, nextPage, pageSize);
+      setReviews((prev) => [...prev, ...pageData.list]);
+      setReviewPage(nextPage);
+      setReviewTotal(pageData.total);
+    } catch {
+      showMessage?.('加载更多失败', 'warning');
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, reviewPage, reviewTotal, reviews.length, showMessage, targetId, targetType]);
+
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
   const avgRating = useMemo(() => (summary ? summary.avgRating.toFixed(1) : '0.0'), [summary]);
-  const totalCount = summary?.totalCount ?? reviews.length;
+  const totalCount = summary?.totalCount ?? reviewTotal;
 
   const distribution = useMemo(() => {
     if (!summary) return [];
@@ -314,6 +336,25 @@ export const ResourceReviewsSection: React.FC<Props> = ({ targetType, targetId, 
             </div>
           );
         })}
+        {reviews.length > 0 && reviews.length < reviewTotal && (
+          <div className="flex justify-center pt-2">
+            <button
+              type="button"
+              disabled={loadingMore}
+              onClick={() => void loadMore()}
+              className={btnGhost(theme)}
+            >
+              {loadingMore ? (
+                <>
+                  <Loader2 size={14} className="animate-spin inline mr-1" />
+                  加载中…
+                </>
+              ) : (
+                '加载更多'
+              )}
+            </button>
+          </div>
+        )}
       </div>
 
       {isAiry ? (

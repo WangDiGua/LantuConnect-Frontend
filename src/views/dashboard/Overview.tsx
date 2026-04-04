@@ -16,6 +16,7 @@ import type { AdminRealtimeData } from '../../types/dto/explore';
 import type { AdminOverview, HealthSummary } from '../../types/dto/dashboard';
 import { DashboardLayout } from '../../components/layout/PageLayouts';
 import { formatDateTime } from '../../utils/formatDateTime';
+import { RESOURCE_TYPE_LABEL, RESOURCE_TYPE_ORDER } from '../../constants/resourceTypes';
 
 interface OverviewProps { theme: Theme; fontSize: FontSize; }
 
@@ -105,7 +106,7 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
         <div className="flex items-center justify-between">
           <div>
             <h1 className={`text-xl font-bold ${tp}`}>管理概览</h1>
-            <p className={`text-sm ${tm}`}>实时平台运营数据</p>
+            <p className={`text-sm ${tm}`}>实时平台运营数据（五类统一资源：智能体 / 技能 / MCP / 应用 / 数据集）</p>
           </div>
           <button type="button" onClick={fetchData} className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-white/[0.06]' : 'hover:bg-slate-100'}`}>
             <RefreshCw size={16} className={tm} />
@@ -139,6 +140,49 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
             </motion.div>
           ))}
         </div>
+
+        {(rt?.publishedResourceCounts || rt?.callsByResourceType7d?.length) ? (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring, delay: 0.08 }}
+            className={`${cardStatic} p-5`}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className={`font-bold text-sm ${tp}`}>资源类型概览</h2>
+              <Server size={16} className={tm} />
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-5">
+              {RESOURCE_TYPE_ORDER.map((t) => (
+                <div key={t} className={`rounded-xl p-3 ${isDark ? 'bg-white/[0.03]' : 'bg-slate-50'}`}>
+                  <div className={`text-xs font-medium ${tm}`}>{RESOURCE_TYPE_LABEL[t]}</div>
+                  <div className={`text-lg font-bold tabular-nums ${tp}`}>
+                    {rt?.publishedResourceCounts?.[t] ?? '—'}
+                  </div>
+                  <div className={`text-[10px] ${tm}`}>已登记资源</div>
+                </div>
+              ))}
+            </div>
+            {rt?.callsByResourceType7d && rt.callsByResourceType7d.length > 0 && (() => {
+              const maxT = Math.max(...rt.callsByResourceType7d.map((x) => x.calls), 1);
+              return (
+                <div>
+                  <div className={`text-xs font-semibold mb-2 ${ts}`}>近 7 日网关调用（按类型）</div>
+                  <div className="space-y-2">
+                    {rt.callsByResourceType7d.map((row) => (
+                      <div key={row.type} className="flex items-center gap-3">
+                        <span className={`w-20 shrink-0 text-xs ${tm}`}>{RESOURCE_TYPE_LABEL[row.type] ?? row.type}</span>
+                        <div className={`flex-1 h-2 rounded-full overflow-hidden ${isDark ? 'bg-white/[0.06]' : 'bg-slate-200'}`}>
+                          <div
+                            className={`h-full rounded-full ${isDark ? 'bg-blue-500/70' : 'bg-blue-600'}`}
+                            style={{ width: `${Math.max((row.calls / maxT) * 100, 2)}%` }}
+                          />
+                        </div>
+                        <span className={`w-12 text-right text-xs tabular-nums ${tp}`}>{formatNum(row.calls)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+          </motion.div>
+        ) : null}
 
         {/* Quick Action Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -259,7 +303,7 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring, delay: 0.3 }}
             className={`${cardStatic} p-5`}>
             <div className="flex items-center justify-between mb-4">
-              <h2 className={`font-bold text-sm ${tp}`}>热门资源排行</h2>
+              <h2 className={`font-bold text-sm ${tp}`}>热门资源排行（近 7 日 · 含类型）</h2>
               <TrendingUp size={16} className={tm} />
             </div>
             <div className="space-y-2">
@@ -268,9 +312,14 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
                   <span className={`w-6 text-center text-xs font-bold ${idx < 3 ? 'text-neutral-800' : tm}`}>#{idx + 1}</span>
                   <div className="flex-1 min-w-0">
                     <span className={`text-sm font-medium ${tp}`}>{item.name}</span>
-                    <span className={`text-xs ml-2 ${tm}`}>{item.type}</span>
+                    <span className={`text-xs ml-2 ${tm}`}>{RESOURCE_TYPE_LABEL[item.type] ?? item.type}</span>
                   </div>
-                  <span className={`text-sm font-bold tabular-nums ${tp}`}>{formatNum(item.calls)}</span>
+                  <div className="text-right">
+                    <span className={`text-sm font-bold tabular-nums ${tp}`}>{formatNum(item.calls)}</span>
+                    {item.successRate != null && item.successRate > 0 ? (
+                      <div className={`text-[10px] tabular-nums ${tm}`}>成功率 {item.successRate}%</div>
+                    ) : null}
+                  </div>
                 </div>
               ))}
             </div>

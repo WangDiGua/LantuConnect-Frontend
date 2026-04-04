@@ -14,6 +14,8 @@ export interface UserInfo {
   avatar?: string;
   nickname?: string;
   role: PlatformRoleCode;
+  /** 与后端 Casbin 角色表合并后的权限点；缺失时前端按 platformRole 静态映射 */
+  permissions?: string[];
   status: 'active' | 'disabled' | 'locked';
   department?: string;
   lastLoginAt?: string;

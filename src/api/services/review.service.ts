@@ -1,5 +1,6 @@
 import { http } from '../../lib/http';
-import { extractArray } from '../../utils/normalizeApiPayload';
+import { extractArray, normalizePaginated } from '../../utils/normalizeApiPayload';
+import type { PaginatedData } from '../../types/api';
 import type { Review, ReviewCreatePayload, ReviewSummary } from '../../types/dto/review';
 
 /** 列表/详情 query 与创建 body 与后端 ReviewCreateRequest 一致：targetType、targetId（非 resource*） */
@@ -30,6 +31,20 @@ export const reviewService = {
     const targetId = normalizeTargetId(resourceId);
     const raw = await http.get<unknown>('/reviews', { params: { targetType: resourceType, targetId } });
     return extractArray(raw).map(normalizeReview);
+  },
+
+  /** 分页评论（推荐）；全量请用本对象上的 `list`。 */
+  pageList: async (
+    resourceType: 'agent' | 'skill' | 'app' | 'mcp' | 'dataset',
+    resourceId: number | string,
+    page = 1,
+    pageSize = 20,
+  ): Promise<PaginatedData<Review>> => {
+    const targetId = normalizeTargetId(resourceId);
+    const raw = await http.get<unknown>('/reviews/page', {
+      params: { targetType: resourceType, targetId, page, pageSize },
+    });
+    return normalizePaginated<Review>(raw, normalizeReview);
   },
 
   summary: (resourceType: 'agent' | 'skill' | 'app' | 'mcp' | 'dataset', resourceId: number | string) => {

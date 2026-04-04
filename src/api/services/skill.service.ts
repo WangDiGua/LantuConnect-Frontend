@@ -23,6 +23,8 @@ function deprecatedWriteError<T>(): Promise<T> {
 
 function toSkill(item: ResourceCatalogItemVO): Skill {
   const id = Number(item.resourceId) || 0;
+  const createdBy =
+    item.createdBy != null && Number.isFinite(Number(item.createdBy)) ? Number(item.createdBy) : undefined;
   return {
     id,
     agentName: item.resourceCode || `skill-${item.resourceId}`,
@@ -47,10 +49,13 @@ function toSkill(item: ResourceCatalogItemVO): Skill {
     qualityScore: 0,
     avgLatencyMs: 0,
     successRate: 0,
-    avgTokenCost: 0,
     callCount: 0,
     createTime: item.updateTime || '',
     updateTime: item.updateTime || '',
+    createdBy,
+    createdByName: item.createdByName ?? undefined,
+    ratingAvg: item.ratingAvg ?? undefined,
+    reviewCount: item.reviewCount != null ? Number(item.reviewCount) : undefined,
   };
 }
 

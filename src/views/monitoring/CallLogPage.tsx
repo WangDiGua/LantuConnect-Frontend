@@ -15,6 +15,7 @@ import { formatDateTime } from '../../utils/formatDateTime';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { MgmtDataTable } from '../../components/management/MgmtDataTable';
 import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
+import { RESOURCE_TYPE_LABEL } from '../../constants/resourceTypes';
 
 interface CallLogPageProps {
   theme: Theme;
@@ -23,7 +24,7 @@ interface CallLogPageProps {
 
 const PAGE_SIZE = 20;
 
-const CALL_LOG_DESC = '检索网关与 Agent 推理请求记录';
+const CALL_LOG_DESC = '检索统一网关调用记录，可按五类资源类型筛选';
 
 const STATUS_BADGE: Record<CallLogEntry['status'], { light: string; dark: string; label: string }> = {
   success: { light: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/60', dark: 'bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20', label: '成功' },
@@ -42,6 +43,7 @@ export const CallLogPage: React.FC<CallLogPageProps> = ({ theme, fontSize }) => 
   const [q, setQ] = useState('');
   const [debouncedQ, setDebouncedQ] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [resourceTypeFilter, setResourceTypeFilter] = useState<string>('all');
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -51,7 +53,7 @@ export const CallLogPage: React.FC<CallLogPageProps> = ({ theme, fontSize }) => 
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedQ, statusFilter]);
+  }, [debouncedQ, statusFilter, resourceTypeFilter]);
 
   const callLogParams = useMemo(
     () => ({
@@ -59,8 +61,9 @@ export const CallLogPage: React.FC<CallLogPageProps> = ({ theme, fontSize }) => 
       pageSize: PAGE_SIZE,
       ...(debouncedQ ? { keyword: debouncedQ } : {}),
       ...(statusFilter !== 'all' ? { status: statusFilter } : {}),
+      ...(resourceTypeFilter !== 'all' ? { resourceType: resourceTypeFilter } : {}),
     }),
-    [page, debouncedQ, statusFilter],
+    [page, debouncedQ, statusFilter, resourceTypeFilter],
   );
 
   const logsQ = useCallLogs(callLogParams);
@@ -73,6 +76,29 @@ export const CallLogPage: React.FC<CallLogPageProps> = ({ theme, fontSize }) => 
         id: 'createdAt',
         header: '时间',
         cell: (r) => <span className={`whitespace-nowrap ${textSecondary(theme)}`}>{formatDateTime(r.createdAt)}</span>,
+      },
+      {
+        id: 'resourceType',
+        header: '资源类型',
+        cell: (r) => {
+          const t = r.resourceType?.trim() || '';
+          const label = t ? (RESOURCE_TYPE_LABEL[t] ?? (t === 'unknown' ? '未分类' : t)) : '未分类';
+          return (
+            <span
+              className={`inline-flex shrink-0 whitespace-nowrap px-2 py-0.5 rounded-lg text-[11px] font-semibold ${
+                t
+                  ? isDark
+                    ? 'bg-violet-500/15 text-violet-300'
+                    : 'bg-violet-50 text-violet-800'
+                  : isDark
+                    ? 'bg-white/[0.06] text-slate-400'
+                    : 'bg-slate-100 text-slate-600'
+              }`}
+            >
+              {label}
+            </span>
+          );
+        },
       },
       {
         id: 'method',
@@ -104,11 +130,6 @@ export const CallLogPage: React.FC<CallLogPageProps> = ({ theme, fontSize }) => 
             {safeText(r.traceId) || '—'}
           </div>
         ),
-      },
-      {
-        id: 'model',
-        header: '模型',
-        cell: (r) => <span className={`${textSecondary(theme)}`}>{safeText(r.model) || '未知模型'}</span>,
       },
       {
         id: 'status',
@@ -149,21 +170,6 @@ export const CallLogPage: React.FC<CallLogPageProps> = ({ theme, fontSize }) => 
         ),
       },
       {
-        id: 'inTok',
-        header: '输入 Tokens',
-        cell: (r) => <span className={textSecondary(theme)}>{safeNumber(r.inputTokens)}</span>,
-      },
-      {
-        id: 'outTok',
-        header: '输出 Tokens',
-        cell: (r) => <span className={textSecondary(theme)}>{safeNumber(r.outputTokens)}</span>,
-      },
-      {
-        id: 'cost',
-        header: '费用',
-        cell: (r) => <span className={textSecondary(theme)}>{r.cost > 0 ? `¥${r.cost.toFixed(4)}` : '—'}</span>,
-      },
-      {
         id: 'ip',
         header: 'IP',
         cell: (r) => <span className={`whitespace-nowrap ${textSecondary(theme)}`}>{r.ip || '—'}</span>,
@@ -196,8 +202,24 @@ export const CallLogPage: React.FC<CallLogPageProps> = ({ theme, fontSize }) => 
         theme={theme}
         className="w-full sm:w-36"
       />
+      <FilterSelect
+        value={resourceTypeFilter}
+        onChange={(v) => { setResourceTypeFilter(v); setPage(1); }}
+        options={[
+          { value: 'all', label: '全部类型' },
+          { value: 'agent', label: '智能体' },
+          { value: 'skill', label: '技能' },
+          { value: 'mcp', label: 'MCP' },
+          { value: 'app', label: '应用' },
+          { value: 'dataset', label: '数据集' },
+          { value: 'unknown', label: '未分类' },
+        ]}
+        theme={theme}
+        className="w-full sm:w-40"
+        aria-label="按资源类型筛选"
+      />
       <div className="flex-1 min-w-[min(100%,200px)]">
-        <SearchInput value={q} onChange={setQ} placeholder="方法、Agent、模型、状态码、TraceId…" theme={theme} />
+        <SearchInput value={q} onChange={setQ} placeholder="方法、资源名、状态、状态码、TraceId…" theme={theme} />
       </div>
     </div>
   );
@@ -231,7 +253,7 @@ export const CallLogPage: React.FC<CallLogPageProps> = ({ theme, fontSize }) => 
         {logsQ.isLoading ? (
           <div className="py-2"><PageSkeleton type="table" rows={8} /></div>
         ) : rows.length === 0 ? (
-          <EmptyState title={debouncedQ || statusFilter !== 'all' ? '无匹配记录' : '暂无调用记录'} description="请调整搜索条件或确认采集服务已启动。" />
+          <EmptyState title={debouncedQ || statusFilter !== 'all' || resourceTypeFilter !== 'all' ? '无匹配记录' : '暂无调用记录'} description="请调整搜索条件或确认采集服务已启动。" />
         ) : (
           <MgmtDataTable<CallLogEntry>
             theme={theme}

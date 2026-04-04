@@ -15,21 +15,38 @@ function normalizeStatus(status: unknown): DeveloperApplicationStatus {
 }
 
 function toApplication(raw: any): DeveloperApplicationVO {
+  const id = Number(raw?.id ?? 0) || 0;
+  const userIdRaw = raw?.userId ?? raw?.user_id;
   return {
-    id: Number(raw?.id ?? 0) || 0,
-    userId: raw?.userId ? String(raw.userId) : undefined,
+    id,
+    userId: userIdRaw != null ? String(userIdRaw) : undefined,
     username: raw?.username ? String(raw.username) : undefined,
-    userName: raw?.userName ? String(raw.userName) : undefined,
-    contactEmail: String(raw?.contactEmail ?? ''),
-    contactPhone: raw?.contactPhone ? String(raw.contactPhone) : undefined,
-    companyName: raw?.companyName ? String(raw.companyName) : undefined,
-    applyReason: String(raw?.applyReason ?? ''),
-    reviewComment: raw?.reviewComment ? String(raw.reviewComment) : undefined,
-    reviewedByName: raw?.reviewedByName ? String(raw.reviewedByName) : undefined,
+    userName: raw?.userName != null ? String(raw.userName) : raw?.user_name != null ? String(raw.user_name) : undefined,
+    contactEmail: String(raw?.contactEmail ?? raw?.contact_email ?? ''),
+    contactPhone: raw?.contactPhone != null ? String(raw.contactPhone) : raw?.contact_phone != null ? String(raw.contact_phone) : undefined,
+    companyName: raw?.companyName != null ? String(raw.companyName) : raw?.company_name != null ? String(raw.company_name) : undefined,
+    applyReason: String(raw?.applyReason ?? raw?.apply_reason ?? ''),
+    reviewComment: raw?.reviewComment != null ? String(raw.reviewComment) : raw?.review_comment != null ? String(raw.review_comment) : undefined,
+    reviewedByName: raw?.reviewedByName != null ? String(raw.reviewedByName) : raw?.reviewed_by_name != null ? String(raw.reviewed_by_name) : undefined,
     status: normalizeStatus(raw?.status),
-    createTime: raw?.createTime ? String(raw.createTime) : undefined,
-    updateTime: raw?.updateTime ? String(raw.updateTime) : undefined,
+    createTime: raw?.createTime != null ? String(raw.createTime) : raw?.create_time != null ? String(raw.create_time) : undefined,
+    updateTime: raw?.updateTime != null ? String(raw.updateTime) : raw?.update_time != null ? String(raw.update_time) : undefined,
   };
+}
+
+/** 后端 GET /developer/applications/me 返回列表（按 create_time 降序）；优先取待审核一条以便与入驻页逻辑一致 */
+function pickMineFromPayload(raw: unknown): DeveloperApplicationVO | null {
+  if (raw == null) return null;
+  if (Array.isArray(raw)) {
+    if (raw.length === 0) return null;
+    const vos = raw.map((row) => toApplication(row)).filter((v) => v.id > 0);
+    if (vos.length === 0) return null;
+    const pending = vos.find((v) => v.status === 'pending');
+    return pending ?? vos[0];
+  }
+  if (typeof raw !== 'object') return null;
+  const one = toApplication(raw);
+  return one.id > 0 ? one : null;
 }
 
 export const developerApplicationService = {
@@ -40,8 +57,7 @@ export const developerApplicationService = {
 
   getMine: async (): Promise<DeveloperApplicationVO | null> => {
     const raw = await http.get<unknown>('/developer/applications/me');
-    if (!raw || typeof raw !== 'object') return null;
-    return toApplication(raw);
+    return pickMineFromPayload(raw);
   },
 
   list: async (query?: DeveloperApplicationQueryRequest) => {

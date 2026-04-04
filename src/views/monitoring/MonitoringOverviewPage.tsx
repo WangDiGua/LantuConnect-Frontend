@@ -3,7 +3,7 @@ import { Activity, RefreshCw, Search, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { Theme, FontSize } from '../../types';
 import { MonitoringOverviewCharts } from '../../components/charts/MonitoringOverviewCharts';
-import { useAlerts, useMonitoringKpis, usePerformanceMetrics } from '../../hooks/queries/useMonitoring';
+import { useAlerts, useCallSummaryByResource, useMonitoringKpis, usePerformanceMetrics } from '../../hooks/queries/useMonitoring';
 import { buildPath } from '../../constants/consoleRoutes';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { PageError } from '../../components/common/PageError';
@@ -13,7 +13,7 @@ import { BentoCard } from '../../components/common/BentoCard';
 import { btnPrimary, btnGhost, kpiGridGap, pageBlockStack, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 
-const PAGE_DESC = '调用量、成功率与延迟趋势汇总';
+const PAGE_DESC = '统一网关调用量、成功率、延迟与五类资源（智能体 / 技能 / MCP / 应用 / 数据集）分布汇总';
 const BREADCRUMB = ['监控中心', '监控概览'] as const;
 
 interface MonitoringOverviewPageProps {
@@ -28,6 +28,7 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ 
   const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
   const kpisQ = useMonitoringKpis();
   const performanceQ = usePerformanceMetrics();
+  const callMixQ = useCallSummaryByResource(24);
   const alertsQ = useAlerts({ page: 1, pageSize: 20 });
 
   useEffect(() => {
@@ -35,6 +36,7 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ 
       const interval = setInterval(() => {
         kpisQ.refetch();
         performanceQ.refetch();
+        void callMixQ.refetch();
       }, 5000);
       setRefreshInterval(interval);
       return () => clearInterval(interval);
@@ -42,7 +44,7 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ 
       clearInterval(refreshInterval);
       setRefreshInterval(null);
     }
-  }, [autoRefresh, kpisQ, performanceQ]);
+  }, [autoRefresh, kpisQ, performanceQ, callMixQ]);
 
   const toolbar =
     !kpisQ.isLoading && !kpisQ.isError && (kpisQ.data ?? []).length > 0 ? (
@@ -62,6 +64,7 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ 
           onClick={() => {
             void kpisQ.refetch();
             void performanceQ.refetch();
+            void callMixQ.refetch();
           }}
           className={btnGhost(theme)}
           aria-label="立即刷新监控数据"
@@ -119,7 +122,11 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ 
         </div>
 
         <BentoCard theme={theme}>
-          <MonitoringOverviewCharts theme={theme} performance={performanceQ.data ?? []} />
+          <MonitoringOverviewCharts
+            theme={theme}
+            performance={performanceQ.data ?? []}
+            resourceMix={callMixQ.data ?? []}
+          />
         </BentoCard>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
@@ -130,7 +137,7 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ 
               </div>
               <div className="min-w-0">
                 <p className={`font-semibold text-sm ${textPrimary(theme)}`}>调用日志</p>
-                <p className={`text-xs mt-0.5 ${textMuted(theme)}`}>按路径、状态码与延迟检索历史请求</p>
+                <p className={`text-xs mt-0.5 ${textMuted(theme)}`}>按资源类型、路径、状态码与延迟检索网关调用</p>
               </div>
             </div>
             <button
@@ -173,7 +180,7 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ 
 
         <p className={`text-xs ${textMuted(theme)}`}>
           <Activity size={12} className="inline mr-1 opacity-70" aria-hidden />
-          KPI 与图表均来自监控服务实时数据。
+          KPI 与图表来自 t_call_log 聚合；资源类型分布覆盖 agent / skill / mcp / app / dataset 及未分类（unknown）。
         </p>
       </div>
     );

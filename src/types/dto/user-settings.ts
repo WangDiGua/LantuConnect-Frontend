@@ -48,12 +48,10 @@ export interface UserStats {
   totalAgents: number;
   totalWorkflows: number;
   totalApiCalls: number;
-  tokenUsage: number;
   storageUsedMb: number;
   activeSessions: number;
   period?: string;
   apiCalls?: number;
-  tokensUsed?: number;
   agentsCreated?: number;
   datasetsCreated?: number;
 }

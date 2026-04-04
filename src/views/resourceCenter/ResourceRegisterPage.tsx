@@ -13,6 +13,7 @@ import { filterTagsForResourceType } from '../../utils/marketTags';
 import { buildPath } from '../../constants/consoleRoutes';
 import { bentoCard, btnPrimary, btnSecondary, textMuted, textPrimary } from '../../utils/uiClasses';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
+import { parseMcpConfigPaste } from '../../utils/mcpConfigImport';
 
 interface Props {
   theme: Theme;
@@ -265,6 +266,8 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     skillRootPath: '',
     accessPolicy: 'grant_required' as ResourceAccessPolicy,
   });
+  const [mcpImportPaste, setMcpImportPaste] = useState('');
+  const [mcpProbeLoading, setMcpProbeLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -684,6 +687,96 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     user?.id,
   ]);
 
+  const validateMcpProbeFields = (): string => {
+    if (!form.endpoint.trim()) return '请填写服务地址后再探测';
+    const activeTransport = modeToTransport(form.mcpRegisterMode);
+    if (activeTransport === 'websocket') {
+      if (!isValidWsUrl(form.endpoint.trim())) return 'WebSocket 探测需要 ws:// 或 wss:// URL';
+    } else if (activeTransport === 'stdio') {
+      if (!isValidUrl(form.endpoint.trim())) return 'stdio 边车须为 http:// 或 https:// URL';
+    } else if (!isValidUrl(form.endpoint.trim())) return 'HTTP 探测需要 http(s) URL';
+    const authParsed = parseJsonObject(form.authConfigJson, '鉴权配置（authConfig JSON）');
+    if (form.authConfigJson.trim() && !authParsed.ok) return authParsed.message;
+    if (form.authType === 'oauth2_client') {
+      if (!authParsed.ok || !authParsed.data) return 'oauth2_client 须填写合法 authConfig JSON';
+      const d = authParsed.data;
+      const tokenUrl = String(d.tokenUrl ?? d.token_url ?? '').trim();
+      const clientId = String(d.clientId ?? d.client_id ?? '').trim();
+      const secret = String(d.clientSecret ?? d.client_secret ?? '').trim();
+      const secretRef = String(d.clientSecretRef ?? '').trim();
+      if (!tokenUrl) return 'oauth2_client 需要 auth_config.tokenUrl';
+      if (!clientId) return 'oauth2_client 需要 auth_config.clientId';
+      if (!secret && !secretRef) return 'oauth2_client 需要 clientSecret 或 clientSecretRef';
+    }
+    if (form.authType === 'basic') {
+      if (!authParsed.ok || !authParsed.data) return 'basic 须填写合法 authConfig JSON';
+      const d = authParsed.data;
+      const u = String(d.username ?? '').trim();
+      const password = String(d.password ?? '').trim();
+      const passwordRef = String(d.passwordSecretRef ?? '').trim();
+      if (!u) return 'basic 需要 auth_config.username';
+      if (!password && !passwordRef) return 'basic 需要 password 或 passwordSecretRef';
+    }
+    return '';
+  };
+
+  const handleMcpConfigImport = () => {
+    const r = parseMcpConfigPaste(mcpImportPaste);
+    if (r.hint && !r.endpoint) {
+      showMessage(r.hint, 'warning');
+      return;
+    }
+    if (r.endpoint) {
+      const mode = r.mcpRegisterMode ?? 'http_json';
+      setForm((p) => ({
+        ...p,
+        endpoint: r.endpoint ?? p.endpoint,
+        mcpRegisterMode: mode,
+        mcpTransport: modeToTransport(mode),
+        authType: r.authType ?? p.authType,
+        authConfigJson: r.authConfig ? JSON.stringify(r.authConfig, null, 2) : p.authConfigJson,
+      }));
+      showMessage(r.hint ? `${r.hint} 已尽量填入表单，请核对。` : '已从配置填充，请核对后保存。', r.hint ? 'warning' : 'success');
+      return;
+    }
+    showMessage(r.hint ?? '未能解析', 'warning');
+  };
+
+  const handleMcpConnectivityProbe = async () => {
+    const err = validateMcpProbeFields();
+    if (err) {
+      showMessage(err, 'error');
+      return;
+    }
+    setMcpProbeLoading(true);
+    try {
+      const acTrim = form.authConfigJson.trim();
+      let authConfig: Record<string, unknown> = {};
+      if (acTrim) {
+        const parsed = parseJsonObject(form.authConfigJson, '鉴权配置（authConfig JSON）');
+        if (!parsed.ok || !parsed.data) {
+          showMessage(parsed.message, 'error');
+          return;
+        }
+        authConfig = { ...parsed.data };
+      }
+      const res = await resourceCenterService.probeMcpConnectivity({
+        endpoint: form.endpoint.trim(),
+        authType: form.authType || 'none',
+        authConfig,
+        transport: modeToTransport(form.mcpRegisterMode),
+      });
+      showMessage(res.message, res.ok ? 'success' : 'warning');
+      if (res.bodyPreview) {
+        console.info('[MCP 探测响应片段]', res.bodyPreview);
+      }
+    } catch (e) {
+      showMessage(e instanceof Error ? e.message : '探测失败', 'error');
+    } finally {
+      setMcpProbeLoading(false);
+    }
+  };
+
   const buildPayload = (): ResourceUpsertRequest => {
     const providerIdRaw = resourceId ? (form.providerId.trim() || user?.id) : user?.id;
     const providerIdNum = Number(providerIdRaw);
@@ -1091,6 +1184,38 @@ export const ResourceRegisterPage: React.FC<Props> = ({
 
             {resourceType === 'mcp' && (
               <>
+                <div
+                  className={`md:col-span-2 rounded-xl border px-3 py-3 text-xs leading-relaxed ${
+                    isDark ? 'border-amber-500/30 bg-amber-500/5 text-amber-100/90' : 'border-amber-200 bg-amber-50 text-amber-950'
+                  }`}
+                >
+                  <p className="font-medium">注册中心只做「登记目录」</p>
+                  <p className={`mt-1 ${isDark ? 'text-amber-100/80' : 'text-amber-900/85'}`}>
+                    MCP 进程须由您自行部署运维；本平台不代跑服务。请提供可从网络访问的 <strong>http(s)</strong> 或{' '}
+                    <strong>ws(s)</strong> 地址。若仅有本机 command/stdio，需先在您侧用边车或隧道暴露为 URL 后再登记。
+                  </p>
+                  <p className={`mt-1.5 ${isDark ? 'text-amber-100/70' : 'text-amber-900/75'}`}>
+                    「MCP over HTTP（JSON）」与「HTTP + SSE」在登记表单里都对应远程 HTTP；网关会按上游实际响应处理，请按服务商文档填写地址即可。
+                  </p>
+                </div>
+                <Field label="粘贴配置导入" full>
+                  <p className={`mb-2 text-[11px] ${textMuted(theme)}`}>
+                    支持含 <span className="font-mono">mcpServers</span> 的 JSON（如 Claude/Cursor 导出），或单个含{' '}
+                    <span className="font-mono">url</span> 的条目。仅解析远程 URL 类；stdio 会提示须自备边车。
+                  </p>
+                  <textarea
+                    value={mcpImportPaste}
+                    onChange={(e) => setMcpImportPaste(e.target.value)}
+                    rows={4}
+                    className={`${inputClass(isDark)} font-mono text-xs`}
+                    placeholder='例如：{ "mcpServers": { "demo": { "url": "https://example.com/mcp" } } }'
+                  />
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <button type="button" className={btnSecondary(theme)} onClick={handleMcpConfigImport}>
+                      解析并填入表单
+                    </button>
+                  </div>
+                </Field>
                 <Field label="注册方式">
                   <ThemedSelect
                     isDark={isDark}
@@ -1232,6 +1357,25 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     placeholder={DEFAULT_MCP_AUTH_CONFIG_JSON}
                   />
                 </Field>
+                <div className="md:col-span-2 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    className={btnPrimary}
+                    disabled={mcpProbeLoading}
+                    onClick={() => void handleMcpConnectivityProbe()}
+                  >
+                    {mcpProbeLoading ? (
+                      <span className="flex items-center gap-2">
+                        <Loader2 className="animate-spin" size={16} /> 探测中…
+                      </span>
+                    ) : (
+                      '探测连通性（initialize）'
+                    )}
+                  </button>
+                  <span className={`text-[11px] ${textMuted(theme)}`}>
+                    由平台代发一次 JSON-RPC initialize，不创建资源、不托管您的 MCP。
+                  </span>
+                </div>
               </>
             )}
 

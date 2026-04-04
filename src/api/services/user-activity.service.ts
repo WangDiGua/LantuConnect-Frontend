@@ -20,14 +20,24 @@ function normalizeActivityType(raw: unknown): ActivityType {
 
 function toAuthorizedSkill(raw: any): AuthorizedSkillItem {
   const id = Number(raw?.id ?? raw?.skillId ?? 0) || 0;
+  const pack =
+    raw?.packFormat ?? raw?.pack_format ?? raw?.agentType ?? raw?.agent_type ?? undefined;
   return {
     id,
     skillId: Number(raw?.skillId ?? id) || id,
-    displayName: String(raw?.displayName ?? raw?.skillName ?? raw?.name ?? `Skill-${id}`),
+    displayName: String(raw?.displayName ?? raw?.display_name ?? raw?.skillName ?? raw?.name ?? `Skill-${id}`),
     description: String(raw?.description ?? ''),
     status: raw?.status ? String(raw.status) : undefined,
-    grantScope: raw?.grantScope ? String(raw.grantScope) : undefined,
-    grantedAt: raw?.grantedAt ? String(raw.grantedAt) : undefined,
+    agentName: raw?.agentName != null ? String(raw.agentName) : raw?.resourceCode != null ? String(raw.resourceCode) : undefined,
+    source: raw?.source ? String(raw.source) : undefined,
+    packFormat: pack != null ? String(pack) : undefined,
+    updateTime: raw?.updateTime != null ? String(raw.updateTime) : raw?.update_time != null ? String(raw.update_time) : undefined,
+    lastUsedTime:
+      raw?.lastUsedTime != null
+        ? String(raw.lastUsedTime)
+        : raw?.last_used_time != null
+          ? String(raw.last_used_time)
+          : undefined,
   };
 }
 
@@ -47,7 +57,6 @@ function toRecentUse(raw: any): RecentUseItem {
     description: raw?.description ? String(raw.description) : undefined,
     action: raw?.action ? String(raw.action) : undefined,
     status: raw?.status ? String(raw.status) : undefined,
-    tokenCost: Number(raw?.tokenCost ?? raw?.token_cost ?? 0) || 0,
     latencyMs: Number(raw?.latencyMs ?? raw?.latency_ms ?? 0) || 0,
     createTime: raw?.createTime ? String(raw.createTime) : undefined,
     lastUsedTime: raw?.lastUsedTime ? String(raw.lastUsedTime) : (raw?.createTime ? String(raw.createTime) : undefined),
@@ -64,7 +73,6 @@ function toUsageRecord(raw: unknown): UsageRecord {
     action: String(r.action ?? r.event ?? '-'),
     inputPreview: String(r.inputPreview ?? r.input_preview ?? ''),
     outputPreview: String(r.outputPreview ?? r.output_preview ?? ''),
-    tokenCost: Number(r.tokenCost ?? r.token_cost ?? 0) || 0,
     latencyMs: Number(r.latencyMs ?? r.latency_ms ?? 0) || 0,
     status: String(r.status ?? 'success') === 'success' ? 'success' : 'failed',
     createTime: String(r.createTime ?? r.create_time ?? ''),
@@ -166,7 +174,6 @@ function normalizeUserUsageStats(raw: unknown): UserUsageStats {
       ?? counters.totalUsageRecords
       ?? (counters as any).total_usage_records,
     ),
-    tokensUsed: num(o.tokensUsed ?? (o as any).tokens_used ?? (o as any).tokenConsumed ?? (o as any).token_consumed),
     favoriteCount: num(o.favoriteCount ?? (o as any).favorite_count ?? (o as any).favorites ?? (o as any).favoriteCnt),
     recentDays,
   };

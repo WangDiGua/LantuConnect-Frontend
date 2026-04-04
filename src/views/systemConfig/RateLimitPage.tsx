@@ -40,6 +40,17 @@ const RATE_LIMIT_TARGET_OPTIONS = [
   { value: 'role', label: '角色' },
   { value: 'ip', label: 'IP' },
   { value: 'api_key', label: 'API Key' },
+  { value: 'path', label: 'HTTP 路径' },
+];
+
+const RATE_LIMIT_RESOURCE_SCOPE_OPTIONS = [
+  { value: '', label: '全部资源类型' },
+  { value: 'all', label: '显式 all（同全部）' },
+  { value: 'agent', label: 'Agent' },
+  { value: 'skill', label: 'Skill' },
+  { value: 'mcp', label: 'MCP' },
+  { value: 'app', label: 'App' },
+  { value: 'dataset', label: 'Dataset' },
 ];
 
 const RATE_LIMIT_ACTION_OPTIONS = [
@@ -48,9 +59,11 @@ const RATE_LIMIT_ACTION_OPTIONS = [
   { value: 'throttle', label: '限速' },
 ];
 
-const emptyDraft = (): Partial<CreateRateLimitDTO> & { enabled: boolean } => ({
+const emptyDraft = (): Partial<CreateRateLimitDTO> & { enabled: boolean; targetValue?: string; resourceScope?: string } => ({
   name: '',
   target: 'global',
+  targetValue: '',
+  resourceScope: '',
   windowMs: 60000,
   maxRequests: 1000,
   burstLimit: 50,
@@ -82,7 +95,9 @@ export const RateLimitPage: React.FC<RateLimitPageProps> = ({
     const q = search.trim().toLowerCase();
     return rules.filter((r) => {
       if (!q) return true;
-      return (r.name ?? '').toLowerCase().includes(q) || (r.target ?? '').toLowerCase().includes(q);
+      return (r.name ?? '').toLowerCase().includes(q)
+        || (r.target ?? '').toLowerCase().includes(q)
+        || (r.resourceScope ?? '').toLowerCase().includes(q);
     });
   }, [rules, search]);
 
@@ -90,7 +105,18 @@ export const RateLimitPage: React.FC<RateLimitPageProps> = ({
   const startEdit = (r: RateLimitRule) => {
     setCreating(false);
     setEditingId(r.id);
-    setDraft({ name: r.name, target: r.target, windowMs: r.windowMs, maxRequests: r.maxRequests, burstLimit: r.burstLimit ?? 50, action: r.action, enabled: r.enabled });
+    setDraft({
+      name: r.name,
+      target: r.target,
+      targetValue: r.targetValue ?? '',
+      resourceScope: r.resourceScope ?? '',
+      windowMs: r.windowMs,
+      maxRequests: r.maxRequests,
+      burstLimit: r.burstLimit ?? 50,
+      action: r.action,
+      priority: r.priority,
+      enabled: r.enabled,
+    });
   };
   const cancelForm = () => { setCreating(false); setEditingId(null); };
 
@@ -98,13 +124,17 @@ export const RateLimitPage: React.FC<RateLimitPageProps> = ({
     if (!draft.name?.trim()) { showMessage('请填写策略名称', 'error'); return; }
     if ((draft.maxRequests ?? 0) < 1) { showMessage('最大请求数须为正数', 'error'); return; }
 
+    const scopeRaw = (draft.resourceScope ?? '').trim();
     const payload: CreateRateLimitDTO = {
       name: draft.name!.trim(),
       target: draft.target as RateLimitRule['target'] ?? 'global',
+      targetValue: (draft.targetValue ?? '').trim() || undefined,
       windowMs: draft.windowMs ?? 60000,
       maxRequests: draft.maxRequests ?? 1000,
       burstLimit: draft.burstLimit ?? 50,
       action: draft.action as RateLimitRule['action'] ?? 'reject',
+      priority: draft.priority,
+      resourceScope: scopeRaw === '' ? undefined : scopeRaw === 'all' ? 'all' : scopeRaw,
     };
 
     if (creating) {
@@ -151,6 +181,25 @@ export const RateLimitPage: React.FC<RateLimitPageProps> = ({
               onChange={(v) => setDraft((d) => ({ ...d, target: v as RateLimitRule['target'] }))}
               options={RATE_LIMIT_TARGET_OPTIONS}
             />
+          </div>
+          <div className="sm:col-span-2">
+            <label className={`${labelCls} mb-1.5 block`}>目标值</label>
+            <input className={inputCls} placeholder="用户 ID / 角色编码 / 路径 Ant 模式 /** 等" value={draft.targetValue ?? ''} onChange={(e) => setDraft((d) => ({ ...d, targetValue: e.target.value }))} />
+          </div>
+          <div>
+            <label className={`${labelCls} mb-1.5 block`}>网关资源作用域</label>
+            <LantuSelect
+              theme={theme}
+              triggerClassName={INPUT_FOCUS}
+              value={draft.resourceScope ?? ''}
+              onChange={(v) => setDraft((d) => ({ ...d, resourceScope: v }))}
+              options={RATE_LIMIT_RESOURCE_SCOPE_OPTIONS}
+            />
+            <p className={`text-xs mt-1 ${textMuted(theme)}`}>仅影响资源网关调用计数；留空表示不限定资源大类。</p>
+          </div>
+          <div>
+            <label className={`${labelCls} mb-1.5 block`}>优先级（大者优先）</label>
+            <input type="number" className={inputCls} value={draft.priority ?? 0} onChange={(e) => setDraft((d) => ({ ...d, priority: Number(e.target.value) }))} />
           </div>
           <div>
             <label className={`${labelCls} mb-1.5 block`}>时间窗口 (ms)</label>
@@ -203,7 +252,7 @@ export const RateLimitPage: React.FC<RateLimitPageProps> = ({
       fontSize={fontSize}
       breadcrumbSegments={breadcrumbSegments}
       titleIcon={Sliders}
-      description="配置限流策略，保护核心接口"
+      description="用户/角色/IP 等维度限流；可选资源作用域限定 Agent、Skill、MCP、App、Dataset。路径型规则走 HTTP Filter，与网关配额互补。"
       toolbar={
         <div className={`${TOOLBAR_ROW_LIST} justify-between`}>
           <div className="relative flex-1 min-w-0 sm:max-w-md">
@@ -236,6 +285,12 @@ export const RateLimitPage: React.FC<RateLimitPageProps> = ({
                   header: '目标',
                   cellClassName: `align-middle font-mono text-xs ${textMuted(theme)}`,
                   cell: (r) => `${r.target}${r.targetValue ? `: ${r.targetValue}` : ''}`,
+                },
+                {
+                  id: 'rscope',
+                  header: '资源域',
+                  cellClassName: `align-middle text-xs ${textSecondary(theme)}`,
+                  cell: (r) => r.resourceScope || '—',
                 },
                 {
                   id: 'window',

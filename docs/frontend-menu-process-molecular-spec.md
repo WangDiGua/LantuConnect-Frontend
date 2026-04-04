@@ -61,7 +61,7 @@
 | Provider 管理 `provider-management` | Provider | `provider-list`、`provider-create` |
 | 用户与权限 `user-management` | 用户 / 凭证 / 入驻 | `user-list`、`role-management`、`organization`、`api-key-management`、`resource-grant-management`、`grant-applications`、`developer-applications` |
 | 监控中心 `monitoring` | 观测 / 告警 / 治理 | `monitoring-overview`、`call-logs`、`performance-analysis`、`alert-management`、`alert-rules`、`health-config`、`circuit-breaker` |
-| 系统配置 `system-config` | 基础 / 策略 / 审计 / 内容治理 | `tag-management`、`model-config`、`security-settings`、`quota-management`、`rate-limit-policy`、`access-control`、`audit-log`、`sensitive-words`、`announcements` |
+| 系统配置 `system-config` | 基础 / 策略 / 审计 / 内容治理 | `tag-management`、`security-settings`、`quota-management`、`rate-limit-policy`、`access-control`、`audit-log`、`sensitive-words`、`announcements` |
 
 **开发者中心**不挂在管理端 URL；页面仅在 `#/user/developer-portal/...` 下提供。
 

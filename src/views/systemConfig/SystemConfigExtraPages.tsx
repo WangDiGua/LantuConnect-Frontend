@@ -73,7 +73,14 @@ export const SystemParamsPage: React.FC<PageProps> = ({ theme, fontSize, showMes
     if (data) setDraft(data.map((p) => ({ ...p })));
   }, [data]);
 
-  const shellProps = { theme, fontSize, titleIcon: Sliders, breadcrumbSegments: ['系统配置', '系统参数'] as const, contentScroll: 'document' as const };
+  const shellProps = {
+    theme,
+    fontSize,
+    titleIcon: Sliders,
+    breadcrumbSegments: ['系统配置', '系统参数'] as const,
+    contentScroll: 'document' as const,
+    description: '维护全局键值对与 JSON 覆盖项（如 runtime_app_config）。保存后数秒内合并进运行时配置；涉及鉴权/观测的项请与「安全设置」「监控中心」变更节奏协调。',
+  };
 
   if (isLoading) {
     return (
@@ -262,9 +269,11 @@ export const SecuritySettingsPage: React.FC<PageProps> = ({ theme, fontSize, sho
     if (data) setDraft(data.map((s) => ({ ...s })));
   }, [data]);
 
+  const securityDesc = '会话、验证码、登录失败锁定等与统一资源网关安全策略；资源级授权与路径规则在「访问控制」。';
+
   if (isLoading) {
     return (
-      <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={Shield} breadcrumbSegments={['系统配置', '安全设置']}>
+      <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={Shield} breadcrumbSegments={['系统配置', '安全设置']} description={securityDesc}>
         <PageSkeleton type="form" />
       </MgmtPageShell>
     );
@@ -272,7 +281,7 @@ export const SecuritySettingsPage: React.FC<PageProps> = ({ theme, fontSize, sho
 
   if (isError) {
     return (
-      <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={Shield} breadcrumbSegments={['系统配置', '安全设置']}>
+      <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={Shield} breadcrumbSegments={['系统配置', '安全设置']} description={securityDesc}>
         <PageError error={error instanceof Error ? error : null} onRetry={() => refetch()} />
       </MgmtPageShell>
     );
@@ -280,7 +289,7 @@ export const SecuritySettingsPage: React.FC<PageProps> = ({ theme, fontSize, sho
 
   if (!draft.length) {
     return (
-      <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={Shield} breadcrumbSegments={['系统配置', '安全设置']}>
+      <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={Shield} breadcrumbSegments={['系统配置', '安全设置']} description={securityDesc}>
         <EmptyState title="暂无安全策略项" description="后端未返回安全设置" />
       </MgmtPageShell>
     );
@@ -305,7 +314,7 @@ export const SecuritySettingsPage: React.FC<PageProps> = ({ theme, fontSize, sho
   };
 
   return (
-    <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={Shield} breadcrumbSegments={['系统配置', '安全设置']}>
+    <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={Shield} breadcrumbSegments={['系统配置', '安全设置']} description={securityDesc}>
       <div className="px-4 sm:px-6 pb-6">
         <BentoCard theme={theme} padding="lg" className="max-w-xl">
           <div className="space-y-4">
@@ -355,13 +364,20 @@ export const NetworkConfigPage: React.FC<PageProps> = ({ theme, fontSize, showMe
   };
 
   return (
-    <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={Network} breadcrumbSegments={['系统配置', '网络配置']}>
+    <MgmtPageShell
+      theme={theme}
+      fontSize={fontSize}
+      titleIcon={Network}
+      breadcrumbSegments={['系统配置', '网络配置']}
+      description="管理端访问白名单下发；与 Agent/Skill/MCP/App/Dataset 的公网开放范围策略在网关上可分别配置，此处侧重控制台接入。"
+    >
       <div className="px-4 sm:px-6 pb-6">
         <BentoCard theme={theme} padding="lg" className="max-w-xl">
           <div className="space-y-4">
             <div>
               <label className={`${labelCls} mb-1.5 block`}>管理端 IP 白名单（每行一个 CIDR）</label>
-              <textarea className={`${inputCls} min-h-[120px] font-mono text-xs`} value={allowlist} onChange={(e) => setAllowlist(e.target.value)} />
+              <textarea className={`${inputCls} min-h-[120px] font-mono text-xs`} value={allowlist} onChange={(e) => setAllowlist(e.target.value)} aria-label="IP 白名单 CIDR 列表" />
+              <p className={`text-xs mt-1.5 leading-relaxed ${textMuted(theme)}`}>每行一条，例如 10.0.0.0/8；提交后由后端记录并驱动网关策略（详见接口实现）。</p>
             </div>
             <button type="button" className={`${btnPrimary} disabled:opacity-50`} disabled={saving} onClick={handleApply}>
               {saving ? <><Loader2 size={14} className="animate-spin" /> 应用中…</> : '应用'}
@@ -391,7 +407,13 @@ export const SystemQuotaPage: React.FC<PageProps> = ({ theme, fontSize, showMess
   const handleSave = async () => {
     setSaving(true);
     try {
-      await quotaService.createQuota({ name: '全局日配额', target: 'global', maxCalls: Number(globalCap), policy } as never);
+      await quotaService.createQuota({
+        subjectType: 'global',
+        subjectName: '全平台',
+        resourceCategory: 'all',
+        dailyLimit: Number(globalCap) || 0,
+        monthlyLimit: Math.max((Number(globalCap) || 0) * 30, Number(globalCap) || 0),
+      });
       showMessage('全局配额已保存', 'success');
     } catch (e) {
       showMessage(e instanceof Error ? e.message : '保存失败', 'error');
@@ -476,7 +498,13 @@ export const AccessControlPage: React.FC<PageProps> = ({ theme, fontSize, showMe
   };
 
   return (
-    <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={Lock} breadcrumbSegments={['系统配置', '访问控制']}>
+    <MgmtPageShell
+      theme={theme}
+      fontSize={fontSize}
+      titleIcon={Lock}
+      breadcrumbSegments={['系统配置', '访问控制']}
+      description="路径模式与 Casbin 角色（如 platform_admin、authenticated）；发布后对全站 API 生效。细粒度资源授权另见资源中心与授权申请。"
+    >
       <div className="px-4 sm:px-6 pb-6">
         {loadingRules ? (
           <div className="py-4">
@@ -507,11 +535,13 @@ export const AccessControlPage: React.FC<PageProps> = ({ theme, fontSize, showMe
                 className={`${inputCls} flex-1 min-w-[120px] font-mono text-xs`}
                 value={r.path}
                 onChange={(e) => setRules((prev) => prev.map((x) => x.id === r.id ? { ...x, path: e.target.value } : x))}
+                aria-label="API 路径模式"
               />
               <input
                 className={`${inputCls} w-40 text-xs`}
                 value={r.roles}
                 onChange={(e) => setRules((prev) => prev.map((x) => x.id === r.id ? { ...x, roles: e.target.value } : x))}
+                aria-label="角色编码，逗号分隔"
               />
               <button
                 type="button"

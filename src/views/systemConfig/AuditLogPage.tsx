@@ -22,12 +22,22 @@ interface AuditLogPageProps {
 const PAGE_SIZE = 20;
 const ACTION_OPTIONS = ['全部', 'CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'EXPORT', 'DEPLOY'];
 
+const RESOURCE_TYPE_OPTIONS = [
+  { value: '', label: '全部资源' },
+  { value: 'agent', label: 'Agent' },
+  { value: 'skill', label: 'Skill' },
+  { value: 'mcp', label: 'MCP' },
+  { value: 'app', label: 'App' },
+  { value: 'dataset', label: 'Dataset' },
+];
+
 export const AuditLogPage: React.FC<AuditLogPageProps> = ({
   theme, fontSize, showMessage, breadcrumbSegments,
 }) => {
   const isDark = theme === 'dark';
   const [search, setSearch] = useState('');
   const [actionFilter, setActionFilter] = useState('全部');
+  const [resourceTypeFilter, setResourceTypeFilter] = useState('');
   const [onlyFail, setOnlyFail] = useState(false);
   const [page, setPage] = useState(1);
 
@@ -36,10 +46,11 @@ export const AuditLogPage: React.FC<AuditLogPageProps> = ({
       page,
       pageSize: PAGE_SIZE,
       ...(actionFilter !== '全部' ? { action: actionFilter } : {}),
+      ...(resourceTypeFilter ? { resourceType: resourceTypeFilter } : {}),
       ...(search.trim() ? { keyword: search.trim() } : {}),
       ...(onlyFail ? { result: 'failure' as const } : {}),
     }),
-    [page, actionFilter, search, onlyFail],
+    [page, actionFilter, resourceTypeFilter, search, onlyFail],
   );
 
   const { data, isLoading, isError, error, refetch } = useSysAuditLogs(auditQuery);
@@ -84,7 +95,7 @@ export const AuditLogPage: React.FC<AuditLogPageProps> = ({
       fontSize={fontSize}
       breadcrumbSegments={breadcrumbSegments}
       titleIcon={History}
-      description="检索关键操作记录，支持按动作筛选与导出"
+      description="检索关键操作记录；可按动作、五类资源关键字筛选并导出当前页"
       toolbar={
         <div className={`${TOOLBAR_ROW_LIST} min-w-0`}>
           <div className="min-w-0 flex-1 shrink sm:max-w-md">
@@ -96,6 +107,13 @@ export const AuditLogPage: React.FC<AuditLogPageProps> = ({
             options={ACTION_OPTIONS.map((a) => ({ value: a, label: a }))}
             theme={theme}
             className="w-full sm:w-[10rem] shrink-0"
+          />
+          <FilterSelect
+            value={resourceTypeFilter}
+            onChange={(value) => { setResourceTypeFilter(value); setPage(1); }}
+            options={RESOURCE_TYPE_OPTIONS}
+            theme={theme}
+            className="w-full sm:w-[11rem] shrink-0"
           />
           <label className="flex items-center gap-2 cursor-pointer shrink-0 min-h-[2.5rem]">
             <input

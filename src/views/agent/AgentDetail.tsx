@@ -138,7 +138,6 @@ export const AgentDetail: React.FC<AgentDetailProps> = ({ agentId, theme, fontSi
                 { label: '状态', value: statusLabel(agent.status as DomainStatus) },
                 { label: '分类', value: (agent as any).categoryName || '—' },
                 { label: '公开', value: (agent as any).isPublic ? '是' : '否' },
-                { label: '平均 Token 成本', value: (agent as any).avgTokenCost ? String((agent as any).avgTokenCost) : '—' },
               ].map((item) => (
                 <div key={item.label}>
                   <label className={`text-xs block mb-1 ${textMuted(theme)}`}>{item.label}</label>
@@ -217,9 +216,9 @@ export const AgentDetail: React.FC<AgentDetailProps> = ({ agentId, theme, fontSi
             <div className={`p-4 ${bentoCard(theme)}`}>
               <h3 className={`text-sm font-bold mb-3 flex items-center gap-2 ${textPrimary(theme)}`}><TrendingUp size={16} className="text-blue-500" /> 使用统计</h3>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
-                <div><div className="text-lg font-black text-blue-500">{stats.totalCalls.toLocaleString()}</div><div className={`text-xs ${textMuted(theme)}`}>总调用</div></div>
+                <div><div className="text-lg font-black text-blue-500">{stats.callCount.toLocaleString()}</div><div className={`text-xs ${textMuted(theme)}`}>总调用</div></div>
                 <div><div className="text-lg font-black text-emerald-500">{stats.successRate}%</div><div className={`text-xs ${textMuted(theme)}`}>成功率</div></div>
-                <div><div className="text-lg font-black text-amber-500"><Star size={14} className="inline mb-0.5" /> {stats.averageRating.toFixed(1)}</div><div className={`text-xs ${textMuted(theme)}`}>评分</div></div>
+                <div><div className="text-lg font-black text-amber-500"><Star size={14} className="inline mb-0.5" /> {stats.rating != null ? stats.rating.toFixed(1) : '—'}</div><div className={`text-xs ${textMuted(theme)}`}>评分</div></div>
                 <div><div className="text-lg font-black text-rose-500"><Heart size={14} className="inline mb-0.5" /> {stats.favoriteCount}</div><div className={`text-xs ${textMuted(theme)}`}>收藏</div></div>
               </div>
             </div>

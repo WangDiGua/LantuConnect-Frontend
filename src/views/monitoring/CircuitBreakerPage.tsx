@@ -16,6 +16,7 @@ import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { healthService } from '../../api/services/health.service';
 import type { CircuitBreakerItem } from '../../types/dto/health';
 import { formatDateTime } from '../../utils/formatDateTime';
+import { RESOURCE_TYPE_LABEL, resourceTypeLabel } from '../../constants/resourceTypes';
 
 interface Props {
   theme: Theme;
@@ -52,6 +53,7 @@ export const CircuitBreakerPage: React.FC<Props> = ({ theme, fontSize, showMessa
   const [confirmAction, setConfirmAction] = useState<{ id: number; action: 'trip' | 'reset' } | null>(null);
   const [listQ, setListQ] = useState('');
   const [stateFilter, setStateFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
 
   const fetchData = useCallback(() => {
     setLoading(true);
@@ -96,6 +98,9 @@ export const CircuitBreakerPage: React.FC<Props> = ({ theme, fontSize, showMessa
   const filteredRows = useMemo(() => {
     let list = data;
     if (stateFilter !== 'all') list = list.filter((r) => r.currentState === stateFilter);
+    if (typeFilter !== 'all') {
+      list = list.filter((r) => String(r.resourceType ?? '').toLowerCase() === typeFilter);
+    }
     const term = listQ.trim().toLowerCase();
     if (term) {
       list = list.filter(
@@ -103,7 +108,7 @@ export const CircuitBreakerPage: React.FC<Props> = ({ theme, fontSize, showMessa
       );
     }
     return list;
-  }, [data, listQ, stateFilter]);
+  }, [data, listQ, stateFilter, typeFilter]);
 
   const toolbar = (
     <div className={`${TOOLBAR_ROW_LIST} min-w-0`}>
@@ -127,11 +132,27 @@ export const CircuitBreakerPage: React.FC<Props> = ({ theme, fontSize, showMessa
         className="!w-36 shrink-0"
         triggerClassName={`w-full !min-w-0 ${INPUT_FOCUS}`}
       />
+      <LantuSelect
+        theme={theme}
+        value={typeFilter}
+        onChange={setTypeFilter}
+        options={[
+          { value: 'all', label: '全部类型' },
+          { value: 'agent', label: RESOURCE_TYPE_LABEL.agent },
+          { value: 'skill', label: RESOURCE_TYPE_LABEL.skill },
+          { value: 'mcp', label: RESOURCE_TYPE_LABEL.mcp },
+          { value: 'app', label: RESOURCE_TYPE_LABEL.app },
+          { value: 'dataset', label: RESOURCE_TYPE_LABEL.dataset },
+        ]}
+        placeholder="资源类型"
+        className="!w-36 shrink-0"
+        triggerClassName={`w-full !min-w-0 ${INPUT_FOCUS}`}
+      />
     </div>
   );
 
   return (
-    <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={AlertTriangle} breadcrumbSegments={['监控中心', '熔断降级']} description="配置 Agent / Skill 的熔断策略，支持手动熔断与恢复" toolbar={toolbar}>
+    <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={AlertTriangle} breadcrumbSegments={['监控中心', '熔断降级']} description="按统一资源类型管理网关熔断：失败阈值、半开探测与降级目标（t_resource_circuit_breaker）" toolbar={toolbar}>
       <div className="min-w-0 px-4 sm:px-6 pb-6">
         {loading ? (
           <PageSkeleton type="table" />
@@ -158,7 +179,7 @@ export const CircuitBreakerPage: React.FC<Props> = ({ theme, fontSize, showMessa
                 <table className="w-full text-left text-sm min-w-[960px]">
                   <thead>
                     <tr>
-                      {['名称', '状态', '失败阈值', '熔断时长(s)', '降级 Agent', '最近熔断', '统计', '操作'].map((h) => (
+                      {['名称', '资源类型', '状态', '失败阈值', '熔断时长(s)', '降级资源', '最近熔断', '统计', '操作'].map((h) => (
                         <th key={h} className={tableHeadCell(theme)}>{h}</th>
                       ))}
                     </tr>
@@ -170,6 +191,9 @@ export const CircuitBreakerPage: React.FC<Props> = ({ theme, fontSize, showMessa
                         <tr key={r.id} className={tableBodyRow(theme, i)}>
                           <td className={`${tableCell()} ${textPrimary(theme)}`}>
                             <div className="font-medium">{r.displayName}</div>
+                          </td>
+                          <td className={`${tableCell()} text-xs ${textMuted(theme)}`}>
+                            {resourceTypeLabel(r.resourceType)}
                           </td>
                           <td className={tableCell()}>
                             <span className={`inline-flex shrink-0 items-center whitespace-nowrap px-2.5 py-1 rounded-lg text-xs font-semibold ${isDark ? stCfg.dark : stCfg.light}`}>

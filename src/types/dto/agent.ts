@@ -35,10 +35,14 @@ export interface Agent {
   qualityScore: number;
   avgLatencyMs: number;
   successRate: number;
-  avgTokenCost: number;
   callCount: number;
   createTime: string;
   updateTime: string;
+  /** 目录聚合字段（统一网关 catalog） */
+  createdBy?: number;
+  createdByName?: string;
+  ratingAvg?: number;
+  reviewCount?: number;
 }
 
 export interface AgentCreatePayload {

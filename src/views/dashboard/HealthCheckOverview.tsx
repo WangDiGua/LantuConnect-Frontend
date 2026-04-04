@@ -9,6 +9,7 @@ import { BentoCard } from '../../components/common/BentoCard';
 import { KpiCard } from '../../components/common/KpiCard';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
+import { resourceTypeLabel } from '../../constants/resourceTypes';
 
 interface Props {
   theme: Theme;
@@ -89,7 +90,7 @@ export const HealthCheckOverview: React.FC<Props> = ({ theme }) => {
           </div>
           <div>
             <h2 className={`text-lg font-bold ${textPrimary(theme)}`}>健康检查</h2>
-            <p className={`text-xs ${textSecondary(theme)}`}>实时监控所有已注册智能体/技能的运行状态</p>
+            <p className={`text-xs ${textSecondary(theme)}`}>监控已配置的健康检查项（智能体 / 技能 / MCP / 应用 / 数据集 等统一资源）</p>
           </div>
         </div>
         <button
@@ -149,7 +150,7 @@ export const HealthCheckOverview: React.FC<Props> = ({ theme }) => {
                     <thead>
                       <tr>
                         <th className={tableHeadCell(theme)}>名称</th>
-                        <th className={tableHeadCell(theme)}>类型</th>
+                        <th className={tableHeadCell(theme)}>资源类型</th>
                         <th className={tableHeadCell(theme)}>状态</th>
                         <th className={tableHeadCell(theme)}>最近检查</th>
                         <th className={tableHeadCell(theme)}>检查方式</th>
@@ -165,10 +166,10 @@ export const HealthCheckOverview: React.FC<Props> = ({ theme }) => {
                               <span className={`font-medium ${textPrimary(theme)}`}>{item.name}</span>
                             </td>
                             <td className={tableCell()}>
-                              <span className={`inline-flex shrink-0 items-center whitespace-nowrap text-xs uppercase tracking-widest font-medium px-1.5 py-0.5 rounded ${
+                              <span className={`inline-flex shrink-0 items-center whitespace-nowrap text-xs font-medium px-1.5 py-0.5 rounded ${
                                 isDark ? 'bg-white/[0.04] text-slate-500' : 'bg-slate-50 text-slate-400'
                               }`}>
-                                {item.type}
+                                {resourceTypeLabel(item.type)}
                               </span>
                             </td>
                             <td className={tableCell()}>

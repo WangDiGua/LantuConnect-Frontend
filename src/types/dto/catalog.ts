@@ -24,6 +24,12 @@ export interface ResourceCatalogItemVO {
   status: string;
   sourceType?: string;
   updateTime?: string;
+  /** 与后端 ResourceCatalogItemVO.createdBy 等一致 */
+  createdBy?: number | null;
+  createdByName?: string;
+  /** 无评论时 null */
+  ratingAvg?: number | null;
+  reviewCount?: number | null;
   tags?: string[];
   /** 与后端 ResourceCatalogItemVO.accessPolicy 一致 */
   accessPolicy?: string;
@@ -48,6 +54,8 @@ export interface ResourceResolveVO {
   resourceCode?: string;
   displayName?: string;
   status?: string;
+  createdBy?: number | null;
+  createdByName?: string;
   invokeType?: string;
   endpoint?: string;
   launchToken?: string;

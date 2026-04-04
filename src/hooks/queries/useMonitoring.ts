@@ -6,7 +6,8 @@ import type { CreateAlertRulePayload } from '../../types/dto/monitoring';
 
 export const monitoringKeys = {
   kpis: ['monitoring', 'kpis'] as const,
-  performance: ['monitoring', 'performance'] as const,
+  performance: (resourceType?: string) => ['monitoring', 'performance', resourceType ?? 'all'] as const,
+  callSummary: (hours: number) => ['monitoring', 'callSummary', hours] as const,
   traces: (p?: PaginationParams) => ['monitoring', 'traces', p] as const,
   callLogs: (p?: CallLogListParams) => ['monitoring', 'callLogs', p] as const,
   alerts: (p?: AlertListParams) => ['monitoring', 'alerts', p] as const,
@@ -20,8 +21,19 @@ export function useMonitoringKpis() {
   return useQuery({ queryKey: monitoringKeys.kpis, queryFn: () => monitoringService.getKpis() });
 }
 
-export function usePerformanceMetrics() {
-  return useQuery({ queryKey: monitoringKeys.performance, queryFn: () => monitoringService.getPerformanceMetrics() });
+export function usePerformanceMetrics(resourceType?: string) {
+  return useQuery({
+    queryKey: monitoringKeys.performance(resourceType),
+    queryFn: () => monitoringService.getPerformanceMetrics(resourceType),
+  });
+}
+
+export function useCallSummaryByResource(hours = 24) {
+  return useQuery({
+    queryKey: monitoringKeys.callSummary(hours),
+    queryFn: () => monitoringService.getCallSummaryByResource(hours),
+    staleTime: 30_000,
+  });
 }
 
 export function useQualityHistory(resourceType: string, resourceId: number, from?: string, to?: string) {

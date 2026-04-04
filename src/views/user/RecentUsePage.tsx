@@ -96,7 +96,6 @@ export const RecentUsePage: React.FC<Props> = ({ theme, fontSize }) => {
         header: '状态',
         cell: (item) => <span className={`whitespace-nowrap text-xs font-semibold ${statusClass(item.status)}`}>{statusLabel(item.status)}</span>,
       },
-      { id: 'token', header: 'Token', cell: (item) => <span className={textSecondary(theme)}>{typeof item.tokenCost === 'number' ? item.tokenCost : '—'}</span> },
       {
         id: 'latency',
         header: '耗时',

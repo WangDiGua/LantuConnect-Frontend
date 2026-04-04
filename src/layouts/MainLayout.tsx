@@ -594,6 +594,8 @@ const MainLayoutContent: React.FC<{
 
   const headerMenusRef = useRef<HTMLDivElement>(null);
   const messagePanelAnchorRef = useRef<HTMLDivElement>(null);
+  /** 主内容滚动区：Hash 路由切换不会整页刷新，需手动滚回顶部 */
+  const mainScrollRef = useRef<HTMLDivElement>(null);
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
@@ -626,6 +628,10 @@ const MainLayoutContent: React.FC<{
   useEffect(() => {
     void refreshMessageUnreadCount();
   }, [refreshMessageUnreadCount]);
+
+  useEffect(() => {
+    mainScrollRef.current?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [location.pathname, location.search]);
 
   useEffect(() => {
     if (!authUser?.id) return;
@@ -1328,7 +1334,10 @@ const MainLayoutContent: React.FC<{
           </header>
 
           {/* Scrollable content：GPU 加在滚动条内的子层，避免与 overflow-y-auto 同节点（防第一版滚不动） */}
-          <div className={`flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass}`}>
+          <div
+            ref={mainScrollRef}
+            className={`flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass}`}
+          >
             <div className={`w-full ${chromeGpuLayerClass}`}>
               <AnimatePresence mode="wait">
                 <RouteContentMotion

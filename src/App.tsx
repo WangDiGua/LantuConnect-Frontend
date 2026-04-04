@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState, Suspense, lazy } from 'react';
-import { HashRouter, Routes, Route } from 'react-router-dom';
+import React, { useEffect, useRef, useState, Suspense, lazy, useSyncExternalStore } from 'react';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthGuard } from './router/guards/AuthGuard';
 import { GuestGuard } from './router/guards/GuestGuard';
@@ -12,13 +12,17 @@ import { normalizeRole } from './context/UserRoleContext';
 import { tokenStorage } from './lib/security';
 import { env } from './config/env';
 import { readAppearanceState, resolveEffectiveTheme } from './utils/appearanceState';
+import {
+  getColorSchemeServerSnapshot,
+  getColorSchemeSnapshot,
+  subscribeColorScheme,
+} from './utils/systemColorScheme';
 import type { Theme } from './types';
 import { ApiException } from './types/api';
 import { PageSkeleton } from './components/common/PageSkeleton';
 
 const MainLayout = lazy(() => import('./layouts/MainLayout').then(m => ({ default: m.MainLayout })));
 const LoginPage = lazy(() => import('./views/login/LoginPage').then(m => ({ default: m.LoginPage })));
-const DeveloperOnboardingPage = lazy(() => import('./views/onboarding/DeveloperOnboardingPage').then(m => ({ default: m.DeveloperOnboardingPage })));
 const NotFoundPage = lazy(() => import('./views/common/NotFoundPage').then(m => ({ default: m.NotFoundPage })));
 const SessionExpiredPage = lazy(() => import('./views/common/SessionExpiredPage').then(m => ({ default: m.SessionExpiredPage })));
 
@@ -94,11 +98,30 @@ const App: React.FC = () => {
     resolveEffectiveTheme(readAppearanceState().themePreference),
   );
 
+  const systemDark = useSyncExternalStore(
+    subscribeColorScheme,
+    getColorSchemeSnapshot,
+    getColorSchemeServerSnapshot,
+  );
+
   useEffect(() => {
     const handler = (e: Event) => setTheme((e as CustomEvent<Theme>).detail);
     window.addEventListener('lantu-theme-change', handler);
     return () => window.removeEventListener('lantu-theme-change', handler);
   }, []);
+
+  /** 登录页等未挂载 MainLayout 时：外观为「跟随系统」需随 OS 深浅变化 */
+  useEffect(() => {
+    if (readAppearanceState().themePreference !== 'system') return;
+    setTheme(systemDark ? 'dark' : 'light');
+  }, [systemDark]);
+
+  /** 全局 token、DaisyUI、`dark:` 变体、ErrorPage 检测均依赖根节点 */
+  useEffect(() => {
+    const mode = theme === 'dark' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', mode);
+    document.documentElement.style.colorScheme = mode;
+  }, [theme]);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -131,7 +154,7 @@ const App: React.FC = () => {
                   path="/onboarding/developer"
                   element={
                     <AuthGuard>
-                      <DeveloperOnboardingPage />
+                      <Navigate to="/user/developer-onboarding" replace />
                     </AuthGuard>
                   }
                 />

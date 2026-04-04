@@ -1,5 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=JetBrains+Mono:wght@300;400;500;600&family=Outfit:wght@300;400;500;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&family=Anton&display=swap');
 @import "tailwindcss";
+/**
+ * 与用户外观一致：`dark:` 与 CSS 中 `[data-theme="dark"]` token 均依赖 document.documentElement 上的 data-theme
+ *（由 App.tsx 同步，MainLayout 内层同名属性仅作冗余标记）。
+ */
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 @plugin "daisyui";
 
 * {

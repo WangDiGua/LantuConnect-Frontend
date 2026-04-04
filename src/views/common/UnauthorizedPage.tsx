@@ -18,8 +18,8 @@ export const UnauthorizedPage: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f4f5f7] p-4 sm:p-8 font-sans">
-      <div className="w-full max-w-5xl bg-white rounded-[2rem] shadow-[0_8px_40px_rgba(0,0,0,0.03)] border border-gray-100 flex flex-col md:flex-row overflow-hidden transform transition-all duration-500 hover:shadow-[0_12px_60px_rgba(0,0,0,0.05)]">
+    <div className="min-h-screen flex items-center justify-center bg-[#f4f5f7] dark:bg-lantu-canvas p-4 sm:p-8 font-sans">
+      <div className="w-full max-w-5xl bg-white dark:bg-lantu-card rounded-[2rem] shadow-[0_8px_40px_rgba(0,0,0,0.03)] dark:shadow-[0_8px_40px_rgba(0,0,0,0.35)] border border-gray-100 dark:border-white/10 flex flex-col md:flex-row overflow-hidden transform transition-all duration-500 hover:shadow-[0_12px_60px_rgba(0,0,0,0.05)] dark:hover:shadow-[0_12px_60px_rgba(0,0,0,0.45)]">
         <div className="md:w-1/2 bg-[#09090b] relative p-8 md:p-12 flex flex-col justify-center min-h-[320px] md:min-h-[500px] overflow-hidden">
           <div
             className="absolute inset-0 opacity-20"
@@ -69,16 +69,16 @@ export const UnauthorizedPage: React.FC = () => {
           <div className="absolute bottom-0 right-0 w-64 h-64 bg-red-500/10 rounded-full blur-[80px] pointer-events-none" />
         </div>
 
-        <div className="md:w-1/2 p-10 md:p-16 flex flex-col justify-center bg-white relative">
+        <div className="md:w-1/2 p-10 md:p-16 flex flex-col justify-center bg-white dark:bg-lantu-card relative">
           <div className="animate-fade-in-right-unauth">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 border border-red-100 text-sm font-medium mb-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-500/20 text-sm font-medium mb-6">
               <ShieldAlert size={16} />
               <span>401 Unauthorized</span>
             </div>
 
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4 tracking-tight">登录已失效</h1>
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-slate-100 mb-4 tracking-tight">登录已失效</h1>
 
-            <p className="text-base text-gray-500 leading-relaxed mb-10 max-w-md">
+            <p className="text-base text-gray-500 dark:text-slate-400 leading-relaxed mb-10 max-w-md">
               抱歉，您当前的登录状态已过期，或者您没有权限访问该页面。
               <br />
               请重新登录 Nexus 平台以继续进行您的开发与发布工作。
@@ -88,15 +88,15 @@ export const UnauthorizedPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => navigate('/login')}
-                className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-black text-white font-medium hover:bg-gray-800 transition-colors duration-200 w-fit"
+                className="flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-black dark:bg-white text-white dark:text-neutral-900 font-medium hover:bg-gray-800 dark:hover:bg-neutral-200 transition-colors duration-200 w-fit"
               >
                 重新登录
                 <LogIn size={18} />
               </button>
             </div>
 
-            <div className="mt-12 pt-6 border-t border-gray-100">
-              <p className="text-sm text-gray-400">如果反复出现此问题，请检查网络环境或联系平台管理员。</p>
+            <div className="mt-12 pt-6 border-t border-gray-100 dark:border-white/10">
+              <p className="text-sm text-gray-400 dark:text-slate-500">如果反复出现此问题，请检查网络环境或联系平台管理员。</p>
             </div>
           </div>
         </div>

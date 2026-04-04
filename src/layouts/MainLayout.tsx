@@ -811,25 +811,28 @@ const MainLayoutContent: React.FC<{
   const userSidebarItems = useMemo(
     () =>
       USER_SIDEBAR_ITEMS.filter((item) => {
-        if (item.id === 'my-publish') return canPublishResources;
         if (item.id === 'developer-portal') return hasPermission('developer:portal');
         return true;
       }),
-    [hasPermission, canPublishResources],
+    [hasPermission],
   );
 
   const adminSidebarItems = useMemo(() => {
     if (!canAccessAdminView(platformRole)) return [];
     const adminPermMap: Record<string, string> = {
-      'resource-management': 'agent:view',
-      'provider-management': 'provider:manage',
       'user-management': 'user:manage',
       'monitoring': 'monitor:view',
       'system-config': 'system:config',
     };
     return ADMIN_SIDEBAR_ITEMS.filter((item) => {
-      if (item.id === 'audit-center') {
-        return hasPermission('agent:audit') || hasPermission('skill:audit') || hasPermission('resource:audit');
+      if (item.id === 'admin-resource-ops') {
+        return (
+          hasPermission('agent:view') ||
+          hasPermission('agent:audit') ||
+          hasPermission('skill:audit') ||
+          hasPermission('resource:audit') ||
+          hasPermission('provider:manage')
+        );
       }
       const requiredPerm = adminPermMap[item.id];
       return !requiredPerm || hasPermission(requiredPerm);
@@ -855,6 +858,7 @@ const MainLayoutContent: React.FC<{
     (sidebarId: string, domain: ConsoleRole) => {
       const groups = getNavSubGroups(sidebarId, domain === 'admin');
       return groups
+        .filter((g) => !(domain === 'user' && g.requiresPublish && !canPublishResources))
         .map((g) => ({
           ...g,
           items: g.items.filter((item) => {
@@ -870,7 +874,7 @@ const MainLayoutContent: React.FC<{
         }))
         .filter((g) => g.items.length > 0);
     },
-    [hasPermission, platformRole],
+    [hasPermission, platformRole, canPublishResources],
   );
 
   useEffect(() => {

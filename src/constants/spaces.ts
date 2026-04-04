@@ -4,17 +4,14 @@ import {
   Activity,
   Bot,
   Settings,
-  Database,
-  Wrench,
-  AppWindow,
   Rocket,
   Code2,
+  Library,
 } from 'lucide-react';
 
 import {
   ADMIN_OVERVIEW_GROUPS,
-  ADMIN_RESOURCE_MANAGEMENT_GROUPS,
-  ADMIN_PROVIDER_MANAGEMENT_GROUPS,
+  ADMIN_RESOURCE_OPS_GROUPS,
   ADMIN_USER_MANAGEMENT_GROUPS,
   ADMIN_MONITORING_GROUPS,
   ADMIN_SYSTEM_CONFIG_GROUPS,
@@ -117,14 +114,11 @@ export const ADMIN_SPACES: Space[] = [
   },
   {
     id: 'admin-modules',
-    label: '资源管理',
+    label: '资源与运营',
     icon: Bot,
     accentFrom: '#8B5CF6',
     accentTo: '#A855F7',
-    sections: [
-      ...fromGroups('resource-management', ADMIN_RESOURCE_MANAGEMENT_GROUPS as NavGroup[]),
-      ...fromGroups('provider-management', ADMIN_PROVIDER_MANAGEMENT_GROUPS as NavGroup[]),
-    ],
+    sections: [...fromGroups('admin-resource-ops', ADMIN_RESOURCE_OPS_GROUPS as NavGroup[])],
   },
   {
     id: 'admin-ops',
@@ -165,33 +159,15 @@ export const USER_SPACES: Space[] = [
     ],
   },
   {
-    id: 'user-discover',
-    label: '资源市场',
-    icon: Wrench,
+    id: 'user-resource-hub',
+    label: '资源与资产',
+    icon: Library,
     accentFrom: '#8B5CF6',
     accentTo: '#A855F7',
     sections: [
-      ...fromGroups('marketplace', USER_MARKETPLACE_GROUPS as NavGroup[]),
-    ],
-  },
-  {
-    id: 'user-publish',
-    label: '我的发布',
-    icon: Rocket,
-    accentFrom: '#F97316',
-    accentTo: '#EF4444',
-    sections: [
-      ...fromGroups('my-publish', USER_MY_PUBLISH_GROUPS as NavGroup[]),
-    ],
-  },
-  {
-    id: 'user-personal',
-    label: '个人',
-    icon: Settings,
-    accentFrom: '#F59E0B',
-    accentTo: '#F97316',
-    sections: [
-      ...fromGroups('my-space', USER_MY_SPACE_GROUPS as NavGroup[]),
+      ...fromGroups('user-resource-assets', USER_MARKETPLACE_GROUPS as NavGroup[]),
+      ...fromGroups('user-resource-assets', USER_MY_PUBLISH_GROUPS as NavGroup[]),
+      ...fromGroups('user-resource-assets', USER_MY_SPACE_GROUPS as NavGroup[]),
     ],
   },
   {

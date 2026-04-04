@@ -97,18 +97,16 @@ export function parseRoute(pathname: string): { role: ConsoleRole; page: string;
 
 const ADMIN_SIDEBAR_PAGES: Record<string, string[]> = {
   'overview': ['dashboard', 'health-check', 'usage-statistics', 'data-reports'],
-  'resource-management': [
+  'admin-resource-ops': [
     'resource-catalog',
     'skill-external-market',
     'agent-register', 'agent-monitoring', 'agent-trace', 'agent-detail',
     'skill-register', 'mcp-register', 'app-register', 'dataset-register',
     'agent-list', 'skill-list', 'mcp-server-list', 'app-list', 'dataset-list',
-  ],
-  'audit-center': [
     'resource-audit',
     'agent-audit', 'skill-audit', 'mcp-audit', 'app-audit', 'dataset-audit',
+    'provider-list', 'provider-create',
   ],
-  'provider-management': ['provider-list', 'provider-create'],
   'user-management': ['user-list', 'role-management', 'organization', 'api-key-management', 'resource-grant-management', 'grant-applications', 'developer-applications'],
   'monitoring': ['monitoring-overview', 'call-logs', 'performance-analysis', 'alert-management', 'alert-rules', 'health-config', 'circuit-breaker'],
   'system-config': ['tag-management', 'system-params', 'model-config', 'security-settings', 'quota-management', 'rate-limit-policy', 'access-control', 'audit-log', 'sensitive-words', 'announcements'],
@@ -117,16 +115,13 @@ const ADMIN_SIDEBAR_PAGES: Record<string, string[]> = {
 const USER_SIDEBAR_PAGES: Record<string, string[]> = {
   'hub': ['hub'],
   'workspace': ['workspace', 'developer-onboarding', 'authorized-skills', 'my-favorites', 'quick-access'],
-  'marketplace': [
+  'user-resource-assets': [
     'resource-market',
     'agent-market',
     'skill-market',
     'mcp-market',
     'app-market',
     'dataset-market',
-  ],
-  'developer-portal': ['api-docs', 'sdk-download', 'api-playground', 'developer-statistics'],
-  'my-publish': [
     'my-agents-pub',
     'resource-center',
     'agent-list', 'agent-register',
@@ -134,14 +129,15 @@ const USER_SIDEBAR_PAGES: Record<string, string[]> = {
     'mcp-server-list', 'mcp-register',
     'app-list', 'app-register',
     'dataset-list', 'dataset-register',
+    'usage-records', 'recent-use', 'usage-stats', 'grant-applications', 'my-grant-applications',
   ],
-  'my-space': ['usage-records', 'recent-use', 'usage-stats', 'grant-applications', 'my-grant-applications'],
+  'developer-portal': ['api-docs', 'sdk-download', 'api-playground', 'developer-statistics'],
   'user-settings': ['profile', 'preferences'],
 };
 
 export function findSidebarForPage(role: ConsoleRole, page: string): string | null {
   if (role === 'user' && page === 'resource-center') {
-    return 'my-publish';
+    return 'user-resource-assets';
   }
   const map = role === 'admin' ? ADMIN_SIDEBAR_PAGES : USER_SIDEBAR_PAGES;
   for (const [sidebarId, pages] of Object.entries(map)) {
@@ -166,16 +162,16 @@ export function subItemToPage(sidebarId: string, subItemId: string, isAdmin: boo
 export function pageToSubItem(page: string, sidebarId: string | null, isAdmin: boolean): string {
   if (isAdmin && page === 'dashboard' && sidebarId === 'overview') return 'overview';
   if (!isAdmin && page === 'workspace' && sidebarId === 'workspace') return 'overview';
-  if (isAdmin && sidebarId === 'resource-management' && page === 'skill-external-market') {
+  if (isAdmin && sidebarId === 'admin-resource-ops' && page === 'skill-external-market') {
     return 'skill-external-market';
   }
-  if (isAdmin && sidebarId === 'resource-management' && ADMIN_RESOURCE_CATALOG_PAGES.has(page)) {
+  if (isAdmin && sidebarId === 'admin-resource-ops' && ADMIN_RESOURCE_CATALOG_PAGES.has(page)) {
     return 'resource-catalog';
   }
-  if (isAdmin && sidebarId === 'audit-center' && ADMIN_RESOURCE_AUDIT_PAGES.has(page)) {
+  if (isAdmin && sidebarId === 'admin-resource-ops' && ADMIN_RESOURCE_AUDIT_PAGES.has(page)) {
     return 'resource-audit';
   }
-  if (!isAdmin && sidebarId === 'marketplace' && (page === 'resource-market' || USER_LEGACY_MARKET_PAGES.has(page))) {
+  if (!isAdmin && sidebarId === 'user-resource-assets' && (page === 'resource-market' || USER_LEGACY_MARKET_PAGES.has(page))) {
     return 'resource-market';
   }
   return page;

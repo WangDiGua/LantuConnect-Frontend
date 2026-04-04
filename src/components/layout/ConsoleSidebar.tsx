@@ -296,6 +296,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
             <div key={`${item.domain}-${item.id}`} className="mb-1">
               <button
                 type="button"
+                aria-expanded={hasChildren ? isExpanded : undefined}
                 onClick={() =>
                   hasChildren
                     ? onToggleGroup(item.id)
@@ -343,6 +344,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
                 {hasChildren && (
                   <ChevronDown
                     size={14}
+                    aria-hidden
                     className={`transition-transform duration-200 ${
                       isExpanded
                         ? isDark

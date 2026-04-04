@@ -54,14 +54,20 @@ import {
   Store,
   Braces,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+
+/** 侧栏二级分组；requiresPublish 为 true 时无发布权限的用户不显示整组 */
+export interface NavSubGroup {
+  title: string;
+  requiresPublish?: boolean;
+  items: Array<{ id: string; icon: LucideIcon; label: string; tag?: string }>;
+}
 
 // ==================== 管理员菜单（接入平台管理视角）====================
 
 export const ADMIN_SIDEBAR_ITEMS = [
   { id: 'overview', icon: LayoutDashboard, label: '总览' },
-  { id: 'resource-management', icon: Boxes, label: '资源管理' },
-  { id: 'audit-center', icon: ClipboardCheck, label: '审核中心' },
-  { id: 'provider-management', icon: Server, label: 'Provider 管理' },
+  { id: 'admin-resource-ops', icon: Boxes, label: '资源与运营' },
   { id: 'user-management', icon: Users, label: '用户与权限' },
   { id: 'monitoring', icon: Activity, label: '监控中心' },
   { id: 'system-config', icon: Settings, label: '系统配置' },
@@ -72,9 +78,7 @@ export const ADMIN_SIDEBAR_ITEMS = [
 export const USER_SIDEBAR_ITEMS = [
   { id: 'hub', icon: Compass, label: '探索发现' },
   { id: 'workspace', icon: LayoutGrid, label: '我的工作台' },
-  { id: 'marketplace', icon: Sparkles, label: '资源市场' },
-  { id: 'my-publish', icon: Rocket, label: '我的发布' },
-  { id: 'my-space', icon: Library, label: '个人资产' },
+  { id: 'user-resource-assets', icon: Library, label: '资源与资产' },
   { id: 'developer-portal', icon: Code2, label: '开发者中心' },
   { id: 'user-settings', icon: UserCircle, label: '个人设置' },
 ];
@@ -84,7 +88,7 @@ export const DASHBOARD_GROUPS = [];
 
 // ==================== 管理员子菜单 ====================
 
-export const ADMIN_OVERVIEW_GROUPS = [
+export const ADMIN_OVERVIEW_GROUPS: NavSubGroup[] = [
   {
     title: '总览',
     items: [
@@ -96,7 +100,7 @@ export const ADMIN_OVERVIEW_GROUPS = [
   },
 ];
 
-export const ADMIN_RESOURCE_MANAGEMENT_GROUPS = [
+export const ADMIN_RESOURCE_MANAGEMENT_GROUPS: NavSubGroup[] = [
   {
     title: '资源目录',
     items: [
@@ -120,7 +124,7 @@ export const ADMIN_MCP_MANAGEMENT_GROUPS = ADMIN_RESOURCE_MANAGEMENT_GROUPS;
 export const ADMIN_APP_MANAGEMENT_GROUPS = ADMIN_RESOURCE_MANAGEMENT_GROUPS;
 export const ADMIN_DATASET_MANAGEMENT_GROUPS = ADMIN_RESOURCE_MANAGEMENT_GROUPS;
 
-export const ADMIN_AUDIT_CENTER_GROUPS = [
+export const ADMIN_AUDIT_CENTER_GROUPS: NavSubGroup[] = [
   {
     title: '待审核资源',
     items: [
@@ -129,9 +133,9 @@ export const ADMIN_AUDIT_CENTER_GROUPS = [
   },
 ];
 
-export const ADMIN_PROVIDER_MANAGEMENT_GROUPS = [
+export const ADMIN_PROVIDER_MANAGEMENT_GROUPS: NavSubGroup[] = [
   {
-    title: 'Provider 管理',
+    title: 'Provider',
     items: [
       { id: 'provider-list', icon: Server, label: 'Provider 列表' },
       { id: 'provider-create', icon: Plus, label: '新建 Provider' },
@@ -139,7 +143,14 @@ export const ADMIN_PROVIDER_MANAGEMENT_GROUPS = [
   },
 ];
 
-export const ADMIN_USER_MANAGEMENT_GROUPS = [
+/** 管理端合并项：资源目录与运维 → 审核 → Provider */
+export const ADMIN_RESOURCE_OPS_GROUPS: NavSubGroup[] = [
+  ...ADMIN_RESOURCE_MANAGEMENT_GROUPS,
+  ...ADMIN_AUDIT_CENTER_GROUPS,
+  ...ADMIN_PROVIDER_MANAGEMENT_GROUPS,
+];
+
+export const ADMIN_USER_MANAGEMENT_GROUPS: NavSubGroup[] = [
   {
     title: '用户',
     items: [
@@ -164,7 +175,7 @@ export const ADMIN_USER_MANAGEMENT_GROUPS = [
   },
 ];
 
-export const ADMIN_MONITORING_GROUPS = [
+export const ADMIN_MONITORING_GROUPS: NavSubGroup[] = [
   {
     title: '观测',
     items: [
@@ -189,7 +200,7 @@ export const ADMIN_MONITORING_GROUPS = [
   },
 ];
 
-export const ADMIN_SYSTEM_CONFIG_GROUPS = [
+export const ADMIN_SYSTEM_CONFIG_GROUPS: NavSubGroup[] = [
   {
     title: '基础',
     items: [
@@ -222,7 +233,7 @@ export const ADMIN_SYSTEM_CONFIG_GROUPS = [
   },
 ];
 
-export const ADMIN_DEVELOPER_PORTAL_GROUPS = [
+export const ADMIN_DEVELOPER_PORTAL_GROUPS: NavSubGroup[] = [
   {
     title: '文档',
     items: [
@@ -241,7 +252,7 @@ export const ADMIN_DEVELOPER_PORTAL_GROUPS = [
 
 // ==================== 用户子菜单 ====================
 
-export const USER_WORKSPACE_GROUPS = [
+export const USER_WORKSPACE_GROUPS: NavSubGroup[] = [
   {
     title: '我的',
     items: [
@@ -252,7 +263,7 @@ export const USER_WORKSPACE_GROUPS = [
   },
 ];
 
-export const USER_MY_SPACE_GROUPS = [
+export const USER_MY_SPACE_GROUPS: NavSubGroup[] = [
   {
     title: '使用',
     items: [
@@ -269,16 +280,17 @@ export const USER_MY_SPACE_GROUPS = [
   },
 ];
 
-export const USER_MARKETPLACE_GROUPS = [
+export const USER_MARKETPLACE_GROUPS: NavSubGroup[] = [
   {
     title: '浏览',
     items: [{ id: 'resource-market', icon: Store, label: '资源浏览' }],
   },
 ];
 
-export const USER_MY_PUBLISH_GROUPS = [
+export const USER_MY_PUBLISH_GROUPS: NavSubGroup[] = [
   {
     title: '我的发布',
+    requiresPublish: true,
     items: [
       { id: 'my-agents-pub', icon: Rocket, label: '发布总览' },
       { id: 'resource-center', icon: Boxes, label: '统一资源中心' },
@@ -286,7 +298,14 @@ export const USER_MY_PUBLISH_GROUPS = [
   },
 ];
 
-export const USER_SETTINGS_GROUPS = [
+/** 用户端合并项：浏览 → 我的发布 → 使用与授权 */
+export const USER_RESOURCE_ASSETS_GROUPS: NavSubGroup[] = [
+  ...USER_MARKETPLACE_GROUPS,
+  ...USER_MY_PUBLISH_GROUPS,
+  ...USER_MY_SPACE_GROUPS,
+];
+
+export const USER_SETTINGS_GROUPS: NavSubGroup[] = [
   {
     title: '账户',
     items: [
@@ -298,17 +317,13 @@ export const USER_SETTINGS_GROUPS = [
 
 // ==================== 子菜单分组路由 ====================
 
-export function getNavSubGroups(sidebarId: string, isAdminRole: boolean) {
+export function getNavSubGroups(sidebarId: string, isAdminRole: boolean): NavSubGroup[] {
   if (isAdminRole) {
     switch (sidebarId) {
       case 'overview':
         return ADMIN_OVERVIEW_GROUPS;
-      case 'resource-management':
-        return ADMIN_RESOURCE_MANAGEMENT_GROUPS;
-      case 'audit-center':
-        return ADMIN_AUDIT_CENTER_GROUPS;
-      case 'provider-management':
-        return ADMIN_PROVIDER_MANAGEMENT_GROUPS;
+      case 'admin-resource-ops':
+        return ADMIN_RESOURCE_OPS_GROUPS;
       case 'user-management':
         return ADMIN_USER_MANAGEMENT_GROUPS;
       case 'monitoring':
@@ -326,12 +341,8 @@ export function getNavSubGroups(sidebarId: string, isAdminRole: boolean) {
       return ADMIN_DEVELOPER_PORTAL_GROUPS;
     case 'workspace':
       return USER_WORKSPACE_GROUPS;
-    case 'marketplace':
-      return USER_MARKETPLACE_GROUPS;
-    case 'my-publish':
-      return USER_MY_PUBLISH_GROUPS;
-    case 'my-space':
-      return USER_MY_SPACE_GROUPS;
+    case 'user-resource-assets':
+      return USER_RESOURCE_ASSETS_GROUPS;
     case 'user-settings':
       return USER_SETTINGS_GROUPS;
     default:

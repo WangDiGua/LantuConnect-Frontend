@@ -10,7 +10,7 @@ import { PageError } from '../../components/common/PageError';
 import { EmptyState } from '../../components/common/EmptyState';
 import { KpiCard } from '../../components/common/KpiCard';
 import { BentoCard } from '../../components/common/BentoCard';
-import { btnPrimary, btnGhost, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import { btnPrimary, btnGhost, kpiGridGap, pageBlockStack, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 
 const PAGE_DESC = '调用量、成功率与延迟趋势汇总';
@@ -101,8 +101,8 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ 
     const GLOW: Array<'indigo' | 'emerald' | 'amber' | 'rose'> = ['indigo', 'emerald', 'amber', 'rose'];
 
     return (
-      <div className="space-y-4">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className={pageBlockStack}>
+        <div className={`grid grid-cols-2 lg:grid-cols-4 ${kpiGridGap}`}>
           {kpis.map((k, i) => (
             <KpiCard
               key={k.name}
@@ -122,7 +122,7 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ 
           <MonitoringOverviewCharts theme={theme} performance={performanceQ.data ?? []} />
         </BentoCard>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
           <BentoCard theme={theme} hover glow="indigo">
             <div className="flex items-center gap-3">
               <div className={`p-2.5 rounded-xl ${isDark ? 'bg-neutral-900/10' : 'bg-neutral-100'}`}>

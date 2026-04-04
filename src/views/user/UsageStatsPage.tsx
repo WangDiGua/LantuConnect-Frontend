@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { BarChart3, Zap, Coins, Bot, Star } from 'lucide-react';
+import { BarChart3, Zap, Bot, Star, Calendar } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import { userActivityService } from '../../api/services/user-activity.service';
 import type { UserUsageStats } from '../../types/dto/user-activity';
@@ -9,6 +9,7 @@ import { BentoCard } from '../../components/common/BentoCard';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import {
+  kpiGridGap, pageBlockStack,
   textPrimary, textSecondary, textMuted,
   tableHeadCell, tableBodyRow, tableCell,
 } from '../../utils/uiClasses';
@@ -36,7 +37,6 @@ export const UsageStatsPage: React.FC<UsageStatsPageProps> = ({ theme, fontSize 
         && Number(data.weekCalls ?? 0) === 0
         && Number(data.monthCalls ?? 0) === 0
         && Number(data.totalCalls ?? 0) === 0
-        && Number(data.tokensUsed ?? 0) === 0
         && (data.recentDays?.length ?? 0) === 0;
 
       if (!isAllZero) {
@@ -56,7 +56,6 @@ export const UsageStatsPage: React.FC<UsageStatsPageProps> = ({ theme, fontSize 
       let todayCalls = 0;
       let weekCalls = 0;
       let monthCalls = 0;
-      let tokensUsed = 0;
       const byDay = new Map<string, number>();
 
       rows.forEach((r) => {
@@ -67,7 +66,6 @@ export const UsageStatsPage: React.FC<UsageStatsPageProps> = ({ theme, fontSize 
         if (d === todayKey) todayCalls += 1;
         if (ts && ts >= weekAgo) weekCalls += 1;
         if (ts && ts >= monthAgo) monthCalls += 1;
-        tokensUsed += Number(r.tokenCost ?? 0) || 0;
       });
 
       setStats({
@@ -76,7 +74,6 @@ export const UsageStatsPage: React.FC<UsageStatsPageProps> = ({ theme, fontSize 
         weekCalls,
         monthCalls,
         totalCalls: rows.length,
-        tokensUsed,
         recentDays: Array.from(byDay.entries())
           .sort((a, b) => a[0].localeCompare(b[0]))
           .slice(-14)
@@ -113,12 +110,11 @@ export const UsageStatsPage: React.FC<UsageStatsPageProps> = ({ theme, fontSize 
     const weekCalls = n(stats.weekCalls);
     const todayCalls = n(stats.todayCalls);
     const totalCalls = n(stats.totalCalls);
-    const tokensUsed = n(stats.tokensUsed);
     const favoriteCount = n(stats.favoriteCount);
 
     const kpiData: Array<{ label: string; value: string; icon: React.ReactNode; glow: 'indigo' | 'emerald' | 'amber' | 'rose' }> = [
       { label: '本月调用次数', value: monthCalls.toLocaleString(), icon: <Zap size={16} aria-hidden />, glow: 'indigo' },
-      { label: 'Token 消耗', value: tokensUsed >= 1000 ? `${(tokensUsed / 1000).toFixed(1)}K` : String(tokensUsed), icon: <Coins size={16} aria-hidden />, glow: 'amber' },
+      { label: '今日调用', value: todayCalls.toLocaleString(), icon: <Calendar size={16} aria-hidden />, glow: 'amber' },
       { label: '本周调用', value: weekCalls.toLocaleString(), icon: <Bot size={16} aria-hidden />, glow: 'emerald' },
       { label: '收藏数', value: String(favoriteCount), icon: <Star size={16} aria-hidden />, glow: 'rose' },
     ];
@@ -130,8 +126,8 @@ export const UsageStatsPage: React.FC<UsageStatsPageProps> = ({ theme, fontSize 
     const maxBar = Math.max(...dailyBars.map((b) => b.calls), 1);
 
     return (
-      <div className="space-y-4">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className={pageBlockStack}>
+        <div className={`grid grid-cols-2 lg:grid-cols-4 ${kpiGridGap}`}>
           {kpiData.map((kpi, i) => (
             <KpiCard key={kpi.label} theme={theme} label={kpi.label} value={kpi.value} icon={kpi.icon} glow={kpi.glow} delay={i * 0.06} />
           ))}
@@ -140,11 +136,11 @@ export const UsageStatsPage: React.FC<UsageStatsPageProps> = ({ theme, fontSize 
         {dailyBars.length > 0 && (
           <BentoCard theme={theme}>
             <h3 className={`text-sm font-bold mb-4 ${textPrimary(theme)}`}>调用趋势（近期）</h3>
-            <div className="flex items-end gap-2 h-48">
+            <div className="flex items-end gap-2 sm:gap-3 h-48 pb-1">
               {dailyBars.map((bar, i) => {
                 const pct = maxBar > 0 ? (bar.calls / maxBar) * 100 : 0;
                 return (
-                  <div key={i} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
+                  <div key={i} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end min-w-0">
                     <span className={`text-xs font-medium tabular-nums ${textMuted(theme)}`}>{bar.calls}</span>
                     <motion.div
                       initial={{ height: 0 }}

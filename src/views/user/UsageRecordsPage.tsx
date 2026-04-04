@@ -7,7 +7,7 @@ import { PageError } from '../../components/common/PageError';
 import { Pagination, SearchInput } from '../../components/common';
 import { MgmtDataTable } from '../../components/management/MgmtDataTable';
 import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
-import { bentoCard, btnGhost, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import { bentoCard, btnGhost, pageBlockStack, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
@@ -149,7 +149,6 @@ export const UsageRecordsPage: React.FC<UsageRecordsPageProps> = ({ theme, fontS
         cellClassName: 'max-w-[10rem]',
         cell: (r) => <span className={`block truncate ${textSecondary(theme)}`} title={r.agentName || undefined}>{r.agentName || '—'}</span>,
       },
-      { id: 'token', header: 'Token 消耗', cell: (r) => <span className={textSecondary(theme)}>{r.tokenCost > 0 ? r.tokenCost : '—'}</span> },
       {
         id: 'preview',
         header: '输入预览',
@@ -197,7 +196,6 @@ export const UsageRecordsPage: React.FC<UsageRecordsPageProps> = ({ theme, fontS
         header: '状态',
         cell: (item) => <span className={`whitespace-nowrap text-xs font-semibold ${recentStatusClass(item.status)}`}>{recentStatusLabel(item.status)}</span>,
       },
-      { id: 'token', header: 'Token', cell: (item) => <span className={textSecondary(theme)}>{typeof item.tokenCost === 'number' ? item.tokenCost : '—'}</span> },
       {
         id: 'latency',
         header: '耗时',
@@ -278,7 +276,7 @@ export const UsageRecordsPage: React.FC<UsageRecordsPageProps> = ({ theme, fontS
       toolbar={toolbar}
       contentScroll="document"
     >
-      <div className="px-4 sm:px-6 pb-8 space-y-4">
+      <div className={`px-4 sm:px-6 pb-8 ${pageBlockStack}`}>
         {viewMode === 'records' ? (
           loading ? (
             <PageSkeleton type="table" />

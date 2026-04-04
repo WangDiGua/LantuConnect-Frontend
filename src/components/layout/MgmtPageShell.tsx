@@ -45,9 +45,11 @@ export const MgmtPageShell: React.FC<MgmtPageShellProps> = ({
   const docScroll = contentScroll === 'document';
   const shellOverflow = docScroll ? 'overflow-visible' : 'overflow-hidden';
   const cardOverflow = docScroll ? 'overflow-visible' : 'overflow-hidden';
+  /** 与顶栏、工具栏之间留出纵向间隙，避免正文「顶格贴住」分隔线 */
+  const bodyTopPad = 'pt-5 sm:pt-6';
   const bodyScrollClass = docScroll
-    ? 'min-w-0 shrink-0 overflow-visible flex flex-col'
-    : 'flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden flex flex-col';
+    ? `min-w-0 shrink-0 overflow-visible flex flex-col ${bodyTopPad}`
+    : `flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden flex flex-col ${bodyTopPad}`;
 
   return (
     <div className={`flex-1 flex flex-col min-h-0 min-w-0 ${shellOverflow} bg-transparent`}>
@@ -63,7 +65,7 @@ export const MgmtPageShell: React.FC<MgmtPageShellProps> = ({
             <>
               {showCompactChrome ? (
                 <div
-                  className={`shrink-0 px-4 sm:px-6 py-3 border-b ${
+                  className={`shrink-0 px-4 sm:px-6 py-4 border-b ${
                     isDark ? 'border-white/10' : 'border-slate-200'
                   }`}
                 >
@@ -152,7 +154,7 @@ export const MgmtPageShell: React.FC<MgmtPageShellProps> = ({
           )}
           {toolbar ? (
             <div
-              className={`shrink-0 px-4 sm:px-6 py-3 border-b ${
+              className={`shrink-0 px-4 sm:px-6 py-4 border-b ${
                 isDark ? 'border-white/10 bg-lantu-card/50' : 'border-slate-200 bg-slate-50/50'
               }`}
             >

@@ -5,7 +5,10 @@ import { MgmtPageShell } from './MgmtPageShell';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { TOOLBAR_ROW_LIST, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
-import { btnGhost, btnPrimary, btnSecondary, iconMuted, mgmtTableActionDanger, textMuted, textPrimary, textSecondary } from '../../utils/uiClasses';
+import {
+  btnGhost, btnPrimary, btnSecondary, iconMuted, mgmtTableActionDanger,
+  pageBlockStack, textMuted, textPrimary, textSecondary,
+} from '../../utils/uiClasses';
 import { resourceGrantService } from '../../api/services/resource-grant.service';
 import { nullDisplay } from '../../utils/errorHandler';
 import type { ResourceType } from '../../types/dto/catalog';
@@ -188,7 +191,7 @@ export const ResourceGrantManagementPage: React.FC<Props> = ({ theme, fontSize, 
         </div>
       )}
     >
-      <div className="px-4 sm:px-6 pb-6 space-y-4">
+      <div className={`px-4 sm:px-6 pb-6 ${pageBlockStack}`}>
         <section className={`rounded-2xl border p-4 ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-white'}`}>
           <h3 className={`text-sm font-semibold mb-3 ${textPrimary(theme)}`}>创建授权</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

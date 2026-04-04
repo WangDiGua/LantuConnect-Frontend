@@ -326,7 +326,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
         <div className="px-4 sm:px-6 pb-8">
           <div className={`${bentoCard(theme)} overflow-hidden`}>
             {allowTypeSwitch && (
-            <div className={`flex flex-wrap items-center gap-2 border-b px-6 py-3 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+            <div className={`flex flex-wrap items-center gap-2 border-b px-6 py-4 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
               {RESOURCE_TYPES.map((type) => (
                 <button
                   key={type}
@@ -350,8 +350,8 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
             </div>
           )}
 
-          <div className={`px-6 py-3 border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-            <div className="flex flex-wrap items-center gap-2">
+          <div className={`px-6 py-4 border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+            <div className="flex flex-wrap items-center gap-3">
               <div className="w-40">
                 <FilterSelect
                   value={statusFilter}
@@ -385,7 +385,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
             </div>
           </div>
 
-          <div className="p-3">
+          <div className="p-5 sm:p-6">
             {loading ? (
               <PageSkeleton type="table" rows={8} />
             ) : loadError ? (

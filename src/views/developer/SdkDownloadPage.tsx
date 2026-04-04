@@ -7,7 +7,7 @@ import { buildPath } from '../../constants/consoleRoutes';
 import { BentoCard } from '../../components/common/BentoCard';
 import { Modal } from '../../components/common/Modal';
 import {
-  btnPrimary, btnSecondary, textPrimary, textSecondary, textMuted,
+  btnPrimary, btnSecondary, pageBlockStack, textPrimary, textSecondary, textMuted,
 } from '../../utils/uiClasses';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 
@@ -132,13 +132,13 @@ export const SdkDownloadPage: React.FC<SdkDownloadPageProps> = ({ theme, fontSiz
         description="后端 SDK v1 HTTP 网关已就绪；多语言封装包规划中"
         contentScroll="document"
       >
-        <div className="px-4 sm:px-6 pb-8 space-y-4">
+        <div className={`px-4 sm:px-6 pb-8 ${pageBlockStack}`}>
         <div
-          className={`rounded-2xl border px-4 py-3 text-sm leading-relaxed ${
+          className={`rounded-2xl border px-5 py-4 sm:px-6 sm:py-5 text-sm leading-relaxed ${
             isDark ? 'border-white/[0.08] bg-white/[0.03]' : 'border-slate-200 bg-white'
           }`}
         >
-          <div className="flex items-start gap-2">
+          <div className="flex items-start gap-3">
             <BookOpen size={18} className={`mt-0.5 shrink-0 ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`} />
             <div>
               <p className={`font-semibold ${textPrimary(theme)}`}>SDK v1 网关（与业务网关同源能力）</p>
@@ -155,25 +155,25 @@ export const SdkDownloadPage: React.FC<SdkDownloadPageProps> = ({ theme, fontSiz
           </div>
         </div>
 
-        <BentoCard theme={theme}>
-          <h2 className={`font-bold text-sm mb-3 flex items-center gap-2 ${textPrimary(theme)}`}>
-            <Terminal size={16} /> SDK v1 路由一览
+        <BentoCard theme={theme} padding="lg">
+          <h2 className={`font-bold text-sm mb-4 flex items-center gap-2 ${textPrimary(theme)}`}>
+            <Terminal size={16} className="shrink-0" /> SDK v1 路由一览
           </h2>
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-left">
               <thead>
                 <tr className={`border-b ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
-                  <th className={`py-2 pr-3 font-semibold ${textMuted(theme)}`}>方法</th>
-                  <th className={`py-2 pr-3 font-semibold ${textMuted(theme)}`}>路径</th>
-                  <th className={`py-2 font-semibold ${textMuted(theme)}`}>说明</th>
+                  <th className={`py-3 pr-4 font-semibold ${textMuted(theme)}`}>方法</th>
+                  <th className={`py-3 pr-4 font-semibold ${textMuted(theme)}`}>路径</th>
+                  <th className={`py-3 font-semibold ${textMuted(theme)}`}>说明</th>
                 </tr>
               </thead>
               <tbody className={textSecondary(theme)}>
                 {SDK_V1_ENDPOINTS.map((row) => (
                   <tr key={`${row.method}-${row.path}`} className={`border-t ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-                    <td className="py-2 pr-3 font-mono whitespace-nowrap">{row.method}</td>
-                    <td className="py-2 pr-3 font-mono whitespace-nowrap">{row.path}</td>
-                    <td className="py-2">{row.note}</td>
+                    <td className="py-3 pr-4 font-mono whitespace-nowrap">{row.method}</td>
+                    <td className="py-3 pr-4 font-mono whitespace-nowrap">{row.path}</td>
+                    <td className="py-3">{row.note}</td>
                   </tr>
                 ))}
               </tbody>

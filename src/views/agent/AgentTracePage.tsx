@@ -7,7 +7,7 @@ import { SearchInput } from '../../components/common';
 import { monitoringService } from '../../api/services/monitoring.service';
 import type { TraceSpan as TraceSpanDTO } from '../../types/dto/monitoring';
 import {
-  textPrimary, textSecondary, textMuted,
+  pageBlockStack, textPrimary, textSecondary, textMuted,
 } from '../../utils/uiClasses';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
@@ -152,7 +152,7 @@ export const AgentTracePage: React.FC<AgentTracePageProps> = ({ theme, fontSize 
       toolbar={traceToolbar}
       contentScroll="document"
     >
-      <div className="px-4 sm:px-6 pb-8 space-y-4">
+      <div className={`px-4 sm:px-6 pb-8 ${pageBlockStack}`}>
         {loading ? (
           <PageSkeleton type="table" />
         ) : (

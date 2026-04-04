@@ -8,7 +8,7 @@ import { PageError } from '../../components/common/PageError';
 import { EmptyState } from '../../components/common/EmptyState';
 import { BentoCard } from '../../components/common/BentoCard';
 import { nativeInputClass } from '../../utils/formFieldClasses';
-import { btnPrimary, btnGhost, textSecondary, textMuted } from '../../utils/uiClasses';
+import { btnPrimary, btnGhost, pageBlockStack, textSecondary, textMuted } from '../../utils/uiClasses';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 
 const PAGE_DESC = '输入 Trace ID 查看完整调用链路';
@@ -114,7 +114,7 @@ export const PlatformTracePage: React.FC<Props> = ({ theme, fontSize, showMessag
       return <PageError error={tracesQ.error as Error} onRetry={() => tracesQ.refetch()} />;
     }
     return (
-      <div className="space-y-4 max-w-3xl">
+      <div className={`max-w-3xl ${pageBlockStack}`}>
         {spans.length === 0 && !detail && (
           <EmptyState title="暂无 Trace 数据" description="后端未返回 Span，或链路采集未开启。" />
         )}

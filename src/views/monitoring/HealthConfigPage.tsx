@@ -5,7 +5,10 @@ import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
 import { TOOLBAR_ROW_LIST, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
-import { btnPrimary, btnSecondary, iconMuted, mgmtTableActionGhost, tableHeadCell, tableBodyRow, tableCell, tableCellScrollInnerMono, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import {
+  btnPrimary, btnSecondary, iconMuted, mgmtTableActionGhost, pageBlockStack,
+  tableHeadCell, tableBodyRow, tableCell, tableCellScrollInnerMono, textPrimary, textSecondary, textMuted,
+} from '../../utils/uiClasses';
 import { Modal } from '../../components/common/Modal';
 import { BentoCard } from '../../components/common/BentoCard';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
@@ -126,7 +129,7 @@ export const HealthConfigPage: React.FC<Props> = ({ theme, fontSize, showMessage
 
   return (
     <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={ShieldCheck} breadcrumbSegments={['监控中心', '健康检查']} description="管理 Agent / Skill 的健康检查策略，实时查看连通性状态" toolbar={toolbar}>
-      <div className="min-w-0 px-4 sm:px-6 pb-6 pt-1">
+      <div className="min-w-0 px-4 sm:px-6 pb-6">
         {loading ? (
           <PageSkeleton type="table" />
         ) : (
@@ -193,7 +196,7 @@ export const HealthConfigPage: React.FC<Props> = ({ theme, fontSize, showMessage
           </>
         }
       >
-        <div className="space-y-4">
+        <div className={pageBlockStack}>
           <div>
             <label className={`${labelCls} mb-1.5 block`}>检查方式</label>
             <LantuSelect
@@ -230,7 +233,7 @@ export const HealthConfigPage: React.FC<Props> = ({ theme, fontSize, showMessage
           <button type="button" className={btnSecondary(theme)} onClick={() => setShowCreateModal(false)}>取消</button>
           <button type="button" className={btnPrimary} onClick={handleCreate}>创建</button>
         </div>}>
-        <div className="space-y-4">
+        <div className={pageBlockStack}>
           <div><label className={`${labelCls} mb-1.5 block`}>名称</label><input className={inputCls} value={createDraft.displayName} onChange={(e) => setCreateDraft(d => ({ ...d, displayName: e.target.value }))} placeholder="服务名称" /></div>
           <div><label className={`${labelCls} mb-1.5 block`}>检查地址</label><input className={inputCls} value={createDraft.checkUrl} onChange={(e) => setCreateDraft(d => ({ ...d, checkUrl: e.target.value }))} placeholder="https://..." /></div>
           <div><label className={`${labelCls} mb-1.5 block`}>检查间隔(秒)</label><input type="number" className={inputCls} value={createDraft.intervalSec} onChange={(e) => setCreateDraft(d => ({ ...d, intervalSec: Number(e.target.value) }))} /></div>

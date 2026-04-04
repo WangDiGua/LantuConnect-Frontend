@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { Theme, FontSize } from '../../types';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
-import { btnPrimary, btnSecondary, iconMuted, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import { btnPrimary, btnSecondary, iconMuted, pageBlockStack, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
 import { Modal } from '../../components/common/Modal';
 import { BentoCard } from '../../components/common/BentoCard';
 import { PortalDropdown } from '../../components/common/PortalDropdown';
@@ -182,7 +182,7 @@ export const TagManagementPage: React.FC<Props> = ({ theme, fontSize, showMessag
         toolbar={toolbar}
         contentScroll="document"
       >
-        <div className="px-4 sm:px-6 pb-8 space-y-5">
+        <div className={`px-4 sm:px-6 pb-8 ${pageBlockStack}`}>
         <BentoCard theme={theme} padding="sm">
           <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center">
             <div className="relative w-full min-w-[8rem] sm:max-w-[16rem] shrink-0">

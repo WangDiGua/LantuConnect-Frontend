@@ -6,7 +6,7 @@ import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { PageError } from '../../components/common/PageError';
 import { EmptyState } from '../../components/common/EmptyState';
 import { BentoCard } from '../../components/common/BentoCard';
-import { bentoCard, btnPrimary, textSecondary } from '../../utils/uiClasses';
+import { bentoCard, btnPrimary, pageBlockStack, textSecondary } from '../../utils/uiClasses';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { MgmtDataTable } from '../../components/management/MgmtDataTable';
@@ -179,7 +179,7 @@ export const PerformanceAnalysisPage: React.FC<Props> = ({ theme, fontSize, show
       toolbar={toolbar}
       contentScroll="document"
     >
-      <div className="px-4 sm:px-6 pb-8 space-y-4">{body}</div>
+      <div className={`px-4 sm:px-6 pb-8 ${pageBlockStack}`}>{body}</div>
     </MgmtPageShell>
   );
 };

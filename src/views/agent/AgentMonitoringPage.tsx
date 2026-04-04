@@ -8,6 +8,7 @@ import { monitoringService } from '../../api/services/monitoring.service';
 import type { KpiMetric, PerformanceMetric } from '../../types/dto/monitoring';
 import { useQualityHistory } from '../../hooks/queries/useMonitoring';
 import {
+  kpiGridGap, pageBlockStack,
   textPrimary, textSecondary, textMuted,
   tableHeadCell, tableBodyRow, tableCell,
 } from '../../utils/uiClasses';
@@ -116,13 +117,13 @@ export const AgentMonitoringPage: React.FC<AgentMonitoringPageProps> = ({ theme,
       toolbar={monitoringToolbar}
       contentScroll="document"
     >
-      <div className="px-4 sm:px-6 pb-8 space-y-4">
+      <div className={`px-4 sm:px-6 pb-8 ${pageBlockStack}`}>
         {loading && kpis.length === 0 ? (
           <PageSkeleton type="chart" />
         ) : (
           <>
             {/* KPI Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className={`grid grid-cols-2 lg:grid-cols-4 ${kpiGridGap}`}>
               {kpis.slice(0, 4).map((k, i) => (
                 <KpiCard
                   key={k.name}

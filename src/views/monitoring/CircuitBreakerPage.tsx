@@ -3,7 +3,10 @@ import { AlertTriangle, Zap, RotateCcw, Search } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { nativeInputClass } from '../../utils/formFieldClasses';
-import { btnPrimary, btnSecondary, btnGhost, iconMuted, mgmtTableActionGhost, tableHeadCell, tableBodyRow, tableCell, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import {
+  btnPrimary, btnSecondary, btnGhost, iconMuted, mgmtTableActionGhost,
+  pageBlockStack, tableHeadCell, tableBodyRow, tableCell, textPrimary, textSecondary, textMuted,
+} from '../../utils/uiClasses';
 import { TOOLBAR_ROW_LIST, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
 import { Modal } from '../../components/common/Modal';
@@ -129,7 +132,7 @@ export const CircuitBreakerPage: React.FC<Props> = ({ theme, fontSize, showMessa
 
   return (
     <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={AlertTriangle} breadcrumbSegments={['监控中心', '熔断降级']} description="配置 Agent / Skill 的熔断策略，支持手动熔断与恢复" toolbar={toolbar}>
-      <div className="min-w-0 px-4 sm:px-6 pb-6 pt-4">
+      <div className="min-w-0 px-4 sm:px-6 pb-6">
         {loading ? (
           <PageSkeleton type="table" />
         ) : (
@@ -225,7 +228,7 @@ export const CircuitBreakerPage: React.FC<Props> = ({ theme, fontSize, showMessa
           </>
         }
       >
-        <div className="space-y-4">
+        <div className={pageBlockStack}>
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label className={`${labelCls} mb-1.5 block`}>失败阈值</label>

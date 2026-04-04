@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import type { Theme } from '../../types';
-import { bentoCard, textPrimary, textSecondary } from '../../utils/uiClasses';
+import { bentoCard, iconMuted, textPrimary, textSecondary } from '../../utils/uiClasses';
 
 interface Props {
   theme: Theme;
@@ -45,13 +45,13 @@ export const KpiCard: React.FC<Props> = ({
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: 'spring', stiffness: 300, damping: 30, delay }}
-      className={`${bentoCard(theme)} ${GLOW_MAP[glow]} p-5 transition-all cursor-default`}
+      className={`${bentoCard(theme)} ${GLOW_MAP[glow]} p-6 transition-all cursor-default`}
     >
       <div className="flex items-start justify-between mb-3">
         <span className={`text-xs font-medium uppercase tracking-wider ${textSecondary(theme)}`}>
           {label}
         </span>
-        {icon && <div className="opacity-40">{icon}</div>}
+        {icon && <div className={`shrink-0 ${iconMuted(theme)}`}>{icon}</div>}
       </div>
 
       <div className="flex items-end gap-3">

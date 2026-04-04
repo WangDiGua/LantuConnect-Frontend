@@ -396,7 +396,7 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
       ) : (
         <>
           {tab === 'quota' && (
-            <div className="min-w-0 px-4 sm:px-6 pb-6 pt-3">
+            <div className="min-w-0 px-4 sm:px-6 pb-6">
               <div className={`${TOOLBAR_ROW_LIST} justify-between min-w-0 mb-3`}>
                 <div className={`${TOOLBAR_ROW_LIST} min-w-0 flex-1`}>
                   <div className="relative min-w-[8rem] shrink-0 sm:max-w-[14rem]">
@@ -439,7 +439,7 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
           )}
 
           {tab === 'rate-limit' && (
-            <div className="min-w-0 px-4 sm:px-6 pb-6 pt-3">
+            <div className="min-w-0 px-4 sm:px-6 pb-6">
               <div className={`${TOOLBAR_ROW_LIST} justify-between min-w-0 mb-3`}>
                 <div className={`${TOOLBAR_ROW_LIST} min-w-0 flex-1`}>
                   <div className="relative min-w-[8rem] shrink-0 sm:max-w-[14rem]">

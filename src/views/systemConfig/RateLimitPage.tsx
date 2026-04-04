@@ -219,7 +219,7 @@ export const RateLimitPage: React.FC<RateLimitPageProps> = ({
     >
       {formPanel}
       <ContentLoader loading={isLoading}>
-        <div className="min-w-0 px-4 sm:px-6 pb-6 pt-1">
+        <div className="min-w-0 px-4 sm:px-6 pb-6">
           {filtered.length === 0 ? (
             <EmptyState title="无匹配项" description="调整搜索或新建策略" />
           ) : (

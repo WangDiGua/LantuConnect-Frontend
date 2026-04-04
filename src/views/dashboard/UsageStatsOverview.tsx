@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import type { Theme, FontSize } from '../../types';
-import { canvasBodyBg, mainScrollCompositorClass, textPrimary, textSecondary, textMuted, tableHeadCell, tableBodyRow, tableCell } from '../../utils/uiClasses';
-import { BarChart3, Zap, Users, Clock, TrendingUp } from 'lucide-react';
+import {
+  canvasBodyBg, kpiGridGap, mainScrollCompositorClass, pageBlockStack,
+  textPrimary, textSecondary, textMuted, tableHeadCell, tableBodyRow, tableCell,
+} from '../../utils/uiClasses';
+import { BarChart3, Zap, Users, TrendingUp } from 'lucide-react';
 import { dashboardService } from '../../api/services/dashboard.service';
 import type { UsageStatsData } from '../../types/dto/dashboard';
 import { BentoCard } from '../../components/common/BentoCard';
@@ -39,11 +42,10 @@ export const UsageStatsOverview: React.FC<Props> = ({ theme }) => {
   const points = data?.points ?? [];
   const maxDailyCall = Math.max(...points.map(d => d.calls), 1);
 
-  const kpis: { label: string; value: string; icon: React.ReactNode; glow: 'indigo' | 'emerald' | 'amber' | 'rose' }[] = [
+  const kpis: { label: string; value: string; icon: React.ReactNode; glow: 'indigo' | 'emerald' | 'amber' }[] = [
     { label: '今日调用', value: points.length > 0 ? points[points.length - 1].calls.toLocaleString() : '0', icon: <Zap size={16} />, glow: 'indigo' },
     { label: '总调用', value: data ? data.totalCalls.toLocaleString() : '0', icon: <TrendingUp size={16} />, glow: 'emerald' },
     { label: '活跃用户', value: data ? data.activeUsers.toLocaleString() : '0', icon: <Users size={16} />, glow: 'amber' },
-    { label: '总 Tokens', value: data ? data.totalTokens.toLocaleString() : '0', icon: <Clock size={16} />, glow: 'rose' },
   ];
 
   const topItems = [...points].sort((a, b) => b.calls - a.calls).slice(0, 10);
@@ -61,7 +63,7 @@ export const UsageStatsOverview: React.FC<Props> = ({ theme }) => {
         </div>
       </div>
 
-      <div className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4 sm:px-6 py-5 space-y-5 ${mainScrollCompositorClass}`}>
+      <div className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4 sm:px-6 py-6 sm:py-7 ${pageBlockStack} ${mainScrollCompositorClass}`}>
         {loading && !data ? (
           <PageSkeleton type="chart" />
         ) : loadError ? (
@@ -69,7 +71,7 @@ export const UsageStatsOverview: React.FC<Props> = ({ theme }) => {
         ) : (
           <>
             {/* KPI Row */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className={`grid grid-cols-1 sm:grid-cols-3 ${kpiGridGap}`}>
               {kpis.map((k, i) => (
                 <KpiCard
                   key={k.label}
@@ -91,7 +93,7 @@ export const UsageStatsOverview: React.FC<Props> = ({ theme }) => {
             >
               <BentoCard theme={theme}>
                 <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-4">近 7 天调用趋势</h3>
-                <div className="flex items-end gap-2 h-40">
+                <div className="flex items-end gap-2 sm:gap-3 h-40 pb-1">
                   {points.map((d, i) => {
                     const pct = maxDailyCall > 0 ? (d.calls / maxDailyCall) * 100 : 0;
                     return (
@@ -117,84 +119,45 @@ export const UsageStatsOverview: React.FC<Props> = ({ theme }) => {
               </BentoCard>
             </motion.div>
 
-            {/* Tables */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-              <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.25 }}
-              >
-                <BentoCard theme={theme} padding="sm" className="!p-0 overflow-hidden">
-                  <div className={`px-5 py-3.5 border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-                    <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400">按日期调用排行</h3>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
-                      <thead>
-                        <tr>
-                          <th className={tableHeadCell(theme)}>#</th>
-                          <th className={tableHeadCell(theme)}>日期</th>
-                          <th className={`${tableHeadCell(theme)} text-right`}>调用次数</th>
-                          <th className={`${tableHeadCell(theme)} text-right`}>活跃用户</th>
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.25 }}
+            >
+              <BentoCard theme={theme} padding="sm" className="!p-0 overflow-hidden">
+                <div className={`px-5 py-3.5 border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+                  <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400">按日期调用排行</h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead>
+                      <tr>
+                        <th className={tableHeadCell(theme)}>#</th>
+                        <th className={tableHeadCell(theme)}>日期</th>
+                        <th className={`${tableHeadCell(theme)} text-right`}>调用次数</th>
+                        <th className={`${tableHeadCell(theme)} text-right`}>活跃用户</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {topItems.map((item, i) => (
+                        <tr key={item.date} className={tableBodyRow(theme, i)}>
+                          <td className={tableCell()}>
+                            <span className={`inline-flex shrink-0 whitespace-nowrap font-bold text-xs ${i < 3 ? (isDark ? 'text-amber-400' : 'text-amber-600') : textMuted(theme)}`}>
+                              {i + 1}
+                            </span>
+                          </td>
+                          <td className={tableCell()}>
+                            <span className={`whitespace-nowrap font-medium ${textPrimary(theme)}`}>{item.date}</span>
+                          </td>
+                          <td className={`${tableCell()} text-right whitespace-nowrap font-mono ${textSecondary(theme)}`}>{item.calls.toLocaleString()}</td>
+                          <td className={`${tableCell()} text-right whitespace-nowrap font-mono ${textMuted(theme)}`}>{item.users}</td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {topItems.map((item, i) => (
-                          <tr key={item.date} className={tableBodyRow(theme, i)}>
-                            <td className={tableCell()}>
-                              <span className={`inline-flex shrink-0 whitespace-nowrap font-bold text-xs ${i < 3 ? (isDark ? 'text-amber-400' : 'text-amber-600') : textMuted(theme)}`}>
-                                {i + 1}
-                              </span>
-                            </td>
-                            <td className={tableCell()}>
-                              <span className={`whitespace-nowrap font-medium ${textPrimary(theme)}`}>{item.date}</span>
-                            </td>
-                            <td className={`${tableCell()} text-right whitespace-nowrap font-mono ${textSecondary(theme)}`}>{item.calls.toLocaleString()}</td>
-                            <td className={`${tableCell()} text-right whitespace-nowrap font-mono ${textMuted(theme)}`}>{item.users}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </BentoCard>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.3 }}
-              >
-                <BentoCard theme={theme} padding="sm" className="!p-0 overflow-hidden">
-                  <div className={`px-5 py-3.5 border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-                    <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Token 消耗趋势</h3>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
-                      <thead>
-                        <tr>
-                          <th className={tableHeadCell(theme)}>日期</th>
-                          <th className={`${tableHeadCell(theme)} text-right`}>Tokens</th>
-                          <th className={`${tableHeadCell(theme)} text-right`}>调用次数</th>
-                          <th className={`${tableHeadCell(theme)} text-right`}>用户数</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {points.map((pt, i) => (
-                          <tr key={pt.date} className={tableBodyRow(theme, i)}>
-                            <td className={tableCell()}>
-                              <span className={`whitespace-nowrap font-medium ${textPrimary(theme)}`}>{pt.date}</span>
-                            </td>
-                            <td className={`${tableCell()} text-right whitespace-nowrap font-mono ${textSecondary(theme)}`}>{pt.tokens.toLocaleString()}</td>
-                            <td className={`${tableCell()} text-right whitespace-nowrap font-mono ${textMuted(theme)}`}>{pt.calls.toLocaleString()}</td>
-                            <td className={`${tableCell()} text-right whitespace-nowrap font-mono ${textMuted(theme)}`}>{pt.users}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </BentoCard>
-              </motion.div>
-            </div>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </BentoCard>
+            </motion.div>
           </>
         )}
       </div>

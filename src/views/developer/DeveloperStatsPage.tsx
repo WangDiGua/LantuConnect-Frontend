@@ -7,7 +7,7 @@ import { useUserRole } from '../../context/UserRoleContext';
 import { developerStatsService } from '../../api/services/developer-stats.service';
 import type { OwnerDeveloperStatsVO } from '../../types/dto/dashboard';
 import type { DeveloperStatistics } from '../../types/dto/explore';
-import { bentoCard, textMuted } from '../../utils/uiClasses';
+import { bentoCard, kpiGridGap, pageBlockStack, textMuted } from '../../utils/uiClasses';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { PageError } from '../../components/common/PageError';
@@ -250,7 +250,7 @@ export const DeveloperStatsPage: React.FC<Props> = ({ theme, fontSize }) => {
         </div>
 
         {myOverview ? (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className={`grid grid-cols-2 sm:grid-cols-4 ${kpiGridGap}`}>
             {[
               { label: '个人总调用（call_log）', value: formatNum(myOverview.totalCalls) },
               { label: '今日调用', value: formatNum(myOverview.todayCalls) },
@@ -272,7 +272,7 @@ export const DeveloperStatsPage: React.FC<Props> = ({ theme, fontSize }) => {
         ) : null}
 
         {myOverview && (myOverview.topResources.length > 0 || myOverview.apiKeyUsage.length > 0) ? (
-          <div className={`grid gap-3 md:grid-cols-2 ${cardSurface} p-4`}>
+          <div className={`grid gap-4 md:grid-cols-2 ${cardSurface} p-5 sm:p-6`}>
             {myOverview.topResources.length > 0 ? (
               <div>
                 <div className={`text-xs font-semibold mb-2 ${tm}`}>Top 资源（call_log）</div>
@@ -313,7 +313,7 @@ export const DeveloperStatsPage: React.FC<Props> = ({ theme, fontSize }) => {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
           {[
             { label: '网关调用（总计）', value: formatNum(data.gatewayInvokeTotal), icon: Zap, color: isDark ? 'text-neutral-100' : 'text-neutral-800' },
             { label: '网关成功', value: formatNum(data.gatewayInvokeSuccess), icon: TrendingUp, color: 'text-blue-500' },

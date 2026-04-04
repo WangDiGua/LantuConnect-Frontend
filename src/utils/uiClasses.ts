@@ -22,7 +22,18 @@ export const chromeGpuLayerClass = 'transform-gpu';
 export const contentMaxWidth = 'max-w-none';
 export const contentPaddingX = 'px-4 sm:px-5 lg:px-7';
 export const sectionGap = 'space-y-8';
-export const cardGap = 'gap-4';
+/** 同页内多块卡片/图表之间的纵向节奏（略小于 sectionGap，仍明显分层） */
+export const pageBlockStack = 'space-y-6';
+export const cardGap = 'gap-5';
+/** KPI / 小卡片栅格：避免「块之间贴在一起」 */
+export const kpiGridGap = 'gap-4 sm:gap-5';
+/**
+ * MgmtPageShell 内文档流子树根（顶栏/工具栏下方留白由壳层 pt-* 提供时常用）
+ * 若壳层未加 pt，可改用带 pt 的变体。
+ */
+export const mgmtPageBodyPadX = 'px-4 sm:px-6';
+export const mgmtPageBodyPad = `${mgmtPageBodyPadX} pb-8`;
+export const mgmtPageBodyPadShort = `${mgmtPageBodyPadX} pb-6`;
 export const detailRailWidth = 'xl:grid-cols-[minmax(0,1.8fr)_minmax(320px,1fr)]';
 
 export function surfaceBg(_theme: Theme) {

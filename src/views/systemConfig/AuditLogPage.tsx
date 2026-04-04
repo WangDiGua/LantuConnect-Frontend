@@ -118,7 +118,7 @@ export const AuditLogPage: React.FC<AuditLogPageProps> = ({
       }
     >
       <ContentLoader loading={isLoading}>
-        <div className="min-w-0 px-4 sm:px-6 pb-2 pt-1">
+        <div className="min-w-0 px-4 sm:px-6 pb-6">
           {logs.length === 0 ? (
             <EmptyState title="无匹配日志" description="调整搜索条件或筛选器" />
           ) : (

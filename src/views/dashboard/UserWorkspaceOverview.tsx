@@ -10,7 +10,10 @@ import type { UserWorkspace } from '../../types/dto/dashboard';
 import type { UserDashboardData } from '../../types/dto/explore';
 import { dashboardService } from '../../api/services/dashboard.service';
 import { useAuthStore } from '../../stores/authStore';
-import { bentoCard, bentoCardHover, canvasBodyBg, cardHeading, mainScrollCompositorClass, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import {
+  bentoCard, bentoCardHover, canvasBodyBg, cardHeading, kpiGridGap,
+  mainScrollCompositorClass, textPrimary, textSecondary, textMuted,
+} from '../../utils/uiClasses';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { BentoCard } from '../../components/common/BentoCard';
@@ -138,7 +141,7 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
 
   return (
     <div className={`flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${canvasBodyBg(theme)}`}>
-      <DashboardLayout className="space-y-5">
+      <DashboardLayout>
 
         {/* Welcome */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={spring}>
@@ -159,7 +162,7 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
         </motion.div>
 
         {/* KPI + Quota Row */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className={`grid grid-cols-2 lg:grid-cols-4 ${kpiGridGap}`}>
           <KpiCard theme={theme} label="最近智能体" value={workspace?.recentAgents?.length ?? 0} icon={<Bot size={16} />} glow="indigo" delay={0.05} />
           <KpiCard theme={theme} label="最近技能" value={workspace?.recentSkills?.length ?? 0} icon={<Zap size={16} />} glow="emerald" delay={0.08} />
           <KpiCard theme={theme} label="今日使用" value={todayUsage} icon={<Cpu size={16} />} glow="amber" delay={0.11} />

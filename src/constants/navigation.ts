@@ -288,13 +288,6 @@ export const USER_MY_SPACE_GROUPS: NavSubGroup[] = [
   },
 ];
 
-export const USER_MARKETPLACE_GROUPS: NavSubGroup[] = [
-  {
-    title: '浏览',
-    items: [{ id: 'resource-market', icon: Store, label: '资源浏览' }],
-  },
-];
-
 export const USER_MY_PUBLISH_GROUPS: NavSubGroup[] = [
   {
     title: '我的发布',
@@ -306,9 +299,8 @@ export const USER_MY_PUBLISH_GROUPS: NavSubGroup[] = [
   },
 ];
 
-/** 用户端合并项：浏览 → 我的发布 → 使用与授权 */
+/** 用户端合并项：我的发布 → 使用与授权（浏览入口已迁至顶栏各资源中心） */
 export const USER_RESOURCE_ASSETS_GROUPS: NavSubGroup[] = [
-  ...USER_MARKETPLACE_GROUPS,
   ...USER_MY_PUBLISH_GROUPS,
   ...USER_MY_SPACE_GROUPS,
 ];

@@ -160,9 +160,9 @@ const USER_SIDEBAR_PAGES: Record<string, string[]> = {
   'agents-center': ['agents-center', 'agent-market'],
   'apps-center': ['apps-center', 'app-market'],
   'user-resource-assets': [
+    'my-agents-pub',
     'resource-market',
     'skill-market',
-    'my-agents-pub',
     'my-publish-agent',
     'my-publish-skill',
     'my-publish-mcp',

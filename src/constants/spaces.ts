@@ -17,7 +17,6 @@ import {
   ADMIN_SYSTEM_CONFIG_GROUPS,
   ADMIN_DEVELOPER_PORTAL_GROUPS,
   USER_WORKSPACE_GROUPS,
-  USER_MARKETPLACE_GROUPS,
   USER_MY_PUBLISH_GROUPS,
   USER_MY_SPACE_GROUPS,
 } from './navigation';
@@ -165,7 +164,6 @@ export const USER_SPACES: Space[] = [
     accentFrom: '#8B5CF6',
     accentTo: '#A855F7',
     sections: [
-      ...fromGroups('user-resource-assets', USER_MARKETPLACE_GROUPS as NavGroup[]),
       ...fromGroups('user-resource-assets', USER_MY_PUBLISH_GROUPS as NavGroup[]),
       ...fromGroups('user-resource-assets', USER_MY_SPACE_GROUPS as NavGroup[]),
     ],

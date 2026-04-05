@@ -94,29 +94,27 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
     return m;
   }, []);
 
-  const [expandedParents, setExpandedParents] = useState<Record<string, boolean>>({});
+  /** 当前路由对应的左轨一级分组（用于手风琴展开同步） */
+  const activeBlockKey = useMemo(() => {
+    const b = parentBlocks.find(
+      (block) => block.parentSidebarId === activeSidebar && block.domain === routeRole,
+    );
+    return b?.key ?? null;
+  }, [parentBlocks, activeSidebar, routeRole]);
 
-  const isParentOpen = useCallback(
-    (key: string) => expandedParents[key] === true,
-    [expandedParents],
-  );
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
+  const isParentOpen = useCallback((key: string) => expandedKey === key, [expandedKey]);
+
+  /** 手风琴：同时只展开一个父级；再点同一父级则收起 */
   const toggleParent = (key: string) => {
-    setExpandedParents((prev) => ({ ...prev, [key]: !(prev[key] === true) }));
+    setExpandedKey((k) => (k === key ? null : key));
   };
 
-  /** 路由落在某父级下时，自动展开该一级分组（子项扁平列出，无二级折叠） */
+  /** 路由变化时展开所属分组；无匹配时收起（如在探索主画布且无左轨父级） */
   useEffect(() => {
-    setExpandedParents((prev) => {
-      const next = { ...prev };
-      for (const block of parentBlocks) {
-        if (block.parentSidebarId === activeSidebar && block.domain === routeRole) {
-          next[block.key] = true;
-        }
-      }
-      return next;
-    });
-  }, [activeSidebar, activeSubItem, routeRole, parentBlocks]);
+    setExpandedKey(activeBlockKey);
+  }, [activeBlockKey]);
 
   return (
     <nav

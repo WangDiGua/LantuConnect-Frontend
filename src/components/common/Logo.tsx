@@ -90,11 +90,11 @@ export const Logo: React.FC<LogoProps> = ({
         className={`flex min-w-0 items-center gap-2.5 select-none ${className}`.trim()}
         title="Nexus"
       >
-        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center">
+        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center">
           <EclipseMark className="h-full w-full" fillColor={fillColor} maskId={`${maskId}-tb`} />
         </div>
         <span
-          className={`min-w-0 truncate text-base font-semibold leading-none tracking-tight sm:text-lg lg:text-xl ${titleCls}`}
+          className={`min-w-0 truncate text-xl font-semibold leading-none tracking-tight sm:text-2xl ${titleCls}`}
           style={{ fontFamily: SERIF_STACK }}
         >
           Nexus

@@ -160,7 +160,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
       }`}
     >
       <div className="flex h-16 min-w-0 items-center gap-3 px-3 sm:px-4 md:gap-4 md:px-6">
-      <div className="flex min-w-0 shrink-0 items-center gap-2">
+      <div className="flex min-h-0 min-w-0 shrink-0 items-center gap-2">
         <button
           type="button"
           className={`inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg p-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 lg:hidden ${
@@ -174,7 +174,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
         <button
           type="button"
           onClick={onLogoClick}
-          className="shrink-0 rounded-lg border-0 bg-transparent p-0 text-left outline-none ring-0 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+          className="inline-flex shrink-0 items-center rounded-lg border-0 bg-transparent p-0 text-left outline-none ring-0 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
           aria-label="回到首页"
         >
           <Logo followSystemColorScheme={false} theme={theme} topBar />
@@ -183,7 +183,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
 
       <nav
         aria-label="主导航"
-        className={`mx-1 hidden min-w-0 flex-1 items-center gap-0.5 overflow-x-auto lg:flex ${mainScrollCompositorClass} py-0.5 [scrollbar-width:thin]`}
+        className={`mx-1 hidden min-h-0 min-w-0 flex-1 items-center gap-0.5 overflow-x-auto lg:flex ${mainScrollCompositorClass} [scrollbar-width:thin]`}
       >
         {navPieces.map((piece, i) => {
           if (piece.kind === 'divider') {
@@ -215,7 +215,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
                 key={key}
                 type="button"
                 onClick={() => onSidebarClick(item.id, item.domain)}
-                className={`inline-flex min-h-10 shrink-0 items-center rounded-lg px-3 py-2 text-[15px] font-semibold transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent sm:text-base ${activeCls}`}
+                className={`inline-flex min-h-10 shrink-0 items-center justify-center rounded-lg px-2.5 py-2 text-sm font-medium transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${activeCls}`}
               >
                 <span className="whitespace-nowrap leading-none">{item.label}</span>
               </button>
@@ -237,7 +237,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
                     setOpenDropdownKey(key);
                   }
                 }}
-                className={`inline-flex min-h-10 shrink-0 items-center gap-1 rounded-lg px-3 py-2 text-[15px] font-semibold transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent sm:text-base ${activeCls}`}
+                className={`inline-flex min-h-10 shrink-0 items-center gap-1 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${activeCls}`}
               >
                 <span className="whitespace-nowrap leading-none">{item.label}</span>
                 <ChevronDown
@@ -313,7 +313,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
         <Search
           size={15}
           className={[
-            'block shrink-0 -translate-y-0.5 transition-colors duration-200',
+            'block shrink-0 transition-colors duration-200',
             searchFocused
               ? isDark
                 ? 'text-slate-100'

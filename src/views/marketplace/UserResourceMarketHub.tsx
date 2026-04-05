@@ -7,7 +7,6 @@ import { buildPath } from '../../constants/consoleRoutes';
 import { AgentMarket } from '../agent/AgentMarket';
 import { SkillMarket } from '../skill/SkillMarket';
 import { AppMarket } from '../apps/AppMarket';
-import { DatasetMarket } from '../dataset/DatasetMarket';
 import { mainScrollPadBottom, mainScrollPadX, textMuted, textSecondary } from '../../utils/uiClasses';
 
 interface Props {
@@ -32,6 +31,10 @@ export const UserResourceMarketHub: React.FC<Props> = ({ theme, fontSize, themeC
       }
       if (next === 'mcp') {
         navigate(buildPath('user', 'mcp-center'), { replace: true });
+        return;
+      }
+      if (next === 'dataset') {
+        navigate(buildPath('user', 'dataset-center'), { replace: true });
         return;
       }
       setSearchParams(
@@ -96,9 +99,6 @@ export const UserResourceMarketHub: React.FC<Props> = ({ theme, fontSize, themeC
         {tab === 'skill' && <SkillMarket theme={theme} fontSize={fontSize} themeColor={themeColor} showMessage={showMessage} />}
         {tab === 'app' && (
           <AppMarket theme={theme} fontSize={fontSize} themeColor={themeColor} showMessage={showMessage} />
-        )}
-        {tab === 'dataset' && (
-          <DatasetMarket theme={theme} fontSize={fontSize} themeColor={themeColor} showMessage={showMessage} />
         )}
       </div>
     </div>

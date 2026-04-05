@@ -81,6 +81,7 @@ export const USER_SIDEBAR_ITEMS = [
   { id: 'user-resource-assets', icon: Library, label: '资源与资产' },
   { id: 'skills-center', icon: Braces, label: 'Skills 中心' },
   { id: 'mcp-center', icon: Puzzle, label: 'MCP 广场' },
+  { id: 'dataset-center', icon: Database, label: '数据集中心' },
   { id: 'developer-portal', icon: Code2, label: '开发者中心' },
   { id: 'user-settings', icon: UserCircle, label: '个人设置' },
 ];
@@ -343,6 +344,7 @@ export function getNavSubGroups(sidebarId: string, isAdminRole: boolean): NavSub
     case 'hub':
     case 'skills-center':
     case 'mcp-center':
+    case 'dataset-center':
       return [];
     case 'developer-portal':
       return ADMIN_DEVELOPER_PORTAL_GROUPS;

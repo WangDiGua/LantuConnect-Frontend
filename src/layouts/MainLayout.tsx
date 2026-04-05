@@ -73,6 +73,7 @@ const UserResourceMarketHub = lazy(() =>
 );
 const SkillMarket = lazy(() => import('../views/skill/SkillMarket').then((m) => ({ default: m.SkillMarket })));
 const McpMarket = lazy(() => import('../views/mcp/McpMarket').then((m) => ({ default: m.McpMarket })));
+const DatasetMarket = lazy(() => import('../views/dataset/DatasetMarket').then((m) => ({ default: m.DatasetMarket })));
 
 import { useMessage } from '../components/common/Message';
 import { readPersistedNavState, writePersistedNavState } from '../utils/navigationState';
@@ -400,6 +401,9 @@ const MainContent = React.memo<{
       case 'mcp-center':
         return <McpMarket theme={t} fontSize={fs} themeColor={tc} showMessage={msg} />;
 
+      case 'dataset-center':
+        return <DatasetMarket theme={t} fontSize={fs} themeColor={tc} showMessage={msg} />;
+
       case 'my-agents-pub':
         return <MyPublishHubPage theme={t} fontSize={fs} />;
 
@@ -465,7 +469,7 @@ const MainContent = React.memo<{
     if (p === 'dashboard' || p === 'workspace') return 'dashboard' as const;
     if (p.includes('create')) return 'form' as const;
     if (p.includes('detail') || p === 'profile') return 'detail' as const;
-    if (p.includes('market') || p === 'quick-access' || p === 'skills-center' || p === 'mcp-center') return 'cards' as const;
+    if (p.includes('market') || p === 'quick-access' || p === 'skills-center' || p === 'mcp-center' || p === 'dataset-center') return 'cards' as const;
     if (p.includes('monitoring') || p === 'performance-analysis' || p === 'data-reports' || p === 'usage-statistics') return 'chart' as const;
     return 'table' as const;
   })();
@@ -627,7 +631,9 @@ const MainLayoutContent: React.FC<{
       ? 'skills-center'
       : !layoutIsAdmin && page === 'resource-market' && marketTabQuery === 'mcp'
         ? 'mcp-center'
-        : baseActiveSidebar;
+        : !layoutIsAdmin && page === 'resource-market' && marketTabQuery === 'dataset'
+          ? 'dataset-center'
+          : baseActiveSidebar;
   const activeSubItem = pageToSubItem(page, activeSidebar, layoutIsAdmin);
 
   const headerMenusRef = useRef<HTMLDivElement>(null);
@@ -762,6 +768,15 @@ const MainLayoutContent: React.FC<{
         }
         return;
       }
+      if (tab === 'dataset') {
+        const q = new URLSearchParams();
+        if (rid) q.set('resourceId', rid);
+        const next = `${buildPath('user', 'dataset-center')}${q.toString() ? `?${q}` : ''}`;
+        if (`${location.pathname}${location.search}` !== next) {
+          navigate(next, { replace: true });
+        }
+        return;
+      }
       const q = new URLSearchParams();
       q.set('tab', tab);
       if (rid) q.set('resourceId', rid);
@@ -790,6 +805,16 @@ const MainLayoutContent: React.FC<{
         const rid = sp.get('resourceId');
         if (rid) q.set('resourceId', rid);
         const next = `${buildPath('user', 'mcp-center')}${q.toString() ? `?${q}` : ''}`;
+        if (`${location.pathname}${location.search}` !== next) {
+          navigate(next, { replace: true });
+        }
+        return;
+      }
+      if (tabOk === 'dataset') {
+        const q = new URLSearchParams();
+        const rid = sp.get('resourceId');
+        if (rid) q.set('resourceId', rid);
+        const next = `${buildPath('user', 'dataset-center')}${q.toString() ? `?${q}` : ''}`;
         if (`${location.pathname}${location.search}` !== next) {
           navigate(next, { replace: true });
         }
@@ -1221,6 +1246,10 @@ const MainLayoutContent: React.FC<{
     if (page === 'mcp-center') {
       const rid = new URLSearchParams(location.search).get('resourceId');
       return rid ? `mcp-center?resourceId=${rid}` : 'mcp-center';
+    }
+    if (page === 'dataset-center') {
+      const rid = new URLSearchParams(location.search).get('resourceId');
+      return rid ? `dataset-center?resourceId=${rid}` : 'dataset-center';
     }
     return routeId ? `${page}/${routeId}` : page;
   }, [page, routeId, queryType, resourceTypeQuery, marketTabQuery, location.search]);

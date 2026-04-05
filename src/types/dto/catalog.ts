@@ -13,6 +13,9 @@ export interface ResourceCatalogQueryRequest {
   categoryId?: string;
   tags?: string[];
   include?: string;
+  /** 数据集等扩展筛选，以后端 query 支持为准 */
+  sourceType?: string;
+  dataType?: string;
 }
 
 export interface ResourceCatalogItemVO {
@@ -34,6 +37,11 @@ export interface ResourceCatalogItemVO {
   /** 与后端 ResourceCatalogItemVO.accessPolicy 一致 */
   accessPolicy?: string;
   categoryName?: string;
+  /** 数据集目录项扩展字段（若有） */
+  dataType?: string;
+  format?: string;
+  recordCount?: number;
+  fileSize?: number;
   observability?: Record<string, unknown>;
   quality?: Record<string, unknown>;
 }

@@ -66,6 +66,11 @@ export function normalizeCatalogItem(row: unknown): ResourceCatalogItemVO {
       x.accessPolicy == null && x.access_policy == null ? undefined : String(x.accessPolicy ?? x.access_policy),
     categoryName:
       x.categoryName == null && x.category_name == null ? undefined : String(x.categoryName ?? x.category_name),
+    dataType: x.dataType == null && x.data_type == null ? undefined : String(x.dataType ?? x.data_type),
+    format: x.format == null ? undefined : String(x.format),
+    recordCount:
+      x.recordCount == null && x.record_count == null ? undefined : numStat(x.recordCount ?? x.record_count),
+    fileSize: x.fileSize == null && x.file_size == null ? undefined : numStat(x.fileSize ?? x.file_size),
     observability:
       x.observability && typeof x.observability === 'object'
         ? (x.observability as Record<string, unknown>)

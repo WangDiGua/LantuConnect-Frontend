@@ -1141,7 +1141,7 @@ const MainLayoutContent: React.FC<{
     <LayoutChromeProvider value={{ hasSecondarySidebar, chromePageTitle: headerTitle }}>
       <div
         data-theme={theme === 'dark' ? 'dark' : 'light'}
-        className={`h-screen p-3 md:p-4 flex flex-col gap-3 md:gap-4 overflow-hidden selection:bg-neutral-200 selection:text-neutral-900 ${
+        className={`h-screen flex min-h-0 flex-col overflow-hidden selection:bg-neutral-200 selection:text-neutral-900 ${
           FONT_FAMILY_CLASSES[fontFamily]
         } bg-lantu-chrome`}
       >
@@ -1374,6 +1374,7 @@ const MainLayoutContent: React.FC<{
           }
         />
 
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 px-3 pb-3 pt-3 md:gap-4 md:px-4 md:pb-4 md:pt-4">
         <aside
           className={`${chromeGpuLayerClass} fixed inset-y-0 left-0 z-50 flex h-full w-[240px] shrink-0 flex-col px-3 py-2 transition-transform duration-200 ease-out motion-reduce:transition-none lg:hidden ${
             mobileNavOpen ? 'translate-x-0' : '-translate-x-full'
@@ -1417,17 +1418,17 @@ const MainLayoutContent: React.FC<{
         </aside>
 
         <main
-          className={`${chromeGpuLayerClass} relative z-0 flex-1 min-h-0 overflow-hidden flex flex-col ${
+          className={`${chromeGpuLayerClass} relative z-0 flex min-h-0 flex-1 flex-col overflow-hidden ${
             isDark
-              ? 'bg-lantu-card rounded-[24px] md:rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-white/[0.06]'
-              : 'bg-slate-50 rounded-[24px] md:rounded-[32px] shadow-[0_8px_30px_rgb(15,23,42,0.05)] border border-slate-200/45'
+              ? 'rounded-2xl border border-white/[0.06] bg-lantu-card shadow-sm'
+              : 'rounded-2xl border border-slate-200/60 bg-white shadow-sm'
           }`}
         >
           <header
-            className={`${chromeGpuLayerClass} h-[72px] flex items-center px-4 sm:px-5 lg:px-6 shrink-0 z-10 sticky top-0 border-b ${
+            className={`${chromeGpuLayerClass} sticky top-0 z-10 flex h-[72px] shrink-0 items-center border-b px-4 sm:px-5 lg:px-6 ${
               isDark
-                ? 'bg-lantu-card/80 backdrop-blur-md border-white/[0.06]'
-                : 'bg-slate-50/90 backdrop-blur-md border-slate-200/35'
+                ? 'border-white/[0.06] bg-lantu-card/95 backdrop-blur-sm'
+                : 'border-slate-200/50 bg-white/95 backdrop-blur-sm'
             }`}
           >
             <h2 className={`text-xl font-bold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
@@ -1473,6 +1474,7 @@ const MainLayoutContent: React.FC<{
             </div>
           </div>
         </main>
+        </div>
       </div>
     </LayoutChromeProvider>
   );

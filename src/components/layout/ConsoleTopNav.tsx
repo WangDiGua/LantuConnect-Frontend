@@ -148,12 +148,14 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
 
   return (
     <header
-      className={`relative z-30 ${isDark ? 'border-white/[0.08] bg-lantu-card/85' : 'border-slate-200/60 bg-white/90'} flex h-[60px] shrink-0 items-center gap-3 rounded-2xl border px-3 sm:px-4 backdrop-blur-md md:gap-4`}
+      className={`relative z-30 flex h-16 w-full shrink-0 items-center gap-3 border-b px-3 shadow-sm sm:px-4 md:gap-4 md:px-6 ${
+        isDark ? 'border-white/[0.08] bg-lantu-card' : 'border-slate-200 bg-white'
+      }`}
     >
       <div className="flex min-w-0 shrink-0 items-center gap-2">
         <button
           type="button"
-          className={`lg:hidden rounded-xl p-2.5 min-h-11 min-w-11 inline-flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 ${
+          className={`inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg p-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 lg:hidden ${
             isDark ? 'hover:bg-white/10 focus-visible:ring-offset-lantu-card' : 'hover:bg-slate-100 focus-visible:ring-offset-white'
           }`}
           aria-label="打开菜单"
@@ -164,7 +166,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
         <button
           type="button"
           onClick={onLogoClick}
-          className={`shrink-0 rounded-xl border-0 bg-transparent p-0 text-left transition-colors outline-none ring-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 ${
+          className={`shrink-0 rounded-lg border-0 bg-transparent p-0 text-left outline-none ring-0 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 ${
             isDark ? 'focus-visible:ring-offset-lantu-card' : 'focus-visible:ring-offset-white'
           }`}
           aria-label="回到首页"
@@ -207,7 +209,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
                 key={key}
                 type="button"
                 onClick={() => onSidebarClick(item.id, item.domain)}
-                className={`inline-flex shrink-0 items-center gap-1.5 rounded-xl px-2.5 py-2 text-sm font-medium transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 ${activeCls} ${
+                className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 ${activeCls} ${
                   isDark ? 'focus-visible:ring-offset-lantu-card' : 'focus-visible:ring-offset-white'
                 }`}
               >
@@ -232,7 +234,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
                     setOpenDropdownKey(key);
                   }
                 }}
-                className={`inline-flex shrink-0 items-center gap-1 rounded-xl px-2.5 py-2 text-sm font-medium transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 ${activeCls} ${
+                className={`inline-flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 ${activeCls} ${
                   isDark ? 'focus-visible:ring-offset-lantu-card' : 'focus-visible:ring-offset-white'
                 }`}
               >
@@ -249,7 +251,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
                 onClose={closeDropdown}
                 anchorEl={dropdownAnchor}
                 align="left"
-                className={`min-w-[12rem] overflow-y-auto rounded-xl border p-1.5 shadow-xl ${
+                className={`min-w-[12rem] overflow-y-auto rounded-lg border p-1.5 shadow-lg ${
                   isDark ? 'border-white/10 bg-lantu-card' : 'border-slate-200 bg-white'
                 }`}
               >
@@ -298,14 +300,14 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
 
       <div
         className={[
-          'relative hidden h-[38px] max-w-[200px] flex-1 items-center rounded-[10px] px-3 transition-all duration-200 xl:max-w-xs lg:flex',
+          'relative hidden h-9 max-w-[200px] flex-1 items-center rounded-full px-3 transition-all duration-200 xl:max-w-xs lg:flex',
           searchFocused
             ? isDark
               ? 'border border-transparent bg-white/10 shadow-[0_0_0_2px_rgba(96,165,250,0.35)]'
               : 'border border-transparent bg-white shadow-[0_0_0_2px_rgba(9,9,11,0.1)]'
             : isDark
               ? 'border border-transparent bg-white/[0.06] shadow-[inset_0_1px_2px_rgba(0,0,0,0.35)] hover:bg-white/[0.09]'
-              : 'border border-transparent bg-gray-100/80 shadow-inner hover:bg-gray-200/50',
+              : 'border border-transparent bg-slate-100/90 hover:bg-slate-200/60',
         ].join(' ')}
       >
         <Search

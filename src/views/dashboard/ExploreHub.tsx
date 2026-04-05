@@ -220,7 +220,7 @@ const HubStatCard: React.FC<{
   isDark: boolean;
 }> = ({ icon: Icon, value, label, clickable, onClick, isDark }) => {
   const shell = [
-    'group relative w-full min-w-0 h-[156px] rounded-[20px] border flex flex-col items-center justify-center overflow-hidden',
+    'group relative flex h-[156px] min-w-0 w-full flex-col items-center justify-center overflow-hidden rounded-2xl border',
     'transition-all duration-500 ease-out hover:-translate-y-2',
     isDark
       ? `bg-lantu-card ${HUB_STAT_BASE_DARK} ${HUB_STAT_HOVER_DARK}`
@@ -236,7 +236,7 @@ const HubStatCard: React.FC<{
   ].join(' ');
 
   const iconBoxCls = [
-    'w-12 h-12 mb-4 rounded-[14px] flex items-center justify-center',
+    'mb-4 flex h-12 w-12 items-center justify-center rounded-xl',
     'transition-all duration-500 ease-out',
     'group-hover:scale-110 group-hover:-rotate-3 group-hover:shadow-[0_8px_20px_rgba(0,0,0,0.15)]',
     isDark
@@ -405,12 +405,12 @@ const HeroCodeTerminal: React.FC = () => {
         ref={wrapRef}
         role="img"
         aria-label="示例代码窗口：deploy 智能体"
-        className="relative w-[420px] max-w-full shrink-0 rounded-2xl"
+        className="relative w-[420px] max-w-full shrink-0 rounded-xl"
         style={{ transform: 'rotate(-2deg)' }}
       >
       {/* 环境光晕：双层椭圆径向 + 大半径 blur，低饱和避免「塑料霓虹」 */}
       <div
-        className="pointer-events-none absolute -inset-[10px] z-0 rounded-[1.2rem] opacity-50"
+        className="pointer-events-none absolute -inset-[10px] z-0 rounded-2xl opacity-50"
         style={{
           background: `
             radial-gradient(ellipse 130% 95% at 18% 12%, rgba(56,189,248,0.11), transparent 58%),
@@ -422,7 +422,7 @@ const HeroCodeTerminal: React.FC = () => {
       />
       {/* 贴边薄晕：略提高边缘存在感，仍弱于主体 */}
       <div
-        className="pointer-events-none absolute -inset-[5px] z-0 rounded-[1.15rem] opacity-[0.35]"
+        className="pointer-events-none absolute -inset-[5px] z-0 rounded-2xl opacity-[0.35]"
         style={{
           background:
             'linear-gradient(145deg, rgba(255,255,255,0.05) 0%, transparent 42%, rgba(125,211,252,0.04) 100%)',
@@ -433,7 +433,7 @@ const HeroCodeTerminal: React.FC = () => {
       {/* 高光：插值跟随指针，椭圆形渐变 + 柔化 blur */}
       <div
         ref={spotlightRef}
-        className="pointer-events-none absolute -inset-10 z-0 rounded-[2rem]"
+        className="pointer-events-none absolute -inset-10 z-0 rounded-3xl"
         style={{
           filter: 'blur(44px)',
           background: heroTerminalSpotlightGradient(HERO_GLOW_DEFAULT_PCT.x, HERO_GLOW_DEFAULT_PCT.y),
@@ -441,7 +441,7 @@ const HeroCodeTerminal: React.FC = () => {
         aria-hidden
       />
       <div
-        className="relative z-10 overflow-hidden rounded-2xl border border-white/[0.09] bg-black/40 shadow-[0_24px_48px_-12px_rgba(0,0,0,0.55),0_0_0_1px_rgba(255,255,255,0.04),0_0_70px_-28px_rgba(56,189,248,0.12)] backdrop-blur-xl"
+        className="relative z-10 overflow-hidden rounded-xl border border-white/[0.09] bg-black/40 shadow-[0_16px_40px_-10px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.04),0_0_48px_-20px_rgba(56,189,248,0.1)] backdrop-blur-xl"
       >
       <div className="flex items-center px-4 py-3 border-b border-white/5">
         <div className="flex gap-1.5">
@@ -613,14 +613,14 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
     );
   }
 
-  /** 与主画布（MainLayout 圆角卡片）留出足够内边距，避免区块贴边 */
+  /** 与主画布内容区留出足够内边距，避免区块贴边 */
   const pageContainer = 'w-full px-4 sm:px-5 lg:px-6 xl:px-8';
 
   /** Hero：暗色主题与 #0f1117 画布区分层次 + 提升副文案对比（WCAG 友好） */
   const heroRingOffset = isDark ? 'focus-visible:ring-offset-[#0c0e14]' : 'focus-visible:ring-offset-[#0a0a0a]';
   const heroShellClass = isDark
-    ? `w-full relative overflow-hidden rounded-[2.5rem] border border-white/[0.11] bg-gradient-to-b from-[#12151f] via-[#0c0e14] to-[#07080c] py-6 md:py-7 px-8 md:px-12 lg:px-14 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_28px_56px_-16px_rgba(0,0,0,0.72),0_0_0_1px_rgba(0,0,0,0.4)]`
-    : `w-full relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-[#0a0a0a] py-6 md:py-7 px-8 md:px-12 lg:px-14 shadow-[0_28px_56px_-16px_rgba(15,23,42,0.45)]`;
+    ? `relative w-full overflow-hidden rounded-3xl border border-white/[0.11] bg-gradient-to-b from-[#12151f] via-[#0c0e14] to-[#07080c] px-8 py-6 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_20px_40px_-12px_rgba(0,0,0,0.55),0_0_0_1px_rgba(0,0,0,0.4)] md:px-12 md:py-7 lg:px-14`
+    : `relative w-full overflow-hidden rounded-3xl border border-white/10 bg-[#0a0a0a] px-8 py-6 shadow-[0_20px_40px_-12px_rgba(15,23,42,0.4)] md:px-12 md:py-7 lg:px-14`;
   const heroGridStyle: React.CSSProperties = {
     backgroundImage: isDark
       ? 'linear-gradient(to right, rgba(255,255,255,0.052) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.052) 1px, transparent 1px)'

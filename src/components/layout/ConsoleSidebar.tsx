@@ -185,7 +185,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
           <button
             type="button"
             onClick={onLogoClick}
-            className={`logo-nav-btn w-full rounded-xl border-0 bg-transparent p-0 text-left transition-colors outline-none ring-0 shadow-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 ${
+            className={`logo-nav-btn w-full rounded-lg border-0 bg-transparent p-0 text-left outline-none ring-0 shadow-none transition-colors focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 ${
               isDark ? 'hover:bg-white/[0.04]' : 'hover:bg-slate-200/50'
             }`}
             aria-label="回到首页"
@@ -201,7 +201,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
       <div className="mb-4 shrink-0">
         <div
           className={[
-            'relative flex h-[38px] w-full items-center rounded-[10px] px-3',
+            'relative flex h-9 w-full items-center rounded-full px-3',
             'transition-all duration-200 ease-out group',
             searchFocused
               ? isDark
@@ -300,7 +300,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
                     ? onToggleGroup(item.id)
                     : onSidebarClick(item.id, item.domain)
                 }
-                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl transition-all duration-200 motion-reduce:transition-none group/item focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 ${
+                className={`group/item flex w-full items-center justify-between rounded-lg px-3.5 py-3 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 motion-reduce:transition-none ${
                   isDark ? 'focus-visible:ring-offset-lantu-surface' : 'focus-visible:ring-offset-white'
                 } ${
                   isSelfActive
@@ -435,7 +435,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 8, scale: 0.96 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                className={`absolute bottom-full left-0 right-0 mb-2 rounded-xl border p-1.5 shadow-xl z-50 ${
+                className={`absolute bottom-full left-0 right-0 z-50 mb-2 rounded-lg border p-1.5 shadow-lg ${
                   isDark ? 'border-white/10 bg-lantu-card' : 'border-slate-200 bg-white'
                 }`}
               >
@@ -467,7 +467,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
           <button
             type="button"
             onClick={() => setShowUserMenu((v) => !v)}
-            className={`w-full rounded-[16px] p-2.5 flex items-center gap-3 transition-all motion-reduce:transition-none group/user focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 ${
+            className={`group/user flex w-full items-center gap-3 rounded-xl p-2.5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 motion-reduce:transition-none ${
               isDark
                 ? 'bg-white/[0.06] shadow-[0_2px_12px_rgba(0,0,0,0.15)] border border-white/10 hover:bg-white/[0.1] focus-visible:ring-offset-lantu-surface'
                 : 'bg-white shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-slate-200/50 hover:shadow-md focus-visible:ring-offset-white'
@@ -476,7 +476,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
             <MultiAvatar
               seed={avatarSeed}
               alt={displayUserName}
-              className="w-9 h-9 rounded-xl border border-white/10 shrink-0"
+              className="h-9 w-9 shrink-0 rounded-lg border border-white/10"
             />
             <div className="flex-1 text-left overflow-hidden">
               <div

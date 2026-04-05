@@ -55,10 +55,10 @@ export const MgmtPageShell: React.FC<MgmtPageShellProps> = ({
     <div className={`flex-1 flex flex-col min-h-0 min-w-0 ${shellOverflow} bg-transparent`}>
       <div className={`w-full flex-1 min-h-0 min-w-0 flex flex-col ${outerPad}`}>
         <div
-          className={`rounded-[24px] border flex-1 min-h-0 min-w-0 flex flex-col ${cardOverflow} ${
+          className={`flex min-h-0 min-w-0 flex-1 flex-col rounded-xl border ${cardOverflow} ${
             isDark
-              ? 'bg-lantu-elevated border-white/[0.09] shadow-[0_2px_20px_-6px_rgba(0,0,0,0.45)]'
-              : 'bg-white border-slate-200/50 shadow-[0_2px_8px_-2px_rgba(15,23,42,0.07),0_1px_2px_-1px_rgba(15,23,42,0.05)]'
+              ? 'border-white/[0.09] bg-lantu-elevated shadow-sm'
+              : 'border-slate-200/50 bg-white shadow-sm'
           }`}
         >
           {hasSecondarySidebar ? (
@@ -73,7 +73,7 @@ export const MgmtPageShell: React.FC<MgmtPageShellProps> = ({
                   <div className="flex min-w-0 items-center gap-3">
                     {TitleIcon ? (
                       <span
-                        className={`inline-flex shrink-0 items-center justify-center w-8 h-8 rounded-xl self-center ${
+                        className={`inline-flex h-8 w-8 shrink-0 items-center justify-center self-center rounded-lg ${
                           isDark ? 'bg-white/10 text-slate-200' : 'bg-slate-100 text-slate-700'
                         }`}
                       >
@@ -122,7 +122,7 @@ export const MgmtPageShell: React.FC<MgmtPageShellProps> = ({
                       >
                         {isLast && TitleIcon ? (
                           <span
-                            className={`inline-flex items-center justify-center w-8 h-8 rounded-xl shrink-0 ${
+                            className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
                               isDark ? 'bg-white/10 text-slate-200' : 'bg-slate-100 text-slate-700'
                             }`}
                           >

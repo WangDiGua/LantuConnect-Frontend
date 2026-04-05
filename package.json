@@ -13,6 +13,7 @@
     "smoke:ui": "node scripts/smoke-ui.mjs"
   },
   "dependencies": {
+    "@chenglou/pretext": "^0.0.4",
     "@bytemd/plugin-gfm": "^1.22.0",
     "@bytemd/react": "^1.22.0",
     "@hookform/resolvers": "^5.2.2",

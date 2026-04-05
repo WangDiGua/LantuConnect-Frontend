@@ -1,0 +1,8 @@
+---
+description: 多行文本测量、无 DOM 换行高度、虚拟列表行高、Canvas 文本排版时使用 Pretext（@chenglou/pretext）。技能正文 .agents/skills/pretext/SKILL.md。
+alwaysApply: false
+---
+
+# Pretext
+
+实现或排查「文案高度/换行/虚拟化行高/无 reflow 测量」时，先读 `.agents/skills/pretext/SKILL.md`，再用 `prepare`/`layout` 或 `prepareWithSegments` 等 API；业务代码从 `@chenglou/pretext` 引用，详细示例可参考 `third-party/pretext`。

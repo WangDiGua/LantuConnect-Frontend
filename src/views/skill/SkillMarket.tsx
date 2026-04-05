@@ -434,63 +434,63 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _the
           </div>
         </div>
 
-        {/* 分类导航（图标 + 文案，横向滚动） */}
-        <nav aria-label="技能分类">
-          <div
-            className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:gap-3 [&::-webkit-scrollbar]:hidden"
-          >
-            {categoryRows.map((row) => {
-              const active = activeCategory === row.label;
-              const Icon = row.Icon;
-              return (
-                <button
-                  key={row.key}
-                  type="button"
-                  onClick={() => setActiveCategory(row.label)}
-                  aria-current={active ? 'true' : undefined}
-                  className={`flex min-w-[4.5rem] shrink-0 flex-col items-center gap-1.5 rounded-2xl border px-3 py-3 text-center transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 sm:min-w-[5.25rem] sm:px-4 ${
-                    active
-                      ? isDark
-                        ? 'border-violet-400/40 bg-violet-500/15 text-white'
-                        : 'border-violet-300 bg-violet-50 text-violet-950'
-                      : isDark
-                        ? 'border-white/[0.08] bg-white/[0.03] text-slate-300 hover:bg-white/[0.06]'
-                        : 'border-slate-200/80 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-                  }`}
-                >
-                  <Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${active ? 'text-violet-600 dark:text-violet-300' : iconMuted(theme)}`} strokeWidth={1.75} aria-hidden />
-                  <span className="max-w-[5.5rem] truncate text-xs font-semibold">{row.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </nav>
-
-        {/* 搜索 + 发布 */}
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="relative min-w-0 flex-1">
-            <Search className={`pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 ${iconMuted(theme)}`} aria-hidden />
-            <input
-              type="search"
-              placeholder={searchPlaceholder}
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-              className={`min-h-12 w-full rounded-2xl border py-3 pl-12 pr-4 text-sm outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-violet-500/40 ${
-                isDark ? 'border-white/[0.1] bg-white/[0.05] text-white placeholder:text-slate-500' : 'border-slate-200/90 bg-white text-slate-900 shadow-sm placeholder:text-slate-400'
+        {/* 分类 + 搜索 + 发布：大屏同一行；小屏纵向堆叠避免挤压 */}
+        <div className="flex flex-col gap-3 lg:flex-row lg:flex-nowrap lg:items-center lg:gap-3">
+          <nav aria-label="技能分类" className="min-w-0 lg:max-w-[min(100%,26rem)] lg:shrink-0 xl:max-w-none">
+            <div
+              className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:gap-3 [&::-webkit-scrollbar]:hidden"
+            >
+              {categoryRows.map((row) => {
+                const active = activeCategory === row.label;
+                const Icon = row.Icon;
+                return (
+                  <button
+                    key={row.key}
+                    type="button"
+                    onClick={() => setActiveCategory(row.label)}
+                    aria-current={active ? 'true' : undefined}
+                    className={`flex min-w-[4.5rem] shrink-0 flex-col items-center gap-1.5 rounded-2xl border px-3 py-3 text-center transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 sm:min-w-[5.25rem] sm:px-4 lg:py-2.5 ${
+                      active
+                        ? isDark
+                          ? 'border-violet-400/40 bg-violet-500/15 text-white'
+                          : 'border-violet-300 bg-violet-50 text-violet-950'
+                        : isDark
+                          ? 'border-white/[0.08] bg-white/[0.03] text-slate-300 hover:bg-white/[0.06]'
+                          : 'border-slate-200/80 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Icon className={`h-5 w-5 sm:h-6 sm:w-6 lg:h-5 lg:w-5 ${active ? 'text-violet-600 dark:text-violet-300' : iconMuted(theme)}`} strokeWidth={1.75} aria-hidden />
+                    <span className="max-w-[5.5rem] truncate text-xs font-semibold">{row.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </nav>
+          <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
+            <div className="relative min-w-0 flex-1">
+              <Search className={`pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 ${iconMuted(theme)}`} aria-hidden />
+              <input
+                type="search"
+                placeholder={searchPlaceholder}
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+                className={`min-h-12 w-full rounded-2xl border py-3 pl-12 pr-4 text-sm outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-violet-500/40 ${
+                  isDark ? 'border-white/[0.1] bg-white/[0.05] text-white placeholder:text-slate-500' : 'border-slate-200/90 bg-white text-slate-900 shadow-sm placeholder:text-slate-400'
+                }`}
+                aria-label="搜索技能"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate(buildPath('user', 'skill-register'))}
+              className={`inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-bold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 sm:whitespace-nowrap ${
+                isDark ? 'bg-white text-slate-900 hover:bg-slate-100' : 'bg-slate-900 text-white hover:bg-slate-800'
               }`}
-              aria-label="搜索技能"
-            />
+            >
+              <Plus className="h-5 w-5" strokeWidth={2.25} aria-hidden />
+              发布技能
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => navigate(buildPath('user', 'skill-register'))}
-            className={`inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-bold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 ${
-              isDark ? 'bg-white text-slate-900 hover:bg-slate-100' : 'bg-slate-900 text-white hover:bg-slate-800'
-            }`}
-          >
-            <Plus className="h-5 w-5" strokeWidth={2.25} aria-hidden />
-            发布技能
-          </button>
         </div>
 
         {/* 说明条：保留业务提示，压缩为一条 */}

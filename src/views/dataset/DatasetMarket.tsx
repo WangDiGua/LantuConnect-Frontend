@@ -44,6 +44,7 @@ import {
   techBadge,
 } from '../../utils/uiClasses';
 import { BentoCard } from '../../components/common/BentoCard';
+import { MarketplaceListingCard, MarketplaceStatItem } from '../../components/market';
 import { Modal } from '../../components/common/Modal';
 import { LantuSelect } from '../../components/common/LantuSelect';
 import { ResourceReviewsSection } from '../../components/business/ResourceReviewsSection';
@@ -51,11 +52,9 @@ import { GrantApplicationModal } from '../../components/business/GrantApplicatio
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
-import { resolvePersonDisplay } from '../../utils/personDisplay';
 import { usePersistedGatewayApiKey } from '../../hooks/usePersistedGatewayApiKey';
 import { GatewayApiKeyInput } from '../../components/common/GatewayApiKeyInput';
 import { ApiException } from '../../types/api';
-import { formatDateTime } from '../../utils/formatDateTime';
 import { buildPath } from '../../constants/consoleRoutes';
 import { MARKET_HERO_TITLE_CLASSES } from '../../constants/theme';
 import { nativeInputClass } from '../../utils/formFieldClasses';
@@ -629,74 +628,75 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _t
                         glow="emerald"
                         padding="md"
                         className="flex flex-col h-full !rounded-[20px]"
+                        onClick={() => setDetailDataset(ds)}
                       >
-                        <div className="flex items-start gap-3 mb-3">
-                          <div
-                            className={`w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0 ${iconColor}`}
-                          >
-                            <IconComp size={18} />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <h3 className={`font-semibold truncate ${textPrimary(theme)}`}>{title}</h3>
-                          </div>
-                        </div>
-                        <p className={`text-sm leading-relaxed mb-3 line-clamp-2 ${textSecondary(theme)}`}>
-                          {ds.description || '暂无描述'}
-                        </p>
-                        <div className="flex flex-wrap gap-1.5 mb-3">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${srcBadge.cls}`}>
-                            {srcBadge.label}
-                          </span>
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${dtBadge.cls}`}>
-                            {dtBadge.label}
-                          </span>
-                          <span className={techBadge(theme)}>{fmt}</span>
-                        </div>
-                        <div className={`flex flex-wrap items-center gap-x-4 gap-y-1 text-xs mb-3 ${textMuted(theme)}`}>
-                          <span className="flex items-center gap-1">
-                            <HardDrive size={12} />
-                            {formatFileSize(ds.fileSize)}
-                          </span>
-                          <span>{formatCount(ds.recordCount)} 条记录</span>
-                          <span>{resolvePersonDisplay({ names: [ds.createdByName], ids: [ds.createdBy] })}</span>
-                          <span className="inline-flex items-center gap-0.5 tabular-nums" title="目录评分与评论数">
-                            <Star size={12} className="text-amber-500 fill-amber-500 shrink-0" />
-                            {ds.ratingAvg != null ? ds.ratingAvg.toFixed(1) : '—'}
-                            <span className="mx-1 opacity-40">·</span>
-                            {Number(ds.reviewCount ?? 0)} 条评价
-                          </span>
-                          {ds.createTime && <span>{formatDateTime(ds.createTime)}</span>}
-                        </div>
-                        {(ds.tags ?? []).length > 0 && (
-                          <div className="flex flex-wrap gap-1 mb-3">
-                            {(ds.tags ?? []).slice(0, 4).map((tag) => (
-                              <span
-                                key={tag}
-                                className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
-                                  isDark ? 'bg-white/5 text-slate-400' : 'bg-slate-100 text-slate-500'
-                                }`}
-                              >
-                                {tag}
+                        <MarketplaceListingCard
+                          theme={theme}
+                          title={title}
+                          statusChip={{ label: dtBadge.label, tone: 'accent' }}
+                          trailing={(
+                            <div
+                              className={`flex h-10 w-10 items-center justify-center rounded-xl text-white ${iconColor}`}
+                            >
+                              <IconComp size={18} aria-hidden />
+                            </div>
+                          )}
+                          metaRow={(
+                            <>
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${srcBadge.cls}`}>
+                                {srcBadge.label}
                               </span>
-                            ))}
-                            {(ds.tags ?? []).length > 4 && (
-                              <span className={`text-xs ${textMuted(theme)}`}>+{(ds.tags ?? []).length - 4}</span>
-                            )}
-                          </div>
-                        )}
-                        <div
-                          className={`flex items-center justify-end pt-3 border-t mt-auto ${
-                            isDark ? 'border-white/[0.08]' : 'border-slate-200/40'
-                          }`}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => setDetailDataset(ds)}
-                            className={`${btnPrimary} !py-1.5 !px-3 !text-xs`}
-                          >
-                            查看详情
-                          </button>
-                        </div>
+                              <span className={techBadge(theme)}>{fmt}</span>
+                              {(ds.tags ?? []).slice(0, 4).map((tag) => (
+                                <span
+                                  key={tag}
+                                  className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-xs font-medium ${
+                                    isDark ? 'bg-white/5 text-slate-400' : 'bg-slate-100 text-slate-500'
+                                  }`}
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                              {(ds.tags ?? []).length > 4 ? (
+                                <span className={`text-xs ${textMuted(theme)}`}>+{(ds.tags ?? []).length - 4}</span>
+                              ) : null}
+                            </>
+                          )}
+                          description={ds.description || '暂无描述'}
+                          footerLeft={(
+                            <span className="block truncate font-mono text-[11px]" title={String(ds.name ?? '')}>
+                              @{ds.name}
+                            </span>
+                          )}
+                          footerStats={(
+                            <>
+                              <MarketplaceStatItem icon={HardDrive} title="体积">
+                                {formatFileSize(ds.fileSize)}
+                              </MarketplaceStatItem>
+                              <MarketplaceStatItem icon={Table2} title="记录数">
+                                {formatCount(ds.recordCount)}
+                              </MarketplaceStatItem>
+                              <MarketplaceStatItem icon={Star} title="目录评分">
+                                {ds.ratingAvg != null ? ds.ratingAvg.toFixed(1) : '—'}
+                              </MarketplaceStatItem>
+                              <MarketplaceStatItem icon={MessageSquare} title="评论数">
+                                {Number(ds.reviewCount ?? 0)}
+                              </MarketplaceStatItem>
+                            </>
+                          )}
+                          primaryAction={(
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDetailDataset(ds);
+                              }}
+                              className={`${btnPrimary} !py-1.5 !px-3 !text-xs`}
+                            >
+                              查看详情
+                            </button>
+                          )}
+                        />
                       </BentoCard>
                     );
                   })}

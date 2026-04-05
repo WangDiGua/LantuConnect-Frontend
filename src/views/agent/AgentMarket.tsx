@@ -1,11 +1,19 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Star, Heart, TrendingUp, Rocket, ChevronRight, Package } from 'lucide-react';
+import { Star, Heart, TrendingUp, Rocket, ChevronRight, Package, MessageSquare } from 'lucide-react';
 import type { Theme, FontSize, ThemeColor } from '../../types';
 import { THEME_COLOR_CLASSES } from '../../constants/theme';
 import { useMarketList, useMarketTags, useMarketDetail } from '../../hooks/market';
 import type { MarketListParams } from '../../hooks/market/types';
-import { MarketLayout, MarketHeader, MarketSearchBar, MarketTagFilter, MarketEmptyState } from '../../components/market';
+import {
+  MarketLayout,
+  MarketHeader,
+  MarketSearchBar,
+  MarketTagFilter,
+  MarketEmptyState,
+  MarketplaceListingCard,
+  MarketplaceStatItem,
+} from '../../components/market';
 import { BentoCard } from '../../components/common/BentoCard';
 import { Modal } from '../../components/common/Modal';
 import { AgentReviews } from './AgentReviews';
@@ -36,6 +44,22 @@ interface MarketCard {
   rating: string;
   reviewCount: number;
   featured: boolean;
+}
+
+function agentCardTrailing(emoji: string, isDark: boolean): React.ReactNode {
+  const isUrl = /^https?:\/\//i.test(emoji);
+  if (isUrl) {
+    return (
+      <img src={emoji} alt="" className="h-10 w-10 rounded-xl object-cover ring-1 ring-black/10" loading="lazy" />
+    );
+  }
+  return (
+    <div
+      className={`flex h-10 w-10 items-center justify-center rounded-xl text-xl leading-none ${isDark ? 'bg-white/[0.06]' : 'bg-slate-100'}`}
+    >
+      {emoji}
+    </div>
+  );
 }
 
 function agentToCard(agent: Agent): MarketCard {
@@ -303,46 +327,50 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
                     onClick={() => setDetailAgent(a)}
                     className="flex flex-col h-full !rounded-[20px]"
                   >
-                    <div className="flex items-start gap-3 mb-3">
-                      <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-lg shrink-0 ${isDark ? 'bg-white/[0.04]' : 'bg-slate-50'}`}>
-                        {a.emoji}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h4 className={`font-bold text-sm truncate ${textPrimary(theme)}`}>{a.name}</h4>
-                        <p className={`text-[11px] truncate ${textMuted(theme)}`}>{a.author}</p>
-                      </div>
-                    </div>
-                    <p className={`text-xs leading-relaxed line-clamp-3 flex-1 mb-3 ${textSecondary(theme)}`}>
-                      {a.description}
-                    </p>
-                    <div className="flex flex-wrap gap-1 mb-3">
-                      {a.tags.map((t) => (
+                    <MarketplaceListingCard
+                      theme={theme}
+                      title={a.name}
+                      statusChip={{ label: '智能体', tone: a.featured ? 'accent' : 'neutral' }}
+                      trailing={agentCardTrailing(a.emoji, isDark)}
+                      metaRow={a.tags.slice(0, 6).map((t) => (
                         <span key={t} className={techBadge(theme)}>
                           {t}
                         </span>
                       ))}
-                    </div>
-                    <div className={`flex items-center justify-between gap-2 mt-auto pt-2 border-t border-dashed ${isDark ? 'border-white/[0.08]' : 'border-slate-200/40'}`}>
-                      <span className={`text-[11px] tabular-nums ${textMuted(theme)}`}>
-                        <span className="inline-flex items-center gap-0.5 mr-1">
-                          <Star size={11} className="text-amber-500 fill-amber-500" />
-                          {a.rating}
+                      description={a.description}
+                      descriptionClamp={3}
+                      footerLeft={(
+                        <span className="truncate text-[11px]" title={a.author}>
+                          {a.author}
                         </span>
-                        <span className="mr-2 opacity-80">({a.reviewCount})</span>
-                        {a.installs} 安装
-                      </span>
-                      <button
-                        type="button"
-                        className={`${btnPrimary} !py-1.5 !px-3 !text-xs ${isInWorkspace(a.id) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        disabled={isInWorkspace(a.id)}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (!isInWorkspace(a.id)) setConfirmAgent(a);
-                        }}
-                      >
-                        {isInWorkspace(a.id) ? '已添加' : '添加'}
-                      </button>
-                    </div>
+                      )}
+                      footerStats={(
+                        <>
+                          <MarketplaceStatItem icon={TrendingUp} title="调用/安装展示">
+                            {a.installs}
+                          </MarketplaceStatItem>
+                          <MarketplaceStatItem icon={Star} title="评分">
+                            {a.rating}
+                          </MarketplaceStatItem>
+                          <MarketplaceStatItem icon={MessageSquare} title="评论数">
+                            {a.reviewCount}
+                          </MarketplaceStatItem>
+                        </>
+                      )}
+                      primaryAction={(
+                        <button
+                          type="button"
+                          className={`${btnPrimary} !py-1.5 !px-3 !text-xs ${isInWorkspace(a.id) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          disabled={isInWorkspace(a.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!isInWorkspace(a.id)) setConfirmAgent(a);
+                          }}
+                        >
+                          {isInWorkspace(a.id) ? '已添加' : '添加'}
+                        </button>
+                      )}
+                    />
                   </BentoCard>
                 ))}
               </div>

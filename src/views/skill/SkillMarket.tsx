@@ -51,7 +51,9 @@ import {
   textMuted,
   techBadge,
 } from '../../utils/uiClasses';
+import { BentoCard } from '../../components/common/BentoCard';
 import { Modal } from '../../components/common/Modal';
+import { MarketplaceListingCard, MarketplaceStatItem } from '../../components/market';
 import { ResourceReviewsSection } from '../../components/business/ResourceReviewsSection';
 import { GrantApplicationModal } from '../../components/business/GrantApplicationModal';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
@@ -519,84 +521,87 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _the
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 lg:gap-5">
             {filtered.map((skill) => (
-              <article
+              <div
                 key={skill.id}
-                className={`group flex h-full cursor-pointer flex-col rounded-2xl border p-4 shadow-sm transition-[box-shadow,transform] duration-200 motion-reduce:transform-none motion-reduce:transition-none sm:p-5 ${
-                  isDark
-                    ? 'border-white/[0.08] bg-white/[0.03] hover:border-violet-500/30 hover:shadow-lg hover:shadow-violet-500/10'
-                    : 'border-slate-200/80 bg-white hover:border-violet-200 hover:shadow-md'
-                }`}
-                onClick={() => setDetailSkill(skill)}
+                className="h-full cursor-pointer outline-none"
+                role="button"
+                tabIndex={0}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
                     setDetailSkill(skill);
                   }
                 }}
-                role="button"
-                tabIndex={0}
               >
-                <div className="flex items-start gap-3">
-                  <div
-                    className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white ${pickColor(skill.agentName)}`}
-                  >
-                    {(skill.displayName || skill.agentName).charAt(0)}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className={`truncate text-base font-bold ${textPrimary(theme)}`}>{skill.displayName}</h3>
-                      <span
-                        className={`shrink-0 rounded-md px-1.5 py-0.5 text-xs font-bold uppercase tracking-wide ${
-                          isDark ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-600'
-                        }`}
+                <BentoCard
+                  theme={theme}
+                  hover
+                  glow="indigo"
+                  padding="md"
+                  className="flex h-full flex-col !rounded-[20px]"
+                  onClick={() => setDetailSkill(skill)}
+                >
+                  <MarketplaceListingCard
+                    theme={theme}
+                    title={skill.displayName}
+                    statusChip={{ label: '技能包', tone: 'accent' }}
+                    trailing={(
+                      <div
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white ${pickColor(skill.agentName)}`}
                       >
-                        技能包
+                        {(skill.displayName || skill.agentName).charAt(0)}
+                      </div>
+                    )}
+                    metaRow={(
+                      <>
+                        <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${TYPE_BADGE[skill.agentType].cls}`}>
+                          {TYPE_BADGE[skill.agentType].label}
+                        </span>
+                        <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${SOURCE_BADGE[skill.sourceType].cls}`}>
+                          {SOURCE_BADGE[skill.sourceType].label}
+                        </span>
+                        {(skill.tags ?? []).slice(0, 3).map((t) => (
+                          <span key={t} className={`rounded-md px-2 py-0.5 text-xs font-medium ${techBadge(theme)}`}>
+                            {t}
+                          </span>
+                        ))}
+                      </>
+                    )}
+                    descriptionClamp={2}
+                    description={skill.description || '暂无描述'}
+                    footerLeft={(
+                      <span className="truncate font-mono text-[11px]" title={`@${skill.agentName}`}>
+                        @{skill.agentName}
                       </span>
-                    </div>
-                    <p className={`mt-0.5 truncate font-mono text-xs ${textMuted(theme)}`}>@{skill.agentName}</p>
-                  </div>
-                </div>
-                <p className={`mt-3 line-clamp-2 min-h-[2.5rem] text-sm leading-relaxed ${textSecondary(theme)}`}>{skill.description || '暂无描述'}</p>
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${TYPE_BADGE[skill.agentType].cls}`}>{TYPE_BADGE[skill.agentType].label}</span>
-                  <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${SOURCE_BADGE[skill.sourceType].cls}`}>{SOURCE_BADGE[skill.sourceType].label}</span>
-                  {(skill.tags ?? []).slice(0, 3).map((t) => (
-                    <span key={t} className={`rounded-md px-2 py-0.5 text-xs font-medium ${techBadge(theme)}`}>
-                      {t}
-                    </span>
-                  ))}
-                </div>
-                <div className={`mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t pt-3 text-xs ${isDark ? 'border-white/[0.08]' : 'border-slate-100'} ${textMuted(theme)}`}>
-                  <span className="max-w-[9rem] truncate" title={resolvePersonDisplay({ names: [skill.createdByName], ids: [skill.createdBy ?? undefined] })}>
-                    {resolvePersonDisplay({ names: [skill.createdByName], ids: [skill.createdBy ?? undefined] })}
-                  </span>
-                  <span className="inline-flex items-center gap-0.5 tabular-nums" title="目录评分">
-                    <Star className="h-3.5 w-3.5 shrink-0 text-amber-500" aria-hidden />
-                    {skill.ratingAvg != null ? skill.ratingAvg.toFixed(1) : '—'}（{skill.reviewCount ?? 0}）
-                  </span>
-                  <span className="inline-flex items-center gap-1 tabular-nums" title="目录热度">
-                    <Activity className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                    {formatCount(skill.callCount)}
-                  </span>
-                  <span className="inline-flex items-center gap-1 tabular-nums">
-                    <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                    {formatLatency(skill.avgLatencyMs)}
-                  </span>
-                  {skill.createTime && <span className="tabular-nums opacity-90">{formatDateTime(skill.createTime)}</span>}
-                </div>
-                <div className="mt-4 flex justify-end">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleOpenUse(skill);
-                    }}
-                    className={`${btnPrimary} rounded-xl px-4 py-2 text-xs font-bold`}
-                  >
-                    获取技能包
-                  </button>
-                </div>
-              </article>
+                    )}
+                    footerStats={(
+                      <>
+                        <MarketplaceStatItem icon={Activity} title="目录热度">
+                          {formatCount(skill.callCount)}
+                        </MarketplaceStatItem>
+                        <MarketplaceStatItem icon={Star} title="目录评分">
+                          {skill.ratingAvg != null ? skill.ratingAvg.toFixed(1) : '—'}
+                        </MarketplaceStatItem>
+                        <MarketplaceStatItem icon={Clock} title="平均延迟">
+                          {formatLatency(skill.avgLatencyMs)}
+                        </MarketplaceStatItem>
+                      </>
+                    )}
+                    primaryAction={(
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenUse(skill);
+                        }}
+                        className={`${btnPrimary} !rounded-xl !px-4 !py-2 !text-xs !font-bold`}
+                      >
+                        获取技能包
+                      </button>
+                    )}
+                  />
+                </BentoCard>
+              </div>
             ))}
           </div>
         )}

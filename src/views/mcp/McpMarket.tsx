@@ -33,6 +33,7 @@ import { safeOpenHttpUrl } from '../../lib/windowNavigate';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { BentoCard } from '../../components/common/BentoCard';
+import { MarketplaceListingCard, MarketplaceStatItem } from '../../components/market';
 import { Modal } from '../../components/common/Modal';
 import { ResourceReviewsSection } from '../../components/business/ResourceReviewsSection';
 import { GrantApplicationModal } from '../../components/business/GrantApplicationModal';
@@ -905,59 +906,55 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                     className="flex h-full flex-col !rounded-[20px]"
                     onClick={() => setDetail(item)}
                   >
-                    <div className="mb-3 flex items-start gap-3">
-                      <div
-                        className={`flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-900 text-white ${isDark ? 'opacity-95' : ''}`}
-                      >
-                        <Puzzle size={17} />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h3 className={`truncate font-semibold ${textPrimary(theme)}`}>{item.displayName}</h3>
-                        <p className={`truncate font-mono text-xs ${textMuted(theme)}`}>{item.resourceCode || item.resourceId}</p>
-                        <p
-                          className={`mt-0.5 truncate text-[11px] ${textMuted(theme)}`}
-                          title={resolvePersonDisplay({
-                            names: [item.createdByName],
-                            ids: [item.createdBy ?? undefined],
-                          })}
+                    <MarketplaceListingCard
+                      theme={theme}
+                      title={item.displayName}
+                      statusChip={{
+                        label: statusLabel(item.status as never),
+                        tone: item.status === 'published' ? 'published' : 'neutral',
+                      }}
+                      trailing={(
+                        <div
+                          className={`flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-900 text-white ${isDark ? 'opacity-95' : ''}`}
                         >
-                          {resolvePersonDisplay({
-                            names: [item.createdByName],
-                            ids: [item.createdBy ?? undefined],
-                          })}
-                        </p>
-                      </div>
-                    </div>
-                    <p className={`mb-3 line-clamp-2 text-sm ${textSecondary(theme)}`}>{item.description || '暂无描述'}</p>
-                    {(item.tags ?? []).length > 0 && (
-                      <div className="mb-3 flex flex-wrap gap-1">
-                        {(item.tags ?? []).slice(0, 5).map((tg) => (
-                          <span
-                            key={tg}
-                            className={`rounded-md px-1.5 py-0.5 text-[11px] font-medium ${
-                              isDark ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-600'
-                            }`}
-                          >
-                            {tg}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    <div
-                      className={`mt-auto flex flex-col gap-2 border-t pt-3 ${isDark ? 'border-white/[0.08]' : 'border-slate-200/40'}`}
-                    >
-                      <AccessPolicyBadge theme={theme} value={item.accessPolicy} whenMissing="hide" />
-                      <div
-                        className={`flex items-center gap-1 text-[11px] tabular-nums ${textMuted(theme)}`}
-                        title="目录评分与评论数"
-                      >
-                        <Star size={12} className="shrink-0 fill-amber-500 text-amber-500" />
-                        <span>{item.ratingAvg != null ? item.ratingAvg.toFixed(1) : '—'}</span>
-                        <span className="mx-1 opacity-40">·</span>
-                        <span>{Number(item.reviewCount ?? 0)} 条评价</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className={`text-xs ${textMuted(theme)}`}>状态：{statusLabel(item.status as any)}</span>
+                          <Puzzle size={17} aria-hidden />
+                        </div>
+                      )}
+                      metaRow={(
+                        <>
+                          {(item.tags ?? []).slice(0, 5).map((tg) => (
+                            <span
+                              key={tg}
+                              className={`rounded-md px-2 py-0.5 text-[11px] font-medium ${
+                                isDark ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-600'
+                              }`}
+                            >
+                              {tg}
+                            </span>
+                          ))}
+                          <AccessPolicyBadge className="contents" theme={theme} value={item.accessPolicy} whenMissing="hide" />
+                        </>
+                      )}
+                      description={item.description || '暂无描述'}
+                      footerLeft={(
+                        <span
+                          className="block truncate font-mono text-[11px]"
+                          title={item.resourceCode || item.resourceId}
+                        >
+                          @{item.resourceCode || item.resourceId}
+                        </span>
+                      )}
+                      footerStats={(
+                        <>
+                          <MarketplaceStatItem icon={Star} title="目录评分">
+                            {item.ratingAvg != null ? item.ratingAvg.toFixed(1) : '—'}
+                          </MarketplaceStatItem>
+                          <MarketplaceStatItem icon={MessageSquare} title="评论数">
+                            {Number(item.reviewCount ?? 0)}
+                          </MarketplaceStatItem>
+                        </>
+                      )}
+                      primaryAction={(
                         <button
                           type="button"
                           className={`${btnPrimary} !px-3 !py-1.5 !text-xs`}
@@ -968,8 +965,8 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                         >
                           查看与使用
                         </button>
-                      </div>
-                    </div>
+                      )}
+                    />
                   </BentoCard>
                 ))}
               </div>

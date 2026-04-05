@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, LayoutGrid, ExternalLink, MessageSquare, Loader2, Heart, Star } from 'lucide-react';
+import { Search, LayoutGrid, ExternalLink, MessageSquare, Loader2, Heart, Star, Tag } from 'lucide-react';
 import type { Theme, FontSize, ThemeColor } from '../../types';
-import type { SmartApp, EmbedType } from '../../types/dto/smart-app';
+import type { SmartApp, EmbedType, AppStatus } from '../../types/dto/smart-app';
 import { smartAppService } from '../../api/services/smart-app.service';
 import { userActivityService } from '../../api/services/user-activity.service';
 import { tagService } from '../../api/services/tag.service';
@@ -17,6 +17,8 @@ import {
   iconMuted, textPrimary, textSecondary, textMuted, techBadge,
 } from '../../utils/uiClasses';
 import { BentoCard } from '../../components/common/BentoCard';
+import { MarketplaceListingCard, MarketplaceStatItem } from '../../components/market';
+import type { MarketplaceStatusTone } from '../../components/market';
 import { GlassPanel } from '../../components/common/GlassPanel';
 import { Modal } from '../../components/common/Modal';
 import { ResourceReviewsSection } from '../../components/business/ResourceReviewsSection';
@@ -25,7 +27,6 @@ import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
-import { formatDateTime } from '../../utils/formatDateTime';
 import { usePersistedGatewayApiKey } from '../../hooks/usePersistedGatewayApiKey';
 import { GatewayApiKeyInput } from '../../components/common/GatewayApiKeyInput';
 import { safeOpenHttpUrl } from '../../lib/windowNavigate';
@@ -37,6 +38,21 @@ const EMBED_BADGE: Record<EmbedType, { label: string; cls: string }> = { iframe:
 const SOURCE_BADGE: Record<string, { label: string; cls: string }> = { internal: { label: '自研', cls: 'text-sky-600 bg-sky-500/10' }, partner: { label: '合作方', cls: 'text-neutral-900 bg-neutral-900/10' }, cloud: { label: '云服务', cls: 'text-cyan-600 bg-cyan-500/10' } };
 const ICON_COLORS = ['bg-neutral-900', 'bg-neutral-800', 'bg-neutral-700', 'bg-stone-800', 'bg-zinc-800', 'bg-neutral-600', 'bg-slate-800', 'bg-neutral-950'];
 function pickColor(str: string): string { let h = 0; for (let i = 0; i < str.length; i++) h = str.charCodeAt(i) + ((h << 5) - h); return ICON_COLORS[Math.abs(h) % ICON_COLORS.length]; }
+
+function appStatusPresentation(status: AppStatus): { label: string; tone: MarketplaceStatusTone } {
+  switch (status) {
+    case 'published':
+      return { label: '已发布', tone: 'published' };
+    case 'draft':
+      return { label: '草稿', tone: 'draft' };
+    case 'testing':
+      return { label: '测试中', tone: 'neutral' };
+    case 'deprecated':
+      return { label: '已下线', tone: 'neutral' };
+    default:
+      return { label: String(status), tone: 'neutral' };
+  }
+}
 
 function safeText(v: unknown): string { return String(v ?? ''); }
 function resolveLaunchUrl(rawUrl?: string): string {
@@ -302,46 +318,72 @@ export const AppMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, themeCo
         : filtered.length === 0 ? <div className="text-center py-20"><p className={`text-lg font-medium ${textMuted(theme)}`}>暂无匹配的应用</p><p className={`text-sm mt-1 ${textMuted(theme)}`}>尝试调整搜索关键词</p></div>
         : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {filtered.map((app) => (
-              <BentoCard key={app.id} theme={theme} hover glow="indigo" padding="md" onClick={() => setDetailApp(app)} className="flex flex-col h-full !rounded-[20px]">
-                <div className="flex items-start gap-3 mb-3">
-                  {app.icon ? (
-                    <img src={app.icon} alt="" className="w-10 h-10 rounded-xl object-cover shrink-0 ring-1 ring-black/10" loading="lazy" />
-                  ) : (
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-bold shrink-0 ${pickColor(app.appName)}`}>{(app.displayName || app.appName).charAt(0)}</div>
-                  )}
-                  <div className="min-w-0 flex-1"><h3 className={`font-semibold truncate ${textPrimary(theme)}`}>{app.displayName}</h3></div>
-                </div>
-                <p className={`text-sm leading-relaxed mb-3 line-clamp-2 ${textSecondary(theme)}`}>{app.description || '暂无描述'}</p>
-                <div className="flex flex-wrap gap-1.5 mb-3">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${EMBED_BADGE[app.embedType].cls}`}>{EMBED_BADGE[app.embedType].label}</span>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${(SOURCE_BADGE[app.sourceType as string] ?? SOURCE_BADGE.internal).cls}`}>{(SOURCE_BADGE[app.sourceType as string] ?? SOURCE_BADGE.internal).label}</span>
-                  {(app.tags ?? []).slice(0, 4).map((tg) => (
-                    <span key={tg} className={techBadge(theme)}>{tg}</span>
-                  ))}
-                </div>
-                <div className={`flex items-center justify-between gap-2 pt-3 border-t mt-auto ${isDark ? 'border-white/[0.08]' : 'border-slate-200/40'}`}>
-                  <div className={`text-[11px] flex flex-wrap items-center gap-x-2 gap-y-0.5 min-w-0 ${textMuted(theme)}`}>
-                    <span className="truncate max-w-[9rem]">
-                      {resolvePersonDisplay({ names: [app.createdByName], ids: [app.createdBy ?? undefined] })}
-                    </span>
-                    <span className="inline-flex items-center gap-0.5 tabular-nums shrink-0" title="目录评分与评论数">
-                      <Star size={11} className="text-amber-500" aria-hidden />
-                      {app.ratingAvg != null ? app.ratingAvg.toFixed(1) : '—'} ({app.reviewCount ?? 0})
-                    </span>
-                    {app.categoryName && <span>{app.categoryName} · </span>}
-                    {app.createTime && <span>{formatDateTime(app.createTime)}</span>}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); setDetailApp(app); setDetailTab('overview'); }}
-                    className={`${btnPrimary} !py-1.5 !px-3 !text-xs`}
-                  >
-                    查看与使用
-                  </button>
-                </div>
-              </BentoCard>
-            ))}
+            {filtered.map((app) => {
+              const st = appStatusPresentation(app.status);
+              return (
+                <BentoCard key={app.id} theme={theme} hover glow="indigo" padding="md" onClick={() => setDetailApp(app)} className="flex flex-col h-full !rounded-[20px]">
+                  <MarketplaceListingCard
+                    theme={theme}
+                    title={app.displayName}
+                    statusChip={{ label: st.label, tone: st.tone }}
+                    trailing={(
+                      app.icon ? (
+                        <img src={app.icon} alt="" className="h-10 w-10 rounded-xl object-cover ring-1 ring-black/10" loading="lazy" />
+                      ) : (
+                        <div className={`flex h-10 w-10 items-center justify-center rounded-xl text-sm font-bold text-white ${pickColor(app.appName)}`}>
+                          {(app.displayName || app.appName).charAt(0)}
+                        </div>
+                      )
+                    )}
+                    metaRow={(
+                      <>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${EMBED_BADGE[app.embedType].cls}`}>{EMBED_BADGE[app.embedType].label}</span>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${(SOURCE_BADGE[app.sourceType as string] ?? SOURCE_BADGE.internal).cls}`}>
+                          {(SOURCE_BADGE[app.sourceType as string] ?? SOURCE_BADGE.internal).label}
+                        </span>
+                        {(app.tags ?? []).slice(0, 4).map((tg) => (
+                          <span key={tg} className={techBadge(theme)}>{tg}</span>
+                        ))}
+                      </>
+                    )}
+                    description={app.description || '暂无描述'}
+                    footerLeft={(
+                      <span className="block truncate font-mono text-[11px]" title={`@${app.appName}`}>
+                        @{app.appName}
+                      </span>
+                    )}
+                    footerStats={(
+                      <>
+                        <MarketplaceStatItem icon={Star} title="目录评分">
+                          {app.ratingAvg != null ? app.ratingAvg.toFixed(1) : '—'}
+                        </MarketplaceStatItem>
+                        <MarketplaceStatItem icon={MessageSquare} title="评论数">
+                          {app.reviewCount ?? 0}
+                        </MarketplaceStatItem>
+                        {app.categoryName ? (
+                          <MarketplaceStatItem icon={Tag} title="分类">
+                            {app.categoryName}
+                          </MarketplaceStatItem>
+                        ) : null}
+                      </>
+                    )}
+                    primaryAction={(
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDetailApp(app);
+                          setDetailTab('overview');
+                        }}
+                        className={`${btnPrimary} !py-1.5 !px-3 !text-xs`}
+                      >
+                        查看与使用
+                      </button>
+                    )}
+                  />
+                </BentoCard>
+              );
+            })}
           </div>
         )}
         </div>

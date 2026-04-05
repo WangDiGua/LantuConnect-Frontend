@@ -28,6 +28,11 @@ export interface ReviewMarkdownEditorProps {
   /** 主评价区略高，回复区更紧凑 */
   variant?: 'default' | 'compact';
   className?: string;
+  /**
+   * ByteMD：`tab` 时工具栏仅有「编辑/预览」切换，不含加粗/列表等按钮（见 bytemd toolbar.svelte 的 `{#if split}`）。
+   * `split` 与平台公告编辑一致，显示完整格式化工具栏。`auto` 在容器宽度 ≥800px 时等同 split。
+   */
+  editorMode?: 'tab' | 'split' | 'auto';
 }
 
 export const ReviewMarkdownEditor: React.FC<ReviewMarkdownEditorProps> = ({
@@ -37,6 +42,7 @@ export const ReviewMarkdownEditor: React.FC<ReviewMarkdownEditorProps> = ({
   placeholder = '支持 Markdown：列表、代码块、链接等',
   variant = 'default',
   className = '',
+  editorMode = 'split',
 }) => {
   const isDark = theme === 'dark';
   return (
@@ -50,7 +56,7 @@ export const ReviewMarkdownEditor: React.FC<ReviewMarkdownEditorProps> = ({
         .filter(Boolean)
         .join(' ')}
     >
-      <Editor value={value} plugins={PLUGINS} locale={LOCALE} onChange={onChange} mode="tab" />
+      <Editor value={value} plugins={PLUGINS} locale={LOCALE} onChange={onChange} mode={editorMode} />
       {placeholder ? <p className={`mt-1.5 text-[11px] ${textMuted(theme)}`}>{placeholder}</p> : null}
     </div>
   );

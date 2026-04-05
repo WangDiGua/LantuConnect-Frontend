@@ -31,6 +31,11 @@
   min-height: 140px;
 }
 
+/* split 模式（与公告编辑一致）：紧凑回复区内左右分栏略增高度，便于操作工具栏与编辑区 */
+.review-md-editor--compact .bytemd-split .bytemd-body {
+  min-height: 160px;
+}
+
 .review-md-editor--compact .bytemd-toolbar {
   min-height: 32px;
 }

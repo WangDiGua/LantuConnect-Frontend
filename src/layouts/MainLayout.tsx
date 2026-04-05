@@ -1205,10 +1205,8 @@ const MainLayoutContent: React.FC<{
 
   const hasSecondarySidebar = navChildrenForActiveSidebar.length > 0;
 
-  /** 顶栏与 chromePageTitle：有子菜单时只显示当前子项，父级由侧栏表达 */
+  /** 供 LayoutChrome（如市场页文案）使用；主滚动区不再渲染重复标题条 */
   const headerTitle = useMemo(() => {
-    /** Skills 中心在页面内已有大标题，避免主滚动区顶栏重复 */
-    if (!layoutIsAdmin && page === 'skills-center') return '';
     if (!layoutIsAdmin && ['profile', 'preferences'].includes(page)) return '个人设置';
     const parentItem = [...USER_SIDEBAR_ITEMS, ...ADMIN_SIDEBAR_ITEMS].find((i) => i.id === activeSidebar);
     if (!parentItem) return layoutIsAdmin ? '管理后台' : '工作台';
@@ -1531,18 +1529,6 @@ const MainLayoutContent: React.FC<{
             ref={mainScrollRef}
             className={`flex min-h-0 flex-1 flex-col overflow-y-auto custom-scrollbar ${mainScrollCompositorClass}`}
           >
-            {headerTitle ? (
-              <header
-                className={`${chromeGpuLayerClass} flex h-[72px] shrink-0 items-center border-b px-4 sm:px-5 lg:px-6 ${
-                  isDark ? 'border-white/[0.06]' : 'border-slate-200/50'
-                }`}
-              >
-                <h2 className={`text-xl font-bold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
-                  {headerTitle}
-                </h2>
-              </header>
-            ) : null}
-
             <div className={`w-full ${chromeGpuLayerClass}`}>
               <AnimatePresence mode="wait">
                 <RouteContentMotion

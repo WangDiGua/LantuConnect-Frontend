@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState, useEffect, useCallback } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { ChevronDown, Menu, Search, Command } from 'lucide-react';
 import type { Theme } from '../../types';
 import { iconMuted, mainScrollCompositorClass } from '../../utils/uiClasses';
@@ -56,7 +56,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
   const [searchFocused, setSearchFocused] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [openDropdownKey, setOpenDropdownKey] = useState<string | null>(null);
-  const dropdownTriggerRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const [dropdownAnchor, setDropdownAnchor] = useState<HTMLButtonElement | null>(null);
 
   const isMac = useMemo(
     () => typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/i.test(navigator.platform),
@@ -134,18 +134,19 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
         if (menuQuery) setMenuQuery('');
         searchInputRef.current?.blur();
       }
-      if (e.key === 'Escape') setOpenDropdownKey(null);
+      if (e.key === 'Escape') {
+        setOpenDropdownKey(null);
+        setDropdownAnchor(null);
+      }
     };
     window.addEventListener('keydown', onHotkey);
     return () => window.removeEventListener('keydown', onHotkey);
   }, [menuQuery]);
 
-  const setTriggerRef = useCallback((key: string, el: HTMLButtonElement | null) => {
-    if (el) dropdownTriggerRefs.current.set(key, el);
-    else dropdownTriggerRefs.current.delete(key);
-  }, []);
-
-  const openDropdownAnchor = openDropdownKey ? dropdownTriggerRefs.current.get(openDropdownKey) ?? null : null;
+  const closeDropdown = () => {
+    setOpenDropdownKey(null);
+    setDropdownAnchor(null);
+  };
 
   return (
     <header
@@ -222,11 +223,17 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
           return (
             <div key={key} className="relative shrink-0">
               <button
-                ref={(el) => setTriggerRef(key, el)}
                 type="button"
                 aria-expanded={open}
                 aria-haspopup="menu"
-                onClick={() => setOpenDropdownKey((k) => (k === key ? null : key))}
+                onClick={(ev) => {
+                  if (openDropdownKey === key) {
+                    closeDropdown();
+                  } else {
+                    setDropdownAnchor(ev.currentTarget);
+                    setOpenDropdownKey(key);
+                  }
+                }}
                 className={`inline-flex shrink-0 items-center gap-1 rounded-xl px-2.5 py-2 text-sm font-medium transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 ${activeCls} ${
                   isDark ? 'focus-visible:ring-offset-lantu-card' : 'focus-visible:ring-offset-white'
                 }`}
@@ -241,8 +248,8 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
               </button>
               <PortalDropdown
                 open={open}
-                onClose={() => setOpenDropdownKey(null)}
-                anchorEl={openDropdownAnchor}
+                onClose={closeDropdown}
+                anchorEl={dropdownAnchor}
                 align="left"
                 className={`min-w-[12rem] overflow-y-auto rounded-xl border p-1.5 shadow-xl ${
                   isDark ? 'border-white/10 bg-lantu-card' : 'border-slate-200 bg-white'
@@ -254,7 +261,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
                     type="button"
                     role="menuitem"
                     onClick={() => {
-                      setOpenDropdownKey(null);
+                      closeDropdown();
                       onSubItemClick(subItem.id, item.id, item.domain);
                     }}
                     className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-inset ${

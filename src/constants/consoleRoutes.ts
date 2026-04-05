@@ -3,7 +3,7 @@ import { parseResourceType } from './resourceTypes';
 
 export type ConsoleRole = 'admin' | 'user';
 
-/** 用户端旧版资源市场 slug → `resource-market?tab=`；`skill-market` 在 MainLayout 中直达 `skills-center` */
+/** 用户端旧版资源市场 slug → `resource-market?tab=`；`skill-market` / `mcp-market` 在 MainLayout 中直达独立页 */
 export const USER_LEGACY_MARKET_PAGE_TO_TAB: Record<string, ResourceType> = {
   'agent-market': 'agent',
   'mcp-market': 'mcp',
@@ -74,6 +74,14 @@ export function buildUserResourceMarketUrl(
     const qs = params.toString();
     return `${buildPath('user', 'skills-center')}${qs ? `?${qs}` : ''}`;
   }
+  if (tab === 'mcp') {
+    const params = new URLSearchParams();
+    if (extra?.resourceId != null && String(extra.resourceId).length > 0) {
+      params.set('resourceId', String(extra.resourceId));
+    }
+    const qs = params.toString();
+    return `${buildPath('user', 'mcp-center')}${qs ? `?${qs}` : ''}`;
+  }
   const params = new URLSearchParams({ tab });
   if (extra?.resourceId != null && String(extra.resourceId).length > 0) {
     params.set('resourceId', String(extra.resourceId));
@@ -123,11 +131,11 @@ const USER_SIDEBAR_PAGES: Record<string, string[]> = {
   'hub': ['hub'],
   'workspace': ['workspace', 'developer-onboarding', 'authorized-skills', 'my-favorites', 'quick-access'],
   'skills-center': ['skills-center'],
+  'mcp-center': ['mcp-center', 'mcp-market'],
   'user-resource-assets': [
     'resource-market',
     'agent-market',
     'skill-market',
-    'mcp-market',
     'app-market',
     'dataset-market',
     'my-agents-pub',
@@ -169,6 +177,7 @@ export function subItemToPage(sidebarId: string, subItemId: string, isAdmin: boo
   if (isAdmin && sidebarId === 'overview' && subItemId === 'overview') return 'dashboard';
   if (!isAdmin && sidebarId === 'workspace' && subItemId === 'overview') return 'workspace';
   if (!isAdmin && sidebarId === 'skills-center' && subItemId === 'skills-center') return 'skills-center';
+  if (!isAdmin && sidebarId === 'mcp-center' && subItemId === 'mcp-center') return 'mcp-center';
   return subItemId;
 }
 
@@ -187,6 +196,9 @@ export function pageToSubItem(page: string, sidebarId: string | null, isAdmin: b
   }
   if (!isAdmin && sidebarId === 'skills-center' && (page === 'skills-center' || page === 'resource-market')) {
     return 'skills-center';
+  }
+  if (!isAdmin && sidebarId === 'mcp-center' && (page === 'mcp-center' || page === 'resource-market')) {
+    return 'mcp-center';
   }
   if (!isAdmin && sidebarId === 'user-resource-assets' && (page === 'resource-market' || page === 'skill-market' || USER_LEGACY_MARKET_PAGES.has(page))) {
     return 'resource-market';

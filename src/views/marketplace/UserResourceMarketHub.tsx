@@ -6,7 +6,6 @@ import { RESOURCE_TYPES, RESOURCE_TYPE_LABEL_ZH, parseResourceType } from '../..
 import { buildPath } from '../../constants/consoleRoutes';
 import { AgentMarket } from '../agent/AgentMarket';
 import { SkillMarket } from '../skill/SkillMarket';
-import { McpMarket } from '../mcp/McpMarket';
 import { AppMarket } from '../apps/AppMarket';
 import { DatasetMarket } from '../dataset/DatasetMarket';
 import { mainScrollPadBottom, mainScrollPadX, textMuted, textSecondary } from '../../utils/uiClasses';
@@ -29,6 +28,10 @@ export const UserResourceMarketHub: React.FC<Props> = ({ theme, fontSize, themeC
     (next: ResourceType) => {
       if (next === 'skill') {
         navigate(buildPath('user', 'skills-center'), { replace: true });
+        return;
+      }
+      if (next === 'mcp') {
+        navigate(buildPath('user', 'mcp-center'), { replace: true });
         return;
       }
       setSearchParams(
@@ -91,7 +94,6 @@ export const UserResourceMarketHub: React.FC<Props> = ({ theme, fontSize, themeC
           <AgentMarket theme={theme} fontSize={fontSize} themeColor={themeColor} showMessage={showMessage} />
         )}
         {tab === 'skill' && <SkillMarket theme={theme} fontSize={fontSize} themeColor={themeColor} showMessage={showMessage} />}
-        {tab === 'mcp' && <McpMarket theme={theme} fontSize={fontSize} showMessage={showMessage} />}
         {tab === 'app' && (
           <AppMarket theme={theme} fontSize={fontSize} themeColor={themeColor} showMessage={showMessage} />
         )}

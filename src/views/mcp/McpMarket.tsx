@@ -1,9 +1,25 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { tagService } from '../../api/services/tag.service';
 import { filterTagsForResourceType } from '../../utils/marketTags';
 import type { TagItem } from '../../types/dto/tag';
-import { Copy, Eye, EyeOff, Heart, Loader2, MessageSquare, Play, Puzzle, RefreshCw, Search, Send, Star } from 'lucide-react';
+import {
+  Copy,
+  Eye,
+  EyeOff,
+  FileText,
+  Heart,
+  Loader2,
+  MessageSquare,
+  Play,
+  Puzzle,
+  RefreshCw,
+  Search,
+  Send,
+  Sparkles,
+  Star,
+  Zap,
+} from 'lucide-react';
 import type { Theme, FontSize, ThemeColor } from '../../types';
 import type { InvokeRequest, InvokeResponse, ResourceCatalogItemVO, ResourceResolveVO } from '../../types/dto/catalog';
 import { resourceCatalogService } from '../../api/services/resource-catalog.service';
@@ -17,18 +33,18 @@ import { safeOpenHttpUrl } from '../../lib/windowNavigate';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { BentoCard } from '../../components/common/BentoCard';
-import { GlassPanel } from '../../components/common/GlassPanel';
 import { Modal } from '../../components/common/Modal';
 import { ResourceReviewsSection } from '../../components/business/ResourceReviewsSection';
 import { GrantApplicationModal } from '../../components/business/GrantApplicationModal';
 import { LantuSelect } from '../../components/common/LantuSelect';
 import {
-  bentoCard,
   btnPrimary,
   btnSecondary,
   canvasBodyBg,
   iconMuted,
   mainScrollCompositorClass,
+  mainScrollPadBottom,
+  mainScrollPadX,
   statusLabel,
   textMuted,
   textPrimary,
@@ -37,9 +53,10 @@ import {
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
-import { PageTitleTagline } from '../../components/common/PageTitleTagline';
 import { ApiException } from '../../types/api';
 import { env } from '../../config/env';
+import { buildPath } from '../../constants/consoleRoutes';
+import { TITLE_SIZE_CLASSES } from '../../constants/theme';
 
 const API_PATH_PREFIX = env.VITE_API_BASE_URL.replace(/\/$/, '');
 
@@ -159,7 +176,8 @@ function tryFormatJsonText(raw: string): { asJson: boolean; text: string } {
 }
 
 
-export const McpMarket: React.FC<Props> = ({ theme, showMessage }) => {
+export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _themeColor, showMessage }) => {
+  const navigate = useNavigate();
   const { chromePageTitle } = useLayoutChrome();
   const isDark = theme === 'dark';
   const [keyword, setKeyword] = useState('');
@@ -195,6 +213,8 @@ export const McpMarket: React.FC<Props> = ({ theme, showMessage }) => {
   const [detailTab, setDetailTab] = useState<McpDetailTab>('reviews');
   const [searchParams, setSearchParams] = useSearchParams();
   const processedResourceId = useRef<string | null>(null);
+  /** 未按标签筛选时的列表快照，用于侧栏标签数量（筛选后仍显示「上次全量列表」分布） */
+  const [tagStatsRows, setTagStatsRows] = useState<ResourceCatalogItemVO[]>([]);
 
   useEffect(() => {
     tagService.list()
@@ -246,6 +266,12 @@ export const McpMarket: React.FC<Props> = ({ theme, showMessage }) => {
       showMessage?.('未在已上架列表中找到该资源，请确认资源已发布且 ID 正确', 'warning');
     }
   }, [loading, rows, searchParams, setSearchParams, showMessage]);
+
+  useEffect(() => {
+    if (!loading && !loadError && tagFilter == null) {
+      setTagStatsRows(rows);
+    }
+  }, [loading, loadError, tagFilter, rows]);
 
   useEffect(() => {
     if (!detail) return;
@@ -308,6 +334,65 @@ export const McpMarket: React.FC<Props> = ({ theme, showMessage }) => {
       return blob.includes(term);
     });
   }, [keyword, rows]);
+
+  const tagCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const r of tagStatsRows) {
+      for (const tg of r.tags ?? []) {
+        map.set(tg, (map.get(tg) ?? 0) + 1);
+      }
+    }
+    return map;
+  }, [tagStatsRows]);
+
+  const listCountLabel = tagStatsRows.length;
+
+  const CategoryNav = ({ className }: { className?: string }) => (
+    <nav aria-label="MCP 标签分类" className={className}>
+      <ul className="space-y-1">
+        <li>
+          <button
+            type="button"
+            aria-current={tagFilter === null ? 'true' : undefined}
+            onClick={() => setTagFilter(null)}
+            className={`flex min-h-11 w-full items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/45 ${
+              tagFilter === null
+                ? isDark
+                  ? 'bg-violet-500/20 text-white'
+                  : 'bg-violet-100 text-violet-950'
+                : `${textSecondary(theme)} ${isDark ? 'hover:bg-white/[0.06]' : 'hover:bg-slate-100'}`
+            }`}
+          >
+            <span>全部</span>
+            <span className={`tabular-nums text-xs font-medium ${textMuted(theme)}`}>{listCountLabel}</span>
+          </button>
+        </li>
+        {catalogTags.map((t) => {
+          const n = tagCounts.get(t.name) ?? 0;
+          const active = tagFilter === t.name;
+          return (
+            <li key={t.id}>
+              <button
+                type="button"
+                aria-current={active ? 'true' : undefined}
+                onClick={() => setTagFilter((p) => (p === t.name ? null : t.name))}
+                className={`flex min-h-11 w-full items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/45 ${
+                  active
+                    ? isDark
+                      ? 'bg-violet-500/20 text-white'
+                      : 'bg-violet-100 text-violet-950'
+                    : `${textSecondary(theme)} ${isDark ? 'hover:bg-white/[0.06]' : 'hover:bg-slate-100'}`
+                }`}
+              >
+                <span className="min-w-0 truncate">{t.name}</span>
+                <span className={`shrink-0 tabular-nums text-xs font-medium ${textMuted(theme)}`}>{n}</span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
 
   const invokeBodyView = useMemo(
     () => (invokeResponse ? tryFormatJsonText(invokeResponse.body ?? '') : null),
@@ -607,132 +692,288 @@ export const McpMarket: React.FC<Props> = ({ theme, showMessage }) => {
     setMcpPayloadMode('simple');
   };
 
+  const searchPlaceholder =
+    listCountLabel > 0
+      ? `搜索 MCP 服务（本页已加载 ${rows.length} 条）…`
+      : '搜索 MCP 名称或编码…';
+
   return (
     <div className={`flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${canvasBodyBg(theme)}`}>
-      <div className="px-0 py-4 sm:py-5">
-        <div className={`${bentoCard(theme)} overflow-hidden p-4 sm:p-6 lg:p-8`}>
-          <div className="mb-5 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className={`shrink-0 rounded-xl p-2 ${isDark ? 'bg-neutral-900/10' : 'bg-neutral-100'}`}>
-                <Puzzle size={22} className="text-neutral-800" />
-              </div>
-              <PageTitleTagline
-                subtitleOnly
-                theme={theme}
-                title={chromePageTitle || 'MCP 市场'}
-                tagline="浏览 MCP 资源；统一网关 resolve、invoke 与 invoke-stream（须 Key、scope；Grant 或 accessPolicy 短路规则同其他类型）"
-              />
+      <div className={`${mainScrollPadX} ${mainScrollPadBottom} space-y-6 pt-5 sm:pt-6`}>
+        <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex min-w-0 gap-4">
+            <div
+              className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-white shadow-lg shadow-violet-500/25 sm:h-16 sm:w-16 ${
+                isDark
+                  ? 'bg-gradient-to-br from-violet-500 to-indigo-500'
+                  : 'bg-gradient-to-br from-violet-600 to-indigo-600'
+              }`}
+              aria-hidden
+            >
+              <Puzzle className="h-7 w-7 sm:h-8 sm:w-8" strokeWidth={2.25} />
             </div>
-            <GlassPanel theme={theme} padding="sm" className="!p-0 w-full sm:w-72">
-              <div className="relative">
-                <Search size={16} className={`pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 ${iconMuted(theme)}`} />
+            <div className="min-w-0 pt-0.5">
+              <p className={`text-xs font-semibold uppercase tracking-wider ${textMuted(theme)}`}>MCP plaza</p>
+              <h1 className={`mt-1 ${TITLE_SIZE_CLASSES[fontSize]} font-bold tracking-tight`}>
+                <span className="bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-500 bg-clip-text text-transparent dark:from-violet-400 dark:via-indigo-400 dark:to-cyan-400">
+                  {chromePageTitle || 'MCP 广场'}
+                </span>
+              </h1>
+              <p className={`mt-2 max-w-xl text-sm leading-relaxed sm:text-base ${textSecondary(theme)}`}>
+                浏览已发布 MCP 服务；统一网关 resolve、invoke 与 invoke-stream（须有效 Key 与授权 scope）。
+              </p>
+            </div>
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center gap-2 lg:justify-end">
+            <button
+              type="button"
+              onClick={() => navigate(buildPath('user', 'api-docs'))}
+              className={`inline-flex min-h-10 items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 ${
+                isDark ? 'border-white/[0.12] bg-white/[0.04] text-slate-200 hover:bg-white/[0.08]' : 'border-slate-200/80 bg-white text-slate-800 shadow-sm hover:bg-slate-50'
+              }`}
+            >
+              <FileText className="h-4 w-4 shrink-0 text-violet-500 dark:text-violet-400" aria-hidden />
+              接入与部署
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate(buildPath('user', 'mcp-register'))}
+              className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white shadow-md transition hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/45 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 sm:text-sm"
+            >
+              发布 MCP
+              <Sparkles className="h-4 w-4" aria-hidden />
+            </button>
+          </div>
+        </header>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div
+            className={`rounded-2xl border p-5 ${
+              isDark ? 'border-violet-500/20 bg-gradient-to-br from-violet-600/15 to-slate-900/30' : 'border-violet-200/70 bg-gradient-to-br from-violet-50 to-white'
+            }`}
+          >
+            <div className="mb-2 inline-flex rounded-full bg-violet-500/15 px-2.5 py-0.5 text-[11px] font-bold text-violet-700 dark:text-violet-200">
+              <Zap className="mr-1 h-3.5 w-3.5" aria-hidden />
+              接入
+            </div>
+            <p className={`text-sm font-semibold ${textPrimary(theme)}`}>统一网关 resolve</p>
+            <p className={`mt-1 text-xs leading-relaxed ${textSecondary(theme)}`}>
+              解析接入端点、传输方式与元数据，与目录 accessPolicy / Grant 规则一致。
+            </p>
+          </div>
+          <div
+            className={`rounded-2xl border p-5 ${
+              isDark ? 'border-cyan-500/20 bg-gradient-to-br from-cyan-600/12 to-slate-900/30' : 'border-cyan-200/70 bg-gradient-to-br from-cyan-50/90 to-white'
+            }`}
+          >
+            <div className="mb-2 inline-flex rounded-full bg-cyan-500/15 px-2.5 py-0.5 text-[11px] font-bold text-cyan-800 dark:text-cyan-200">
+              调试
+            </div>
+            <p className={`text-sm font-semibold ${textPrimary(theme)}`}>JSON-RPC 模板</p>
+            <p className={`mt-1 text-xs leading-relaxed ${textSecondary(theme)}`}>
+              initialize、tools/list、tools/call 快捷组装，支持流式与普通 invoke。
+            </p>
+          </div>
+          <div
+            className={`rounded-2xl border p-5 ${
+              isDark ? 'border-fuchsia-500/20 bg-gradient-to-br from-fuchsia-600/12 to-slate-900/30' : 'border-fuchsia-200/70 bg-gradient-to-br from-fuchsia-50/90 to-white'
+            }`}
+          >
+            <div className="mb-2 inline-flex rounded-full bg-fuchsia-500/15 px-2.5 py-0.5 text-[11px] font-bold text-fuchsia-800 dark:text-fuchsia-200">
+              治理
+            </div>
+            <p className={`text-sm font-semibold ${textPrimary(theme)}`}>收藏与评价</p>
+            <p className={`mt-1 text-xs leading-relaxed ${textSecondary(theme)}`}>
+              目录评分、评论与授权申请与资源目录打通。
+            </p>
+          </div>
+        </div>
+
+        <div
+          className={`flex gap-3 rounded-2xl border px-4 py-3 text-sm leading-relaxed ${
+            isDark ? 'border-amber-500/25 bg-amber-500/[0.07] text-amber-100/90' : 'border-amber-200/80 bg-amber-50/80 text-amber-950'
+          }`}
+        >
+          <Zap className="mt-0.5 h-4 w-4 shrink-0 text-amber-500 dark:text-amber-400" aria-hidden />
+          <p>
+            <strong className="font-semibold">{chromePageTitle || 'MCP 广场'}</strong>
+            ：侧栏标签数量基于最近一次「全部」列表快照（单页最多 100 条）；筛选标签后列表为接口筛选结果。
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+          <CategoryNav className="hidden w-full shrink-0 lg:block lg:w-52 xl:w-56" />
+          <div className="min-w-0 flex-1 space-y-4">
+            <div className="lg:hidden">
+              <p className={`mb-2 text-xs font-semibold ${textMuted(theme)}`}>分类</p>
+              <div
+                className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                role="tablist"
+                aria-label="MCP 标签"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={tagFilter === null}
+                  onClick={() => setTagFilter(null)}
+                  className={`shrink-0 rounded-full px-3.5 py-2 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/45 ${
+                    tagFilter === null
+                      ? isDark
+                        ? 'bg-violet-500/25 text-white'
+                        : 'bg-violet-600 text-white'
+                      : isDark
+                        ? 'bg-white/[0.06] text-slate-300'
+                        : 'bg-slate-100 text-slate-700'
+                  }`}
+                >
+                  全部
+                  <span className="ml-1 tabular-nums opacity-80">({listCountLabel})</span>
+                </button>
+                {catalogTags.map((t) => {
+                  const n = tagCounts.get(t.name) ?? 0;
+                  const active = tagFilter === t.name;
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={active}
+                      onClick={() => setTagFilter((p) => (p === t.name ? null : t.name))}
+                      className={`max-w-[10rem] shrink-0 truncate rounded-full px-3.5 py-2 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/45 ${
+                        active
+                          ? isDark
+                            ? 'bg-violet-500/25 text-white'
+                            : 'bg-violet-600 text-white'
+                          : isDark
+                            ? 'bg-white/[0.06] text-slate-300'
+                            : 'bg-slate-100 text-slate-700'
+                      }`}
+                    >
+                      {t.name}
+                      <span className="ml-1 tabular-nums opacity-80">({n})</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+              <span className={`shrink-0 text-sm font-semibold ${textPrimary(theme)}`}>
+                MCP 服务
+                {tagFilter != null && (
+                  <span className={`ml-2 text-xs font-normal ${textMuted(theme)}`}>· {tagFilter}</span>
+                )}
+              </span>
+              <div className="relative min-w-0 flex-1">
+                <Search
+                  className={`pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 ${iconMuted(theme)}`}
+                  aria-hidden
+                />
                 <input
-                  type="text"
+                  type="search"
                   name="mcp-market-search"
                   autoComplete="off"
                   spellCheck={false}
-                  placeholder="搜索 MCP 名称或编码…"
+                  placeholder={searchPlaceholder}
                   value={keyword}
                   onChange={(e) => setKeyword(e.target.value)}
-                  className={`w-full bg-transparent py-2.5 pl-9 pr-3 text-sm outline-none ${textPrimary(theme)}`}
+                  aria-label="搜索 MCP 服务"
+                  className={`min-h-12 w-full rounded-2xl border py-3 pl-12 pr-4 text-sm outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-violet-500/40 ${
+                    isDark
+                      ? 'border-white/[0.1] bg-white/[0.05] text-white placeholder:text-slate-500'
+                      : 'border-slate-200/90 bg-white text-slate-900 shadow-sm placeholder:text-slate-400'
+                  }`}
                 />
               </div>
-            </GlassPanel>
-          </div>
-
-          <div className={`mb-5 flex flex-wrap items-center gap-2`}>
-            <span className={`text-xs font-medium ${textMuted(theme)}`}>标签：</span>
-            <button
-              type="button"
-              onClick={() => setTagFilter(null)}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all ${
-                tagFilter === null
-                  ? 'bg-neutral-900 text-white shadow-sm shadow-neutral-900/15'
-                  : isDark
-                    ? 'text-slate-400 hover:bg-white/5'
-                    : 'text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              全部
-            </button>
-            {catalogTags.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setTagFilter((p) => (p === t.name ? null : t.name))}
-                className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all ${
-                  tagFilter === t.name
-                    ? 'bg-neutral-900 text-white shadow-sm shadow-neutral-900/15'
-                    : isDark
-                      ? 'text-slate-400 hover:bg-white/5'
-                      : 'text-slate-600 hover:bg-slate-100'
-                }`}
-              >
-                {t.name}
-              </button>
-            ))}
-          </div>
-
-          {loading ? (
-            <PageSkeleton type="cards" />
-          ) : loadError ? (
-            <PageError error={loadError} onRetry={() => void load()} retryLabel="重试加载 MCP 市场" />
-          ) : filtered.length === 0 ? (
-            <div className={`py-16 text-center text-sm ${textMuted(theme)}`}>暂无可用 MCP 资源</div>
-          ) : (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {filtered.map((item) => (
-                <BentoCard
-                  key={item.resourceId}
-                  theme={theme}
-                  hover
-                  glow="indigo"
-                  padding="md"
-                  className="flex h-full flex-col !rounded-[20px]"
-                  onClick={() => setDetail(item)}
-                >
-                  <div className="mb-3 flex items-start gap-3">
-                    <div className={`flex h-10 w-10 items-center justify-center rounded-xl text-white bg-neutral-900 ${isDark ? 'opacity-95' : ''}`}>
-                      <Puzzle size={17} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <h3 className={`truncate font-semibold ${textPrimary(theme)}`}>{item.displayName}</h3>
-                      <p className={`truncate text-xs font-mono ${textMuted(theme)}`}>{item.resourceCode || item.resourceId}</p>
-                      <p
-                        className={`mt-0.5 truncate text-[11px] ${textMuted(theme)}`}
-                        title={resolvePersonDisplay({ names: [item.createdByName], ids: [item.createdBy ?? undefined] })}
-                      >
-                        {resolvePersonDisplay({ names: [item.createdByName], ids: [item.createdBy ?? undefined] })}
-                      </p>
-                    </div>
-                  </div>
-                  <p className={`mb-3 line-clamp-2 text-sm ${textSecondary(theme)}`}>{item.description || '暂无描述'}</p>
-                  {(item.tags ?? []).length > 0 && (
-                    <div className="mb-3 flex flex-wrap gap-1">
-                      {(item.tags ?? []).slice(0, 5).map((tg) => (
-                        <span key={tg} className={`rounded-md px-1.5 py-0.5 text-[11px] font-medium ${isDark ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>{tg}</span>
-                      ))}
-                    </div>
-                  )}
-                  <div className={`mt-auto flex flex-col gap-2 border-t pt-3 ${isDark ? 'border-white/[0.08]' : 'border-slate-200/40'}`}>
-                    <AccessPolicyBadge theme={theme} value={item.accessPolicy} whenMissing="hide" />
-                    <div className={`flex items-center gap-1 text-[11px] tabular-nums ${textMuted(theme)}`} title="目录评分与评论数">
-                      <Star size={12} className="shrink-0 text-amber-500 fill-amber-500" />
-                      <span>{item.ratingAvg != null ? item.ratingAvg.toFixed(1) : '—'}</span>
-                      <span className="mx-1 opacity-40">·</span>
-                      <span>{Number(item.reviewCount ?? 0)} 条评价</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                    <span className={`text-xs ${textMuted(theme)}`}>状态：{statusLabel(item.status as any)}</span>
-                    <button type="button" className={`${btnPrimary} !px-3 !py-1.5 !text-xs`} onClick={(e) => { e.stopPropagation(); setDetail(item); }}>
-                      查看与使用
-                    </button>
-                    </div>
-                  </div>
-                </BentoCard>
-              ))}
             </div>
-          )}
+
+            {loading ? (
+              <PageSkeleton type="cards" />
+            ) : loadError ? (
+              <PageError error={loadError} onRetry={() => void load()} retryLabel="重试加载 MCP 市场" />
+            ) : filtered.length === 0 ? (
+              <div className={`py-16 text-center text-sm ${textMuted(theme)}`}>暂无可用 MCP 资源</div>
+            ) : (
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {filtered.map((item) => (
+                  <BentoCard
+                    key={item.resourceId}
+                    theme={theme}
+                    hover
+                    glow="indigo"
+                    padding="md"
+                    className="flex h-full flex-col !rounded-[20px]"
+                    onClick={() => setDetail(item)}
+                  >
+                    <div className="mb-3 flex items-start gap-3">
+                      <div
+                        className={`flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-900 text-white ${isDark ? 'opacity-95' : ''}`}
+                      >
+                        <Puzzle size={17} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className={`truncate font-semibold ${textPrimary(theme)}`}>{item.displayName}</h3>
+                        <p className={`truncate font-mono text-xs ${textMuted(theme)}`}>{item.resourceCode || item.resourceId}</p>
+                        <p
+                          className={`mt-0.5 truncate text-[11px] ${textMuted(theme)}`}
+                          title={resolvePersonDisplay({
+                            names: [item.createdByName],
+                            ids: [item.createdBy ?? undefined],
+                          })}
+                        >
+                          {resolvePersonDisplay({
+                            names: [item.createdByName],
+                            ids: [item.createdBy ?? undefined],
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                    <p className={`mb-3 line-clamp-2 text-sm ${textSecondary(theme)}`}>{item.description || '暂无描述'}</p>
+                    {(item.tags ?? []).length > 0 && (
+                      <div className="mb-3 flex flex-wrap gap-1">
+                        {(item.tags ?? []).slice(0, 5).map((tg) => (
+                          <span
+                            key={tg}
+                            className={`rounded-md px-1.5 py-0.5 text-[11px] font-medium ${
+                              isDark ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-600'
+                            }`}
+                          >
+                            {tg}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <div
+                      className={`mt-auto flex flex-col gap-2 border-t pt-3 ${isDark ? 'border-white/[0.08]' : 'border-slate-200/40'}`}
+                    >
+                      <AccessPolicyBadge theme={theme} value={item.accessPolicy} whenMissing="hide" />
+                      <div
+                        className={`flex items-center gap-1 text-[11px] tabular-nums ${textMuted(theme)}`}
+                        title="目录评分与评论数"
+                      >
+                        <Star size={12} className="shrink-0 fill-amber-500 text-amber-500" />
+                        <span>{item.ratingAvg != null ? item.ratingAvg.toFixed(1) : '—'}</span>
+                        <span className="mx-1 opacity-40">·</span>
+                        <span>{Number(item.reviewCount ?? 0)} 条评价</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className={`text-xs ${textMuted(theme)}`}>状态：{statusLabel(item.status as any)}</span>
+                        <button
+                          type="button"
+                          className={`${btnPrimary} !px-3 !py-1.5 !text-xs`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDetail(item);
+                          }}
+                        >
+                          查看与使用
+                        </button>
+                      </div>
+                    </div>
+                  </BentoCard>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

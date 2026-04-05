@@ -72,6 +72,7 @@ const UserResourceMarketHub = lazy(() =>
   import('../views/marketplace/UserResourceMarketHub').then((m) => ({ default: m.UserResourceMarketHub })),
 );
 const SkillMarket = lazy(() => import('../views/skill/SkillMarket').then((m) => ({ default: m.SkillMarket })));
+const McpMarket = lazy(() => import('../views/mcp/McpMarket').then((m) => ({ default: m.McpMarket })));
 
 import { useMessage } from '../components/common/Message';
 import { readPersistedNavState, writePersistedNavState } from '../utils/navigationState';
@@ -396,6 +397,9 @@ const MainContent = React.memo<{
       case 'skills-center':
         return <SkillMarket theme={t} fontSize={fs} themeColor={tc} showMessage={msg} />;
 
+      case 'mcp-center':
+        return <McpMarket theme={t} fontSize={fs} themeColor={tc} showMessage={msg} />;
+
       case 'my-agents-pub':
         return <MyPublishHubPage theme={t} fontSize={fs} />;
 
@@ -461,7 +465,7 @@ const MainContent = React.memo<{
     if (p === 'dashboard' || p === 'workspace') return 'dashboard' as const;
     if (p.includes('create')) return 'form' as const;
     if (p.includes('detail') || p === 'profile') return 'detail' as const;
-    if (p.includes('market') || p === 'quick-access' || p === 'skills-center') return 'cards' as const;
+    if (p.includes('market') || p === 'quick-access' || p === 'skills-center' || p === 'mcp-center') return 'cards' as const;
     if (p.includes('monitoring') || p === 'performance-analysis' || p === 'data-reports' || p === 'usage-statistics') return 'chart' as const;
     return 'table' as const;
   })();
@@ -621,7 +625,9 @@ const MainLayoutContent: React.FC<{
   const activeSidebar =
     !layoutIsAdmin && page === 'resource-market' && marketTabQuery === 'skill'
       ? 'skills-center'
-      : baseActiveSidebar;
+      : !layoutIsAdmin && page === 'resource-market' && marketTabQuery === 'mcp'
+        ? 'mcp-center'
+        : baseActiveSidebar;
   const activeSubItem = pageToSubItem(page, activeSidebar, layoutIsAdmin);
 
   const headerMenusRef = useRef<HTMLDivElement>(null);
@@ -746,9 +752,18 @@ const MainLayoutContent: React.FC<{
     if (routeRole === 'user' && normalizedRoutePage && USER_LEGACY_MARKET_PAGE_TO_TAB[normalizedRoutePage]) {
       const tab = USER_LEGACY_MARKET_PAGE_TO_TAB[normalizedRoutePage];
       const sp = new URLSearchParams(location.search);
+      const rid = sp.get('resourceId');
+      if (tab === 'mcp') {
+        const q = new URLSearchParams();
+        if (rid) q.set('resourceId', rid);
+        const next = `${buildPath('user', 'mcp-center')}${q.toString() ? `?${q}` : ''}`;
+        if (`${location.pathname}${location.search}` !== next) {
+          navigate(next, { replace: true });
+        }
+        return;
+      }
       const q = new URLSearchParams();
       q.set('tab', tab);
-      const rid = sp.get('resourceId');
       if (rid) q.set('resourceId', rid);
       const next = `${buildPath('user', 'resource-market')}?${q}`;
       if (`${location.pathname}${location.search}` !== next) {
@@ -765,6 +780,16 @@ const MainLayoutContent: React.FC<{
         const rid = sp.get('resourceId');
         if (rid) q.set('resourceId', rid);
         const next = `${buildPath('user', 'skills-center')}${q.toString() ? `?${q}` : ''}`;
+        if (`${location.pathname}${location.search}` !== next) {
+          navigate(next, { replace: true });
+        }
+        return;
+      }
+      if (tabOk === 'mcp') {
+        const q = new URLSearchParams();
+        const rid = sp.get('resourceId');
+        if (rid) q.set('resourceId', rid);
+        const next = `${buildPath('user', 'mcp-center')}${q.toString() ? `?${q}` : ''}`;
         if (`${location.pathname}${location.search}` !== next) {
           navigate(next, { replace: true });
         }
@@ -1192,6 +1217,10 @@ const MainLayoutContent: React.FC<{
     if (page === 'skills-center') {
       const rid = new URLSearchParams(location.search).get('resourceId');
       return rid ? `skills-center?resourceId=${rid}` : 'skills-center';
+    }
+    if (page === 'mcp-center') {
+      const rid = new URLSearchParams(location.search).get('resourceId');
+      return rid ? `mcp-center?resourceId=${rid}` : 'mcp-center';
     }
     return routeId ? `${page}/${routeId}` : page;
   }, [page, routeId, queryType, resourceTypeQuery, marketTabQuery, location.search]);

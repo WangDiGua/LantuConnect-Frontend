@@ -230,9 +230,53 @@
 }
 .animate-glow { animation: glow 2s ease-in-out infinite; }
 
+/* PageSkeleton：暗色下低调的条块 + 横向微光（避免大块 slate-200 刺眼） */
+@keyframes lantu-skeleton-shimmer {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+.lantu-skeleton-bar {
+  position: relative;
+  overflow: hidden;
+}
+
+.lantu-skeleton-bar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 45%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 255 255 / 0.42),
+    transparent
+  );
+  animation: lantu-skeleton-shimmer 2.1s ease-in-out infinite;
+}
+
+[data-theme="dark"] .lantu-skeleton-bar::before {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 255 255 / 0.075),
+    transparent
+  );
+  animation-duration: 2.6s;
+}
+
 /* 装饰性动效：系统请求减少动效时关闭（加载用 spinner 等保留 animate-spin） */
 @media (prefers-reduced-motion: reduce) {
   .animate-glow {
+    animation: none !important;
+  }
+
+  .lantu-skeleton-bar::before {
     animation: none !important;
   }
 }

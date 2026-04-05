@@ -47,7 +47,7 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
   };
 
   const baseClasses = `${roundedClasses[rounded]} ${
-    isDark ? 'bg-white/10' : 'bg-slate-200'
+    isDark ? 'bg-white/[0.055]' : 'bg-slate-200/90'
   } ${className}`;
 
   const style: React.CSSProperties = {};

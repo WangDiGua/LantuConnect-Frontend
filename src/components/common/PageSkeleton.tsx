@@ -5,9 +5,12 @@ interface PageSkeletonProps {
   rows?: number;
 }
 
+/** 条块 + 横向微光（index.css `.lantu-skeleton-bar`）；暗色为低对比填充，避免整块 slate-200 */
 const Shimmer: React.FC<{ className?: string }> = ({ className = '' }) => (
-  <div className={`animate-pulse bg-slate-200 rounded-lg ${className}`} />
+  <div className={`lantu-skeleton-bar rounded-lg bg-slate-200/85 dark:bg-white/[0.055] ${className}`} />
 );
+
+const skeletonCardShell = 'rounded-[24px] border border-slate-200/90 bg-transparent p-4 space-y-3 dark:border-white/[0.06] dark:bg-white/[0.025]';
 
 const DashboardSkeleton: React.FC = () => (
   <div className="p-4 space-y-5">
@@ -16,7 +19,7 @@ const DashboardSkeleton: React.FC = () => (
     {/* Stats row */}
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="rounded-[24px] border border-slate-200 p-4 space-y-3">
+        <div key={i} className={skeletonCardShell}>
           <div className="flex items-center gap-3">
             <Shimmer className="h-10 w-10 rounded-xl" />
             <div className="flex-1 space-y-2">
@@ -29,11 +32,11 @@ const DashboardSkeleton: React.FC = () => (
     </div>
     {/* Charts row */}
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <div className="rounded-[24px] border border-slate-200 p-4 space-y-3">
+      <div className={skeletonCardShell}>
         <Shimmer className="h-4 w-32" />
         <Shimmer className="h-52 w-full rounded-xl" />
       </div>
-      <div className="rounded-[24px] border border-slate-200 p-4 space-y-3">
+      <div className={skeletonCardShell}>
         <Shimmer className="h-4 w-32" />
         <Shimmer className="h-52 w-full rounded-xl" />
       </div>
@@ -41,7 +44,7 @@ const DashboardSkeleton: React.FC = () => (
     {/* Cards */}
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {Array.from({ length: 3 }).map((_, i) => (
-        <div key={i} className="rounded-[24px] border border-slate-200 p-4 space-y-3">
+        <div key={i} className={skeletonCardShell}>
           <div className="flex items-center gap-3">
             <Shimmer className="h-9 w-9 rounded-xl" />
             <Shimmer className="h-4 w-24" />
@@ -91,7 +94,7 @@ const ChartSkeleton: React.FC = () => (
     </div>
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="rounded-[24px] border border-slate-200 p-4 space-y-3">
+        <div key={i} className={skeletonCardShell}>
           <div className="flex items-center justify-between">
             <Shimmer className="h-4 w-28" />
             <Shimmer className="h-4 w-16" />
@@ -112,7 +115,7 @@ export const PageSkeleton: React.FC<PageSkeletonProps> = ({ type = 'table', rows
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="rounded-[24px] border border-slate-200 p-4 space-y-3">
+          <div key={i} className={skeletonCardShell}>
             <Shimmer className="h-4 w-3/4" />
             <Shimmer className="h-3 w-1/2" />
             <Shimmer className="h-20 w-full" />
@@ -164,14 +167,17 @@ export const PageSkeleton: React.FC<PageSkeletonProps> = ({ type = 'table', rows
         <Shimmer className="h-8 w-48" />
         <Shimmer className="h-9 w-24" />
       </div>
-      <div className="rounded-xl border border-slate-200 overflow-hidden">
-        <div className="bg-slate-50 px-4 py-3 flex gap-4">
+      <div className="overflow-hidden rounded-xl border border-slate-200/90 dark:border-white/[0.06] dark:bg-white/[0.02]">
+        <div className="flex gap-4 bg-slate-50 px-4 py-3 dark:bg-white/[0.035]">
           {Array.from({ length: 5 }).map((_, i) => (
             <Shimmer key={i} className="h-4 flex-1" />
           ))}
         </div>
         {Array.from({ length: rows }).map((_, i) => (
-          <div key={i} className="px-4 py-3 flex gap-4 border-t border-slate-100">
+          <div
+            key={i}
+            className="flex gap-4 border-t border-slate-100 px-4 py-3 dark:border-white/[0.05]"
+          >
             {Array.from({ length: 5 }).map((_, j) => (
               <Shimmer key={j} className="h-4 flex-1" />
             ))}

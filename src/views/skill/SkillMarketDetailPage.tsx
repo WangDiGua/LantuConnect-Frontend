@@ -29,6 +29,7 @@ import { formatDateTime } from '../../utils/formatDateTime';
 import { usePersistedGatewayApiKey } from '../../hooks/usePersistedGatewayApiKey';
 import { ApiException } from '../../types/api';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
+import { MarkdownView } from '../../components/common/MarkdownView';
 
 const TYPE_BADGE: Record<AgentType, { label: string; cls: string }> = {
   mcp: { label: 'MCP', cls: 'text-neutral-900 bg-neutral-900/10' },
@@ -76,7 +77,7 @@ export const SkillMarketDetailPage: React.FC<SkillMarketDetailPageProps> = ({
   const [skill, setSkill] = useState<Skill | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const [tab, setTab] = useState<'overview' | 'reviews'>('overview');
+  const [tab, setTab] = useState<'intro' | 'files' | 'reviews'>('intro');
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [useOpen, setUseOpen] = useState(false);
   const [useLoading, setUseLoading] = useState(false);
@@ -264,19 +265,27 @@ export const SkillMarketDetailPage: React.FC<SkillMarketDetailPageProps> = ({
           </>
         )}
         tabs={[
-          { id: 'overview', label: '技能详情' },
+          { id: 'intro', label: '技能介绍' },
+          { id: 'files', label: '技能文件' },
           { id: 'reviews', label: '评分评论', badge: Number(skill.reviewCount ?? 0) },
         ]}
         activeTabId={tab}
-        onTabChange={(id) => setTab(id as 'overview' | 'reviews')}
+        onTabChange={(id) => setTab(id as 'intro' | 'files' | 'reviews')}
         mainColumn={(
           <div
             className={`rounded-[28px] border p-6 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.02)] ${
               isDark ? 'border-white/10 bg-lantu-elevated' : 'border-transparent bg-white'
             }`}
           >
-            {tab === 'overview' ? (
+            {tab === 'intro' ? (
               <div className="space-y-4">
+                {skill.serviceDetailMd?.trim() ? (
+                  <MarkdownView value={skill.serviceDetailMd} className="text-sm" />
+                ) : (
+                  <p className={`text-sm ${textMuted(theme)}`}>
+                    暂无详细介绍；资源所有方可在「资源注册」中填写「技能介绍」（Markdown）。
+                  </p>
+                )}
                 <p className={`text-sm leading-relaxed ${textSecondary(theme)}`}>{skill.description || '暂无描述'}</p>
                 <div className={`flex flex-wrap gap-3 text-xs ${textMuted(theme)}`}>
                   <span>
@@ -321,6 +330,29 @@ export const SkillMarketDetailPage: React.FC<SkillMarketDetailPageProps> = ({
                     ))}
                   </div>
                 ) : null}
+              </div>
+            ) : tab === 'files' ? (
+              <div className="space-y-4">
+                <p className={`text-sm leading-relaxed ${textSecondary(theme)}`}>
+                  使用目录 resolve 下载技能包制品。请先绑定有效 X-Api-Key；也可使用顶部「获取技能包」打开完整流程。
+                </p>
+                <GatewayApiKeyInput theme={theme} id="skill-detail-gateway-key-files" value={gatewayApiKeyDraft} onChange={setGatewayApiKeyDraft} />
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className={`${btnPrimary} min-h-11`}
+                    onClick={() => {
+                      setUseOpen(true);
+                      setUseResult(null);
+                    }}
+                  >
+                    <Download size={16} className="shrink-0" aria-hidden />
+                    获取技能包
+                  </button>
+                  <button type="button" className={`${btnSecondary(theme)} min-h-11`} onClick={() => setGrantOpen(true)}>
+                    申请 resolve 授权
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="space-y-2">

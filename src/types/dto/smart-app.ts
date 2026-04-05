@@ -27,6 +27,8 @@ export interface SmartApp {
   createdByName?: string;
   ratingAvg?: number;
   reviewCount?: number;
+  /** 市场详情「应用介绍」Markdown */
+  serviceDetailMd?: string;
 }
 
 export interface SmartAppCreatePayload {

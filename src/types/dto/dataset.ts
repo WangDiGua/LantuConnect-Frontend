@@ -31,6 +31,8 @@ export interface Dataset {
   /** 目录聚合；无评论时可为 null */
   ratingAvg?: number | null;
   reviewCount?: number | null;
+  /** 市场详情「数据集介绍」Markdown */
+  serviceDetailMd?: string;
   createTime: string;
   updateTime: string;
   deleted?: number;

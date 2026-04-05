@@ -16,6 +16,7 @@ import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { usePersistedGatewayApiKey } from '../../hooks/usePersistedGatewayApiKey';
 import { ApiException } from '../../types/api';
+import { MarkdownView } from '../../components/common/MarkdownView';
 
 export interface DatasetMarketDetailPageProps {
   resourceId: string;
@@ -85,7 +86,7 @@ export const DatasetMarketDetailPage: React.FC<DatasetMarketDetailPageProps> = (
   const [ds, setDs] = useState<Dataset | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const [tab, setTab] = useState<'overview' | 'reviews'>('overview');
+  const [tab, setTab] = useState<'intro' | 'files' | 'reviews'>('intro');
   const [grantOpen, setGrantOpen] = useState(false);
   const [invoking, setInvoking] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
@@ -248,43 +249,33 @@ export const DatasetMarketDetailPage: React.FC<DatasetMarketDetailPageProps> = (
                 </>
               )}
             </button>
-            <button
-              type="button"
-              className={`${btnSecondary(theme)} inline-flex min-h-11 items-center justify-center gap-2 disabled:opacity-50`}
-              disabled={invoking}
-              onClick={() => void runResolve()}
-            >
-              {invoking ? (
-                <>
-                  <Loader2 size={14} className="animate-spin" />
-                  解析中…
-                </>
-              ) : (
-                <>
-                  <FileSearch size={16} aria-hidden />
-                  解析目录
-                </>
-              )}
-            </button>
             <button type="button" className={`${btnPrimary} min-h-11`} onClick={() => setGrantOpen(true)}>
               申请使用
             </button>
           </>
         )}
         tabs={[
-          { id: 'overview', label: '数据集详情' },
+          { id: 'intro', label: '数据集介绍' },
+          { id: 'files', label: '数据集文件' },
           { id: 'reviews', label: '评分评论', badge: Math.max(0, Math.floor(Number(ds.reviewCount ?? 0)) || 0) },
         ]}
         activeTabId={tab}
-        onTabChange={(id) => setTab(id as 'overview' | 'reviews')}
+        onTabChange={(id) => setTab(id as 'intro' | 'files' | 'reviews')}
         mainColumn={(
           <div
             className={`rounded-[28px] border p-6 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.02)] ${
               isDark ? 'border-white/10 bg-lantu-elevated' : 'border-transparent bg-white'
             }`}
           >
-            {tab === 'overview' ? (
+            {tab === 'intro' ? (
               <div className="space-y-4">
+                {ds.serviceDetailMd?.trim() ? (
+                  <MarkdownView value={ds.serviceDetailMd} className="text-sm" />
+                ) : (
+                  <p className={`text-sm ${textMuted(theme)}`}>
+                    暂无详细介绍；资源所有方可在「资源注册」中填写「数据集介绍」（Markdown）。
+                  </p>
+                )}
                 <p className={`text-sm leading-relaxed ${textSecondary(theme)}`}>{ds.description || '暂无描述'}</p>
                 <div className={`grid grid-cols-2 gap-3 rounded-2xl border p-4 ${
                   isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200/80 bg-slate-50/80'
@@ -298,22 +289,6 @@ export const DatasetMarketDetailPage: React.FC<DatasetMarketDetailPageProps> = (
                     <div className={`text-[11px] font-medium ${textMuted(theme)}`}>文件大小</div>
                     <div className={`text-base font-bold ${textPrimary(theme)}`}>{formatFileSize(ds.fileSize)}</div>
                   </div>
-                </div>
-                <GatewayApiKeyInput theme={theme} id="dataset-detail-gateway-key" value={gatewayApiKeyDraft} onChange={setGatewayApiKeyDraft} />
-                <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
-                  使用您的 API Key 调用 <span className="font-mono text-[11px]">POST /catalog/resolve</span>
-                  （resourceType=dataset）查看目录返回；本平台不对数据集暴露统一{' '}
-                  <span className="font-mono text-[11px]">/invoke</span>。
-                </p>
-                <div>
-                  <div className={`mb-2 text-xs font-semibold ${textSecondary(theme)}`}>resolve 结果</div>
-                  <pre
-                    className={`max-h-72 min-h-[4.5rem] overflow-auto rounded-xl border p-3 text-xs ${
-                      isDark ? 'border-white/10 bg-white/[0.03] text-slate-200' : 'border-slate-200 bg-slate-50 text-slate-700'
-                    }`}
-                  >
-                    {invokeResult ?? '点击「解析目录」后在此展示 resolve 返回。'}
-                  </pre>
                 </div>
                 {(ds.tags ?? []).length > 0 && (
                   <div>
@@ -332,6 +307,43 @@ export const DatasetMarketDetailPage: React.FC<DatasetMarketDetailPageProps> = (
                     </div>
                   </div>
                 )}
+              </div>
+            ) : tab === 'files' ? (
+              <div className="space-y-4">
+                <GatewayApiKeyInput theme={theme} id="dataset-detail-gateway-key" value={gatewayApiKeyDraft} onChange={setGatewayApiKeyDraft} />
+                <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
+                  使用您的 API Key 调用 <span className="font-mono text-[11px]">POST /catalog/resolve</span>
+                  （resourceType=dataset）查看目录返回；本平台不对数据集暴露统一{' '}
+                  <span className="font-mono text-[11px]">/invoke</span>。
+                </p>
+                <button
+                  type="button"
+                  className={`${btnSecondary(theme)} inline-flex min-h-11 items-center justify-center gap-2 disabled:opacity-50`}
+                  disabled={invoking}
+                  onClick={() => void runResolve()}
+                >
+                  {invoking ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      解析中…
+                    </>
+                  ) : (
+                    <>
+                      <FileSearch size={16} aria-hidden />
+                      解析目录
+                    </>
+                  )}
+                </button>
+                <div>
+                  <div className={`mb-2 text-xs font-semibold ${textSecondary(theme)}`}>resolve 结果</div>
+                  <pre
+                    className={`max-h-72 min-h-[4.5rem] overflow-auto rounded-xl border p-3 text-xs ${
+                      isDark ? 'border-white/10 bg-white/[0.03] text-slate-200' : 'border-slate-200 bg-slate-50 text-slate-700'
+                    }`}
+                  >
+                    {invokeResult ?? '点击「解析目录」后在此展示 resolve 返回。'}
+                  </pre>
+                </div>
               </div>
             ) : (
               <div>

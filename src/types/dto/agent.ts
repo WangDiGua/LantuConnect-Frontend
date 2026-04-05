@@ -43,6 +43,8 @@ export interface Agent {
   createdByName?: string;
   ratingAvg?: number;
   reviewCount?: number;
+  /** 市场详情「智能体介绍」Markdown */
+  serviceDetailMd?: string;
 }
 
 export interface AgentCreatePayload {

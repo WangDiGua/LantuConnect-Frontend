@@ -598,7 +598,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     artifactSha256: '',
     skillRootPath: '',
     accessPolicy: 'grant_required' as ResourceAccessPolicy,
-    mcpServiceDetailMd: '',
+    serviceDetailMd: '',
   });
   const [mcpImportPaste, setMcpImportPaste] = useState('');
   const [mcpProbeLoading, setMcpProbeLoading] = useState(false);
@@ -712,7 +712,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
           resourceCode: item.resourceCode || '',
           displayName: item.displayName || '',
           description: item.description || '',
-          mcpServiceDetailMd: resourceType === 'mcp' ? (item.serviceDetailMd ?? '') : prev.mcpServiceDetailMd,
+          serviceDetailMd: item.serviceDetailMd ?? '',
           sourceType: item.sourceType || 'internal',
           providerId: item.providerId ?? '',
           categoryId: item.categoryId ?? '',
@@ -1005,7 +1005,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
         protocol: 'mcp',
         authType: form.authType || 'none',
         authConfig,
-        serviceDetailMd: form.mcpServiceDetailMd.trim(),
+        serviceDetailMd: form.serviceDetailMd.trim(),
       };
     }
     if (resourceType === 'skill') {
@@ -1022,6 +1022,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       return {
         ...baseFields,
         resourceType: 'skill',
+        serviceDetailMd: form.serviceDetailMd.trim(),
         skillType: form.skillType.trim(),
         mode: form.mode,
         artifactUri: form.artifactUri.trim() || undefined,
@@ -1048,6 +1049,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       return {
         ...baseFields,
         resourceType: 'agent',
+        serviceDetailMd: form.serviceDetailMd.trim(),
         agentType: form.agentType.trim(),
         mode: form.mode,
         spec: parsedSpec.data || {},
@@ -1069,6 +1071,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       return {
         ...baseFields,
         resourceType: 'app',
+        serviceDetailMd: form.serviceDetailMd.trim(),
         appUrl: form.appUrl.trim(),
         embedType: form.embedType.trim().toLowerCase(),
         icon: form.appIcon.trim() || undefined,
@@ -1080,6 +1083,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     return {
       ...baseFields,
       resourceType: 'dataset',
+      serviceDetailMd: form.serviceDetailMd.trim(),
       dataType: form.dataType.trim(),
       format: form.format.trim(),
       recordCount: Number(form.recordCount) || 0,
@@ -1330,18 +1334,40 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                 placeholder="用途与场景简述（选填）"
               />
             </Field>
-            {resourceType === 'mcp' ? (
-              <Field label="服务详情（选填）" full theme={theme}>
-                <ReviewMarkdownEditor
-                  theme={theme}
-                  value={form.mcpServiceDetailMd}
-                  onChange={(v) => setForm((p) => ({ ...p, mcpServiceDetailMd: v }))}
-                  variant="compact"
-                  editorMode="auto"
-                  placeholder="支持 Markdown：能力说明、认证方式、配额与示例等；将在 MCP 市场详情页「服务详情」展示"
-                />
-              </Field>
-            ) : null}
+            <Field
+              label={
+                resourceType === 'mcp'
+                  ? '服务详情（选填）'
+                  : resourceType === 'skill'
+                    ? '技能介绍（选填）'
+                    : resourceType === 'dataset'
+                      ? '数据集介绍（选填）'
+                      : resourceType === 'agent'
+                        ? '智能体介绍（选填）'
+                        : '应用介绍（选填）'
+              }
+              full
+              theme={theme}
+            >
+              <ReviewMarkdownEditor
+                theme={theme}
+                value={form.serviceDetailMd}
+                onChange={(v) => setForm((p) => ({ ...p, serviceDetailMd: v }))}
+                variant="compact"
+                editorMode="auto"
+                placeholder={
+                  resourceType === 'mcp'
+                    ? '支持 Markdown：能力说明、认证方式、配额与示例等；将在 MCP 市场详情页「服务详情」展示'
+                    : resourceType === 'skill'
+                      ? '支持 Markdown：技能能力、依赖、使用示例等；将在技能市场「技能介绍」Tab 展示'
+                      : resourceType === 'dataset'
+                        ? '支持 Markdown：数据来源、字段说明、使用限制等；将在数据集市场「数据集介绍」Tab 展示'
+                        : resourceType === 'agent'
+                          ? '支持 Markdown：适用场景、能力边界、调用说明等；将在智能体市场「智能体介绍」Tab 展示'
+                          : '支持 Markdown：功能说明、嵌入方式、权限与示例等；将在应用广场「应用介绍」Tab 展示'
+                }
+              />
+            </Field>
             <Field label="目录标签（选填）" theme={theme}>
               <LantuSelect
                 theme={theme}

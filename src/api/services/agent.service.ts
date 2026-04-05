@@ -7,9 +7,10 @@ import type {
   AgentListQuery,
 } from '../../types/dto/agent';
 import { resourceCatalogService } from './resource-catalog.service';
-import type { ResourceCatalogItemVO, ResourceCatalogQueryRequest } from '../../types/dto/catalog';
+import type { CatalogResourceDetailVO, ResourceCatalogItemVO, ResourceCatalogQueryRequest } from '../../types/dto/catalog';
 
 function toAgent(item: ResourceCatalogItemVO): Agent {
+  const detail = item as CatalogResourceDetailVO;
   const id = Number(item.resourceId) || 0;
   const createdBy =
     item.createdBy != null && Number.isFinite(Number(item.createdBy)) ? Number(item.createdBy) : undefined;
@@ -45,6 +46,7 @@ function toAgent(item: ResourceCatalogItemVO): Agent {
     createdByName: item.createdByName ?? undefined,
     ratingAvg: item.ratingAvg ?? undefined,
     reviewCount: item.reviewCount != null ? Number(item.reviewCount) : undefined,
+    serviceDetailMd: detail.serviceDetailMd,
   };
 }
 

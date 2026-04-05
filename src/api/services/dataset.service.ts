@@ -91,6 +91,7 @@ function toDataset(item: ResourceCatalogItemVO): Dataset {
     recordCount,
     fileSize,
     relatedAgentIds: undefined,
+    serviceDetailMd: detail.serviceDetailMd,
   };
 }
 

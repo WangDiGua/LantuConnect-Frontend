@@ -19,6 +19,7 @@ import { usePersistedGatewayApiKey } from '../../hooks/usePersistedGatewayApiKey
 import { safeOpenHttpUrl } from '../../lib/windowNavigate';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
 import type { MarketplaceStatusTone } from '../../components/market';
+import { MarkdownView } from '../../components/common/MarkdownView';
 
 export interface AppMarketDetailPageProps {
   resourceId: string;
@@ -84,7 +85,7 @@ export const AppMarketDetailPage: React.FC<AppMarketDetailPageProps> = ({
   const [app, setApp] = useState<SmartApp | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const [tab, setTab] = useState<'overview' | 'reviews'>('overview');
+  const [tab, setTab] = useState<'intro' | 'use' | 'reviews'>('intro');
   const [grantOpen, setGrantOpen] = useState(false);
   const [opening, setOpening] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
@@ -312,29 +313,27 @@ export const AppMarketDetailPage: React.FC<AppMarketDetailPageProps> = ({
           </>
         )}
         tabs={[
-          { id: 'overview', label: '应用信息' },
+          { id: 'intro', label: '应用介绍' },
+          { id: 'use', label: '使用应用' },
           { id: 'reviews', label: '评分评论', badge: Math.max(0, Math.floor(Number(app.reviewCount ?? 0)) || 0) },
         ]}
         activeTabId={tab}
-        onTabChange={(id) => setTab(id as 'overview' | 'reviews')}
+        onTabChange={(id) => setTab(id as 'intro' | 'use' | 'reviews')}
         mainColumn={(
           <div
             className={`rounded-[28px] border p-6 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.02)] ${
               isDark ? 'border-white/10 bg-lantu-elevated' : 'border-transparent bg-white'
             }`}
           >
-            {tab === 'overview' ? (
+            {tab === 'intro' ? (
               <div className="space-y-4">
-                <GatewayApiKeyInput
-                  theme={theme}
-                  id="app-detail-gateway-key"
-                  value={gatewayApiKeyDraft}
-                  errorText={gatewayOpenError || undefined}
-                  onChange={(v) => {
-                    setGatewayApiKeyDraft(v);
-                    setGatewayOpenError('');
-                  }}
-                />
+                {app.serviceDetailMd?.trim() ? (
+                  <MarkdownView value={app.serviceDetailMd} className="text-sm" />
+                ) : (
+                  <p className={`text-sm ${textMuted(theme)}`}>
+                    暂无详细介绍；资源所有方可在「资源注册」中填写「应用介绍」（Markdown）。
+                  </p>
+                )}
                 <p className={`text-sm leading-relaxed ${textSecondary(theme)}`}>{app.description || '暂无描述'}</p>
                 <div className={`flex flex-wrap gap-3 text-xs ${textMuted(theme)}`}>
                   <span>
@@ -360,6 +359,31 @@ export const AppMarketDetailPage: React.FC<AppMarketDetailPageProps> = ({
                     ))}
                   </div>
                 )}
+              </div>
+            ) : tab === 'use' ? (
+              <div className="space-y-4">
+                <GatewayApiKeyInput
+                  theme={theme}
+                  id="app-detail-gateway-key"
+                  value={gatewayApiKeyDraft}
+                  errorText={gatewayOpenError || undefined}
+                  onChange={(v) => {
+                    setGatewayApiKeyDraft(v);
+                    setGatewayOpenError('');
+                  }}
+                />
+                <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
+                  绑定 API Key 后通过目录 resolve 获取启动地址；顶部「打开应用」也可一键尝试。
+                </p>
+                <button
+                  type="button"
+                  className={`${btnPrimary} inline-flex min-h-11 items-center justify-center gap-2`}
+                  disabled={opening}
+                  onClick={() => void handleOpen()}
+                >
+                  {opening ? '打开中…' : '打开应用'}
+                  <ExternalLink size={16} className="shrink-0 opacity-90" aria-hidden />
+                </button>
               </div>
             ) : (
               <div>

@@ -37,6 +37,8 @@ export interface Skill {
   createdByName?: string;
   ratingAvg?: number;
   reviewCount?: number;
+  /** 目录/详情接口返回的扩展介绍 Markdown */
+  serviceDetailMd?: string;
 }
 
 export interface SkillCreatePayload {

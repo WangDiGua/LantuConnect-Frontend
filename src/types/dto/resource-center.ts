@@ -75,6 +75,8 @@ export type SkillPackChunkUploadProgress = {
 
 export interface ResourceSkillUpsertRequest extends ResourceBaseUpsertRequest {
   resourceType: 'skill';
+  /** 市场详情「技能介绍」Tab，Markdown，选填 */
+  serviceDetailMd?: string;
   /** 技能包格式：anthropic_v1 / folder_v1（远程 HTTP 工具请注册 resourceType=mcp） */
   skillType?: string;
   mode?: string;
@@ -96,6 +98,8 @@ export interface ResourceSkillUpsertRequest extends ResourceBaseUpsertRequest {
 
 export interface ResourceAgentUpsertRequest extends ResourceBaseUpsertRequest {
   resourceType: 'agent';
+  /** 市场详情「智能体介绍」Tab，Markdown，选填 */
+  serviceDetailMd?: string;
   agentType?: string;
   mode?: string;
   spec?: Record<string, unknown>;
@@ -110,6 +114,8 @@ export interface ResourceAgentUpsertRequest extends ResourceBaseUpsertRequest {
 
 export interface ResourceAppUpsertRequest extends ResourceBaseUpsertRequest {
   resourceType: 'app';
+  /** 市场详情「应用介绍」Tab，Markdown，选填 */
+  serviceDetailMd?: string;
   appUrl?: string;
   embedType?: string;
   icon?: string;
@@ -120,6 +126,8 @@ export interface ResourceAppUpsertRequest extends ResourceBaseUpsertRequest {
 
 export interface ResourceDatasetUpsertRequest extends ResourceBaseUpsertRequest {
   resourceType: 'dataset';
+  /** 市场详情「数据集介绍」Tab，Markdown，选填 */
+  serviceDetailMd?: string;
   dataType?: string;
   format?: string;
   recordCount?: number;

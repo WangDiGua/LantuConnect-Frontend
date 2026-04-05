@@ -9,7 +9,7 @@ import type {
 } from '../../types/dto/skill';
 import { invokeService } from './invoke.service';
 import { resourceCatalogService } from './resource-catalog.service';
-import type { ResourceCatalogItemVO } from '../../types/dto/catalog';
+import type { CatalogResourceDetailVO, ResourceCatalogItemVO } from '../../types/dto/catalog';
 
 function deprecatedWriteError<T>(): Promise<T> {
   return Promise.reject(
@@ -22,6 +22,7 @@ function deprecatedWriteError<T>(): Promise<T> {
 }
 
 function toSkill(item: ResourceCatalogItemVO): Skill {
+  const detail = item as CatalogResourceDetailVO;
   const id = Number(item.resourceId) || 0;
   const createdBy =
     item.createdBy != null && Number.isFinite(Number(item.createdBy)) ? Number(item.createdBy) : undefined;
@@ -56,6 +57,7 @@ function toSkill(item: ResourceCatalogItemVO): Skill {
     createdByName: item.createdByName ?? undefined,
     ratingAvg: item.ratingAvg ?? undefined,
     reviewCount: item.reviewCount != null ? Number(item.reviewCount) : undefined,
+    serviceDetailMd: detail.serviceDetailMd,
   };
 }
 

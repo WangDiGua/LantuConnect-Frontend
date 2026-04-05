@@ -11,6 +11,7 @@ import type { Agent } from '../../types/dto/agent';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { btnPrimary, btnSecondary, textPrimary, textSecondary, textMuted, techBadge } from '../../utils/uiClasses';
+import { MarkdownView } from '../../components/common/MarkdownView';
 
 export interface AgentMarketDetailPageProps {
   resourceId: string;
@@ -53,7 +54,7 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
   const [agent, setAgent] = useState<Agent | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const [tab, setTab] = useState<'overview' | 'reviews'>('overview');
+  const [tab, setTab] = useState<'intro' | 'capability' | 'reviews'>('intro');
   const [grantOpen, setGrantOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -179,7 +180,6 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
                 <span>{Math.max(0, Math.floor(Number(agent.reviewCount ?? 0)) || 0)} 条评价</span>
                 <span>{installsLabel} 次安装</span>
               </div>
-              <p className={`text-sm leading-relaxed ${textSecondary(theme)}`}>{agent.description}</p>
               <div className="flex flex-wrap gap-1.5">
                 {tags.map((t) => (
                   <span key={t} className={techBadge(theme)}>
@@ -207,18 +207,30 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
           </>
         )}
         tabs={[
-          { id: 'overview', label: '智能体详情' },
+          { id: 'intro', label: '智能体介绍' },
+          { id: 'capability', label: '能力说明' },
           { id: 'reviews', label: '评分评论', badge: Math.max(0, Math.floor(Number(agent.reviewCount ?? 0)) || 0) },
         ]}
         activeTabId={tab}
-        onTabChange={(id) => setTab(id as 'overview' | 'reviews')}
+        onTabChange={(id) => setTab(id as 'intro' | 'capability' | 'reviews')}
         mainColumn={(
           <div
             className={`rounded-[28px] border p-6 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.02)] ${
               isDark ? 'border-white/10 bg-lantu-elevated' : 'border-transparent bg-white'
             }`}
           >
-            {tab === 'overview' ? (
+            {tab === 'intro' ? (
+              <div className="space-y-4">
+                {agent.serviceDetailMd?.trim() ? (
+                  <MarkdownView value={agent.serviceDetailMd} className="text-sm" />
+                ) : (
+                  <p className={`text-sm ${textMuted(theme)}`}>
+                    暂无详细介绍；资源所有方可在「资源注册」中填写「智能体介绍」（Markdown）。
+                  </p>
+                )}
+                <p className={`text-sm leading-relaxed ${textSecondary(theme)}`}>{agent.description || '暂无描述'}</p>
+              </div>
+            ) : tab === 'capability' ? (
               <div className="space-y-4">
                 <p className={`text-sm leading-relaxed ${textSecondary(theme)}`}>
                   {agent.systemPrompt

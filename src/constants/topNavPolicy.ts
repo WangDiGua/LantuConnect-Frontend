@@ -3,7 +3,7 @@ import type { ConsoleRole } from './consoleRoutes';
 import type { NavSubGroup } from './navigation';
 import type { ConsoleSidebarRow } from '../components/layout/ConsoleSidebar';
 
-/** 应用端顶栏保留的一级侧栏 id（其余入口见头像菜单树与侧栏抽屉） */
+/** 应用端顶栏保留的一级侧栏 id（工作台等入口见探索首页左侧树与侧栏抽屉） */
 export const USER_TOP_NAV_SIDEBAR_IDS = [
   'hub',
   'skills-center',
@@ -20,8 +20,13 @@ export type UserTopNavSidebarId = (typeof USER_TOP_NAV_SIDEBAR_IDS)[number];
  * 横向不出现「平台管理」一级；总览等仍在侧栏抽屉与全局搜索（全量行）可达。
  */
 
-/** 首页 ExploreHub 左栏数据来源：与 sidebar id 一致，数据仍来自 getNavSubGroups + MainLayout 过滤 */
-export const HUB_PERSONAL_RAIL_PARENT_IDS = ['workspace', 'user-settings'] as const;
+/** 首页 ExploreHub 左栏一级分组（原头像菜单树，树状折叠；顺序即展示顺序） */
+export const HUB_PERSONAL_RAIL_PARENT_IDS = [
+  'workspace',
+  'user-resource-assets',
+  'developer-portal',
+  'user-settings',
+] as const;
 
 /**
  * 平台管理一级（与 ADMIN_SIDEBAR_ITEMS.id 一致；实际渲染顺序以 MainLayout 权限过滤后的 adminSidebarItems 为准）

@@ -8,7 +8,6 @@ import {
   Minimize2,
   MoreVertical,
   LogOut,
-  User,
 } from 'lucide-react';
 import { Theme, ThemeMode, ThemeColor, FontSize, FontFamily, AnimationStyle } from '../types';
 import { FONT_FAMILY_CLASSES, getRootFontSizePx } from '../constants/theme';
@@ -187,14 +186,6 @@ const DEVELOPER_PORTAL_PAGES = new Set([
   'sdk-download',
   'api-playground',
   'developer-statistics',
-]);
-
-/** 顶栏收窄后：沉入头像菜单的一级侧栏 id（与 userSidebarItems 权限过滤一致） */
-const USER_OVERFLOW_MENU_PARENT_IDS = new Set([
-  'workspace',
-  'user-resource-assets',
-  'developer-portal',
-  'user-settings',
 ]);
 
 const MainContent = React.memo<{
@@ -1033,11 +1024,6 @@ const MainLayoutContent: React.FC<{
     [hasPermission],
   );
 
-  const userOverflowMenuParents = useMemo(
-    () => userSidebarItems.filter((item) => USER_OVERFLOW_MENU_PARENT_IDS.has(item.id)),
-    [userSidebarItems],
-  );
-
   const adminSidebarItems = useMemo(() => {
     if (!canAccessAdminView(platformRole)) return [];
     const adminPermMap: Record<string, string> = {
@@ -1544,105 +1530,11 @@ const MainLayoutContent: React.FC<{
                       exit={{ opacity: 0, y: -8, scale: 0.98 }}
                       transition={springTransition}
                       role="menu"
-                      aria-label="账户与导航"
-                      className={`absolute right-0 top-full z-[60] mt-1.5 w-[min(22rem,calc(100vw-1rem))] rounded-xl border p-1.5 shadow-xl ${
+                      aria-label="账户"
+                      className={`absolute right-0 top-full z-[60] mt-1.5 w-52 rounded-xl border p-1.5 shadow-xl ${
                         isDark ? 'border-white/10 bg-lantu-card' : 'border-slate-200 bg-white'
                       }`}
                     >
-                      {!layoutIsAdmin && userOverflowMenuParents.length > 0 ? (
-                        <>
-                          <div
-                            className={`max-h-[min(80vh,36rem)] overflow-y-auto overflow-x-hidden custom-scrollbar px-0.5 pb-1 pt-1 ${mainScrollCompositorClass}`}
-                          >
-                            {userOverflowMenuParents.map((parentMeta) => {
-                              const groups = filteredSubGroupsForSidebarId(parentMeta.id, 'user');
-                              if (groups.length === 0) return null;
-                              const sectionHeadingId = `user-overflow-section-${parentMeta.id}`;
-                              return (
-                                <div
-                                  key={parentMeta.id}
-                                  role="group"
-                                  aria-labelledby={sectionHeadingId}
-                                  className="mb-2 last:mb-0"
-                                >
-                                  <div
-                                    id={sectionHeadingId}
-                                    className={`px-3 pb-1 pt-2 text-xs font-semibold tracking-wide ${
-                                      isDark ? 'text-slate-400' : 'text-slate-500'
-                                    }`}
-                                  >
-                                    {parentMeta.label}
-                                  </div>
-                                  {groups.map((g) => (
-                                    <div key={`${parentMeta.id}-${g.title}`} className="mb-1 last:mb-0">
-                                      <div
-                                        className={`px-3 pb-0.5 pt-1 text-[11px] font-medium uppercase tracking-wide ${
-                                          isDark ? 'text-slate-500' : 'text-slate-400'
-                                        }`}
-                                      >
-                                        {g.title}
-                                      </div>
-                                      {g.items.map((subItem) => (
-                                        <button
-                                          key={subItem.id}
-                                          type="button"
-                                          role="menuitem"
-                                          onClick={() => {
-                                            setShowUserMenu(false);
-                                            handleSubItemClick(subItem.id, parentMeta.id, 'user');
-                                          }}
-                                          className={`flex min-h-11 w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-inset ${
-                                            activeSubItem === subItem.id &&
-                                            activeSidebar === parentMeta.id &&
-                                            consoleRole === 'user'
-                                              ? isDark
-                                                ? 'bg-white/10 font-semibold text-slate-100'
-                                                : 'bg-slate-100 font-semibold text-slate-900'
-                                              : isDark
-                                                ? 'text-slate-300 hover:bg-white/[0.06]'
-                                                : 'text-slate-700 hover:bg-slate-50'
-                                          }`}
-                                        >
-                                          <subItem.icon size={16} className="shrink-0 opacity-90" aria-hidden />
-                                          <span className="min-w-0 flex-1">{subItem.label}</span>
-                                          {subItem.tag ? (
-                                            <span
-                                              className={`shrink-0 rounded-md px-1.5 py-px text-[10px] font-bold ${
-                                                isDark
-                                                  ? 'border border-white/[0.12] bg-white/[0.08] text-slate-200'
-                                                  : 'border border-slate-400/40 bg-[#F2F4F7] text-[#111827]'
-                                              }`}
-                                            >
-                                              {subItem.tag}
-                                            </span>
-                                          ) : null}
-                                        </button>
-                                      ))}
-                                    </div>
-                                  ))}
-                                </div>
-                              );
-                            })}
-                          </div>
-                          <div className={`mx-2 my-1 h-px ${isDark ? 'bg-white/[0.08]' : 'bg-slate-200/80'}`} aria-hidden />
-                        </>
-                      ) : null}
-                      <button
-                        type="button"
-                        role="menuitem"
-                        onClick={() => {
-                          setShowUserMenu(false);
-                          navigate(buildPath('user', 'profile'));
-                          if (layoutIsAdmin) setRole('user');
-                        }}
-                        className={`flex min-h-11 w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-inset ${
-                          isDark ? 'text-slate-200 hover:bg-white/[0.08]' : 'text-slate-800 hover:bg-slate-100'
-                        }`}
-                      >
-                        <User size={15} className="shrink-0 opacity-90" />
-                        个人资料
-                      </button>
-                      <div className={`mx-2 my-1 h-px ${isDark ? 'bg-white/[0.08]' : 'bg-slate-200/80'}`} aria-hidden />
                       <button
                         type="button"
                         role="menuitem"
@@ -1660,7 +1552,7 @@ const MainLayoutContent: React.FC<{
                         }}
                         className="flex min-h-11 w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium text-red-500 transition-colors hover:bg-red-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/45 focus-visible:ring-inset"
                       >
-                        <LogOut size={15} />
+                        <LogOut size={15} aria-hidden />
                         退出登录
                       </button>
                     </motion.div>
@@ -1679,7 +1571,7 @@ const MainLayoutContent: React.FC<{
                         ? 'border-white/10 bg-white/[0.06] hover:bg-white/[0.1] focus-visible:ring-offset-lantu-card'
                         : 'border-slate-200/80 bg-white hover:bg-slate-50 focus-visible:ring-offset-white'
                     }`}
-                    aria-label={`账户菜单，${displayUserName}`}
+                    aria-label={`账户，${displayUserName}，退出登录`}
                     aria-expanded={showUserMenu}
                   >
                     <MultiAvatar

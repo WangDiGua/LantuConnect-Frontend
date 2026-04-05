@@ -8,6 +8,7 @@ import type {
 import { resourceCenterService } from '../../api/services/resource-center.service';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
+import { LantuSelect } from '../../components/common/LantuSelect';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { btnGhost, btnPrimary, textMuted, textPrimary, textSecondary } from '../../utils/uiClasses';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
@@ -284,17 +285,12 @@ export const SkillExternalMarketSettingsForm: React.FC<Props> = ({ theme, fontSi
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <label className={`${labelCls} mb-1.5 block`}>provider</label>
-                <select
-                  className={inputCls}
+                <LantuSelect
+                  theme={theme}
                   value={draft.provider ?? 'skillsmp'}
-                  onChange={(e) => updateDraft({ provider: e.target.value })}
-                >
-                  {PROVIDERS.map((p) => (
-                    <option key={p.value} value={p.value}>
-                      {p.label}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(v) => updateDraft({ provider: v })}
+                  options={PROVIDERS.map((p) => ({ value: p.value, label: p.label }))}
+                />
               </div>
               <div>
                 <label className={`${labelCls} mb-1.5 block`}>缓存 TTL（秒）</label>
@@ -692,11 +688,11 @@ export const SkillExternalMarketSettingsForm: React.FC<Props> = ({ theme, fontSi
                         });
                       }}
                     />
-                    <select
-                      className={inputCls}
+                    <LantuSelect
+                      theme={theme}
+                      className="min-w-[6.5rem] sm:min-w-[7rem]"
                       value={(row.format ?? 'AUTO').toUpperCase()}
-                      onChange={(e) => {
-                        const v = e.target.value;
+                      onChange={(v) => {
                         setDraft((prev) => {
                           if (!prev) return prev;
                           const next = [...(prev.catalogHttpSources ?? [])];
@@ -704,13 +700,9 @@ export const SkillExternalMarketSettingsForm: React.FC<Props> = ({ theme, fontSi
                           return { ...prev, catalogHttpSources: next };
                         });
                       }}
-                    >
-                      {CATALOG_SOURCE_FORMATS.map((f) => (
-                        <option key={f.value} value={f.value}>
-                          {f.label}
-                        </option>
-                      ))}
-                    </select>
+                      options={CATALOG_SOURCE_FORMATS.map((f) => ({ value: f.value, label: f.label }))}
+                      chevronSize={14}
+                    />
                     <div className="flex justify-end sm:justify-center">
                       <button
                         type="button"
@@ -738,30 +730,25 @@ export const SkillExternalMarketSettingsForm: React.FC<Props> = ({ theme, fontSi
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className={`${labelCls} mb-1.5 block`}>mode</label>
-                <select
-                  className={inputCls}
+                <LantuSelect
+                  theme={theme}
                   value={draft.githubZipMirror?.mode ?? 'none'}
-                  onChange={(e) =>
+                  onChange={(v) =>
                     setDraft((prev) =>
                       prev
                         ? {
                             ...prev,
                             githubZipMirror: {
                               ...prev.githubZipMirror,
-                              mode: e.target.value,
+                              mode: v,
                               prefix: prev.githubZipMirror?.prefix ?? '',
                             },
                           }
                         : prev,
                     )
                   }
-                >
-                  {ZIP_MIRROR_MODES.map((m) => (
-                    <option key={m.value} value={m.value}>
-                      {m.label}
-                    </option>
-                  ))}
-                </select>
+                  options={ZIP_MIRROR_MODES.map((m) => ({ value: m.value, label: m.label }))}
+                />
               </div>
               <div>
                 <label className={`${labelCls} mb-1.5 block`}>prefix</label>

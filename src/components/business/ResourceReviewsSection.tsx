@@ -445,6 +445,7 @@ export const ResourceReviewsSection: React.FC<Props> = ({ targetType, targetId, 
             r.id === reviewId ? { ...r, helpfulCount: toggled ? r.helpfulCount + 1 : Math.max(0, r.helpfulCount - 1) } : r,
           ),
         );
+        showMessage?.(toggled ? '点赞成功，感谢反馈' : '已取消点赞', 'success');
       } catch {
         showMessage?.('操作失败，请重试', 'warning');
       } finally {
@@ -468,7 +469,7 @@ export const ResourceReviewsSection: React.FC<Props> = ({ targetType, targetId, 
     setDeletingId(review.id);
     try {
       await reviewService.remove(review.id);
-      showMessage?.('已删除', 'success');
+      showMessage?.('删除成功', 'success');
       setReplyParentId(null);
       setReviewPendingDelete(null);
       fetchData();
@@ -491,7 +492,7 @@ export const ResourceReviewsSection: React.FC<Props> = ({ targetType, targetId, 
       });
       setMyRating(0);
       setMyComment('');
-      showMessage?.('评价已提交', 'success');
+      showMessage?.('评论成功', 'success');
       fetchData();
     } catch (e) {
       showMessage?.(e instanceof Error ? e.message : '评论提交失败，请检查内容后重试', 'error');
@@ -517,7 +518,7 @@ export const ResourceReviewsSection: React.FC<Props> = ({ targetType, targetId, 
         });
         setReplyMarkdown('');
         setReplyParentId(null);
-        showMessage?.('回复已发布', 'success');
+        showMessage?.('回复成功', 'success');
         fetchData();
       } catch (e) {
         showMessage?.(

@@ -20,6 +20,7 @@ import { nativeInputClass } from '../../utils/formFieldClasses';
 interface AgentMonitoringPageProps {
   theme: Theme;
   fontSize: FontSize;
+  showMessage?: (msg: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
 }
 
 interface LatencyRow {
@@ -58,7 +59,7 @@ function resourceSummaryLabel(type: string): string {
   return type || '—';
 }
 
-export const AgentMonitoringPage: React.FC<AgentMonitoringPageProps> = ({ theme, fontSize }) => {
+export const AgentMonitoringPage: React.FC<AgentMonitoringPageProps> = ({ theme, fontSize, showMessage }) => {
   const isDark = theme === 'dark';
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
@@ -93,10 +94,11 @@ export const AgentMonitoringPage: React.FC<AgentMonitoringPageProps> = ({ theme,
       setCallSummaryByResource(summaryResult);
     } catch (err) {
       console.error('Failed to load monitoring data:', err);
+      showMessage?.('监控数据加载失败，请稍后重试', 'error');
     } finally {
       setLoading(false);
     }
-  }, [perfResourceType]);
+  }, [perfResourceType, showMessage]);
 
   useEffect(() => {
     void fetchData();

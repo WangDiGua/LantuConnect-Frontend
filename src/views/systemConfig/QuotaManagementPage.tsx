@@ -306,8 +306,10 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
       const rl = rateLimits.find((r) => r.id === id);
       if (!rl) return;
       try {
-        await quotaService.toggleRateLimit(id, !rl.enabled);
+        const nextEnabled = !rl.enabled;
+        await quotaService.toggleRateLimit(id, nextEnabled);
         await fetchRateLimits();
+        showMessage(nextEnabled ? '限流规则已开启' : '限流规则已关闭', 'success');
       } catch (err) {
         console.error(err);
         showMessage('操作失败', 'error');

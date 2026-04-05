@@ -302,9 +302,9 @@ const MainContent = React.memo<{
             />
           );
         case 'agent-monitoring':
-          return <AgentMonitoringPage theme={t} fontSize={fs} />;
+          return <AgentMonitoringPage theme={t} fontSize={fs} showMessage={msg} />;
         case 'agent-trace':
-          return <AgentTracePage theme={t} fontSize={fs} />;
+          return <AgentTracePage theme={t} fontSize={fs} showMessage={msg} />;
 
         case 'skill-register':
           return renderResourceRegister('skill');

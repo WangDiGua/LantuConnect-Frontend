@@ -21,6 +21,7 @@ import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { MgmtPageShell } from './MgmtPageShell';
 import { useUserRole } from '../../context/UserRoleContext';
+import { useMessage } from '../../components/common/Message';
 
 interface UserListPageProps {
   theme: Theme;
@@ -41,6 +42,7 @@ const innerTransition = { type: 'spring' as const, stiffness: 400, damping: 30 }
 function safeText(v: unknown): string { return String(v ?? ''); }
 
 export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, breadcrumbBase }) => {
+  const { showMessage } = useMessage();
   const { hasPermission } = useUserRole();
   const canMutateUsers = hasPermission('user:create') || hasPermission('user:update');
   const listDescription = canMutateUsers ? USER_LIST_DESC : USER_LIST_DESC_REVIEW;
@@ -209,20 +211,47 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
   const saveUser = async () => {
     if (!form.username.trim() || !form.email.trim()) return;
     try {
-      if (mode === 'create') await userMgmtService.createUser({ username: form.username.trim(), email: form.email.trim(), password: form.password || 'temp123456', role: form.role || roles[0]?.code || 'user' });
-      else if (mode === 'edit' && editingId) await userMgmtService.updateUser(editingId, { username: form.username.trim(), email: form.email.trim(), role: form.role, status: form.status } as any);
-      setMode('list'); setEditingId(null); await fetchUsers();
-    } catch (err) { console.error(err); }
+      if (mode === 'create') {
+        await userMgmtService.createUser({
+          username: form.username.trim(),
+          email: form.email.trim(),
+          password: form.password || 'temp123456',
+          role: form.role || roles[0]?.code || 'user',
+        });
+        showMessage('用户创建成功', 'success');
+      } else if (mode === 'edit' && editingId) {
+        await userMgmtService.updateUser(editingId, {
+          username: form.username.trim(),
+          email: form.email.trim(),
+          role: form.role,
+          status: form.status,
+        } as any);
+        showMessage('用户更新成功', 'success');
+      }
+      setMode('list');
+      setEditingId(null);
+      await fetchUsers();
+    } catch (err) {
+      console.error(err);
+      showMessage(err instanceof Error ? err.message : '保存失败，请重试', 'error');
+    }
   };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
     try {
       await userMgmtService.deleteUser(deleteTarget);
-      if (editingId === deleteTarget) { setMode('list'); setEditingId(null); }
+      if (editingId === deleteTarget) {
+        setMode('list');
+        setEditingId(null);
+      }
       setDeleteTarget(null);
       await fetchUsers();
-    } catch (err) { console.error(err); }
+      showMessage('删除成功', 'success');
+    } catch (err) {
+      console.error(err);
+      showMessage(err instanceof Error ? err.message : '删除失败，请重试', 'error');
+    }
   };
 
   const labelCls = `block text-xs font-semibold mb-1 ${textSecondary(theme)}`;

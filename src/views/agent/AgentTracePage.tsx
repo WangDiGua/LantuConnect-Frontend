@@ -17,6 +17,7 @@ import { TOOLBAR_ROW_LIST } from '../../utils/toolbarFieldClasses';
 interface AgentTracePageProps {
   theme: Theme;
   fontSize: FontSize;
+  showMessage?: (msg: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
 }
 
 interface DisplaySpan {
@@ -152,7 +153,7 @@ const SpanTree: React.FC<SpanTreeProps> = ({ span, depth, theme, expanded, toggl
 
 const PAGE_DESC = '数据源：GET /monitoring/traces。网关对 Agent / Skill / MCP / App / Dataset 的调用可共享 TraceId；列表按 Trace 聚合，右侧为拼接后的调用树。';
 
-export const AgentTracePage: React.FC<AgentTracePageProps> = ({ theme, fontSize }) => {
+export const AgentTracePage: React.FC<AgentTracePageProps> = ({ theme, fontSize, showMessage }) => {
   const isDark = theme === 'dark';
   const [q, setQ] = useState('');
   const [groups, setGroups] = useState<TraceGroup[]>([]);
@@ -176,12 +177,13 @@ export const AgentTracePage: React.FC<AgentTracePageProps> = ({ theme, fontSize 
       }
     } catch (err) {
       console.error('Failed to load traces:', err);
+      showMessage?.('调用链数据加载失败，请稍后重试', 'error');
       setGroups([]);
       setSelectedId(null);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showMessage]);
 
   useEffect(() => { void fetchTraces(); }, [fetchTraces]);
 

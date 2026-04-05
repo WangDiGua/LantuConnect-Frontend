@@ -117,7 +117,13 @@ import { HubPersonalRail } from '../components/layout/HubPersonalRail';
 import { AvatarGradientFrame, MultiAvatar } from '../components/common/MultiAvatar';
 import { PLATFORM_ROLE_LABELS } from '../constants/platformRoles';
 import { Tooltip } from '../components/common/Tooltip';
-import { chromeGpuLayerClass, contentMaxWidth, iconChrome, mainScrollCompositorClass } from '../utils/uiClasses';
+import {
+  chromeGpuLayerClass,
+  consoleContentTopPad,
+  contentMaxWidth,
+  iconChrome,
+  mainScrollCompositorClass,
+} from '../utils/uiClasses';
 
 const springTransition = { type: 'spring' as const, stiffness: 300, damping: 30 };
 
@@ -1719,7 +1725,7 @@ const MainLayoutContent: React.FC<{
                 <div className={`mx-auto w-full ${contentMaxWidth} px-4 sm:px-5 lg:px-6 xl:px-8`}>
                   <div className="grid grid-cols-1 items-stretch gap-8 lg:grid-cols-12 lg:gap-10">
                     <div
-                      className={`order-2 col-span-1 flex h-full min-h-0 flex-col lg:order-1 lg:col-span-2 lg:border-r lg:pr-6 ${
+                      className={`order-2 col-span-1 flex h-full min-h-0 flex-col lg:order-1 lg:col-span-2 lg:border-r lg:pr-6 ${consoleContentTopPad} ${
                         isDark ? 'lg:border-white/[0.08]' : 'lg:border-slate-200/80'
                       }`}
                     >

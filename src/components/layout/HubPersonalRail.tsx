@@ -176,10 +176,11 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
             </div>
           ) : null}
           {parentBlocks.map((block, blockIdx) => {
-            const ParentIcon = parentIconById[block.parentSidebarId] ?? LayoutList;
-            return (
-            <div key={block.key}>
-              {blockIdx > 0 &&
+            const rowEntries = block.sections.flatMap((sec) => sec.rows.map((row) => ({ sec, row })));
+            const isSingleton = rowEntries.length === 1;
+
+            const adminDivider =
+              blockIdx > 0 &&
               parentBlocks[blockIdx - 1].domain === 'user' &&
               block.domain === 'admin' ? (
                 <div
@@ -203,69 +204,102 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
                     aria-hidden
                   />
                 </div>
-              ) : null}
+              ) : null;
 
-              <div className="rounded-lg border border-transparent">
-                <button
-                  type="button"
-                  onClick={() => toggleParent(block.key)}
-                  aria-expanded={isParentOpen(block.key)}
-                  className={`group/parent flex min-h-11 w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
-                    isDark ? 'text-slate-200 hover:bg-white/[0.06]' : 'text-slate-800 hover:bg-slate-100'
-                  }`}
-                >
-                  <ParentIcon
-                    className={`h-4 w-4 shrink-0 opacity-90 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}
-                    strokeWidth={2}
-                    aria-hidden
-                  />
-                  <span className="min-w-0 flex-1 truncate">{block.parentLabel}</span>
-                  <ChevronDown
-                    size={14}
-                    aria-hidden
-                    className={`shrink-0 opacity-45 transition-[transform,opacity] duration-200 motion-reduce:transition-none group-hover/parent:opacity-75 ${
-                      isDark ? 'text-slate-400' : 'text-slate-500'
-                    } ${
-                      isParentOpen(block.key) ? 'rotate-0' : '-rotate-90'
+            if (isSingleton) {
+              const { sec, row } = rowEntries[0];
+              const isActive =
+                routeRole === sec.domain &&
+                activeSidebar === sec.parentSidebarId &&
+                activeSubItem === row.subItemId;
+              return (
+                <div key={block.key}>
+                  {adminDivider}
+                  <div className="rounded-lg border border-transparent">
+                    <button
+                      type="button"
+                      onClick={() => onSubItemClick(row.subItemId, sec.parentSidebarId, sec.domain)}
+                      aria-current={isActive ? 'page' : undefined}
+                      className={`flex min-h-11 w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
+                        isActive
+                          ? isDark
+                            ? 'bg-white/10 font-medium text-slate-100'
+                            : 'bg-slate-100 font-medium text-slate-900'
+                          : isDark
+                            ? 'text-slate-200 hover:bg-white/[0.06]'
+                            : 'text-slate-800 hover:bg-slate-100'
+                      }`}
+                    >
+                      <row.icon className="h-4 w-4 shrink-0 opacity-90" strokeWidth={2} aria-hidden />
+                      <span className="min-w-0 flex-1 truncate">{row.label}</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            }
+
+            const ParentIcon = parentIconById[block.parentSidebarId] ?? LayoutList;
+            return (
+              <div key={block.key}>
+                {adminDivider}
+
+                <div className="rounded-lg border border-transparent">
+                  <button
+                    type="button"
+                    onClick={() => toggleParent(block.key)}
+                    aria-expanded={isParentOpen(block.key)}
+                    className={`group/parent flex min-h-11 w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
+                      isDark ? 'text-slate-200 hover:bg-white/[0.06]' : 'text-slate-800 hover:bg-slate-100'
                     }`}
-                  />
-                </button>
+                  >
+                    <ParentIcon
+                      className={`h-4 w-4 shrink-0 opacity-90 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}
+                      strokeWidth={2}
+                      aria-hidden
+                    />
+                    <span className="min-w-0 flex-1 truncate">{block.parentLabel}</span>
+                    <ChevronDown
+                      size={14}
+                      aria-hidden
+                      className={`shrink-0 opacity-45 transition-[transform,opacity] duration-200 motion-reduce:transition-none group-hover/parent:opacity-75 ${
+                        isDark ? 'text-slate-400' : 'text-slate-500'
+                      } ${isParentOpen(block.key) ? 'rotate-0' : '-rotate-90'}`}
+                    />
+                  </button>
 
-                {isParentOpen(block.key) ? (
-                  <ul className="space-y-0.5 pb-2 pl-1">
-                    {block.sections.flatMap((sec) =>
-                      sec.rows.map((row) => ({ sec, row })),
-                    ).map(({ sec, row }) => {
-                      const isActive =
-                        routeRole === sec.domain &&
-                        activeSidebar === sec.parentSidebarId &&
-                        activeSubItem === row.subItemId;
-                      return (
-                        <li key={`${block.key}::${sec.heading}::${row.subItemId}`}>
-                          <button
-                            type="button"
-                            onClick={() => onSubItemClick(row.subItemId, sec.parentSidebarId, sec.domain)}
-                            aria-current={isActive ? 'page' : undefined}
-                            className={`flex min-h-10 w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
-                              isActive
-                                ? isDark
-                                  ? 'bg-white/10 font-medium text-slate-100'
-                                  : 'bg-slate-100 font-medium text-slate-900'
-                                : isDark
-                                  ? 'text-slate-300 hover:bg-white/[0.06]'
-                                  : 'text-slate-700 hover:bg-slate-50'
-                            }`}
-                          >
-                            <row.icon className="h-4 w-4 shrink-0 opacity-90" strokeWidth={2} aria-hidden />
-                            <span className="min-w-0 flex-1 truncate">{row.label}</span>
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                ) : null}
+                  {isParentOpen(block.key) ? (
+                    <ul className="space-y-0.5 pb-2 pl-1">
+                      {rowEntries.map(({ sec, row }) => {
+                        const isActive =
+                          routeRole === sec.domain &&
+                          activeSidebar === sec.parentSidebarId &&
+                          activeSubItem === row.subItemId;
+                        return (
+                          <li key={`${block.key}::${sec.heading}::${row.subItemId}`}>
+                            <button
+                              type="button"
+                              onClick={() => onSubItemClick(row.subItemId, sec.parentSidebarId, sec.domain)}
+                              aria-current={isActive ? 'page' : undefined}
+                              className={`flex min-h-10 w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
+                                isActive
+                                  ? isDark
+                                    ? 'bg-white/10 font-medium text-slate-100'
+                                    : 'bg-slate-100 font-medium text-slate-900'
+                                  : isDark
+                                    ? 'text-slate-300 hover:bg-white/[0.06]'
+                                    : 'text-slate-700 hover:bg-slate-50'
+                              }`}
+                            >
+                              <row.icon className="h-4 w-4 shrink-0 opacity-90" strokeWidth={2} aria-hidden />
+                              <span className="min-w-0 flex-1 truncate">{row.label}</span>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : null}
+                </div>
               </div>
-            </div>
             );
           })}
         </div>

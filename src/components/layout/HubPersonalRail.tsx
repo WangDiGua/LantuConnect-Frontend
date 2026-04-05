@@ -212,23 +212,25 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
                   type="button"
                   onClick={() => toggleParent(block.key)}
                   aria-expanded={isParentOpen(block.key)}
-                  className={`flex min-h-11 w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
+                  className={`group/parent flex min-h-11 w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
                     isDark ? 'text-slate-200 hover:bg-white/[0.06]' : 'text-slate-800 hover:bg-slate-100'
                   }`}
                 >
-                  <ChevronDown
-                    size={16}
-                    aria-hidden
-                    className={`shrink-0 opacity-80 transition-transform duration-200 motion-reduce:transition-none ${
-                      isParentOpen(block.key) ? 'rotate-0' : '-rotate-90'
-                    }`}
-                  />
                   <ParentIcon
                     className={`h-4 w-4 shrink-0 opacity-90 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}
                     strokeWidth={2}
                     aria-hidden
                   />
                   <span className="min-w-0 flex-1 truncate">{block.parentLabel}</span>
+                  <ChevronDown
+                    size={14}
+                    aria-hidden
+                    className={`shrink-0 opacity-45 transition-[transform,opacity] duration-200 motion-reduce:transition-none group-hover/parent:opacity-75 ${
+                      isDark ? 'text-slate-400' : 'text-slate-500'
+                    } ${
+                      isParentOpen(block.key) ? 'rotate-0' : '-rotate-90'
+                    }`}
+                  />
                 </button>
 
                 {isParentOpen(block.key) ? (

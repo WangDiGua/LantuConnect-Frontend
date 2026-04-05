@@ -63,7 +63,7 @@ import { usePersistedGatewayApiKey } from '../../hooks/usePersistedGatewayApiKey
 import { GatewayApiKeyInput } from '../../components/common/GatewayApiKeyInput';
 import { ApiException } from '../../types/api';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
-import { TITLE_SIZE_CLASSES } from '../../constants/theme';
+import { MARKET_HERO_TITLE_CLASSES } from '../../constants/theme';
 
 interface Props { theme: Theme; fontSize: FontSize; themeColor?: ThemeColor; showMessage?: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void; }
 
@@ -304,29 +304,29 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _the
 
   return (
     <div className={`flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${canvasBodyBg(theme)}`}>
-      <div className={`${mainScrollPadX} ${mainScrollPadBottom} space-y-6 pt-5 sm:pt-6`}>
-        {/* 顶栏：品牌区 + 轻量操作（参考魔搭 Skills 首页层级） */}
-        <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex min-w-0 gap-4">
+      <div className={`${mainScrollPadX} ${mainScrollPadBottom} space-y-5 pt-3 sm:pt-4`}>
+        {/* 顶栏：品牌区 + 轻量操作（紧凑版，减少首屏占用） */}
+        <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+          <div className="flex min-w-0 items-start gap-3 sm:gap-3.5">
             <div
-              className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-lg font-bold text-white shadow-lg shadow-violet-500/25 sm:h-16 sm:w-16 ${
+              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-lg font-bold text-white shadow-md shadow-violet-500/20 sm:h-12 sm:w-12 ${
                 isDark
                   ? 'bg-gradient-to-br from-violet-500 to-cyan-400'
                   : 'bg-gradient-to-br from-violet-600 to-sky-500'
               }`}
               aria-hidden
             >
-              <Braces className="h-7 w-7 sm:h-8 sm:w-8" strokeWidth={2.25} />
+              <Braces className="h-6 w-6 sm:h-6 sm:w-6" strokeWidth={2.25} />
             </div>
-            <div className="min-w-0 pt-0.5">
-              <p className={`text-xs font-semibold uppercase tracking-wider ${textMuted(theme)}`}>Skill marketplace</p>
-              <h1 className={`mt-1 ${TITLE_SIZE_CLASSES[fontSize]} font-bold tracking-tight`}>
+            <div className="min-w-0">
+              <p className={`text-[11px] font-semibold uppercase tracking-wider ${textMuted(theme)}`}>Skill marketplace</p>
+              <h1 className={`mt-0.5 font-bold tracking-tight ${MARKET_HERO_TITLE_CLASSES[fontSize]}`}>
                 <span className="bg-gradient-to-r from-violet-600 via-fuchsia-600 to-cyan-500 bg-clip-text text-transparent dark:from-violet-400 dark:via-fuchsia-400 dark:to-cyan-400">
                   Skills
                 </span>
                 <span className={textPrimary(theme)}> 中心</span>
               </h1>
-              <p className={`mt-2 max-w-xl text-sm leading-relaxed sm:text-base ${textSecondary(theme)}`}>
+              <p className={`mt-1 max-w-2xl text-xs leading-snug sm:text-sm ${textSecondary(theme)}`}>
                 汇聚可复用技能组件与技能包，连接智能体与工作流；浏览目录、筛选分类，一键获取制品（resolve 下载）。
               </p>
             </div>
@@ -335,31 +335,31 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _the
             <button
               type="button"
               onClick={() => navigate(buildPath('user', 'api-docs'))}
-              className={`inline-flex min-h-10 items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 ${
+              className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 ${
                 isDark ? 'border-white/[0.12] bg-white/[0.04] text-slate-200 hover:bg-white/[0.08]' : 'border-slate-200/80 bg-white text-slate-800 shadow-sm hover:bg-slate-50'
               }`}
             >
-              <FileText className="h-4 w-4 shrink-0 text-violet-500 dark:text-violet-400" aria-hidden />
+              <FileText className="h-3.5 w-3.5 shrink-0 text-violet-500 dark:text-violet-400" aria-hidden />
               技术文档
             </button>
             <button
               type="button"
               onClick={() => navigate(buildPath('user', 'hub'))}
-              className={`inline-flex min-h-10 items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 ${
+              className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 ${
                 isDark ? 'border-white/[0.12] bg-white/[0.04] text-slate-200 hover:bg-white/[0.08]' : 'border-slate-200/80 bg-white text-slate-800 shadow-sm hover:bg-slate-50'
               }`}
               aria-label="回到探索发现"
             >
-              <Sparkles className="h-4 w-4 shrink-0 text-cyan-500 dark:text-cyan-400" aria-hidden />
+              <Sparkles className="h-3.5 w-3.5 shrink-0 text-cyan-500 dark:text-cyan-400" aria-hidden />
               探索发现
             </button>
           </div>
         </header>
 
         {/* Hero 双卡 */}
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-3 md:grid-cols-2">
           <div
-            className={`relative overflow-hidden rounded-2xl border p-6 sm:p-7 ${
+            className={`relative overflow-hidden rounded-2xl border p-4 sm:p-5 ${
               isDark
                 ? 'border-cyan-500/20 bg-gradient-to-br from-cyan-500/15 via-slate-900/40 to-violet-600/10'
                 : 'border-sky-200/60 bg-gradient-to-br from-sky-100/90 via-white to-indigo-50/80'
@@ -371,21 +371,21 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _the
             >
               /*
             </div>
-            <div className="relative flex flex-col gap-4">
-              <div className="inline-flex w-fit items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-cyan-800 shadow-sm dark:bg-white/10 dark:text-cyan-200">
+            <div className="relative flex flex-col gap-3">
+              <div className="inline-flex w-fit items-center gap-2 rounded-full bg-white/80 px-2.5 py-0.5 text-[11px] font-semibold text-cyan-800 shadow-sm dark:bg-white/10 dark:text-cyan-200">
                 <Zap className="h-3.5 w-3.5" aria-hidden />
                 Agent × Skills
               </div>
               <div>
-                <h2 className={`text-lg font-bold sm:text-xl ${textPrimary(theme)}`}>在统一目录中编排技能</h2>
-                <p className={`mt-2 max-w-sm text-sm leading-relaxed ${textSecondary(theme)}`}>
+                <h2 className={`text-base font-bold sm:text-lg ${textPrimary(theme)}`}>在统一目录中编排技能</h2>
+                <p className={`mt-1.5 max-w-sm text-xs leading-snug sm:text-sm ${textSecondary(theme)}`}>
                   从智能体市场接入 MCP / API，再结合本页技能包，快速拼装校园与业务场景能力。
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => navigate(buildUserResourceMarketUrl('agent'))}
-                className="inline-flex w-fit min-h-10 items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
+                className="inline-flex w-fit min-h-9 items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white shadow-md transition hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 sm:text-sm dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
               >
                 去逛 Agent 市场
                 <ChevronRight className="h-4 w-4" aria-hidden />
@@ -393,7 +393,7 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _the
             </div>
           </div>
           <div
-            className={`relative overflow-hidden rounded-2xl border p-6 sm:p-7 ${
+            className={`relative overflow-hidden rounded-2xl border p-4 sm:p-5 ${
               isDark
                 ? 'border-violet-500/25 bg-gradient-to-br from-violet-600/15 via-slate-900/35 to-fuchsia-600/10'
                 : 'border-violet-200/70 bg-gradient-to-br from-violet-50/95 via-white to-fuchsia-50/70'
@@ -403,21 +403,21 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _the
               className={`pointer-events-none absolute inset-0 opacity-[0.35] [background-image:linear-gradient(to_right,${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.06)'}_1px,transparent_1px),linear-gradient(to_bottom,${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.06)'}_1px,transparent_1px)] [background-size:24px_24px]`}
               aria-hidden
             />
-            <div className="relative flex h-full flex-col gap-4">
+            <div className="relative flex h-full flex-col gap-3">
               <div className="flex flex-wrap items-center gap-2">
                 <span
-                  className={`rounded-full px-3 py-1 text-xs font-bold ${
+                  className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
                     isDark ? 'bg-fuchsia-500/25 text-fuchsia-100' : 'bg-fuchsia-100 text-fuchsia-800'
                   }`}
                 >
                   精选合集
                 </span>
-                <span className={`text-sm font-semibold ${textPrimary(theme)}`}>Skills 市集亮点</span>
+                <span className={`text-xs font-semibold sm:text-sm ${textPrimary(theme)}`}>Skills 市集亮点</span>
               </div>
-              <p className={`text-sm leading-relaxed ${textSecondary(theme)}`}>
+              <p className={`text-xs leading-snug sm:text-sm ${textSecondary(theme)}`}>
                 按标签浏览办公、生成、翻译等场景化技能包；支持收藏、评价与 resolve 下载制品。
               </p>
-              <div className="mt-auto flex items-center justify-between gap-3 pt-2">
+              <div className="mt-auto flex items-center justify-between gap-3 pt-1">
                 <div className="flex gap-1.5" role="presentation" aria-hidden>
                   {[0, 1, 2].map((i) => (
                     <span

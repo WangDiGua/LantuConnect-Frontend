@@ -56,7 +56,7 @@ import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { ApiException } from '../../types/api';
 import { env } from '../../config/env';
 import { buildPath } from '../../constants/consoleRoutes';
-import { TITLE_SIZE_CLASSES } from '../../constants/theme';
+import { MARKET_HERO_TITLE_CLASSES } from '../../constants/theme';
 
 const API_PATH_PREFIX = env.VITE_API_BASE_URL.replace(/\/$/, '');
 
@@ -705,27 +705,27 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
 
   return (
     <div className={`flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${canvasBodyBg(theme)}`}>
-      <div className={`${mainScrollPadX} ${mainScrollPadBottom} space-y-6 pt-5 sm:pt-6`}>
-        <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="flex min-w-0 gap-4">
+      <div className={`${mainScrollPadX} ${mainScrollPadBottom} space-y-5 pt-3 sm:pt-4`}>
+        <header className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between lg:gap-6">
+          <div className="flex min-w-0 items-start gap-3 sm:gap-3.5">
             <div
-              className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-white shadow-lg shadow-violet-500/25 sm:h-16 sm:w-16 ${
+              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white shadow-md shadow-violet-500/20 sm:h-12 sm:w-12 ${
                 isDark
                   ? 'bg-gradient-to-br from-violet-500 to-indigo-500'
                   : 'bg-gradient-to-br from-violet-600 to-indigo-600'
               }`}
               aria-hidden
             >
-              <Puzzle className="h-7 w-7 sm:h-8 sm:w-8" strokeWidth={2.25} />
+              <Puzzle className="h-6 w-6 sm:h-6 sm:w-6" strokeWidth={2.25} />
             </div>
-            <div className="min-w-0 pt-0.5">
-              <p className={`text-xs font-semibold uppercase tracking-wider ${textMuted(theme)}`}>MCP plaza</p>
-              <h1 className={`mt-1 ${TITLE_SIZE_CLASSES[fontSize]} font-bold tracking-tight`}>
+            <div className="min-w-0">
+              <p className={`text-[11px] font-semibold uppercase tracking-wider ${textMuted(theme)}`}>MCP plaza</p>
+              <h1 className={`mt-0.5 font-bold tracking-tight ${MARKET_HERO_TITLE_CLASSES[fontSize]}`}>
                 <span className="bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-500 bg-clip-text text-transparent dark:from-violet-400 dark:via-indigo-400 dark:to-cyan-400">
                   {chromePageTitle || 'MCP 广场'}
                 </span>
               </h1>
-              <p className={`mt-2 max-w-xl text-sm leading-relaxed sm:text-base ${textSecondary(theme)}`}>
+              <p className={`mt-1 max-w-2xl text-xs leading-snug sm:text-sm ${textSecondary(theme)}`}>
                 浏览已发布 MCP 服务；统一网关 resolve、invoke 与 invoke-stream（须有效 Key 与授权 scope）。
               </p>
             </div>
@@ -734,27 +734,27 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
             <button
               type="button"
               onClick={() => navigate(buildPath('user', 'api-docs'))}
-              className={`inline-flex min-h-10 items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 ${
+              className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 ${
                 isDark ? 'border-white/[0.12] bg-white/[0.04] text-slate-200 hover:bg-white/[0.08]' : 'border-slate-200/80 bg-white text-slate-800 shadow-sm hover:bg-slate-50'
               }`}
             >
-              <FileText className="h-4 w-4 shrink-0 text-violet-500 dark:text-violet-400" aria-hidden />
+              <FileText className="h-3.5 w-3.5 shrink-0 text-violet-500 dark:text-violet-400" aria-hidden />
               接入与部署
             </button>
             <button
               type="button"
               onClick={() => navigate(buildPath('user', 'mcp-register'))}
-              className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white shadow-md transition hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/45 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 sm:text-sm"
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-bold text-white shadow-md transition hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/45 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 sm:text-sm"
             >
               发布 MCP
-              <Sparkles className="h-4 w-4" aria-hidden />
+              <Sparkles className="h-3.5 w-3.5" aria-hidden />
             </button>
           </div>
         </header>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div
-            className={`rounded-2xl border p-5 ${
+            className={`rounded-2xl border p-4 ${
               isDark ? 'border-violet-500/20 bg-gradient-to-br from-violet-600/15 to-slate-900/30' : 'border-violet-200/70 bg-gradient-to-br from-violet-50 to-white'
             }`}
           >
@@ -768,7 +768,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
             </p>
           </div>
           <div
-            className={`rounded-2xl border p-5 ${
+            className={`rounded-2xl border p-4 ${
               isDark ? 'border-cyan-500/20 bg-gradient-to-br from-cyan-600/12 to-slate-900/30' : 'border-cyan-200/70 bg-gradient-to-br from-cyan-50/90 to-white'
             }`}
           >
@@ -781,7 +781,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
             </p>
           </div>
           <div
-            className={`rounded-2xl border p-5 ${
+            className={`rounded-2xl border p-4 ${
               isDark ? 'border-fuchsia-500/20 bg-gradient-to-br from-fuchsia-600/12 to-slate-900/30' : 'border-fuchsia-200/70 bg-gradient-to-br from-fuchsia-50/90 to-white'
             }`}
           >
@@ -796,7 +796,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
         </div>
 
         <div
-          className={`flex gap-3 rounded-2xl border px-4 py-3 text-sm leading-relaxed ${
+          className={`flex gap-2.5 rounded-2xl border px-3.5 py-2.5 text-sm leading-snug ${
             isDark ? 'border-amber-500/25 bg-amber-500/[0.07] text-amber-100/90' : 'border-amber-200/80 bg-amber-50/80 text-amber-950'
           }`}
         >

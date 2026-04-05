@@ -25,6 +25,13 @@ export const TITLE_SIZE_CLASSES: Record<FontSize, string> = {
   large: 'text-4xl'
 };
 
+/** 资源市场顶栏标题：较 TITLE_SIZE_CLASSES 略小，减少 Hero 垂直占用 */
+export const MARKET_HERO_TITLE_CLASSES: Record<FontSize, string> = {
+  small: 'text-lg sm:text-xl',
+  medium: 'text-xl sm:text-2xl',
+  large: 'text-2xl sm:text-3xl',
+};
+
 export const FONT_FAMILY_CLASSES: Record<FontFamily, string> = {
   sans: 'font-sans',
   space: 'font-space',

@@ -70,6 +70,8 @@ export const ScrollToTopAffix: React.FC<ScrollToTopAffixProps> = ({
         type="button"
         onClick={scrollToTop}
         aria-label="回到顶部"
+        tabIndex={visible ? 0 : -1}
+        aria-hidden={!visible}
         className={`pointer-events-auto flex h-11 w-11 items-center justify-center rounded-full border shadow-lg transition-[box-shadow,transform] motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/55 focus-visible:ring-offset-2 active:scale-[0.97] ${
           isDark
             ? 'border-white/12 bg-lantu-card/95 text-slate-100 shadow-black/25 backdrop-blur-sm hover:bg-white/[0.08] focus-visible:ring-offset-lantu-card'

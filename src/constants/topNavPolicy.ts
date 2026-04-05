@@ -3,8 +3,15 @@ import type { ConsoleRole } from './consoleRoutes';
 import type { NavSubGroup } from './navigation';
 import type { ConsoleSidebarRow } from '../components/layout/ConsoleSidebar';
 
-/** 应用端顶栏保留的一级侧栏 id（我的工作台 / 个人设置下沉到首页左栏） */
-export const USER_TOP_NAV_SIDEBAR_IDS = ['hub', 'user-resource-assets', 'skills-center', 'mcp-center', 'dataset-center', 'developer-portal'] as const;
+/** 应用端顶栏保留的一级侧栏 id（其余入口见头像菜单树与侧栏抽屉） */
+export const USER_TOP_NAV_SIDEBAR_IDS = [
+  'hub',
+  'skills-center',
+  'mcp-center',
+  'dataset-center',
+  'agents-center',
+  'apps-center',
+] as const;
 
 export type UserTopNavSidebarId = (typeof USER_TOP_NAV_SIDEBAR_IDS)[number];
 

@@ -1,12 +1,10 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { Theme, FontSize, ThemeColor } from '../../types';
 import type { ResourceType } from '../../types/dto/catalog';
 import { RESOURCE_TYPES, RESOURCE_TYPE_LABEL_ZH, parseResourceType } from '../../constants/resourceTypes';
 import { buildPath } from '../../constants/consoleRoutes';
-import { AgentMarket } from '../agent/AgentMarket';
 import { SkillMarket } from '../skill/SkillMarket';
-import { AppMarket } from '../apps/AppMarket';
 import { mainScrollPadBottom, mainScrollPadX, textMuted, textSecondary } from '../../utils/uiClasses';
 
 interface Props {
@@ -23,6 +21,16 @@ export const UserResourceMarketHub: React.FC<Props> = ({ theme, fontSize, themeC
 
   const tab = useMemo(() => parseResourceType(searchParams.get('tab')) ?? 'agent', [searchParams]);
 
+  useEffect(() => {
+    if (tab !== 'agent' && tab !== 'app') return;
+    const rid = searchParams.get('resourceId');
+    const page = tab === 'agent' ? 'agents-center' : 'apps-center';
+    const q = new URLSearchParams();
+    if (rid) q.set('resourceId', rid);
+    const suffix = q.size ? `?${q}` : '';
+    navigate(`${buildPath('user', page)}${suffix}`, { replace: true });
+  }, [tab, navigate, searchParams]);
+
   const setTab = useCallback(
     (next: ResourceType) => {
       if (next === 'skill') {
@@ -35,6 +43,14 @@ export const UserResourceMarketHub: React.FC<Props> = ({ theme, fontSize, themeC
       }
       if (next === 'dataset') {
         navigate(buildPath('user', 'dataset-center'), { replace: true });
+        return;
+      }
+      if (next === 'agent') {
+        navigate(buildPath('user', 'agents-center'), { replace: true });
+        return;
+      }
+      if (next === 'app') {
+        navigate(buildPath('user', 'apps-center'), { replace: true });
         return;
       }
       setSearchParams(
@@ -93,13 +109,7 @@ export const UserResourceMarketHub: React.FC<Props> = ({ theme, fontSize, themeC
       </div>
 
       <div className="min-h-0 flex-1">
-        {tab === 'agent' && (
-          <AgentMarket theme={theme} fontSize={fontSize} themeColor={themeColor} showMessage={showMessage} />
-        )}
         {tab === 'skill' && <SkillMarket theme={theme} fontSize={fontSize} themeColor={themeColor} showMessage={showMessage} />}
-        {tab === 'app' && (
-          <AppMarket theme={theme} fontSize={fontSize} themeColor={themeColor} showMessage={showMessage} />
-        )}
       </div>
     </div>
   );

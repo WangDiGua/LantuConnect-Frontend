@@ -90,6 +90,22 @@ export function buildUserResourceMarketUrl(
     const qs = params.toString();
     return `${buildPath('user', 'dataset-center')}${qs ? `?${qs}` : ''}`;
   }
+  if (tab === 'agent') {
+    const params = new URLSearchParams();
+    if (extra?.resourceId != null && String(extra.resourceId).length > 0) {
+      params.set('resourceId', String(extra.resourceId));
+    }
+    const qs = params.toString();
+    return `${buildPath('user', 'agents-center')}${qs ? `?${qs}` : ''}`;
+  }
+  if (tab === 'app') {
+    const params = new URLSearchParams();
+    if (extra?.resourceId != null && String(extra.resourceId).length > 0) {
+      params.set('resourceId', String(extra.resourceId));
+    }
+    const qs = params.toString();
+    return `${buildPath('user', 'apps-center')}${qs ? `?${qs}` : ''}`;
+  }
   const params = new URLSearchParams({ tab });
   if (extra?.resourceId != null && String(extra.resourceId).length > 0) {
     params.set('resourceId', String(extra.resourceId));
@@ -141,11 +157,11 @@ const USER_SIDEBAR_PAGES: Record<string, string[]> = {
   'skills-center': ['skills-center'],
   'mcp-center': ['mcp-center', 'mcp-market'],
   'dataset-center': ['dataset-center', 'dataset-market'],
+  'agents-center': ['agents-center', 'agent-market'],
+  'apps-center': ['apps-center', 'app-market'],
   'user-resource-assets': [
     'resource-market',
-    'agent-market',
     'skill-market',
-    'app-market',
     'my-agents-pub',
     'my-publish-agent',
     'my-publish-skill',
@@ -187,6 +203,8 @@ export function subItemToPage(sidebarId: string, subItemId: string, isAdmin: boo
   if (!isAdmin && sidebarId === 'skills-center' && subItemId === 'skills-center') return 'skills-center';
   if (!isAdmin && sidebarId === 'mcp-center' && subItemId === 'mcp-center') return 'mcp-center';
   if (!isAdmin && sidebarId === 'dataset-center' && subItemId === 'dataset-center') return 'dataset-center';
+  if (!isAdmin && sidebarId === 'agents-center' && subItemId === 'agents-center') return 'agents-center';
+  if (!isAdmin && sidebarId === 'apps-center' && subItemId === 'apps-center') return 'apps-center';
   return subItemId;
 }
 
@@ -211,6 +229,20 @@ export function pageToSubItem(page: string, sidebarId: string | null, isAdmin: b
   }
   if (!isAdmin && sidebarId === 'dataset-center' && (page === 'dataset-center' || page === 'resource-market')) {
     return 'dataset-center';
+  }
+  if (
+    !isAdmin &&
+    sidebarId === 'agents-center' &&
+    (page === 'agents-center' || page === 'agent-market' || page === 'resource-market')
+  ) {
+    return 'agents-center';
+  }
+  if (
+    !isAdmin &&
+    sidebarId === 'apps-center' &&
+    (page === 'apps-center' || page === 'app-market' || page === 'resource-market')
+  ) {
+    return 'apps-center';
   }
   if (!isAdmin && sidebarId === 'user-resource-assets' && (page === 'resource-market' || page === 'skill-market' || USER_LEGACY_MARKET_PAGES.has(page))) {
     return 'resource-market';

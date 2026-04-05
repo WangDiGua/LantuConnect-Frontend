@@ -74,6 +74,8 @@ const UserResourceMarketHub = lazy(() =>
 const SkillMarket = lazy(() => import('../views/skill/SkillMarket').then((m) => ({ default: m.SkillMarket })));
 const McpMarket = lazy(() => import('../views/mcp/McpMarket').then((m) => ({ default: m.McpMarket })));
 const DatasetMarket = lazy(() => import('../views/dataset/DatasetMarket').then((m) => ({ default: m.DatasetMarket })));
+const AgentMarket = lazy(() => import('../views/agent/AgentMarket').then((m) => ({ default: m.AgentMarket })));
+const AppMarket = lazy(() => import('../views/apps/AppMarket').then((m) => ({ default: m.AppMarket })));
 
 import { useMessage } from '../components/common/Message';
 import { readPersistedNavState, writePersistedNavState } from '../utils/navigationState';
@@ -185,6 +187,14 @@ const DEVELOPER_PORTAL_PAGES = new Set([
   'sdk-download',
   'api-playground',
   'developer-statistics',
+]);
+
+/** 顶栏收窄后：沉入头像菜单的一级侧栏 id（与 userSidebarItems 权限过滤一致） */
+const USER_OVERFLOW_MENU_PARENT_IDS = new Set([
+  'workspace',
+  'user-resource-assets',
+  'developer-portal',
+  'user-settings',
 ]);
 
 const MainContent = React.memo<{
@@ -404,6 +414,12 @@ const MainContent = React.memo<{
       case 'dataset-center':
         return <DatasetMarket theme={t} fontSize={fs} themeColor={tc} showMessage={msg} />;
 
+      case 'agents-center':
+        return <AgentMarket theme={t} fontSize={fs} themeColor={tc} showMessage={msg} />;
+
+      case 'apps-center':
+        return <AppMarket theme={t} fontSize={fs} themeColor={tc} showMessage={msg} />;
+
       case 'my-agents-pub':
         return <MyPublishHubPage theme={t} fontSize={fs} />;
 
@@ -469,7 +485,16 @@ const MainContent = React.memo<{
     if (p === 'dashboard' || p === 'workspace') return 'dashboard' as const;
     if (p.includes('create')) return 'form' as const;
     if (p.includes('detail') || p === 'profile') return 'detail' as const;
-    if (p.includes('market') || p === 'quick-access' || p === 'skills-center' || p === 'mcp-center' || p === 'dataset-center') return 'cards' as const;
+    if (
+      p.includes('market') ||
+      p === 'quick-access' ||
+      p === 'skills-center' ||
+      p === 'mcp-center' ||
+      p === 'dataset-center' ||
+      p === 'agents-center' ||
+      p === 'apps-center'
+    )
+      return 'cards' as const;
     if (p.includes('monitoring') || p === 'performance-analysis' || p === 'data-reports' || p === 'usage-statistics') return 'chart' as const;
     return 'table' as const;
   })();
@@ -633,7 +658,11 @@ const MainLayoutContent: React.FC<{
         ? 'mcp-center'
         : !layoutIsAdmin && page === 'resource-market' && marketTabQuery === 'dataset'
           ? 'dataset-center'
-          : baseActiveSidebar;
+          : !layoutIsAdmin && page === 'resource-market' && marketTabQuery === 'agent'
+            ? 'agents-center'
+            : !layoutIsAdmin && page === 'resource-market' && marketTabQuery === 'app'
+              ? 'apps-center'
+              : baseActiveSidebar;
   const activeSubItem = pageToSubItem(page, activeSidebar, layoutIsAdmin);
 
   const headerMenusRef = useRef<HTMLDivElement>(null);
@@ -777,6 +806,24 @@ const MainLayoutContent: React.FC<{
         }
         return;
       }
+      if (tab === 'agent') {
+        const q = new URLSearchParams();
+        if (rid) q.set('resourceId', rid);
+        const next = `${buildPath('user', 'agents-center')}${q.toString() ? `?${q}` : ''}`;
+        if (`${location.pathname}${location.search}` !== next) {
+          navigate(next, { replace: true });
+        }
+        return;
+      }
+      if (tab === 'app') {
+        const q = new URLSearchParams();
+        if (rid) q.set('resourceId', rid);
+        const next = `${buildPath('user', 'apps-center')}${q.toString() ? `?${q}` : ''}`;
+        if (`${location.pathname}${location.search}` !== next) {
+          navigate(next, { replace: true });
+        }
+        return;
+      }
       const q = new URLSearchParams();
       q.set('tab', tab);
       if (rid) q.set('resourceId', rid);
@@ -820,12 +867,31 @@ const MainLayoutContent: React.FC<{
         }
         return;
       }
-      if (!tabRaw || !tabOk) {
+      if (tabOk === 'agent') {
         const q = new URLSearchParams();
-        q.set('tab', 'agent');
         const rid = sp.get('resourceId');
         if (rid) q.set('resourceId', rid);
-        const next = `${buildPath('user', 'resource-market')}?${q}`;
+        const next = `${buildPath('user', 'agents-center')}${q.toString() ? `?${q}` : ''}`;
+        if (`${location.pathname}${location.search}` !== next) {
+          navigate(next, { replace: true });
+        }
+        return;
+      }
+      if (tabOk === 'app') {
+        const q = new URLSearchParams();
+        const rid = sp.get('resourceId');
+        if (rid) q.set('resourceId', rid);
+        const next = `${buildPath('user', 'apps-center')}${q.toString() ? `?${q}` : ''}`;
+        if (`${location.pathname}${location.search}` !== next) {
+          navigate(next, { replace: true });
+        }
+        return;
+      }
+      if (!tabRaw || !tabOk) {
+        const q = new URLSearchParams();
+        const rid = sp.get('resourceId');
+        if (rid) q.set('resourceId', rid);
+        const next = `${buildPath('user', 'agents-center')}${q.toString() ? `?${q}` : ''}`;
         if (`${location.pathname}${location.search}` !== next) {
           navigate(next, { replace: true });
         }
@@ -966,6 +1032,11 @@ const MainLayoutContent: React.FC<{
     [hasPermission],
   );
 
+  const userOverflowMenuParents = useMemo(
+    () => userSidebarItems.filter((item) => USER_OVERFLOW_MENU_PARENT_IDS.has(item.id)),
+    [userSidebarItems],
+  );
+
   const adminSidebarItems = useMemo(() => {
     if (!canAccessAdminView(platformRole)) return [];
     const adminPermMap: Record<string, string> = {
@@ -1103,7 +1174,7 @@ const MainLayoutContent: React.FC<{
         return;
       }
       if (!isAdminNav && pageName === 'resource-market') {
-        navigate(`${buildPath(domain, 'resource-market')}?tab=agent`);
+        navigate(buildPath(domain, 'agents-center'));
         return;
       }
       navigate(buildPath(domain, pageName));
@@ -1250,6 +1321,14 @@ const MainLayoutContent: React.FC<{
     if (page === 'dataset-center') {
       const rid = new URLSearchParams(location.search).get('resourceId');
       return rid ? `dataset-center?resourceId=${rid}` : 'dataset-center';
+    }
+    if (page === 'agents-center') {
+      const rid = new URLSearchParams(location.search).get('resourceId');
+      return rid ? `agents-center?resourceId=${rid}` : 'agents-center';
+    }
+    if (page === 'apps-center') {
+      const rid = new URLSearchParams(location.search).get('resourceId');
+      return rid ? `apps-center?resourceId=${rid}` : 'apps-center';
     }
     return routeId ? `${page}/${routeId}` : page;
   }, [page, routeId, queryType, resourceTypeQuery, marketTabQuery, location.search]);
@@ -1463,18 +1542,99 @@ const MainLayoutContent: React.FC<{
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -8, scale: 0.98 }}
                       transition={springTransition}
-                      className={`absolute right-0 top-full z-[60] mt-1.5 w-52 rounded-xl border p-1.5 shadow-xl ${
+                      role="menu"
+                      aria-label="账户与导航"
+                      className={`absolute right-0 top-full z-[60] mt-1.5 w-[min(22rem,calc(100vw-1rem))] rounded-xl border p-1.5 shadow-xl ${
                         isDark ? 'border-white/10 bg-lantu-card' : 'border-slate-200 bg-white'
                       }`}
                     >
+                      {!layoutIsAdmin && userOverflowMenuParents.length > 0 ? (
+                        <>
+                          <div
+                            className={`max-h-[min(80vh,36rem)] overflow-y-auto overflow-x-hidden custom-scrollbar px-0.5 pb-1 pt-1 ${mainScrollCompositorClass}`}
+                          >
+                            {userOverflowMenuParents.map((parentMeta) => {
+                              const groups = filteredSubGroupsForSidebarId(parentMeta.id, 'user');
+                              if (groups.length === 0) return null;
+                              const sectionHeadingId = `user-overflow-section-${parentMeta.id}`;
+                              return (
+                                <div
+                                  key={parentMeta.id}
+                                  role="group"
+                                  aria-labelledby={sectionHeadingId}
+                                  className="mb-2 last:mb-0"
+                                >
+                                  <div
+                                    id={sectionHeadingId}
+                                    className={`px-3 pb-1 pt-2 text-xs font-semibold tracking-wide ${
+                                      isDark ? 'text-slate-400' : 'text-slate-500'
+                                    }`}
+                                  >
+                                    {parentMeta.label}
+                                  </div>
+                                  {groups.map((g) => (
+                                    <div key={`${parentMeta.id}-${g.title}`} className="mb-1 last:mb-0">
+                                      <div
+                                        className={`px-3 pb-0.5 pt-1 text-[11px] font-medium uppercase tracking-wide ${
+                                          isDark ? 'text-slate-500' : 'text-slate-400'
+                                        }`}
+                                      >
+                                        {g.title}
+                                      </div>
+                                      {g.items.map((subItem) => (
+                                        <button
+                                          key={subItem.id}
+                                          type="button"
+                                          role="menuitem"
+                                          onClick={() => {
+                                            setShowUserMenu(false);
+                                            handleSubItemClick(subItem.id, parentMeta.id, 'user');
+                                          }}
+                                          className={`flex min-h-11 w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-inset ${
+                                            activeSubItem === subItem.id &&
+                                            activeSidebar === parentMeta.id &&
+                                            consoleRole === 'user'
+                                              ? isDark
+                                                ? 'bg-white/10 font-semibold text-slate-100'
+                                                : 'bg-slate-100 font-semibold text-slate-900'
+                                              : isDark
+                                                ? 'text-slate-300 hover:bg-white/[0.06]'
+                                                : 'text-slate-700 hover:bg-slate-50'
+                                          }`}
+                                        >
+                                          <subItem.icon size={16} className="shrink-0 opacity-90" aria-hidden />
+                                          <span className="min-w-0 flex-1">{subItem.label}</span>
+                                          {subItem.tag ? (
+                                            <span
+                                              className={`shrink-0 rounded-md px-1.5 py-px text-[10px] font-bold ${
+                                                isDark
+                                                  ? 'border border-white/[0.12] bg-white/[0.08] text-slate-200'
+                                                  : 'border border-slate-400/40 bg-[#F2F4F7] text-[#111827]'
+                                              }`}
+                                            >
+                                              {subItem.tag}
+                                            </span>
+                                          ) : null}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  ))}
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <div className={`mx-2 my-1 h-px ${isDark ? 'bg-white/[0.08]' : 'bg-slate-200/80'}`} aria-hidden />
+                        </>
+                      ) : null}
                       <button
                         type="button"
+                        role="menuitem"
                         onClick={() => {
                           setShowUserMenu(false);
                           navigate(buildPath('user', 'profile'));
                           if (layoutIsAdmin) setRole('user');
                         }}
-                        className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-inset ${
+                        className={`flex min-h-11 w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-inset ${
                           isDark ? 'text-slate-200 hover:bg-white/[0.08]' : 'text-slate-800 hover:bg-slate-100'
                         }`}
                       >
@@ -1484,6 +1644,7 @@ const MainLayoutContent: React.FC<{
                       <div className={`mx-2 my-1 h-px ${isDark ? 'bg-white/[0.08]' : 'bg-slate-200/80'}`} aria-hidden />
                       <button
                         type="button"
+                        role="menuitem"
                         onClick={async () => {
                           setShowUserMenu(false);
                           showMessage('已退出登录', 'info');
@@ -1496,7 +1657,7 @@ const MainLayoutContent: React.FC<{
                           storeLogout();
                           navigate('/login', { replace: true });
                         }}
-                        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium text-red-500 hover:bg-red-500/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/45 focus-visible:ring-inset"
+                        className="flex min-h-11 w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium text-red-500 transition-colors hover:bg-red-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/45 focus-visible:ring-inset"
                       >
                         <LogOut size={15} />
                         退出登录

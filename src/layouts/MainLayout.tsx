@@ -112,6 +112,7 @@ import {
 import { PageSkeleton } from '../components/common/PageSkeleton';
 import { ConsoleSidebar, type ConsoleSidebarRow } from '../components/layout/ConsoleSidebar';
 import { ConsoleTopNav } from '../components/layout/ConsoleTopNav';
+import { HubPersonalRail } from '../components/layout/HubPersonalRail';
 import { AvatarGradientFrame, MultiAvatar } from '../components/common/MultiAvatar';
 import { PLATFORM_ROLE_LABELS } from '../constants/platformRoles';
 import { Tooltip } from '../components/common/Tooltip';
@@ -202,6 +203,7 @@ const MainContent = React.memo<{
   setShowUserMenu: (show: boolean) => void;
   setShowAppearanceMenu: (show: boolean) => void;
   exploreHubRail?: ExploreHubRailConfig;
+  onOpenExplorePersonalRail?: () => void;
 }>(({
   page: p,
   routeId: rid,
@@ -216,6 +218,7 @@ const MainContent = React.memo<{
   setShowUserMenu: setMenu,
   setShowAppearanceMenu: setAppMenu,
   exploreHubRail,
+  onOpenExplorePersonalRail,
 }) => {
   const renderResourceList = (type: ResourceType) => (
     <ResourceCenterManagementPage
@@ -349,7 +352,14 @@ const MainContent = React.memo<{
 
     switch (p) {
       case 'hub':
-        return <ExploreHub theme={t} fontSize={fs} hubRail={exploreHubRail} />;
+        return (
+          <ExploreHub
+            theme={t}
+            fontSize={fs}
+            hubRail={exploreHubRail}
+            onOpenPersonalRail={onOpenExplorePersonalRail}
+          />
+        );
       case 'workspace':
         return <UserWorkspaceOverview theme={t} fontSize={fs} />;
       case 'developer-onboarding':
@@ -505,7 +515,8 @@ const MainContent = React.memo<{
     prevProps.themePreference === nextProps.themePreference &&
     prevProps.themeColor === nextProps.themeColor &&
     prevProps.fontSize === nextProps.fontSize &&
-    prevProps.exploreHubRail === nextProps.exploreHubRail
+    prevProps.exploreHubRail === nextProps.exploreHubRail &&
+    prevProps.onOpenExplorePersonalRail === nextProps.onOpenExplorePersonalRail
   );
 });
 
@@ -662,6 +673,8 @@ const MainLayoutContent: React.FC<{
   /** 主内容滚动区：Hash 路由切换不会整页刷新，需手动滚回顶部 */
   const mainScrollRef = useRef<HTMLDivElement>(null);
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
+  /** 为 true 时展示探索个人左轨（仅来自左轨/显式开启；顶栏与抽屉导航会置 false） */
+  const [personalRailOpen, setPersonalRailOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -1126,6 +1139,12 @@ const MainLayoutContent: React.FC<{
   );
 
   useEffect(() => {
+    if (consoleRole !== 'user' || exploreHubRailSections.length === 0) {
+      setPersonalRailOpen(false);
+    }
+  }, [consoleRole, exploreHubRailSections.length]);
+
+  useEffect(() => {
     const groups = filteredSubGroupsForSidebarId(activeSidebar, consoleRole);
     if (groups.length > 0) {
       setExpandedGroups((prev) => (prev.length === 0 ? [activeSidebar] : prev));
@@ -1139,6 +1158,7 @@ const MainLayoutContent: React.FC<{
   };
 
   const handleSidebarClick = (id: string, domain: ConsoleRole) => {
+    setPersonalRailOpen(false);
     setMobileNavOpen(false);
     const hasChildren = filteredSubGroupsForSidebarId(id, domain).length > 0;
     if (!hasChildren) {
@@ -1147,7 +1167,7 @@ const MainLayoutContent: React.FC<{
     navigate(buildPath(domain, getDefaultPage(domain, id)));
   };
 
-  const handleSubItemClick = useCallback(
+  const navigateSubItem = useCallback(
     (subItemId: string, parentSidebarId: string, domain: ConsoleRole) => {
       setMobileNavOpen(false);
       const isAdminNav = domain === 'admin';
@@ -1168,6 +1188,26 @@ const MainLayoutContent: React.FC<{
     },
     [navigate],
   );
+
+  const handleChromeSubItemClick = useCallback(
+    (subItemId: string, parentSidebarId: string, domain: ConsoleRole) => {
+      setPersonalRailOpen(false);
+      navigateSubItem(subItemId, parentSidebarId, domain);
+    },
+    [navigateSubItem],
+  );
+
+  const handleRailSubItemClick = useCallback(
+    (subItemId: string, parentSidebarId: string, domain: ConsoleRole) => {
+      setPersonalRailOpen(true);
+      navigateSubItem(subItemId, parentSidebarId, domain);
+    },
+    [navigateSubItem],
+  );
+
+  const openExplorePersonalRail = useCallback(() => {
+    setPersonalRailOpen(true);
+  }, []);
 
   useEffect(() => {
     if (!showUserMenu && !showMessagePanel && !showSettingsMenu) return;
@@ -1350,8 +1390,11 @@ const MainLayoutContent: React.FC<{
       activeSidebar,
       activeSubItem,
       routeRole: consoleRole,
-      onSubItemClick: handleSubItemClick,
-      onProfileClick: () => navigate(buildPath('user', 'profile')),
+      onSubItemClick: handleRailSubItemClick,
+      onProfileClick: () => {
+        setPersonalRailOpen(true);
+        navigate(buildPath('user', 'profile'));
+      },
     };
   }, [
     consoleRole,
@@ -1361,9 +1404,18 @@ const MainLayoutContent: React.FC<{
     authUser?.id,
     activeSidebar,
     activeSubItem,
-    handleSubItemClick,
+    handleRailSubItemClick,
     navigate,
   ]);
+
+  const exploreHubRailForContent =
+    page === 'hub' && personalRailOpen && exploreHubRail ? exploreHubRail : undefined;
+
+  const showStandalonePersonalRail =
+    consoleRole === 'user' && personalRailOpen && Boolean(exploreHubRail) && page !== 'hub';
+
+  const onOpenExplorePersonalRail =
+    page === 'hub' && exploreHubRail && !personalRailOpen ? openExplorePersonalRail : undefined;
 
   return (
     <LayoutChromeProvider value={{ hasSecondarySidebar, chromePageTitle: headerTitle }}>
@@ -1391,9 +1443,10 @@ const MainLayoutContent: React.FC<{
           sidebarSearchRows={fullSidebarRows}
           platformRole={platformRole}
           onSidebarClick={handleSidebarClick}
-          onSubItemClick={handleSubItemClick}
+          onSubItemClick={handleChromeSubItemClick}
           filteredSubGroupsForSidebarId={filteredSubGroupsForSidebarId}
           onLogoClick={() => {
+            setPersonalRailOpen(false);
             setExpandedGroups([]);
             navigate(defaultPath());
             setMobileNavOpen(false);
@@ -1614,9 +1667,10 @@ const MainLayoutContent: React.FC<{
             displayUserName={displayUserName}
             avatarSeed={`${authUser?.id ?? 'user'}-${displayUserName}`}
             onSidebarClick={handleSidebarClick}
-            onSubItemClick={handleSubItemClick}
+            onSubItemClick={handleChromeSubItemClick}
             onToggleGroup={toggleGroup}
             onNavigateToProfile={() => {
+              setPersonalRailOpen(false);
               navigate(buildPath('user', 'profile'));
               if (layoutIsAdmin) setRole('user');
             }}
@@ -1632,6 +1686,7 @@ const MainLayoutContent: React.FC<{
               navigate('/login', { replace: true });
             }}
             onLogoClick={() => {
+              setPersonalRailOpen(false);
               setExpandedGroups([]);
               navigate(defaultPath());
               setMobileNavOpen(false);
@@ -1648,36 +1703,89 @@ const MainLayoutContent: React.FC<{
             className={`min-h-0 min-w-0 flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass}`}
           >
             <div className={`w-full ${chromeGpuLayerClass}`}>
-              <AnimatePresence mode="wait">
-                <RouteContentMotion
-                  key={contentKey}
-                  animationVariants={animationVariants}
-                >
-                  <div className={`mx-auto w-full ${contentMaxWidth}`}>
-                    <MainContent
-                      page={page}
-                      routeId={routeId}
-                      resourceTypeFromQuery={
-                        page === 'resource-center'
-                          ? queryType
-                          : page === 'resource-catalog' || page === 'resource-audit'
-                            ? resourceTypeQuery
-                            : queryType
-                      }
-                      layoutIsAdmin={layoutIsAdmin}
-                      theme={theme}
-                      themePreference={themePreference}
-                      themeColor={themeColor}
-                      fontSize={fontSize}
-                      showMessage={showMessage}
-                      navigateTo={navigateTo}
-                      setShowUserMenu={setShowUserMenu}
-                      setShowAppearanceMenu={setShowAppearanceMenu}
-                      exploreHubRail={page === 'hub' ? exploreHubRail : undefined}
-                    />
+              {showStandalonePersonalRail && exploreHubRail ? (
+                <div className={`mx-auto w-full ${contentMaxWidth} px-4 sm:px-5 lg:px-6 xl:px-8`}>
+                  <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10">
+                    <div
+                      className={`order-2 col-span-1 lg:order-1 lg:col-span-2 lg:row-span-1 lg:border-r lg:pr-6 ${
+                        isDark ? 'lg:border-white/[0.08]' : 'lg:border-slate-200/80'
+                      }`}
+                    >
+                      <HubPersonalRail
+                        theme={theme}
+                        sections={exploreHubRail.sections}
+                        displayName={exploreHubRail.displayName}
+                        subtitle={exploreHubRail.subtitle}
+                        avatarSeed={exploreHubRail.avatarSeed}
+                        activeSidebar={exploreHubRail.activeSidebar}
+                        activeSubItem={exploreHubRail.activeSubItem}
+                        routeRole={exploreHubRail.routeRole}
+                        onProfileClick={exploreHubRail.onProfileClick}
+                        onSubItemClick={exploreHubRail.onSubItemClick}
+                      />
+                    </div>
+                    <div className="order-1 min-w-0 lg:order-2 lg:col-span-10">
+                      <AnimatePresence mode="wait">
+                        <RouteContentMotion key={contentKey} animationVariants={animationVariants}>
+                          <div className={`mx-auto w-full ${contentMaxWidth}`}>
+                            <MainContent
+                              page={page}
+                              routeId={routeId}
+                              resourceTypeFromQuery={
+                                page === 'resource-center'
+                                  ? queryType
+                                  : page === 'resource-catalog' || page === 'resource-audit'
+                                    ? resourceTypeQuery
+                                    : queryType
+                              }
+                              layoutIsAdmin={layoutIsAdmin}
+                              theme={theme}
+                              themePreference={themePreference}
+                              themeColor={themeColor}
+                              fontSize={fontSize}
+                              showMessage={showMessage}
+                              navigateTo={navigateTo}
+                              setShowUserMenu={setShowUserMenu}
+                              setShowAppearanceMenu={setShowAppearanceMenu}
+                              exploreHubRail={undefined}
+                              onOpenExplorePersonalRail={undefined}
+                            />
+                          </div>
+                        </RouteContentMotion>
+                      </AnimatePresence>
+                    </div>
                   </div>
-                </RouteContentMotion>
-              </AnimatePresence>
+                </div>
+              ) : (
+                <AnimatePresence mode="wait">
+                  <RouteContentMotion key={contentKey} animationVariants={animationVariants}>
+                    <div className={`mx-auto w-full ${contentMaxWidth}`}>
+                      <MainContent
+                        page={page}
+                        routeId={routeId}
+                        resourceTypeFromQuery={
+                          page === 'resource-center'
+                            ? queryType
+                            : page === 'resource-catalog' || page === 'resource-audit'
+                              ? resourceTypeQuery
+                              : queryType
+                        }
+                        layoutIsAdmin={layoutIsAdmin}
+                        theme={theme}
+                        themePreference={themePreference}
+                        themeColor={themeColor}
+                        fontSize={fontSize}
+                        showMessage={showMessage}
+                        navigateTo={navigateTo}
+                        setShowUserMenu={setShowUserMenu}
+                        setShowAppearanceMenu={setShowAppearanceMenu}
+                        exploreHubRail={exploreHubRailForContent}
+                        onOpenExplorePersonalRail={onOpenExplorePersonalRail}
+                      />
+                    </div>
+                  </RouteContentMotion>
+                </AnimatePresence>
+              )}
             </div>
           </div>
         </main>

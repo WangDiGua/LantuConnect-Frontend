@@ -20,8 +20,9 @@ export type UserTopNavSidebarId = (typeof USER_TOP_NAV_SIDEBAR_IDS)[number];
  * 横向不出现「平台管理」一级；总览等仍在侧栏抽屉与全局搜索（全量行）可达。
  */
 
-/** 首页 ExploreHub 左栏一级分组（原头像菜单树，树状折叠；顺序即展示顺序） */
+/** 首页 ExploreHub 左栏一级分组（原头像菜单树，树状折叠；顺序即展示顺序；hub 与顶栏「探索发现」对应，置首并默认落地页） */
 export const HUB_PERSONAL_RAIL_PARENT_IDS = [
+  'hub',
   'workspace',
   'user-resource-assets',
   'developer-portal',

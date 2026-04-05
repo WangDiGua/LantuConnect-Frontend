@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { ChevronDown, MoreVertical, LogOut, Search, Command, User } from 'lucide-react';
+import { ChevronDown, ChevronRight, LogOut, Search, Command, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Theme } from '../../types';
 import { iconMuted, mainScrollCompositorClass } from '../../utils/uiClasses';
@@ -31,7 +31,7 @@ export interface ConsoleSidebarProps {
   routeRole: ConsoleRole;
   activeSidebar: string;
   activeSubItem: string;
-  /** 含「应用/工作台」「平台管理」分区与 domain */
+  /** 含「使用端」「管理端」分区与 domain */
   sidebarRows: ConsoleSidebarRow[];
   expandedGroups: string[];
   platformRole: PlatformRoleCode;
@@ -51,6 +51,8 @@ export interface ConsoleSidebarProps {
    * 是否显示侧栏顶部品牌区（Logo）。与全局顶栏并存时（如管理端桌面左侧轨）可关闭，避免重复。
    */
   showBrandHeader?: boolean;
+  /** 用户卡位置：产品稿为顶部头像+角色徽标，再搜索与菜单 */
+  profilePlacement?: 'top' | 'bottom';
 }
 
 export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
@@ -72,6 +74,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
   filteredSubGroupsForSidebarId,
   enableMenuSearchHotkey = false,
   showBrandHeader = true,
+  profilePlacement = 'top',
 }) => {
   const isDark = theme === 'dark';
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -186,6 +189,105 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
     return () => window.removeEventListener('keydown', onHotkey);
   }, [menuQuery, enableMenuSearchHotkey]);
 
+  const searchMarginTop =
+    showBrandHeader ? '' : profilePlacement === 'top' ? 'mt-0' : 'mt-1';
+
+  const userCard = (
+    <div
+      className={`${profilePlacement === 'top' ? 'mb-4 shrink-0' : 'mt-auto pt-3 shrink-0'} relative`}
+      ref={userMenuRef}
+    >
+      <AnimatePresence>
+        {showUserMenu && (
+          <motion.div
+            initial={{ opacity: 0, y: 8, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.96 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+            className={`absolute left-0 right-0 z-50 rounded-lg border p-1.5 shadow-lg ${
+              profilePlacement === 'top' ? 'top-full mt-2' : 'bottom-full mb-2'
+            } ${isDark ? 'border-white/10 bg-lantu-card' : 'border-slate-200 bg-white'}`}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setShowUserMenu(false);
+                onNavigateToProfile();
+              }}
+              className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-inset ${
+                isDark ? 'text-slate-200 hover:bg-white/[0.08]' : 'text-slate-800 hover:bg-slate-100'
+              }`}
+            >
+              <User size={15} className="shrink-0 opacity-90" />
+              个人资料
+            </button>
+            <div className={`mx-2 my-1 h-px ${isDark ? 'bg-white/[0.08]' : 'bg-slate-200/80'}`} aria-hidden />
+            <button
+              type="button"
+              onClick={() => {
+                setShowUserMenu(false);
+                onLogout();
+              }}
+              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium text-red-500 hover:bg-red-500/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/45 focus-visible:ring-inset"
+            >
+              <LogOut size={15} />
+              退出登录
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <button
+        type="button"
+        onClick={() => setShowUserMenu((v) => !v)}
+        className={`group/user flex w-full items-center gap-3 rounded-lg border-0 bg-transparent p-2.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent motion-reduce:transition-none ${
+          isDark ? 'hover:bg-white/[0.06]' : 'hover:bg-slate-200/40'
+        }`}
+      >
+        <AvatarGradientFrame
+          isDark={isDark}
+          className="group-hover/user:shadow-[0_0_16px_-4px_rgba(56,189,248,0.42)] group-hover/user:brightness-[1.06] motion-reduce:group-hover/user:shadow-none motion-reduce:group-hover/user:brightness-100"
+        >
+          <MultiAvatar
+            seed={avatarSeed}
+            alt={displayUserName}
+            className="h-9 w-9 block shrink-0 rounded-full object-cover"
+          />
+        </AvatarGradientFrame>
+        <div className="flex-1 text-left overflow-hidden">
+          <div
+            className={`text-[13px] font-bold truncate leading-tight transition-colors ${
+              isDark
+                ? 'text-slate-200 group-hover/user:text-neutral-300'
+                : 'text-slate-800 group-hover/user:text-neutral-800'
+            }`}
+          >
+            {displayUserName}
+          </div>
+          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+            <span
+              className={`text-[9px] px-1.5 py-0.5 rounded-md font-bold whitespace-nowrap ${
+                isDark
+                  ? 'bg-sky-500/15 text-sky-200 border border-sky-500/25'
+                  : 'bg-sky-50 text-sky-800 border border-sky-200/80'
+              }`}
+            >
+              {PLATFORM_ROLE_LABELS[platformRole]}
+            </span>
+          </div>
+        </div>
+        <ChevronRight
+          size={16}
+          className={
+            isDark
+              ? 'text-slate-500 group-hover/user:text-slate-300'
+              : 'text-slate-400 group-hover/user:text-slate-600'
+          }
+          aria-hidden
+        />
+      </button>
+    </div>
+  );
+
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
       {showBrandHeader && (
@@ -207,8 +309,10 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
         </div>
       )}
 
+      {profilePlacement === 'top' && userCard}
+
       {/* Menu Search：微凹底 + 聚焦抬亮与环，快捷键 Chip 非聚焦显示 */}
-      <div className={`mb-4 shrink-0 ${showBrandHeader ? '' : 'mt-1'}`}>
+      <div className={`mb-4 shrink-0 ${searchMarginTop}`}>
         <div
           className={[
             'relative flex h-9 w-full items-center rounded-full px-3',
@@ -289,9 +393,12 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
             return (
               <div
                 key={row.label}
-                className="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400"
+                className="flex items-center gap-2 px-1 pt-4 pb-1 first:pt-2"
+                role="presentation"
               >
-                {row.label}
+                <div className={`h-px min-w-[12px] flex-1 ${isDark ? 'bg-white/[0.08]' : 'bg-slate-200/90'}`} />
+                <span className="shrink-0 text-[10px] font-medium tracking-wide text-slate-400">{row.label}</span>
+                <div className={`h-px min-w-[12px] flex-1 ${isDark ? 'bg-white/[0.08]' : 'bg-slate-200/90'}`} />
               </div>
             );
           }
@@ -316,7 +423,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
                   isSelfActive
                     ? isDark
                       ? 'bg-white/10 text-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.15)]'
-                      : 'bg-white text-slate-900 shadow-[0_2px_10px_rgba(0,0,0,0.02)]'
+                      : 'bg-sky-50 text-slate-900 shadow-[0_1px_6px_rgba(14,165,233,0.12)]'
                     : isChildActive
                       ? isDark
                         ? 'text-slate-100'
@@ -349,7 +456,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
                     {item.label}
                   </span>
                 </div>
-                {hasChildren && (
+                {hasChildren ? (
                   <ChevronDown
                     size={14}
                     aria-hidden
@@ -362,6 +469,20 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
                           ? 'text-slate-400'
                           : 'text-slate-400'
                     }`}
+                  />
+                ) : (
+                  <ChevronRight
+                    size={14}
+                    aria-hidden
+                    className={
+                      isSelfActive
+                        ? isDark
+                          ? 'text-slate-300'
+                          : 'text-sky-700/80'
+                        : isDark
+                          ? 'text-slate-500'
+                          : 'text-slate-300'
+                    }
                   />
                 )}
               </button>
@@ -456,93 +577,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
         )}
       </nav>
 
-      {/* 底部：用户卡片 */}
-      <div className="mt-auto pt-3 shrink-0 relative" ref={userMenuRef}>
-          <AnimatePresence>
-            {showUserMenu && (
-              <motion.div
-                initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 8, scale: 0.96 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                className={`absolute bottom-full left-0 right-0 z-50 mb-2 rounded-lg border p-1.5 shadow-lg ${
-                  isDark ? 'border-white/10 bg-lantu-card' : 'border-slate-200 bg-white'
-                }`}
-              >
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowUserMenu(false);
-                    onNavigateToProfile();
-                  }}
-                  className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-inset ${
-                    isDark ? 'text-slate-200 hover:bg-white/[0.08]' : 'text-slate-800 hover:bg-slate-100'
-                  }`}
-                >
-                  <User size={15} className="shrink-0 opacity-90" />
-                  个人资料
-                </button>
-                <div className={`mx-2 my-1 h-px ${isDark ? 'bg-white/[0.08]' : 'bg-slate-200/80'}`} aria-hidden />
-                <button
-                  type="button"
-                  onClick={() => { setShowUserMenu(false); onLogout(); }}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium text-red-500 hover:bg-red-500/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/45 focus-visible:ring-inset"
-                >
-                  <LogOut size={15} />
-                  退出登录
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-          <button
-            type="button"
-            onClick={() => setShowUserMenu((v) => !v)}
-            className={`group/user flex w-full items-center gap-3 rounded-lg border-0 bg-transparent p-2.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent motion-reduce:transition-none ${
-              isDark ? 'hover:bg-white/[0.06]' : 'hover:bg-slate-200/40'
-            }`}
-          >
-            <AvatarGradientFrame
-              isDark={isDark}
-              className="group-hover/user:shadow-[0_0_16px_-4px_rgba(56,189,248,0.42)] group-hover/user:brightness-[1.06] motion-reduce:group-hover/user:shadow-none motion-reduce:group-hover/user:brightness-100"
-            >
-              <MultiAvatar
-                seed={avatarSeed}
-                alt={displayUserName}
-                className="h-9 w-9 block shrink-0 rounded-full object-cover"
-              />
-            </AvatarGradientFrame>
-            <div className="flex-1 text-left overflow-hidden">
-              <div
-                className={`text-[13px] font-bold truncate leading-tight transition-colors ${
-                  isDark
-                    ? 'text-slate-200 group-hover/user:text-neutral-300'
-                    : 'text-slate-800 group-hover/user:text-neutral-800'
-                }`}
-              >
-                {displayUserName}
-              </div>
-              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                <span
-                  className={`text-[9px] px-1.5 py-0.5 rounded-md font-bold whitespace-nowrap ${
-                    isDark
-                      ? 'bg-neutral-900/10 text-neutral-300 border border-neutral-900/20'
-                      : 'bg-neutral-100 text-neutral-900 border border-neutral-200/80'
-                  }`}
-                >
-                  {PLATFORM_ROLE_LABELS[platformRole]}
-                </span>
-              </div>
-            </div>
-            <MoreVertical
-              size={16}
-              className={
-                isDark
-                  ? 'text-slate-500 group-hover/user:text-slate-300'
-                  : 'text-slate-400 group-hover/user:text-slate-600'
-              }
-            />
-          </button>
-      </div>
+      {profilePlacement === 'bottom' && userCard}
     </div>
   );
 };

@@ -1164,15 +1164,15 @@ const MainLayoutContent: React.FC<{
   }, [userSidebarItems, adminSidebarItems]);
 
   /**
-   * 顶栏始终不出现「平台管理」一级（与 topNavPolicy 一致）；管理一级仅在桌面固定左轨与移动抽屉中展示。
+   * 顶栏始终不出现「管理端」一级菜单（与 topNavPolicy 一致）；该组仅在桌面固定侧栏与移动抽屉中展示。
    */
   const topNavSidebarRows = useMemo(
     () => filterSidebarRowsForSlimTopNav(fullSidebarRows, { omitAdminPrimary: true }),
     [fullSidebarRows],
   );
 
-  /** 管理端桌面：左侧固定与图二一致，为「使用端 + 管理端」全量侧栏（与移动抽屉同源） */
-  const showAdminDesktopSidebar = layoutIsAdmin;
+  /** 用户端与管理端统一：桌面宽屏始终显示固定左侧控制台导航（与移动抽屉同源） */
+  const showDesktopConsoleSidebar = true;
 
   const filteredSubGroupsForSidebarId = useCallback(
     (sidebarId: string, domain: ConsoleRole) => {
@@ -1729,9 +1729,9 @@ const MainLayoutContent: React.FC<{
         />
 
         <div
-          className={`flex min-h-0 min-w-0 flex-1 flex-col px-3 pb-3 pt-[calc(4rem+env(safe-area-inset-top,0px))] md:px-4 md:pb-4 ${showAdminDesktopSidebar ? 'lg:pl-[240px]' : ''}`}
+          className={`flex min-h-0 min-w-0 flex-1 flex-col px-3 pb-3 pt-[calc(4rem+env(safe-area-inset-top,0px))] md:px-4 md:pb-4 ${showDesktopConsoleSidebar ? 'lg:pl-[240px]' : ''}`}
         >
-        {showAdminDesktopSidebar && (
+        {showDesktopConsoleSidebar && (
           <aside
             className={`${chromeGpuLayerClass} fixed left-0 z-20 hidden h-[calc(100dvh-4rem-env(safe-area-inset-top,0px))] w-[240px] shrink-0 flex-col border-r px-3 py-2 motion-reduce:transition-none lg:flex lg:flex-col top-[calc(4rem+env(safe-area-inset-top,0px))] ${
               isDark ? 'border-white/[0.08] bg-lantu-chrome' : 'border-slate-200/80 bg-lantu-chrome'
@@ -1768,12 +1768,13 @@ const MainLayoutContent: React.FC<{
               }}
               onLogoClick={() => {
                 setExpandedGroups([]);
-                navigate(buildPath('admin', 'dashboard'));
+                navigate(defaultPath());
                 setMobileNavOpen(false);
               }}
               filteredSubGroupsForSidebarId={filteredSubGroupsForSidebarId}
-              enableMenuSearchHotkey={false}
+              enableMenuSearchHotkey
               showBrandHeader={false}
+              profilePlacement="top"
             />
           </aside>
         )}
@@ -1817,6 +1818,7 @@ const MainLayoutContent: React.FC<{
             }}
             filteredSubGroupsForSidebarId={filteredSubGroupsForSidebarId}
             enableMenuSearchHotkey={mobileNavOpen}
+            profilePlacement="top"
           />
         </aside>
 
@@ -1834,7 +1836,7 @@ const MainLayoutContent: React.FC<{
                     <div
                       className={`order-2 col-span-1 flex h-full min-h-0 flex-col lg:order-1 lg:col-span-2 lg:border-r lg:pr-6 ${consoleContentTopPad} ${
                         isDark ? 'lg:border-white/[0.08]' : 'lg:border-slate-200/80'
-                      }`}
+                      } ${showDesktopConsoleSidebar ? 'lg:hidden' : ''}`}
                     >
                       <HubPersonalRail
                         theme={theme}
@@ -1850,7 +1852,11 @@ const MainLayoutContent: React.FC<{
                         suppressGlobalMenuSearchHotkey={mobileNavOpen}
                       />
                     </div>
-                    <div className="order-1 min-w-0 lg:order-2 lg:col-span-10">
+                    <div
+                      className={`order-1 min-w-0 lg:order-2 ${
+                        showDesktopConsoleSidebar ? 'lg:col-span-12' : 'lg:col-span-10'
+                      }`}
+                    >
                       <AnimatePresence mode="wait">
                         <RouteContentMotion key={contentKey} animationVariants={animationVariants}>
                           <div className={`mx-auto w-full ${contentMaxWidth}`}>

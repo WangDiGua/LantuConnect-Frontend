@@ -25,7 +25,10 @@ export interface ConsoleTopNavProps {
   routeRole: ConsoleRole;
   activeSidebar: string;
   activeSubItem: string;
+  /** 顶栏横向展示的侧栏行（可精简） */
   sidebarRows: ConsoleSidebarRow[];
+  /** 菜单搜索匹配的全量侧栏行；缺省时与 sidebarRows 相同 */
+  sidebarSearchRows?: ConsoleSidebarRow[];
   platformRole: PlatformRoleCode;
   onSidebarClick: (id: string, domain: ConsoleRole) => void;
   onSubItemClick: (subItemId: string, parentSidebarId: string, domain: ConsoleRole) => void;
@@ -42,6 +45,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
   activeSidebar,
   activeSubItem,
   sidebarRows,
+  sidebarSearchRows,
   onSidebarClick,
   onSubItemClick,
   filteredSubGroupsForSidebarId,
@@ -49,6 +53,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
   onOpenMobileNav,
   toolbarRight,
 }) => {
+  const searchRows = sidebarSearchRows ?? sidebarRows;
   const isDark = theme === 'dark';
   const [menuQuery, setMenuQuery] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
@@ -63,7 +68,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
   const normalizedQuery = menuQuery.trim().toLowerCase();
 
   const navItems = useMemo(() => {
-    const itemRows = sidebarRows.filter((r): r is Extract<ConsoleSidebarRow, { kind: 'item' }> => r.kind === 'item');
+    const itemRows = searchRows.filter((r): r is Extract<ConsoleSidebarRow, { kind: 'item' }> => r.kind === 'item');
     return itemRows
       .map((item) => {
         const allChildren = filteredSubGroupsForSidebarId(item.id, item.domain).flatMap((g) => g.items);
@@ -88,7 +93,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
         return { item, hasChildren: false, visibleChildren: [] };
       })
       .filter((v): v is { item: Extract<ConsoleSidebarRow, { kind: 'item' }>; hasChildren: boolean; visibleChildren: SubGroup['items'] } => !!v);
-  }, [filteredSubGroupsForSidebarId, normalizedQuery, sidebarRows]);
+  }, [filteredSubGroupsForSidebarId, normalizedQuery, searchRows]);
 
   const navItemStateByKey = useMemo(() => {
     const m = new Map<string, (typeof navItems)[number]>();

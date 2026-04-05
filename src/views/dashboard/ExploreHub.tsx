@@ -32,8 +32,14 @@ import { formatDateTime } from '../../utils/formatDateTime';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
 import { useUserRole, canAccessAdminView } from '../../context/UserRoleContext';
 import { useMessage } from '../../components/common/Message';
+import type { ExploreHubRailConfig } from '../../constants/topNavPolicy';
+import { HubPersonalRail } from '../../components/layout/HubPersonalRail';
 
-interface ExploreHubProps { theme: Theme; fontSize: FontSize; }
+interface ExploreHubProps {
+  theme: Theme;
+  fontSize: FontSize;
+  hubRail?: ExploreHubRailConfig;
+}
 
 function formatCount(n: number | null | undefined): string {
   if (n == null || Number.isNaN(Number(n))) return '—';
@@ -479,7 +485,7 @@ const HeroCodeTerminal: React.FC = () => {
   );
 };
 
-export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
+export const ExploreHub: React.FC<ExploreHubProps> = ({ theme, fontSize: _fontSize, hubRail }) => {
   const navigate = useNavigate();
   const { platformRole } = useUserRole();
   const { showMessage } = useMessage();
@@ -723,7 +729,25 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-            <div className="lg:col-span-8 space-y-10">
+            {hubRail ? (
+              <div className="order-2 col-span-1 lg:order-1 lg:col-span-2 lg:row-span-1">
+                <HubPersonalRail
+                  theme={theme}
+                  sections={hubRail.sections}
+                  displayName={hubRail.displayName}
+                  subtitle={hubRail.subtitle}
+                  avatarSeed={hubRail.avatarSeed}
+                  activeSidebar={hubRail.activeSidebar}
+                  activeSubItem={hubRail.activeSubItem}
+                  routeRole={hubRail.routeRole}
+                  onProfileClick={hubRail.onProfileClick}
+                  onSubItemClick={hubRail.onSubItemClick}
+                />
+              </div>
+            ) : null}
+            <div
+              className={`space-y-10 order-1 ${hubRail ? 'lg:order-2 lg:col-span-7' : 'lg:col-span-8'}`}
+            >
               <div>
                 <SectionTitle
                   title="校园热门资源"
@@ -845,7 +869,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme }) => {
               </div>
             </div>
 
-            <div className="lg:col-span-4 space-y-10">
+            <div className={`space-y-10 order-3 ${hubRail ? 'lg:col-span-3' : 'lg:col-span-4'}`}>
               {(stats?.callsTrend7d?.length ?? 0) > 0 && (
                 <EChartCard
                   theme={theme}

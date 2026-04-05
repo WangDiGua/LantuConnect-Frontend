@@ -24,6 +24,13 @@ import {
   USER_SIDEBAR_ITEMS,
   getNavSubGroups,
 } from '../constants/navigation';
+import {
+  buildHubPersonalNavModel,
+  HUB_PERSONAL_RAIL_PARENT_IDS,
+  filterSidebarRowsForUserTopNav,
+  type ExploreHubRailConfig,
+  type HubPersonalRailSection,
+} from '../constants/topNavPolicy';
 import { AppearanceMenu } from '../components/business/AppearanceMenu';
 import { MessagePanel, INITIAL_MESSAGE_UNREAD_COUNT } from '../components/business/MessagePanel';
 
@@ -190,6 +197,7 @@ const MainContent = React.memo<{
   navigateTo: (page: string, id?: string | number, extra?: { skillTrack?: 'hosted' | 'mountable' }) => void;
   setShowUserMenu: (show: boolean) => void;
   setShowAppearanceMenu: (show: boolean) => void;
+  exploreHubRail?: ExploreHubRailConfig;
 }>(({
   page: p,
   routeId: rid,
@@ -203,6 +211,7 @@ const MainContent = React.memo<{
   navigateTo: nav,
   setShowUserMenu: setMenu,
   setShowAppearanceMenu: setAppMenu,
+  exploreHubRail,
 }) => {
   const renderResourceList = (type: ResourceType) => (
     <ResourceCenterManagementPage
@@ -336,7 +345,7 @@ const MainContent = React.memo<{
 
     switch (p) {
       case 'hub':
-        return <ExploreHub theme={t} fontSize={fs} />;
+        return <ExploreHub theme={t} fontSize={fs} hubRail={exploreHubRail} />;
       case 'workspace':
         return <UserWorkspaceOverview theme={t} fontSize={fs} />;
       case 'developer-onboarding':
@@ -467,7 +476,8 @@ const MainContent = React.memo<{
     prevProps.theme === nextProps.theme &&
     prevProps.themePreference === nextProps.themePreference &&
     prevProps.themeColor === nextProps.themeColor &&
-    prevProps.fontSize === nextProps.fontSize
+    prevProps.fontSize === nextProps.fontSize &&
+    prevProps.exploreHubRail === nextProps.exploreHubRail
   );
 });
 
@@ -907,8 +917,8 @@ const MainLayoutContent: React.FC<{
     });
   }, [platformRole, hasPermission]);
 
-  /** 同一侧栏内合并应用路由与管理路由分组 */
-  const sidebarRows: ConsoleSidebarRow[] = useMemo(() => {
+  /** 同一侧栏内合并应用路由与管理路由分组（全量：抽屉与顶栏搜索） */
+  const fullSidebarRows: ConsoleSidebarRow[] = useMemo(() => {
     const rows: ConsoleSidebarRow[] = [
       { kind: 'section', label: '应用 / 工作台' },
       ...userSidebarItems.map((item) => ({ kind: 'item' as const, ...item, domain: 'user' as const })),
@@ -921,6 +931,12 @@ const MainLayoutContent: React.FC<{
     }
     return rows;
   }, [userSidebarItems, adminSidebarItems]);
+
+  /** 用户壳顶栏一级瘦身；管理壳保持全量（与计划一致） */
+  const topNavSidebarRows = useMemo(() => {
+    if (layoutIsAdmin) return fullSidebarRows;
+    return filterSidebarRowsForUserTopNav(fullSidebarRows);
+  }, [fullSidebarRows, layoutIsAdmin]);
 
   const filteredSubGroupsForSidebarId = useCallback(
     (sidebarId: string, domain: ConsoleRole) => {
@@ -945,6 +961,16 @@ const MainLayoutContent: React.FC<{
     [hasPermission, platformRole, canAccessUserPublishingShell],
   );
 
+  const hubPersonalRailSections: HubPersonalRailSection[] = useMemo(() => {
+    if (layoutIsAdmin || consoleRole !== 'user') return [];
+    const out: HubPersonalRailSection[] = [];
+    for (const parentId of HUB_PERSONAL_RAIL_PARENT_IDS) {
+      const groups = filteredSubGroupsForSidebarId(parentId, 'user');
+      out.push(...buildHubPersonalNavModel(parentId, 'user', groups));
+    }
+    return out;
+  }, [layoutIsAdmin, consoleRole, filteredSubGroupsForSidebarId]);
+
   useEffect(() => {
     const groups = filteredSubGroupsForSidebarId(activeSidebar, consoleRole);
     if (groups.length > 0) {
@@ -967,24 +993,27 @@ const MainLayoutContent: React.FC<{
     navigate(buildPath(domain, getDefaultPage(domain, id)));
   };
 
-  const handleSubItemClick = (subItemId: string, parentSidebarId: string, domain: ConsoleRole) => {
-    setMobileNavOpen(false);
-    const isAdminNav = domain === 'admin';
-    const pageName = subItemToPage(parentSidebarId, subItemId, isAdminNav);
-    if (isAdminNav && pageName === 'resource-catalog') {
-      navigate(`${buildPath(domain, 'resource-catalog')}?type=agent`);
-      return;
-    }
-    if (isAdminNav && pageName === 'resource-audit') {
-      navigate(buildPath(domain, 'resource-audit'));
-      return;
-    }
-    if (!isAdminNav && pageName === 'resource-market') {
-      navigate(`${buildPath(domain, 'resource-market')}?tab=agent`);
-      return;
-    }
-    navigate(buildPath(domain, pageName));
-  };
+  const handleSubItemClick = useCallback(
+    (subItemId: string, parentSidebarId: string, domain: ConsoleRole) => {
+      setMobileNavOpen(false);
+      const isAdminNav = domain === 'admin';
+      const pageName = subItemToPage(parentSidebarId, subItemId, isAdminNav);
+      if (isAdminNav && pageName === 'resource-catalog') {
+        navigate(`${buildPath(domain, 'resource-catalog')}?type=agent`);
+        return;
+      }
+      if (isAdminNav && pageName === 'resource-audit') {
+        navigate(buildPath(domain, 'resource-audit'));
+        return;
+      }
+      if (!isAdminNav && pageName === 'resource-market') {
+        navigate(`${buildPath(domain, 'resource-market')}?tab=agent`);
+        return;
+      }
+      navigate(buildPath(domain, pageName));
+    },
+    [navigate],
+  );
 
   useEffect(() => {
     if (!showUserMenu && !showMessagePanel && !showSettingsMenu) return;
@@ -1137,6 +1166,32 @@ const MainLayoutContent: React.FC<{
     return activeChild.label;
   }, [activeSidebar, activeSubItem, navChildrenForActiveSidebar, layoutIsAdmin, page]);
 
+  const exploreHubRail = useMemo((): ExploreHubRailConfig | undefined => {
+    if (layoutIsAdmin || consoleRole !== 'user' || hubPersonalRailSections.length === 0) return undefined;
+    return {
+      sections: hubPersonalRailSections,
+      displayName: displayUserName,
+      subtitle: authUser?.username ?? '',
+      avatarSeed: `${authUser?.id ?? 'user'}-${displayUserName}`,
+      activeSidebar,
+      activeSubItem,
+      routeRole: consoleRole,
+      onSubItemClick: handleSubItemClick,
+      onProfileClick: () => navigate(buildPath('user', 'profile')),
+    };
+  }, [
+    layoutIsAdmin,
+    consoleRole,
+    hubPersonalRailSections,
+    displayUserName,
+    authUser?.username,
+    authUser?.id,
+    activeSidebar,
+    activeSubItem,
+    handleSubItemClick,
+    navigate,
+  ]);
+
   return (
     <LayoutChromeProvider value={{ hasSecondarySidebar, chromePageTitle: headerTitle }}>
       <div
@@ -1159,7 +1214,8 @@ const MainLayoutContent: React.FC<{
           routeRole={consoleRole}
           activeSidebar={activeSidebar}
           activeSubItem={activeSubItem}
-          sidebarRows={sidebarRows}
+          sidebarRows={topNavSidebarRows}
+          sidebarSearchRows={fullSidebarRows}
           platformRole={platformRole}
           onSidebarClick={handleSidebarClick}
           onSubItemClick={handleSubItemClick}
@@ -1385,7 +1441,7 @@ const MainLayoutContent: React.FC<{
             routeRole={consoleRole}
             activeSidebar={activeSidebar}
             activeSubItem={activeSubItem}
-            sidebarRows={sidebarRows}
+            sidebarRows={fullSidebarRows}
             expandedGroups={expandedGroups}
             platformRole={platformRole}
             displayUserName={displayUserName}
@@ -1460,6 +1516,7 @@ const MainLayoutContent: React.FC<{
                       navigateTo={navigateTo}
                       setShowUserMenu={setShowUserMenu}
                       setShowAppearanceMenu={setShowAppearanceMenu}
+                      exploreHubRail={page === 'hub' ? exploreHubRail : undefined}
                     />
                   </div>
                 </RouteContentMotion>

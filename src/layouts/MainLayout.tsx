@@ -131,6 +131,9 @@ import { PLATFORM_ROLE_LABELS } from '../constants/platformRoles';
 import { Tooltip } from '../components/common/Tooltip';
 import {
   chromeGpuLayerClass,
+  CONSOLE_CARD_RADIUS,
+  CONSOLE_CARD_SHADOW_DARK,
+  CONSOLE_CARD_SHADOW_LIGHT,
   consoleContentTopPad,
   contentMaxWidth,
   iconChrome,
@@ -1729,12 +1732,16 @@ const MainLayoutContent: React.FC<{
         />
 
         <div
-          className={`flex min-h-0 min-w-0 flex-1 flex-col px-3 pb-3 pt-[calc(4rem+env(safe-area-inset-top,0px))] md:px-4 md:pb-4 ${showAdminDesktopSidebar ? 'lg:pl-[240px]' : ''}`}
+          className={`flex min-h-0 min-w-0 flex-1 flex-col px-3 pb-3 pt-[calc(4rem+env(safe-area-inset-top,0px))] md:px-4 md:pb-4 ${
+            showAdminDesktopSidebar ? 'lg:pl-[calc(1rem+240px+1rem)]' : ''
+          }`}
         >
         {showAdminDesktopSidebar && (
           <aside
-            className={`${chromeGpuLayerClass} fixed left-0 z-20 hidden h-[calc(100dvh-4rem-env(safe-area-inset-top,0px))] w-[240px] shrink-0 flex-col border-r px-0 py-2 motion-reduce:transition-none lg:flex lg:flex-col top-[calc(4rem+env(safe-area-inset-top,0px))] ${
-              isDark ? 'border-white/[0.08] bg-lantu-chrome' : 'border-slate-200/80 bg-gray-100'
+            className={`${chromeGpuLayerClass} fixed z-20 hidden w-[240px] shrink-0 flex-col overflow-hidden px-0 py-2 motion-reduce:transition-none lg:flex lg:flex-col left-[max(1rem,env(safe-area-inset-left,0px))] top-[calc(4rem+env(safe-area-inset-top,0px)+1rem)] bottom-[max(1rem,env(safe-area-inset-bottom,0px))] border ${CONSOLE_CARD_RADIUS} ${
+              isDark
+                ? `border-white/[0.1] bg-lantu-elevated ${CONSOLE_CARD_SHADOW_DARK}`
+                : `border-slate-200/70 bg-white ${CONSOLE_CARD_SHADOW_LIGHT}`
             }`}
             aria-label="控制台导航"
           >

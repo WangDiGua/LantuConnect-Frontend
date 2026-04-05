@@ -12,6 +12,7 @@ import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { PageError } from '../../components/common/PageError';
 import { EChartCard } from '../../components/charts/EChartCard';
+import { LantuSelect } from '../../components/common/LantuSelect';
 import { baseGrid, baseLegend, baseTooltip, chartColors } from '../../components/charts/echartsTheme';
 import { RESOURCE_TYPE_LABEL_ZH, parseResourceType } from '../../constants/resourceTypes';
 
@@ -164,20 +165,20 @@ export const DeveloperStatsPage: React.FC<Props> = ({ theme, fontSize }) => {
     !loading && !error && data ? (
       <div className="flex flex-col gap-3 w-full lg:flex-row lg:flex-wrap lg:items-end lg:justify-between">
         <div className={`flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-end ${cardSurface} p-4 flex-1 min-w-0`}>
-          <label className={`flex flex-col gap-1 text-xs font-medium ${tm}`}>
+          <label className={`flex min-w-[11rem] flex-col gap-1 text-xs font-medium ${tm}`}>
             统计周期（天）
-            <select
-              value={periodDays}
-              onChange={(e) => setPeriodDays(Number(e.target.value))}
-              className={`mt-0.5 rounded-lg border px-3 py-2 text-sm ${isDark ? 'border-white/10 bg-neutral-900 text-neutral-100' : 'border-slate-200 bg-white text-slate-900'}`}
-              aria-label="选择统计周期天数"
-            >
-              {PERIOD_OPTIONS.map((d) => (
-                <option key={d} value={d}>
-                  近 {d} 天
-                </option>
-              ))}
-            </select>
+            <span className="mt-0.5">
+              <LantuSelect
+                theme={theme}
+                value={String(periodDays)}
+                onChange={(v) => setPeriodDays(Number(v))}
+                options={PERIOD_OPTIONS.map((d) => ({
+                  value: String(d),
+                  label: `近 ${d} 天`,
+                }))}
+                chevronSize={15}
+              />
+            </span>
           </label>
           {canQueryOtherOwner ? (
             <div className={`flex flex-col gap-1 text-xs font-medium ${tm} lg:min-w-[200px]`}>

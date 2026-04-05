@@ -9,7 +9,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import type { EChartsOption } from 'echarts';
 import type { Theme, FontSize } from '../../types';
-import { mainScrollPadBottom, mainScrollCompositorClass, canvasBodyBg } from '../../utils/uiClasses';
+import { mainScrollPadBottom, canvasBodyBg } from '../../utils/uiClasses';
 import { buildPath, buildUserResourceMarketUrl } from '../../constants/consoleRoutes';
 import { dashboardService } from '../../api/services/dashboard.service';
 import type { ExploreHubData, ExploreResourceItem, AnnouncementItem } from '../../types/dto/explore';
@@ -740,8 +740,8 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme, fontSize: _fontSi
   );
 
   return (
-    <div className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${mainScrollPadBottom}`}>
-      <div className={`min-h-screen pt-2 sm:pt-3 pb-20 ${canvasBodyBg(theme)}`}>
+    <>
+      <div className={`w-full ${mainScrollPadBottom} ${canvasBodyBg(theme)} pt-2 sm:pt-3 pb-16 sm:pb-20`}>
         {!hubRail ? <div className={pageContainer}>{hubHeroBanner}</div> : null}
 
         <main className={`${pageContainer} ${hubRail ? 'mt-2 sm:mt-3' : 'mt-6 sm:mt-7'} space-y-8`}>
@@ -1043,6 +1043,6 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme, fontSize: _fontSi
           </div>
         )}
       </Modal>
-    </div>
+    </>
   );
 };

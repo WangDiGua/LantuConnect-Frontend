@@ -19,7 +19,7 @@ import { useNavigate } from 'react-router-dom';
 import { Theme, FontSize } from '../../types';
 import { useUserRole } from '../../context/UserRoleContext';
 import { buildPath } from '../../constants/consoleRoutes';
-import { bentoCard, canvasBodyBg, mainScrollCompositorClass, textPrimary, textSecondary, textMuted, btnPrimary, btnGhost } from '../../utils/uiClasses';
+import { bentoCard, canvasBodyBg, textPrimary, textSecondary, textMuted, btnPrimary, btnGhost } from '../../utils/uiClasses';
 import { BentoCard } from '../../components/common/BentoCard';
 import { DashboardLayout } from '../../components/layout/PageLayouts';
 import { parseQuickLinkIds } from '../../lib/safeStorage';
@@ -99,7 +99,7 @@ export const QuickAccess: React.FC<QuickAccessProps> = ({ theme, fontSize: _font
   const tools = permittedTools.filter((t) => visibleIds.includes(t.id));
 
   return (
-    <div className={`flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${canvasBodyBg(theme)}`}>
+    <div className={`w-full ${canvasBodyBg(theme)}`}>
       <DashboardLayout className="space-y-6">
 
         {/* Header */}

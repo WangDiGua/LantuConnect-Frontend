@@ -13,7 +13,7 @@ import { mapInvokeFlowError } from '../../utils/invokeError';
 import { ApiException } from '../../types/api';
 import { env } from '../../config/env';
 import {
-  canvasBodyBg, mainScrollCompositorClass, bentoCard, btnPrimary, btnSecondary,
+  canvasBodyBg, mainScrollPadBottom, bentoCard, btnPrimary, btnSecondary,
   iconMuted, textPrimary, textSecondary, textMuted, techBadge,
 } from '../../utils/uiClasses';
 import { BentoCard } from '../../components/common/BentoCard';
@@ -255,8 +255,8 @@ export const AppMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, themeCo
   }, [favoriteLoading, isFavorited, showMessage]);
 
   return (
-    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${canvasBodyBg(theme)}`}>
-      <div className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar px-0 py-4 sm:py-5 ${mainScrollCompositorClass}`}>
+    <div className={`w-full ${canvasBodyBg(theme)}`}>
+      <div className={`px-0 py-4 sm:py-5 ${mainScrollPadBottom}`}>
         <div className={`${bentoCard(theme)} overflow-hidden p-4 sm:p-6 lg:p-8`}>
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-5">

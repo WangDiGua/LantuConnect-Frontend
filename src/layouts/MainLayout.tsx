@@ -1641,7 +1641,7 @@ const MainLayoutContent: React.FC<{
             ref={mainScrollRef}
             className={`flex min-h-0 flex-1 flex-col overflow-y-auto custom-scrollbar ${mainScrollCompositorClass}`}
           >
-            <div className={`w-full ${chromeGpuLayerClass}`}>
+            <div className={`min-h-0 w-full ${chromeGpuLayerClass}`}>
               <AnimatePresence mode="wait">
                 <RouteContentMotion
                   key={contentKey}

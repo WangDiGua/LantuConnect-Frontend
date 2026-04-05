@@ -42,7 +42,6 @@ import {
   btnSecondary,
   canvasBodyBg,
   iconMuted,
-  mainScrollCompositorClass,
   mainScrollPadBottom,
   mainScrollPadX,
   statusLabel,
@@ -699,7 +698,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
       : '搜索 MCP 名称或编码…';
 
   return (
-    <div className={`flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${canvasBodyBg(theme)}`}>
+    <div className={`w-full ${canvasBodyBg(theme)}`}>
       <div className={`${mainScrollPadX} ${mainScrollPadBottom} space-y-5 pt-3 sm:pt-4`}>
         <header className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between lg:gap-6">
           <div className="flex min-w-0 items-start gap-3 sm:gap-3.5">

@@ -12,7 +12,7 @@ import { dashboardService } from '../../api/services/dashboard.service';
 import { useAuthStore } from '../../stores/authStore';
 import {
   bentoCard, bentoCardHover, canvasBodyBg, cardHeading, kpiGridGap,
-  mainScrollCompositorClass, textPrimary, textSecondary, textMuted,
+  textPrimary, textSecondary, textMuted,
 } from '../../utils/uiClasses';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
@@ -140,7 +140,7 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
   }
 
   return (
-    <div className={`flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${canvasBodyBg(theme)}`}>
+    <div className={`w-full ${canvasBodyBg(theme)}`}>
       <DashboardLayout>
 
         {/* Welcome */}

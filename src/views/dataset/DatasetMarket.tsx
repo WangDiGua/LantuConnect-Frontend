@@ -32,7 +32,6 @@ import { mapInvokeFlowError } from '../../utils/invokeError';
 import { safeOpenHttpUrl } from '../../lib/windowNavigate';
 import {
   canvasBodyBg,
-  mainScrollCompositorClass,
   mainScrollPadX,
   mainScrollPadBottom,
   btnPrimary,
@@ -423,7 +422,7 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _t
     listTotal != null ? `搜索数据集…（共 ${formatLabel(listTotal)} 条）` : '搜索数据集…';
 
   return (
-    <div className={`flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${canvasBodyBg(theme)}`}>
+    <div className={`w-full ${canvasBodyBg(theme)}`}>
       <div className={`${mainScrollPadX} ${mainScrollPadBottom} space-y-5 pt-3 sm:pt-4`}>
           {/* Hero */}
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">

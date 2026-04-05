@@ -40,7 +40,6 @@ import { fetchSkillPackBlobDownload, resolveSkillArtifactTarget } from '../../ut
 import { safeOpenHttpUrl } from '../../lib/windowNavigate';
 import {
   canvasBodyBg,
-  mainScrollCompositorClass,
   mainScrollPadX,
   mainScrollPadBottom,
   btnPrimary,
@@ -303,7 +302,7 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _the
   }, [catalogTags]);
 
   return (
-    <div className={`flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${canvasBodyBg(theme)}`}>
+    <div className={`w-full ${canvasBodyBg(theme)}`}>
       <div className={`${mainScrollPadX} ${mainScrollPadBottom} space-y-5 pt-3 sm:pt-4`}>
         {/* 顶栏：品牌区 + 轻量操作（紧凑版，减少首屏占用） */}
         <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">

@@ -169,7 +169,7 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
   const list = useMemo(() => filtered, [filtered]);
 
   return (
-    <div className={`flex-1 overflow-y-auto custom-scrollbar min-h-0 ${isDark ? 'bg-transparent' : 'bg-transparent'}`}>
+    <div className={`w-full min-h-0 ${isDark ? 'bg-transparent' : 'bg-transparent'}`}>
       <MarketLayout theme={theme}>
         <MarketHeader
           theme={theme}

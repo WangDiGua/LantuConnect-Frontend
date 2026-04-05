@@ -186,6 +186,37 @@ function tryFormatJsonText(raw: string): { asJson: boolean; text: string } {
   }
 }
 
+/** 从响应体解析 JSON-RPC error（支持整段 JSON 或 NDJSON 末行）。 */
+function parseJsonRpcErrorFromBody(raw: string): { code: number; message: string; data?: unknown } | null {
+  const tryOne = (trimmed: string): { code: number; message: string; data?: unknown } | null => {
+    if (!trimmed) return null;
+    try {
+      const parsed = JSON.parse(trimmed) as unknown;
+      if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+      const o = parsed as Record<string, unknown>;
+      if (!('jsonrpc' in o)) return null;
+      if (o.error == null || typeof o.error !== 'object' || Array.isArray(o.error)) return null;
+      const err = o.error as Record<string, unknown>;
+      const code = typeof err.code === 'number' ? err.code : -1;
+      const message = typeof err.message === 'string' ? err.message : 'Unknown error';
+      return { code, message, data: err.data };
+    } catch {
+      return null;
+    }
+  };
+
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const whole = tryOne(trimmed);
+  if (whole) return whole;
+  const lines = raw.split(/\r?\n/);
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const e = tryOne(lines[i]!.trim());
+    if (e) return e;
+  }
+  return null;
+}
+
 
 export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _themeColor, showMessage, detailResourceId }) => {
   const navigate = useNavigate();
@@ -417,6 +448,12 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
     () => (invokeResponse ? tryFormatJsonText(invokeResponse.body ?? '') : null),
     [invokeResponse],
   );
+
+  const invokeJsonRpcError = useMemo(
+    () => (invokeResponse?.body != null ? parseJsonRpcErrorFromBody(invokeResponse.body) : null),
+    [invokeResponse],
+  );
+  const invokeGatewaySuccess = invokeResponse?.status === 'success';
 
   const copyText = useCallback(async (text: string, successText: string) => {
     try {
@@ -1025,17 +1062,28 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                   isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200 bg-slate-50'
                 }`}>
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <h5 className={`text-sm font-semibold ${textSecondary(theme)}`}>调用结果</h5>
                       <span
                         className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                          invokeResponse.status === 'success'
-                            ? isDark ? 'bg-emerald-500/20 text-emerald-200' : 'bg-emerald-100 text-emerald-700'
-                            : isDark ? 'bg-rose-500/20 text-rose-200' : 'bg-rose-100 text-rose-700'
+                          invokeJsonRpcError
+                            ? isDark ? 'bg-amber-500/20 text-amber-100' : 'bg-amber-100 text-amber-900'
+                            : invokeGatewaySuccess
+                              ? isDark ? 'bg-emerald-500/20 text-emerald-200' : 'bg-emerald-100 text-emerald-700'
+                              : isDark ? 'bg-rose-500/20 text-rose-200' : 'bg-rose-100 text-rose-700'
                         }`}
                       >
-                        {invokeResponse.status}
+                        {invokeJsonRpcError ? 'JSON-RPC 错误' : invokeResponse.status}
                       </span>
+                      {invokeJsonRpcError && (
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums ${
+                            isDark ? 'bg-white/10 text-white/70' : 'bg-slate-200/80 text-slate-700'
+                          }`}
+                        >
+                          网关 {invokeResponse.status} · HTTP {invokeResponse.statusCode}
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       <button
@@ -1056,6 +1104,29 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                       </button>
                     </div>
                   </div>
+                  {invokeJsonRpcError ? (
+                    <div
+                      className={`rounded-xl border px-3 py-2.5 text-xs ${
+                        isDark ? 'border-amber-500/25 bg-amber-500/[0.08] text-amber-100' : 'border-amber-200 bg-amber-50 text-amber-950'
+                      }`}
+                    >
+                      <p className="font-semibold">
+                        错误码 {invokeJsonRpcError.code} · {invokeJsonRpcError.message}
+                      </p>
+                      {invokeJsonRpcError.data !== undefined && invokeJsonRpcError.data !== '' && (
+                        <p className={`mt-1 whitespace-pre-wrap break-all ${textMuted(theme)}`}>
+                          {typeof invokeJsonRpcError.data === 'string'
+                            ? invokeJsonRpcError.data
+                            : JSON.stringify(invokeJsonRpcError.data, null, 2)}
+                        </p>
+                      )}
+                      {invokeGatewaySuccess && (
+                        <p className={`mt-2 ${textMuted(theme)}`}>
+                          本次 HTTP 请求成功（如状态码所示），但响应体为 JSON-RPC 协议层错误，以本说明为准。
+                        </p>
+                      )}
+                    </div>
+                  ) : null}
                   <div className="grid gap-2 sm:grid-cols-3">
                     <div className={`rounded-xl border p-2.5 ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-white'}`}>
                       <p className={`text-[11px] ${textMuted(theme)}`}>状态码</p>

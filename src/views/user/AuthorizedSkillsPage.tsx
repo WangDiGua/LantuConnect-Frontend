@@ -14,7 +14,7 @@ import {
   textSecondary,
   textMuted,
 } from '../../utils/uiClasses';
-import { buildPath } from '../../constants/consoleRoutes';
+import { buildPath, buildUserResourceMarketUrl } from '../../constants/consoleRoutes';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 
 const PAGE_DESC = '含你本人创建的技能与目录中已公开发布的技能；展示来源、包格式与最近使用时间，并可跳转技能市场详情。';
@@ -112,7 +112,7 @@ export const AuthorizedSkillsPage: React.FC<Props> = ({ theme, fontSize }) => {
                   <button
                     type="button"
                     className={`text-xs font-medium ${isDark ? 'text-sky-400 hover:text-sky-300' : 'text-sky-700 hover:text-sky-800'}`}
-                    onClick={() => navigate(`${buildPath('user', 'skill-market')}?resourceId=${item.id}`)}
+                    onClick={() => navigate(buildUserResourceMarketUrl('skill', { resourceId: item.id }))}
                   >
                     <span className="inline-flex items-center gap-1">
                       在技能市场中打开 <ExternalLink size={12} className="inline shrink-0" aria-hidden />

@@ -1,8 +1,9 @@
 import React, { useCallback, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { Theme, FontSize, ThemeColor } from '../../types';
 import type { ResourceType } from '../../types/dto/catalog';
 import { RESOURCE_TYPES, RESOURCE_TYPE_LABEL_ZH, parseResourceType } from '../../constants/resourceTypes';
+import { buildPath } from '../../constants/consoleRoutes';
 import { AgentMarket } from '../agent/AgentMarket';
 import { SkillMarket } from '../skill/SkillMarket';
 import { McpMarket } from '../mcp/McpMarket';
@@ -19,12 +20,17 @@ interface Props {
 
 export const UserResourceMarketHub: React.FC<Props> = ({ theme, fontSize, themeColor, showMessage }) => {
   const isDark = theme === 'dark';
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const tab = useMemo(() => parseResourceType(searchParams.get('tab')) ?? 'agent', [searchParams]);
 
   const setTab = useCallback(
     (next: ResourceType) => {
+      if (next === 'skill') {
+        navigate(buildPath('user', 'skills-center'), { replace: true });
+        return;
+      }
       setSearchParams(
         (prev) => {
           const p = new URLSearchParams(prev);
@@ -35,7 +41,7 @@ export const UserResourceMarketHub: React.FC<Props> = ({ theme, fontSize, themeC
         { replace: true },
       );
     },
-    [setSearchParams],
+    [navigate, setSearchParams],
   );
 
   const ts = textSecondary(theme);

@@ -3,10 +3,9 @@ import { parseResourceType } from './resourceTypes';
 
 export type ConsoleRole = 'admin' | 'user';
 
-/** 用户端旧版「五市场」路由 slug → 统一资源市场 `?tab=`（见 `resource-market`） */
+/** 用户端旧版资源市场 slug → `resource-market?tab=`；`skill-market` 在 MainLayout 中直达 `skills-center` */
 export const USER_LEGACY_MARKET_PAGE_TO_TAB: Record<string, ResourceType> = {
   'agent-market': 'agent',
-  'skill-market': 'skill',
   'mcp-market': 'mcp',
   'app-market': 'app',
   'dataset-market': 'dataset',
@@ -67,6 +66,14 @@ export function buildUserResourceMarketUrl(
   extra?: { resourceId?: string | number | null },
 ): string {
   const tab = parseResourceType(tabInput) ?? 'agent';
+  if (tab === 'skill') {
+    const params = new URLSearchParams();
+    if (extra?.resourceId != null && String(extra.resourceId).length > 0) {
+      params.set('resourceId', String(extra.resourceId));
+    }
+    const qs = params.toString();
+    return `${buildPath('user', 'skills-center')}${qs ? `?${qs}` : ''}`;
+  }
   const params = new URLSearchParams({ tab });
   if (extra?.resourceId != null && String(extra.resourceId).length > 0) {
     params.set('resourceId', String(extra.resourceId));
@@ -115,6 +122,7 @@ const ADMIN_SIDEBAR_PAGES: Record<string, string[]> = {
 const USER_SIDEBAR_PAGES: Record<string, string[]> = {
   'hub': ['hub'],
   'workspace': ['workspace', 'developer-onboarding', 'authorized-skills', 'my-favorites', 'quick-access'],
+  'skills-center': ['skills-center'],
   'user-resource-assets': [
     'resource-market',
     'agent-market',
@@ -160,6 +168,7 @@ export function getDefaultPage(role: ConsoleRole, sidebarId: string): string {
 export function subItemToPage(sidebarId: string, subItemId: string, isAdmin: boolean): string {
   if (isAdmin && sidebarId === 'overview' && subItemId === 'overview') return 'dashboard';
   if (!isAdmin && sidebarId === 'workspace' && subItemId === 'overview') return 'workspace';
+  if (!isAdmin && sidebarId === 'skills-center' && subItemId === 'skills-center') return 'skills-center';
   return subItemId;
 }
 
@@ -176,7 +185,10 @@ export function pageToSubItem(page: string, sidebarId: string | null, isAdmin: b
   if (isAdmin && sidebarId === 'admin-resource-ops' && ADMIN_RESOURCE_AUDIT_PAGES.has(page)) {
     return 'resource-audit';
   }
-  if (!isAdmin && sidebarId === 'user-resource-assets' && (page === 'resource-market' || USER_LEGACY_MARKET_PAGES.has(page))) {
+  if (!isAdmin && sidebarId === 'skills-center' && (page === 'skills-center' || page === 'resource-market')) {
+    return 'skills-center';
+  }
+  if (!isAdmin && sidebarId === 'user-resource-assets' && (page === 'resource-market' || page === 'skill-market' || USER_LEGACY_MARKET_PAGES.has(page))) {
     return 'resource-market';
   }
   return page;

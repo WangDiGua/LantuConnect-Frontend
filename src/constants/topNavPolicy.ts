@@ -4,7 +4,7 @@ import type { NavSubGroup } from './navigation';
 import type { ConsoleSidebarRow } from '../components/layout/ConsoleSidebar';
 
 /** 应用端顶栏保留的一级侧栏 id（我的工作台 / 个人设置下沉到首页左栏） */
-export const USER_TOP_NAV_SIDEBAR_IDS = ['hub', 'user-resource-assets', 'developer-portal'] as const;
+export const USER_TOP_NAV_SIDEBAR_IDS = ['hub', 'user-resource-assets', 'skills-center', 'developer-portal'] as const;
 
 export type UserTopNavSidebarId = (typeof USER_TOP_NAV_SIDEBAR_IDS)[number];
 

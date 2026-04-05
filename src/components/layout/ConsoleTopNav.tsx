@@ -183,7 +183,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
 
       <nav
         aria-label="主导航"
-        className={`mx-1 hidden min-w-0 flex-1 items-center gap-0.5 overflow-x-auto lg:flex ${mainScrollCompositorClass} py-1 [scrollbar-width:thin]`}
+        className={`mx-1 hidden min-w-0 flex-1 items-center gap-0.5 overflow-x-auto lg:flex ${mainScrollCompositorClass} py-0.5 [scrollbar-width:thin]`}
       >
         {navPieces.map((piece, i) => {
           if (piece.kind === 'divider') {
@@ -215,10 +215,15 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
                 key={key}
                 type="button"
                 onClick={() => onSidebarClick(item.id, item.domain)}
-                className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${activeCls}`}
+                className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium leading-none transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${activeCls}`}
               >
-                <item.icon size={17} strokeWidth={2} className="shrink-0 opacity-90" aria-hidden />
-                <span className="whitespace-nowrap">{item.label}</span>
+                <item.icon
+                  size={17}
+                  strokeWidth={2}
+                  className="relative top-px shrink-0 opacity-90 block"
+                  aria-hidden
+                />
+                <span className="whitespace-nowrap leading-none">{item.label}</span>
               </button>
             );
           }
@@ -238,14 +243,19 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
                     setOpenDropdownKey(key);
                   }
                 }}
-                className={`inline-flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${activeCls}`}
+                className={`inline-flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-2 text-sm font-medium leading-none transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${activeCls}`}
               >
-                <item.icon size={17} strokeWidth={2} className="shrink-0 opacity-90" aria-hidden />
-                <span className="whitespace-nowrap">{item.label}</span>
+                <item.icon
+                  size={17}
+                  strokeWidth={2}
+                  className="relative top-px shrink-0 opacity-90 block"
+                  aria-hidden
+                />
+                <span className="whitespace-nowrap leading-none">{item.label}</span>
                 <ChevronDown
                   size={14}
                   aria-hidden
-                  className={`shrink-0 opacity-80 transition-transform duration-200 motion-reduce:transition-none ${open ? 'rotate-180' : ''}`}
+                  className={`relative top-px shrink-0 opacity-80 block transition-transform duration-200 motion-reduce:transition-none ${open ? 'rotate-180' : ''}`}
                 />
               </button>
               <PortalDropdown
@@ -302,7 +312,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
 
       <div
         className={[
-          'relative hidden h-9 max-w-[200px] flex-1 items-center rounded-full px-3 transition-all duration-200 xl:max-w-xs lg:flex',
+          'relative hidden h-9 max-w-[200px] flex flex-1 items-center rounded-full px-3 transition-all duration-200 xl:max-w-xs lg:flex',
           searchFocused
             ? isDark
               ? 'border border-transparent bg-white/10 shadow-[0_0_0_2px_rgba(96,165,250,0.35)]'
@@ -315,7 +325,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
         <Search
           size={15}
           className={[
-            'flex-shrink-0 transition-colors duration-200',
+            'shrink-0 transition-colors duration-200 relative top-px block',
             searchFocused
               ? isDark
                 ? 'text-slate-100'
@@ -339,14 +349,14 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
           onBlur={() => setSearchFocused(false)}
           placeholder="搜索菜单..."
           className={[
-            'flex-1 min-w-0 border-none bg-transparent px-2.5 text-[13px] font-medium outline-none',
+            'flex-1 min-w-0 h-full border-none bg-transparent px-2.5 py-0 text-[13px] font-medium leading-none outline-none',
             isDark ? 'text-slate-200 placeholder:text-slate-500' : 'text-gray-700 placeholder-gray-400',
           ].join(' ')}
           aria-label="搜索菜单"
         />
         <div
           className={[
-            'flex flex-shrink-0 select-none items-center justify-center rounded-[5px] px-1.5 py-0.5 text-[10px] font-semibold tracking-wider transition-all duration-200',
+            'flex shrink-0 select-none items-center justify-center self-center rounded-[5px] px-1.5 py-0.5 text-[10px] font-semibold leading-none tracking-wider transition-all duration-200',
             searchFocused
               ? 'pointer-events-none scale-90 opacity-0'
               : [

@@ -94,7 +94,7 @@ export const Logo: React.FC<LogoProps> = ({
           <EclipseMark className="h-full w-full" fillColor={fillColor} maskId={`${maskId}-tb`} />
         </div>
         <span
-          className={`hidden min-w-0 truncate text-sm font-semibold tracking-tight sm:inline ${titleCls}`}
+          className={`hidden min-w-0 truncate text-sm font-semibold leading-none tracking-tight sm:inline ${titleCls}`}
           style={{ fontFamily: SERIF_STACK }}
         >
           Nexus

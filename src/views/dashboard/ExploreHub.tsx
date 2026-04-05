@@ -748,10 +748,13 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
 
   return (
     <>
-      <div className={`w-full ${mainScrollPadBottom} ${canvasBodyBg(theme)} pt-2 sm:pt-3 pb-16 sm:pb-20`}>
+      {/* hubRail：与 MainLayout 独立个人左轨页同一顶缘，避免探索页多出 pt+mt 导致侧栏相对顶栏跳动 */}
+      <div
+        className={`w-full ${mainScrollPadBottom} ${canvasBodyBg(theme)} ${hubRail ? 'pt-0' : 'pt-2 sm:pt-3'} pb-16 sm:pb-20`}
+      >
         {!hubRail ? <div className={pageContainer}>{hubHeroBanner}</div> : null}
 
-        <main className={`${pageContainer} ${hubRail ? 'mt-2 sm:mt-3' : 'mt-6 sm:mt-7'} space-y-8`}>
+        <main className={`${pageContainer} ${hubRail ? 'mt-0' : 'mt-6 sm:mt-7'} space-y-8`}>
           {hubRail ? null : statsGridEl}
 
           <div className="grid grid-cols-1 items-stretch gap-8 lg:grid-cols-12 lg:gap-10">

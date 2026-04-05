@@ -4,9 +4,11 @@ import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import {
   Palette,
   Bell,
-  Menu,
   Maximize2,
   Minimize2,
+  MoreVertical,
+  LogOut,
+  User,
 } from 'lucide-react';
 import { Theme, ThemeMode, ThemeColor, FontSize, FontFamily, AnimationStyle } from '../types';
 import { FONT_FAMILY_CLASSES, getRootFontSizePx } from '../constants/theme';
@@ -98,6 +100,9 @@ import {
 } from '../constants/resourceTypes';
 import { PageSkeleton } from '../components/common/PageSkeleton';
 import { ConsoleSidebar, type ConsoleSidebarRow } from '../components/layout/ConsoleSidebar';
+import { ConsoleTopNav } from '../components/layout/ConsoleTopNav';
+import { MultiAvatar } from '../components/common/MultiAvatar';
+import { PLATFORM_ROLE_LABELS } from '../constants/platformRoles';
 import { Tooltip } from '../components/common/Tooltip';
 import { chromeGpuLayerClass, contentMaxWidth, iconChrome, mainScrollCompositorClass } from '../utils/uiClasses';
 
@@ -1134,14 +1139,12 @@ const MainLayoutContent: React.FC<{
 
   return (
     <LayoutChromeProvider value={{ hasSecondarySidebar, chromePageTitle: headerTitle }}>
-      {/* Canvas wrapper */}
       <div
         data-theme={theme === 'dark' ? 'dark' : 'light'}
-        className={`h-screen p-3 md:p-4 flex overflow-hidden selection:bg-neutral-200 selection:text-neutral-900 ${
+        className={`h-screen p-3 md:p-4 flex flex-col gap-3 md:gap-4 overflow-hidden selection:bg-neutral-200 selection:text-neutral-900 ${
           FONT_FAMILY_CLASSES[fontFamily]
         } bg-lantu-chrome`}
       >
-        {/* Mobile backdrop */}
         {mobileNavOpen && (
           <button
             type="button"
@@ -1151,88 +1154,24 @@ const MainLayoutContent: React.FC<{
           />
         )}
 
-        {/* Floating Sidebar */}
-        <aside
-          className={`${chromeGpuLayerClass} fixed inset-y-0 left-0 z-50 flex h-full w-[240px] shrink-0 flex-col px-3 py-2 transition-transform duration-200 ease-out motion-reduce:transition-none lg:static lg:z-auto lg:translate-x-0 ${
-            'bg-lantu-chrome'
-          } lg:bg-transparent ${
-            mobileNavOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-          }`}
-        >
-          <ConsoleSidebar
-            theme={theme}
-            routeRole={consoleRole}
-            activeSidebar={activeSidebar}
-            activeSubItem={activeSubItem}
-            sidebarRows={sidebarRows}
-            expandedGroups={expandedGroups}
-            platformRole={platformRole}
-            displayUserName={displayUserName}
-            avatarSeed={`${authUser?.id ?? 'user'}-${displayUserName}`}
-            onSidebarClick={handleSidebarClick}
-            onSubItemClick={handleSubItemClick}
-            onToggleGroup={toggleGroup}
-            onNavigateToProfile={() => {
-              navigate(buildPath('user', 'profile'));
-              if (layoutIsAdmin) setRole('user');
-            }}
-            onLogout={async () => {
-              showMessage('已退出登录', 'info');
-              const accessToken = tokenStorage.get(env.VITE_TOKEN_KEY) ?? useAuthStore.getState().token;
-              try {
-                if (accessToken) await authService.logout(accessToken);
-              } catch {
-                /* still clear local session */
-              }
-              storeLogout();
-              navigate('/login', { replace: true });
-            }}
-            onLogoClick={() => {
-              setExpandedGroups([]);
-              navigate(defaultPath());
-              setMobileNavOpen(false);
-            }}
-            filteredSubGroupsForSidebarId={filteredSubGroupsForSidebarId}
-          />
-        </aside>
-
-        {/* Main Canvas Card */}
-        <main
-          className={`${chromeGpuLayerClass} flex-1 overflow-hidden flex flex-col relative ${
-            isDark
-              ? 'bg-lantu-card rounded-[24px] md:rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-white/[0.06]'
-              : 'bg-slate-50 rounded-[24px] md:rounded-[32px] shadow-[0_8px_30px_rgb(15,23,42,0.05)] border border-slate-200/45'
-          }`}
-        >
-          {/* Header inside canvas */}
-          <header
-            className={`${chromeGpuLayerClass} h-[72px] flex items-center justify-between px-4 sm:px-5 lg:px-6 shrink-0 z-10 sticky top-0 border-b ${
-              isDark
-                ? 'bg-lantu-card/80 backdrop-blur-md border-white/[0.06]'
-                : 'bg-slate-50/90 backdrop-blur-md border-slate-200/35'
-            }`}
-          >
-            <div className="flex items-center gap-4">
-              {/* Mobile hamburger */}
-              <button
-                type="button"
-                className={`rounded-xl p-2 lg:hidden min-h-10 min-w-10 inline-flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 ${
-                  isDark ? 'hover:bg-white/10 focus-visible:ring-offset-lantu-card' : 'hover:bg-slate-100 focus-visible:ring-offset-white'
-                }`}
-                aria-label="打开菜单"
-                onClick={() => setMobileNavOpen(true)}
-              >
-                <Menu size={20} className={isDark ? 'text-slate-300' : 'text-slate-600'} />
-              </button>
-              {/* Dynamic title */}
-              <h2 className={`text-xl font-bold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
-                {headerTitle}
-              </h2>
-            </div>
-
-            <div ref={headerMenusRef} className="flex items-center gap-3 sm:gap-5">
-
-              {/* Appearance panel (direct toggle, no intermediate menu) */}
+        <ConsoleTopNav
+          theme={theme}
+          routeRole={consoleRole}
+          activeSidebar={activeSidebar}
+          activeSubItem={activeSubItem}
+          sidebarRows={sidebarRows}
+          platformRole={platformRole}
+          onSidebarClick={handleSidebarClick}
+          onSubItemClick={handleSubItemClick}
+          filteredSubGroupsForSidebarId={filteredSubGroupsForSidebarId}
+          onLogoClick={() => {
+            setExpandedGroups([]);
+            navigate(defaultPath());
+            setMobileNavOpen(false);
+          }}
+          onOpenMobileNav={() => setMobileNavOpen(true)}
+          toolbarRight={
+            <div ref={headerMenusRef} className="flex items-center gap-2 sm:gap-3">
               <div className="relative flex h-9 items-center justify-center">
                 <AnimatePresence>
                   {showSettingsMenu && (
@@ -1285,7 +1224,6 @@ const MainLayoutContent: React.FC<{
                 </Tooltip>
               </div>
 
-              {/* Notification bell */}
               <div ref={messagePanelAnchorRef} className="relative flex h-9 items-center justify-center">
                 <AnimatePresence>
                   {showMessagePanel && (
@@ -1333,7 +1271,6 @@ const MainLayoutContent: React.FC<{
                 </Tooltip>
               </div>
 
-              {/* Fullscreen toggle */}
               <div className="hidden sm:flex h-9 items-center justify-center">
                 <Tooltip content={isFullscreen ? '退出全屏' : '全屏'}>
                   <button
@@ -1355,8 +1292,147 @@ const MainLayoutContent: React.FC<{
                 </Tooltip>
               </div>
 
-              
+              <div className="relative flex h-9 items-center justify-center">
+                <AnimatePresence>
+                  {showUserMenu && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                      transition={springTransition}
+                      className={`absolute right-0 top-full z-[60] mt-1.5 w-52 rounded-xl border p-1.5 shadow-xl ${
+                        isDark ? 'border-white/10 bg-lantu-card' : 'border-slate-200 bg-white'
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          navigate(buildPath('user', 'profile'));
+                          if (layoutIsAdmin) setRole('user');
+                        }}
+                        className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-inset ${
+                          isDark ? 'text-slate-200 hover:bg-white/[0.08]' : 'text-slate-800 hover:bg-slate-100'
+                        }`}
+                      >
+                        <User size={15} className="shrink-0 opacity-90" />
+                        个人资料
+                      </button>
+                      <div className={`mx-2 my-1 h-px ${isDark ? 'bg-white/[0.08]' : 'bg-slate-200/80'}`} aria-hidden />
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setShowUserMenu(false);
+                          showMessage('已退出登录', 'info');
+                          const accessToken = tokenStorage.get(env.VITE_TOKEN_KEY) ?? useAuthStore.getState().token;
+                          try {
+                            if (accessToken) await authService.logout(accessToken);
+                          } catch {
+                            /* still clear local session */
+                          }
+                          storeLogout();
+                          navigate('/login', { replace: true });
+                        }}
+                        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium text-red-500 hover:bg-red-500/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/45 focus-visible:ring-inset"
+                      >
+                        <LogOut size={15} />
+                        退出登录
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                <Tooltip content={`${displayUserName}（${PLATFORM_ROLE_LABELS[platformRole]}）`}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowUserMenu((v) => !v);
+                      setShowSettingsMenu(false);
+                      setShowMessagePanel(false);
+                    }}
+                    className={`inline-flex h-9 items-center gap-1.5 rounded-full border px-0.5 py-0.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 ${
+                      isDark
+                        ? 'border-white/10 bg-white/[0.06] hover:bg-white/[0.1] focus-visible:ring-offset-lantu-card'
+                        : 'border-slate-200/80 bg-white hover:bg-slate-50 focus-visible:ring-offset-white'
+                    }`}
+                    aria-label={`账户菜单，${displayUserName}`}
+                    aria-expanded={showUserMenu}
+                  >
+                    <MultiAvatar
+                      seed={`${authUser?.id ?? 'user'}-${displayUserName}`}
+                      alt={displayUserName}
+                      className="h-8 w-8 shrink-0 rounded-full border border-white/10"
+                    />
+                    <MoreVertical
+                      size={14}
+                      className={`mr-1 shrink-0 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}
+                      aria-hidden
+                    />
+                  </button>
+                </Tooltip>
+              </div>
             </div>
+          }
+        />
+
+        <aside
+          className={`${chromeGpuLayerClass} fixed inset-y-0 left-0 z-50 flex h-full w-[240px] shrink-0 flex-col px-3 py-2 transition-transform duration-200 ease-out motion-reduce:transition-none lg:hidden ${
+            mobileNavOpen ? 'translate-x-0' : '-translate-x-full'
+          } bg-lantu-chrome`}
+        >
+          <ConsoleSidebar
+            theme={theme}
+            routeRole={consoleRole}
+            activeSidebar={activeSidebar}
+            activeSubItem={activeSubItem}
+            sidebarRows={sidebarRows}
+            expandedGroups={expandedGroups}
+            platformRole={platformRole}
+            displayUserName={displayUserName}
+            avatarSeed={`${authUser?.id ?? 'user'}-${displayUserName}`}
+            onSidebarClick={handleSidebarClick}
+            onSubItemClick={handleSubItemClick}
+            onToggleGroup={toggleGroup}
+            onNavigateToProfile={() => {
+              navigate(buildPath('user', 'profile'));
+              if (layoutIsAdmin) setRole('user');
+            }}
+            onLogout={async () => {
+              showMessage('已退出登录', 'info');
+              const accessToken = tokenStorage.get(env.VITE_TOKEN_KEY) ?? useAuthStore.getState().token;
+              try {
+                if (accessToken) await authService.logout(accessToken);
+              } catch {
+                /* still clear local session */
+              }
+              storeLogout();
+              navigate('/login', { replace: true });
+            }}
+            onLogoClick={() => {
+              setExpandedGroups([]);
+              navigate(defaultPath());
+              setMobileNavOpen(false);
+            }}
+            filteredSubGroupsForSidebarId={filteredSubGroupsForSidebarId}
+          />
+        </aside>
+
+        <main
+          className={`${chromeGpuLayerClass} flex-1 min-h-0 overflow-hidden flex flex-col relative ${
+            isDark
+              ? 'bg-lantu-card rounded-[24px] md:rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-white/[0.06]'
+              : 'bg-slate-50 rounded-[24px] md:rounded-[32px] shadow-[0_8px_30px_rgb(15,23,42,0.05)] border border-slate-200/45'
+          }`}
+        >
+          <header
+            className={`${chromeGpuLayerClass} h-[72px] flex items-center px-4 sm:px-5 lg:px-6 shrink-0 z-10 sticky top-0 border-b ${
+              isDark
+                ? 'bg-lantu-card/80 backdrop-blur-md border-white/[0.06]'
+                : 'bg-slate-50/90 backdrop-blur-md border-slate-200/35'
+            }`}
+          >
+            <h2 className={`text-xl font-bold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
+              {headerTitle}
+            </h2>
           </header>
 
           {/* Scrollable content：GPU 加在滚动条内的子层，避免与 overflow-y-auto 同节点（防第一版滚不动） */}

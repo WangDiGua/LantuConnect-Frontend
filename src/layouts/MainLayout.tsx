@@ -28,6 +28,7 @@ import {
   buildHubPersonalNavModel,
   HUB_PERSONAL_RAIL_PARENT_IDS,
   filterSidebarRowsForSlimTopNav,
+  USER_TOP_NAV_OMIT_ADMIN_PRIMARY_PAGES,
   type ExploreHubRailConfig,
   type HubPersonalRailSection,
 } from '../constants/topNavPolicy';
@@ -961,8 +962,9 @@ const MainLayoutContent: React.FC<{
     return rows;
   }, [userSidebarItems, adminSidebarItems]);
 
-  /** 应用壳顶栏：管理路由页全量；用户路由下探索首页可再隐藏管理一级（下沉左轨） */
-  const omitAdminPrimaryFromTopNav = page === 'hub' && adminSidebarItems.length > 0;
+  /** 应用壳顶栏：管理路由页全量；用户路由下探索首页与 Skills 中心等页隐藏管理一级（与左轨/抽屉一致） */
+  const omitAdminPrimaryFromTopNav =
+    USER_TOP_NAV_OMIT_ADMIN_PRIMARY_PAGES.has(page) && adminSidebarItems.length > 0;
   const topNavSidebarRows = useMemo(() => {
     if (layoutIsAdmin) return fullSidebarRows;
     return filterSidebarRowsForSlimTopNav(fullSidebarRows, { omitAdminPrimary: omitAdminPrimaryFromTopNav });

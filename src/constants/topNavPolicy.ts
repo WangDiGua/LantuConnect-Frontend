@@ -8,6 +8,11 @@ export const USER_TOP_NAV_SIDEBAR_IDS = ['hub', 'user-resource-assets', 'skills-
 
 export type UserTopNavSidebarId = (typeof USER_TOP_NAV_SIDEBAR_IDS)[number];
 
+/**
+ * 用户域顶栏瘦身：与探索首页相同，横向导航不插入「平台管理」一级（总览等仍在抽屉与全局搜索可达）
+ */
+export const USER_TOP_NAV_OMIT_ADMIN_PRIMARY_PAGES = new Set<string>(['hub', 'skills-center']);
+
 /** 首页 ExploreHub 左栏数据来源：与 sidebar id 一致，数据仍来自 getNavSubGroups + MainLayout 过滤 */
 export const HUB_PERSONAL_RAIL_PARENT_IDS = ['workspace', 'user-settings'] as const;
 

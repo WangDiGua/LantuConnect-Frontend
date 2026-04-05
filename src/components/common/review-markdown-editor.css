@@ -1,0 +1,52 @@
+/* 评论区 ByteMD：紧凑、与控制台表单风格一致 */
+.review-md-editor .bytemd {
+  border: 1px solid rgb(229 231 235);
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.review-md-editor--dark .bytemd {
+  border-color: rgb(255 255 255 / 0.1);
+}
+
+.review-md-editor .bytemd-toolbar-right {
+  display: none !important;
+}
+
+.review-md-editor .bytemd-toolbar-left {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.review-md-editor .bytemd-toolbar {
+  min-height: 36px;
+}
+
+.review-md-editor .bytemd-body {
+  min-height: 200px;
+}
+
+.review-md-editor--compact .bytemd-body {
+  min-height: 140px;
+}
+
+.review-md-editor--compact .bytemd-toolbar {
+  min-height: 32px;
+}
+
+.review-md-editor--dark .bytemd {
+  background: rgb(44 44 46);
+  color: rgb(241 245 249);
+}
+
+.review-md-editor--dark .bytemd-toolbar {
+  background: rgb(36 36 38);
+  border-bottom-color: rgb(255 255 255 / 0.08);
+}
+
+.review-md-editor--dark .bytemd-editor,
+.review-md-editor--dark .bytemd-preview {
+  background: transparent;
+  color: inherit;
+}

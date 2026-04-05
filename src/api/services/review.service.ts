@@ -12,7 +12,10 @@ function normalizeTargetId(resourceId: number | string): number | string {
 }
 
 function normalizeReview(row: any): Review {
-  return {
+  const rawParent = row?.parentId ?? row?.parent_id ?? row?.replyToId;
+  const parentId =
+    rawParent != null && rawParent !== '' ? Number(rawParent) : undefined;
+  const review: Review = {
     id: Number(row?.id ?? 0),
     resourceType: (row?.resourceType ?? row?.targetType ?? 'agent') as Review['resourceType'],
     resourceId: row?.resourceId ?? row?.targetId ?? '',
@@ -24,6 +27,10 @@ function normalizeReview(row: any): Review {
     helpfulCount: Number(row?.helpfulCount ?? 0),
     createTime: String(row?.createTime ?? ''),
   };
+  if (parentId != null && !Number.isNaN(parentId) && parentId > 0) {
+    review.parentId = parentId;
+  }
+  return review;
 }
 
 export const reviewService = {
@@ -52,16 +59,23 @@ export const reviewService = {
     return http.get<ReviewSummary>('/reviews/summary', { params: { targetType: resourceType, targetId } });
   },
 
-  create: (payload: ReviewCreatePayload) =>
-    http
-      .post<any>('/reviews', {
-        targetType: payload.resourceType,
-        targetId: normalizeTargetId(payload.resourceId),
-        rating: payload.rating,
-        // 后端 ReviewCreateRequest 为 comment（@NotBlank），非 content
-        comment: payload.content,
-      })
-      .then(normalizeReview),
+  create: (payload: ReviewCreatePayload) => {
+    const isReply = payload.parentId != null && payload.parentId > 0;
+    const body: Record<string, unknown> = {
+      targetType: payload.resourceType,
+      targetId: normalizeTargetId(payload.resourceId),
+      comment: payload.content,
+    };
+    if (isReply) {
+      body.parentId = payload.parentId;
+      if (payload.rating != null && payload.rating > 0) {
+        body.rating = payload.rating;
+      }
+    } else {
+      body.rating = payload.rating ?? 0;
+    }
+    return http.post<any>('/reviews', body).then(normalizeReview);
+  },
 
   toggleHelpful: (reviewId: number) =>
     http.post<void>(`/reviews/${reviewId}/helpful`),

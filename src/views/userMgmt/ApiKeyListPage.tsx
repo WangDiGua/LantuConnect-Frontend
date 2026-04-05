@@ -11,6 +11,7 @@ import { userMgmtService } from '../../api/services/user-mgmt.service';
 import type { ApiKeyRecord } from '../../types/dto/user-mgmt';
 import {
   btnPrimary, btnSecondary, btnGhost,
+  fieldErrorText, inputBaseError,
   textPrimary, textSecondary, textMuted,
   tableCellActionChipsRow, tableCellScrollInnerMono,
 } from '../../utils/uiClasses';
@@ -38,6 +39,7 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize,
   const [copied, setCopied] = useState(false);
   const [page, setPage] = useState(1);
   const [revokeTarget, setRevokeTarget] = useState<string | null>(null);
+  const [newNameError, setNewNameError] = useState('');
 
   const fetchKeys = useCallback(async () => {
     setLoading(true);
@@ -66,10 +68,20 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize,
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
 
-  const closeReveal = useCallback(() => { setRevealedOnce(null); setNewName(''); setCopied(false); setCreateOpen(false); }, []);
+  const closeReveal = useCallback(() => {
+    setRevealedOnce(null);
+    setNewName('');
+    setNewNameError('');
+    setCopied(false);
+    setCreateOpen(false);
+  }, []);
 
   const createKey = useCallback(async () => {
-    if (!newName.trim()) { showMessage('请填写密钥名称', 'error'); return; }
+    if (!newName.trim()) {
+      setNewNameError('请填写密钥名称');
+      return;
+    }
+    setNewNameError('');
     try { const r = await userMgmtService.createApiKey({ name: newName.trim(), scopes: ['*'] }); setRevealedOnce({ full: r.plainKey, prefix: r.prefix }); setCopied(false); showMessage('密钥已生成', 'success'); await fetchKeys(); }
     catch { showMessage('创建失败', 'error'); }
   }, [newName, showMessage, fetchKeys]);
@@ -196,7 +208,13 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize,
             </div>
             <button
               type="button"
-              onClick={() => { setCreateOpen(true); setNewName(''); setRevealedOnce(null); setCopied(false); }}
+              onClick={() => {
+              setCreateOpen(true);
+              setNewName('');
+              setNewNameError('');
+              setRevealedOnce(null);
+              setCopied(false);
+            }}
               className={`shrink-0 ${btnPrimary}`}
               aria-label="创建新的 API Key"
             >
@@ -255,7 +273,22 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize,
           <>
             <p className={`text-xs mb-3 ${textMuted(theme)}`}>完整密钥仅在此次响应返回一次，请保存好。</p>
             <label className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>名称</label>
-            <input className={nativeInputClass(theme)} value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="如：教务中台-生产" autoFocus />
+            <input
+              className={`${nativeInputClass(theme)}${newNameError ? ` ${inputBaseError()}` : ''}`}
+              value={newName}
+              onChange={(e) => {
+                setNewName(e.target.value);
+                setNewNameError('');
+              }}
+              placeholder="如：教务中台-生产"
+              autoFocus
+              aria-invalid={!!newNameError}
+            />
+            {newNameError ? (
+              <p className={`mt-1 ${fieldErrorText()} text-xs`} role="alert">
+                {newNameError}
+              </p>
+            ) : null}
           </>
         )}
       </Modal>

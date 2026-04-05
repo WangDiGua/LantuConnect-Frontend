@@ -11,7 +11,7 @@ import { Modal } from '../../components/common/Modal';
 import { LantuSelect } from '../../components/common/LantuSelect';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import {
-  textPrimary, textSecondary, textMuted, btnPrimary, btnSecondary,
+  textPrimary, textSecondary, textMuted, btnPrimary, btnSecondary, fieldErrorText, inputBaseError,
 } from '../../utils/uiClasses';
 import { userMgmtService } from '../../api/services/user-mgmt.service';
 import { MgmtPageShell } from './MgmtPageShell';
@@ -54,6 +54,8 @@ export const OrgStructurePage: React.FC<OrgStructurePageProps> = ({ theme, fontS
   const [editId, setEditId] = useState('');
   const [editName, setEditName] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
+  const [createNameError, setCreateNameError] = useState('');
+  const [editNameError, setEditNameError] = useState('');
 
   const rows = useMemo(() => (data?.length ? data.flatMap((root) => flattenOrg(root)) : []), [data]);
   const primaryRoot = data?.[0];
@@ -96,6 +98,7 @@ export const OrgStructurePage: React.FC<OrgStructurePageProps> = ({ theme, fontS
   };
 
   const openEdit = (id: string, name: string) => {
+    setEditNameError('');
     setEditId(id);
     setEditName(name);
     setEditOpen(true);
@@ -103,9 +106,10 @@ export const OrgStructurePage: React.FC<OrgStructurePageProps> = ({ theme, fontS
 
   const submitEdit = async () => {
     if (!editName.trim()) {
-      showMessage('名称不能为空', 'error');
+      setEditNameError('名称不能为空');
       return;
     }
+    setEditNameError('');
     setSavingEdit(true);
     try {
       await userMgmtService.updateOrg(editId, { name: editName.trim() });
@@ -255,7 +259,21 @@ export const OrgStructurePage: React.FC<OrgStructurePageProps> = ({ theme, fontS
           </div>
           <div>
             <label className={`text-sm font-medium ${textSecondary(theme)} mb-1 block`}>部门名称</label>
-            <input className={inputCls} value={createName} onChange={(e) => setCreateName(e.target.value)} placeholder="例如：教务处" />
+            <input
+              className={`${inputCls}${createNameError ? ` ${inputBaseError()}` : ''}`}
+              value={createName}
+              onChange={(e) => {
+                setCreateName(e.target.value);
+                setCreateNameError('');
+              }}
+              placeholder="例如：教务处"
+              aria-invalid={!!createNameError}
+            />
+            {createNameError ? (
+              <p className={`mt-1 ${fieldErrorText()} text-xs`} role="alert">
+                {createNameError}
+              </p>
+            ) : null}
           </div>
         </div>
       </Modal>
@@ -273,7 +291,23 @@ export const OrgStructurePage: React.FC<OrgStructurePageProps> = ({ theme, fontS
           </div>
         }
       >
-        <input className={inputCls} value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="部门名称" />
+        <div>
+          <input
+            className={`${inputCls}${editNameError ? ` ${inputBaseError()}` : ''}`}
+            value={editName}
+            onChange={(e) => {
+              setEditName(e.target.value);
+              setEditNameError('');
+            }}
+            placeholder="部门名称"
+            aria-invalid={!!editNameError}
+          />
+          {editNameError ? (
+            <p className={`mt-1 ${fieldErrorText()} text-xs`} role="alert">
+              {editNameError}
+            </p>
+          ) : null}
+        </div>
       </Modal>
     </>
   );

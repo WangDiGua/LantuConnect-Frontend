@@ -15,7 +15,17 @@ import { Modal } from '../../components/common/Modal';
 import { LantuSelect } from '../../components/common/LantuSelect';
 import { MarkdownView } from '../../components/common/MarkdownView';
 import { nativeInputClass } from '../../utils/formFieldClasses';
-import { btnPrimary, btnSecondary, mgmtTableActionDanger, mgmtTableActionGhost, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import {
+  btnPrimary,
+  btnSecondary,
+  fieldErrorText,
+  inputBaseError,
+  mgmtTableActionDanger,
+  mgmtTableActionGhost,
+  textPrimary,
+  textSecondary,
+  textMuted,
+} from '../../utils/uiClasses';
 import { TOOLBAR_ROW_LIST } from '../../utils/toolbarFieldClasses';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { PageError } from '../../components/common/PageError';
@@ -76,6 +86,7 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
   const [draft, setDraft] = useState<AnnouncementCreateRequest>({ title: '', summary: '', content: '', type: 'notice' });
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<AnnouncementItem | null>(null);
+  const [announcementFieldErrors, setAnnouncementFieldErrors] = useState<{ title?: string; summary?: string; content?: string }>({});
 
   useEffect(() => {
     const id = window.setTimeout(() => setDebouncedKeyword(filterKeyword.trim()), 300);
@@ -113,11 +124,13 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
 
   const openCreateModal = () => {
     setEditing(null);
+    setAnnouncementFieldErrors({});
     setDraft({ title: '', summary: '', content: '', type: 'notice' });
     setShowCreate(true);
   };
 
   const openEditModal = (item: AnnouncementItem) => {
+    setAnnouncementFieldErrors({});
     setEditing(item);
     setDraft({
       title: item.title ?? '',
@@ -130,9 +143,15 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
   };
 
   const handleSaveAnnouncement = async () => {
-    if (!draft.title.trim()) { showMessage('请填写标题', 'error'); return; }
-    if (!draft.summary?.trim()) { showMessage('请填写公告摘要', 'error'); return; }
-    if (!draft.content?.trim()) { showMessage('请填写公告内容', 'error'); return; }
+    const nextErr: { title?: string; summary?: string; content?: string } = {};
+    if (!draft.title.trim()) nextErr.title = '请填写标题';
+    if (!draft.summary?.trim()) nextErr.summary = '请填写公告摘要';
+    if (!draft.content?.trim()) nextErr.content = '请填写公告内容';
+    if (Object.keys(nextErr).length > 0) {
+      setAnnouncementFieldErrors(nextErr);
+      return;
+    }
+    setAnnouncementFieldErrors({});
     setSaving(true);
     try {
       const payload: AnnouncementCreateRequest = {
@@ -345,9 +364,28 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
         <Pagination theme={theme} page={page} pageSize={ANNOUNCEMENT_PAGE_SIZE} total={total} onChange={setPage} />
       </div>
 
-      <Modal open={showCreate} onClose={() => { setShowCreate(false); setEditing(null); }} title={editing ? '编辑平台公告' : '发布平台公告'} theme={theme} size="md"
+      <Modal
+        open={showCreate}
+        onClose={() => {
+          setShowCreate(false);
+          setEditing(null);
+          setAnnouncementFieldErrors({});
+        }}
+        title={editing ? '编辑平台公告' : '发布平台公告'}
+        theme={theme}
+        size="md"
         footer={<div className="flex justify-end gap-2">
-          <button type="button" className={btnSecondary(theme)} onClick={() => { setShowCreate(false); setEditing(null); }}>取消</button>
+          <button
+            type="button"
+            className={btnSecondary(theme)}
+            onClick={() => {
+              setShowCreate(false);
+              setEditing(null);
+              setAnnouncementFieldErrors({});
+            }}
+          >
+            取消
+          </button>
           <button type="button" className={`${btnPrimary} disabled:opacity-50`} disabled={saving} onClick={handleSaveAnnouncement}>
             {saving ? <><Loader2 size={14} className="animate-spin" /> {editing ? '保存中…' : '发布中…'}</> : (editing ? '保存' : '发布')}
           </button>
@@ -355,29 +393,64 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
         <div className="space-y-4">
           <div>
             <label className={`text-sm font-medium ${textSecondary(theme)} mb-1 block`}>标题</label>
-            <input className={inputCls} value={draft.title} onChange={(e) => setDraft(d => ({ ...d, title: e.target.value }))} placeholder="公告标题" />
+            <input
+              className={`${inputCls}${announcementFieldErrors.title ? ` ${inputBaseError()}` : ''}`}
+              value={draft.title}
+              onChange={(e) => {
+                const v = e.target.value;
+                setDraft((d) => ({ ...d, title: v }));
+                if (v.trim()) setAnnouncementFieldErrors((prev) => ({ ...prev, title: undefined }));
+              }}
+              placeholder="公告标题"
+              aria-invalid={!!announcementFieldErrors.title}
+            />
+            {announcementFieldErrors.title ? (
+              <p className={`mt-1 ${fieldErrorText()}`} role="alert">
+                {announcementFieldErrors.title}
+              </p>
+            ) : null}
           </div>
           <div>
             <label className={`text-sm font-medium ${textSecondary(theme)} mb-1 block`}>公告内容（Markdown）</label>
-            <div className={`announcement-md-wrapper rounded-xl overflow-hidden border ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
+            <div
+              className={`announcement-md-wrapper rounded-xl overflow-hidden border ${isDark ? 'border-white/10' : 'border-slate-200'}${announcementFieldErrors.content ? ` ${inputBaseError()}` : ''}`}
+            >
               <Editor
                 value={draft.content ?? ''}
                 plugins={MD_PLUGINS}
                 mode="split"
                 locale={MD_LOCALE}
                 placeholder="支持 Markdown 语法录入公告正文"
-                onChange={(value) => setDraft((d) => ({ ...d, content: value }))}
+                onChange={(value) => {
+                  setDraft((d) => ({ ...d, content: value }));
+                  if (value.trim()) setAnnouncementFieldErrors((prev) => ({ ...prev, content: undefined }));
+                }}
               />
             </div>
+            {announcementFieldErrors.content ? (
+              <p className={`mt-1 ${fieldErrorText()}`} role="alert">
+                {announcementFieldErrors.content}
+              </p>
+            ) : null}
           </div>
           <div>
             <label className={`text-sm font-medium ${textSecondary(theme)} mb-1 block`}>摘要（手填）</label>
             <textarea
-              className={`${inputCls} min-h-[84px] resize-none`}
+              className={`${inputCls} min-h-[84px] resize-none${announcementFieldErrors.summary ? ` ${inputBaseError()}` : ''}`}
               value={draft.summary ?? ''}
-              onChange={(e) => setDraft((d) => ({ ...d, summary: e.target.value }))}
+              onChange={(e) => {
+                const v = e.target.value;
+                setDraft((d) => ({ ...d, summary: v }));
+                if (v.trim()) setAnnouncementFieldErrors((prev) => ({ ...prev, summary: undefined }));
+              }}
               placeholder="请填写公告摘要（列表卡片展示用）"
+              aria-invalid={!!announcementFieldErrors.summary}
             />
+            {announcementFieldErrors.summary ? (
+              <p className={`mt-1 ${fieldErrorText()}`} role="alert">
+                {announcementFieldErrors.summary}
+              </p>
+            ) : null}
           </div>
           <div>
             <label className={`text-sm font-medium ${textSecondary(theme)} mb-1 block`}>类型</label>

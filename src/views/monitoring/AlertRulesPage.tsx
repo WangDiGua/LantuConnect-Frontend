@@ -25,7 +25,7 @@ import { nativeInputClass } from '../../utils/formFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
 import {
   bentoCardHover, btnPrimary, btnSecondary, btnGhost,
-  iconMuted, mgmtTableActionDanger, mgmtTableActionGhost,
+  fieldErrorText, iconMuted, inputBaseError, mgmtTableActionDanger, mgmtTableActionGhost,
   textPrimary, textSecondary, textMuted,
 } from '../../utils/uiClasses';
 import { TOOLBAR_ROW_LIST, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
@@ -339,7 +339,17 @@ export const AlertRulesPage: React.FC<Props> = ({ theme, fontSize, showMessage }
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
             <label className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>规则名称</label>
-            <input className={nativeInputClass(theme)} placeholder="规则名称" {...form.register('name')} />
+            <input
+              className={`${nativeInputClass(theme)}${form.formState.errors.name ? ` ${inputBaseError()}` : ''}`}
+              placeholder="规则名称"
+              aria-invalid={!!form.formState.errors.name}
+              {...form.register('name')}
+            />
+            {form.formState.errors.name?.message ? (
+              <p className={`mt-1 ${fieldErrorText()}`} role="alert">
+                {String(form.formState.errors.name.message)}
+              </p>
+            ) : null}
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -351,6 +361,11 @@ export const AlertRulesPage: React.FC<Props> = ({ theme, fontSize, showMessage }
                   <LantuSelect theme={theme} value={field.value} onChange={field.onChange} options={METRIC_OPTIONS} />
                 )}
               />
+              {form.formState.errors.metric?.message ? (
+                <p className={`mt-1 ${fieldErrorText()}`} role="alert">
+                  {String(form.formState.errors.metric.message)}
+                </p>
+              ) : null}
             </div>
             <div>
               <label className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>运算符</label>
@@ -361,12 +376,28 @@ export const AlertRulesPage: React.FC<Props> = ({ theme, fontSize, showMessage }
                   <LantuSelect theme={theme} value={field.value} onChange={field.onChange} options={OPERATOR_OPTIONS} />
                 )}
               />
+              {form.formState.errors.operator?.message ? (
+                <p className={`mt-1 ${fieldErrorText()}`} role="alert">
+                  {String(form.formState.errors.operator.message)}
+                </p>
+              ) : null}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>阈值</label>
-              <input type="number" step="any" className={nativeInputClass(theme)} {...form.register('threshold', { valueAsNumber: true })} />
+              <input
+                type="number"
+                step="any"
+                className={`${nativeInputClass(theme)}${form.formState.errors.threshold ? ` ${inputBaseError()}` : ''}`}
+                aria-invalid={!!form.formState.errors.threshold}
+                {...form.register('threshold', { valueAsNumber: true })}
+              />
+              {form.formState.errors.threshold?.message ? (
+                <p className={`mt-1 ${fieldErrorText()}`} role="alert">
+                  {String(form.formState.errors.threshold.message)}
+                </p>
+              ) : null}
             </div>
             <div>
               <label className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>级别</label>
@@ -377,6 +408,11 @@ export const AlertRulesPage: React.FC<Props> = ({ theme, fontSize, showMessage }
                   <LantuSelect theme={theme} value={field.value} onChange={field.onChange} options={SEVERITY_OPTIONS} />
                 )}
               />
+              {form.formState.errors.severity?.message ? (
+                <p className={`mt-1 ${fieldErrorText()}`} role="alert">
+                  {String(form.formState.errors.severity.message)}
+                </p>
+              ) : null}
             </div>
           </div>
           <div>
@@ -403,12 +439,12 @@ export const AlertRulesPage: React.FC<Props> = ({ theme, fontSize, showMessage }
                 </div>
               )}
             />
+            {form.formState.errors.notifyChannels?.message ? (
+              <p className={`mt-1 ${fieldErrorText()}`} role="alert">
+                {String(form.formState.errors.notifyChannels.message)}
+              </p>
+            ) : null}
           </div>
-          {(form.formState.errors.name?.message || form.formState.errors.threshold?.message || form.formState.errors.notifyChannels?.message) && (
-            <p className="text-xs text-rose-500">
-              {form.formState.errors.name?.message || form.formState.errors.threshold?.message || (form.formState.errors.notifyChannels?.message as string | undefined)}
-            </p>
-          )}
         </form>
       </Modal>
 
@@ -430,7 +466,17 @@ export const AlertRulesPage: React.FC<Props> = ({ theme, fontSize, showMessage }
         <form onSubmit={onEditSubmit} className="space-y-4">
           <div>
             <label className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>规则名称</label>
-            <input className={nativeInputClass(theme)} placeholder="规则名称" {...editForm.register('name')} />
+            <input
+              className={`${nativeInputClass(theme)}${editForm.formState.errors.name ? ` ${inputBaseError()}` : ''}`}
+              placeholder="规则名称"
+              aria-invalid={!!editForm.formState.errors.name}
+              {...editForm.register('name')}
+            />
+            {editForm.formState.errors.name?.message ? (
+              <p className={`mt-1 ${fieldErrorText()}`} role="alert">
+                {String(editForm.formState.errors.name.message)}
+              </p>
+            ) : null}
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -442,6 +488,11 @@ export const AlertRulesPage: React.FC<Props> = ({ theme, fontSize, showMessage }
                   <LantuSelect theme={theme} value={field.value} onChange={field.onChange} options={metricOptionsForEdit} />
                 )}
               />
+              {editForm.formState.errors.metric?.message ? (
+                <p className={`mt-1 ${fieldErrorText()}`} role="alert">
+                  {String(editForm.formState.errors.metric.message)}
+                </p>
+              ) : null}
             </div>
             <div>
               <label className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>运算符</label>
@@ -452,12 +503,28 @@ export const AlertRulesPage: React.FC<Props> = ({ theme, fontSize, showMessage }
                   <LantuSelect theme={theme} value={field.value} onChange={field.onChange} options={OPERATOR_OPTIONS} />
                 )}
               />
+              {editForm.formState.errors.operator?.message ? (
+                <p className={`mt-1 ${fieldErrorText()}`} role="alert">
+                  {String(editForm.formState.errors.operator.message)}
+                </p>
+              ) : null}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>阈值</label>
-              <input type="number" step="any" className={nativeInputClass(theme)} {...editForm.register('threshold', { valueAsNumber: true })} />
+              <input
+                type="number"
+                step="any"
+                className={`${nativeInputClass(theme)}${editForm.formState.errors.threshold ? ` ${inputBaseError()}` : ''}`}
+                aria-invalid={!!editForm.formState.errors.threshold}
+                {...editForm.register('threshold', { valueAsNumber: true })}
+              />
+              {editForm.formState.errors.threshold?.message ? (
+                <p className={`mt-1 ${fieldErrorText()}`} role="alert">
+                  {String(editForm.formState.errors.threshold.message)}
+                </p>
+              ) : null}
             </div>
             <div>
               <label className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>级别</label>
@@ -468,6 +535,11 @@ export const AlertRulesPage: React.FC<Props> = ({ theme, fontSize, showMessage }
                   <LantuSelect theme={theme} value={field.value} onChange={field.onChange} options={SEVERITY_OPTIONS} />
                 )}
               />
+              {editForm.formState.errors.severity?.message ? (
+                <p className={`mt-1 ${fieldErrorText()}`} role="alert">
+                  {String(editForm.formState.errors.severity.message)}
+                </p>
+              ) : null}
             </div>
           </div>
           <div>
@@ -494,6 +566,11 @@ export const AlertRulesPage: React.FC<Props> = ({ theme, fontSize, showMessage }
                 </div>
               )}
             />
+            {editForm.formState.errors.notifyChannels?.message ? (
+              <p className={`mt-1 ${fieldErrorText()}`} role="alert">
+                {String(editForm.formState.errors.notifyChannels.message)}
+              </p>
+            ) : null}
           </div>
         </form>
       </Modal>

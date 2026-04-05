@@ -6,7 +6,7 @@ import { nativeInputClass } from '../../utils/formFieldClasses';
 import { TOOLBAR_ROW_LIST, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
 import {
-  btnGhost, btnPrimary, btnSecondary, iconMuted, mgmtTableActionDanger,
+  btnGhost, btnPrimary, btnSecondary, fieldErrorText, iconMuted, inputBaseError, mgmtTableActionDanger,
   pageBlockStack, textMuted, textPrimary, textSecondary,
 } from '../../utils/uiClasses';
 import { resourceGrantService } from '../../api/services/resource-grant.service';
@@ -67,6 +67,11 @@ export const ResourceGrantManagementPage: React.FC<Props> = ({ theme, fontSize, 
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<Error | null>(null);
   const [granteeKeyword, setGranteeKeyword] = useState('');
+  const [grantFieldErrors, setGrantFieldErrors] = useState<{
+    resourceId?: string;
+    granteeApiKeyId?: string;
+    actions?: string;
+  }>({});
   const PAGE_SIZE = 20;
 
   const canQuery = useMemo(() => resourceId.trim().length > 0, [resourceId]);
@@ -121,14 +126,15 @@ export const ResourceGrantManagementPage: React.FC<Props> = ({ theme, fontSize, 
   }, [page, resourceId, resourceType, showMessage]);
 
   const createGrant = useCallback(async () => {
-    if (!resourceId.trim() || !granteeApiKeyId.trim()) {
-      showMessage('请填写 resourceId 和 granteeApiKeyId', 'info');
+    const next: { resourceId?: string; granteeApiKeyId?: string; actions?: string } = {};
+    if (!resourceId.trim()) next.resourceId = '请填写 Resource ID';
+    if (!granteeApiKeyId.trim()) next.granteeApiKeyId = '请填写 Grantee API Key ID';
+    if (actions.length === 0) next.actions = '请至少选择一个授权动作';
+    if (Object.keys(next).length > 0) {
+      setGrantFieldErrors(next);
       return;
     }
-    if (actions.length === 0) {
-      showMessage('actions 不能为空，请至少选择一个动作', 'info');
-      return;
-    }
+    setGrantFieldErrors({});
     setSaving(true);
     try {
       await resourceGrantService.create({
@@ -201,19 +207,39 @@ export const ResourceGrantManagementPage: React.FC<Props> = ({ theme, fontSize, 
               onChange={(v) => setResourceType(v as ResourceType)}
               options={RESOURCE_TYPE_OPTIONS}
             />
-            <input
-              className={nativeInputClass(theme)}
-              placeholder="Resource ID"
-              value={resourceId}
-              onChange={(e) => setResourceId(e.target.value)}
-            />
+            <div>
+              <input
+                className={`${nativeInputClass(theme)}${grantFieldErrors.resourceId ? ` ${inputBaseError()}` : ''}`}
+                placeholder="Resource ID"
+                value={resourceId}
+                onChange={(e) => {
+                  setResourceId(e.target.value);
+                  setGrantFieldErrors((p) => ({ ...p, resourceId: undefined }));
+                }}
+                aria-invalid={!!grantFieldErrors.resourceId}
+              />
+              {grantFieldErrors.resourceId ? (
+                <p className={`mt-1 ${fieldErrorText()} text-xs`} role="alert">
+                  {grantFieldErrors.resourceId}
+                </p>
+              ) : null}
+            </div>
             <div className="md:col-span-2 space-y-1">
               <input
-                className={nativeInputClass(theme)}
+                className={`${nativeInputClass(theme)}${grantFieldErrors.granteeApiKeyId ? ` ${inputBaseError()}` : ''}`}
                 placeholder="Grantee API Key ID（表主键，用于绑定授权）"
                 value={granteeApiKeyId}
-                onChange={(e) => setGranteeApiKeyId(e.target.value)}
+                onChange={(e) => {
+                  setGranteeApiKeyId(e.target.value);
+                  setGrantFieldErrors((p) => ({ ...p, granteeApiKeyId: undefined }));
+                }}
+                aria-invalid={!!grantFieldErrors.granteeApiKeyId}
               />
+              {grantFieldErrors.granteeApiKeyId ? (
+                <p className={`mt-1 ${fieldErrorText()} text-xs`} role="alert">
+                  {grantFieldErrors.granteeApiKeyId}
+                </p>
+              ) : null}
               <p className={`text-[11px] ${textSecondary(theme)}`}>填写被授权 Key 的<strong>记录 id</strong>（非请求头明文）。<code className="font-mono">X-Api-Key</code> 与 <code className="font-mono">secretPlain</code> 说明见 API 文档。</p>
             </div>
             <input
@@ -240,6 +266,7 @@ export const ResourceGrantManagementPage: React.FC<Props> = ({ theme, fontSize, 
                           : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                     }`}
                     onClick={() => {
+                      setGrantFieldErrors((p) => ({ ...p, actions: undefined }));
                       setActions((prev) => {
                         if (option.value === '*') return prev.includes('*') ? [] : ['*'];
                         const base = prev.filter((item) => item !== '*');
@@ -253,6 +280,11 @@ export const ResourceGrantManagementPage: React.FC<Props> = ({ theme, fontSize, 
                 );
               })}
             </div>
+            {grantFieldErrors.actions ? (
+              <p className={`mt-2 ${fieldErrorText()} text-xs`} role="alert">
+                {grantFieldErrors.actions}
+              </p>
+            ) : null}
           </div>
           <div className="mt-3 flex items-center gap-2">
             <button type="button" className={btnPrimary} onClick={() => void createGrant()} disabled={saving}>

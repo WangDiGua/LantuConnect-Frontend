@@ -11,7 +11,16 @@ import { useAuthStore } from '../../stores/authStore';
 import { LantuSelect } from '../../components/common/LantuSelect';
 import { filterTagsForResourceType } from '../../utils/marketTags';
 import { buildPath } from '../../constants/consoleRoutes';
-import { bentoCard, btnPrimary, btnSecondary, textMuted, textPrimary } from '../../utils/uiClasses';
+import {
+  bentoCard,
+  btnPrimary,
+  btnSecondary,
+  fieldErrorText,
+  inputBaseError,
+  labelBase,
+  textMuted,
+  textPrimary,
+} from '../../utils/uiClasses';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { parseMcpConfigPaste } from '../../utils/mcpConfigImport';
 
@@ -190,6 +199,324 @@ function parseRelatedIds(value: string): { ids: number[]; invalidTokens: string[
   return { ids, invalidTokens };
 }
 
+type ResourceRegisterFieldKey =
+  | 'resourceCode'
+  | 'displayName'
+  | 'endpoint'
+  | 'protocol'
+  | 'authConfigJson'
+  | 'agentType'
+  | 'specJson'
+  | 'maxConcurrency'
+  | 'relatedResourceIds'
+  | 'agentMaxSteps'
+  | 'agentTemperature'
+  | 'skillRootPath'
+  | 'skillType'
+  | 'paramsSchemaJson'
+  | 'manifestJson'
+  | 'artifactUri'
+  | 'parentResourceId'
+  | 'appUrl'
+  | 'embedType'
+  | 'appIcon'
+  | 'dataType'
+  | 'format'
+  | 'recordCount'
+  | 'fileSize';
+
+function rrFieldId(key: ResourceRegisterFieldKey): string {
+  return `rr-${key}`;
+}
+
+const RR_FIELD_FOCUS_ORDER: ResourceRegisterFieldKey[] = [
+  'resourceCode',
+  'displayName',
+  'endpoint',
+  'protocol',
+  'authConfigJson',
+  'agentType',
+  'specJson',
+  'maxConcurrency',
+  'relatedResourceIds',
+  'agentMaxSteps',
+  'agentTemperature',
+  'skillRootPath',
+  'skillType',
+  'paramsSchemaJson',
+  'manifestJson',
+  'artifactUri',
+  'parentResourceId',
+  'appUrl',
+  'embedType',
+  'appIcon',
+  'dataType',
+  'format',
+  'recordCount',
+  'fileSize',
+];
+
+function computeResourceRegisterFieldErrors(
+  resourceType: ResourceType,
+  form: {
+    resourceCode: string;
+    displayName: string;
+    endpoint: string;
+    mcpRegisterMode: McpRegisterMode;
+    protocol: string;
+    authType: string;
+    authConfigJson: string;
+    agentType: string;
+    specJson: string;
+    maxConcurrency: number;
+    relatedResourceIds: string;
+    agentMaxSteps: string;
+    agentTemperature: string;
+    skillRootPath: string;
+    skillType: string;
+    paramsSchemaJson: string;
+    manifestJson: string;
+    artifactUri: string;
+    parentResourceId: string;
+    appUrl: string;
+    embedType: string;
+    appIcon: string;
+    dataType: string;
+    format: string;
+    recordCount: number;
+    fileSize: number;
+  },
+  skillRegisterTrack: SkillRegisterTrack,
+): Partial<Record<ResourceRegisterFieldKey, string>> {
+  const e: Partial<Record<ResourceRegisterFieldKey, string>> = {};
+
+  if (!form.resourceCode.trim()) {
+    e.resourceCode = '请填写资源编码（resourceCode）';
+  } else if (!/^[a-zA-Z0-9_-]{3,64}$/.test(form.resourceCode.trim())) {
+    e.resourceCode = '资源编码（resourceCode）须为 3–64 位，仅支持字母、数字、下划线和短横线';
+  }
+  if (!form.displayName.trim()) {
+    e.displayName = '请填写显示名称（displayName）';
+  }
+
+  if (resourceType === 'mcp') {
+    if (!form.endpoint.trim()) {
+      e.endpoint = '请填写服务地址（endpoint）';
+    } else {
+      const activeTransport = modeToTransport(form.mcpRegisterMode);
+      if (activeTransport === 'websocket') {
+        if (!isValidWsUrl(form.endpoint.trim())) {
+          e.endpoint = '当 transport=websocket 时，endpoint 须为 ws:// 或 wss:// URL';
+        }
+      } else if (activeTransport === 'stdio') {
+        if (!isValidUrl(form.endpoint.trim())) {
+          e.endpoint = 'stdio 边车须将本机 HTTP 转发地址填入 endpoint，且须为 http:// 或 https:// URL';
+        }
+      } else if (!isValidUrl(form.endpoint.trim())) {
+        e.endpoint = '当 transport=http 时，endpoint 须为 http:// 或 https:// URL';
+      }
+    }
+    if (form.protocol.trim() && form.protocol.trim().toLowerCase() !== 'mcp') {
+      e.protocol = 'MCP 资源 protocol 建议固定为 mcp';
+    }
+    const authParsed = parseJsonObject(form.authConfigJson, '鉴权配置（authConfig JSON）');
+    if (form.authConfigJson.trim() && !authParsed.ok) {
+      e.authConfigJson = authParsed.message;
+    }
+    if (form.authType === 'oauth2_client') {
+      if (!authParsed.ok || !authParsed.data) {
+        e.authConfigJson = e.authConfigJson ?? 'oauth2_client 须填写合法 authConfig JSON';
+      } else {
+        const d = authParsed.data;
+        const tokenUrl = String(d.tokenUrl ?? d.token_url ?? '').trim();
+        const clientId = String(d.clientId ?? d.client_id ?? '').trim();
+        const secret = String(d.clientSecret ?? d.client_secret ?? '').trim();
+        const secretRef = String(d.clientSecretRef ?? '').trim();
+        if (!tokenUrl) e.authConfigJson = e.authConfigJson ?? 'oauth2_client 需要 auth_config.tokenUrl';
+        if (!clientId) e.authConfigJson = e.authConfigJson ?? 'oauth2_client 需要 auth_config.clientId';
+        if (!secret && !secretRef) e.authConfigJson = e.authConfigJson ?? 'oauth2_client 需要 clientSecret 或 clientSecretRef';
+      }
+    }
+    if (form.authType === 'basic') {
+      if (!authParsed.ok || !authParsed.data) {
+        e.authConfigJson = e.authConfigJson ?? 'basic 须填写合法 authConfig JSON';
+      } else {
+        const d = authParsed.data;
+        const u = String(d.username ?? '').trim();
+        const password = String(d.password ?? '').trim();
+        const passwordRef = String(d.passwordSecretRef ?? '').trim();
+        if (!u) e.authConfigJson = e.authConfigJson ?? 'basic 需要 auth_config.username';
+        if (!password && !passwordRef) e.authConfigJson = e.authConfigJson ?? 'basic 需要 password 或 passwordSecretRef';
+      }
+    }
+  }
+
+  if (resourceType === 'agent') {
+    if (!form.agentType.trim()) {
+      e.agentType = '请填写智能体类型（agentType）';
+    }
+    const specParsed = parseJsonObject(form.specJson, '规格配置（spec JSON）');
+    if (!specParsed.ok) {
+      e.specJson = specParsed.message;
+    } else {
+      const specUrl = typeof specParsed.data?.url === 'string' ? specParsed.data.url.trim() : '';
+      if (!specUrl) {
+        e.specJson = e.specJson ?? '智能体规格配置（spec JSON）中必须包含 url';
+      } else if (!isValidUrl(specUrl)) {
+        e.specJson = e.specJson ?? '智能体规格配置中的 url 须为有效的 http/https URL';
+      }
+    }
+    const related = parseRelatedIds(form.relatedResourceIds);
+    if (related.invalidTokens.length > 0) {
+      e.relatedResourceIds = `关联资源 ID 仅支持正整数（逗号分隔），非法值：${related.invalidTokens.join(', ')}`;
+    }
+    if (!Number.isFinite(Number(form.maxConcurrency)) || Number(form.maxConcurrency) < 1 || Number(form.maxConcurrency) > 1000) {
+      e.maxConcurrency = '最大并发（maxConcurrency）须在 1~1000 之间';
+    }
+    if (form.agentMaxSteps.trim()) {
+      const n = Number(form.agentMaxSteps.trim());
+      if (!Number.isInteger(n) || n < 1) {
+        e.agentMaxSteps = 'maxSteps 须为正整数或留空';
+      }
+    }
+    if (form.agentTemperature.trim()) {
+      const t = Number(form.agentTemperature.trim());
+      if (!Number.isFinite(t)) {
+        e.agentTemperature = 'temperature 须为有效数字或留空';
+      }
+    }
+  }
+
+  if (resourceType === 'skill') {
+    if (skillRegisterTrack === 'mountable' && !form.skillRootPath.trim()) {
+      e.skillRootPath = '可挂载支线：请填写技能根目录（zip 内相对路径）';
+    }
+    if (!form.skillType.trim()) {
+      e.skillType = '请选择技能包格式（skillType）';
+    } else {
+      const st = form.skillType.trim().toLowerCase();
+      if (!['anthropic_v1', 'folder_v1'].includes(st)) {
+        e.skillType = 'skillType 须为 anthropic_v1 或 folder_v1；可远程调用的 HTTP 工具请注册为 MCP 资源';
+      }
+    }
+    const specParsed = parseJsonObject(form.specJson, '附加元数据（spec JSON，可空对象）');
+    if (!specParsed.ok) {
+      e.specJson = specParsed.message;
+    }
+    const schemaParsed = parseJsonObject(form.paramsSchemaJson, '参数结构（parametersSchema JSON）');
+    if (!schemaParsed.ok) {
+      e.paramsSchemaJson = schemaParsed.message;
+    }
+    const manifestParsed = parseJsonObject(form.manifestJson, 'manifest JSON');
+    if (!manifestParsed.ok) {
+      e.manifestJson = manifestParsed.message;
+    }
+    const uri = form.artifactUri.trim();
+    if (uri && !isValidUrl(uri) && !uri.startsWith('/uploads/')) {
+      e.artifactUri = 'artifactUri 须为 http(s) URL 或由上传生成的 /uploads/... 路径';
+    }
+    if (form.parentResourceId.trim() && !/^\d+$/.test(form.parentResourceId.trim())) {
+      e.parentResourceId = '父资源 ID（parentResourceId）须为正整数或留空';
+    }
+  }
+
+  if (resourceType === 'app') {
+    if (!form.appUrl.trim()) {
+      e.appUrl = '请填写应用地址（appUrl）';
+    } else if (!isValidUrl(form.appUrl.trim())) {
+      e.appUrl = '应用地址（appUrl）须为有效的 http/https URL';
+    }
+    if (!form.embedType.trim()) {
+      e.embedType = '请选择嵌入方式（embedType）';
+    } else {
+      const appEt = form.embedType.trim().toLowerCase();
+      if (!['iframe', 'redirect', 'micro_frontend'].includes(appEt)) {
+        e.embedType = 'embedType 必须是 iframe、redirect 或 micro_frontend（与后端一致）';
+      }
+    }
+    if (form.appIcon.trim() && !isValidUrl(form.appIcon.trim())) {
+      e.appIcon = '图标 URL（icon）须为有效的 http/https URL';
+    }
+    const related = parseRelatedIds(form.relatedResourceIds);
+    if (related.invalidTokens.length > 0) {
+      e.relatedResourceIds = `关联资源 ID 仅支持正整数（逗号分隔），非法值：${related.invalidTokens.join(', ')}`;
+    }
+  }
+
+  if (resourceType === 'dataset') {
+    if (!form.dataType.trim()) {
+      e.dataType = '请填写数据类型（dataType）';
+    }
+    if (!form.format.trim()) {
+      e.format = '请填写数据格式（format）';
+    }
+    if (Number(form.recordCount) < 0) {
+      e.recordCount = '记录数（recordCount）不能小于 0';
+    }
+    if (Number(form.fileSize) < 0) {
+      e.fileSize = '文件大小（fileSize）不能小于 0';
+    }
+  }
+
+  return e;
+}
+
+function collectMcpProbeFieldIssues(form: {
+  endpoint: string;
+  mcpRegisterMode: McpRegisterMode;
+  authType: string;
+  authConfigJson: string;
+}): Partial<Record<'endpoint' | 'authConfigJson', string>> {
+  const e: Partial<Record<'endpoint' | 'authConfigJson', string>> = {};
+  if (!form.endpoint.trim()) {
+    e.endpoint = '请填写服务地址后再探测';
+  } else {
+    const activeTransport = modeToTransport(form.mcpRegisterMode);
+    if (activeTransport === 'websocket') {
+      if (!isValidWsUrl(form.endpoint.trim())) {
+        e.endpoint = 'WebSocket 探测需要 ws:// 或 wss:// URL';
+      }
+    } else if (activeTransport === 'stdio') {
+      if (!isValidUrl(form.endpoint.trim())) {
+        e.endpoint = 'stdio 边车须为 http:// 或 https:// URL';
+      }
+    } else if (!isValidUrl(form.endpoint.trim())) {
+      e.endpoint = 'HTTP 探测需要 http(s) URL';
+    }
+  }
+  const authParsed = parseJsonObject(form.authConfigJson, '鉴权配置（authConfig JSON）');
+  if (form.authConfigJson.trim() && !authParsed.ok) {
+    e.authConfigJson = authParsed.message;
+  }
+  if (form.authType === 'oauth2_client') {
+    if (!authParsed.ok || !authParsed.data) {
+      e.authConfigJson = e.authConfigJson ?? 'oauth2_client 须填写合法 authConfig JSON';
+    } else {
+      const d = authParsed.data;
+      const tokenUrl = String(d.tokenUrl ?? d.token_url ?? '').trim();
+      const clientId = String(d.clientId ?? d.client_id ?? '').trim();
+      const secret = String(d.clientSecret ?? d.client_secret ?? '').trim();
+      const secretRef = String(d.clientSecretRef ?? '').trim();
+      if (!tokenUrl) e.authConfigJson = e.authConfigJson ?? 'oauth2_client 需要 auth_config.tokenUrl';
+      if (!clientId) e.authConfigJson = e.authConfigJson ?? 'oauth2_client 需要 auth_config.clientId';
+      if (!secret && !secretRef) e.authConfigJson = e.authConfigJson ?? 'oauth2_client 需要 clientSecret 或 clientSecretRef';
+    }
+  }
+  if (form.authType === 'basic') {
+    if (!authParsed.ok || !authParsed.data) {
+      e.authConfigJson = e.authConfigJson ?? 'basic 须填写合法 authConfig JSON';
+    } else {
+      const d = authParsed.data;
+      const u = String(d.username ?? '').trim();
+      const password = String(d.password ?? '').trim();
+      const passwordRef = String(d.passwordSecretRef ?? '').trim();
+      if (!u) e.authConfigJson = e.authConfigJson ?? 'basic 需要 auth_config.username';
+      if (!password && !passwordRef) e.authConfigJson = e.authConfigJson ?? 'basic 需要 password 或 passwordSecretRef';
+    }
+  }
+  return e;
+}
+
 export const ResourceRegisterPage: React.FC<Props> = ({
   theme,
   fontSize,
@@ -214,6 +541,9 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     resourceType === 'skill' ? skillTrackFromSearch(searchParams) : 'hosted',
   );
   const [skillPackUrl, setSkillPackUrl] = useState('');
+  const [skillPackUrlError, setSkillPackUrlError] = useState('');
+  const [skillSubmitArtifactError, setSkillSubmitArtifactError] = useState<string | null>(null);
+  const [mcpProbeExtra, setMcpProbeExtra] = useState<Partial<Record<'endpoint' | 'authConfigJson', string>>>({});
   const [skillPackEcho, setSkillPackEcho] = useState<SkillPackEcho | null>(null);
   const skillPackPreviewRef = useRef<SkillPackPreviewState | null>(null);
   const [skillArtifactDownloading, setSkillArtifactDownloading] = useState(false);
@@ -530,196 +860,54 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     [resourceType, skillPackEcho, form.artifactUri],
   );
 
-  const validate = useMemo(() => {
-    if (!resourceId && !user?.id) return '请先登录后再注册资源';
-    if (!form.resourceCode.trim()) return '请填写资源编码（resourceCode）';
-    if (!form.displayName.trim()) return '请填写显示名称（displayName）';
-    if (!/^[a-zA-Z0-9_-]{3,64}$/.test(form.resourceCode.trim())) {
-      return '资源编码（resourceCode）需满足 3-64 位，仅支持字母、数字、下划线和短横线';
-    }
-    if (resourceType === 'mcp') {
-      if (!form.endpoint.trim()) return '请填写服务地址（endpoint）';
-      const activeTransport = modeToTransport(form.mcpRegisterMode);
-      if (activeTransport === 'websocket') {
-        if (!isValidWsUrl(form.endpoint.trim())) {
-          return '当 transport=websocket 时，endpoint 必须是 ws:// 或 wss:// URL';
-        }
-      } else if (activeTransport === 'stdio') {
-        if (!isValidUrl(form.endpoint.trim())) {
-          return 'stdio 边车须将本机 HTTP 转发地址填入 endpoint，且须为 http:// 或 https:// URL';
-        }
-      } else if (!isValidUrl(form.endpoint.trim())) {
-        return '当 transport=http 时，endpoint 必须是 http:// 或 https:// URL';
-      }
-      if (form.protocol.trim() && form.protocol.trim().toLowerCase() !== 'mcp') {
-        return 'MCP 资源 protocol 建议固定为 mcp';
-      }
-      const authParsed = parseJsonObject(form.authConfigJson, '鉴权配置（authConfig JSON）');
-      if (form.authConfigJson.trim()) {
-        if (!authParsed.ok) return authParsed.message;
-      }
-      if (form.authType === 'oauth2_client') {
-        if (!authParsed.ok || !authParsed.data) return 'oauth2_client 须填写合法 authConfig JSON';
-        const d = authParsed.data;
-        const tokenUrl = String(d.tokenUrl ?? d.token_url ?? '').trim();
-        const clientId = String(d.clientId ?? d.client_id ?? '').trim();
-        const secret = String(d.clientSecret ?? d.client_secret ?? '').trim();
-        const secretRef = String(d.clientSecretRef ?? '').trim();
-        if (!tokenUrl) return 'oauth2_client 需要 auth_config.tokenUrl';
-        if (!clientId) return 'oauth2_client 需要 auth_config.clientId';
-        if (!secret && !secretRef) return 'oauth2_client 需要 clientSecret 或 clientSecretRef';
-      }
-      if (form.authType === 'basic') {
-        if (!authParsed.ok || !authParsed.data) return 'basic 须填写合法 authConfig JSON';
-        const d = authParsed.data;
-        const user = String(d.username ?? '').trim();
-        const password = String(d.password ?? '').trim();
-        const passwordRef = String(d.passwordSecretRef ?? '').trim();
-        if (!user) return 'basic 需要 auth_config.username';
-        if (!password && !passwordRef) return 'basic 需要 password 或 passwordSecretRef';
-      }
-    }
-    if (resourceType === 'agent') {
-      if (!form.agentType.trim()) return '请填写智能体类型（agentType）';
-      const specParsed = parseJsonObject(form.specJson, '规格配置（spec JSON）');
-      if (!specParsed.ok) return specParsed.message;
-      const specUrl = typeof specParsed.data?.url === 'string' ? specParsed.data.url.trim() : '';
-      if (!specUrl) return '智能体规格配置（spec JSON）中必须包含 url';
-      if (!isValidUrl(specUrl)) return '智能体规格配置中的 url 必须是有效的 http/https URL';
-      const related = parseRelatedIds(form.relatedResourceIds);
-      if (related.invalidTokens.length > 0) {
-        return `关联资源 ID 仅支持正整数（逗号分隔），非法值：${related.invalidTokens.join(', ')}`;
-      }
-      if (!Number.isFinite(Number(form.maxConcurrency)) || Number(form.maxConcurrency) < 1 || Number(form.maxConcurrency) > 1000) {
-        return '最大并发（maxConcurrency）必须在 1~1000 之间';
-      }
-      if (form.agentMaxSteps.trim()) {
-        const n = Number(form.agentMaxSteps.trim());
-        if (!Number.isInteger(n) || n < 1) return 'maxSteps 须为正整数或留空';
-      }
-      if (form.agentTemperature.trim()) {
-        const t = Number(form.agentTemperature.trim());
-        if (!Number.isFinite(t)) return 'temperature 须为有效数字或留空';
-      }
-    }
-    if (resourceType === 'skill') {
-      if (skillRegisterTrack === 'mountable' && !form.skillRootPath.trim()) {
-        return '可挂载支线：请填写技能根目录（zip 内相对路径）';
-      }
-      if (!form.skillType.trim()) return '请选择技能包格式（skillType）';
-      const st = form.skillType.trim().toLowerCase();
-      if (!['anthropic_v1', 'folder_v1'].includes(st)) {
-        return 'skillType 须为 anthropic_v1 或 folder_v1；可远程调用的 HTTP 工具请注册为 MCP 资源';
-      }
-      const specParsed = parseJsonObject(form.specJson, '附加元数据（spec JSON，可空对象）');
-      if (!specParsed.ok) return specParsed.message;
-      const schemaParsed = parseJsonObject(form.paramsSchemaJson, '参数结构（parametersSchema JSON）');
-      if (!schemaParsed.ok) return schemaParsed.message;
-      const manifestParsed = parseJsonObject(form.manifestJson, 'manifest JSON');
-      if (!manifestParsed.ok) return manifestParsed.message;
-      const uri = form.artifactUri.trim();
-      if (uri && !isValidUrl(uri) && !uri.startsWith('/uploads/')) {
-        return 'artifactUri 须为 http(s) URL 或由上传生成的 /uploads/... 路径';
-      }
-      if (form.parentResourceId.trim() && !/^\d+$/.test(form.parentResourceId.trim())) {
-        return '父资源 ID（parentResourceId）须为正整数或留空';
-      }
-    }
-    if (resourceType === 'app') {
-      if (!form.appUrl.trim()) return '请填写应用地址（appUrl）';
-      if (!isValidUrl(form.appUrl.trim())) return '应用地址（appUrl）必须是有效的 http/https URL';
-      if (!form.embedType.trim()) return '请选择嵌入方式（embedType）';
-      const appEt = form.embedType.trim().toLowerCase();
-      if (!['iframe', 'redirect', 'micro_frontend'].includes(appEt)) {
-        return 'embedType 必须是 iframe、redirect 或 micro_frontend（与后端一致）';
-      }
-      if (form.appIcon.trim() && !isValidUrl(form.appIcon.trim())) {
-        return '图标 URL（icon）必须是有效的 http/https URL';
-      }
-      const related = parseRelatedIds(form.relatedResourceIds);
-      if (related.invalidTokens.length > 0) {
-        return `关联资源 ID 仅支持正整数（逗号分隔），非法值：${related.invalidTokens.join(', ')}`;
-      }
-    }
-    if (resourceType === 'dataset') {
-      if (!form.dataType.trim()) return '请填写数据类型（dataType）';
-      if (!form.format.trim()) return '请填写数据格式（format）';
-      if (Number(form.recordCount) < 0) return '记录数（recordCount）不能小于 0';
-      if (Number(form.fileSize) < 0) return '文件大小（fileSize）不能小于 0';
-    }
-    return '';
-  }, [
-    form.agentType,
-    form.agentMaxSteps,
-    form.agentTemperature,
-    form.parentResourceId,
-    form.appIcon,
-    form.appIsPublic,
-    form.appScreenshotsText,
-    form.appUrl,
-    form.authConfigJson,
-    form.authType,
-    form.dataType,
-    form.displayName,
-    form.embedType,
-    form.endpoint,
-    form.fileSize,
-    form.format,
-    form.maxConcurrency,
-    form.mcpRegisterMode,
-    form.paramsSchemaJson,
-    form.protocol,
-    form.recordCount,
-    form.relatedResourceIds,
-    form.resourceCode,
-    form.skillRootPath,
-    form.skillType,
-    skillRegisterTrack,
-    form.mode,
-    form.sourceType,
-    form.categoryId,
-    form.specJson,
-    form.manifestJson,
-    form.artifactUri,
-    form.paramsSchemaJson,
-    resourceId,
-    resourceType,
-    user?.id,
-  ]);
+  const fieldErrors = useMemo((): Partial<Record<ResourceRegisterFieldKey, string>> =>
+    computeResourceRegisterFieldErrors(resourceType, form, skillRegisterTrack),
+    [
+      form.agentType,
+      form.agentMaxSteps,
+      form.agentTemperature,
+      form.parentResourceId,
+      form.appIcon,
+      form.appUrl,
+      form.authConfigJson,
+      form.authType,
+      form.dataType,
+      form.displayName,
+      form.embedType,
+      form.endpoint,
+      form.fileSize,
+      form.format,
+      form.maxConcurrency,
+      form.mcpRegisterMode,
+      form.paramsSchemaJson,
+      form.protocol,
+      form.recordCount,
+      form.relatedResourceIds,
+      form.resourceCode,
+      form.skillRootPath,
+      form.skillType,
+      skillRegisterTrack,
+      form.specJson,
+      form.manifestJson,
+      form.artifactUri,
+      resourceType,
+    ],
+  );
 
-  const validateMcpProbeFields = (): string => {
-    if (!form.endpoint.trim()) return '请填写服务地址后再探测';
-    const activeTransport = modeToTransport(form.mcpRegisterMode);
-    if (activeTransport === 'websocket') {
-      if (!isValidWsUrl(form.endpoint.trim())) return 'WebSocket 探测需要 ws:// 或 wss:// URL';
-    } else if (activeTransport === 'stdio') {
-      if (!isValidUrl(form.endpoint.trim())) return 'stdio 边车须为 http:// 或 https:// URL';
-    } else if (!isValidUrl(form.endpoint.trim())) return 'HTTP 探测需要 http(s) URL';
-    const authParsed = parseJsonObject(form.authConfigJson, '鉴权配置（authConfig JSON）');
-    if (form.authConfigJson.trim() && !authParsed.ok) return authParsed.message;
-    if (form.authType === 'oauth2_client') {
-      if (!authParsed.ok || !authParsed.data) return 'oauth2_client 须填写合法 authConfig JSON';
-      const d = authParsed.data;
-      const tokenUrl = String(d.tokenUrl ?? d.token_url ?? '').trim();
-      const clientId = String(d.clientId ?? d.client_id ?? '').trim();
-      const secret = String(d.clientSecret ?? d.client_secret ?? '').trim();
-      const secretRef = String(d.clientSecretRef ?? '').trim();
-      if (!tokenUrl) return 'oauth2_client 需要 auth_config.tokenUrl';
-      if (!clientId) return 'oauth2_client 需要 auth_config.clientId';
-      if (!secret && !secretRef) return 'oauth2_client 需要 clientSecret 或 clientSecretRef';
-    }
-    if (form.authType === 'basic') {
-      if (!authParsed.ok || !authParsed.data) return 'basic 须填写合法 authConfig JSON';
-      const d = authParsed.data;
-      const u = String(d.username ?? '').trim();
-      const password = String(d.password ?? '').trim();
-      const passwordRef = String(d.passwordSecretRef ?? '').trim();
-      if (!u) return 'basic 需要 auth_config.username';
-      if (!password && !passwordRef) return 'basic 需要 password 或 passwordSecretRef';
-    }
-    return '';
-  };
+  useEffect(() => {
+    setMcpProbeExtra({});
+  }, [form.endpoint, form.authConfigJson, form.authType, form.mcpRegisterMode]);
 
+  useEffect(() => {
+    if (skillPackUrl) setSkillPackUrlError('');
+  }, [skillPackUrl]);
+
+  useEffect(() => {
+    if (form.artifactUri.trim()) setSkillSubmitArtifactError(null);
+  }, [form.artifactUri]);
+
+  const mcpEndpointMerged = fieldErrors.endpoint ?? mcpProbeExtra.endpoint;
+  const mcpAuthJsonMerged = fieldErrors.authConfigJson ?? mcpProbeExtra.authConfigJson;
   const handleMcpConfigImport = () => {
     const r = parseMcpConfigPaste(mcpImportPaste);
     if (r.hint && !r.endpoint) {
@@ -743,11 +931,16 @@ export const ResourceRegisterPage: React.FC<Props> = ({
   };
 
   const handleMcpConnectivityProbe = async () => {
-    const err = validateMcpProbeFields();
-    if (err) {
-      showMessage(err, 'error');
+    const probeIssues = collectMcpProbeFieldIssues(form);
+    if (Object.keys(probeIssues).length > 0) {
+      setMcpProbeExtra(probeIssues);
+      requestAnimationFrame(() => {
+        const first = probeIssues.endpoint ? 'endpoint' : probeIssues.authConfigJson ? 'authConfigJson' : null;
+        if (first) document.getElementById(rrFieldId(first))?.focus();
+      });
       return;
     }
+    setMcpProbeExtra({});
     setMcpProbeLoading(true);
     try {
       const acTrim = form.authConfigJson.trim();
@@ -755,7 +948,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       if (acTrim) {
         const parsed = parseJsonObject(form.authConfigJson, '鉴权配置（authConfig JSON）');
         if (!parsed.ok || !parsed.data) {
-          showMessage(parsed.message, 'error');
+          setMcpProbeExtra({ authConfigJson: parsed.message });
           return;
         }
         authConfig = { ...parsed.data };
@@ -985,9 +1178,10 @@ export const ResourceRegisterPage: React.FC<Props> = ({
   const handleSkillUrlImport = async () => {
     const u = skillPackUrl.trim();
     if (!u) {
-      showMessage('请输入可直链下载的技能包地址（HTTPS，zip/tar.gz 等）', 'error');
+      setSkillPackUrlError('请输入可直链下载的技能包地址（HTTPS，zip/tar.gz 等）');
       return;
     }
+    setSkillPackUrlError('');
     skillPackPreviewRef.current = { importUrl: u };
     setLoading(true);
     try {
@@ -1007,13 +1201,27 @@ export const ResourceRegisterPage: React.FC<Props> = ({
   };
 
   const save = async (submitAfterSave: boolean) => {
-    if (validate) {
-      showMessage(validate, 'error');
+    if (!resourceId && !user?.id) {
+      showMessage('请先登录后再注册资源', 'error');
+      return;
+    }
+    setSkillSubmitArtifactError(null);
+    const errs = fieldErrors;
+    if (Object.keys(errs).length > 0) {
+      requestAnimationFrame(() => {
+        for (const k of RR_FIELD_FOCUS_ORDER) {
+          if (errs[k]) {
+            document.getElementById(rrFieldId(k))?.focus();
+            break;
+          }
+        }
+      });
       return;
     }
     if (submitAfterSave && resourceType === 'skill') {
       if (!form.artifactUri.trim()) {
-        showMessage('提交审核前须已上传技能包（具备 artifactUri）。', 'error');
+        setSkillSubmitArtifactError('提交审核前须已上传技能包（具备 artifactUri）。');
+        requestAnimationFrame(() => document.getElementById(rrFieldId('artifactUri'))?.focus());
         return;
       }
     }
@@ -1083,39 +1291,30 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       <div className="px-4 sm:px-6 pb-8">
         <div className={`${bentoCard(theme)} overflow-hidden`}>
           <div className="grid grid-cols-1 gap-3 p-4 md:grid-cols-2">
-            <div className="md:col-span-2">
-              <div
-                className={`rounded-xl border px-3 py-2 text-xs ${
-                  validate
-                    ? isDark
-                      ? 'border-amber-400/30 bg-amber-400/10 text-amber-200'
-                      : 'border-amber-300 bg-amber-50 text-amber-800'
-                    : isDark
-                      ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200'
-                      : 'border-emerald-300 bg-emerald-50 text-emerald-800'
-                }`}
-              >
-                {validate || '校验通过'}
-              </div>
-            </div>
-            <Field label="资源编码 *">
+            <Field label="资源编码 *" theme={theme} error={fieldErrors.resourceCode} fieldId={rrFieldId('resourceCode')}>
               <input
+                id={rrFieldId('resourceCode')}
                 value={form.resourceCode}
                 onChange={(e) => setForm((p) => ({ ...p, resourceCode: e.target.value }))}
-                className={inputClass(isDark)}
+                className={inputClass(isDark, !!fieldErrors.resourceCode)}
+                aria-invalid={!!fieldErrors.resourceCode}
+                aria-describedby={fieldErrors.resourceCode ? `${rrFieldId('resourceCode')}-err` : undefined}
                 title="3–64 位，字母数字下划线或短横线"
                 placeholder="唯一标识，如 weather-tool"
               />
             </Field>
-            <Field label="显示名称 *">
+            <Field label="显示名称 *" theme={theme} error={fieldErrors.displayName} fieldId={rrFieldId('displayName')}>
               <input
+                id={rrFieldId('displayName')}
                 value={form.displayName}
                 onChange={(e) => setForm((p) => ({ ...p, displayName: e.target.value }))}
-                className={inputClass(isDark)}
+                className={inputClass(isDark, !!fieldErrors.displayName)}
+                aria-invalid={!!fieldErrors.displayName}
+                aria-describedby={fieldErrors.displayName ? `${rrFieldId('displayName')}-err` : undefined}
                 placeholder="列表与详情中展示的名称"
               />
             </Field>
-            <Field label="描述（选填）" full>
+            <Field label="描述（选填）" full theme={theme}>
               <textarea
                 value={form.description}
                 onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
@@ -1124,7 +1323,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                 placeholder="用途与场景简述（选填）"
               />
             </Field>
-            <Field label="目录标签（选填）">
+            <Field label="目录标签（选填）" theme={theme}>
               <LantuSelect
                 theme={theme}
                 value={form.categoryId}
@@ -1133,7 +1332,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                 placeholder="不选"
               />
             </Field>
-            <Field label="消费策略（API Key + Grant）" full>
+            <Field label="消费策略（API Key + Grant）" full theme={theme}>
               <LantuSelect
                 theme={theme}
                 value={form.accessPolicy}
@@ -1165,7 +1364,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
               </button>
               {advancedOpen ? (
                 <div className="mt-2 rounded-xl border border-dashed px-3 py-3 md:grid md:grid-cols-2 md:gap-3">
-                  <Field label="来源类型">
+                  <Field label="来源类型" theme={theme}>
                     <ThemedSelect
                       isDark={isDark}
                       value={form.sourceType}
@@ -1198,7 +1397,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     「MCP over HTTP（JSON）」与「HTTP + SSE」在登记表单里都对应远程 HTTP；网关会按上游实际响应处理，请按服务商文档填写地址即可。
                   </p>
                 </div>
-                <Field label="粘贴配置导入" full>
+                <Field label="粘贴配置导入" full theme={theme}>
                   <p className={`mb-2 text-[11px] ${textMuted(theme)}`}>
                     支持含 <span className="font-mono">mcpServers</span> 的 JSON（如 Claude/Cursor 导出），或单个含{' '}
                     <span className="font-mono">url</span> 的条目。仅解析远程 URL 类；stdio 会提示须自备边车。
@@ -1216,7 +1415,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     </button>
                   </div>
                 </Field>
-                <Field label="注册方式">
+                <Field label="注册方式" theme={theme}>
                   <ThemedSelect
                     isDark={isDark}
                     value={form.mcpRegisterMode}
@@ -1236,7 +1435,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     ]}
                   />
                 </Field>
-                <Field label="传输方式">
+                <Field label="传输方式" theme={theme}>
                   <ThemedSelect
                     isDark={isDark}
                     value={modeToTransport(form.mcpRegisterMode)}
@@ -1255,11 +1454,14 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     ]}
                   />
                 </Field>
-                <Field label="服务地址 *" full>
+                <Field label="服务地址 *" full theme={theme} error={mcpEndpointMerged} fieldId={rrFieldId('endpoint')}>
                   <input
+                    id={rrFieldId('endpoint')}
                     value={form.endpoint}
                     onChange={(e) => setForm((p) => ({ ...p, endpoint: e.target.value }))}
-                    className={inputClass(isDark)}
+                    className={inputClass(isDark, !!mcpEndpointMerged)}
+                    aria-invalid={!!mcpEndpointMerged}
+                    aria-describedby={mcpEndpointMerged ? `${rrFieldId('endpoint')}-err` : undefined}
                     placeholder={
                       modeToTransport(form.mcpRegisterMode) === 'websocket'
                         ? 'ws://localhost:5001/mcp'
@@ -1269,10 +1471,17 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     }
                   />
                 </Field>
-                <Field label="协议">
-                  <input value="mcp" readOnly className={inputClass(isDark)} />
+                <Field label="协议" theme={theme} error={fieldErrors.protocol} fieldId={rrFieldId('protocol')}>
+                  <input
+                    id={rrFieldId('protocol')}
+                    value="mcp"
+                    readOnly
+                    className={inputClass(isDark, !!fieldErrors.protocol)}
+                    aria-invalid={!!fieldErrors.protocol}
+                    aria-describedby={fieldErrors.protocol ? `${rrFieldId('protocol')}-err` : undefined}
+                  />
                 </Field>
-                <Field label="鉴权方式">
+                <Field label="鉴权方式" theme={theme}>
                   <ThemedSelect
                     isDark={isDark}
                     value={form.authType}
@@ -1286,10 +1495,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     ]}
                   />
                 </Field>
-                <Field
-                  label="鉴权配置（JSON）"
-                  full
-                >
+                <Field label="鉴权配置（JSON）" full theme={theme} error={mcpAuthJsonMerged} fieldId={rrFieldId('authConfigJson')}>
                   <p className={`mb-2 text-[11px] ${textMuted(theme)}`}>详见到接入指南；可点击下方模板快速填入。</p>
                   <div className="mb-2 flex flex-wrap gap-2">
                     <button
@@ -1350,10 +1556,13 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     </button>
                   </div>
                   <textarea
+                    id={rrFieldId('authConfigJson')}
                     value={form.authConfigJson}
                     onChange={(e) => setForm((p) => ({ ...p, authConfigJson: e.target.value }))}
                     rows={5}
-                    className={`${inputClass(isDark)} font-mono text-xs`}
+                    className={`${inputClass(isDark, !!mcpAuthJsonMerged)} font-mono text-xs`}
+                    aria-invalid={!!mcpAuthJsonMerged}
+                    aria-describedby={mcpAuthJsonMerged ? `${rrFieldId('authConfigJson')}-err` : undefined}
                     placeholder={DEFAULT_MCP_AUTH_CONFIG_JSON}
                   />
                 </Field>
@@ -1381,7 +1590,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
 
             {resourceType === 'agent' && (
               <>
-                <Field label="智能体类型">
+                <Field label="智能体类型" theme={theme} error={fieldErrors.agentType}>
                   <ThemedSelect
                     isDark={isDark}
                     value={form.agentType}
@@ -1389,7 +1598,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     options={AGENT_TYPE_OPTIONS}
                   />
                 </Field>
-                <Field label="运行模式">
+                <Field label="运行模式" theme={theme}>
                   <ThemedSelect
                     isDark={isDark}
                     value={form.mode}
@@ -1397,30 +1606,36 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     options={AGENT_MODE_OPTIONS}
                   />
                 </Field>
-                <Field label="规格（JSON，须含 url）" full>
+                <Field label="规格（JSON，须含 url）" full theme={theme} error={fieldErrors.specJson} fieldId={rrFieldId('specJson')}>
                   <div className="mb-2 flex flex-wrap gap-2">
                     <button type="button" className={btnSecondary(theme)} onClick={() => setForm((p) => ({ ...p, specJson: DEFAULT_AGENT_SPEC_JSON }))}>
                       填入示例
                     </button>
                   </div>
                   <textarea
+                    id={rrFieldId('specJson')}
                     value={form.specJson}
                     onChange={(e) => setForm((p) => ({ ...p, specJson: e.target.value }))}
                     rows={4}
-                    className={`${inputClass(isDark)} font-mono text-xs`}
+                    className={`${inputClass(isDark, !!fieldErrors.specJson)} font-mono text-xs`}
+                    aria-invalid={!!fieldErrors.specJson}
+                    aria-describedby={fieldErrors.specJson ? `${rrFieldId('specJson')}-err` : undefined}
                     placeholder='{"url":"https://…","timeout":30}'
                   />
                 </Field>
-                <Field label="最大并发">
+                <Field label="最大并发" theme={theme} error={fieldErrors.maxConcurrency} fieldId={rrFieldId('maxConcurrency')}>
                   <input
+                    id={rrFieldId('maxConcurrency')}
                     type="number"
                     value={form.maxConcurrency}
                     onChange={(e) => setForm((p) => ({ ...p, maxConcurrency: Number(e.target.value) || 1 }))}
-                    className={inputClass(isDark)}
+                    className={inputClass(isDark, !!fieldErrors.maxConcurrency)}
+                    aria-invalid={!!fieldErrors.maxConcurrency}
+                    aria-describedby={fieldErrors.maxConcurrency ? `${rrFieldId('maxConcurrency')}-err` : undefined}
                     placeholder="1–1000"
                   />
                 </Field>
-                <Field label="系统提示词（选填）" full>
+                <Field label="系统提示词（选填）" full theme={theme}>
                   <textarea
                     value={form.systemPrompt}
                     onChange={(e) => setForm((p) => ({ ...p, systemPrompt: e.target.value }))}
@@ -1429,11 +1644,14 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     placeholder="角色与回答约束（选填）"
                   />
                 </Field>
-                <Field label="关联资源 ID（选填）">
+                <Field label="关联资源 ID（选填）" theme={theme} error={fieldErrors.relatedResourceIds} fieldId={rrFieldId('relatedResourceIds')}>
                   <input
+                    id={rrFieldId('relatedResourceIds')}
                     value={form.relatedResourceIds}
                     onChange={(e) => setForm((p) => ({ ...p, relatedResourceIds: e.target.value }))}
-                    className={inputClass(isDark)}
+                    className={inputClass(isDark, !!fieldErrors.relatedResourceIds)}
+                    aria-invalid={!!fieldErrors.relatedResourceIds}
+                    aria-describedby={fieldErrors.relatedResourceIds ? `${rrFieldId('relatedResourceIds')}-err` : undefined}
                     placeholder="如 12, 34"
                     title="逗号分隔的正整数"
                   />
@@ -1451,7 +1669,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                   </button>
                   {agentAdvancedOpen ? (
                     <div className="mt-2 space-y-3 md:grid md:grid-cols-2 md:gap-3 md:space-y-0">
-                      <Field label="对外公开（isPublic）">
+                      <Field label="对外公开（isPublic）" theme={theme}>
                         <label className="flex cursor-pointer items-center gap-2 text-sm">
                           <input
                             type="checkbox"
@@ -1462,7 +1680,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                           <span className={textMuted(theme)}>在目录中可按公开策略展示</span>
                         </label>
                       </Field>
-                      <Field label="目录外隐藏（hidden）">
+                      <Field label="目录外隐藏（hidden）" theme={theme}>
                         <label className="flex cursor-pointer items-center gap-2 text-sm">
                           <input
                             type="checkbox"
@@ -1473,20 +1691,26 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                           <span className={textMuted(theme)}>与后端 hidden 一致</span>
                         </label>
                       </Field>
-                      <Field label="maxSteps（选填）">
+                      <Field label="maxSteps（选填）" theme={theme} error={fieldErrors.agentMaxSteps} fieldId={rrFieldId('agentMaxSteps')}>
                         <input
+                          id={rrFieldId('agentMaxSteps')}
                           value={form.agentMaxSteps}
                           onChange={(e) => setForm((p) => ({ ...p, agentMaxSteps: e.target.value }))}
-                          className={inputClass(isDark)}
+                          className={inputClass(isDark, !!fieldErrors.agentMaxSteps)}
+                          aria-invalid={!!fieldErrors.agentMaxSteps}
+                          aria-describedby={fieldErrors.agentMaxSteps ? `${rrFieldId('agentMaxSteps')}-err` : undefined}
                           placeholder="正整数，留空表示不限制"
                           inputMode="numeric"
                         />
                       </Field>
-                      <Field label="temperature（选填）">
+                      <Field label="temperature（选填）" theme={theme} error={fieldErrors.agentTemperature} fieldId={rrFieldId('agentTemperature')}>
                         <input
+                          id={rrFieldId('agentTemperature')}
                           value={form.agentTemperature}
                           onChange={(e) => setForm((p) => ({ ...p, agentTemperature: e.target.value }))}
-                          className={inputClass(isDark)}
+                          className={inputClass(isDark, !!fieldErrors.agentTemperature)}
+                          aria-invalid={!!fieldErrors.agentTemperature}
+                          aria-describedby={fieldErrors.agentTemperature ? `${rrFieldId('agentTemperature')}-err` : undefined}
                           placeholder="如 0.7"
                           inputMode="decimal"
                         />
@@ -1651,11 +1875,17 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                   {skillPackChunkHint ? (
                     <p className={`mb-2 text-xs ${isDark ? 'text-sky-300' : 'text-sky-700'}`}>{skillPackChunkHint}</p>
                   ) : null}
+                  {skillSubmitArtifactError ? (
+                    <p className={`mb-2 ${fieldErrorText()}`} role="alert">
+                      {skillSubmitArtifactError}
+                    </p>
+                  ) : null}
                   <div className={`mb-3 ${textMuted(theme)}`}>
-                    <label className="mb-1 block text-xs font-medium text-current">
+                    <label htmlFor={rrFieldId('skillRootPath')} className="mb-1 block text-xs font-medium text-current">
                       {skillRegisterTrack === 'mountable' ? '技能根目录（zip 内相对路径）*' : '技能根目录（可选）'}
                     </label>
                     <input
+                      id={rrFieldId('skillRootPath')}
                       type="text"
                       value={form.skillRootPath}
                       onChange={(e) => setForm((p) => ({ ...p, skillRootPath: e.target.value }))}
@@ -1667,8 +1897,17 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                       }
                       className={`w-full rounded-lg border px-3 py-2 text-sm ${
                         isDark ? 'border-white/10 bg-white/[0.04] text-slate-200 placeholder:text-slate-500' : 'border-slate-200 bg-white text-slate-900 placeholder:text-slate-400'
-                      }`}
+                      } ${fieldErrors.skillRootPath ? inputBaseError() : ''}`}
+                      aria-invalid={!!fieldErrors.skillRootPath}
+                      aria-describedby={
+                        fieldErrors.skillRootPath ? `${rrFieldId('skillRootPath')}-err` : undefined
+                      }
                     />
+                    {fieldErrors.skillRootPath ? (
+                      <p id={`${rrFieldId('skillRootPath')}-err`} className={`mt-1 ${fieldErrorText()}`} role="alert">
+                        {fieldErrors.skillRootPath}
+                      </p>
+                    ) : null}
                     <p className={`mt-1 text-[11px] leading-relaxed ${textMuted(theme)}`}>
                       {skillRegisterTrack === 'mountable'
                         ? '本支线以该子树为技能根：SKILL.md 校验、resolve 的 skillRootPath、网关挂载范围均针对此路径。上传前请填好。'
@@ -1703,13 +1942,16 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     </label>
                     <div className={`mt-2 flex w-full min-w-[240px] flex-1 flex-col gap-2 sm:mt-0 sm:flex-row sm:items-center`}>
                       <input
+                        id="rr-skillPackUrl"
                         type="url"
                         value={skillPackUrl}
                         onChange={(e) => setSkillPackUrl(e.target.value)}
                         disabled={loading}
                         className={`min-w-0 flex-1 rounded-lg border px-3 py-2 text-sm ${
                           isDark ? 'border-white/10 bg-white/[0.04] text-slate-200 placeholder:text-slate-500' : 'border-slate-200 bg-white text-slate-900 placeholder:text-slate-400'
-                        }`}
+                        } ${skillPackUrlError ? inputBaseError() : ''}`}
+                        aria-invalid={!!skillPackUrlError}
+                        aria-describedby={skillPackUrlError ? 'rr-skillPackUrl-err' : undefined}
                         placeholder="或粘贴直链（HTTPS）：zip / tar.gz / tar / .md 等，服务端拉取并归一化"
                       />
                       <button
@@ -1723,6 +1965,11 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                         从 URL 导入
                       </button>
                     </div>
+                    {skillPackUrlError ? (
+                      <p id="rr-skillPackUrl-err" className={`mt-1 ${fieldErrorText()}`} role="alert">
+                        {skillPackUrlError}
+                      </p>
+                    ) : null}
                     {resourceId && skillHasArtifact && (
                       <button
                         type="button"
@@ -1743,7 +1990,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     )}
                   </div>
                 </div>
-                <Field label="包格式">
+                <Field label="包格式" theme={theme} error={fieldErrors.skillType}>
                   <ThemedSelect
                     isDark={isDark}
                     value={form.skillType}
@@ -1754,7 +2001,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     ]}
                   />
                 </Field>
-                <Field label="运行模式">
+                <Field label="运行模式" theme={theme}>
                   <ThemedSelect
                     isDark={isDark}
                     value={form.mode}
@@ -1762,7 +2009,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     options={SKILL_MODE_OPTIONS}
                   />
                 </Field>
-                <Field label="对外公开">
+                <Field label="对外公开" theme={theme}>
                   <label className="flex cursor-pointer items-center gap-2 text-sm">
                     <input
                       type="checkbox"
@@ -1787,18 +2034,21 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                   </button>
                   {skillTechOpen ? (
                     <div className="mt-2 space-y-3 md:grid md:grid-cols-2 md:gap-3 md:space-y-0">
-                      <Field label="制品地址">
+                      <Field label="制品地址" theme={theme} error={fieldErrors.artifactUri} fieldId={rrFieldId('artifactUri')}>
                         <input
+                          id={rrFieldId('artifactUri')}
                           value={form.artifactUri}
                           onChange={(e) => setForm((p) => ({ ...p, artifactUri: e.target.value }))}
-                          className={inputClass(isDark)}
+                          className={inputClass(isDark, !!fieldErrors.artifactUri)}
+                          aria-invalid={!!fieldErrors.artifactUri}
+                          aria-describedby={fieldErrors.artifactUri ? `${rrFieldId('artifactUri')}-err` : undefined}
                           placeholder="上传后自动填充，或手填 URL"
                         />
                       </Field>
-                      <Field label="SHA-256（只读）">
+                      <Field label="SHA-256（只读）" theme={theme}>
                         <input value={form.artifactSha256} readOnly className={`${inputClass(isDark)} opacity-80`} placeholder="—" />
                       </Field>
-                      <Field label="最大并发">
+                      <Field label="最大并发" theme={theme}>
                         <input
                           type="number"
                           value={form.maxConcurrency}
@@ -1807,16 +2057,19 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                           placeholder="默认 10"
                         />
                       </Field>
-                      <Field label="父资源 ID（parentResourceId）">
+                      <Field label="父资源 ID（parentResourceId）" theme={theme} error={fieldErrors.parentResourceId} fieldId={rrFieldId('parentResourceId')}>
                         <input
+                          id={rrFieldId('parentResourceId')}
                           value={form.parentResourceId}
                           onChange={(e) => setForm((p) => ({ ...p, parentResourceId: e.target.value }))}
-                          className={inputClass(isDark)}
+                          className={inputClass(isDark, !!fieldErrors.parentResourceId)}
+                          aria-invalid={!!fieldErrors.parentResourceId}
+                          aria-describedby={fieldErrors.parentResourceId ? `${rrFieldId('parentResourceId')}-err` : undefined}
                           placeholder="选填：挂载的 MCP 等资源 id"
                           inputMode="numeric"
                         />
                       </Field>
-                      <Field label="展示模板（displayTemplate）">
+                      <Field label="展示模板（displayTemplate）" theme={theme}>
                         <input
                           value={form.displayTemplate}
                           onChange={(e) => setForm((p) => ({ ...p, displayTemplate: e.target.value }))}
@@ -1824,7 +2077,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                           placeholder="选填：file / image / answer …"
                         />
                       </Field>
-                      <Field label="入口文档">
+                      <Field label="入口文档" theme={theme}>
                         <input
                           value={form.entryDoc}
                           onChange={(e) => setForm((p) => ({ ...p, entryDoc: e.target.value }))}
@@ -1832,23 +2085,34 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                           placeholder="SKILL.md"
                         />
                       </Field>
-                      <Field label="manifest JSON" full>
+                      <Field label="manifest JSON" full theme={theme} error={fieldErrors.manifestJson} fieldId={rrFieldId('manifestJson')}>
                         <textarea
+                          id={rrFieldId('manifestJson')}
                           value={form.manifestJson}
                           onChange={(e) => setForm((p) => ({ ...p, manifestJson: e.target.value }))}
                           rows={4}
-                          className={`${inputClass(isDark)} font-mono text-xs`}
+                          className={`${inputClass(isDark, !!fieldErrors.manifestJson)} font-mono text-xs`}
+                          aria-invalid={!!fieldErrors.manifestJson}
+                          aria-describedby={fieldErrors.manifestJson ? `${rrFieldId('manifestJson')}-err` : undefined}
                         />
                       </Field>
-                      <Field label="spec JSON" full>
+                      <Field label="spec JSON" full theme={theme} error={fieldErrors.specJson} fieldId={rrFieldId('specJson')}>
                         <div className="mb-2 flex flex-wrap gap-2">
                           <button type="button" className={btnSecondary(theme)} onClick={() => setForm((p) => ({ ...p, specJson: DEFAULT_SKILL_SPEC_JSON }))}>
                             置为 {}
                           </button>
                         </div>
-                        <textarea value={form.specJson} onChange={(e) => setForm((p) => ({ ...p, specJson: e.target.value }))} rows={3} className={`${inputClass(isDark)} font-mono text-xs`} />
+                        <textarea
+                          id={rrFieldId('specJson')}
+                          value={form.specJson}
+                          onChange={(e) => setForm((p) => ({ ...p, specJson: e.target.value }))}
+                          rows={3}
+                          className={`${inputClass(isDark, !!fieldErrors.specJson)} font-mono text-xs`}
+                          aria-invalid={!!fieldErrors.specJson}
+                          aria-describedby={fieldErrors.specJson ? `${rrFieldId('specJson')}-err` : undefined}
+                        />
                       </Field>
-                      <Field label="parametersSchema JSON" full>
+                      <Field label="parametersSchema JSON" full theme={theme} error={fieldErrors.paramsSchemaJson} fieldId={rrFieldId('paramsSchemaJson')}>
                         <div className="mb-2 flex flex-wrap gap-2">
                           <button
                             type="button"
@@ -1858,7 +2122,15 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                             示例模板
                           </button>
                         </div>
-                        <textarea value={form.paramsSchemaJson} onChange={(e) => setForm((p) => ({ ...p, paramsSchemaJson: e.target.value }))} rows={4} className={`${inputClass(isDark)} font-mono text-xs`} />
+                        <textarea
+                          id={rrFieldId('paramsSchemaJson')}
+                          value={form.paramsSchemaJson}
+                          onChange={(e) => setForm((p) => ({ ...p, paramsSchemaJson: e.target.value }))}
+                          rows={4}
+                          className={`${inputClass(isDark, !!fieldErrors.paramsSchemaJson)} font-mono text-xs`}
+                          aria-invalid={!!fieldErrors.paramsSchemaJson}
+                          aria-describedby={fieldErrors.paramsSchemaJson ? `${rrFieldId('paramsSchemaJson')}-err` : undefined}
+                        />
                       </Field>
                     </div>
                   ) : null}
@@ -1868,15 +2140,18 @@ export const ResourceRegisterPage: React.FC<Props> = ({
 
             {resourceType === 'app' && (
               <>
-                <Field label="应用地址 *">
+                <Field label="应用地址 *" theme={theme} error={fieldErrors.appUrl} fieldId={rrFieldId('appUrl')}>
                   <input
+                    id={rrFieldId('appUrl')}
                     value={form.appUrl}
                     onChange={(e) => setForm((p) => ({ ...p, appUrl: e.target.value }))}
-                    className={inputClass(isDark)}
+                    className={inputClass(isDark, !!fieldErrors.appUrl)}
+                    aria-invalid={!!fieldErrors.appUrl}
+                    aria-describedby={fieldErrors.appUrl ? `${rrFieldId('appUrl')}-err` : undefined}
                     placeholder="https://…"
                   />
                 </Field>
-                <Field label="打开方式">
+                <Field label="打开方式" theme={theme} error={fieldErrors.embedType}>
                   <ThemedSelect
                     isDark={isDark}
                     value={form.embedType}
@@ -1888,15 +2163,18 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     ]}
                   />
                 </Field>
-                <Field label="图标 URL（选填）">
+                <Field label="图标 URL（选填）" theme={theme} error={fieldErrors.appIcon} fieldId={rrFieldId('appIcon')}>
                   <input
+                    id={rrFieldId('appIcon')}
                     value={form.appIcon}
                     onChange={(e) => setForm((p) => ({ ...p, appIcon: e.target.value }))}
-                    className={inputClass(isDark)}
+                    className={inputClass(isDark, !!fieldErrors.appIcon)}
+                    aria-invalid={!!fieldErrors.appIcon}
+                    aria-describedby={fieldErrors.appIcon ? `${rrFieldId('appIcon')}-err` : undefined}
                     placeholder="https://…"
                   />
                 </Field>
-                <Field label="截图 URL（选填，每行一条）" full>
+                <Field label="截图 URL（选填，每行一条）" full theme={theme}>
                   <textarea
                     value={form.appScreenshotsText}
                     onChange={(e) => setForm((p) => ({ ...p, appScreenshotsText: e.target.value }))}
@@ -1904,7 +2182,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     className={`${inputClass(isDark)} font-mono text-xs`}
                   />
                 </Field>
-                <Field label="对外公开">
+                <Field label="对外公开" theme={theme}>
                   <label className="flex cursor-pointer items-center gap-2 text-sm">
                     <input
                       type="checkbox"
@@ -1915,11 +2193,14 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     <span className={textMuted(theme)}>公开可见</span>
                   </label>
                 </Field>
-                <Field label="关联资源 ID（选填）">
+                <Field label="关联资源 ID（选填）" theme={theme} error={fieldErrors.relatedResourceIds} fieldId={rrFieldId('relatedResourceIds')}>
                   <input
+                    id={rrFieldId('relatedResourceIds')}
                     value={form.relatedResourceIds}
                     onChange={(e) => setForm((p) => ({ ...p, relatedResourceIds: e.target.value }))}
-                    className={inputClass(isDark)}
+                    className={inputClass(isDark, !!fieldErrors.relatedResourceIds)}
+                    aria-invalid={!!fieldErrors.relatedResourceIds}
+                    aria-describedby={fieldErrors.relatedResourceIds ? `${rrFieldId('relatedResourceIds')}-err` : undefined}
                     placeholder="如 12, 34"
                   />
                 </Field>
@@ -1928,7 +2209,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
 
             {resourceType === 'dataset' && (
               <>
-                <Field label="数据类型 *">
+                <Field label="数据类型 *" theme={theme} error={fieldErrors.dataType}>
                   <ThemedSelect
                     isDark={isDark}
                     value={form.dataType}
@@ -1936,7 +2217,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     options={DATASET_DATA_TYPE_OPTIONS}
                   />
                 </Field>
-                <Field label="数据格式 *">
+                <Field label="数据格式 *" theme={theme} error={fieldErrors.format}>
                   <ThemedSelect
                     isDark={isDark}
                     value={form.format}
@@ -1944,25 +2225,31 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     options={DATASET_FORMAT_OPTIONS}
                   />
                 </Field>
-                <Field label="记录数（约）">
+                <Field label="记录数（约）" theme={theme} error={fieldErrors.recordCount} fieldId={rrFieldId('recordCount')}>
                   <input
+                    id={rrFieldId('recordCount')}
                     type="number"
                     value={form.recordCount}
                     onChange={(e) => setForm((p) => ({ ...p, recordCount: Number(e.target.value) || 0 }))}
-                    className={inputClass(isDark)}
+                    className={inputClass(isDark, !!fieldErrors.recordCount)}
+                    aria-invalid={!!fieldErrors.recordCount}
+                    aria-describedby={fieldErrors.recordCount ? `${rrFieldId('recordCount')}-err` : undefined}
                     placeholder="0"
                   />
                 </Field>
-                <Field label="体积（与后端一致的数值，见接入指南）">
+                <Field label="体积（与后端一致的数值，见接入指南）" theme={theme} error={fieldErrors.fileSize} fieldId={rrFieldId('fileSize')}>
                   <input
+                    id={rrFieldId('fileSize')}
                     type="number"
                     value={form.fileSize}
                     onChange={(e) => setForm((p) => ({ ...p, fileSize: Number(e.target.value) || 0 }))}
-                    className={inputClass(isDark)}
+                    className={inputClass(isDark, !!fieldErrors.fileSize)}
+                    aria-invalid={!!fieldErrors.fileSize}
+                    aria-describedby={fieldErrors.fileSize ? `${rrFieldId('fileSize')}-err` : undefined}
                     placeholder="0"
                   />
                 </Field>
-                <Field label="标签（选填，逗号分隔）" full>
+                <Field label="标签（选填，逗号分隔）" full theme={theme}>
                   <input
                     value={form.tags}
                     onChange={(e) => setForm((p) => ({ ...p, tags: e.target.value }))}
@@ -1970,7 +2257,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     placeholder="如 教务, 公开数据"
                   />
                 </Field>
-                <Field label="对外公开（isPublic）">
+                <Field label="对外公开（isPublic）" theme={theme}>
                   <label className="flex cursor-pointer items-center gap-2 text-sm">
                     <input
                       type="checkbox"
@@ -1990,12 +2277,29 @@ export const ResourceRegisterPage: React.FC<Props> = ({
   );
 };
 
-const Field: React.FC<{ label: string; children: React.ReactNode; full?: boolean }> = ({ label, children, full }) => (
-  <div className={full ? 'md:col-span-2' : ''}>
-    <label className="mb-1 block text-xs font-medium text-slate-500">{label}</label>
-    {children}
-  </div>
-);
+const Field: React.FC<{
+  label: string;
+  children: React.ReactNode;
+  full?: boolean;
+  theme: Theme;
+  error?: string;
+  fieldId?: string;
+}> = ({ label, children, full, theme, error, fieldId }) => {
+  const errId = fieldId ? `${fieldId}-err` : undefined;
+  return (
+    <div className={full ? 'md:col-span-2' : ''}>
+      <label htmlFor={fieldId} className={`mb-1 block ${labelBase(theme)}`}>
+        {label}
+      </label>
+      {children}
+      {error ? (
+        <p id={errId} className={`mt-1 ${fieldErrorText()}`} role="alert">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+};
 
 interface SelectOption {
   value: string;
@@ -2093,10 +2397,11 @@ const ThemedSelect: React.FC<{
   );
 };
 
-function inputClass(isDark: boolean): string {
-  return `w-full rounded-xl border px-3 py-2 text-sm outline-none ${
+function inputClass(isDark: boolean, invalid?: boolean): string {
+  const base = `w-full rounded-xl border px-3 py-2 text-sm outline-none ${
     isDark ? 'border-white/10 bg-white/[0.04] text-slate-200' : 'border-slate-200 bg-white text-slate-700'
   }`;
+  return invalid ? `${base} ${inputBaseError()}` : base;
 }
 
 function btnGhostStyle(theme: Theme): string {

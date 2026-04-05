@@ -15,7 +15,8 @@ import { env } from '../../config/env';
 import type { UserApiKey } from '../../types/dto/user-settings';
 import { isServerErrorGloballyNotified } from '../../types/api';
 import {
-  canvasBodyBg, btnPrimary, btnSecondary, textPrimary, textSecondary, textMuted,
+  canvasBodyBg, btnPrimary, btnSecondary, fieldErrorText, inputBaseError,
+  textPrimary, textSecondary, textMuted,
   mainScrollPadBottom, mainScrollPadX,
 } from '../../utils/uiClasses';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -137,11 +138,14 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
     }
   }, [showMessage]);
 
+  const [apiKeyNameError, setApiKeyNameError] = useState('');
+
   const handleCreateApiKey = useCallback(async () => {
     if (!newKeyName.trim()) {
-      showMessage('请输入 API Key 名称', 'error');
+      setApiKeyNameError('请输入 API Key 名称');
       return;
     }
+    setApiKeyNameError('');
     if (createApiKeyInFlightRef.current) return;
     createApiKeyInFlightRef.current = true;
     setCreatingApiKey(true);
@@ -211,9 +215,14 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
 
   const [smsLoading, setSmsLoading] = useState(false);
   const [phoneLoading, setPhoneLoading] = useState(false);
+  const [phoneFieldErrors, setPhoneFieldErrors] = useState<{ phone?: string; smsCode?: string }>({});
 
   const handleSendCode = useCallback(async () => {
-    if (!/^1\d{10}$/.test(phone)) { showMessage('请输入正确的手机号', 'error'); return; }
+    if (!/^1\d{10}$/.test(phone)) {
+      setPhoneFieldErrors((p) => ({ ...p, phone: '请输入正确的手机号' }));
+      return;
+    }
+    setPhoneFieldErrors((p) => ({ ...p, phone: undefined }));
     setSmsLoading(true);
     try {
       await authService.sendSmsCode(phone);
@@ -231,8 +240,14 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
   useEffect(() => () => { if (countdownRef.current) clearInterval(countdownRef.current); }, []);
 
   const handlePhoneSubmit = useCallback(async () => {
-    if (!/^1\d{10}$/.test(phone)) { showMessage('请输入正确的手机号', 'error'); return; }
-    if (smsCode.length < 4) { showMessage('请输入验证码', 'error'); return; }
+    const next: { phone?: string; smsCode?: string } = {};
+    if (!/^1\d{10}$/.test(phone)) next.phone = '请输入正确的手机号';
+    if (smsCode.length < 4) next.smsCode = '请输入验证码';
+    if (Object.keys(next).length > 0) {
+      setPhoneFieldErrors((p) => ({ ...p, ...next }));
+      return;
+    }
+    setPhoneFieldErrors({});
     setPhoneLoading(true);
     try {
       await authService.bindPhone(phone, smsCode);
@@ -369,9 +384,13 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
             <div className="flex gap-2">
               <input
                 value={newKeyName}
-                onChange={(e) => setNewKeyName(e.target.value)}
+                onChange={(e) => {
+                  setNewKeyName(e.target.value);
+                  setApiKeyNameError('');
+                }}
                 placeholder="输入 API Key 名称"
-                className={`${nativeInputClass(theme)} flex-1`}
+                className={`${nativeInputClass(theme)} flex-1${apiKeyNameError ? ` ${inputBaseError()}` : ''}`}
+                aria-invalid={!!apiKeyNameError}
               />
               <button
                 type="button"
@@ -382,6 +401,11 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
                 {creatingApiKey ? <><Loader2 size={14} className="animate-spin" /> 创建中…</> : <><Plus size={14} /> 新建</>}
               </button>
             </div>
+            {apiKeyNameError ? (
+              <p className={`${fieldErrorText()} text-xs`} role="alert">
+                {apiKeyNameError}
+              </p>
+            ) : null}
             {newPlainKey && (
               <div className={`rounded-xl p-3 border space-y-2 ${isDark ? 'bg-emerald-500/10 border-emerald-500/25' : 'bg-emerald-50 border-emerald-200'}`}>
                 <p className={`text-xs font-semibold ${isDark ? 'text-emerald-100' : 'text-emerald-950'}`}>密钥仅出现这一次</p>
@@ -499,17 +523,76 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
       </Modal>
 
       {/* Phone Modal */}
-      <Modal open={showPhoneModal} onClose={() => setShowPhoneModal(false)} title="绑定手机号" theme={theme} size="sm" footer={<><button type="button" className={btnSecondary(theme)} onClick={() => setShowPhoneModal(false)}>取消</button><button type="button" className={`${btnPrimary} disabled:opacity-50`} disabled={phoneLoading} onClick={handlePhoneSubmit}>{phoneLoading ? <><Loader2 size={14} className="animate-spin" /> 绑定中…</> : '确认绑定'}</button></>}>
+      <Modal
+        open={showPhoneModal}
+        onClose={() => {
+          setShowPhoneModal(false);
+          setPhoneFieldErrors({});
+        }}
+        title="绑定手机号"
+        theme={theme}
+        size="sm"
+        footer={
+          <>
+            <button
+              type="button"
+              className={btnSecondary(theme)}
+              onClick={() => {
+                setShowPhoneModal(false);
+                setPhoneFieldErrors({});
+              }}
+            >
+              取消
+            </button>
+            <button type="button" className={`${btnPrimary} disabled:opacity-50`} disabled={phoneLoading} onClick={handlePhoneSubmit}>
+              {phoneLoading ? <><Loader2 size={14} className="animate-spin" /> 绑定中…</> : '确认绑定'}
+            </button>
+          </>
+        }
+      >
         <div className="space-y-3">
-          <div><label className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>手机号</label><input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="输入 11 位手机号" className={nativeInputClass(theme)} /></div>
+          <div>
+            <label className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>手机号</label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => {
+                setPhone(e.target.value);
+                setPhoneFieldErrors((p) => ({ ...p, phone: undefined }));
+              }}
+              placeholder="输入 11 位手机号"
+              className={`${nativeInputClass(theme)}${phoneFieldErrors.phone ? ` ${inputBaseError()}` : ''}`}
+              aria-invalid={!!phoneFieldErrors.phone}
+            />
+            {phoneFieldErrors.phone ? (
+              <p className={`mt-1 ${fieldErrorText()} text-xs`} role="alert">
+                {phoneFieldErrors.phone}
+              </p>
+            ) : null}
+          </div>
           <div>
             <label className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>验证码</label>
             <div className="flex gap-2">
-              <input type="text" value={smsCode} onChange={(e) => setSmsCode(e.target.value)} placeholder="输入验证码" className={`${nativeInputClass(theme)} flex-1`} />
+              <input
+                type="text"
+                value={smsCode}
+                onChange={(e) => {
+                  setSmsCode(e.target.value);
+                  setPhoneFieldErrors((p) => ({ ...p, smsCode: undefined }));
+                }}
+                placeholder="输入验证码"
+                className={`${nativeInputClass(theme)} flex-1${phoneFieldErrors.smsCode ? ` ${inputBaseError()}` : ''}`}
+                aria-invalid={!!phoneFieldErrors.smsCode}
+              />
               <button type="button" disabled={countdown > 0} onClick={handleSendCode} className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${countdown > 0 ? (isDark ? 'bg-white/5 text-slate-600 cursor-not-allowed' : 'bg-slate-200 text-slate-400 cursor-not-allowed') : `text-white ${tc.bg}`}`}>
                 {countdown > 0 ? `${countdown}s` : '获取验证码'}
               </button>
             </div>
+            {phoneFieldErrors.smsCode ? (
+              <p className={`mt-1 ${fieldErrorText()} text-xs`} role="alert">
+                {phoneFieldErrors.smsCode}
+              </p>
+            ) : null}
           </div>
         </div>
       </Modal>

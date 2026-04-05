@@ -17,6 +17,8 @@ import { TOOLBAR_ROW_LIST } from '../../utils/toolbarFieldClasses';
 import {
   btnPrimary,
   btnSecondary,
+  fieldErrorText,
+  inputBaseError,
   mgmtTableActionDanger,
   mgmtTableActionPositive,
   textPrimary,
@@ -55,6 +57,7 @@ export const DeveloperApplicationListPage: React.FC<Props> = ({ theme, fontSize,
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [actionTarget, setActionTarget] = useState<{ app: DeveloperApplicationVO; action: 'approve' | 'reject' } | null>(null);
   const [rejectComment, setRejectComment] = useState('');
+  const [rejectCommentError, setRejectCommentError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -98,10 +101,11 @@ export const DeveloperApplicationListPage: React.FC<Props> = ({ theme, fontSize,
         showMessage('已通过该申请', 'success');
       } else {
         if (!rejectComment.trim()) {
-          showMessage('请填写驳回原因', 'error');
+          setRejectCommentError('请填写驳回原因');
           setSubmitting(false);
           return;
         }
+        setRejectCommentError('');
         await developerApplicationService.reject(actionTarget.app.id, { reviewComment: rejectComment.trim() });
         showMessage('已驳回该申请', 'success');
       }
@@ -276,6 +280,7 @@ export const DeveloperApplicationListPage: React.FC<Props> = ({ theme, fontSize,
         onCancel={() => {
           setActionTarget(null);
           setRejectComment('');
+          setRejectCommentError('');
         }}
       />
 
@@ -284,6 +289,7 @@ export const DeveloperApplicationListPage: React.FC<Props> = ({ theme, fontSize,
         onClose={() => {
           setActionTarget(null);
           setRejectComment('');
+          setRejectCommentError('');
         }}
         title="驳回入驻申请"
         theme={theme}
@@ -296,6 +302,7 @@ export const DeveloperApplicationListPage: React.FC<Props> = ({ theme, fontSize,
               onClick={() => {
                 setActionTarget(null);
                 setRejectComment('');
+                setRejectCommentError('');
               }}
             >
               取消
@@ -317,11 +324,20 @@ export const DeveloperApplicationListPage: React.FC<Props> = ({ theme, fontSize,
           <textarea
             className={`w-full rounded-xl border px-3 py-2 text-sm min-h-[80px] resize-none outline-none ${
               isDark ? 'bg-white/[0.04] border-white/[0.08] text-white' : 'bg-white border-slate-200 text-slate-900'
-            }`}
+            }${rejectCommentError ? ` ${inputBaseError()}` : ''}`}
             value={rejectComment}
-            onChange={(e) => setRejectComment(e.target.value)}
+            onChange={(e) => {
+              setRejectComment(e.target.value);
+              setRejectCommentError('');
+            }}
             placeholder="驳回原因（必填）"
+            aria-invalid={!!rejectCommentError}
           />
+          {rejectCommentError ? (
+            <p className={`${fieldErrorText()} text-xs`} role="alert">
+              {rejectCommentError}
+            </p>
+          ) : null}
         </div>
       </Modal>
     </MgmtPageShell>

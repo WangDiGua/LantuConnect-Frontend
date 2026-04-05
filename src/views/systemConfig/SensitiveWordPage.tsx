@@ -18,6 +18,8 @@ import { nativeInputClass } from '../../utils/formFieldClasses';
 import {
   btnPrimary,
   btnSecondary,
+  fieldErrorText,
+  inputBaseError,
   mgmtTableActionDanger,
   mgmtTableActionGhost,
   mgmtTableActionPositive,
@@ -88,6 +90,9 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
   const [importSource, setImportSource] = useState('manual');
   const [importing, setImporting] = useState(false);
   const [latestImportResult, setLatestImportResult] = useState<SensitiveWordImportResult | null>(null);
+  const [addWordError, setAddWordError] = useState('');
+  const [batchJsonError, setBatchJsonError] = useState('');
+  const [importFileError, setImportFileError] = useState('');
 
   const [filterKeyword, setFilterKeyword] = useState('');
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
@@ -150,7 +155,11 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
   }, [fetchList]);
 
   const handleAdd = async () => {
-    if (!addWord.trim()) { showMessage('请填写敏感词', 'error'); return; }
+    if (!addWord.trim()) {
+      setAddWordError('请填写敏感词');
+      return;
+    }
+    setAddWordError('');
     setAdding(true);
     try {
       await sensitiveWordService.create({
@@ -176,9 +185,10 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
   const handleBatchCreate = async () => {
     const words = parseBatchJson(batchJson);
     if (!words || words.length === 0) {
-      showMessage('请填写合法 JSON（数组或 { words: [] }）且至少包含一个词', 'error');
+      setBatchJsonError('请填写合法 JSON（数组或 { words: [] }）且至少包含一个词');
       return;
     }
+    setBatchJsonError('');
     setBatching(true);
     try {
       const result = await sensitiveWordService.batchCreate({
@@ -200,9 +210,10 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
 
   const handleImport = async () => {
     if (!importFile) {
-      showMessage('请先选择导入文件', 'error');
+      setImportFileError('请先选择导入文件');
       return;
     }
+    setImportFileError('');
     setImporting(true);
     try {
       const result = await sensitiveWordService.import(importFile, {
@@ -438,13 +449,33 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
 
       <Modal
         open={showAdd}
-        onClose={() => { setShowAdd(false); setAddWord(''); setAddCategory(''); setAddSeverity(1); setAddSource('manual'); }}
+        onClose={() => {
+          setShowAdd(false);
+          setAddWordError('');
+          setAddWord('');
+          setAddCategory('');
+          setAddSeverity(1);
+          setAddSource('manual');
+        }}
         title="新增敏感词"
         theme={theme}
         size="sm"
         footer={
           <div className="flex justify-end gap-2">
-            <button type="button" className={btnSecondary(theme)} onClick={() => { setShowAdd(false); setAddWord(''); setAddCategory(''); setAddSeverity(1); setAddSource('manual'); }}>取消</button>
+            <button
+              type="button"
+              className={btnSecondary(theme)}
+              onClick={() => {
+                setShowAdd(false);
+                setAddWordError('');
+                setAddWord('');
+                setAddCategory('');
+                setAddSeverity(1);
+                setAddSource('manual');
+              }}
+            >
+              取消
+            </button>
             <button type="button" className={`${btnPrimary} disabled:opacity-50`} disabled={adding} onClick={handleAdd}>
               {adding ? <><Loader2 size={14} className="animate-spin" /> 添加中…</> : '添加'}
             </button>
@@ -454,7 +485,21 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
         <div className="space-y-3">
           <div>
             <label className={`text-sm font-medium ${textSecondary(theme)} mb-1 block`}>敏感词</label>
-            <input className={inputCls} value={addWord} onChange={(e) => setAddWord(e.target.value)} placeholder="请输入敏感词" />
+            <input
+              className={`${inputCls}${addWordError ? ` ${inputBaseError()}` : ''}`}
+              value={addWord}
+              onChange={(e) => {
+                setAddWord(e.target.value);
+                setAddWordError('');
+              }}
+              placeholder="请输入敏感词"
+              aria-invalid={!!addWordError}
+            />
+            {addWordError ? (
+              <p className={`mt-1 ${fieldErrorText()}`} role="alert">
+                {addWordError}
+              </p>
+            ) : null}
           </div>
           <div>
             <label className={`text-sm font-medium ${textSecondary(theme)} mb-1 block`}>分类</label>
@@ -517,12 +562,24 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
 
       <Modal
         open={showBatch}
-        onClose={() => setShowBatch(false)}
+        onClose={() => {
+          setShowBatch(false);
+          setBatchJsonError('');
+        }}
         title="JSON 批量新增"
         theme={theme}
         size="md"
         footer={<div className="flex justify-end gap-2">
-          <button type="button" className={btnSecondary(theme)} onClick={() => setShowBatch(false)}>取消</button>
+          <button
+            type="button"
+            className={btnSecondary(theme)}
+            onClick={() => {
+              setShowBatch(false);
+              setBatchJsonError('');
+            }}
+          >
+            取消
+          </button>
           <button type="button" className={`${btnPrimary} disabled:opacity-50`} disabled={batching} onClick={handleBatchCreate}>
             {batching ? <><Loader2 size={14} className="animate-spin" /> 提交中…</> : '批量提交'}
           </button>
@@ -533,11 +590,20 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
             <label className={`text-sm font-medium ${textSecondary(theme)} mb-1 block`}>JSON 内容</label>
             <textarea
               rows={8}
-              className={`${inputCls} font-mono text-xs resize-none`}
+              className={`${inputCls} font-mono text-xs resize-none${batchJsonError ? ` ${inputBaseError()}` : ''}`}
               value={batchJson}
-              onChange={(e) => setBatchJson(e.target.value)}
+              onChange={(e) => {
+                setBatchJson(e.target.value);
+                setBatchJsonError('');
+              }}
               placeholder='{"words":["词1","词2"]} 或 ["词1","词2"]'
+              aria-invalid={!!batchJsonError}
             />
+            {batchJsonError ? (
+              <p className={`mt-1 ${fieldErrorText()}`} role="alert">
+                {batchJsonError}
+              </p>
+            ) : null}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <input className={inputCls} value={batchCategory} onChange={(e) => setBatchCategory(e.target.value)} placeholder="category（可选）" />
@@ -549,12 +615,26 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
 
       <Modal
         open={showImport}
-        onClose={() => { setShowImport(false); setImportFile(null); }}
+        onClose={() => {
+          setShowImport(false);
+          setImportFile(null);
+          setImportFileError('');
+        }}
         title="文件导入（txt/csv/xlsx）"
         theme={theme}
         size="sm"
         footer={<div className="flex justify-end gap-2">
-          <button type="button" className={btnSecondary(theme)} onClick={() => { setShowImport(false); setImportFile(null); }}>取消</button>
+          <button
+            type="button"
+            className={btnSecondary(theme)}
+            onClick={() => {
+              setShowImport(false);
+              setImportFile(null);
+              setImportFileError('');
+            }}
+          >
+            取消
+          </button>
           <button type="button" className={`${btnPrimary} disabled:opacity-50`} disabled={importing} onClick={handleImport}>
             {importing ? <><Loader2 size={14} className="animate-spin" /> 导入中…</> : '开始导入'}
           </button>
@@ -566,10 +646,19 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
             <input
               type="file"
               accept=".txt,.csv,.xlsx"
-              className={inputCls}
-              onChange={(e) => setImportFile(e.target.files?.[0] ?? null)}
+              className={`${inputCls}${importFileError ? ` ${inputBaseError()}` : ''}`}
+              onChange={(e) => {
+                setImportFile(e.target.files?.[0] ?? null);
+                setImportFileError('');
+              }}
+              aria-invalid={!!importFileError}
             />
             <p className={`mt-1 text-[11px] ${textMuted(theme)}`}>支持 txt/csv/xlsx；txt 每行一个词，# 开头为注释。</p>
+            {importFileError ? (
+              <p className={`mt-1 ${fieldErrorText()}`} role="alert">
+                {importFileError}
+              </p>
+            ) : null}
           </div>
           <input className={inputCls} value={importCategory} onChange={(e) => setImportCategory(e.target.value)} placeholder="category（可选）" />
           <input type="number" min={1} max={10} className={inputCls} value={importSeverity} onChange={(e) => setImportSeverity(Math.max(1, Number(e.target.value) || 1))} placeholder="severity（可选）" />

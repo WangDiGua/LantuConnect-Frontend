@@ -16,7 +16,9 @@ import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTa
 import {
   btnPrimary,
   btnSecondary,
+  fieldErrorText,
   iconMuted,
+  inputBaseError,
   mgmtTableActionDanger,
   mgmtTableActionGhost,
   textPrimary,
@@ -88,6 +90,7 @@ export const RateLimitPage: React.FC<RateLimitPageProps> = ({
   const [draft, setDraft] = useState(emptyDraft);
   const [creating, setCreating] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<RateLimitRule | null>(null);
+  const [rateLimitFieldErrors, setRateLimitFieldErrors] = useState<{ name?: string; maxRequests?: string }>({});
 
   const rules: RateLimitRule[] = Array.isArray(data) ? data : [];
 
@@ -101,8 +104,14 @@ export const RateLimitPage: React.FC<RateLimitPageProps> = ({
     });
   }, [rules, search]);
 
-  const startCreate = () => { setCreating(true); setEditingId(null); setDraft(emptyDraft()); };
+  const startCreate = () => {
+    setRateLimitFieldErrors({});
+    setCreating(true);
+    setEditingId(null);
+    setDraft(emptyDraft());
+  };
   const startEdit = (r: RateLimitRule) => {
+    setRateLimitFieldErrors({});
     setCreating(false);
     setEditingId(r.id);
     setDraft({
@@ -118,11 +127,21 @@ export const RateLimitPage: React.FC<RateLimitPageProps> = ({
       enabled: r.enabled,
     });
   };
-  const cancelForm = () => { setCreating(false); setEditingId(null); };
+  const cancelForm = () => {
+    setCreating(false);
+    setEditingId(null);
+    setRateLimitFieldErrors({});
+  };
 
   const saveForm = () => {
-    if (!draft.name?.trim()) { showMessage('请填写策略名称', 'error'); return; }
-    if ((draft.maxRequests ?? 0) < 1) { showMessage('最大请求数须为正数', 'error'); return; }
+    const next: { name?: string; maxRequests?: string } = {};
+    if (!draft.name?.trim()) next.name = '请填写策略名称';
+    if ((draft.maxRequests ?? 0) < 1) next.maxRequests = '最大请求数须为正数';
+    if (Object.keys(next).length > 0) {
+      setRateLimitFieldErrors(next);
+      return;
+    }
+    setRateLimitFieldErrors({});
 
     const scopeRaw = (draft.resourceScope ?? '').trim();
     const payload: CreateRateLimitDTO = {
@@ -170,7 +189,21 @@ export const RateLimitPage: React.FC<RateLimitPageProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl">
           <div>
             <label className={`${labelCls} mb-1.5 block`}>策略名称</label>
-            <input className={inputCls} value={draft.name} onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} />
+            <input
+              className={`${inputCls}${rateLimitFieldErrors.name ? ` ${inputBaseError()}` : ''}`}
+              value={draft.name}
+              onChange={(e) => {
+                const v = e.target.value;
+                setDraft((d) => ({ ...d, name: v }));
+                if (v.trim()) setRateLimitFieldErrors((prev) => ({ ...prev, name: undefined }));
+              }}
+              aria-invalid={!!rateLimitFieldErrors.name}
+            />
+            {rateLimitFieldErrors.name ? (
+              <p className={`mt-1 ${fieldErrorText()}`} role="alert">
+                {rateLimitFieldErrors.name}
+              </p>
+            ) : null}
           </div>
           <div>
             <label className={`${labelCls} mb-1.5 block`}>目标类型</label>
@@ -207,7 +240,23 @@ export const RateLimitPage: React.FC<RateLimitPageProps> = ({
           </div>
           <div>
             <label className={`${labelCls} mb-1.5 block`}>最大请求数</label>
-            <input type="number" min={1} className={inputCls} value={draft.maxRequests} onChange={(e) => setDraft((d) => ({ ...d, maxRequests: Number(e.target.value) || 0 }))} />
+            <input
+              type="number"
+              min={1}
+              className={`${inputCls}${rateLimitFieldErrors.maxRequests ? ` ${inputBaseError()}` : ''}`}
+              value={draft.maxRequests}
+              onChange={(e) => {
+                const n = Number(e.target.value) || 0;
+                setDraft((d) => ({ ...d, maxRequests: n }));
+                if (n >= 1) setRateLimitFieldErrors((prev) => ({ ...prev, maxRequests: undefined }));
+              }}
+              aria-invalid={!!rateLimitFieldErrors.maxRequests}
+            />
+            {rateLimitFieldErrors.maxRequests ? (
+              <p className={`mt-1 ${fieldErrorText()}`} role="alert">
+                {rateLimitFieldErrors.maxRequests}
+              </p>
+            ) : null}
           </div>
           <div>
             <label className={`${labelCls} mb-1.5 block`}>突发容量 (Burst)</label>

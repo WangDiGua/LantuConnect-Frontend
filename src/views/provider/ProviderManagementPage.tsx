@@ -13,6 +13,8 @@ import {
   btnGhost,
   btnPrimary,
   btnSecondary,
+  fieldErrorText,
+  inputBaseError,
   textMuted,
   textPrimary,
   textSecondary,
@@ -71,6 +73,7 @@ export const ProviderManagementPage: React.FC<Props> = ({
     baseUrl: '',
     description: '',
   });
+  const [providerFieldErrors, setProviderFieldErrors] = useState<{ providerCode?: string; providerName?: string }>({});
 
   const loadData = useCallback(async () => {
     if (mode !== 'list') return;
@@ -108,10 +111,14 @@ export const ProviderManagementPage: React.FC<Props> = ({
   }, [loadData]);
 
   const createProvider = async () => {
-    if (!form.providerCode.trim() || !form.providerName.trim()) {
-      showMessage('请填写 providerCode 与 providerName', 'warning');
+    const next: { providerCode?: string; providerName?: string } = {};
+    if (!form.providerCode.trim()) next.providerCode = '请填写 providerCode';
+    if (!form.providerName.trim()) next.providerName = '请填写 providerName';
+    if (Object.keys(next).length > 0) {
+      setProviderFieldErrors(next);
       return;
     }
+    setProviderFieldErrors({});
     setCreating(true);
     try {
       await providerService.create({
@@ -123,6 +130,7 @@ export const ProviderManagementPage: React.FC<Props> = ({
         description: form.description.trim() || undefined,
       });
       showMessage('Provider 创建成功', 'success');
+      setProviderFieldErrors({});
       setForm({
         providerCode: '',
         providerName: '',
@@ -151,8 +159,42 @@ export const ProviderManagementPage: React.FC<Props> = ({
         <div className="px-4 sm:px-6 pb-8">
           <div className={`${bentoCard(theme)} overflow-hidden p-6`}>
             <div className="mt-0 grid grid-cols-1 gap-3 md:grid-cols-2">
-              <input className={nativeInputClass(theme)} placeholder="providerCode" value={form.providerCode} onChange={(e) => setForm((prev) => ({ ...prev, providerCode: e.target.value }))} />
-              <input className={nativeInputClass(theme)} placeholder="providerName" value={form.providerName} onChange={(e) => setForm((prev) => ({ ...prev, providerName: e.target.value }))} />
+              <div>
+                <input
+                  className={`${nativeInputClass(theme)}${providerFieldErrors.providerCode ? ` ${inputBaseError()}` : ''}`}
+                  placeholder="providerCode"
+                  value={form.providerCode}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setForm((prev) => ({ ...prev, providerCode: v }));
+                    if (v.trim()) setProviderFieldErrors((p) => ({ ...p, providerCode: undefined }));
+                  }}
+                  aria-invalid={!!providerFieldErrors.providerCode}
+                />
+                {providerFieldErrors.providerCode ? (
+                  <p className={`mt-1 ${fieldErrorText()} text-xs`} role="alert">
+                    {providerFieldErrors.providerCode}
+                  </p>
+                ) : null}
+              </div>
+              <div>
+                <input
+                  className={`${nativeInputClass(theme)}${providerFieldErrors.providerName ? ` ${inputBaseError()}` : ''}`}
+                  placeholder="providerName"
+                  value={form.providerName}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setForm((prev) => ({ ...prev, providerName: v }));
+                    if (v.trim()) setProviderFieldErrors((p) => ({ ...p, providerName: undefined }));
+                  }}
+                  aria-invalid={!!providerFieldErrors.providerName}
+                />
+                {providerFieldErrors.providerName ? (
+                  <p className={`mt-1 ${fieldErrorText()} text-xs`} role="alert">
+                    {providerFieldErrors.providerName}
+                  </p>
+                ) : null}
+              </div>
               <FilterSelect value={form.providerType} onChange={(v) => setForm((prev) => ({ ...prev, providerType: v as ProviderType }))} options={TYPE_OPTIONS.filter((opt) => opt.value !== '') as Array<{ value: ProviderType; label: string }>} theme={theme} />
               <FilterSelect value={form.authType} onChange={(v) => setForm((prev) => ({ ...prev, authType: v as AuthType }))} options={[{ value: 'none', label: 'none' }, { value: 'api_key', label: 'api_key' }, { value: 'oauth2', label: 'oauth2' }, { value: 'basic', label: 'basic' }]} theme={theme} />
               <input className={`md:col-span-2 ${nativeInputClass(theme)}`} placeholder="baseUrl (optional)" value={form.baseUrl} onChange={(e) => setForm((prev) => ({ ...prev, baseUrl: e.target.value }))} />

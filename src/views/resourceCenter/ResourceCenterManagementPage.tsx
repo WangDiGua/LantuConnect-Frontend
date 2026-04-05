@@ -27,6 +27,8 @@ import {
   btnGhost,
   btnPrimary,
   btnSecondary,
+  fieldErrorText,
+  inputBaseError,
   mgmtTableActionDanger,
   mgmtTableActionGhost,
   mgmtTableActionPositive,
@@ -147,6 +149,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
   const [versions, setVersions] = useState<ResourceVersionVO[]>([]);
   const [versionsLoading, setVersionsLoading] = useState(false);
   const [newVersion, setNewVersion] = useState('v2');
+  const [newVersionError, setNewVersionError] = useState('');
   const [makeNewVersionCurrent, setMakeNewVersionCurrent] = useState(true);
   const [activeType, setActiveType] = useState<ResourceType>(resourceType ?? 'agent');
   const [runningActionKey, setRunningActionKey] = useState<string | null>(null);
@@ -743,18 +746,23 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                 <input
                   value={newVersion}
-                  onChange={(e) => setNewVersion(e.target.value)}
-                  className={`min-w-0 flex-1 rounded-xl border px-3 py-2 text-sm ${isDark ? 'border-white/10 bg-white/[0.04] text-slate-200' : 'border-slate-200 bg-white text-slate-700'}`}
+                  onChange={(e) => {
+                    setNewVersion(e.target.value);
+                    setNewVersionError('');
+                  }}
+                  className={`min-w-0 flex-1 rounded-xl border px-3 py-2 text-sm ${isDark ? 'border-white/10 bg-white/[0.04] text-slate-200' : 'border-slate-200 bg-white text-slate-700'}${newVersionError ? ` ${inputBaseError()}` : ''}`}
                   placeholder="例如 v2、1.0.0、v1-rc1"
+                  aria-invalid={!!newVersionError}
                 />
                 <button
                   type="button"
                   onClick={async () => {
                     const vv = newVersion.trim();
                     if (!vv) {
-                      showMessage('请填写版本号', 'warning');
+                      setNewVersionError('请填写版本号');
                       return;
                     }
+                    setNewVersionError('');
                     await runAction(
                       `create-version-${versionTarget.id}`,
                       () =>
@@ -770,6 +778,11 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                   新建版本
                 </button>
               </div>
+              {newVersionError ? (
+                <p className={`mt-2 ${fieldErrorText()} text-xs`} role="alert">
+                  {newVersionError}
+                </p>
+              ) : null}
               <label className={`mt-2 flex cursor-pointer items-center gap-2 text-sm ${textSecondary(theme)}`}>
                 <input
                   type="checkbox"

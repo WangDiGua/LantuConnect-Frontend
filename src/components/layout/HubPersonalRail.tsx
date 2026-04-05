@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronRight, Command, LayoutList, LogOut, Search, User } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -154,8 +154,8 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
     setExpandedKey((k) => (k === key ? null : key));
   };
 
-  /** 路由变化时展开所属分组；无匹配时收起（如在探索主画布且无左轨父级） */
-  useEffect(() => {
+  /** 路由变化时同步手风琴：layout 阶段更新，避免先画错展开态再校正造成闪烁 */
+  useLayoutEffect(() => {
     if (searchMode) return;
     setExpandedKey(activeBlockKey);
   }, [activeBlockKey, searchMode]);

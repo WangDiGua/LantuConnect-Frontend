@@ -737,6 +737,8 @@ const MainLayoutContent: React.FC<{
   const messagePanelAnchorRef = useRef<HTMLDivElement>(null);
   /** 主内容滚动区：Hash 路由切换不会整页刷新，需手动滚回顶部 */
   const mainScrollRef = useRef<HTMLDivElement>(null);
+  /** 双栏壳：仅右侧内容滚动，避免与左侧轨共用 scroll 导致切换路由时整栏重绘闪烁 */
+  const routeContentScrollRef = useRef<HTMLDivElement>(null);
   /**
    * 探索 hub 页始终内嵌个人左轨。
    * 其他子页：独立左轨是否展示由下方 useEffect 按当前 page 与配置同步（含刷新/深链恢复）。
@@ -775,7 +777,13 @@ const MainLayoutContent: React.FC<{
   }, [refreshMessageUnreadCount]);
 
   useEffect(() => {
-    mainScrollRef.current?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    const inner = routeContentScrollRef.current;
+    const outer = mainScrollRef.current;
+    if (inner) {
+      inner.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    } else if (outer) {
+      outer.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    }
   }, [location.pathname, location.search]);
 
   /** 用户资源市场：旧版 ?resourceId= 深链统一跳转到 /user/{center}/:id，便于全页详情与分享 */
@@ -1769,64 +1777,75 @@ const MainLayoutContent: React.FC<{
         <main
           className={`${chromeGpuLayerClass} relative z-0 flex min-h-0 flex-1 flex-col overflow-hidden bg-transparent`}
         >
-          <div
-            ref={mainScrollRef}
-            className={`min-h-0 min-w-0 flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass}`}
-          >
-            <div className={`w-full ${chromeGpuLayerClass}`}>
-              {showStandalonePersonalRail && shellPersonalRail ? (
-                <div className={`mx-auto w-full ${contentMaxWidth} px-4 sm:px-5 lg:px-6 xl:px-8`}>
-                  <div className="grid grid-cols-1 items-stretch gap-8 lg:grid-cols-12 lg:gap-10">
+          {showStandalonePersonalRail && shellPersonalRail ? (
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+              <div
+                className={`mx-auto flex min-h-0 min-w-0 w-full flex-1 flex-col ${contentMaxWidth} px-4 sm:px-5 lg:px-6 xl:px-8`}
+              >
+                <div className="grid min-h-0 flex-1 grid-cols-1 gap-8 lg:grid-cols-12 lg:grid-rows-1 lg:gap-10 lg:[grid-template-rows:minmax(0,1fr)]">
+                  <div
+                    className={`order-2 flex min-h-0 flex-col max-h-[min(70vh,32rem)] lg:order-1 lg:col-span-2 lg:max-h-[calc(100dvh-5rem-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px))] lg:overflow-y-auto lg:overscroll-y-contain custom-scrollbar lg:pr-6 ${consoleContentTopPad} ${chromeGpuLayerClass}`}
+                  >
+                    <HubPersonalRail
+                      theme={theme}
+                      sections={shellPersonalRail.sections}
+                      displayName={shellPersonalRail.displayName}
+                      roleLabel={shellPersonalRail.roleLabel}
+                      avatarSeed={shellPersonalRail.avatarSeed}
+                      activeSidebar={shellPersonalRail.activeSidebar}
+                      activeSubItem={shellPersonalRail.activeSubItem}
+                      routeRole={shellPersonalRail.routeRole}
+                      onProfileClick={shellPersonalRail.onProfileClick}
+                      onSubItemClick={shellPersonalRail.onSubItemClick}
+                      suppressGlobalMenuSearchHotkey={mobileNavOpen}
+                    />
+                  </div>
+                  <div className="order-1 flex min-h-0 min-w-0 flex-col lg:order-2 lg:col-span-10">
                     <div
-                      className={`order-2 col-span-1 flex h-full min-h-0 flex-col lg:order-1 lg:col-span-2 lg:pr-6 ${consoleContentTopPad}`}
+                      ref={routeContentScrollRef}
+                      className={`flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain custom-scrollbar ${mainScrollCompositorClass}`}
                     >
-                      <HubPersonalRail
-                        theme={theme}
-                        sections={shellPersonalRail.sections}
-                        displayName={shellPersonalRail.displayName}
-                        roleLabel={shellPersonalRail.roleLabel}
-                        avatarSeed={shellPersonalRail.avatarSeed}
-                        activeSidebar={shellPersonalRail.activeSidebar}
-                        activeSubItem={shellPersonalRail.activeSubItem}
-                        routeRole={shellPersonalRail.routeRole}
-                        onProfileClick={shellPersonalRail.onProfileClick}
-                        onSubItemClick={shellPersonalRail.onSubItemClick}
-                        suppressGlobalMenuSearchHotkey={mobileNavOpen}
-                      />
-                    </div>
-                    <div className="order-1 min-w-0 lg:order-2 lg:col-span-10">
-                      <AnimatePresence mode="wait">
-                        <RouteContentMotion key={contentKey} animationVariants={animationVariants}>
-                          <div className={`mx-auto w-full ${contentMaxWidth}`}>
-                            <MainContent
-                              page={page}
-                              routeId={routeId}
-                              resourceTypeFromQuery={
-                                page === 'resource-center'
-                                  ? queryType
-                                  : page === 'resource-catalog' || page === 'resource-audit'
-                                    ? resourceTypeQuery
-                                    : queryType
-                              }
-                              layoutIsAdmin={layoutIsAdmin}
-                              theme={theme}
-                              themePreference={themePreference}
-                              themeColor={themeColor}
-                              fontSize={fontSize}
-                              showMessage={showMessage}
-                              navigateTo={navigateTo}
-                              setShowUserMenu={setShowUserMenu}
-                              setShowAppearanceMenu={setShowAppearanceMenu}
-                              exploreHubRail={undefined}
-                              mobileNavOpen={mobileNavOpen}
-                            />
-                          </div>
-                        </RouteContentMotion>
-                      </AnimatePresence>
+                      <div className={`w-full min-w-0 ${chromeGpuLayerClass}`}>
+                        <AnimatePresence mode="wait">
+                          <RouteContentMotion key={contentKey} animationVariants={animationVariants}>
+                            <div className={`mx-auto w-full ${contentMaxWidth}`}>
+                              <MainContent
+                                page={page}
+                                routeId={routeId}
+                                resourceTypeFromQuery={
+                                  page === 'resource-center'
+                                    ? queryType
+                                    : page === 'resource-catalog' || page === 'resource-audit'
+                                      ? resourceTypeQuery
+                                      : queryType
+                                }
+                                layoutIsAdmin={layoutIsAdmin}
+                                theme={theme}
+                                themePreference={themePreference}
+                                themeColor={themeColor}
+                                fontSize={fontSize}
+                                showMessage={showMessage}
+                                navigateTo={navigateTo}
+                                setShowUserMenu={setShowUserMenu}
+                                setShowAppearanceMenu={setShowAppearanceMenu}
+                                exploreHubRail={undefined}
+                                mobileNavOpen={mobileNavOpen}
+                              />
+                            </div>
+                          </RouteContentMotion>
+                        </AnimatePresence>
+                      </div>
                     </div>
                   </div>
                 </div>
-              ) : (
+              </div>
+            </div>
+          ) : (
+            <div
+              ref={mainScrollRef}
+              className={`min-h-0 min-w-0 flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass}`}
+            >
+              <div className={`w-full ${chromeGpuLayerClass}`}>
                 <AnimatePresence mode="wait">
                   <RouteContentMotion key={contentKey} animationVariants={animationVariants}>
                     <div className={`mx-auto w-full ${contentMaxWidth}`}>
@@ -1855,9 +1874,9 @@ const MainLayoutContent: React.FC<{
                     </div>
                   </RouteContentMotion>
                 </AnimatePresence>
-              )}
+              </div>
             </div>
-          </div>
+          )}
         </main>
         </div>
       </div>

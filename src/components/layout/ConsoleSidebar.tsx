@@ -47,6 +47,10 @@ export interface ConsoleSidebarProps {
   filteredSubGroupsForSidebarId: (id: string, domain: ConsoleRole) => SubGroup[];
   /** 仅抽屉打开时注册 ⌘/Ctrl+K，避免与桌面 Hub 个人轨重复聚焦 */
   enableMenuSearchHotkey?: boolean;
+  /**
+   * 是否显示侧栏顶部品牌区（Logo）。与全局顶栏并存时（如管理端桌面左侧轨）可关闭，避免重复。
+   */
+  showBrandHeader?: boolean;
 }
 
 export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
@@ -67,6 +71,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
   onLogoClick,
   filteredSubGroupsForSidebarId,
   enableMenuSearchHotkey = false,
+  showBrandHeader = true,
 }) => {
   const isDark = theme === 'dark';
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -183,26 +188,27 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
-      {/* Logo */}
-      <div className="px-2 mt-2 mb-6">
-        {onLogoClick ? (
-          <button
-            type="button"
-            onClick={onLogoClick}
-            className={`logo-nav-btn w-full rounded-lg border-0 bg-transparent p-0 text-left outline-none ring-0 shadow-none transition-colors focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 ${
-              isDark ? 'hover:bg-white/[0.04]' : 'hover:bg-slate-200/50'
-            }`}
-            aria-label="回到首页"
-          >
+      {showBrandHeader && (
+        <div className="px-2 mt-2 mb-6">
+          {onLogoClick ? (
+            <button
+              type="button"
+              onClick={onLogoClick}
+              className={`logo-nav-btn w-full rounded-lg border-0 bg-transparent p-0 text-left outline-none ring-0 shadow-none transition-colors focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 ${
+                isDark ? 'hover:bg-white/[0.04]' : 'hover:bg-slate-200/50'
+              }`}
+              aria-label="回到首页"
+            >
+              <Logo followSystemColorScheme={false} theme={theme} />
+            </button>
+          ) : (
             <Logo followSystemColorScheme={false} theme={theme} />
-          </button>
-        ) : (
-          <Logo followSystemColorScheme={false} theme={theme} />
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {/* Menu Search：微凹底 + 聚焦抬亮与环，快捷键 Chip 非聚焦显示 */}
-      <div className="mb-4 shrink-0">
+      <div className={`mb-4 shrink-0 ${showBrandHeader ? '' : 'mt-1'}`}>
         <div
           className={[
             'relative flex h-9 w-full items-center rounded-full px-3',

@@ -1781,6 +1781,7 @@ const MainLayoutContent: React.FC<{
               }}
               filteredSubGroupsForSidebarId={filteredSubGroupsForSidebarId}
               enableMenuSearchHotkey={false}
+              showBrandHeader={false}
             />
           </aside>
         )}

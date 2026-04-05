@@ -527,7 +527,7 @@ const RouteContentMotion: React.FC<{
       animate="animate"
       exit="exit"
       transition={springTransition}
-      className="flex min-h-0 w-full flex-col pb-8"
+      className="flex min-h-0 w-full flex-col pb-4"
       style={{ willChange: routeLayerWillChange }}
       onAnimationStart={() => setRouteLayerWillChange('opacity, transform')}
       onAnimationComplete={() => setRouteLayerWillChange('auto')}
@@ -1640,9 +1640,9 @@ const MainLayoutContent: React.FC<{
         >
           <div
             ref={mainScrollRef}
-            className={`flex min-h-0 flex-1 flex-col overflow-y-auto custom-scrollbar ${mainScrollCompositorClass}`}
+            className={`min-h-0 min-w-0 flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass}`}
           >
-            <div className={`min-h-0 w-full ${chromeGpuLayerClass}`}>
+            <div className={`w-full ${chromeGpuLayerClass}`}>
               <AnimatePresence mode="wait">
                 <RouteContentMotion
                   key={contentKey}

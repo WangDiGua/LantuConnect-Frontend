@@ -127,13 +127,7 @@ function normalizeResourceStats(raw: unknown): ResourceStatsVO {
 
 export const resourceCatalogService = {
   list: async (params?: ResourceCatalogQueryRequest) => {
-    const { tags, ...rest } = params ?? {};
-    const query: Record<string, unknown> = { ...rest };
-    if (tags?.length) {
-      /** 与多数 Spring 控制器一致：单参数逗号分隔，避免 axios 默认数组序列化与后端绑定不一致 */
-      query.tags = tags.join(',');
-    }
-    const raw = await http.get<unknown>('/catalog/resources', { params: query });
+    const raw = await http.get<unknown>('/catalog/resources', { params });
     return normalizePaginated<ResourceCatalogItemVO>(raw, normalizeCatalogItem);
   },
 

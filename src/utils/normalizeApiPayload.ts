@@ -17,6 +17,7 @@ export function extractArray<T = unknown>(raw: unknown): T[] {
   const inner =
     (Array.isArray(o.list) ? o.list : null)
     ?? (Array.isArray(o.records) ? o.records : null)
+    ?? (Array.isArray(o.rows) ? o.rows : null)
     ?? (Array.isArray(o.content) ? o.content : null)
     ?? (Array.isArray(o.items) ? o.items : null)
     ?? (Array.isArray(o.data) ? o.data : null);
@@ -53,6 +54,7 @@ export function normalizePaginated<T>(raw: unknown, mapItem?: (row: unknown) => 
   const inner =
     (Array.isArray(o.list) ? o.list : null)
     ?? (Array.isArray(o.records) ? o.records : null)
+    ?? (Array.isArray(o.rows) ? o.rows : null)
     ?? (Array.isArray(o.content) ? o.content : null)
     ?? (Array.isArray(o.data) ? o.data : null)
     ?? (Array.isArray(o.items) ? o.items : null)

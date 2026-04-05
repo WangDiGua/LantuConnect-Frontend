@@ -165,13 +165,6 @@ function isWebSocketMcpResolved(resolved: ResourceResolveVO): boolean {
   return typeof t === 'string' && t.toLowerCase() === 'websocket';
 }
 
-/** 广场展示：与目录「可逛」一致，包含已发布与内测；其余状态由前端过滤，避免仅 published 时 MCP 为空而后端已放行 testing */
-function isMcpMarketRowVisible(row: ResourceCatalogItemVO): boolean {
-  const s = String(row.status ?? '').trim().toLowerCase();
-  if (!s) return true;
-  return s === 'published' || s === 'testing';
-}
-
 function tryFormatJsonText(raw: string): { asJson: boolean; text: string } {
   const trimmed = raw.trim();
   if (!trimmed) return { asJson: false, text: '' };
@@ -233,13 +226,15 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
     setLoading(true);
     setLoadError(null);
     try {
+      /** 与布局改版前一致：GET /catalog/resources + resourceType=mcp + status=published（服务端筛选，不再二次过滤以免状态枚举与后端不一致导致空列表） */
       const data = await resourceCatalogService.list({
         resourceType: 'mcp',
+        status: 'published',
         page: 1,
         pageSize: 100,
         tags: tagFilter ? [tagFilter] : undefined,
       });
-      setRows(data.list.filter(isMcpMarketRowVisible));
+      setRows(data.list);
     } catch (err) {
       const error = err instanceof Error ? err : new Error('加载 MCP 市场失败');
       setLoadError(error);

@@ -732,18 +732,6 @@ const MainLayoutContent: React.FC<{
       : baseActiveSidebar;
   const activeSubItem = pageToSubItem(page, activeSidebar, layoutIsAdmin);
 
-  /** lg+ 视为桌面宽屏：此时主导航由固定 ConsoleSidebar 承担，不再使用内容区内嵌 HubPersonalRail */
-  const isDesktopLg = useSyncExternalStore(
-    (onStoreChange) => {
-      if (typeof window === 'undefined') return () => {};
-      const mq = window.matchMedia('(min-width: 1024px)');
-      mq.addEventListener('change', onStoreChange);
-      return () => mq.removeEventListener('change', onStoreChange);
-    },
-    () => (typeof window !== 'undefined' ? window.matchMedia('(min-width: 1024px)').matches : false),
-    () => false,
-  );
-
   const headerMenusRef = useRef<HTMLDivElement>(null);
   const messagePanelAnchorRef = useRef<HTMLDivElement>(null);
   /** 主内容滚动区：Hash 路由切换不会整页刷新，需手动滚回顶部 */
@@ -1183,8 +1171,8 @@ const MainLayoutContent: React.FC<{
     [fullSidebarRows],
   );
 
-  /** 桌面端统一使用固定 ConsoleSidebar（使用端+管理端同源），避免用户页用 HubPersonalRail、进管理页再换一套侧栏组件导致「变样子」 */
-  const showDesktopFixedConsoleSidebar = layoutIsAdmin || consoleRole === 'user';
+  /** 仅管理端桌面固定左轨（用户端桌面仍用内容区内嵌 HubPersonalRail，与产品稿一致） */
+  const showAdminDesktopSidebar = layoutIsAdmin;
 
   const filteredSubGroupsForSidebarId = useCallback(
     (sidebarId: string, domain: ConsoleRole) => {
@@ -1506,11 +1494,7 @@ const MainLayoutContent: React.FC<{
   const exploreHubRailForContent = page === 'hub' && exploreHubRail ? exploreHubRail : undefined;
 
   const showStandalonePersonalRail =
-    consoleRole === 'user' &&
-    personalRailOpen &&
-    Boolean(exploreHubRail) &&
-    page !== 'hub' &&
-    !isDesktopLg;
+    consoleRole === 'user' && personalRailOpen && Boolean(exploreHubRail) && page !== 'hub';
 
   return (
     <LayoutChromeProvider value={{ hasSecondarySidebar, chromePageTitle: headerTitle }}>
@@ -1745,9 +1729,9 @@ const MainLayoutContent: React.FC<{
         />
 
         <div
-          className={`flex min-h-0 min-w-0 flex-1 flex-col px-3 pb-3 pt-[calc(4rem+env(safe-area-inset-top,0px))] md:px-4 md:pb-4 ${showDesktopFixedConsoleSidebar ? 'lg:pl-[240px]' : ''}`}
+          className={`flex min-h-0 min-w-0 flex-1 flex-col px-3 pb-3 pt-[calc(4rem+env(safe-area-inset-top,0px))] md:px-4 md:pb-4 ${showAdminDesktopSidebar ? 'lg:pl-[240px]' : ''}`}
         >
-        {showDesktopFixedConsoleSidebar && (
+        {showAdminDesktopSidebar && (
           <aside
             className={`${chromeGpuLayerClass} fixed left-0 z-20 hidden h-[calc(100dvh-4rem-env(safe-area-inset-top,0px))] w-[240px] shrink-0 flex-col border-r px-3 py-2 motion-reduce:transition-none lg:flex lg:flex-col top-[calc(4rem+env(safe-area-inset-top,0px))] ${
               isDark ? 'border-white/[0.08] bg-lantu-chrome' : 'border-slate-200/80 bg-gray-100'
@@ -1784,7 +1768,7 @@ const MainLayoutContent: React.FC<{
               }}
               onLogoClick={() => {
                 setExpandedGroups([]);
-                navigate(layoutIsAdmin ? buildPath('admin', 'dashboard') : defaultPath());
+                navigate(buildPath('admin', 'dashboard'));
                 setMobileNavOpen(false);
               }}
               filteredSubGroupsForSidebarId={filteredSubGroupsForSidebarId}

@@ -811,7 +811,9 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
           <div className="grid grid-cols-1 items-stretch gap-8 lg:grid-cols-12 lg:gap-10">
             {hubRail ? (
               <div
-                className={`order-2 col-span-1 flex h-full min-h-0 flex-col lg:hidden`}
+                className={`order-2 col-span-1 flex h-full min-h-0 flex-col lg:order-1 lg:col-span-2 lg:border-r lg:pr-6 ${
+                  isDark ? 'lg:border-white/[0.08]' : 'lg:border-slate-200/80'
+                }`}
               >
                 <HubPersonalRail
                   theme={theme}
@@ -829,7 +831,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
               </div>
             ) : null}
             <div
-              className={`space-y-8 order-1 ${hubRail ? 'lg:order-2 lg:col-span-9' : 'lg:col-span-8'}`}
+              className={`space-y-8 order-1 ${hubRail ? 'lg:order-2 lg:col-span-7' : 'lg:col-span-8'}`}
             >
               {hubRail ? (
                 <div className="space-y-6">

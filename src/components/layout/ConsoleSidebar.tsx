@@ -368,29 +368,34 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
       <nav className={`flex-1 overflow-y-auto space-y-1.5 custom-scrollbar pr-1 pb-4 ${mainScrollCompositorClass}`}>
         {navRenderRows.map((row) => {
           if (row.kind === 'section') {
+            const isAdminCap = row.label === '管理端';
             return (
               <div
                 key={row.label}
-                className="mb-3 flex items-center gap-2.5 px-0.5 pt-2"
+                className={`flex items-center gap-2.5 px-0.5 ${isAdminCap ? 'my-4' : 'mb-3'}`}
                 role="separator"
                 aria-label={row.label}
               >
                 <div
                   className={`h-px min-w-[1rem] flex-1 ${
-                    isDark ? 'bg-gradient-to-r from-transparent to-white/[0.18]' : 'bg-gradient-to-r from-transparent to-slate-400/45'
+                    isDark
+                      ? 'bg-gradient-to-r from-transparent to-white/[0.22]'
+                      : 'bg-gradient-to-r from-transparent to-slate-400/55'
                   }`}
                   aria-hidden
                 />
                 <span
-                  className={`max-w-[12rem] shrink-0 text-center text-[11px] font-medium leading-none ${
-                    isDark ? 'text-slate-400' : 'text-slate-500'
+                  className={`max-w-[12rem] shrink-0 text-center text-[10px] font-bold uppercase leading-none tracking-wider ${
+                    isDark ? 'text-slate-400' : 'text-slate-600'
                   }`}
                 >
                   {row.label}
                 </span>
                 <div
                   className={`h-px min-w-[1rem] flex-1 ${
-                    isDark ? 'bg-gradient-to-l from-transparent to-white/[0.18]' : 'bg-gradient-to-l from-transparent to-slate-400/45'
+                    isDark
+                      ? 'bg-gradient-to-l from-transparent to-white/[0.22]'
+                      : 'bg-gradient-to-l from-transparent to-slate-400/55'
                   }`}
                   aria-hidden
                 />
@@ -404,6 +409,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
 
           return (
             <div key={`${item.domain}-${item.id}`} className="mb-1">
+              <div className="rounded-lg border border-transparent">
               <button
                 type="button"
                 aria-expanded={hasChildren ? isExpanded : undefined}
@@ -412,44 +418,37 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
                     ? onToggleGroup(item.id)
                     : onSidebarClick(item.id, item.domain)
                 }
-                className={`group/item flex w-full items-center justify-between rounded-xl px-3 py-2.5 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 motion-reduce:transition-none ${
-                  isDark ? 'focus-visible:ring-offset-lantu-surface' : 'focus-visible:ring-offset-white'
+                className={`group/item flex min-h-11 w-full items-center justify-between gap-2 rounded-lg px-2 py-2 text-left text-sm transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 motion-reduce:transition-none ${
+                  isDark ? 'focus-visible:ring-offset-lantu-surface' : 'focus-visible:ring-offset-transparent'
                 } ${
                   isSelfActive
                     ? isDark
-                      ? 'bg-white/10 text-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.15)]'
-                      : 'bg-white text-slate-900 shadow-[0_2px_10px_rgba(0,0,0,0.04)]'
+                      ? 'bg-white/10 font-medium text-slate-100'
+                      : 'bg-slate-100 font-medium text-slate-900'
                     : isChildActive
                       ? isDark
-                        ? 'text-slate-100'
-                        : 'text-slate-900'
+                        ? 'font-medium text-slate-100'
+                        : 'font-medium text-slate-900'
                       : isDark
-                        ? 'text-slate-400 hover:bg-white/[0.05] hover:text-slate-200'
-                        : 'text-slate-500 hover:bg-slate-200/50 hover:text-slate-800'
+                        ? 'font-semibold text-slate-200 hover:bg-white/[0.06]'
+                        : 'font-semibold text-slate-800 hover:bg-slate-100'
                 }`}
               >
-                <div className="flex min-w-0 items-center gap-3">
+                <div className="flex min-w-0 flex-1 items-center gap-2">
                   <item.icon
-                    size={18}
-                    className={
+                    size={16}
+                    strokeWidth={2}
+                    className={`h-4 w-4 shrink-0 opacity-90 ${
                       isSelfActive || isChildActive
                         ? isDark
-                          ? 'text-neutral-300'
-                          : 'text-neutral-900'
+                          ? 'text-slate-300'
+                          : 'text-slate-600'
                         : isDark
-                          ? 'text-slate-400 group-hover/item:text-slate-300'
-                          : 'text-slate-400 group-hover/item:text-slate-500'
-                    }
-                  />
-                  <span
-                    className={`text-[14px] ${
-                      isSelfActive || isChildActive
-                        ? 'font-semibold'
-                        : 'font-medium'
+                          ? 'text-slate-300'
+                          : 'text-slate-600'
                     }`}
-                  >
-                    {item.label}
-                  </span>
+                  />
+                  <span className="min-w-0 flex-1 truncate">{item.label}</span>
                 </div>
                 {hasChildren ? (
                   <ChevronDown
@@ -491,54 +490,34 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
                       transition={{ duration: 0.22, ease: 'easeInOut' }}
                       className="overflow-hidden"
                     >
-                      <div className="mt-1 mb-2 pl-[38px] pr-2 space-y-1 relative">
-                        <div
-                          className={`absolute left-[20px] top-1 bottom-1 w-px ${
-                            isDark ? 'bg-white/10' : 'bg-slate-200/60'
-                          }`}
-                        />
+                      <ul className="space-y-0.5 pb-2 pl-1">
                         {children.map((subItem) => {
                           const subActive =
                             activeSubItem === subItem.id && activeSidebar === item.id && routeRole === item.domain;
                           return (
+                          <li key={subItem.id}>
                           <button
-                            key={subItem.id}
                             type="button"
                             onClick={() => onSubItemClick(subItem.id, item.id, item.domain)}
-                            className={`flex w-full items-start gap-2 text-left px-3 py-2 text-[13px] rounded-lg transition-colors relative focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-inset ${
+                            aria-current={subActive ? 'page' : undefined}
+                            className={`flex min-h-10 w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
                               subActive
                                 ? isDark
-                                  ? 'bg-white/10 text-neutral-300 font-semibold shadow-[0_2px_8px_rgba(0,0,0,0.15)]'
-                                  : 'bg-white/60 text-neutral-800 font-semibold shadow-[0_2px_8px_rgba(0,0,0,0.02)]'
+                                  ? 'bg-white/10 font-medium text-slate-100'
+                                  : 'bg-slate-100 font-medium text-slate-900'
                                 : isDark
-                                  ? 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.05]'
-                                  : 'text-slate-500 hover:text-slate-800 hover:bg-slate-200/40'
+                                  ? 'text-slate-300 hover:bg-white/[0.06]'
+                                  : 'text-slate-700 hover:bg-slate-50'
                             }`}
                           >
-                            {subActive && (
-                              <div
-                                className={`absolute left-[-20px] top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-neutral-900 ring-4 ${
-                                  'ring-lantu-chrome'
-                                }`}
-                              />
-                            )}
                             <subItem.icon
-                              size={15}
+                              className="h-4 w-4 shrink-0 opacity-90"
                               strokeWidth={2}
-                              className={`mt-0.5 shrink-0 ${
-                                subActive
-                                  ? isDark
-                                    ? 'text-sky-300/95'
-                                    : 'text-sky-600'
-                                  : isDark
-                                    ? 'text-slate-500'
-                                    : 'text-slate-400'
-                              }`}
                               aria-hidden
                             />
                             <span className="inline-flex min-w-0 flex-1 flex-col items-start gap-1">
                               <span className="inline-flex items-center gap-1.5 flex-wrap">
-                                <span>{subItem.label}</span>
+                                <span className="truncate">{subItem.label}</span>
                                 {subItem.tag && (
                                   <span
                                     className={`shrink-0 text-[10px] font-bold px-1.5 py-px rounded-md ${
@@ -553,13 +532,15 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
                               </span>
                             </span>
                           </button>
+                          </li>
                           );
                         })}
-                      </div>
+                      </ul>
                     </motion.div>
                   )}
                 </AnimatePresence>
               )}
+              </div>
             </div>
           );
         })}

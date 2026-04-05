@@ -676,7 +676,7 @@ const MainLayoutContent: React.FC<{
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   /**
    * 探索 hub 页始终内嵌个人左轨。
-   * 其他子页：为 true 时在主栏外展示独立左轨（从左轨进入子项会置 true；顶栏/Logo 导航会置 false）
+   * 其他子页：独立左轨是否展示由下方 useEffect 按当前 page 与配置同步（含刷新/深链恢复）。
    */
   const [personalRailOpen, setPersonalRailOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -1154,11 +1154,21 @@ const MainLayoutContent: React.FC<{
     [hubPersonalRailSections, hubAdminRailSections],
   );
 
+  /**
+   * 独立个人左轨开关必须与 URL 同步，否则整页刷新后 state 回到 false，子页（如工作台）会丢了左轨。
+   * hub 页由内嵌 exploreHubRail 提供左轨，这里保持 standalone 关闭以免重复。
+   */
   useEffect(() => {
     if (consoleRole !== 'user' || exploreHubRailSections.length === 0) {
       setPersonalRailOpen(false);
+      return;
     }
-  }, [consoleRole, exploreHubRailSections.length]);
+    if (page === 'hub') {
+      setPersonalRailOpen(false);
+      return;
+    }
+    setPersonalRailOpen(true);
+  }, [consoleRole, exploreHubRailSections.length, page]);
 
   useEffect(() => {
     const groups = filteredSubGroupsForSidebarId(activeSidebar, consoleRole);
@@ -1174,7 +1184,6 @@ const MainLayoutContent: React.FC<{
   };
 
   const handleSidebarClick = (id: string, domain: ConsoleRole) => {
-    setPersonalRailOpen(false);
     setMobileNavOpen(false);
     const hasChildren = filteredSubGroupsForSidebarId(id, domain).length > 0;
     if (!hasChildren) {
@@ -1207,15 +1216,6 @@ const MainLayoutContent: React.FC<{
 
   const handleChromeSubItemClick = useCallback(
     (subItemId: string, parentSidebarId: string, domain: ConsoleRole) => {
-      setPersonalRailOpen(false);
-      navigateSubItem(subItemId, parentSidebarId, domain);
-    },
-    [navigateSubItem],
-  );
-
-  const handleRailSubItemClick = useCallback(
-    (subItemId: string, parentSidebarId: string, domain: ConsoleRole) => {
-      setPersonalRailOpen(true);
       navigateSubItem(subItemId, parentSidebarId, domain);
     },
     [navigateSubItem],
@@ -1403,9 +1403,8 @@ const MainLayoutContent: React.FC<{
       activeSidebar,
       activeSubItem,
       routeRole: consoleRole,
-      onSubItemClick: handleRailSubItemClick,
+      onSubItemClick: handleChromeSubItemClick,
       onProfileClick: () => {
-        setPersonalRailOpen(true);
         navigate(buildPath('user', 'profile'));
       },
     };
@@ -1417,7 +1416,7 @@ const MainLayoutContent: React.FC<{
     platformRole,
     activeSidebar,
     activeSubItem,
-    handleRailSubItemClick,
+    handleChromeSubItemClick,
     navigate,
   ]);
 
@@ -1455,7 +1454,6 @@ const MainLayoutContent: React.FC<{
           onSubItemClick={handleChromeSubItemClick}
           filteredSubGroupsForSidebarId={filteredSubGroupsForSidebarId}
           onLogoClick={() => {
-            setPersonalRailOpen(false);
             setExpandedGroups([]);
             navigate(defaultPath());
             setMobileNavOpen(false);
@@ -1679,7 +1677,6 @@ const MainLayoutContent: React.FC<{
             onSubItemClick={handleChromeSubItemClick}
             onToggleGroup={toggleGroup}
             onNavigateToProfile={() => {
-              setPersonalRailOpen(false);
               navigate(buildPath('user', 'profile'));
               if (layoutIsAdmin) setRole('user');
             }}
@@ -1695,7 +1692,6 @@ const MainLayoutContent: React.FC<{
               navigate('/login', { replace: true });
             }}
             onLogoClick={() => {
-              setPersonalRailOpen(false);
               setExpandedGroups([]);
               navigate(defaultPath());
               setMobileNavOpen(false);

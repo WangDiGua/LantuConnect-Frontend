@@ -1420,23 +1420,20 @@ const MainLayoutContent: React.FC<{
         <main
           className={`${chromeGpuLayerClass} relative z-0 flex min-h-0 flex-1 flex-col overflow-hidden bg-transparent`}
         >
-          <header
-            className={`${chromeGpuLayerClass} sticky top-0 z-10 flex h-[72px] shrink-0 items-center border-b px-4 sm:px-5 lg:px-6 ${
-              isDark
-                ? 'border-white/[0.06] bg-lantu-chrome/95 backdrop-blur-sm'
-                : 'border-slate-200/50 bg-lantu-chrome/95 backdrop-blur-sm'
-            }`}
-          >
-            <h2 className={`text-xl font-bold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
-              {headerTitle}
-            </h2>
-          </header>
-
-          {/* Scrollable content：GPU 加在滚动条内的子层，避免与 overflow-y-auto 同节点（防第一版滚不动） */}
           <div
             ref={mainScrollRef}
-            className={`flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass}`}
+            className={`flex min-h-0 flex-1 flex-col overflow-y-auto custom-scrollbar ${mainScrollCompositorClass}`}
           >
+            <header
+              className={`${chromeGpuLayerClass} flex h-[72px] shrink-0 items-center border-b px-4 sm:px-5 lg:px-6 ${
+                isDark ? 'border-white/[0.06]' : 'border-slate-200/50'
+              }`}
+            >
+              <h2 className={`text-xl font-bold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
+                {headerTitle}
+              </h2>
+            </header>
+
             <div className={`w-full ${chromeGpuLayerClass}`}>
               <AnimatePresence mode="wait">
                 <RouteContentMotion

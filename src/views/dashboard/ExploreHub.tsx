@@ -34,6 +34,7 @@ import { useUserRole, canAccessAdminView } from '../../context/UserRoleContext';
 import { useMessage } from '../../components/common/Message';
 import type { ExploreHubRailConfig } from '../../constants/topNavPolicy';
 import { HubPersonalRail } from '../../components/layout/HubPersonalRail';
+import { ConsolePageFooter } from '../../components/layout/ConsolePageFooter';
 
 interface ExploreHubProps {
   theme: Theme;
@@ -1016,6 +1017,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme, fontSize: _fontSi
             </div>
           </div>
         </main>
+        <ConsolePageFooter theme={theme} className={pageContainer} />
       </div>
 
       <Modal

@@ -321,7 +321,7 @@ export const AppMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, themeCo
             {filtered.map((app) => {
               const st = appStatusPresentation(app.status);
               return (
-                <BentoCard key={app.id} theme={theme} hover glow="indigo" padding="md" onClick={() => setDetailApp(app)} className="flex flex-col h-full !rounded-[20px]">
+                <BentoCard key={app.id} theme={theme} hover glow="indigo" padding="md" onClick={() => setDetailApp(app)} className="flex flex-col h-full">
                   <MarketplaceListingCard
                     theme={theme}
                     title={app.displayName}

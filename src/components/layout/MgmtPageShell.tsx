@@ -2,7 +2,7 @@ import React from 'react';
 import { ChevronRight, type LucideIcon } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
-import { consoleContentTopPad, consoleMgmtShellOuterBottomPad } from '../../utils/uiClasses';
+import { bentoCard, consoleContentTopPad, consoleMgmtShellOuterBottomPad } from '../../utils/uiClasses';
 
 export interface MgmtPageShellProps {
   theme: Theme;
@@ -55,13 +55,7 @@ export const MgmtPageShell: React.FC<MgmtPageShellProps> = ({
   return (
     <div className={`flex-1 flex flex-col min-h-0 min-w-0 ${shellOverflow} bg-transparent`}>
       <div className={`w-full flex-1 min-h-0 min-w-0 flex flex-col ${outerPad}`}>
-        <div
-          className={`flex min-h-0 min-w-0 flex-1 flex-col rounded-xl border ${cardOverflow} ${
-            isDark
-              ? 'border-white/[0.09] bg-lantu-elevated shadow-sm'
-              : 'border-slate-200/50 bg-white shadow-sm'
-          }`}
-        >
+        <div className={`flex min-h-0 min-w-0 flex-1 flex-col ${bentoCard(theme)} ${cardOverflow}`}>
           {hasSecondarySidebar ? (
             <>
               {showCompactChrome ? (

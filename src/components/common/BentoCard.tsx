@@ -1,7 +1,6 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import type { Theme } from '../../types';
-import { bentoCard } from '../../utils/uiClasses';
+import { bentoCard, bentoCardPointerHover } from '../../utils/uiClasses';
 
 interface Props {
   theme: Theme;
@@ -13,12 +12,13 @@ interface Props {
   onClick?: () => void;
 }
 
+/** 低强度彩色晕影，叠在 bentoCardPointerHover 之上（变量见 index.css） */
 const GLOW_MAP = {
-  indigo: 'hover:shadow-[var(--shadow-glow-indigo)]',
-  emerald: 'hover:shadow-[var(--shadow-glow-emerald)]',
-  amber: 'hover:shadow-[var(--shadow-glow-amber)]',
-  rose: 'hover:shadow-[var(--shadow-glow-rose)]',
-  cyan: 'hover:shadow-[var(--shadow-glow-cyan)]',
+  indigo: 'motion-safe:hover:shadow-[var(--shadow-glow-indigo)]',
+  emerald: 'motion-safe:hover:shadow-[var(--shadow-glow-emerald)]',
+  amber: 'motion-safe:hover:shadow-[var(--shadow-glow-amber)]',
+  rose: 'motion-safe:hover:shadow-[var(--shadow-glow-rose)]',
+  cyan: 'motion-safe:hover:shadow-[var(--shadow-glow-cyan)]',
 };
 
 const PAD_MAP = { sm: 'p-4', md: 'p-6', lg: 'p-8' };
@@ -27,21 +27,12 @@ export const BentoCard: React.FC<Props> = ({
   theme, children, className = '', hover = false, glow, padding = 'md', onClick,
 }) => {
   const base = bentoCard(theme);
-  const hoverCls = hover
-    ? theme === 'dark'
-      ? 'hover:border-white/[0.13] hover:bg-[#232c3f] hover:shadow-[0_8px_28px_-6px_rgba(0,0,0,0.55)] cursor-pointer'
-      : 'hover:shadow-[0_12px_32px_-8px_rgba(15,23,42,0.11),0_4px_10px_-4px_rgba(15,23,42,0.06)] hover:border-slate-300/55 cursor-pointer'
-    : '';
+  const hoverCls = hover ? `${bentoCardPointerHover(theme)} cursor-pointer` : '';
   const glowCls = glow ? GLOW_MAP[glow] : '';
 
   return (
-    <motion.div
-      whileHover={hover ? { y: -2 } : undefined}
-      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-      onClick={onClick}
-      className={`${base} ${hoverCls} ${glowCls} ${PAD_MAP[padding]} ${className}`}
-    >
+    <div onClick={onClick} className={`${base} ${hoverCls} ${glowCls} ${PAD_MAP[padding]} ${className}`}>
       {children}
-    </motion.div>
+    </div>
   );
 };

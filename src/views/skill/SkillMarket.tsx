@@ -538,7 +538,7 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _the
                   hover
                   glow="indigo"
                   padding="md"
-                  className="flex h-full flex-col !rounded-[20px]"
+                  className="flex h-full flex-col"
                   onClick={() => setDetailSkill(skill)}
                 >
                   <MarketplaceListingCard

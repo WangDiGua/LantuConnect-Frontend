@@ -256,7 +256,7 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5">
                   {featured.map((a) => (
-                    <BentoCard key={a.id} theme={theme} hover glow="indigo" padding="md" className="flex flex-col sm:flex-row gap-4 !rounded-[20px]">
+                    <BentoCard key={a.id} theme={theme} hover glow="indigo" padding="md" className="flex flex-col sm:flex-row gap-4">
                       <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shrink-0 ${isDark ? 'bg-white/[0.04]' : 'bg-slate-50'}`}>
                         {a.emoji}
                       </div>
@@ -325,7 +325,7 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
                     glow="indigo"
                     padding="md"
                     onClick={() => setDetailAgent(a)}
-                    className="flex flex-col h-full !rounded-[20px]"
+                    className="flex flex-col h-full"
                   >
                     <MarketplaceListingCard
                       theme={theme}

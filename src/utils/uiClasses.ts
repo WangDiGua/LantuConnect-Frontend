@@ -50,10 +50,20 @@ export function canvasBodyBg(theme: Theme) {
   return surfaceBg(theme);
 }
 
+/** 控制台内容卡片：大圆角 + 极淡浮起阴影（与 UI/卡片背景设计示例 对齐） */
+export const CONSOLE_CARD_RADIUS = 'rounded-[28px]';
+export const CONSOLE_CARD_SHADOW_LIGHT =
+  'shadow-[0_8px_24px_-4px_rgba(0,0,0,0.02)]';
+/** 深色：仍保持柔和层次，避免旧版 0.5 alpha 过重 */
+export const CONSOLE_CARD_SHADOW_DARK =
+  'shadow-[0_8px_28px_-8px_rgba(0,0,0,0.28)]';
+const CONSOLE_CARD_BORDER_LIGHT = 'border-slate-100';
+const CONSOLE_CARD_BORDER_DARK = 'border-white/[0.09]';
+
 export function canvasCard(theme: Theme) {
   return D(theme)
-    ? 'bg-lantu-elevated rounded-2xl md:rounded-3xl shadow-[0_2px_24px_-6px_rgba(0,0,0,0.45)] border border-white/[0.09]'
-    : 'bg-white rounded-2xl md:rounded-3xl shadow-[0_2px_12px_-4px_rgba(15,23,42,0.07)] border border-slate-200/45';
+    ? `bg-lantu-elevated ${CONSOLE_CARD_RADIUS} ${CONSOLE_CARD_SHADOW_DARK} border ${CONSOLE_CARD_BORDER_DARK}`
+    : `bg-white ${CONSOLE_CARD_RADIUS} ${CONSOLE_CARD_SHADOW_LIGHT} border ${CONSOLE_CARD_BORDER_LIGHT}`;
 }
 
 /* ═══════════════════════════════════════════
@@ -68,32 +78,36 @@ export function glassSidebar(theme: Theme) {
 
 export function glassPanel(theme: Theme) {
   return D(theme)
-    ? 'bg-lantu-card/55 backdrop-blur-xl border border-white/[0.08] rounded-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]'
-    : 'bg-white/80 backdrop-blur-md border border-slate-200/35 rounded-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.85),0_1px_2px_rgba(15,23,42,0.04)]';
+    ? `bg-lantu-card/55 backdrop-blur-xl border border-white/[0.08] ${CONSOLE_CARD_RADIUS} shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]`
+    : `bg-white/80 backdrop-blur-md border border-slate-200/35 ${CONSOLE_CARD_RADIUS} shadow-[inset_0_1px_0_0_rgba(255,255,255,0.85),0_8px_24px_-4px_rgba(0,0,0,0.02)]`;
 }
 
 /* ═══════════════════════════════════════════
-   Cards — 浅色：白卡片 + 极淡边 + 柔和阴影，铺在浅灰主画布上；深色：略抬亮表面 + 轻高光边
+   Cards — bento 与 canvas 共用 CONSOLE_CARD_* token；hover 以边框+极轻阴影为主，避免重投影
    ═══════════════════════════════════════════ */
 
-const CARD_SHADE_LIGHT =
-  'shadow-[0_2px_8px_-2px_rgba(15,23,42,0.07),0_1px_2px_-1px_rgba(15,23,42,0.05)]';
-const CARD_SHADE_DARK = 'shadow-[0_2px_20px_-6px_rgba(0,0,0,0.5)]';
-const CARD_HOVER_LIGHT =
-  'hover:shadow-[0_12px_32px_-8px_rgba(15,23,42,0.11),0_4px_10px_-4px_rgba(15,23,42,0.06)] hover:border-slate-300/55';
-const CARD_HOVER_DARK =
-  'hover:border-white/[0.13] hover:bg-[#232c3f] hover:shadow-[0_8px_28px_-6px_rgba(0,0,0,0.55)]';
+/** 可点击卡片 hover（用于 BentoCard、bentoCardHover） */
+const CARD_INTERACTIVE_HOVER_LIGHT =
+  'hover:border-sky-200/75 hover:shadow-[0_10px_28px_-6px_rgba(15,23,42,0.04)] motion-reduce:hover:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.02)]';
+const CARD_INTERACTIVE_HOVER_DARK =
+  'hover:border-white/[0.14] hover:bg-[#1e2636] hover:shadow-[0_10px_32px_-8px_rgba(0,0,0,0.38)] motion-reduce:hover:shadow-[0_8px_28px_-8px_rgba(0,0,0,0.28)]';
 
 export function bentoCard(theme: Theme) {
-  return `rounded-2xl border transition-all duration-200 motion-reduce:transition-none ${
+  return `${CONSOLE_CARD_RADIUS} border transition-all duration-200 motion-reduce:transition-none ${
     D(theme)
-      ? `bg-lantu-elevated border-white/[0.09] ${CARD_SHADE_DARK}`
-      : `bg-white border-slate-200/50 ${CARD_SHADE_LIGHT}`
+      ? `bg-lantu-elevated ${CONSOLE_CARD_BORDER_DARK} ${CONSOLE_CARD_SHADOW_DARK}`
+      : `bg-white ${CONSOLE_CARD_BORDER_LIGHT} ${CONSOLE_CARD_SHADOW_LIGHT}`
   }`;
 }
 
+/** 复合：默认 bento + 浅交互 hover（不含 cursor-pointer，由组件按需添加） */
 export function bentoCardHover(theme: Theme) {
-  return `${bentoCard(theme)} ${D(theme) ? CARD_HOVER_DARK : CARD_HOVER_LIGHT}`;
+  return `${bentoCard(theme)} ${D(theme) ? CARD_INTERACTIVE_HOVER_DARK : CARD_INTERACTIVE_HOVER_LIGHT}`;
+}
+
+/** BentoCard 专用：与 bentoCard 配套的 pointer hover 类片段 */
+export function bentoCardPointerHover(theme: Theme): string {
+  return D(theme) ? CARD_INTERACTIVE_HOVER_DARK : CARD_INTERACTIVE_HOVER_LIGHT;
 }
 
 export function cardClass(theme: Theme) {

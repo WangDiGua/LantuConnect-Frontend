@@ -903,7 +903,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                     hover
                     glow="indigo"
                     padding="md"
-                    className="flex h-full flex-col !rounded-[20px]"
+                    className="flex h-full flex-col"
                     onClick={() => setDetail(item)}
                   >
                     <MarketplaceListingCard

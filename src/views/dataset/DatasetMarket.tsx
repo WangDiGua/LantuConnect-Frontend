@@ -464,7 +464,7 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _t
 
           {/* Feature strip */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <BentoCard theme={theme} padding="sm" className="!rounded-2xl">
+            <BentoCard theme={theme} padding="sm">
               <div className="flex items-start gap-3">
                 <div
                   className={`shrink-0 rounded-lg p-2 ${isDark ? 'bg-white/[0.06]' : 'bg-slate-100'}`}
@@ -479,7 +479,7 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _t
                 </div>
               </div>
             </BentoCard>
-            <BentoCard theme={theme} padding="sm" className="!rounded-2xl">
+            <BentoCard theme={theme} padding="sm">
               <div className="flex items-start gap-3">
                 <div
                   className={`shrink-0 rounded-lg p-2 ${isDark ? 'bg-white/[0.06]' : 'bg-slate-100'}`}
@@ -494,7 +494,7 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _t
                 </div>
               </div>
             </BentoCard>
-            <BentoCard theme={theme} padding="sm" className="!rounded-2xl">
+            <BentoCard theme={theme} padding="sm">
               <div className="flex items-start gap-3">
                 <div
                   className={`shrink-0 rounded-lg p-2 ${isDark ? 'bg-white/[0.06]' : 'bg-slate-100'}`}
@@ -627,7 +627,7 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _t
                         hover
                         glow="emerald"
                         padding="md"
-                        className="flex flex-col h-full !rounded-[20px]"
+                        className="flex flex-col h-full"
                         onClick={() => setDetailDataset(ds)}
                       >
                         <MarketplaceListingCard

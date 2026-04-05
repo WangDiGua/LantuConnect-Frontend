@@ -1,6 +1,31 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, Zap, Clock, Activity, MessageSquare, Download, Loader2, Heart, Star } from 'lucide-react';
+import {
+  Search,
+  Zap,
+  Clock,
+  Activity,
+  MessageSquare,
+  Download,
+  Loader2,
+  Heart,
+  Star,
+  Braces,
+  FileText,
+  Sparkles,
+  ChevronRight,
+  Plus,
+  LayoutGrid,
+  FolderKanban,
+  Wrench,
+  Megaphone,
+  Code2,
+  Image,
+  ShieldCheck,
+  Smartphone,
+  Puzzle,
+  MoreHorizontal,
+} from 'lucide-react';
 import type { Theme, FontSize, ThemeColor } from '../../types';
 import type { Skill } from '../../types/dto/skill';
 import type { AgentType, SourceType } from '../../types/dto/agent';
@@ -14,20 +39,26 @@ import { mapInvokeFlowError } from '../../utils/invokeError';
 import { fetchSkillPackBlobDownload, resolveSkillArtifactTarget } from '../../utils/skillArtifactDownload';
 import { safeOpenHttpUrl } from '../../lib/windowNavigate';
 import {
-  canvasBodyBg, mainScrollCompositorClass, bentoCard, btnPrimary, btnSecondary,
-  iconMuted, textPrimary, textSecondary, textMuted, techBadge,
+  canvasBodyBg,
+  mainScrollCompositorClass,
+  mainScrollPadX,
+  mainScrollPadBottom,
+  btnPrimary,
+  btnSecondary,
+  iconMuted,
+  textPrimary,
+  textSecondary,
+  textMuted,
+  techBadge,
 } from '../../utils/uiClasses';
-import { BentoCard } from '../../components/common/BentoCard';
-import { GlassPanel } from '../../components/common/GlassPanel';
 import { Modal } from '../../components/common/Modal';
 import { ResourceReviewsSection } from '../../components/business/ResourceReviewsSection';
 import { GrantApplicationModal } from '../../components/business/GrantApplicationModal';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
-import { PageTitleTagline } from '../../components/common/PageTitleTagline';
 import { formatDateTime } from '../../utils/formatDateTime';
-import { buildPath } from '../../constants/consoleRoutes';
+import { buildPath, buildUserResourceMarketUrl } from '../../constants/consoleRoutes';
 import { usePersistedGatewayApiKey } from '../../hooks/usePersistedGatewayApiKey';
 import { GatewayApiKeyInput } from '../../components/common/GatewayApiKeyInput';
 import { ApiException } from '../../types/api';
@@ -43,6 +74,25 @@ function formatLatency(ms: number): string { return ms >= 1000 ? (ms / 1000).toF
 function formatCount(n: number): string { if (n >= 10000) return (n / 10000).toFixed(1) + '万'; if (n >= 1000) return (n / 1000).toFixed(1) + 'k'; return String(n); }
 
 function safeText(v: unknown): string { return String(v ?? ''); }
+
+const CATEGORY_SCROLL_ICON_CYCLE = [
+  LayoutGrid,
+  FolderKanban,
+  Wrench,
+  Megaphone,
+  Code2,
+  Image,
+  ShieldCheck,
+  Smartphone,
+  Puzzle,
+  MoreHorizontal,
+] as const;
+
+function formatTotalSkills(n: number): string {
+  if (n >= 10000) return `${(n / 10000).toFixed(n % 10000 === 0 ? 0 : 1)} 万`;
+  if (n >= 1000) return n.toLocaleString('zh-CN');
+  return String(n);
+}
 
 
 export const SkillMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, themeColor: _themeColor, showMessage }) => {
@@ -64,6 +114,7 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, theme
   const [searchParams, setSearchParams] = useSearchParams();
   const processedResourceId = useRef<string | null>(null);
   const [gatewayApiKeyDraft, setGatewayApiKeyDraft] = usePersistedGatewayApiKey();
+  const [listTotal, setListTotal] = useState<number | null>(null);
 
   const handleOpenUse = useCallback((skill: Skill) => { setUseSkill(skill); setUseResult(null); setUseLoading(false); }, []);
   const handleExecute = useCallback(async () => {
@@ -179,7 +230,10 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, theme
       tags: activeCategory !== '全部' ? [activeCategory] : undefined,
     } as any)
       .then((res) => {
-        if (!cancelled) setSkills(res.list);
+        if (!cancelled) {
+          setSkills(res.list);
+          setListTotal(typeof res.total === 'number' ? res.total : res.list.length);
+        }
       })
       .catch((err) => {
         if (!cancelled) {
@@ -228,97 +282,323 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, theme
     );
   }, [skills, keyword]);
 
+  const searchPlaceholder = useMemo(() => {
+    if (loading || listTotal == null) return '搜索 Skills…';
+    return `搜索 Skills（共 ${formatTotalSkills(listTotal)} 条）`;
+  }, [loading, listTotal]);
+
+  const categoryRows = useMemo(() => {
+    const rows: Array<{ key: string; label: string; Icon: (typeof CATEGORY_SCROLL_ICON_CYCLE)[number] }> = [
+      { key: '__all', label: '全部', Icon: LayoutGrid },
+    ];
+    catalogTags.forEach((t, i) => {
+      rows.push({
+        key: String(t.id),
+        label: t.name,
+        Icon: CATEGORY_SCROLL_ICON_CYCLE[(i + 1) % CATEGORY_SCROLL_ICON_CYCLE.length],
+      });
+    });
+    return rows;
+  }, [catalogTags]);
+
   return (
     <div className={`flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${canvasBodyBg(theme)}`}>
-      <div className="px-0 py-4 sm:py-5">
-        <div className={`${bentoCard(theme)} overflow-hidden p-4 sm:p-6 lg:p-8`}>
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className={`shrink-0 rounded-xl p-2 ${isDark ? 'bg-neutral-900/10' : 'bg-neutral-100'}`}><Zap size={22} className="text-neutral-800" /></div>
-            <PageTitleTagline
-              subtitleOnly
-              theme={theme}
-              title={chromePageTitle || '技能市场'}
-              tagline="浏览技能包目录并下载制品；网关不接受 skill 的 invoke，调用统计不含下载（见资源成效中的技能包下载指标）"
-            />
+      <div className={`${mainScrollPadX} ${mainScrollPadBottom} space-y-6 pt-5 sm:pt-6`}>
+        {/* 顶栏：品牌区 + 轻量操作（参考魔搭 Skills 首页层级） */}
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex min-w-0 gap-4">
+            <div
+              className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-lg font-bold text-white shadow-lg shadow-violet-500/25 sm:h-16 sm:w-16 ${
+                isDark
+                  ? 'bg-gradient-to-br from-violet-500 to-cyan-400'
+                  : 'bg-gradient-to-br from-violet-600 to-sky-500'
+              }`}
+              aria-hidden
+            >
+              <Braces className="h-7 w-7 sm:h-8 sm:w-8" strokeWidth={2.25} />
+            </div>
+            <div className="min-w-0 pt-0.5">
+              <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${textMuted(theme)}`}>Skill marketplace</p>
+              <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">
+                <span className="bg-gradient-to-r from-violet-600 via-fuchsia-600 to-cyan-500 bg-clip-text text-transparent dark:from-violet-400 dark:via-fuchsia-400 dark:to-cyan-400">
+                  Skills
+                </span>
+                <span className={textPrimary(theme)}> 中心</span>
+              </h1>
+              <p className={`mt-2 max-w-xl text-sm leading-relaxed sm:text-[15px] ${textSecondary(theme)}`}>
+                汇聚可复用技能组件与技能包，连接智能体与工作流；浏览目录、筛选分类，一键获取制品（resolve 下载）。
+              </p>
+            </div>
           </div>
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:items-end">
+          <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
             <button
               type="button"
-              onClick={() => navigate(buildPath('user', 'skill-register'))}
-              className={`${btnSecondary} shrink-0 px-3 py-2 text-xs font-semibold`}
+              onClick={() => navigate(buildPath('user', 'api-docs'))}
+              className={`inline-flex min-h-10 items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 ${
+                isDark ? 'border-white/[0.12] bg-white/[0.04] text-slate-200 hover:bg-white/[0.08]' : 'border-slate-200/80 bg-white text-slate-800 shadow-sm hover:bg-slate-50'
+              }`}
             >
-              发布技能（上传 / URL 导入）
+              <FileText className="h-4 w-4 shrink-0 text-violet-500 dark:text-violet-400" aria-hidden />
+              技术文档
             </button>
-          <GlassPanel theme={theme} padding="sm" className="!p-0 w-full sm:w-72">
-            <div className="relative">
-              <Search size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${iconMuted(theme)}`} />
-              <input type="text" placeholder="搜索技能…" value={keyword} onChange={(e) => setKeyword(e.target.value)} className={`w-full bg-transparent pl-9 pr-3 py-2.5 text-sm outline-none ${textPrimary(theme)}`} />
+            <button
+              type="button"
+              onClick={() => navigate(buildPath('user', 'hub'))}
+              className={`inline-flex min-h-10 items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 ${
+                isDark ? 'border-white/[0.12] bg-white/[0.04] text-slate-200 hover:bg-white/[0.08]' : 'border-slate-200/80 bg-white text-slate-800 shadow-sm hover:bg-slate-50'
+              }`}
+              aria-label="回到探索发现"
+            >
+              <Sparkles className="h-4 w-4 shrink-0 text-cyan-500 dark:text-cyan-400" aria-hidden />
+              探索发现
+            </button>
+          </div>
+        </header>
+
+        {/* Hero 双卡 */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <div
+            className={`relative overflow-hidden rounded-2xl border p-6 sm:p-7 ${
+              isDark
+                ? 'border-cyan-500/20 bg-gradient-to-br from-cyan-500/15 via-slate-900/40 to-violet-600/10'
+                : 'border-sky-200/60 bg-gradient-to-br from-sky-100/90 via-white to-indigo-50/80'
+            }`}
+          >
+            <div
+              className={`pointer-events-none absolute -right-6 -top-6 text-8xl font-black opacity-[0.07] ${textPrimary(theme)}`}
+              aria-hidden
+            >
+              /*
             </div>
-          </GlassPanel>
+            <div className="relative flex flex-col gap-4">
+              <div className="inline-flex w-fit items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-[11px] font-semibold text-cyan-800 shadow-sm dark:bg-white/10 dark:text-cyan-200">
+                <Zap className="h-3.5 w-3.5" aria-hidden />
+                Agent × Skills
+              </div>
+              <div>
+                <h2 className={`text-lg font-bold sm:text-xl ${textPrimary(theme)}`}>在统一目录中编排技能</h2>
+                <p className={`mt-2 max-w-sm text-sm leading-relaxed ${textSecondary(theme)}`}>
+                  从智能体市场接入 MCP / API，再结合本页技能包，快速拼装校园与业务场景能力。
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate(buildUserResourceMarketUrl('agent'))}
+                className="inline-flex w-fit min-h-10 items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
+              >
+                去逛 Agent 市场
+                <ChevronRight className="h-4 w-4" aria-hidden />
+              </button>
+            </div>
+          </div>
+          <div
+            className={`relative overflow-hidden rounded-2xl border p-6 sm:p-7 ${
+              isDark
+                ? 'border-violet-500/25 bg-gradient-to-br from-violet-600/15 via-slate-900/35 to-fuchsia-600/10'
+                : 'border-violet-200/70 bg-gradient-to-br from-violet-50/95 via-white to-fuchsia-50/70'
+            }`}
+          >
+            <div
+              className={`pointer-events-none absolute inset-0 opacity-[0.35] [background-image:linear-gradient(to_right,${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.06)'}_1px,transparent_1px),linear-gradient(to_bottom,${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.06)'}_1px,transparent_1px)] [background-size:24px_24px]`}
+              aria-hidden
+            />
+            <div className="relative flex h-full flex-col gap-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className={`rounded-full px-3 py-1 text-[11px] font-bold ${
+                    isDark ? 'bg-fuchsia-500/25 text-fuchsia-100' : 'bg-fuchsia-100 text-fuchsia-800'
+                  }`}
+                >
+                  精选合集
+                </span>
+                <span className={`text-sm font-semibold ${textPrimary(theme)}`}>Skills 市集亮点</span>
+              </div>
+              <p className={`text-sm leading-relaxed ${textSecondary(theme)}`}>
+                按标签浏览办公、生成、翻译等场景化技能包；支持收藏、评价与 resolve 下载制品。
+              </p>
+              <div className="mt-auto flex items-center justify-between gap-3 pt-2">
+                <div className="flex gap-1.5" role="presentation" aria-hidden>
+                  {[0, 1, 2].map((i) => (
+                    <span
+                      key={i}
+                      className={`h-1.5 w-1.5 rounded-full ${i === 0 ? 'bg-violet-500 dark:bg-violet-400' : isDark ? 'bg-white/20' : 'bg-slate-300'}`}
+                    />
+                  ))}
+                </div>
+                <span className={`text-xs font-medium tabular-nums ${textMuted(theme)}`}>
+                  {listTotal != null && !loading ? `目录约 ${formatTotalSkills(listTotal)} 条` : '加载中…'}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Tags from GET /tags (category Skill) */}
-        <div className="flex flex-wrap gap-2 mb-5 items-center">
-          <span className={`text-xs font-medium shrink-0 ${textMuted(theme)}`}>标签：</span>
-          <button type="button" onClick={() => setActiveCategory('全部')} className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${activeCategory === '全部' ? 'bg-neutral-900 text-white shadow-sm shadow-neutral-900/15' : isDark ? 'text-slate-400 hover:bg-white/5' : 'text-slate-600 hover:bg-slate-100'}`}>全部</button>
-          {catalogTags.map((t) => (
-            <button key={t.id} type="button" onClick={() => setActiveCategory(t.name)} className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${activeCategory === t.name ? 'bg-neutral-900 text-white shadow-sm shadow-neutral-900/15' : isDark ? 'text-slate-400 hover:bg-white/5' : 'text-slate-600 hover:bg-slate-100'}`}>{t.name}</button>
-          ))}
+        {/* 分类导航（图标 + 文案，横向滚动） */}
+        <nav aria-label="技能分类">
+          <div
+            className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:gap-3 [&::-webkit-scrollbar]:hidden"
+          >
+            {categoryRows.map((row) => {
+              const active = activeCategory === row.label;
+              const Icon = row.Icon;
+              return (
+                <button
+                  key={row.key}
+                  type="button"
+                  onClick={() => setActiveCategory(row.label)}
+                  aria-current={active ? 'true' : undefined}
+                  className={`flex min-w-[4.5rem] shrink-0 flex-col items-center gap-1.5 rounded-2xl border px-3 py-3 text-center transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 sm:min-w-[5.25rem] sm:px-4 ${
+                    active
+                      ? isDark
+                        ? 'border-violet-400/40 bg-violet-500/15 text-white'
+                        : 'border-violet-300 bg-violet-50 text-violet-950'
+                      : isDark
+                        ? 'border-white/[0.08] bg-white/[0.03] text-slate-300 hover:bg-white/[0.06]'
+                        : 'border-slate-200/80 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                  }`}
+                >
+                  <Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${active ? 'text-violet-600 dark:text-violet-300' : iconMuted(theme)}`} strokeWidth={1.75} aria-hidden />
+                  <span className="max-w-[5.5rem] truncate text-[11px] font-semibold sm:text-xs">{row.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+
+        {/* 搜索 + 发布 */}
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="relative min-w-0 flex-1">
+            <Search className={`pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 ${iconMuted(theme)}`} aria-hidden />
+            <input
+              type="search"
+              placeholder={searchPlaceholder}
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              className={`min-h-12 w-full rounded-2xl border py-3 pl-12 pr-4 text-sm outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-violet-500/40 ${
+                isDark ? 'border-white/[0.1] bg-white/[0.05] text-white placeholder:text-slate-500' : 'border-slate-200/90 bg-white text-slate-900 shadow-sm placeholder:text-slate-400'
+              }`}
+              aria-label="搜索技能"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate(buildPath('user', 'skill-register'))}
+            className={`inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-bold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 ${
+              isDark ? 'bg-white text-slate-900 hover:bg-slate-100' : 'bg-slate-900 text-white hover:bg-slate-800'
+            }`}
+          >
+            <Plus className="h-5 w-5" strokeWidth={2.25} aria-hidden />
+            发布技能
+          </button>
         </div>
 
-        {/* Grid */}
-        {loading ? <PageSkeleton type="cards" />
-        : loadError ? <PageError error={loadError} onRetry={() => { loadSkills(); }} retryLabel="重试加载技能市场" />
-        : filtered.length === 0 ? <div className="text-center py-20"><p className={`text-lg font-medium ${textMuted(theme)}`}>暂无匹配的技能</p><p className={`text-sm mt-1 ${textMuted(theme)}`}>尝试调整搜索关键词或分类筛选</p></div>
-        : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {/* 说明条：保留业务提示，压缩为一条 */}
+        <div
+          className={`flex gap-3 rounded-2xl border px-4 py-3 text-xs leading-relaxed sm:text-[13px] ${
+            isDark ? 'border-amber-500/25 bg-amber-500/[0.07] text-amber-100/90' : 'border-amber-200/80 bg-amber-50/80 text-amber-950'
+          }`}
+        >
+          <Zap className="mt-0.5 h-4 w-4 shrink-0 text-amber-500 dark:text-amber-400" aria-hidden />
+          <p>
+            <strong className="font-semibold">{chromePageTitle || 'Skills 中心'}</strong>
+            ：浏览已发布技能包并下载制品。网关不对 skill 做 invoke 统计；热度为目录侧的调用展示，下载请使用「获取技能包」。
+          </p>
+        </div>
+
+        {/* 卡片网格 */}
+        {loading ? (
+          <PageSkeleton type="cards" />
+        ) : loadError ? (
+          <PageError error={loadError} onRetry={() => { loadSkills(); }} retryLabel="重试加载技能市场" />
+        ) : filtered.length === 0 ? (
+          <div className={`rounded-2xl border py-20 text-center ${isDark ? 'border-white/[0.08] bg-white/[0.02]' : 'border-slate-200/80 bg-white/80'}`}>
+            <p className={`text-lg font-semibold ${textMuted(theme)}`}>暂无匹配的技能</p>
+            <p className={`mt-2 text-sm ${textMuted(theme)}`}>试试其它分类或清空搜索</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 lg:gap-5">
             {filtered.map((skill) => (
-              <BentoCard key={skill.id} theme={theme} hover glow="indigo" padding="md" onClick={() => setDetailSkill(skill)} className="flex flex-col h-full !rounded-[20px]">
-                <div className="flex items-start gap-3 mb-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-bold shrink-0 ${pickColor(skill.agentName)}`}>{(skill.displayName || skill.agentName).charAt(0)}</div>
+              <article
+                key={skill.id}
+                className={`group flex h-full cursor-pointer flex-col rounded-2xl border p-4 shadow-sm transition-[box-shadow,transform] duration-200 motion-reduce:transform-none motion-reduce:transition-none sm:p-5 ${
+                  isDark
+                    ? 'border-white/[0.08] bg-white/[0.03] hover:border-violet-500/30 hover:shadow-lg hover:shadow-violet-500/10'
+                    : 'border-slate-200/80 bg-white hover:border-violet-200 hover:shadow-md'
+                }`}
+                onClick={() => setDetailSkill(skill)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setDetailSkill(skill);
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+              >
+                <div className="flex items-start gap-3">
+                  <div
+                    className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white ${pickColor(skill.agentName)}`}
+                  >
+                    {(skill.displayName || skill.agentName).charAt(0)}
+                  </div>
                   <div className="min-w-0 flex-1">
-                    <h3 className={`font-semibold truncate ${textPrimary(theme)}`}>{skill.displayName}</h3>
-                    <p className={`text-xs truncate ${textMuted(theme)}`}>{skill.agentName}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className={`truncate text-base font-bold ${textPrimary(theme)}`}>{skill.displayName}</h3>
+                      <span
+                        className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                          isDark ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-600'
+                        }`}
+                      >
+                        技能包
+                      </span>
+                    </div>
+                    <p className={`mt-0.5 truncate font-mono text-[11px] ${textMuted(theme)}`}>@{skill.agentName}</p>
                   </div>
                 </div>
-                <p className={`text-sm leading-relaxed mb-3 line-clamp-2 ${textSecondary(theme)}`}>{skill.description || '暂无描述'}</p>
-                <div className="flex flex-wrap gap-1.5 mb-3">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${TYPE_BADGE[skill.agentType].cls}`}>{TYPE_BADGE[skill.agentType].label}</span>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${SOURCE_BADGE[skill.sourceType].cls}`}>{SOURCE_BADGE[skill.sourceType].label}</span>
-                  {(skill.tags ?? []).slice(0, 4).map((t) => (
-                    <span key={t} className={techBadge(theme)}>{t}</span>
+                <p className={`mt-3 line-clamp-2 min-h-[2.5rem] text-sm leading-relaxed ${textSecondary(theme)}`}>{skill.description || '暂无描述'}</p>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold ${TYPE_BADGE[skill.agentType].cls}`}>{TYPE_BADGE[skill.agentType].label}</span>
+                  <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold ${SOURCE_BADGE[skill.sourceType].cls}`}>{SOURCE_BADGE[skill.sourceType].label}</span>
+                  {(skill.tags ?? []).slice(0, 3).map((t) => (
+                    <span key={t} className={`rounded-md px-2 py-0.5 text-[11px] font-medium ${techBadge(theme)}`}>
+                      {t}
+                    </span>
                   ))}
                 </div>
-                <div className={`pt-3 border-t mt-auto space-y-3 ${isDark ? 'border-white/[0.08]' : 'border-slate-200/40'}`}>
-                  <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 text-xs ${textMuted(theme)}`}>
-                    <span
-                      className="truncate max-w-[10rem]"
-                      title={resolvePersonDisplay({ names: [skill.createdByName], ids: [skill.createdBy ?? undefined] })}
-                    >
-                      {resolvePersonDisplay({ names: [skill.createdByName], ids: [skill.createdBy ?? undefined] })}
-                    </span>
-                    <span className="inline-flex items-center gap-0.5 tabular-nums" title="目录聚合评分与评论数">
-                      <Star size={12} className="shrink-0 text-amber-500" aria-hidden />
-                      <span>{skill.ratingAvg != null ? skill.ratingAvg.toFixed(1) : '—'}</span>
-                      <span className="opacity-80">({skill.reviewCount ?? 0})</span>
-                    </span>
-                    <span className="flex items-center gap-1" title="目录展示热度（网关 invoke 统计，不含技能包本地下载）"><Activity size={12} />{formatCount(skill.callCount)}</span>
-                    <span className="flex items-center gap-1"><Clock size={12} />{formatLatency(skill.avgLatencyMs)}</span>
-                    {skill.successRate > 0 && <span className="text-emerald-500">{skill.successRate}%</span>}
-                    {skill.createTime && <span>{formatDateTime(skill.createTime)}</span>}
-                  </div>
-                  <div className="flex justify-end">
-                    <button type="button" onClick={(e) => { e.stopPropagation(); handleOpenUse(skill); }} className={`${btnPrimary} px-3 py-1.5 text-xs`}>获取技能包</button>
-                  </div>
+                <div className={`mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t pt-3 text-[11px] sm:text-xs ${isDark ? 'border-white/[0.08]' : 'border-slate-100'} ${textMuted(theme)}`}>
+                  <span className="max-w-[9rem] truncate" title={resolvePersonDisplay({ names: [skill.createdByName], ids: [skill.createdBy ?? undefined] })}>
+                    {resolvePersonDisplay({ names: [skill.createdByName], ids: [skill.createdBy ?? undefined] })}
+                  </span>
+                  <span className="inline-flex items-center gap-0.5 tabular-nums" title="目录评分">
+                    <Star className="h-3.5 w-3.5 shrink-0 text-amber-500" aria-hidden />
+                    {skill.ratingAvg != null ? skill.ratingAvg.toFixed(1) : '—'}（{skill.reviewCount ?? 0}）
+                  </span>
+                  <span className="inline-flex items-center gap-1 tabular-nums" title="目录热度">
+                    <Activity className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    {formatCount(skill.callCount)}
+                  </span>
+                  <span className="inline-flex items-center gap-1 tabular-nums">
+                    <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    {formatLatency(skill.avgLatencyMs)}
+                  </span>
+                  {skill.createTime && <span className="tabular-nums opacity-90">{formatDateTime(skill.createTime)}</span>}
                 </div>
-              </BentoCard>
+                <div className="mt-4 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenUse(skill);
+                    }}
+                    className={`${btnPrimary} rounded-xl px-4 py-2 text-xs font-bold`}
+                  >
+                    获取技能包
+                  </button>
+                </div>
+              </article>
             ))}
           </div>
         )}
-        </div>
       </div>
 
       {/* Detail + Reviews Modal */}

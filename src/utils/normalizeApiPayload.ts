@@ -17,13 +17,15 @@ export function extractArray<T = unknown>(raw: unknown): T[] {
   const inner =
     (Array.isArray(o.list) ? o.list : null)
     ?? (Array.isArray(o.records) ? o.records : null)
+    ?? (Array.isArray(o.content) ? o.content : null)
     ?? (Array.isArray(o.items) ? o.items : null)
     ?? (Array.isArray(o.data) ? o.data : null);
   return (inner ?? []) as T[];
 }
 
 /**
- * 将分页类响应规范为 PaginatedData：兼容 MyBatis records/current/size 与 list/page/pageSize 等。
+ * 将分页类响应规范为 PaginatedData：兼容 MyBatis records/current/size、Spring Data Page（content/totalElements/number）
+ * 与 list/page/pageSize 等。
  */
 export function normalizePaginated<T>(raw: unknown, mapItem?: (row: unknown) => T): PaginatedData<T> {
   const empty = (ps: number): PaginatedData<T> => ({
@@ -51,17 +53,23 @@ export function normalizePaginated<T>(raw: unknown, mapItem?: (row: unknown) => 
   const inner =
     (Array.isArray(o.list) ? o.list : null)
     ?? (Array.isArray(o.records) ? o.records : null)
+    ?? (Array.isArray(o.content) ? o.content : null)
     ?? (Array.isArray(o.data) ? o.data : null)
     ?? (Array.isArray(o.items) ? o.items : null)
     ?? [];
 
   const list = mapRows(inner);
   const pageSize = numPg(o.pageSize ?? o.size, 20) || 20;
+  const springPage = typeof o.number === 'number' && Number.isFinite(o.number);
 
   return {
     list,
-    total: numPg(o.total ?? o.totalCount, list.length),
-    page: numPg(o.page ?? o.current, 1) || 1,
+    total: numPg(o.total ?? o.totalCount ?? o.totalElements, list.length),
+    page:
+      numPg(
+        o.page ?? o.current ?? (springPage ? Number(o.number) + 1 : undefined),
+        1,
+      ) || 1,
     pageSize,
   };
 }

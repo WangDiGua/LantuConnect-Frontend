@@ -215,15 +215,15 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
                 key={key}
                 type="button"
                 onClick={() => onSidebarClick(item.id, item.domain)}
-                className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium leading-none transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${activeCls}`}
+                className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${activeCls}`}
               >
                 <item.icon
                   size={17}
                   strokeWidth={2}
-                  className="relative top-px shrink-0 opacity-90 block"
+                  className="block shrink-0 -translate-y-0.5 opacity-90"
                   aria-hidden
                 />
-                <span className="whitespace-nowrap leading-none">{item.label}</span>
+                <span className="relative top-px whitespace-nowrap leading-none">{item.label}</span>
               </button>
             );
           }
@@ -243,19 +243,19 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
                     setOpenDropdownKey(key);
                   }
                 }}
-                className={`inline-flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-2 text-sm font-medium leading-none transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${activeCls}`}
+                className={`inline-flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${activeCls}`}
               >
                 <item.icon
                   size={17}
                   strokeWidth={2}
-                  className="relative top-px shrink-0 opacity-90 block"
+                  className="block shrink-0 -translate-y-0.5 opacity-90"
                   aria-hidden
                 />
-                <span className="whitespace-nowrap leading-none">{item.label}</span>
+                <span className="relative top-px whitespace-nowrap leading-none">{item.label}</span>
                 <ChevronDown
                   size={14}
                   aria-hidden
-                  className={`relative top-px shrink-0 opacity-80 block transition-transform duration-200 motion-reduce:transition-none ${open ? 'rotate-180' : ''}`}
+                  className={`block shrink-0 -translate-y-0.5 opacity-80 transition-transform duration-200 motion-reduce:transition-none ${open ? 'rotate-180' : ''}`}
                 />
               </button>
               <PortalDropdown
@@ -325,7 +325,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
         <Search
           size={15}
           className={[
-            'shrink-0 transition-colors duration-200 relative top-px block',
+            'block shrink-0 -translate-y-0.5 transition-colors duration-200',
             searchFocused
               ? isDark
                 ? 'text-slate-100'

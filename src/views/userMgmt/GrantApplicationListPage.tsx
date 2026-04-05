@@ -13,6 +13,8 @@ import {
   textMuted,
   textPrimary,
   textSecondary,
+  fieldErrorText,
+  inputBaseError,
   tableCellActionChipsRow,
   tableCellScrollInnerMono,
   mgmtTableActionDanger,
@@ -57,6 +59,7 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, fontSize, sho
   const [total, setTotal] = useState(0);
   const [rejectTarget, setRejectTarget] = useState<GrantApplicationVO | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [rejectReasonError, setRejectReasonError] = useState('');
   const [loadError, setLoadError] = useState<Error | null>(null);
   const [runningActionId, setRunningActionId] = useState<string | null>(null);
   const PAGE_SIZE = 20;
@@ -224,7 +227,11 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, fontSize, sho
                   type="button"
                   className={mgmtTableActionDanger}
                   disabled={!!runningActionId}
-                  onClick={() => setRejectTarget(item)}
+                  onClick={() => {
+                    setRejectTarget(item);
+                    setRejectReason('');
+                    setRejectReasonError('');
+                  }}
                 >
                   驳回
                 </button>
@@ -311,22 +318,43 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, fontSize, sho
       </MgmtPageShell>
 
       {rejectTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" onClick={() => setRejectTarget(null)}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
+          onClick={() => { setRejectTarget(null); setRejectReasonError(''); }}
+        >
           <div className={`${bentoCard(theme)} w-full max-w-lg p-4`} onClick={(e) => e.stopPropagation()}>
             <h3 className={`text-base font-semibold ${textPrimary(theme)}`}>
               驳回授权申请 · ID {rejectTarget.id}
             </h3>
+            <label htmlFor="grant-reject-reason" className={`mt-3 block text-xs font-medium ${textSecondary(theme)}`}>
+              驳回原因（reason）
+            </label>
             <textarea
+              id="grant-reject-reason"
               rows={4}
               value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              className={`mt-3 w-full rounded-xl border px-3 py-2 text-sm ${
+              onChange={(e) => {
+                setRejectReason(e.target.value);
+                setRejectReasonError('');
+              }}
+              className={`mt-1.5 w-full rounded-xl border px-3 py-2 text-sm ${
                 isDark ? 'border-white/10 bg-white/[0.04] text-slate-200' : 'border-slate-200 bg-white text-slate-700'
-              }`}
+              }${rejectReasonError ? ` ${inputBaseError()}` : ''}`}
               placeholder="请输入驳回原因（reason）"
+              aria-invalid={!!rejectReasonError}
+              aria-describedby={rejectReasonError ? 'grant-reject-reason-err' : undefined}
             />
+            {rejectReasonError ? (
+              <p id="grant-reject-reason-err" className={`mt-1.5 ${fieldErrorText()} text-xs`} role="alert">
+                {rejectReasonError}
+              </p>
+            ) : null}
             <div className="mt-3 flex justify-end gap-2">
-              <button type="button" className={btnGhost(theme)} onClick={() => setRejectTarget(null)}>
+              <button
+                type="button"
+                className={btnGhost(theme)}
+                onClick={() => { setRejectTarget(null); setRejectReasonError(''); }}
+              >
                 取消
               </button>
               <button
@@ -335,14 +363,16 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, fontSize, sho
                 disabled={runningActionId === `reject-${rejectTarget.id}`}
                 onClick={async () => {
                   if (!rejectReason.trim()) {
-                    showMessage('驳回原因不能为空', 'warning');
+                    setRejectReasonError('驳回原因不能为空');
                     return;
                   }
+                  setRejectReasonError('');
                   setRunningActionId(`reject-${rejectTarget.id}`);
                   try {
                     await grantApplicationService.reject(rejectTarget.id, { reason: rejectReason.trim() });
                     showMessage('已驳回', 'success');
                     setRejectReason('');
+                    setRejectReasonError('');
                     setRejectTarget(null);
                     await fetchData();
                   } catch (err) {

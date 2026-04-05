@@ -6,7 +6,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { Theme, FontSize } from '../../types';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
-import { btnPrimary, btnSecondary, iconMuted, pageBlockStack, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import {
+  btnPrimary, btnSecondary, iconMuted, pageBlockStack, textPrimary, textSecondary, textMuted, fieldErrorText, inputBaseError,
+} from '../../utils/uiClasses';
 import { Modal } from '../../components/common/Modal';
 import { BentoCard } from '../../components/common/BentoCard';
 import { PortalDropdown } from '../../components/common/PortalDropdown';
@@ -109,6 +111,7 @@ export const TagManagementPage: React.FC<Props> = ({ theme, fontSize, showMessag
   const [batchText, setBatchText] = useState('');
   const [batchCategory, setBatchCategory] = useState<TagCategory>('通用');
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [newTagNameError, setNewTagNameError] = useState('');
 
   const fetchTags = useCallback(async () => {
     setLoadError(null);
@@ -137,8 +140,15 @@ export const TagManagementPage: React.FC<Props> = ({ theme, fontSize, showMessag
 
   const handleAddTag = async () => {
     const name = newTagName.trim();
-    if (!name) return;
-    if (tags.some((t) => t.name === name)) { showMessage('标签名称已存在', 'error'); return; }
+    if (!name) {
+      setNewTagNameError('请输入标签名称');
+      return;
+    }
+    if (tags.some((t) => t.name === name)) {
+      setNewTagNameError('标签名称已存在');
+      return;
+    }
+    setNewTagNameError('');
     try {
       await tagService.create({ name, category: tagCategoryToApi(newTagCategory) });
       setNewTagName('');
@@ -187,7 +197,15 @@ export const TagManagementPage: React.FC<Props> = ({ theme, fontSize, showMessag
         <FileText size={14} aria-hidden />
         批量管理
       </button>
-      <button type="button" onClick={() => setShowAddInput(true)} className={`${btnPrimary} gap-1.5`} aria-label="新增标签">
+      <button
+        type="button"
+        onClick={() => {
+          setNewTagNameError('');
+          setShowAddInput(true);
+        }}
+        className={`${btnPrimary} gap-1.5`}
+        aria-label="新增标签"
+      >
         <Plus size={14} aria-hidden />
         新增标签
       </button>
@@ -237,7 +255,24 @@ export const TagManagementPage: React.FC<Props> = ({ theme, fontSize, showMessag
                 <div className="flex flex-wrap items-end gap-3">
                   <div className="flex-1 min-w-[200px]">
                     <label className={`${labelCls} mb-1 block`}>标签名称</label>
-                    <input type="text" value={newTagName} onChange={(e) => setNewTagName(e.target.value)} placeholder="输入标签名称…" onKeyDown={(e) => { if (e.key === 'Enter') handleAddTag(); }} className={inputCls} autoFocus />
+                    <input
+                      type="text"
+                      value={newTagName}
+                      onChange={(e) => {
+                        setNewTagName(e.target.value);
+                        setNewTagNameError('');
+                      }}
+                      placeholder="输入标签名称…"
+                      onKeyDown={(e) => { if (e.key === 'Enter') void handleAddTag(); }}
+                      className={`${inputCls}${newTagNameError ? ` ${inputBaseError()}` : ''}`}
+                      aria-invalid={!!newTagNameError}
+                      autoFocus
+                    />
+                    {newTagNameError ? (
+                      <p className={`mt-1 ${fieldErrorText()} text-xs`} role="alert">
+                        {newTagNameError}
+                      </p>
+                    ) : null}
                   </div>
                   <div className="w-36">
                     <label className={`${labelCls} mb-1 block`}>分类</label>
@@ -251,7 +286,17 @@ export const TagManagementPage: React.FC<Props> = ({ theme, fontSize, showMessag
                   </div>
                   <div className="flex gap-2">
                     <button type="button" onClick={handleAddTag} disabled={!newTagName.trim()} className={`${btnPrimary} disabled:opacity-50`}>添加</button>
-                    <button type="button" onClick={() => { setShowAddInput(false); setNewTagName(''); }} className={btnSecondary(theme)}>取消</button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAddInput(false);
+                        setNewTagName('');
+                        setNewTagNameError('');
+                      }}
+                      className={btnSecondary(theme)}
+                    >
+                      取消
+                    </button>
                   </div>
                 </div>
               </BentoCard>

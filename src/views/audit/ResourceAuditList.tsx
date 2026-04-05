@@ -17,6 +17,8 @@ import {
   textMuted,
   textPrimary,
   textSecondary,
+  fieldErrorText,
+  inputBaseError,
 } from '../../utils/uiClasses';
 import { TOOLBAR_ROW_LIST } from '../../utils/toolbarFieldClasses';
 import { FilterSelect, Pagination, SearchInput } from '../../components/common';
@@ -60,6 +62,7 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
   const [total, setTotal] = useState(0);
   const [rejectTarget, setRejectTarget] = useState<ResourceAuditItemVO | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [rejectReasonError, setRejectReasonError] = useState('');
   const [forceDeprecateTarget, setForceDeprecateTarget] = useState<ResourceAuditItemVO | null>(null);
   const [forceDeprecateReason, setForceDeprecateReason] = useState('');
   const [loadError, setLoadError] = useState<Error | null>(null);
@@ -172,7 +175,11 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
                 >
                   {runningActionId === `approve-${item.id}` ? '处理中…' : '通过'}
                 </button>
-                <button type="button" className={mgmtTableActionDanger} disabled={!!runningActionId} onClick={() => setRejectTarget(item)}>
+                <button type="button" className={mgmtTableActionDanger} disabled={!!runningActionId} onClick={() => {
+                  setRejectTarget(item);
+                  setRejectReason('');
+                  setRejectReasonError('');
+                }}>
                   驳回
                 </button>
               </>
@@ -191,7 +198,11 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
                 ) : (
                   <span className={`text-xs ${textMuted(theme)}`}>无发布权限</span>
                 )}
-                <button type="button" className={mgmtTableActionDanger} disabled={!!runningActionId} onClick={() => setRejectTarget(item)}>
+                <button type="button" className={mgmtTableActionDanger} disabled={!!runningActionId} onClick={() => {
+                  setRejectTarget(item);
+                  setRejectReason('');
+                  setRejectReasonError('');
+                }}>
                   驳回
                 </button>
               </>
@@ -301,34 +312,59 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
       </MgmtPageShell>
 
       {rejectTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" onClick={() => setRejectTarget(null)}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
+          onClick={() => { setRejectTarget(null); setRejectReasonError(''); }}
+        >
           <div className={`${bentoCard(theme)} w-full max-w-lg p-4`} onClick={(e) => e.stopPropagation()}>
             <h3 className={`text-base font-semibold ${textPrimary(theme)}`}>驳回资源 · {rejectTarget.displayName}</h3>
+            <label htmlFor="resource-audit-reject-reason" className={`mt-3 block text-xs font-medium ${textSecondary(theme)}`}>
+              驳回原因（reason）
+            </label>
             <textarea
+              id="resource-audit-reject-reason"
               rows={4}
               value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              className={`mt-3 w-full rounded-xl border px-3 py-2 text-sm ${
+              onChange={(e) => {
+                setRejectReason(e.target.value);
+                setRejectReasonError('');
+              }}
+              className={`mt-1.5 w-full rounded-xl border px-3 py-2 text-sm ${
                 isDark ? 'border-white/10 bg-white/[0.04] text-slate-200' : 'border-slate-200 bg-white text-slate-700'
-              }`}
+              }${rejectReasonError ? ` ${inputBaseError()}` : ''}`}
               placeholder="请输入驳回原因（reason）"
+              aria-invalid={!!rejectReasonError}
+              aria-describedby={rejectReasonError ? 'resource-audit-reject-err' : undefined}
             />
+            {rejectReasonError ? (
+              <p id="resource-audit-reject-err" className={`mt-1.5 ${fieldErrorText()} text-xs`} role="alert">
+                {rejectReasonError}
+              </p>
+            ) : null}
             <div className="mt-3 flex justify-end gap-2">
-              <button type="button" className={btnGhost(theme)} onClick={() => setRejectTarget(null)}>取消</button>
+              <button
+                type="button"
+                className={btnGhost(theme)}
+                onClick={() => { setRejectTarget(null); setRejectReasonError(''); }}
+              >
+                取消
+              </button>
               <button
                 type="button"
                 className={btnPrimary}
                 disabled={runningActionId === `reject-${rejectTarget.id}`}
                 onClick={async () => {
                   if (!rejectReason.trim()) {
-                    showMessage('驳回原因不能为空', 'warning');
+                    setRejectReasonError('驳回原因不能为空');
                     return;
                   }
+                  setRejectReasonError('');
                   setRunningActionId(`reject-${rejectTarget.id}`);
                   try {
                     await resourceAuditService.reject(rejectTarget.id, { reason: rejectReason.trim() });
                     showMessage('已驳回', 'success');
                     setRejectReason('');
+                    setRejectReasonError('');
                     setRejectTarget(null);
                     await fetchData();
                   } catch (err) {

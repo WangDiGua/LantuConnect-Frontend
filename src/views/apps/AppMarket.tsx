@@ -68,6 +68,11 @@ export const AppMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, themeCo
   const [searchParams, setSearchParams] = useSearchParams();
   const processedResourceId = useRef<string | null>(null);
   const [gatewayApiKeyDraft, setGatewayApiKeyDraft] = usePersistedGatewayApiKey();
+  const [gatewayOpenError, setGatewayOpenError] = useState('');
+
+  useEffect(() => {
+    setGatewayOpenError('');
+  }, [detailApp?.id]);
 
   useEffect(() => {
     tagService.list()
@@ -169,10 +174,11 @@ export const AppMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, themeCo
 
   const handleOpen = async (app: SmartApp) => {
     setOpeningAppId(app.id);
+    setGatewayOpenError('');
     try {
       const apiKey = gatewayApiKeyDraft.trim();
       if (!apiKey) {
-        showMessage?.('请先选择并绑定 API Key', 'warning');
+        setGatewayOpenError('请先选择并绑定 API Key');
         return;
       }
       let resolved;
@@ -185,15 +191,15 @@ export const AppMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, themeCo
         });
       } catch (err) {
         if (err instanceof ApiException && err.code === 1009) {
-          showMessage?.(err.message || '请绑定有效的 X-Api-Key', 'warning');
+          setGatewayOpenError(err.message || '请绑定有效的 X-Api-Key');
         } else if (err instanceof ApiException && (err.status === 401 || err.code === 1002)) {
-          showMessage?.('请先选择有效 API Key', 'warning');
+          setGatewayOpenError('请先选择有效 API Key');
         } else if (err instanceof ApiException && (err.status === 403 || err.code === 1003)) {
-          showMessage?.('你暂无该应用使用权限，请先申请授权', 'warning');
+          setGatewayOpenError('你暂无该应用使用权限，请先申请授权');
         } else if (err instanceof Error && (err.message.includes('X-Api-Key') || err.message.includes('API Key'))) {
-          showMessage?.('请先选择并绑定 API Key', 'warning');
+          setGatewayOpenError('请先选择并绑定 API Key');
         } else {
-          showMessage?.(mapInvokeFlowError(err, 'resolve'), 'error');
+          setGatewayOpenError(mapInvokeFlowError(err, 'resolve'));
         }
         return;
       }
@@ -378,7 +384,11 @@ export const AppMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, themeCo
                 theme={theme}
                 id="app-market-gateway-key"
                 value={gatewayApiKeyDraft}
-                onChange={setGatewayApiKeyDraft}
+                errorText={gatewayOpenError || undefined}
+                onChange={(v) => {
+                  setGatewayApiKeyDraft(v);
+                  setGatewayOpenError('');
+                }}
               />
               <div
                 className={`inline-flex rounded-xl p-1 ${isDark ? 'bg-white/[0.06]' : 'bg-slate-100'}`}

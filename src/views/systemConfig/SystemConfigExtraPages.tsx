@@ -13,7 +13,9 @@ import { PageError } from '../../components/common/PageError';
 import { EmptyState } from '../../components/common/EmptyState';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { BentoCard } from '../../components/common/BentoCard';
-import { btnPrimary, btnSecondary, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import {
+  btnPrimary, btnSecondary, textPrimary, textSecondary, textMuted, fieldErrorText, inputBaseError,
+} from '../../utils/uiClasses';
 
 interface PageProps {
   theme: Theme;
@@ -41,22 +43,23 @@ function tryFormatJson(value: string): { ok: true; text: string } | { ok: false 
   }
 }
 
-function validateJsonSystemParams(items: SystemParam[], showMessage: PageProps['showMessage']): boolean {
+function collectJsonSystemParamErrors(items: SystemParam[]): Record<string, string> {
+  const errors: Record<string, string> = {};
   for (const p of items) {
     if (!isJsonSystemParam(p)) continue;
     const t = p.value.trim();
+    const label = p.description || p.key;
     if (!t) {
-      showMessage(`「${p.description || p.key}」JSON 不能为空，无覆盖可填 {}`, 'error');
-      return false;
+      errors[p.key] = `「${label}」JSON 不能为空（无覆盖可填 {}）`;
+      continue;
     }
     try {
       JSON.parse(t);
     } catch {
-      showMessage(`「${p.description || p.key}」不是合法 JSON`, 'error');
-      return false;
+      errors[p.key] = `「${label}」不是合法 JSON`;
     }
   }
-  return true;
+  return errors;
 }
 
 export const SystemParamsPage: React.FC<PageProps> = ({ theme, fontSize, showMessage }) => {
@@ -68,6 +71,7 @@ export const SystemParamsPage: React.FC<PageProps> = ({ theme, fontSize, showMes
   const updateMut = useUpdateSysParams();
   const [draft, setDraft] = useState<SystemParam[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [jsonParamErrors, setJsonParamErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (data) setDraft(data.map((p) => ({ ...p })));
@@ -118,7 +122,13 @@ export const SystemParamsPage: React.FC<PageProps> = ({ theme, fontSize, showMes
       setConfirmOpen(false);
       return;
     }
-    if (!validateJsonSystemParams(changed, showMessage)) return;
+    const jsonErrs = collectJsonSystemParamErrors(changed);
+    if (Object.keys(jsonErrs).length) {
+      setJsonParamErrors(jsonErrs);
+      setConfirmOpen(false);
+      return;
+    }
+    setJsonParamErrors({});
     updateMut.mutate(changed, {
       onSuccess: () => { showMessage('系统参数已保存', 'success'); setConfirmOpen(false); },
       onError: (e) => showMessage(e instanceof Error ? e.message : '保存失败', 'error'),
@@ -130,9 +140,17 @@ export const SystemParamsPage: React.FC<PageProps> = ({ theme, fontSize, showMes
     if (!p || !isJsonSystemParam(p)) return;
     const out = tryFormatJson(p.value);
     if (!out.ok) {
-      showMessage('当前不是合法 JSON，无法格式化（可先修正括号或引号）', 'error');
+      setJsonParamErrors((prev) => ({
+        ...prev,
+        [p.key]: '当前不是合法 JSON，无法格式化（可先修正括号或引号）',
+      }));
       return;
     }
+    setJsonParamErrors((prev) => {
+      const next = { ...prev };
+      delete next[p.key];
+      return next;
+    });
     setDraft((prev) => prev.map((x, i) => (i === idx ? { ...x, value: out.text } : x)));
     showMessage('已格式化', 'success');
   };
@@ -166,15 +184,31 @@ export const SystemParamsPage: React.FC<PageProps> = ({ theme, fontSize, showMes
                 {isJsonSystemParam(p) ? (
                   <>
                     <textarea
-                      className={`${inputCls} min-h-[180px] w-full font-mono text-xs leading-relaxed resize-y`}
+                      id={`sys-param-json-${idx}`}
+                      className={`${inputCls} min-h-[180px] w-full font-mono text-xs leading-relaxed resize-y${
+                        jsonParamErrors[p.key] ? ` ${inputBaseError()}` : ''
+                      }`}
                       value={p.value}
                       disabled={!p.editable}
                       spellCheck={false}
+                      aria-invalid={!!jsonParamErrors[p.key]}
+                      aria-describedby={jsonParamErrors[p.key] ? `sys-param-json-${idx}-err` : undefined}
                       onChange={(e) => {
                         const v = e.target.value;
+                        setJsonParamErrors((prev) => {
+                          if (!prev[p.key]) return prev;
+                          const next = { ...prev };
+                          delete next[p.key];
+                          return next;
+                        });
                         setDraft((prev) => prev.map((x, i) => (i === idx ? { ...x, value: v } : x)));
                       }}
                     />
+                    {jsonParamErrors[p.key] ? (
+                      <p id={`sys-param-json-${idx}-err`} className={`mt-1.5 ${fieldErrorText()} text-xs`} role="alert">
+                        {jsonParamErrors[p.key]}
+                      </p>
+                    ) : null}
                     {p.key === RUNTIME_APP_CONFIG_KEY && p.value.trim() === '{}' ? (
                       <p className={`mt-1.5 text-xs leading-relaxed ${textMuted(theme)}`}>
                         库里目前是空对象 <code className="font-mono">{}</code>，表示<strong className="font-medium text-inherit">不覆盖</strong>

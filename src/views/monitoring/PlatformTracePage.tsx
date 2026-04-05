@@ -8,7 +8,9 @@ import { PageError } from '../../components/common/PageError';
 import { EmptyState } from '../../components/common/EmptyState';
 import { BentoCard } from '../../components/common/BentoCard';
 import { nativeInputClass } from '../../utils/formFieldClasses';
-import { btnPrimary, btnGhost, pageBlockStack, textSecondary, textMuted } from '../../utils/uiClasses';
+import {
+  btnPrimary, btnGhost, pageBlockStack, textSecondary, textMuted, fieldErrorText, inputBaseError,
+} from '../../utils/uiClasses';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 
 const PAGE_DESC = '输入 Trace ID 查看完整调用链路';
@@ -45,8 +47,11 @@ function formatTraceTree(spans: TraceSpan[], traceId: string): string {
 
 const BREADCRUMB = ['监控中心', '全链路 Trace'] as const;
 
+const TRACE_INPUT_ID = 'platform-trace-id-input';
+
 export const PlatformTracePage: React.FC<Props> = ({ theme, fontSize, showMessage }) => {
   const [traceId, setTraceId] = useState('');
+  const [traceIdError, setTraceIdError] = useState('');
   const [detail, setDetail] = useState<string | null>(null);
   const tracesQ = useTraces();
 
@@ -59,9 +64,17 @@ export const PlatformTracePage: React.FC<Props> = ({ theme, fontSize, showMessag
 
   const runLookup = () => {
     const id = traceId.trim();
-    if (!id) { showMessage('请输入 Trace ID', 'error'); return; }
+    if (!id) {
+      setTraceIdError('请输入 Trace ID');
+      return;
+    }
     const tree = formatTraceTree(spans, id);
-    if (!tree) { setDetail(null); showMessage('未找到该 Trace ID', 'error'); return; }
+    if (!tree) {
+      setDetail(null);
+      setTraceIdError('未找到该 Trace ID');
+      return;
+    }
+    setTraceIdError('');
     setDetail(tree);
     showMessage('已加载 Trace', 'success');
   };
@@ -79,6 +92,7 @@ export const PlatformTracePage: React.FC<Props> = ({ theme, fontSize, showMessag
                 className={`${btnGhost(theme)} !text-xs font-mono`}
                 onClick={() => {
                   setTraceId(id);
+                  setTraceIdError('');
                   const tree = formatTraceTree(spans, id);
                   setDetail(tree || null);
                   if (tree) showMessage('已加载 Trace', 'success');
@@ -92,15 +106,28 @@ export const PlatformTracePage: React.FC<Props> = ({ theme, fontSize, showMessag
           </div>
         </BentoCard>
       )}
-      <div className="flex flex-wrap gap-2">
-        <input
-          className={`${nativeInputClass(theme)} flex-1 min-w-[200px]`}
-          placeholder="Trace ID"
-          value={traceId}
-          onChange={(e) => setTraceId(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && runLookup()}
-          aria-label="Trace ID"
-        />
+      <div className="flex flex-wrap gap-2 items-start">
+        <div className="flex-1 min-w-[200px]">
+          <input
+            id={TRACE_INPUT_ID}
+            className={`${nativeInputClass(theme)} w-full${traceIdError ? ` ${inputBaseError()}` : ''}`}
+            placeholder="Trace ID"
+            value={traceId}
+            onChange={(e) => {
+              setTraceId(e.target.value);
+              setTraceIdError('');
+            }}
+            onKeyDown={(e) => e.key === 'Enter' && runLookup()}
+            aria-label="Trace ID"
+            aria-invalid={!!traceIdError}
+            aria-describedby={traceIdError ? `${TRACE_INPUT_ID}-err` : undefined}
+          />
+          {traceIdError ? (
+            <p id={`${TRACE_INPUT_ID}-err`} className={`mt-1 ${fieldErrorText()} text-xs`} role="alert">
+              {traceIdError}
+            </p>
+          ) : null}
+        </div>
         <button type="button" className={btnPrimary} onClick={runLookup}>查询</button>
       </div>
     </div>

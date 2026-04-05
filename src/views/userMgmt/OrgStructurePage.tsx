@@ -72,15 +72,17 @@ export const OrgStructurePage: React.FC<OrgStructurePageProps> = ({ theme, fontS
 
   const openCreate = () => {
     setCreateName('');
+    setCreateNameError('');
     setCreateParentId(primaryRoot?.id ?? parentSelectOptions[0]?.value ?? '');
     setCreateOpen(true);
   };
 
   const submitCreate = async () => {
     if (!createName.trim()) {
-      showMessage('请填写部门名称', 'error');
+      setCreateNameError('请填写部门名称');
       return;
     }
+    setCreateNameError('');
     setCreating(true);
     try {
       await userMgmtService.createOrg({

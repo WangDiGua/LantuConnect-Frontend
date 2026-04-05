@@ -163,6 +163,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
   const [platformForceReason, setPlatformForceReason] = useState('');
   const [auditRejectTarget, setAuditRejectTarget] = useState<ResourceCenterItemVO | null>(null);
   const [auditRejectReason, setAuditRejectReason] = useState('');
+  const [auditRejectReasonError, setAuditRejectReasonError] = useState('');
   const [timelineTarget, setTimelineTarget] = useState<ResourceCenterItemVO | null>(null);
   const [timelineLoading, setTimelineLoading] = useState(false);
   const [timelineData, setTimelineData] = useState<LifecycleTimelineVO | null>(null);
@@ -574,6 +575,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                               onClick={() => {
                                 setAuditRejectTarget(item);
                                 setAuditRejectReason('');
+                                setAuditRejectReasonError('');
                               }}
                             >
                               驳回
@@ -804,7 +806,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
       {auditRejectTarget && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
-          onClick={() => setAuditRejectTarget(null)}
+          onClick={() => { setAuditRejectTarget(null); setAuditRejectReasonError(''); }}
         >
           <div className={`${bentoCard(theme)} w-full max-w-lg p-4`} onClick={(e) => e.stopPropagation()}>
             <h3 className={`text-base font-semibold ${textPrimary(theme)}`}>
@@ -813,17 +815,35 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
             <p className={`mt-1 text-xs leading-relaxed ${textMuted(theme)}`}>
               与「资源审核」台相同接口：<span className="font-mono">POST /audit/resources/{'{id}'}/reject</span>，id 为资源主键。
             </p>
+            <label htmlFor="resource-center-audit-reject-reason" className={`mt-3 block text-xs font-medium ${textSecondary(theme)}`}>
+              驳回原因
+            </label>
             <textarea
+              id="resource-center-audit-reject-reason"
               rows={4}
               value={auditRejectReason}
-              onChange={(e) => setAuditRejectReason(e.target.value)}
-              className={`mt-3 w-full rounded-xl border px-3 py-2 text-sm ${
+              onChange={(e) => {
+                setAuditRejectReason(e.target.value);
+                setAuditRejectReasonError('');
+              }}
+              className={`mt-1.5 w-full rounded-xl border px-3 py-2 text-sm ${
                 isDark ? 'border-white/10 bg-white/[0.04] text-slate-200' : 'border-slate-200 bg-white text-slate-700'
-              }`}
+              }${auditRejectReasonError ? ` ${inputBaseError()}` : ''}`}
               placeholder="请输入驳回原因"
+              aria-invalid={!!auditRejectReasonError}
+              aria-describedby={auditRejectReasonError ? 'resource-center-audit-reject-err' : undefined}
             />
+            {auditRejectReasonError ? (
+              <p id="resource-center-audit-reject-err" className={`mt-1.5 ${fieldErrorText()} text-xs`} role="alert">
+                {auditRejectReasonError}
+              </p>
+            ) : null}
             <div className="mt-3 flex justify-end gap-2">
-              <button type="button" className={btnGhost(theme)} onClick={() => setAuditRejectTarget(null)}>
+              <button
+                type="button"
+                className={btnGhost(theme)}
+                onClick={() => { setAuditRejectTarget(null); setAuditRejectReasonError(''); }}
+              >
                 取消
               </button>
               <button
@@ -832,9 +852,10 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                 disabled={runningActionKey === `audit-reject-${auditRejectTarget.id}`}
                 onClick={async () => {
                   if (!auditRejectReason.trim()) {
-                    showMessage('驳回原因不能为空', 'warning');
+                    setAuditRejectReasonError('驳回原因不能为空');
                     return;
                   }
+                  setAuditRejectReasonError('');
                   setRunningActionKey(`audit-reject-${auditRejectTarget.id}`);
                   try {
                     await resourceAuditService.reject(auditRejectTarget.id, { reason: auditRejectReason.trim() });

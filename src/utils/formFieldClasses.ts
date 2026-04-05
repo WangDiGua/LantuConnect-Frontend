@@ -26,3 +26,9 @@ export const DAISY_SELECT_FILTER =
   'select select-bordered select-sm text-xs h-9 min-h-0 rounded-xl';
 
 export const DAISY_SELECT_FORM = 'select select-bordered w-full rounded-xl';
+
+/** DaisyUI：与 Lantu 表单密度一致的主色复选框（替代原生 checkbox 外观） */
+export const lantuCheckboxPrimaryClass = 'checkbox checkbox-sm checkbox-primary shrink-0';
+
+/** DaisyUI：与 Lantu 表单密度一致的主色单选（替代原生 radio 外观） */
+export const lantuRadioPrimaryClass = 'radio radio-sm radio-primary shrink-0';

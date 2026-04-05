@@ -21,6 +21,7 @@ import { EmptyState } from '../../components/common/EmptyState';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { FilterSelect, Pagination, SearchInput } from '../../components/common';
+import { lantuCheckboxPrimaryClass } from '../../utils/formFieldClasses';
 import {
   bentoCard,
   bentoCardHover,
@@ -789,7 +790,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
               <label className={`mt-2 flex cursor-pointer items-center gap-2 text-sm ${textSecondary(theme)}`}>
                 <input
                   type="checkbox"
-                  className="rounded border-slate-300"
+                  className={lantuCheckboxPrimaryClass}
                   checked={makeNewVersionCurrent}
                   onChange={(e) => setMakeNewVersionCurrent(e.target.checked)}
                 />

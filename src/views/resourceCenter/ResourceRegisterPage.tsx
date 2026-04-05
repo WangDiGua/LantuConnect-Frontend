@@ -24,6 +24,7 @@ import {
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 import { parseMcpConfigPaste } from '../../utils/mcpConfigImport';
+import { lantuCheckboxPrimaryClass } from '../../utils/formFieldClasses';
 
 interface Props {
   theme: Theme;
@@ -1681,7 +1682,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                             type="checkbox"
                             checked={form.agentIsPublic}
                             onChange={(e) => setForm((p) => ({ ...p, agentIsPublic: e.target.checked }))}
-                            className="rounded border-slate-400"
+                            className={lantuCheckboxPrimaryClass}
                           />
                           <span className={textMuted(theme)}>在目录中可按公开策略展示</span>
                         </label>
@@ -1692,7 +1693,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                             type="checkbox"
                             checked={form.agentHidden}
                             onChange={(e) => setForm((p) => ({ ...p, agentHidden: e.target.checked }))}
-                            className="rounded border-slate-400"
+                            className={lantuCheckboxPrimaryClass}
                           />
                           <span className={textMuted(theme)}>与后端 hidden 一致</span>
                         </label>
@@ -2021,7 +2022,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                       type="checkbox"
                       checked={form.skillIsPublic}
                       onChange={(e) => setForm((p) => ({ ...p, skillIsPublic: e.target.checked }))}
-                      className="rounded border-slate-400"
+                      className={lantuCheckboxPrimaryClass}
                     />
                     <span className={textMuted(theme)}>在目录中可按公开策略展示</span>
                   </label>
@@ -2198,7 +2199,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                       type="checkbox"
                       checked={form.appIsPublic}
                       onChange={(e) => setForm((p) => ({ ...p, appIsPublic: e.target.checked }))}
-                      className="rounded border-slate-400"
+                      className={lantuCheckboxPrimaryClass}
                     />
                     <span className={textMuted(theme)}>公开可见</span>
                   </label>
@@ -2273,7 +2274,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                       type="checkbox"
                       checked={form.datasetIsPublic}
                       onChange={(e) => setForm((p) => ({ ...p, datasetIsPublic: e.target.checked }))}
-                      className="rounded border-slate-400"
+                      className={lantuCheckboxPrimaryClass}
                     />
                     <span className={textMuted(theme)}>与后端数据集扩展 is_public 一致</span>
                   </label>

@@ -9,7 +9,7 @@ import { resourceCenterService } from '../../api/services/resource-center.servic
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { LantuSelect } from '../../components/common/LantuSelect';
-import { nativeInputClass } from '../../utils/formFieldClasses';
+import { lantuRadioPrimaryClass, nativeInputClass } from '../../utils/formFieldClasses';
 import { btnGhost, btnPrimary, textMuted, textPrimary, textSecondary } from '../../utils/uiClasses';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
@@ -266,7 +266,7 @@ export const SkillExternalMarketSettingsForm: React.FC<Props> = ({ theme, fontSi
                 >
                   <input
                     type="radio"
-                    className="mt-1"
+                    className={`mt-1 ${lantuRadioPrimaryClass}`}
                     name="remoteCatalogMode"
                     checked={rcm === m.value}
                     onChange={() => updateDraft({ remoteCatalogMode: m.value })}

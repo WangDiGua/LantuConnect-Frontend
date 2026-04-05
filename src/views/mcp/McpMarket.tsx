@@ -31,7 +31,7 @@ import { mapInvokeFlowError } from '../../utils/invokeError';
 import { MAX_STORED_API_KEY_LENGTH, readBoundedLocalStorage } from '../../lib/safeStorage';
 import { safeOpenHttpUrl } from '../../lib/windowNavigate';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
-import { nativeInputClass } from '../../utils/formFieldClasses';
+import { lantuCheckboxPrimaryClass, nativeInputClass } from '../../utils/formFieldClasses';
 import { BentoCard } from '../../components/common/BentoCard';
 import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 import { MarketplaceListingCard, MarketplaceStatItem } from '../../components/market';
@@ -796,7 +796,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                   <label className={`mt-2 flex cursor-pointer items-start gap-2 text-[11px] ${textMuted(theme)}`}>
                     <input
                       type="checkbox"
-                      className="mt-0.5 rounded border-slate-400"
+                      className={`mt-0.5 ${lantuCheckboxPrimaryClass}`}
                       checked={invokeUseStream}
                       onChange={(e) => setInvokeUseStream(e.target.checked)}
                     />

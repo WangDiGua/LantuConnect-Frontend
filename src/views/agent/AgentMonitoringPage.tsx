@@ -14,6 +14,8 @@ import {
 } from '../../utils/uiClasses';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
+import { LantuDateTimePicker } from '../../components/common/LantuDateTimePicker';
+import { nativeInputClass } from '../../utils/formFieldClasses';
 
 interface AgentMonitoringPageProps {
   theme: Theme;
@@ -272,23 +274,34 @@ export const AgentMonitoringPage: React.FC<AgentMonitoringPageProps> = ({ theme,
                       theme={theme}
                     />
                   </div>
-                  <input
-                    className={`rounded-lg border px-2 py-1 text-xs ${theme === 'dark' ? 'border-white/10 bg-white/[0.04] text-slate-200' : 'border-slate-200 bg-white text-slate-700'}`}
-                    placeholder="资源ID"
-                    value={qualityResourceId}
-                    onChange={(e) => setQualityResourceId(e.target.value)}
-                  />
-                  <input
-                    type="datetime-local"
-                    className={`rounded-lg border px-2 py-1 text-xs ${theme === 'dark' ? 'border-white/10 bg-white/[0.04] text-slate-200' : 'border-slate-200 bg-white text-slate-700'}`}
+                  <div className="w-24 min-w-0">
+                    <input
+                      className={`${nativeInputClass(theme)} min-h-[2rem] px-2.5 py-1.5 text-xs`}
+                      placeholder="资源ID"
+                      value={qualityResourceId}
+                      onChange={(e) => setQualityResourceId(e.target.value)}
+                      inputMode="numeric"
+                    />
+                  </div>
+                  <LantuDateTimePicker
+                    theme={theme}
+                    mode="datetime"
+                    compact
                     value={qualityFrom}
-                    onChange={(e) => setQualityFrom(e.target.value)}
+                    onChange={setQualityFrom}
+                    className="w-[158px]"
+                    placeholder="开始时间"
+                    ariaLabel="质量历史开始时间"
                   />
-                  <input
-                    type="datetime-local"
-                    className={`rounded-lg border px-2 py-1 text-xs ${theme === 'dark' ? 'border-white/10 bg-white/[0.04] text-slate-200' : 'border-slate-200 bg-white text-slate-700'}`}
+                  <LantuDateTimePicker
+                    theme={theme}
+                    mode="datetime"
+                    compact
                     value={qualityTo}
-                    onChange={(e) => setQualityTo(e.target.value)}
+                    onChange={setQualityTo}
+                    className="w-[158px]"
+                    placeholder="结束时间"
+                    ariaLabel="质量历史结束时间"
                   />
                 </div>
               </div>

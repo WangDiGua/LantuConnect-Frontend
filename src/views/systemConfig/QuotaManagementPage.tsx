@@ -144,6 +144,8 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
   const [savingQuotaEdit, setSavingQuotaEdit] = useState(false);
   const [deleteRlId, setDeleteRlId] = useState<number | null>(null);
   const [deletingRl, setDeletingRl] = useState(false);
+  const [quotaDeleteTarget, setQuotaDeleteTarget] = useState<QuotaItem | null>(null);
+  const [deletingQuota, setDeletingQuota] = useState(false);
 
   const fetchQuotas = useCallback(async () => {
     const res = await quotaService.listQuotas();
@@ -196,19 +198,21 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
     });
   }, []);
 
-  const deleteQuotaRow = useCallback(
-    async (r: QuotaItem) => {
-      if (!confirm(`确定删除配额「${r.targetName}」？`)) return;
-      try {
-        await quotaService.deleteQuota(r.id);
-        showMessage('已删除', 'success');
-        await fetchQuotas();
-      } catch {
-        showMessage('删除失败', 'error');
-      }
-    },
-    [fetchQuotas, showMessage],
-  );
+  const confirmDeleteQuota = useCallback(async () => {
+    const r = quotaDeleteTarget;
+    if (!r) return;
+    setDeletingQuota(true);
+    try {
+      await quotaService.deleteQuota(r.id);
+      showMessage('已删除', 'success');
+      setQuotaDeleteTarget(null);
+      await fetchQuotas();
+    } catch {
+      showMessage('删除失败', 'error');
+    } finally {
+      setDeletingQuota(false);
+    }
+  }, [quotaDeleteTarget, fetchQuotas, showMessage]);
 
   const saveQuotaEdit = async () => {
     if (!editingQuota) return;
@@ -384,14 +388,14 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
             <button type="button" className={mgmtTableActionGhost(theme)} onClick={() => openQuotaEdit(r)}>
               编辑
             </button>
-            <button type="button" className={mgmtTableActionDanger} onClick={() => void deleteQuotaRow(r)}>
+            <button type="button" className={mgmtTableActionDanger} onClick={() => setQuotaDeleteTarget(r)}>
               删除
             </button>
           </div>
         ),
       },
     ],
-    [theme, isDark, openQuotaEdit, deleteQuotaRow],
+    [theme, isDark, openQuotaEdit],
   );
 
   const rateLimitColumns = useMemo<MgmtDataTableColumn<RateLimitItem>[]>(
@@ -678,6 +682,20 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
           </div>
         )}
       </Modal>
+
+      <ConfirmDialog
+        open={quotaDeleteTarget != null}
+        title="删除配额"
+        message={quotaDeleteTarget ? `确定删除配额「${quotaDeleteTarget.targetName}」？` : ''}
+        variant="danger"
+        confirmText="删除"
+        loading={deletingQuota}
+        onCancel={() => {
+          if (deletingQuota) return;
+          setQuotaDeleteTarget(null);
+        }}
+        onConfirm={() => void confirmDeleteQuota()}
+      />
 
       <ConfirmDialog
         open={deleteRlId != null}

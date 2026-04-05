@@ -8,6 +8,7 @@ import { PageError } from '../../components/common/PageError';
 import { EmptyState } from '../../components/common/EmptyState';
 import { BentoCard } from '../../components/common/BentoCard';
 import { Modal } from '../../components/common/Modal';
+import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { LantuSelect } from '../../components/common/LantuSelect';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import {
@@ -56,6 +57,8 @@ export const OrgStructurePage: React.FC<OrgStructurePageProps> = ({ theme, fontS
   const [savingEdit, setSavingEdit] = useState(false);
   const [createNameError, setCreateNameError] = useState('');
   const [editNameError, setEditNameError] = useState('');
+  const [orgDeleteTarget, setOrgDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [orgDeleting, setOrgDeleting] = useState(false);
 
   const rows = useMemo(() => (data?.length ? data.flatMap((root) => flattenOrg(root)) : []), [data]);
   const primaryRoot = data?.[0];
@@ -209,16 +212,7 @@ export const OrgStructurePage: React.FC<OrgStructurePageProps> = ({ theme, fontS
                       <button type="button" onClick={() => openEdit(d.id, d.name)} className={`text-xs ${textMuted(theme)} hover:text-neutral-800 dark:hover:text-slate-200`} aria-label={`编辑部门 ${d.name}`}>编辑</button>
                       <button
                         type="button"
-                        onClick={async () => {
-                          if (!confirm(`确定删除「${d.name}」？`)) return;
-                          try {
-                            await userMgmtService.deleteOrg(d.id);
-                            showMessage('已删除', 'success');
-                            await refetch();
-                          } catch (e) {
-                            showMessage(e instanceof Error ? e.message : '删除失败', 'error');
-                          }
-                        }}
+                        onClick={() => setOrgDeleteTarget({ id: d.id, name: d.name })}
                         className="text-xs text-rose-500 hover:text-rose-600"
                         aria-label={`删除部门 ${d.name}`}
                       >
@@ -311,6 +305,35 @@ export const OrgStructurePage: React.FC<OrgStructurePageProps> = ({ theme, fontS
           ) : null}
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={orgDeleteTarget != null}
+        title="删除部门"
+        message={orgDeleteTarget ? `确定删除「${orgDeleteTarget.name}」？` : ''}
+        variant="danger"
+        confirmText="删除"
+        loading={orgDeleting}
+        onCancel={() => {
+          if (orgDeleting) return;
+          setOrgDeleteTarget(null);
+        }}
+        onConfirm={() => {
+          void (async () => {
+            if (!orgDeleteTarget) return;
+            setOrgDeleting(true);
+            try {
+              await userMgmtService.deleteOrg(orgDeleteTarget.id);
+              showMessage('已删除', 'success');
+              setOrgDeleteTarget(null);
+              await refetch();
+            } catch (e) {
+              showMessage(e instanceof Error ? e.message : '删除失败', 'error');
+            } finally {
+              setOrgDeleting(false);
+            }
+          })();
+        }}
+      />
     </>
   );
 };

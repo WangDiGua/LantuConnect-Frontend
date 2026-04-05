@@ -11,6 +11,7 @@ import { PageSkeleton } from '../common/PageSkeleton';
 import { MultiAvatar } from '../common/MultiAvatar';
 import { MarkdownView } from '../common/MarkdownView';
 import { ReviewMarkdownEditor } from '../common/ReviewMarkdownEditor';
+import { ConfirmDialog } from '../common/ConfirmDialog';
 import { btnGhost, btnPrimary, textMuted, textPrimary, textSecondary } from '../../utils/uiClasses';
 import { formatDateTime } from '../../utils/formatDateTime';
 
@@ -286,6 +287,7 @@ export const ResourceReviewsSection: React.FC<Props> = ({ targetType, targetId, 
   const [helpfulLoadingId, setHelpfulLoadingId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [reviewPendingDelete, setReviewPendingDelete] = useState<Review | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [replyParentId, setReplyParentId] = useState<number | null>(null);
   const [replyMarkdown, setReplyMarkdown] = useState('');
@@ -399,24 +401,30 @@ export const ResourceReviewsSection: React.FC<Props> = ({ targetType, targetId, 
     [helpfulLoadingId, helpedByMe, showMessage],
   );
 
-  const handleDeleteReview = useCallback(
-    async (review: Review) => {
+  const requestDeleteReview = useCallback(
+    (review: Review) => {
       if (!canDeleteReview(review)) return;
-      if (!window.confirm('确定删除这条评价？删除后不可恢复。')) return;
-      setDeletingId(review.id);
-      try {
-        await reviewService.remove(review.id);
-        showMessage?.('已删除', 'success');
-        setReplyParentId(null);
-        fetchData();
-      } catch (e) {
-        showMessage?.(e instanceof Error ? e.message : '删除失败', 'error');
-      } finally {
-        setDeletingId(null);
-      }
+      setReviewPendingDelete(review);
     },
-    [canDeleteReview, fetchData, showMessage],
+    [canDeleteReview],
   );
+
+  const confirmDeleteReview = useCallback(async () => {
+    const review = reviewPendingDelete;
+    if (!review) return;
+    setDeletingId(review.id);
+    try {
+      await reviewService.remove(review.id);
+      showMessage?.('已删除', 'success');
+      setReplyParentId(null);
+      setReviewPendingDelete(null);
+      fetchData();
+    } catch (e) {
+      showMessage?.(e instanceof Error ? e.message : '删除失败', 'error');
+    } finally {
+      setDeletingId(null);
+    }
+  }, [reviewPendingDelete, fetchData, showMessage]);
 
   const handleSubmitReview = async () => {
     if (myRating === 0 || !myComment.trim()) return;
@@ -589,7 +597,7 @@ export const ResourceReviewsSection: React.FC<Props> = ({ targetType, targetId, 
             helpfulLoadingId={helpfulLoadingId}
             onHelpful={(id) => void handleHelpful(id)}
             canDeleteReview={canDeleteReview}
-            onDeleteReview={handleDeleteReview}
+            onDeleteReview={requestDeleteReview}
             deletingId={deletingId}
             cardClassFor={cardClassFor}
           />
@@ -665,6 +673,20 @@ export const ResourceReviewsSection: React.FC<Props> = ({ targetType, targetId, 
           </div>
         </BentoCard>
       )}
+
+      <ConfirmDialog
+        open={reviewPendingDelete != null}
+        title="删除评价"
+        message="确定删除这条评价？删除后不可恢复。"
+        variant="danger"
+        confirmText="删除"
+        loading={deletingId !== null}
+        onCancel={() => {
+          if (deletingId !== null) return;
+          setReviewPendingDelete(null);
+        }}
+        onConfirm={() => void confirmDeleteReview()}
+      />
     </div>
   );
 };

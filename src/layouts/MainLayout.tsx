@@ -1496,6 +1496,10 @@ const MainLayoutContent: React.FC<{
   const showStandalonePersonalRail =
     consoleRole === 'user' && personalRailOpen && Boolean(exploreHubRail) && page !== 'hub';
 
+  /** 桌面端左侧已有完整导航时不再在顶栏重复铺横向一级菜单（管理固定侧栏 / 用户独立个人轨） */
+  const hideTopBarHorizontalPrimaryNav =
+    showAdminDesktopSidebar || showStandalonePersonalRail;
+
   return (
     <LayoutChromeProvider value={{ hasSecondarySidebar, chromePageTitle: headerTitle }}>
       <div
@@ -1521,6 +1525,7 @@ const MainLayoutContent: React.FC<{
           sidebarRows={topNavSidebarRows}
           sidebarSearchRows={fullSidebarRows}
           platformRole={platformRole}
+          hideHorizontalPrimaryNav={hideTopBarHorizontalPrimaryNav}
           onSidebarClick={handleSidebarClick}
           onSubItemClick={handleChromeSubItemClick}
           filteredSubGroupsForSidebarId={filteredSubGroupsForSidebarId}

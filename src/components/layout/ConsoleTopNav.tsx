@@ -41,6 +41,11 @@ export interface ConsoleTopNavProps {
   onOpenMobileNav: () => void;
   /** 右侧：外观、消息、全屏、用户等（由 MainLayout 注入，含 headerMenusRef） */
   toolbarRight: React.ReactNode;
+  /**
+   * 桌面端左侧已有完整主导航（固定侧栏或内容区左轨）时设为 true，避免顶栏再铺一套横向一级菜单。
+   * 移动端仍依赖抽屉/汉堡，不受此项影响（顶栏横向本仅在 lg+ 展示）。
+   */
+  hideHorizontalPrimaryNav?: boolean;
 }
 
 export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
@@ -56,6 +61,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
   onLogoClick,
   onOpenMobileNav,
   toolbarRight,
+  hideHorizontalPrimaryNav = false,
 }) => {
   const searchRows = sidebarSearchRows ?? sidebarRows;
   const isDark = theme === 'dark';
@@ -174,6 +180,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
         </button>
       </div>
 
+      {!hideHorizontalPrimaryNav && (
       <nav
         aria-label="主导航"
         className={`mx-1 hidden min-h-0 min-w-0 flex-1 items-center gap-0.5 overflow-x-auto lg:flex ${mainScrollCompositorClass} [scrollbar-width:thin]`}
@@ -293,6 +300,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
           );
         })}
       </nav>
+      )}
 
       <div
         className={[

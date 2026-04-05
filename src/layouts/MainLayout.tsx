@@ -1374,7 +1374,7 @@ const MainLayoutContent: React.FC<{
           }
         />
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 px-3 pb-3 pt-3 md:gap-4 md:px-4 md:pb-4 md:pt-4">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col px-3 pb-3 pt-[calc(4rem+env(safe-area-inset-top,0px))] md:px-4 md:pb-4">
         <aside
           className={`${chromeGpuLayerClass} fixed inset-y-0 left-0 z-50 flex h-full w-[240px] shrink-0 flex-col px-3 py-2 transition-transform duration-200 ease-out motion-reduce:transition-none lg:hidden ${
             mobileNavOpen ? 'translate-x-0' : '-translate-x-full'

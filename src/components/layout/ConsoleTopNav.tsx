@@ -148,15 +148,18 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
 
   return (
     <header
-      className={`relative z-30 flex h-16 w-full shrink-0 items-center gap-3 border-b px-3 shadow-sm sm:px-4 md:gap-4 md:px-6 ${
-        isDark ? 'border-white/[0.08] bg-lantu-card' : 'border-slate-200 bg-white'
+      className={`fixed top-0 left-0 right-0 z-30 flex w-full shrink-0 flex-col border-b pt-[env(safe-area-inset-top,0px)] backdrop-blur-xl backdrop-saturate-150 motion-reduce:backdrop-blur-none ${
+        isDark
+          ? 'border-white/[0.08] bg-[var(--glass-bg)] motion-reduce:bg-lantu-card'
+          : 'border-slate-200/55 bg-[var(--glass-bg)] motion-reduce:bg-white'
       }`}
     >
+      <div className="flex h-16 min-w-0 items-center gap-3 px-3 sm:px-4 md:gap-4 md:px-6">
       <div className="flex min-w-0 shrink-0 items-center gap-2">
         <button
           type="button"
           className={`inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg p-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 lg:hidden ${
-            isDark ? 'hover:bg-white/10 focus-visible:ring-offset-lantu-card' : 'hover:bg-slate-100 focus-visible:ring-offset-white'
+            isDark ? 'hover:bg-white/10 focus-visible:ring-offset-transparent' : 'hover:bg-slate-100 focus-visible:ring-offset-transparent'
           }`}
           aria-label="打开菜单"
           onClick={onOpenMobileNav}
@@ -166,9 +169,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
         <button
           type="button"
           onClick={onLogoClick}
-          className={`shrink-0 rounded-lg border-0 bg-transparent p-0 text-left outline-none ring-0 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 ${
-            isDark ? 'focus-visible:ring-offset-lantu-card' : 'focus-visible:ring-offset-white'
-          }`}
+          className="shrink-0 rounded-lg border-0 bg-transparent p-0 text-left outline-none ring-0 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
           aria-label="回到首页"
         >
           <Logo followSystemColorScheme={false} theme={theme} topBar />
@@ -209,9 +210,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
                 key={key}
                 type="button"
                 onClick={() => onSidebarClick(item.id, item.domain)}
-                className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 ${activeCls} ${
-                  isDark ? 'focus-visible:ring-offset-lantu-card' : 'focus-visible:ring-offset-white'
-                }`}
+                className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${activeCls}`}
               >
                 <item.icon size={17} strokeWidth={2} className="shrink-0 opacity-90" aria-hidden />
                 <span className="whitespace-nowrap">{item.label}</span>
@@ -234,9 +233,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
                     setOpenDropdownKey(key);
                   }
                 }}
-                className={`inline-flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 ${activeCls} ${
-                  isDark ? 'focus-visible:ring-offset-lantu-card' : 'focus-visible:ring-offset-white'
-                }`}
+                className={`inline-flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${activeCls}`}
               >
                 <item.icon size={17} strokeWidth={2} className="shrink-0 opacity-90" aria-hidden />
                 <span className="whitespace-nowrap">{item.label}</span>
@@ -369,6 +366,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
       </div>
 
       <div className="ml-auto flex min-w-0 shrink-0 items-center">{toolbarRight}</div>
+      </div>
     </header>
   );
 };

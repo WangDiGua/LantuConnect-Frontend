@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, LayoutList } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import type { Theme } from '../../types';
 import type { ConsoleRole } from '../../constants/consoleRoutes';
 import type { HubPersonalRailSection } from '../../constants/topNavPolicy';
@@ -83,6 +84,15 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
   const shell = 'rounded-none border-0 bg-transparent shadow-none';
 
   const parentBlocks = useMemo(() => buildParentBlocks(sections), [sections]);
+  const hasAdminRail = useMemo(() => parentBlocks.some((b) => b.domain === 'admin'), [parentBlocks]);
+
+  /** 与主侧栏一级 id 对齐的语义图标（父级折叠行也展示图标，便于扫读） */
+  const parentIconById = useMemo((): Record<string, LucideIcon> => {
+    const m: Record<string, LucideIcon> = {};
+    for (const i of USER_SIDEBAR_ITEMS) m[i.id] = i.icon;
+    for (const i of ADMIN_SIDEBAR_ITEMS) m[i.id] = i.icon;
+    return m;
+  }, []);
 
   const [expandedParents, setExpandedParents] = useState<Record<string, boolean>>({});
 
@@ -145,15 +155,56 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
         className={`min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 pb-4 pt-0 custom-scrollbar ${mainScrollCompositorClass}`}
       >
         <div className="space-y-1">
-          {parentBlocks.map((block, blockIdx) => (
+          {hasAdminRail && parentBlocks[0]?.domain === 'user' ? (
+            <div
+              className="mb-3 flex items-center gap-2.5 px-0.5"
+              aria-label="个人与日常使用入口"
+            >
+              <div
+                className={`h-px min-w-[1rem] flex-1 ${isDark ? 'bg-gradient-to-r from-transparent to-white/[0.18]' : 'bg-gradient-to-r from-transparent to-slate-400/45'}`}
+                aria-hidden
+              />
+              <span
+                className={`max-w-[12rem] shrink-0 text-center text-[10px] font-bold uppercase leading-none tracking-wider ${
+                  isDark ? 'text-slate-400' : 'text-slate-600'
+                }`}
+              >
+                使用端
+              </span>
+              <div
+                className={`h-px min-w-[1rem] flex-1 ${isDark ? 'bg-gradient-to-l from-transparent to-white/[0.18]' : 'bg-gradient-to-l from-transparent to-slate-400/45'}`}
+                aria-hidden
+              />
+            </div>
+          ) : null}
+          {parentBlocks.map((block, blockIdx) => {
+            const ParentIcon = parentIconById[block.parentSidebarId] ?? LayoutList;
+            return (
             <div key={block.key}>
               {blockIdx > 0 &&
               parentBlocks[blockIdx - 1].domain === 'user' &&
               block.domain === 'admin' ? (
                 <div
-                  className={`my-3 border-t ${isDark ? 'border-white/[0.08]' : 'border-slate-200/80'}`}
+                  className={`my-4 flex items-center gap-2.5 px-0.5`}
                   role="separator"
-                />
+                  aria-label="以下为平台管理端入口"
+                >
+                  <div
+                    className={`h-px min-w-[1rem] flex-1 ${isDark ? 'bg-gradient-to-r from-transparent to-white/[0.22]' : 'bg-gradient-to-r from-transparent to-slate-400/55'}`}
+                    aria-hidden
+                  />
+                  <span
+                    className={`max-w-[12rem] shrink-0 text-center text-[10px] font-bold uppercase leading-none tracking-wider ${
+                      isDark ? 'text-slate-400' : 'text-slate-600'
+                    }`}
+                  >
+                    管理端
+                  </span>
+                  <div
+                    className={`h-px min-w-[1rem] flex-1 ${isDark ? 'bg-gradient-to-l from-transparent to-white/[0.22]' : 'bg-gradient-to-l from-transparent to-slate-400/55'}`}
+                    aria-hidden
+                  />
+                </div>
               ) : null}
 
               <div className="rounded-lg border border-transparent">
@@ -171,6 +222,11 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
                     className={`shrink-0 opacity-80 transition-transform duration-200 motion-reduce:transition-none ${
                       isParentOpen(block.key) ? 'rotate-0' : '-rotate-90'
                     }`}
+                  />
+                  <ParentIcon
+                    className={`h-4 w-4 shrink-0 opacity-90 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}
+                    strokeWidth={2}
+                    aria-hidden
                   />
                   <span className="min-w-0 flex-1 truncate">{block.parentLabel}</span>
                 </button>
@@ -210,7 +266,8 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
                 ) : null}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </nav>

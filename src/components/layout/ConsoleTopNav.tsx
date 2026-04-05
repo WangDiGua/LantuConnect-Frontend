@@ -36,8 +36,6 @@ export interface ConsoleTopNavProps {
   toolbarRight: React.ReactNode;
 }
 
-const springTransition = { type: 'spring' as const, stiffness: 300, damping: 30 };
-
 export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
   theme,
   routeRole,
@@ -150,7 +148,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
 
   return (
     <header
-      className={`${isDark ? 'border-white/[0.08] bg-lantu-card/85' : 'border-slate-200/60 bg-white/90'} flex h-[60px] shrink-0 items-center gap-3 rounded-2xl border px-3 sm:px-4 backdrop-blur-md md:gap-4`}
+      className={`relative z-30 ${isDark ? 'border-white/[0.08] bg-lantu-card/85' : 'border-slate-200/60 bg-white/90'} flex h-[60px] shrink-0 items-center gap-3 rounded-2xl border px-3 sm:px-4 backdrop-blur-md md:gap-4`}
     >
       <div className="flex min-w-0 shrink-0 items-center gap-2">
         <button
@@ -171,7 +169,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
           }`}
           aria-label="回到首页"
         >
-          <Logo followSystemColorScheme={false} theme={theme} compact />
+          <Logo followSystemColorScheme={false} theme={theme} topBar />
         </button>
       </div>
 

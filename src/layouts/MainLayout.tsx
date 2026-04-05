@@ -1417,7 +1417,7 @@ const MainLayoutContent: React.FC<{
         </aside>
 
         <main
-          className={`${chromeGpuLayerClass} flex-1 min-h-0 overflow-hidden flex flex-col relative ${
+          className={`${chromeGpuLayerClass} relative z-0 flex-1 min-h-0 overflow-hidden flex flex-col ${
             isDark
               ? 'bg-lantu-card rounded-[24px] md:rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-white/[0.06]'
               : 'bg-slate-50 rounded-[24px] md:rounded-[32px] shadow-[0_8px_30px_rgb(15,23,42,0.05)] border border-slate-200/45'

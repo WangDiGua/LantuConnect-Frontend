@@ -13,7 +13,8 @@ export interface HubPersonalRailProps {
   theme: Theme;
   sections: HubPersonalRailSection[];
   displayName: string;
-  subtitle: string;
+  /** 平台角色文案，以标签样式展示 */
+  roleLabel: string;
   avatarSeed: string;
   activeSidebar: string;
   activeSubItem: string;
@@ -74,7 +75,7 @@ function buildParentBlocks(flat: HubPersonalRailSection[]): ParentBlock[] {
 export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
   theme,
   displayName,
-  subtitle,
+  roleLabel,
   avatarSeed,
   sections,
   activeSidebar,
@@ -182,6 +183,7 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
         <button
           type="button"
           onClick={onProfileClick}
+          aria-label={`个人资料：${displayName}，${roleLabel}`}
           className={`group/profile flex w-full min-w-0 items-center gap-3 rounded-lg px-1 py-1.5 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
             isDark ? 'hover:bg-white/[0.04]' : 'hover:bg-slate-50'
           }`}
@@ -198,9 +200,18 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
           </AvatarGradientFrame>
           <div className="min-w-0 flex-1">
             <div className={`truncate text-sm font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{displayName}</div>
-            <div className={`flex items-center gap-0.5 truncate text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-              <span className="truncate">{subtitle}</span>
-              <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-60" aria-hidden />
+            <div className="mt-1 flex min-w-0 items-center gap-1.5">
+              <span
+                className={`inline-flex max-w-full shrink truncate rounded-md border px-2 py-0.5 text-[11px] font-medium leading-tight tabular-nums ${
+                  isDark
+                    ? 'border-white/12 bg-white/[0.08] text-slate-300'
+                    : 'border-slate-200/80 bg-slate-100/90 text-slate-600'
+                }`}
+                title={roleLabel}
+              >
+                {roleLabel}
+              </span>
+              <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-50" aria-hidden />
             </div>
           </div>
         </button>

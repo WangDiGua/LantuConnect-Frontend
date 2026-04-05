@@ -57,7 +57,8 @@ export type HubPersonalRailSection = {
 export type ExploreHubRailConfig = {
   sections: HubPersonalRailSection[];
   displayName: string;
-  subtitle: string;
+  /** 平台角色展示名（顶栏 PLATFORM_ROLE_LABELS 一致） */
+  roleLabel: string;
   avatarSeed: string;
   activeSidebar: string;
   activeSubItem: string;

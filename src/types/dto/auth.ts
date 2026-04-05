@@ -9,6 +9,8 @@ export type PlatformRoleCode =
 export interface UserInfo {
   id: string;
   username: string;
+  /** 真实姓名（与 t_user.real_name 对齐；缺失时前端回退 nickname / username） */
+  realName?: string;
   email: string;
   phone?: string;
   avatar?: string;

@@ -1372,7 +1372,8 @@ const MainLayoutContent: React.FC<{
     return routeId ? `${page}/${routeId}` : page;
   }, [page, routeId, queryType, resourceTypeQuery, marketTabQuery, location.search]);
 
-  const displayUserName = authUser?.nickname || authUser?.username || '用户';
+  const displayUserName =
+    authUser?.realName?.trim() || authUser?.nickname?.trim() || authUser?.username || '用户';
 
   const navChildrenForActiveSidebar = useMemo(
     () => filteredSubGroupsForSidebarId(activeSidebar, consoleRole).flatMap((g) => g.items),
@@ -1397,7 +1398,7 @@ const MainLayoutContent: React.FC<{
     return {
       sections: exploreHubRailSections,
       displayName: displayUserName,
-      subtitle: authUser?.username ?? '',
+      roleLabel: PLATFORM_ROLE_LABELS[platformRole],
       avatarSeed: `${authUser?.id ?? 'user'}-${displayUserName}`,
       activeSidebar,
       activeSubItem,
@@ -1412,8 +1413,8 @@ const MainLayoutContent: React.FC<{
     consoleRole,
     exploreHubRailSections,
     displayUserName,
-    authUser?.username,
     authUser?.id,
+    platformRole,
     activeSidebar,
     activeSubItem,
     handleRailSubItemClick,
@@ -1724,7 +1725,7 @@ const MainLayoutContent: React.FC<{
                         theme={theme}
                         sections={exploreHubRail.sections}
                         displayName={exploreHubRail.displayName}
-                        subtitle={exploreHubRail.subtitle}
+                        roleLabel={exploreHubRail.roleLabel}
                         avatarSeed={exploreHubRail.avatarSeed}
                         activeSidebar={exploreHubRail.activeSidebar}
                         activeSubItem={exploreHubRail.activeSubItem}

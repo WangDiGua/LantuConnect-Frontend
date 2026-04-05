@@ -33,6 +33,7 @@ import {
 } from '../constants/topNavPolicy';
 import { AppearanceMenu } from '../components/business/AppearanceMenu';
 import { MessagePanel, INITIAL_MESSAGE_UNREAD_COUNT } from '../components/business/MessagePanel';
+import { ScrollToTopAffix } from '../components/common/ScrollToTopAffix';
 
 const Overview = lazy(() => import('../views/dashboard/Overview').then(m => ({ default: m.Overview })));
 const ExploreHub = lazy(() => import('../views/dashboard/ExploreHub').then(m => ({ default: m.ExploreHub })));
@@ -1500,6 +1501,11 @@ const MainLayoutContent: React.FC<{
   const showStandalonePersonalRail =
     personalRailOpen && Boolean(shellPersonalRail) && page !== 'hub';
 
+  /** 与滚回顶部的 useEffect 一致：双栏时滚右侧列，否则滚主列 */
+  const activeMainContentScrollRef =
+    showStandalonePersonalRail && shellPersonalRail ? routeContentScrollRef : mainScrollRef;
+  const scrollAffixRouteKey = `${location.pathname}${location.search}`;
+
   return (
     <LayoutChromeProvider value={{ hasSecondarySidebar, chromePageTitle: headerTitle }}>
       <div
@@ -1879,6 +1885,12 @@ const MainLayoutContent: React.FC<{
           )}
         </main>
         </div>
+
+        <ScrollToTopAffix
+          theme={theme}
+          containerRef={activeMainContentScrollRef}
+          routeResetKey={scrollAffixRouteKey}
+        />
       </div>
     </LayoutChromeProvider>
   );

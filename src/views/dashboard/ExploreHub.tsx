@@ -748,10 +748,10 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
 
   return (
     <>
-      {/* hubRail：与 MainLayout 独立个人左轨页同一顶缘，避免探索页多出 pt+mt 导致侧栏相对顶栏跳动 */}
-      <div
-        className={`w-full ${mainScrollPadBottom} ${canvasBodyBg(theme)} ${hubRail ? 'pt-0' : 'pt-2 sm:pt-3'} pb-16 sm:pb-20`}
-      >
+      {/*
+        hubRail：仅用外层一份 pt 与顶栏留隙，左右列同起点；勿再在 main 上叠 mt，否则侧栏相对顶栏会明显高于其它控制台页。
+      */}
+      <div className={`w-full ${mainScrollPadBottom} ${canvasBodyBg(theme)} pt-2 sm:pt-3 pb-16 sm:pb-20`}>
         {!hubRail ? <div className={pageContainer}>{hubHeroBanner}</div> : null}
 
         <main className={`${pageContainer} ${hubRail ? 'mt-0' : 'mt-6 sm:mt-7'} space-y-8`}>

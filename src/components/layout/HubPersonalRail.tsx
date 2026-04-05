@@ -86,47 +86,23 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
   const parentBlocks = useMemo(() => buildParentBlocks(sections), [sections]);
 
   const [expandedParents, setExpandedParents] = useState<Record<string, boolean>>({});
-  /** 二级分组：默认收起，仅 explicit true 为展开 */
-  const [expandedSubheads, setExpandedSubheads] = useState<Record<string, boolean>>({});
 
   const isParentOpen = useCallback(
     (key: string) => expandedParents[key] === true,
     [expandedParents],
   );
 
-  const isSubheadOpen = useCallback(
-    (key: string) => expandedSubheads[key] === true,
-    [expandedSubheads],
-  );
-
   const toggleParent = (key: string) => {
     setExpandedParents((prev) => ({ ...prev, [key]: !(prev[key] === true) }));
   };
 
-  const toggleSubhead = (key: string) => {
-    setExpandedSubheads((prev) => ({ ...prev, [key]: !(prev[key] === true) }));
-  };
-
-  /** 路由落在某父级下时，自动展开该父级及含当前项的二级分组 */
+  /** 路由落在某父级下时，自动展开该一级分组（子项扁平列出，无二级折叠） */
   useEffect(() => {
     setExpandedParents((prev) => {
       const next = { ...prev };
       for (const block of parentBlocks) {
         if (block.parentSidebarId === activeSidebar && block.domain === routeRole) {
           next[block.key] = true;
-        }
-      }
-      return next;
-    });
-    setExpandedSubheads((prev) => {
-      const next = { ...prev };
-      for (const block of parentBlocks) {
-        if (block.parentSidebarId !== activeSidebar || block.domain !== routeRole) continue;
-        for (const sec of block.sections) {
-          const hit = sec.rows.some((row) => row.subItemId === activeSubItem);
-          if (hit) {
-            next[`${block.key}::${sec.heading}`] = true;
-          }
         }
       }
       return next;
@@ -198,68 +174,39 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
                 </button>
 
                 {isParentOpen(block.key) ? (
-                  <div className="space-y-2 pb-2 pl-1">
-                    {block.sections.map((sec) => {
-                      const subKeyPref = `${block.key}::${sec.heading}`;
-                      const subOpen = isSubheadOpen(subKeyPref);
+                  <ul className="space-y-0.5 pb-2 pl-1">
+                    {block.sections.flatMap((sec) =>
+                      sec.rows.map((row) => ({ sec, row })),
+                    ).map(({ sec, row }) => {
+                      const isActive =
+                        routeRole === sec.domain &&
+                        activeSidebar === sec.parentSidebarId &&
+                        activeSubItem === row.subItemId;
                       return (
-                        <div key={`${block.key}-${sec.heading}`} className="space-y-0.5">
+                        <li key={`${block.key}::${sec.heading}::${row.subItemId}`}>
                           <button
                             type="button"
-                            onClick={() => toggleSubhead(subKeyPref)}
-                            aria-expanded={subOpen}
-                            className={`flex min-h-9 w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wide transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/35 focus-visible:ring-offset-2 ${
-                              isDark
-                                ? 'text-slate-500 hover:bg-white/[0.04] focus-visible:ring-offset-lantu-card'
-                                : 'text-slate-400 hover:bg-slate-50 focus-visible:ring-offset-white'
+                            onClick={() => onSubItemClick(row.subItemId, sec.parentSidebarId, sec.domain)}
+                            aria-current={isActive ? 'page' : undefined}
+                            className={`flex min-h-10 w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 ${
+                              isDark ? 'focus-visible:ring-offset-lantu-card' : 'focus-visible:ring-offset-white'
+                            } ${
+                              isActive
+                                ? isDark
+                                  ? 'bg-white/10 font-medium text-slate-100'
+                                  : 'bg-slate-100 font-medium text-slate-900'
+                                : isDark
+                                  ? 'text-slate-300 hover:bg-white/[0.06]'
+                                  : 'text-slate-700 hover:bg-slate-50'
                             }`}
                           >
-                            <ChevronDown
-                              size={12}
-                              aria-hidden
-                              className={`shrink-0 opacity-70 transition-transform duration-200 motion-reduce:transition-none ${
-                                subOpen ? 'rotate-0' : '-rotate-90'
-                              }`}
-                            />
-                            <span className="min-w-0 flex-1 truncate">{sec.heading}</span>
+                            <row.icon className="h-4 w-4 shrink-0 opacity-90" strokeWidth={2} aria-hidden />
+                            <span className="min-w-0 flex-1 truncate">{row.label}</span>
                           </button>
-                          {subOpen ? (
-                            <ul className="space-y-0.5 pl-4">
-                              {sec.rows.map((row) => {
-                                const isActive =
-                                  routeRole === sec.domain &&
-                                  activeSidebar === sec.parentSidebarId &&
-                                  activeSubItem === row.subItemId;
-                                return (
-                                  <li key={row.subItemId}>
-                                    <button
-                                      type="button"
-                                      onClick={() => onSubItemClick(row.subItemId, sec.parentSidebarId, sec.domain)}
-                                      aria-current={isActive ? 'page' : undefined}
-                                      className={`flex min-h-10 w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 ${
-                                        isDark ? 'focus-visible:ring-offset-lantu-card' : 'focus-visible:ring-offset-white'
-                                      } ${
-                                        isActive
-                                          ? isDark
-                                            ? 'bg-white/10 font-medium text-slate-100'
-                                            : 'bg-slate-100 font-medium text-slate-900'
-                                          : isDark
-                                            ? 'text-slate-300 hover:bg-white/[0.06]'
-                                            : 'text-slate-700 hover:bg-slate-50'
-                                      }`}
-                                    >
-                                      <row.icon className="h-4 w-4 shrink-0 opacity-90" strokeWidth={2} aria-hidden />
-                                      <span className="min-w-0 flex-1 truncate">{row.label}</span>
-                                    </button>
-                                  </li>
-                                );
-                              })}
-                            </ul>
-                          ) : null}
-                        </div>
+                        </li>
                       );
                     })}
-                  </div>
+                  </ul>
                 ) : null}
               </div>
             </div>

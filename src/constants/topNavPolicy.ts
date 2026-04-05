@@ -66,7 +66,7 @@ export type ExploreHubRailConfig = {
 };
 
 /**
- * 将已与 MainLayout `filteredSubGroupsForSidebarId` 对齐后的分组展开为首页左栏区块（每个 NavSubGroup 一节）。
+ * 将已与 MainLayout `filteredSubGroupsForSidebarId` 对齐后的分组展开为首页左栏数据（按 NavSubGroup 分节；HubPersonalRail 内扁平渲染为单层列表）。
  * 勿手写第二份菜单：调用方传入的 `filteredGroups` 须与侧栏/顶栏下拉一致。
  */
 export function buildHubPersonalNavModel(

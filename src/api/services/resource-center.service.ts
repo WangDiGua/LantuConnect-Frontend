@@ -89,6 +89,12 @@ function toResourceItem(raw: any): ResourceCenterItemVO {
     ownerName: raw?.ownerName ? String(raw.ownerName) : raw?.createdByName ? String(raw.createdByName) : undefined,
     endpoint: raw?.endpoint ? String(raw.endpoint) : undefined,
     protocol: raw?.protocol ? String(raw.protocol) : undefined,
+    serviceDetailMd:
+      raw?.serviceDetailMd != null && String(raw.serviceDetailMd).trim() !== ''
+        ? String(raw.serviceDetailMd)
+        : raw?.service_detail_md != null && String(raw.service_detail_md).trim() !== ''
+          ? String(raw.service_detail_md)
+          : undefined,
     appUrl: raw?.appUrl ? String(raw.appUrl) : undefined,
     embedType: raw?.embedType ? String(raw.embedType) : undefined,
     icon: raw?.icon != null && raw?.icon !== '' ? String(raw.icon) : undefined,

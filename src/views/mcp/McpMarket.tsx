@@ -21,7 +21,13 @@ import {
   Zap,
 } from 'lucide-react';
 import type { Theme, FontSize, ThemeColor } from '../../types';
-import type { InvokeRequest, InvokeResponse, ResourceCatalogItemVO, ResourceResolveVO } from '../../types/dto/catalog';
+import type {
+  CatalogResourceDetailVO,
+  InvokeRequest,
+  InvokeResponse,
+  ResourceCatalogItemVO,
+  ResourceResolveVO,
+} from '../../types/dto/catalog';
 import { resourceCatalogService } from '../../api/services/resource-catalog.service';
 import { AccessPolicyBadge } from '../../components/business/AccessPolicyBadge';
 import { invokeService } from '../../api/services/invoke.service';
@@ -55,6 +61,7 @@ import {
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
+import { MarkdownView } from '../../components/common/MarkdownView';
 import { ApiException } from '../../types/api';
 import { env } from '../../config/env';
 import { buildPath } from '../../constants/consoleRoutes';
@@ -154,7 +161,7 @@ const DEFAULT_MCP_PAYLOAD_TEXT = '{\n  "method": "initialize",\n  "params": {}\n
 
 type McpPayloadMode = 'simple' | 'advanced';
 type InvokeGatewayMode = 'invoke' | 'sdk';
-type McpDetailTab = 'invoke' | 'reviews';
+type McpDetailTab = 'service' | 'invoke' | 'reviews';
 type McpParamPreset = {
   id: string;
   label: string;
@@ -190,7 +197,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<Error | null>(null);
   const [rows, setRows] = useState<ResourceCatalogItemVO[]>([]);
-  const [detail, setDetail] = useState<ResourceCatalogItemVO | null>(null);
+  const [detail, setDetail] = useState<CatalogResourceDetailVO | null>(null);
   const [mcpPayloadMode, setMcpPayloadMode] = useState<McpPayloadMode>('simple');
   const [mcpMethod, setMcpMethod] = useState<string>(MCP_JSONRPC_METHODS[0]);
   const [mcpParamsJson, setMcpParamsJson] = useState(() => JSON.stringify(getMethodParamExample(MCP_JSONRPC_METHODS[0]), null, 2));
@@ -214,7 +221,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
   const [grantModalOpen, setGrantModalOpen] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
-  const [detailTab, setDetailTab] = useState<McpDetailTab>('reviews');
+  const [detailTab, setDetailTab] = useState<McpDetailTab>('service');
   const [detailPageLoading, setDetailPageLoading] = useState(false);
   const [detailPageError, setDetailPageError] = useState<Error | null>(null);
   /** 未按标签筛选时的列表快照，用于侧栏标签数量（筛选后仍显示「上次全量列表」分布） */
@@ -302,7 +309,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
     setInvokeResultMessage(null);
     setInvokeResultError(null);
     setInvokeRequestTraceId('');
-    setDetailTab('reviews');
+    setDetailTab('service');
   }, [detail]);
 
   useEffect(() => {
@@ -764,15 +771,34 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
             </>
           )}
           tabs={[
+            { id: 'service', label: '服务详情' },
+            { id: 'invoke', label: '工具测试' },
             { id: 'reviews', label: '评分评论', badge: Number(detail.reviewCount ?? 0) },
-            { id: 'invoke', label: '调用调试' },
           ]}
           activeTabId={detailTab}
           onTabChange={(id) => setDetailTab(id as McpDetailTab)}
           mainColumn={(
             <div className="space-y-5">
-              <p className={`text-[11px] ${textMuted(theme)}`}>{detailTab === 'invoke' ? '当前：调用参数与结果' : '当前：资源评论区'}</p>
-              {detailTab === 'invoke' ? (
+              <p className={`text-[11px] ${textMuted(theme)}`}>
+                {detailTab === 'service'
+                  ? '当前：服务详情（Markdown）'
+                  : detailTab === 'invoke'
+                    ? '当前：调用参数与结果'
+                    : '当前：资源评论区'}
+              </p>
+              {detailTab === 'service' ? (
+                <div
+                  className={`rounded-2xl border p-4 ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-slate-50/60'}`}
+                >
+                  {detail.serviceDetailMd?.trim() ? (
+                    <MarkdownView value={detail.serviceDetailMd} className="text-sm" />
+                  ) : (
+                    <p className={`text-sm leading-relaxed ${textMuted(theme)}`}>
+                      尚未填写服务详情。发布者可在「资源注册 / 编辑 MCP」中的「服务详情」补充 Markdown 说明（接口能力、鉴权、配额与示例等）。
+                    </p>
+                  )}
+                </div>
+              ) : detailTab === 'invoke' ? (
                 <div className="space-y-5">
             <div className="grid gap-3 sm:grid-cols-2">
                 <div>
@@ -1066,7 +1092,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                 </div>
             )}
                 </div>
-              ) : (
+              ) : detailTab === 'reviews' ? (
                 <div className={`rounded-2xl border p-4 ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-slate-50/60'}`}>
                   <h4 className={`mb-3 flex items-center gap-2 text-sm font-semibold ${textPrimary(theme)}`}>
                     <MessageSquare size={16} className="text-neutral-800" />
@@ -1080,7 +1106,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                     showMessage={showMessage}
                   />
                 </div>
-              )}
+              ) : null}
             </div>
           )}
           sidebarColumn={(

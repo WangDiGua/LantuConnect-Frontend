@@ -25,6 +25,7 @@ import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 import { parseMcpConfigPaste } from '../../utils/mcpConfigImport';
 import { lantuCheckboxPrimaryClass } from '../../utils/formFieldClasses';
+import { ReviewMarkdownEditor } from '../../components/common/ReviewMarkdownEditor';
 
 interface Props {
   theme: Theme;
@@ -597,6 +598,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     artifactSha256: '',
     skillRootPath: '',
     accessPolicy: 'grant_required' as ResourceAccessPolicy,
+    mcpServiceDetailMd: '',
   });
   const [mcpImportPaste, setMcpImportPaste] = useState('');
   const [mcpProbeLoading, setMcpProbeLoading] = useState(false);
@@ -710,6 +712,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
           resourceCode: item.resourceCode || '',
           displayName: item.displayName || '',
           description: item.description || '',
+          mcpServiceDetailMd: resourceType === 'mcp' ? (item.serviceDetailMd ?? '') : prev.mcpServiceDetailMd,
           sourceType: item.sourceType || 'internal',
           providerId: item.providerId ?? '',
           categoryId: item.categoryId ?? '',
@@ -1002,6 +1005,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
         protocol: 'mcp',
         authType: form.authType || 'none',
         authConfig,
+        serviceDetailMd: form.mcpServiceDetailMd.trim(),
       };
     }
     if (resourceType === 'skill') {
@@ -1326,6 +1330,18 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                 placeholder="用途与场景简述（选填）"
               />
             </Field>
+            {resourceType === 'mcp' ? (
+              <Field label="服务详情（选填）" full theme={theme}>
+                <ReviewMarkdownEditor
+                  theme={theme}
+                  value={form.mcpServiceDetailMd}
+                  onChange={(v) => setForm((p) => ({ ...p, mcpServiceDetailMd: v }))}
+                  variant="compact"
+                  editorMode="auto"
+                  placeholder="支持 Markdown：能力说明、认证方式、配额与示例等；将在 MCP 市场详情页「服务详情」展示"
+                />
+              </Field>
+            ) : null}
             <Field label="目录标签（选填）" theme={theme}>
               <LantuSelect
                 theme={theme}

@@ -90,6 +90,12 @@ function normalizeCatalogDetail(raw: unknown): CatalogResourceDetailVO {
     launchToken: x.launchToken == null && x.launch_token == null ? undefined : String(x.launchToken ?? x.launch_token),
     launchUrl: x.launchUrl == null && x.launch_url == null ? undefined : String(x.launchUrl ?? x.launch_url),
     spec: x.spec && typeof x.spec === 'object' ? (x.spec as Record<string, unknown>) : undefined,
+    serviceDetailMd: (() => {
+      const raw = x.serviceDetailMd ?? x.service_detail_md;
+      if (raw == null || raw === '') return undefined;
+      const s = String(raw);
+      return s.trim() === '' ? undefined : s;
+    })(),
   };
   if (Array.isArray(x.tags)) merged.tags = (x.tags as unknown[]).map((t) => String(t));
   if (x.observability && typeof x.observability === 'object') {

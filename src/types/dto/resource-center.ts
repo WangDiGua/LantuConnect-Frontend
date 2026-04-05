@@ -42,6 +42,8 @@ export interface ResourceMcpUpsertRequest extends ResourceBaseUpsertRequest {
   protocol: string;
   authType?: string;
   authConfig?: Record<string, unknown>;
+  /** 市场详情「服务详情」Tab，Markdown，选填 */
+  serviceDetailMd?: string;
 }
 
 /** POST /resource-center/resources/mcp/connectivity-probe */
@@ -154,6 +156,8 @@ export interface ResourceCenterItemVO {
   ownerName?: string;
   endpoint?: string;
   protocol?: string;
+  /** MCP 服务详情 Markdown（t_resource_mcp_ext.service_detail_md） */
+  serviceDetailMd?: string;
   appUrl?: string;
   embedType?: string;
   icon?: string;

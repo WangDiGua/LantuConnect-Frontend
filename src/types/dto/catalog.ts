@@ -72,6 +72,8 @@ export interface ResourceResolveVO {
   observability?: Record<string, unknown>;
   quality?: Record<string, unknown>;
   spec?: Record<string, unknown>;
+  /** MCP 扩展：服务详情 Markdown */
+  serviceDetailMd?: string;
 }
 
 /** GET /catalog/resources/{type}/{id} 返回体：目录项字段 + 解析/规格字段（与后端 ResourceResolveVO 等对齐） */

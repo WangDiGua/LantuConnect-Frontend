@@ -3,15 +3,19 @@ import { ChevronDown, Menu, Search, Command } from 'lucide-react';
 import type { Theme } from '../../types';
 import { iconMuted, mainScrollCompositorClass } from '../../utils/uiClasses';
 import type { ConsoleRole } from '../../constants/consoleRoutes';
+import { USER_TOP_NAV_SIDEBAR_IDS } from '../../constants/topNavPolicy';
 import type { PlatformRoleCode } from '../../types/dto/auth';
 import { Logo } from '../common/Logo';
 import { PortalDropdown } from '../common/PortalDropdown';
+import { NexusTopNavPrimaryAnimatedIcon } from '../icons/NexusTopNavAnimatedIcons';
 
 type IconComponent = React.ComponentType<{
   size?: number;
   strokeWidth?: number;
   className?: string;
 }>;
+
+const USER_TOP_NAV_SVG_SET = new Set<string>(USER_TOP_NAV_SIDEBAR_IDS);
 
 interface SubGroup {
   title: string;
@@ -60,12 +64,30 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [openDropdownKey, setOpenDropdownKey] = useState<string | null>(null);
   const [dropdownAnchor, setDropdownAnchor] = useState<HTMLButtonElement | null>(null);
+  const [reduceMotion, setReduceMotion] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const apply = () => setReduceMotion(mq.matches);
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, []);
 
   const isMac = useMemo(
     () => typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/i.test(navigator.platform),
     [],
   );
   const normalizedQuery = menuQuery.trim().toLowerCase();
+
+  const renderTopNavLeadIcon = (item: Extract<ConsoleSidebarRow, { kind: 'item' }>) => {
+    if (!USER_TOP_NAV_SVG_SET.has(item.id)) return null;
+    const Icon = item.icon;
+    if (reduceMotion) {
+      return <Icon size={18} className="shrink-0 opacity-90" aria-hidden />;
+    }
+    return <NexusTopNavPrimaryAnimatedIcon sidebarId={item.id} isDark={isDark} className="h-[18px] w-[18px] shrink-0" />;
+  };
 
   const navItems = useMemo(() => {
     const itemRows = searchRows.filter((r): r is Extract<ConsoleSidebarRow, { kind: 'item' }> => r.kind === 'item');
@@ -215,8 +237,9 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
                 key={key}
                 type="button"
                 onClick={() => onSidebarClick(item.id, item.domain)}
-                className={`inline-flex min-h-10 shrink-0 items-center justify-center rounded-lg px-2.5 py-2 text-sm font-medium transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${activeCls}`}
+                className={`inline-flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${activeCls}`}
               >
+                {renderTopNavLeadIcon(item)}
                 <span className="whitespace-nowrap leading-none">{item.label}</span>
               </button>
             );
@@ -237,8 +260,9 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
                     setOpenDropdownKey(key);
                   }
                 }}
-                className={`inline-flex min-h-10 shrink-0 items-center gap-1 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${activeCls}`}
+                className={`inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${activeCls}`}
               >
+                {renderTopNavLeadIcon(item)}
                 <span className="whitespace-nowrap leading-none">{item.label}</span>
                 <ChevronDown
                   size={14}

@@ -9,7 +9,8 @@ import {
 import { useNavigate } from 'react-router-dom';
 import type { EChartsOption } from 'echarts';
 import type { Theme, FontSize } from '../../types';
-import { mainScrollPadBottom, canvasBodyBg } from '../../utils/uiClasses';
+import { mainScrollPadBottom, mainScrollPadX, canvasBodyBg } from '../../utils/uiClasses';
+import { ConsolePageFooter } from '../../components/layout/ConsolePageFooter';
 import { buildPath, buildUserResourceMarketUrl } from '../../constants/consoleRoutes';
 import { dashboardService } from '../../api/services/dashboard.service';
 import type { ExploreHubData, ExploreResourceItem, AnnouncementItem } from '../../types/dto/explore';
@@ -1017,6 +1018,8 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme, fontSize: _fontSi
           </div>
         </main>
       </div>
+
+      <ConsolePageFooter theme={theme} className={mainScrollPadX} />
 
       <Modal
         open={!!detailAnnouncement}

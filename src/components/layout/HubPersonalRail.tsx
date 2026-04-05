@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
-import { ChevronDown, ChevronRight, Command, LayoutList, Search } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ChevronDown, ChevronRight, Command, LayoutList, LogOut, Search, User } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { Theme } from '../../types';
 import type { ConsoleRole } from '../../constants/consoleRoutes';
@@ -23,6 +24,10 @@ export interface HubPersonalRailProps {
   onSubItemClick: (subItemId: string, parentSidebarId: string, domain: ConsoleRole) => void;
   /** 移动抽屉打开时由侧栏接管 ⌘/Ctrl+K，避免双监听 */
   suppressGlobalMenuSearchHotkey?: boolean;
+  /** 提供时：头像行展开账户菜单（个人资料 / 退出），用于管理壳固定轨与移动抽屉 */
+  onLogout?: () => void | Promise<void>;
+  /** 侧栏 `<nav>` 可访问名称；默认「探索首页导航」 */
+  ariaLabel?: string;
 }
 
 type ParentBlock = {
@@ -84,6 +89,8 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
   onProfileClick,
   onSubItemClick,
   suppressGlobalMenuSearchHotkey = false,
+  onLogout,
+  ariaLabel,
 }) => {
   const isDark = theme === 'dark';
   /** 与探索页画布平接，不用独立浮卡；列级分隔由 ExploreHub 父级 border-r 承担 */
@@ -94,7 +101,9 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
 
   const [menuQuery, setMenuQuery] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const menuSearchInputRef = useRef<HTMLInputElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const searchMode = Boolean(menuQuery.trim());
 
   const isMac = useMemo(
@@ -153,6 +162,17 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
   }, [activeBlockKey, searchMode]);
 
   useEffect(() => {
+    if (!showUserMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setShowUserMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showUserMenu]);
+
+  useEffect(() => {
     if (suppressGlobalMenuSearchHotkey) return;
     const onHotkey = (e: KeyboardEvent) => {
       const isFocusHotkey = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k';
@@ -174,47 +194,130 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
   const showUsageEndCap =
     hasAdminRail && filteredBlocks.length > 0 && filteredBlocks[0]?.block.domain === 'user';
 
+  const navAria = ariaLabel ?? '探索首页导航';
+
   return (
     <nav
       className={`${shell} flex h-full min-h-0 flex-col ${mainScrollCompositorClass}`}
-      aria-label="探索首页导航"
+      aria-label={navAria}
     >
-      <div className="shrink-0 p-4 pb-3">
-        <button
-          type="button"
-          onClick={onProfileClick}
-          aria-label={`个人资料：${displayName}，${roleLabel}`}
-          className={`group/profile flex w-full min-w-0 items-center gap-3 rounded-lg px-1 py-1.5 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
-            isDark ? 'hover:bg-white/[0.04]' : 'hover:bg-slate-50'
-          }`}
-        >
-          <AvatarGradientFrame
-            isDark={isDark}
-            className="group-hover/profile:shadow-[0_0_18px_-4px_rgba(56,189,248,0.4)] group-hover/profile:brightness-[1.05] motion-reduce:group-hover/profile:shadow-none motion-reduce:group-hover/profile:brightness-100"
-          >
-            <MultiAvatar
-              seed={avatarSeed}
-              alt={displayName}
-              className="h-11 w-11 block shrink-0 rounded-full object-cover"
-            />
-          </AvatarGradientFrame>
-          <div className="min-w-0 flex-1">
-            <div className={`truncate text-sm font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{displayName}</div>
-            <div className="mt-1 flex min-w-0 items-center gap-1.5">
-              <span
-                className={`inline-flex max-w-full shrink truncate rounded-md border px-2 py-0.5 text-[11px] font-medium leading-tight tabular-nums ${
-                  isDark
-                    ? 'border-white/12 bg-white/[0.08] text-slate-300'
-                    : 'border-slate-200/80 bg-slate-100/90 text-slate-600'
-                }`}
-                title={roleLabel}
+      <div className="relative shrink-0 p-4 pb-3" ref={onLogout ? userMenuRef : undefined}>
+        {onLogout ? (
+          <>
+            <AnimatePresence>
+              {showUserMenu && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                  className={`absolute left-0 right-0 top-full z-50 mt-2 rounded-lg border p-1.5 shadow-lg ${
+                    isDark ? 'border-white/10 bg-lantu-card' : 'border-slate-200 bg-white'
+                  }`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      onProfileClick();
+                    }}
+                    className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-inset ${
+                      isDark ? 'text-slate-200 hover:bg-white/[0.08]' : 'text-slate-800 hover:bg-slate-100'
+                    }`}
+                  >
+                    <User size={15} className="shrink-0 opacity-90" aria-hidden />
+                    个人资料
+                  </button>
+                  <div className={`mx-2 my-1 h-px ${isDark ? 'bg-white/[0.08]' : 'bg-slate-200/80'}`} aria-hidden />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      void onLogout();
+                    }}
+                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium text-red-500 hover:bg-red-500/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/45 focus-visible:ring-inset"
+                  >
+                    <LogOut size={15} aria-hidden />
+                    退出登录
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            <button
+              type="button"
+              onClick={() => setShowUserMenu((v) => !v)}
+              aria-expanded={showUserMenu}
+              aria-haspopup="menu"
+              aria-label={`账户：${displayName}，${roleLabel}`}
+              className={`group/profile flex w-full min-w-0 items-center gap-3 rounded-lg px-1 py-1.5 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
+                isDark ? 'hover:bg-white/[0.04]' : 'hover:bg-slate-50'
+              }`}
+            >
+              <AvatarGradientFrame
+                isDark={isDark}
+                className="group-hover/profile:shadow-[0_0_18px_-4px_rgba(56,189,248,0.4)] group-hover/profile:brightness-[1.05] motion-reduce:group-hover/profile:shadow-none motion-reduce:group-hover/profile:brightness-100"
               >
-                {roleLabel}
-              </span>
-              <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-50" aria-hidden />
+                <MultiAvatar
+                  seed={avatarSeed}
+                  alt={displayName}
+                  className="h-11 w-11 block shrink-0 rounded-full object-cover"
+                />
+              </AvatarGradientFrame>
+              <div className="min-w-0 flex-1">
+                <div className={`truncate text-sm font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{displayName}</div>
+                <div className="mt-1 flex min-w-0 items-center gap-1.5">
+                  <span
+                    className={`inline-flex max-w-full shrink truncate rounded-md border px-2 py-0.5 text-[11px] font-medium leading-tight tabular-nums ${
+                      isDark
+                        ? 'border-white/12 bg-white/[0.08] text-slate-300'
+                        : 'border-slate-200/80 bg-slate-100/90 text-slate-600'
+                    }`}
+                    title={roleLabel}
+                  >
+                    {roleLabel}
+                  </span>
+                  <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-50" aria-hidden />
+                </div>
+              </div>
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={onProfileClick}
+            aria-label={`个人资料：${displayName}，${roleLabel}`}
+            className={`group/profile flex w-full min-w-0 items-center gap-3 rounded-lg px-1 py-1.5 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
+              isDark ? 'hover:bg-white/[0.04]' : 'hover:bg-slate-50'
+            }`}
+          >
+            <AvatarGradientFrame
+              isDark={isDark}
+              className="group-hover/profile:shadow-[0_0_18px_-4px_rgba(56,189,248,0.4)] group-hover/profile:brightness-[1.05] motion-reduce:group-hover/profile:shadow-none motion-reduce:group-hover/profile:brightness-100"
+            >
+              <MultiAvatar
+                seed={avatarSeed}
+                alt={displayName}
+                className="h-11 w-11 block shrink-0 rounded-full object-cover"
+              />
+            </AvatarGradientFrame>
+            <div className="min-w-0 flex-1">
+              <div className={`truncate text-sm font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{displayName}</div>
+              <div className="mt-1 flex min-w-0 items-center gap-1.5">
+                <span
+                  className={`inline-flex max-w-full shrink truncate rounded-md border px-2 py-0.5 text-[11px] font-medium leading-tight tabular-nums ${
+                    isDark
+                      ? 'border-white/12 bg-white/[0.08] text-slate-300'
+                      : 'border-slate-200/80 bg-slate-100/90 text-slate-600'
+                  }`}
+                  title={roleLabel}
+                >
+                  {roleLabel}
+                </span>
+                <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-50" aria-hidden />
+              </div>
             </div>
-          </div>
-        </button>
+          </button>
+        )}
       </div>
 
       <div

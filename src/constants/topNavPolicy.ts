@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import type { ConsoleRole } from './consoleRoutes';
 import type { NavSubGroup } from './navigation';
-import type { ConsoleSidebarRow } from '../components/layout/ConsoleSidebar';
+import type { ConsoleSidebarRow } from './consoleNavModel';
 
 /** 应用端顶栏保留的一级侧栏 id（工作台等入口见探索首页左侧树与侧栏抽屉） */
 export const USER_TOP_NAV_SIDEBAR_IDS = [

@@ -22,7 +22,7 @@ interface SubGroup {
   items: Array<{ id: string; label: string; icon: IconComponent; tag?: string }>;
 }
 
-import type { ConsoleSidebarRow } from './ConsoleSidebar';
+import type { ConsoleSidebarRow } from '../../constants/consoleNavModel';
 
 export interface ConsoleTopNavProps {
   theme: Theme;

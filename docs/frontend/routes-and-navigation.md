@@ -154,7 +154,7 @@
 以下 `page` 在管理端侧栏中可 **按权限隐藏**（见 `MainLayout`）：
 
 `provider-list`（`provider:view`）、`provider-create`（`provider:manage`）、`role-management`（`role:manage`）、`organization`（`org:manage`）、`api-key-management`（`api-key:manage`）、`resource-grant-management` / `grant-applications`（`resource-grant:manage`）、`developer-applications`（`developer-application:review`）、`alert-rules` / `health-config` / `circuit-breaker`（`system:config`）。  
-审核类子项另有 `resourceType` 相关权限位（实现见 `ConsoleSidebar` / 相关逻辑）。
+审核类子项另有 `resourceType` 相关权限位（实现见 `MainLayout` 中 `filteredSubGroupsForSidebarId` 等相关逻辑）。
 
 ## 相关 API
 

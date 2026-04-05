@@ -123,7 +123,8 @@ import {
   parseResourceType,
 } from '../constants/resourceTypes';
 import { PageSkeleton } from '../components/common/PageSkeleton';
-import { ConsoleSidebar, type ConsoleSidebarRow } from '../components/layout/ConsoleSidebar';
+import { Logo } from '../components/common/Logo';
+import type { ConsoleSidebarRow } from '../constants/consoleNavModel';
 import { ConsoleTopNav } from '../components/layout/ConsoleTopNav';
 import { HubPersonalRail } from '../components/layout/HubPersonalRail';
 import { AvatarGradientFrame, MultiAvatar } from '../components/common/MultiAvatar';
@@ -739,7 +740,6 @@ const MainLayoutContent: React.FC<{
   const messagePanelAnchorRef = useRef<HTMLDivElement>(null);
   /** 主内容滚动区：Hash 路由切换不会整页刷新，需手动滚回顶部 */
   const mainScrollRef = useRef<HTMLDivElement>(null);
-  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   /**
    * 探索 hub 页始终内嵌个人左轨。
    * 其他子页：独立左轨是否展示由下方 useEffect 按当前 page 与配置同步（含刷新/深链恢复）。
@@ -1200,8 +1200,8 @@ const MainLayoutContent: React.FC<{
     [hasPermission, platformRole, canAccessUserPublishingShell],
   );
 
-  const hubPersonalRailSections: HubPersonalRailSection[] = useMemo(() => {
-    if (consoleRole !== 'user') return [];
+  /** 使用端左轨区块（与 Hub 内嵌轨、管理壳固定轨同源 `filteredSubGroupsForSidebarId`） */
+  const railSectionsUser: HubPersonalRailSection[] = useMemo(() => {
     const out: HubPersonalRailSection[] = [];
     const hubTopItem = USER_SIDEBAR_ITEMS.find((i) => i.id === 'hub');
     for (const parentId of HUB_PERSONAL_RAIL_PARENT_IDS) {
@@ -1220,22 +1220,29 @@ const MainLayoutContent: React.FC<{
       out.push(...buildHubPersonalNavModel(parentId, 'user', groups));
     }
     return out;
-  }, [consoleRole, filteredSubGroupsForSidebarId]);
+  }, [filteredSubGroupsForSidebarId]);
 
-  /** 有平台管理权限时，探索首页左轨追加管理目录（与顶栏/子菜单同源权限过滤） */
-  const hubAdminRailSections: HubPersonalRailSection[] = useMemo(() => {
-    if (consoleRole !== 'user' || adminSidebarItems.length === 0) return [];
+  /** 管理端左轨区块（权限与 adminSidebarItems 一致） */
+  const railSectionsAdmin: HubPersonalRailSection[] = useMemo(() => {
+    if (adminSidebarItems.length === 0) return [];
     const out: HubPersonalRailSection[] = [];
     for (const item of adminSidebarItems) {
       const groups = filteredSubGroupsForSidebarId(item.id, 'admin');
       out.push(...buildHubPersonalNavModel(item.id, 'admin', groups));
     }
     return out;
-  }, [consoleRole, adminSidebarItems, filteredSubGroupsForSidebarId]);
+  }, [adminSidebarItems, filteredSubGroupsForSidebarId]);
 
+  /** 全壳统一左轨数据：桌面管理轨、移动抽屉、探索 Hub 内嵌轨均由此派生 */
+  const unifiedRailSections: HubPersonalRailSection[] = useMemo(
+    () => [...railSectionsUser, ...railSectionsAdmin],
+    [railSectionsUser, railSectionsAdmin],
+  );
+
+  /** 仅用户壳下探索页注入 Hub（管理员壳不展示探索左轨配置） */
   const exploreHubRailSections: HubPersonalRailSection[] = useMemo(
-    () => [...hubPersonalRailSections, ...hubAdminRailSections],
-    [hubPersonalRailSections, hubAdminRailSections],
+    () => (consoleRole === 'user' ? unifiedRailSections : []),
+    [consoleRole, unifiedRailSections],
   );
 
   /**
@@ -1259,27 +1266,22 @@ const MainLayoutContent: React.FC<{
     setPersonalRailOpen(true);
   }, [consoleRole, exploreHubRailSections.length, page, activeSidebar]);
 
-  useEffect(() => {
-    const groups = filteredSubGroupsForSidebarId(activeSidebar, consoleRole);
-    if (groups.length > 0) {
-      setExpandedGroups((prev) => (prev.length === 0 ? [activeSidebar] : prev));
-    }
-  }, [activeSidebar, consoleRole, filteredSubGroupsForSidebarId]);
-
-  const toggleGroup = (id: string) => {
-    setExpandedGroups((prev) =>
-      prev.includes(id) ? [] : [id],
-    );
-  };
-
   const handleSidebarClick = (id: string, domain: ConsoleRole) => {
     setMobileNavOpen(false);
-    const hasChildren = filteredSubGroupsForSidebarId(id, domain).length > 0;
-    if (!hasChildren) {
-      setExpandedGroups([]);
-    }
     navigate(buildPath(domain, getDefaultPage(domain, id)));
   };
+
+  const handleRailLogout = useCallback(async () => {
+    showMessage('已退出登录', 'info');
+    const accessToken = tokenStorage.get(env.VITE_TOKEN_KEY) ?? useAuthStore.getState().token;
+    try {
+      if (accessToken) await authService.logout(accessToken);
+    } catch {
+      /* still clear local session */
+    }
+    storeLogout();
+    navigate('/login', { replace: true });
+  }, [navigate, showMessage, storeLogout]);
 
   const navigateSubItem = useCallback(
     (subItemId: string, parentSidebarId: string, domain: ConsoleRole) => {
@@ -1528,7 +1530,6 @@ const MainLayoutContent: React.FC<{
           onSubItemClick={handleChromeSubItemClick}
           filteredSubGroupsForSidebarId={filteredSubGroupsForSidebarId}
           onLogoClick={() => {
-            setExpandedGroups([]);
             navigate(defaultPath());
             setMobileNavOpen(false);
           }}
@@ -1745,86 +1746,66 @@ const MainLayoutContent: React.FC<{
             }`}
             aria-label="控制台导航"
           >
-            <ConsoleSidebar
+            <HubPersonalRail
               theme={theme}
-              routeRole={consoleRole}
+              sections={unifiedRailSections}
+              displayName={displayUserName}
+              roleLabel={PLATFORM_ROLE_LABELS[platformRole]}
+              avatarSeed={`${authUser?.id ?? 'user'}-${displayUserName}`}
               activeSidebar={activeSidebar}
               activeSubItem={activeSubItem}
-              sidebarRows={fullSidebarRows}
-              expandedGroups={expandedGroups}
-              platformRole={platformRole}
-              displayUserName={displayUserName}
-              avatarSeed={`${authUser?.id ?? 'user'}-${displayUserName}`}
-              onSidebarClick={handleSidebarClick}
-              onSubItemClick={handleChromeSubItemClick}
-              onToggleGroup={toggleGroup}
-              onNavigateToProfile={() => {
+              routeRole={consoleRole}
+              onProfileClick={() => {
                 navigate(buildPath('user', 'profile'));
                 if (layoutIsAdmin) setRole('user');
               }}
-              onLogout={async () => {
-                showMessage('已退出登录', 'info');
-                const accessToken = tokenStorage.get(env.VITE_TOKEN_KEY) ?? useAuthStore.getState().token;
-                try {
-                  if (accessToken) await authService.logout(accessToken);
-                } catch {
-                  /* still clear local session */
-                }
-                storeLogout();
-                navigate('/login', { replace: true });
-              }}
-              onLogoClick={() => {
-                setExpandedGroups([]);
-                navigate(buildPath('admin', 'dashboard'));
-                setMobileNavOpen(false);
-              }}
-              filteredSubGroupsForSidebarId={filteredSubGroupsForSidebarId}
-              enableMenuSearchHotkey={false}
-              showBrandHeader={false}
+              onSubItemClick={handleChromeSubItemClick}
+              suppressGlobalMenuSearchHotkey={false}
+              onLogout={handleRailLogout}
+              ariaLabel="控制台导航"
             />
           </aside>
         )}
         <aside
-          className={`${chromeGpuLayerClass} fixed inset-y-0 left-0 z-50 flex h-full w-[240px] shrink-0 flex-col px-0 py-2 transition-transform duration-200 ease-out motion-reduce:transition-none lg:hidden ${
+          className={`${chromeGpuLayerClass} fixed inset-y-0 left-0 z-50 flex h-full w-[240px] shrink-0 flex-col overflow-hidden px-0 py-2 transition-transform duration-200 ease-out motion-reduce:transition-none lg:hidden ${
             mobileNavOpen ? 'translate-x-0' : '-translate-x-full'
           } ${isDark ? 'bg-lantu-chrome' : 'bg-gray-100'}`}
         >
-          <ConsoleSidebar
-            theme={theme}
-            routeRole={consoleRole}
-            activeSidebar={activeSidebar}
-            activeSubItem={activeSubItem}
-            sidebarRows={fullSidebarRows}
-            expandedGroups={expandedGroups}
-            platformRole={platformRole}
-            displayUserName={displayUserName}
-            avatarSeed={`${authUser?.id ?? 'user'}-${displayUserName}`}
-            onSidebarClick={handleSidebarClick}
-            onSubItemClick={handleChromeSubItemClick}
-            onToggleGroup={toggleGroup}
-            onNavigateToProfile={() => {
-              navigate(buildPath('user', 'profile'));
-              if (layoutIsAdmin) setRole('user');
-            }}
-            onLogout={async () => {
-              showMessage('已退出登录', 'info');
-              const accessToken = tokenStorage.get(env.VITE_TOKEN_KEY) ?? useAuthStore.getState().token;
-              try {
-                if (accessToken) await authService.logout(accessToken);
-              } catch {
-                /* still clear local session */
-              }
-              storeLogout();
-              navigate('/login', { replace: true });
-            }}
-            onLogoClick={() => {
-              setExpandedGroups([]);
-              navigate(defaultPath());
-              setMobileNavOpen(false);
-            }}
-            filteredSubGroupsForSidebarId={filteredSubGroupsForSidebarId}
-            enableMenuSearchHotkey={mobileNavOpen}
-          />
+          <div className="shrink-0 px-4 pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                navigate(defaultPath());
+                setMobileNavOpen(false);
+              }}
+              className={`logo-nav-btn w-full rounded-lg border-0 bg-transparent p-0 text-left outline-none ring-0 shadow-none transition-colors focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 ${
+                isDark ? 'hover:bg-white/[0.04]' : 'hover:bg-slate-200/50'
+              }`}
+              aria-label="回到首页"
+            >
+              <Logo followSystemColorScheme={false} theme={theme} />
+            </button>
+          </div>
+          <div className="min-h-0 flex-1 overflow-hidden">
+            <HubPersonalRail
+              theme={theme}
+              sections={unifiedRailSections}
+              displayName={displayUserName}
+              roleLabel={PLATFORM_ROLE_LABELS[platformRole]}
+              avatarSeed={`${authUser?.id ?? 'user'}-${displayUserName}`}
+              activeSidebar={activeSidebar}
+              activeSubItem={activeSubItem}
+              routeRole={consoleRole}
+              onProfileClick={() => {
+                navigate(buildPath('user', 'profile'));
+                if (layoutIsAdmin) setRole('user');
+              }}
+              onSubItemClick={handleChromeSubItemClick}
+              suppressGlobalMenuSearchHotkey={mobileNavOpen}
+              onLogout={handleRailLogout}
+              ariaLabel="控制台导航"
+            />
+          </div>
         </aside>
 
         <main

@@ -456,18 +456,28 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
             const childrenOpen = searchMode || isParentOpen(block.key);
             return (
               <div key={block.key}>
-                <div className="rounded-lg border border-transparent">
+                <div
+                  className={`rounded-xl border transition-colors duration-200 ${
+                    childrenOpen
+                      ? isDark
+                        ? 'border-white/[0.1] bg-white/[0.04]'
+                        : 'border-slate-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.05)]'
+                      : 'border-transparent'
+                  }`}
+                >
                   <button
                     type="button"
                     onClick={() => toggleParent(block.key)}
                     aria-expanded={childrenOpen}
-                    className={`group/parent flex min-h-11 w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
-                      isDark ? 'text-slate-200 hover:bg-white/[0.06]' : 'text-slate-800 hover:bg-slate-100'
+                    className={`group/parent flex min-h-11 w-full items-center gap-2 rounded-lg px-2.5 py-2.5 text-left text-sm font-semibold tracking-tight transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
+                      isDark
+                        ? 'text-slate-100 hover:bg-white/[0.06]'
+                        : 'text-slate-900 hover:bg-slate-100/90'
                     }`}
                   >
                     <ParentIcon
-                      className={`h-4 w-4 shrink-0 opacity-90 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}
-                      strokeWidth={2}
+                      className={`h-[18px] w-[18px] shrink-0 ${isDark ? 'text-slate-200' : 'text-slate-700'}`}
+                      strokeWidth={2.25}
                       aria-hidden
                     />
                     <span className="min-w-0 flex-1 truncate">{block.parentLabel}</span>
@@ -481,7 +491,12 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
                   </button>
 
                   {childrenOpen ? (
-                    <ul className="space-y-0.5 pb-2 pl-1">
+                    <ul
+                      className={`mb-1.5 mt-0 space-y-0.5 border-l-2 pb-2 pl-3 pr-1 ml-3 ${
+                        isDark ? 'border-white/[0.14]' : 'border-slate-300/70'
+                      }`}
+                      role="list"
+                    >
                       {rowEntries.map(({ sec, row }) => {
                         const isActive =
                           routeRole === sec.domain &&
@@ -493,17 +508,21 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
                               type="button"
                               onClick={() => onSubItemClick(row.subItemId, sec.parentSidebarId, sec.domain)}
                               aria-current={isActive ? 'page' : undefined}
-                              className={`flex min-h-10 w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
+                              className={`flex min-h-9 w-full items-center gap-2 rounded-md py-1.5 pl-1 pr-2 text-left text-[13px] leading-snug transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
                                 isActive
                                   ? isDark
-                                    ? 'bg-white/10 font-medium text-slate-100'
-                                    : 'bg-slate-100 font-medium text-slate-900'
+                                    ? 'bg-white/12 font-medium text-slate-50'
+                                    : 'bg-sky-50 font-medium text-slate-900 ring-1 ring-sky-200/60'
                                   : isDark
-                                    ? 'text-slate-300 hover:bg-white/[0.06]'
-                                    : 'text-slate-700 hover:bg-slate-50'
+                                    ? 'font-normal text-slate-400 hover:bg-white/[0.06] hover:text-slate-300'
+                                    : 'font-normal text-slate-600 hover:bg-slate-100/80 hover:text-slate-800'
                               }`}
                             >
-                              <row.icon className="h-4 w-4 shrink-0 opacity-90" strokeWidth={2} aria-hidden />
+                              <row.icon
+                                className="h-3.5 w-3.5 shrink-0 opacity-80"
+                                strokeWidth={2}
+                                aria-hidden
+                              />
                               <span className="min-w-0 flex-1 truncate">{row.label}</span>
                             </button>
                           </li>

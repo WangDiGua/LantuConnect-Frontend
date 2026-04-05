@@ -15,6 +15,13 @@ export const USER_TOP_NAV_SIDEBAR_IDS = [
 
 export type UserTopNavSidebarId = (typeof USER_TOP_NAV_SIDEBAR_IDS)[number];
 
+/** 顶栏除「探索发现」外的五类资源入口：仅主内容区，不展示独立个人左轨 */
+export const USER_TOP_NAV_NO_RAIL_SIDEBAR_IDS = USER_TOP_NAV_SIDEBAR_IDS.filter(
+  (id): id is Exclude<UserTopNavSidebarId, 'hub'> => id !== 'hub',
+);
+
+export const USER_TOP_NAV_NO_RAIL_SIDEBAR_ID_SET = new Set<string>(USER_TOP_NAV_NO_RAIL_SIDEBAR_IDS);
+
 /**
  * 用户壳（consoleRole=user）顶栏：MainLayout 对 filterSidebarRowsForSlimTopNav 始终传入 omitAdminPrimary=true，
  * 横向不出现「平台管理」一级；总览等仍在侧栏抽屉与全局搜索（全量行）可达。

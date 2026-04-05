@@ -27,6 +27,7 @@ import {
   buildHubPersonalNavModel,
   HUB_PERSONAL_RAIL_PARENT_IDS,
   filterSidebarRowsForSlimTopNav,
+  USER_TOP_NAV_NO_RAIL_SIDEBAR_ID_SET,
   type ExploreHubRailConfig,
   type HubPersonalRailSection,
 } from '../constants/topNavPolicy';
@@ -1157,6 +1158,7 @@ const MainLayoutContent: React.FC<{
   /**
    * 独立个人左轨开关必须与 URL 同步，否则整页刷新后 state 回到 false，子页（如工作台）会丢了左轨。
    * hub 页由内嵌 exploreHubRail 提供左轨，这里保持 standalone 关闭以免重复。
+   * 顶栏五类「广场/中心」仅主内容，不叠独立左轨（与顶栏语义一致）。
    */
   useEffect(() => {
     if (consoleRole !== 'user' || exploreHubRailSections.length === 0) {
@@ -1167,8 +1169,12 @@ const MainLayoutContent: React.FC<{
       setPersonalRailOpen(false);
       return;
     }
+    if (USER_TOP_NAV_NO_RAIL_SIDEBAR_ID_SET.has(activeSidebar)) {
+      setPersonalRailOpen(false);
+      return;
+    }
     setPersonalRailOpen(true);
-  }, [consoleRole, exploreHubRailSections.length, page]);
+  }, [consoleRole, exploreHubRailSections.length, page, activeSidebar]);
 
   useEffect(() => {
     const groups = filteredSubGroupsForSidebarId(activeSidebar, consoleRole);

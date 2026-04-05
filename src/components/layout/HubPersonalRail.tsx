@@ -86,25 +86,25 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
   const parentBlocks = useMemo(() => buildParentBlocks(sections), [sections]);
 
   const [expandedParents, setExpandedParents] = useState<Record<string, boolean>>({});
-  /** 二级分组（NavSubGroup 标题）折叠：默认展开，false 表示收起 */
+  /** 二级分组：默认收起，仅 explicit true 为展开 */
   const [expandedSubheads, setExpandedSubheads] = useState<Record<string, boolean>>({});
 
   const isParentOpen = useCallback(
-    (key: string) => expandedParents[key] !== false,
+    (key: string) => expandedParents[key] === true,
     [expandedParents],
   );
 
   const isSubheadOpen = useCallback(
-    (key: string) => expandedSubheads[key] !== false,
+    (key: string) => expandedSubheads[key] === true,
     [expandedSubheads],
   );
 
   const toggleParent = (key: string) => {
-    setExpandedParents((prev) => ({ ...prev, [key]: !(prev[key] !== false) }));
+    setExpandedParents((prev) => ({ ...prev, [key]: !(prev[key] === true) }));
   };
 
   const toggleSubhead = (key: string) => {
-    setExpandedSubheads((prev) => ({ ...prev, [key]: !(prev[key] !== false) }));
+    setExpandedSubheads((prev) => ({ ...prev, [key]: !(prev[key] === true) }));
   };
 
   /** 路由落在某父级下时，自动展开该父级及含当前项的二级分组 */

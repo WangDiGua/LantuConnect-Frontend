@@ -651,18 +651,19 @@ const MainLayoutContent: React.FC<{
 
   const baseActiveSidebar = findSidebarForPage(consoleRole, page)
     ?? (layoutIsAdmin ? 'overview' : 'workspace');
+  /** 与 resource-market 重定向一致：缺省 / 非法 tab 视为 agent，避免高亮瞬间落在「资源与资产」 */
   const activeSidebar =
-    !layoutIsAdmin && page === 'resource-market' && marketTabQuery === 'skill'
-      ? 'skills-center'
-      : !layoutIsAdmin && page === 'resource-market' && marketTabQuery === 'mcp'
-        ? 'mcp-center'
-        : !layoutIsAdmin && page === 'resource-market' && marketTabQuery === 'dataset'
-          ? 'dataset-center'
-          : !layoutIsAdmin && page === 'resource-market' && marketTabQuery === 'agent'
-            ? 'agents-center'
-            : !layoutIsAdmin && page === 'resource-market' && marketTabQuery === 'app'
+    !layoutIsAdmin && page === 'resource-market'
+      ? marketTabQuery === 'skill'
+        ? 'skills-center'
+        : marketTabQuery === 'mcp'
+          ? 'mcp-center'
+          : marketTabQuery === 'dataset'
+            ? 'dataset-center'
+            : marketTabQuery === 'app'
               ? 'apps-center'
-              : baseActiveSidebar;
+              : 'agents-center'
+      : baseActiveSidebar;
   const activeSubItem = pageToSubItem(page, activeSidebar, layoutIsAdmin);
 
   const headerMenusRef = useRef<HTMLDivElement>(null);

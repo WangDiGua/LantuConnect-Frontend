@@ -456,15 +456,7 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
             const childrenOpen = searchMode || isParentOpen(block.key);
             return (
               <div key={block.key}>
-                <div
-                  className={`rounded-xl border transition-colors duration-200 ${
-                    childrenOpen
-                      ? isDark
-                        ? 'border-white/[0.1] bg-white/[0.04]'
-                        : 'border-slate-200/80 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.05)]'
-                      : 'border-transparent'
-                  }`}
-                >
+                <div className="border border-transparent">
                   <button
                     type="button"
                     onClick={() => toggleParent(block.key)}

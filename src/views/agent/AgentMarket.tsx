@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Star, Heart, TrendingUp, Rocket, ChevronRight, Package, MessageSquare } from 'lucide-react';
 import type { Theme, FontSize, ThemeColor } from '../../types';
 import { THEME_COLOR_CLASSES } from '../../constants/theme';
-import { useMarketList, useMarketTags, useMarketDetail } from '../../hooks/market';
+import { useMarketList, useMarketTags } from '../../hooks/market';
 import type { MarketListParams } from '../../hooks/market/types';
 import {
   MarketLayout,
@@ -16,8 +16,6 @@ import {
 } from '../../components/market';
 import { BentoCard } from '../../components/common/BentoCard';
 import { Modal } from '../../components/common/Modal';
-import { AgentReviews } from './AgentReviews';
-import { GrantApplicationModal } from '../../components/business/GrantApplicationModal';
 import { buildPath } from '../../constants/consoleRoutes';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { agentService } from '../../api/services/agent.service';
@@ -137,20 +135,8 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
 
   const cards = useMemo(() => agents.map(agentToCard), [agents]);
 
-  const {
-    detailItem: detailAgent,
-    setDetailItem: setDetailAgent,
-  } = useMarketDetail<MarketCard>({
-    items: cards,
-    loading,
-    getId: (card) => card.id,
-    showMessage,
-  });
-
   const [confirmAgent, setConfirmAgent] = useState<MarketCard | null>(null);
   const [addingAgent, setAddingAgent] = useState(false);
-  const [grantModalAgent, setGrantModalAgent] = useState<MarketCard | null>(null);
-
   const WS_KEY = 'lantu_workspace_agents';
   const [workspaceAgents, setWorkspaceAgents] = useState<string[]>(() => {
     try {
@@ -262,7 +248,6 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
                       hover
                       glow="indigo"
                       padding="md"
-                      selected={detailAgent != null && String(detailAgent.id) === String(a.id)}
                       className="flex flex-col sm:flex-row gap-4"
                     >
                       <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shrink-0 ${isDark ? 'bg-white/[0.04]' : 'bg-slate-50'}`}>
@@ -297,7 +282,7 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
                             <button
                               type="button"
                               className={btnSecondary(theme)}
-                              onClick={() => setDetailAgent(a)}
+                              onClick={() => navigate(buildPath('user', 'agents-center', a.id))}
                             >
                               详情与评论
                               <ChevronRight size={14} />
@@ -332,8 +317,7 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
                     hover
                     glow="indigo"
                     padding="md"
-                    selected={detailAgent != null && String(detailAgent.id) === String(a.id)}
-                    onClick={() => setDetailAgent(a)}
+                    onClick={() => navigate(buildPath('user', 'agents-center', a.id))}
                     className="flex flex-col h-full"
                   >
                     <MarketplaceListingCard
@@ -387,69 +371,6 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
           </>
         )}
 
-        <Modal open={!!detailAgent} onClose={() => setDetailAgent(null)} theme={theme} size="lg">
-          {detailAgent && (
-            <>
-              <div className="flex items-center gap-3 mb-4">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shrink-0 ${isDark ? 'bg-white/[0.04]' : 'bg-slate-50'}`}>
-                  {detailAgent.emoji}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className={`text-lg font-bold truncate ${textPrimary(theme)}`}>{detailAgent.name}</h3>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className={`text-xs ${textMuted(theme)}`}>{detailAgent.author}</span>
-                    <span className="inline-flex items-center gap-0.5 text-xs">
-                      <Star size={12} className="text-amber-500 fill-amber-500" />
-                      {detailAgent.rating}
-                    </span>
-                    <span className={`text-xs ${textMuted(theme)}`}>{detailAgent.reviewCount} 条评价</span>
-                    <span className={`text-xs ${textMuted(theme)}`}>{detailAgent.installs} 次安装</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    className={btnSecondary(theme)}
-                    onClick={() => setGrantModalAgent(detailAgent)}
-                  >
-                    申请授权
-                  </button>
-                  <button
-                    type="button"
-                    className={`${btnPrimary} shrink-0 ${isInWorkspace(detailAgent.id) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    disabled={isInWorkspace(detailAgent.id)}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (!isInWorkspace(detailAgent.id)) setConfirmAgent(detailAgent);
-                    }}
-                  >
-                    <Rocket size={14} />
-                    {isInWorkspace(detailAgent.id) ? '已添加' : '一键部署'}
-                  </button>
-                </div>
-              </div>
-              <div className="space-y-5">
-                <div>
-                  <p className={`text-sm leading-relaxed ${textSecondary(theme)}`}>{detailAgent.description}</p>
-                  <div className="flex flex-wrap gap-1.5 mt-3">
-                    {detailAgent.tags.map((t) => (
-                      <span key={t} className={techBadge(theme)}>
-                        {t}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <h4 className={`font-bold text-base mb-4 flex items-center gap-2 ${textPrimary(theme)}`}>
-                    消息
-                  </h4>
-                  <AgentReviews agentId={Number(detailAgent.id)} theme={theme} fontSize={fontSize} showMessage={showMessage} />
-                </div>
-              </div>
-            </>
-          )}
-        </Modal>
-
         <Modal
           open={!!confirmAgent}
           onClose={() => setConfirmAgent(null)}
@@ -480,15 +401,6 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
           {confirmAgent && <p className={`text-sm ${textSecondary(theme)}`}>确认将「{confirmAgent.name}」添加到工作区？</p>}
         </Modal>
 
-        <GrantApplicationModal
-          open={!!grantModalAgent}
-          onClose={() => setGrantModalAgent(null)}
-          theme={theme}
-          resourceType="agent"
-          resourceId={grantModalAgent?.id ?? ''}
-          resourceName={grantModalAgent?.name}
-          showMessage={showMessage}
-        />
       </MarketLayout>
     </div>
   );

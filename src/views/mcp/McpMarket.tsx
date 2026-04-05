@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { tagService } from '../../api/services/tag.service';
 import { filterTagsForResourceType } from '../../utils/marketTags';
 import type { TagItem } from '../../types/dto/tag';
@@ -35,8 +35,8 @@ import { nativeInputClass } from '../../utils/formFieldClasses';
 import { BentoCard } from '../../components/common/BentoCard';
 import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 import { MarketplaceListingCard, MarketplaceStatItem } from '../../components/market';
-import { Modal } from '../../components/common/Modal';
 import { ResourceReviewsSection } from '../../components/business/ResourceReviewsSection';
+import { ResourceMarketDetailShell } from '../../components/market';
 import { GrantApplicationModal } from '../../components/business/GrantApplicationModal';
 import { LantuSelect } from '../../components/common/LantuSelect';
 import {
@@ -67,6 +67,8 @@ interface Props {
   fontSize: FontSize;
   themeColor?: ThemeColor;
   showMessage?: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void;
+  /** 路径 `/user/mcp-center/:id` 时由 MainLayout 传入，全页详情 */
+  detailResourceId?: string | null;
 }
 
 function tryParseJsonObject(input: string): { ok: true; payload?: Record<string, unknown>; message?: string } | { ok: false; message: string } {
@@ -178,7 +180,7 @@ function tryFormatJsonText(raw: string): { asJson: boolean; text: string } {
 }
 
 
-export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _themeColor, showMessage }) => {
+export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _themeColor, showMessage, detailResourceId }) => {
   const navigate = useNavigate();
   const { chromePageTitle } = useLayoutChrome();
   const isDark = theme === 'dark';
@@ -213,8 +215,8 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
   const [detailTab, setDetailTab] = useState<McpDetailTab>('reviews');
-  const [searchParams, setSearchParams] = useSearchParams();
-  const processedResourceId = useRef<string | null>(null);
+  const [detailPageLoading, setDetailPageLoading] = useState(false);
+  const [detailPageError, setDetailPageError] = useState<Error | null>(null);
   /** 未按标签筛选时的列表快照，用于侧栏标签数量（筛选后仍显示「上次全量列表」分布） */
   const [tagStatsRows, setTagStatsRows] = useState<ResourceCatalogItemVO[]>([]);
 
@@ -250,25 +252,32 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
     void load();
   }, [load]);
 
+  const ridKey = (detailResourceId ?? '').trim();
+
+  const loadMcpDetailByPath = useCallback(async () => {
+    if (!ridKey) return;
+    setDetailPageLoading(true);
+    setDetailPageError(null);
+    try {
+      const row = await resourceCatalogService.getByTypeAndId('mcp', ridKey);
+      setDetail(row);
+    } catch (e) {
+      setDetail(null);
+      setDetailPageError(e instanceof Error ? e : new Error('加载失败'));
+    } finally {
+      setDetailPageLoading(false);
+    }
+  }, [ridKey]);
+
   useEffect(() => {
-    const rid = searchParams.get('resourceId');
-    if (!rid) {
-      processedResourceId.current = null;
+    if (!ridKey) {
+      setDetail(null);
+      setDetailPageError(null);
+      setDetailPageLoading(false);
       return;
     }
-    if (loading || rows.length === 0) return;
-    if (processedResourceId.current === rid) return;
-    processedResourceId.current = rid;
-    const next = new URLSearchParams(searchParams);
-    next.delete('resourceId');
-    setSearchParams(next, { replace: true });
-    const hit = rows.find((r) => String(r.resourceId) === String(rid));
-    if (hit) {
-      setDetail(hit);
-    } else {
-      showMessage?.('未在已上架列表中找到该资源，请确认资源已发布且 ID 正确', 'warning');
-    }
-  }, [loading, rows, searchParams, setSearchParams, showMessage]);
+    void loadMcpDetailByPath();
+  }, [ridKey, loadMcpDetailByPath]);
 
   useEffect(() => {
     if (!loading && !loadError && tagFilter == null) {
@@ -695,6 +704,424 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
     setMcpPayloadMode('simple');
   };
 
+  if (ridKey) {
+    if (detailPageLoading) {
+      return (
+        <div className={`w-full min-h-0 ${canvasBodyBg(theme)}`}>
+          <PageSkeleton type="detail" />
+        </div>
+      );
+    }
+    if (detailPageError || !detail) {
+      return (
+        <div className={`w-full px-4 py-8 ${canvasBodyBg(theme)}`}>
+          <PageError error={detailPageError ?? new Error('未找到 MCP 资源')} onRetry={() => void loadMcpDetailByPath()} retryLabel="重试" />
+          <button type="button" className={`mt-4 ${btnSecondary(theme)}`} onClick={() => navigate(buildPath('user', 'mcp-center'))}>
+            返回 MCP 市场
+          </button>
+        </div>
+      );
+    }
+    return (
+      <>
+        <ResourceMarketDetailShell
+          theme={theme}
+          onBack={() => navigate(buildPath('user', 'mcp-center'))}
+          backLabel="返回 MCP 市场"
+          titleBlock={(
+            <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start">
+              <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-white shadow-lg ${isDark ? 'bg-gradient-to-br from-violet-500 to-indigo-500' : 'bg-gradient-to-br from-violet-600 to-indigo-600'}`}>
+                <Puzzle className="h-7 w-7" aria-hidden />
+              </div>
+              <div className="min-w-0 flex-1 space-y-2">
+                <h1 className={`text-2xl font-bold tracking-tight sm:text-3xl ${textPrimary(theme)}`}>{detail.displayName}</h1>
+                <div className={`flex flex-wrap items-center gap-2 text-xs ${textMuted(theme)}`}>
+                  <span className="font-mono">@{detail.resourceCode || detail.resourceId}</span>
+                  <span className={`inline-flex items-center rounded-md px-2 py-0.5 font-medium ${isDark ? 'bg-white/10 text-slate-200' : 'bg-slate-100 text-slate-700'}`}>
+                    {statusLabel(detail.status as never)}
+                  </span>
+                  <span className="inline-flex items-center gap-0.5 tabular-nums">
+                    <Star size={12} className="text-amber-500" aria-hidden />
+                    {detail.ratingAvg != null ? detail.ratingAvg.toFixed(1) : '—'}
+                  </span>
+                  <span>{Number(detail.reviewCount ?? 0)} 条评论</span>
+                </div>
+              </div>
+            </div>
+          )}
+          headerActions={(
+            <>
+              <button type="button" className={`${btnSecondary(theme)} min-h-11 disabled:opacity-50`} disabled={favoriteLoading || isFavorited} onClick={() => void handleFavorite()}>
+                {favoriteLoading ? <><Loader2 size={14} className="animate-spin" /> 收藏中…</> : <><Heart size={14} className={isFavorited ? 'fill-current' : ''} /> {isFavorited ? '已收藏' : '收藏'}</>}
+              </button>
+              <button type="button" className={`${btnSecondary(theme)} inline-flex min-h-11 items-center gap-2`} onClick={handleApply}>
+                <Send size={14} />
+                获取授权指引
+              </button>
+              <button type="button" className={`${btnPrimary} inline-flex min-h-11 items-center gap-2 disabled:opacity-50`} disabled={invoking} onClick={() => void handleInvoke()}>
+                {invoking ? <><Loader2 size={14} className="animate-spin" /> {invokeUseStream ? '流式调用中…' : '调用中…'}</> : <><Play size={14} /> {invokeUseStream ? '流式调用' : '调用'}</>}
+              </button>
+            </>
+          )}
+          tabs={[
+            { id: 'reviews', label: '评分评论', badge: Number(detail.reviewCount ?? 0) },
+            { id: 'invoke', label: '调用调试' },
+          ]}
+          activeTabId={detailTab}
+          onTabChange={(id) => setDetailTab(id as McpDetailTab)}
+          mainColumn={(
+            <div className="space-y-5">
+              <p className={`text-[11px] ${textMuted(theme)}`}>{detailTab === 'invoke' ? '当前：调用参数与结果' : '当前：资源评论区'}</p>
+              {detailTab === 'invoke' ? (
+                <div className="space-y-5">
+            <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className={`mb-1.5 block text-xs font-semibold ${textSecondary(theme)}`}>调用通道</label>
+                  <LantuSelect
+                    theme={theme}
+                    value={invokeGatewayMode}
+                    onChange={(next) => setInvokeGatewayMode(next as InvokeGatewayMode)}
+                    options={[
+                      {
+                        value: 'invoke',
+                        label: invokeUseStream ? `${API_PATH_PREFIX}/invoke-stream（流式）` : `${API_PATH_PREFIX}/invoke（推荐）`,
+                      },
+                      {
+                        value: 'sdk',
+                        label: invokeUseStream ? `${API_PATH_PREFIX}/sdk/v1/invoke-stream（流式）` : `${API_PATH_PREFIX}/sdk/v1/invoke（SDK）`,
+                      },
+                    ]}
+                    triggerClassName="!text-xs"
+                  />
+                  <label className={`mt-2 flex cursor-pointer items-start gap-2 text-[11px] ${textMuted(theme)}`}>
+                    <input
+                      type="checkbox"
+                      className="mt-0.5 rounded border-slate-400"
+                      checked={invokeUseStream}
+                      onChange={(e) => setInvokeUseStream(e.target.checked)}
+                    />
+                    <span>
+                      流式调用（invoke-stream，fetch 长连接；权限同 invoke）。WebSocket MCP 请保持关闭并使用普通调用。
+                    </span>
+                  </label>
+                </div>
+                <div>
+                  <label className={`mb-1.5 block text-xs font-semibold ${textSecondary(theme)}`}>X-Api-Key（必填）</label>
+                  <div className="relative">
+                    <input
+                      type={showApiKey ? 'text' : 'password'}
+                      name="x-api-key"
+                      autoComplete="new-password"
+                      autoCapitalize="off"
+                      spellCheck={false}
+                      value={invokeApiKey}
+                      onChange={(e) => setInvokeApiKey(e.target.value.replace(/\s+/g, ''))}
+                      placeholder="sk_xxx..."
+                      className={`${nativeInputClass(theme)} pr-10 font-mono text-xs`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowApiKey((v) => !v)}
+                      className={`absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 ${
+                        isDark ? 'text-slate-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'
+                      }`}
+                      title={showApiKey ? '隐藏密钥' : '显示密钥'}
+                    >
+                      {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                  </div>
+                  <p className={`mt-1 text-[11px] ${textMuted(theme)}`}>
+                    请填写创建 API Key 时返回的完整 <code className="font-mono">sk_...</code> 明文（非 id、prefix、掩码）。
+                  </p>
+                </div>
+                <div>
+                  <label className={`mb-1.5 block text-xs font-semibold ${textSecondary(theme)}`}>X-Trace-Id（可选，贯穿本轮调试）</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={invokeTraceId}
+                      className={`${nativeInputClass(theme)} min-w-0 flex-1 font-mono text-xs`}
+                    />
+                    <button
+                      type="button"
+                      className={`${btnSecondary(theme)} shrink-0 !px-2.5`}
+                      title="重新生成 TraceId"
+                      onClick={() => setInvokeTraceId(newTraceId())}
+                    >
+                      <RefreshCw size={14} />
+                    </button>
+                  </div>
+                  <p className={`mt-1 text-[11px] ${textMuted(theme)}`}>与网关 SSE 解析及 JSON-RPC id 对齐时可固定使用本值</p>
+                </div>
+                <div>
+                  <label className={`mb-1.5 block text-xs font-semibold ${textSecondary(theme)}`}>版本（可选）</label>
+                  <input
+                    type="text"
+                    value={invokeVersion}
+                    onChange={(e) => setInvokeVersion(e.target.value)}
+                    placeholder="v1"
+                    className={`${nativeInputClass(theme)} font-mono text-xs`}
+                  />
+                  <p className={`mt-1 text-[11px] ${textMuted(theme)}`}>不填则走后端默认版本</p>
+                </div>
+                <div>
+                  <label className={`mb-1.5 block text-xs font-semibold ${textSecondary(theme)}`}>超时（秒）</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={invokeUseStream ? 600 : 120}
+                    value={invokeTimeoutSec}
+                    onChange={(e) => setInvokeTimeoutSec(Number(e.target.value) || 60)}
+                    className={`${nativeInputClass(theme)} font-mono text-xs`}
+                  />
+                  <p className={`mt-1 text-[11px] ${textMuted(theme)}`}>
+                    {invokeUseStream ? '流式时最长 600 秒（与网关一致）' : '建议范围 1~120 秒'}
+                  </p>
+                </div>
+            </div>
+            {invokeUseStream && (invoking || invokeStreamOutput) && (
+                <div>
+                  <p className={`mb-1 text-xs font-semibold ${textSecondary(theme)}`}>流式输出（实时）</p>
+                  <pre className={`max-h-[28vh] overflow-auto rounded-xl border p-3 text-xs leading-relaxed whitespace-pre-wrap ${
+                    isDark ? 'border-white/10 bg-lantu-card' : 'border-slate-200 bg-white'
+                  }`}>
+                    {invokeStreamOutput || (invoking ? '等待首包…' : '')}
+                  </pre>
+                </div>
+            )}
+            <div>
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <span className={`text-xs font-semibold ${textSecondary(theme)}`}>调用参数（JSON-RPC）</span>
+                  <div
+                    className={`inline-flex rounded-lg p-0.5 ${isDark ? 'bg-white/[0.06]' : 'bg-slate-100'}`}
+                    role="group"
+                    aria-label="参数编辑模式"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => switchPayloadMode('simple')}
+                      className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors ${
+                        mcpPayloadMode === 'simple'
+                          ? isDark
+                            ? 'bg-white/10 text-white shadow-sm'
+                            : 'bg-white text-slate-900 shadow-sm'
+                          : textMuted(theme)
+                      }`}
+                    >
+                      快捷
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => switchPayloadMode('advanced')}
+                      className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors ${
+                        mcpPayloadMode === 'advanced'
+                          ? isDark
+                            ? 'bg-white/10 text-white shadow-sm'
+                            : 'bg-white text-slate-900 shadow-sm'
+                          : textMuted(theme)
+                      }`}
+                    >
+                      高级
+                    </button>
+                  </div>
+                </div>
+                {mcpPayloadMode === 'simple' ? (
+                  <div className="space-y-2">
+                    <div>
+                      <label className={`mb-1.5 block text-[11px] font-medium ${textMuted(theme)}`}>JSON-RPC method</label>
+                      <LantuSelect
+                        theme={theme}
+                        value={mcpMethod}
+                        onChange={handleMcpMethodChange}
+                        options={mcpMethodOptions}
+                        triggerClassName="!text-xs"
+                      />
+                      <p className={`mt-1 text-[11px] ${textMuted(theme)}`}>展示为中文提示，实际发送仍使用后端要求的 method 值</p>
+                    </div>
+                    <div>
+                      <label className={`mb-1.5 block text-[11px] font-medium ${textMuted(theme)}`}>参数示例模板</label>
+                      <LantuSelect
+                        theme={theme}
+                        value={mcpPresetId}
+                        onChange={handlePresetChange}
+                        options={methodPresetOptions}
+                        triggerClassName="!text-xs"
+                      />
+                      <p className={`mt-1 text-[11px] ${textMuted(theme)}`}>模板中的 `your_tool_name` / `arguments` 为占位，请按当前 MCP 实际工具名修改</p>
+                    </div>
+                    <div>
+                      <label className={`mb-1.5 block text-[11px] font-medium ${textMuted(theme)}`}>params（JSON 对象）</label>
+                      <AutoHeightTextarea
+                        minRows={5}
+                        maxRows={22}
+                        value={mcpParamsJson}
+                        onChange={(e) => setMcpParamsJson(e.target.value)}
+                        className={`${nativeInputClass(theme)} resize-none font-mono text-xs`}
+                        placeholder='例如 tools/call：{ "name": "...", "arguments": {} }'
+                      />
+                      <p className={`mt-1 text-[11px] ${textMuted(theme)}`}>
+                        字段说明：<code className="font-mono">name</code> = 工具名；<code className="font-mono">arguments</code> = 传给该工具的参数对象
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <p className={`mb-1.5 text-[11px] ${textMuted(theme)}`}>
+                      完整 payload，须含 <code className="font-mono">method</code>；可与 <code className="font-mono">params</code> 并列，或按网关约定省略 params 由其余字段充当 params。
+                    </p>
+                    <AutoHeightTextarea
+                      minRows={8}
+                      maxRows={28}
+                      value={invokePayload}
+                      onChange={(e) => setInvokePayload(e.target.value)}
+                      className={`${nativeInputClass(theme)} resize-none font-mono text-xs`}
+                    />
+                  </div>
+                )}
+            </div>
+            {invokeResultMessage && (
+                <div className={`rounded-2xl border px-3.5 py-3 text-xs ${
+                  isDark ? 'border-blue-500/20 bg-blue-500/[0.08] text-blue-100' : 'border-blue-200 bg-blue-50 text-blue-900'
+                }`}>
+                  {invokeResultMessage}
+                </div>
+            )}
+            {invokeResultError && (
+                <div className={`rounded-2xl border px-3.5 py-3 text-xs whitespace-pre-wrap ${
+                  isDark ? 'border-rose-500/25 bg-rose-500/[0.08] text-rose-100' : 'border-rose-200 bg-rose-50 text-rose-900'
+                }`}>
+                  {invokeResultError}
+                </div>
+            )}
+            {invokeResponse && (
+                <div className={`rounded-2xl border p-4 space-y-4 ${
+                  isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200 bg-slate-50'
+                }`}>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <h5 className={`text-sm font-semibold ${textSecondary(theme)}`}>调用结果</h5>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                          invokeResponse.status === 'success'
+                            ? isDark ? 'bg-emerald-500/20 text-emerald-200' : 'bg-emerald-100 text-emerald-700'
+                            : isDark ? 'bg-rose-500/20 text-rose-200' : 'bg-rose-100 text-rose-700'
+                        }`}
+                      >
+                        {invokeResponse.status}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        className={`${btnSecondary(theme)} !px-2.5 !py-1 !text-xs`}
+                        onClick={() => void copyText(JSON.stringify(invokeResponse, null, 2), '已复制完整响应')}
+                      >
+                        <Copy size={12} />
+                        复制响应
+                      </button>
+                      <button
+                        type="button"
+                        className={`${btnSecondary(theme)} !px-2.5 !py-1 !text-xs`}
+                        onClick={() => void copyText(invokeBodyView?.text ?? '', '已复制响应体')}
+                      >
+                        <Copy size={12} />
+                        复制 body
+                      </button>
+                    </div>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    <div className={`rounded-xl border p-2.5 ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-white'}`}>
+                      <p className={`text-[11px] ${textMuted(theme)}`}>状态码</p>
+                      <p className={`mt-1 text-sm font-semibold ${textPrimary(theme)}`}>{invokeResponse.statusCode}</p>
+                    </div>
+                    <div className={`rounded-xl border p-2.5 ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-white'}`}>
+                      <p className={`text-[11px] ${textMuted(theme)}`}>耗时</p>
+                      <p className={`mt-1 text-sm font-semibold ${textPrimary(theme)}`}>{invokeResponse.latencyMs} ms</p>
+                    </div>
+                    <div className={`rounded-xl border p-2.5 ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-white'}`}>
+                      <p className={`text-[11px] ${textMuted(theme)}`}>资源</p>
+                      <p className={`mt-1 text-sm font-semibold ${textPrimary(theme)}`}>
+                        {invokeResponse.resourceType}
+                        {'/'}
+                        {invokeResponse.resourceId}
+                      </p>
+                    </div>
+                  </div>
+                  <div className={`grid gap-1.5 rounded-xl border p-3 text-xs ${isDark ? 'border-white/10 bg-black/10' : 'border-slate-200 bg-white'}`}>
+                    <p className={textSecondary(theme)}>requestId：<span className={`${textPrimary(theme)} font-mono break-all`}>{invokeResponse.requestId}</span></p>
+                    <p className={textSecondary(theme)}>traceId（响应）：<span className={`${textPrimary(theme)} font-mono break-all`}>{invokeResponse.traceId}</span></p>
+                    <p className={textSecondary(theme)}>traceId（请求）：<span className={`${textPrimary(theme)} font-mono break-all`}>{invokeRequestTraceId || invokeTraceId}</span></p>
+                  </div>
+                  <div>
+                    <p className={`mb-2 text-xs font-semibold ${textSecondary(theme)}`}>
+                      body（{invokeBodyView?.asJson ? 'JSON' : '文本'}）
+                    </p>
+                    <pre className={`max-h-[44vh] overflow-auto rounded-xl border p-3 text-xs leading-relaxed whitespace-pre-wrap ${
+                      isDark ? 'border-white/10 bg-lantu-card' : 'border-slate-200 bg-white'
+                    }`}>
+                      {invokeBodyView?.text || ''}
+                    </pre>
+                  </div>
+                </div>
+            )}
+                </div>
+              ) : (
+                <div className={`rounded-2xl border p-4 ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-slate-50/60'}`}>
+                  <h4 className={`mb-3 flex items-center gap-2 text-sm font-semibold ${textPrimary(theme)}`}>
+                    <MessageSquare size={16} className="text-neutral-800" />
+                    评分与评论
+                  </h4>
+                  <ResourceReviewsSection
+                    targetType="mcp"
+                    targetId={detail.resourceId}
+                    theme={theme}
+                    appearance="airy"
+                    showMessage={showMessage}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+          sidebarColumn={(
+            <div className="space-y-4">
+              <div className={`rounded-2xl border p-4 ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200 bg-slate-50/70'}`}>
+                <p className={`text-xs ${textMuted(theme)}`}>资源编码：{detail.resourceCode || detail.resourceId}</p>
+                <div className="mt-2">
+                  <AccessPolicyBadge theme={theme} value={detail.accessPolicy} showHint={true} />
+                </div>
+                <p className={`mt-1 text-xs ${textMuted(theme)}`}>
+                  调用目标：mcp{' / '}
+                  <span className="font-mono">{detail.resourceId}</span>
+                </p>
+                <p className={`mt-2 text-sm leading-relaxed ${textSecondary(theme)}`}>{detail.description || '暂无描述'}</p>
+              </div>
+              <div className={`rounded-xl border p-3 text-xs leading-relaxed ${isDark ? 'border-amber-500/25 bg-amber-500/[0.07] text-amber-100/90' : 'border-amber-200 bg-amber-50 text-amber-950/85'}`}>
+                <p className="font-semibold">统一网关 MCP 试用说明</p>
+                <p className={`mt-1.5 ${isDark ? 'text-amber-100/75' : 'text-amber-950/70'}`}>
+                  多轮流程（如 initialize → tools/list → tools/call）请<strong className="font-semibold">连续多次点击顶栏「调用」</strong>，并保持同一 API Key；
+                  <code className="mx-0.5 rounded px-1 py-0.5 font-mono text-[11px] opacity-90">Mcp-Session-Id</code>
+                  由网关按密钥与 endpoint 自动维护，前端无需手动传递。工具真实名称须以
+                  <code className="mx-0.5 rounded px-1 py-0.5 font-mono text-[11px] opacity-90">tools/list</code>
+                  返回为准。
+                </p>
+              </div>
+            </div>
+          )}
+        />
+        <GrantApplicationModal
+          open={grantModalOpen}
+          onClose={() => setGrantModalOpen(false)}
+          theme={theme}
+          resourceType="mcp"
+          resourceId={detail.resourceId}
+          resourceName={detail.displayName}
+          showMessage={showMessage}
+        />
+      </>
+    );
+  }
+
   const searchPlaceholder =
     listCountLabel > 0
       ? `搜索 MCP 服务（本页已加载 ${rows.length} 条）…`
@@ -904,9 +1331,8 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                     hover
                     glow="indigo"
                     padding="md"
-                    selected={detail != null && String(detail.resourceId) === String(item.resourceId)}
                     className="flex h-full flex-col"
-                    onClick={() => setDetail(item)}
+                    onClick={() => navigate(buildPath('user', 'mcp-center', item.resourceId))}
                   >
                     <MarketplaceListingCard
                       theme={theme}
@@ -962,7 +1388,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                           className={`${btnPrimary} !px-3 !py-1.5 !text-xs`}
                           onClick={(e) => {
                             e.stopPropagation();
-                            setDetail(item);
+                            navigate(buildPath('user', 'mcp-center', item.resourceId));
                           }}
                         >
                           查看与使用
@@ -976,413 +1402,6 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
           </div>
         </div>
       </div>
-
-      <Modal
-        open={!!detail}
-        onClose={() => { setDetail(null); setGrantModalOpen(false); }}
-        title={detail ? `MCP 详情 - ${detail.displayName}` : ''}
-        theme={theme}
-        size="xl"
-        contentClassName="flex-1 overflow-y-auto px-6 py-4 lg:px-8 lg:py-5"
-        footer={(
-          <>
-            <button type="button" className={btnSecondary(theme)} onClick={() => setDetail(null)}>关闭</button>
-            <button type="button" className={`${btnSecondary(theme)} disabled:opacity-50`} disabled={favoriteLoading || isFavorited} onClick={() => void handleFavorite()}>
-              {favoriteLoading ? <><Loader2 size={14} className="animate-spin" /> 收藏中…</> : <><Heart size={14} className={isFavorited ? 'fill-current' : ''} /> {isFavorited ? '已收藏' : '收藏'}</>}
-            </button>
-            <button type="button" className={btnSecondary(theme)} onClick={handleApply}>
-              <Send size={14} />
-              获取授权指引
-            </button>
-            <button type="button" className={`${btnPrimary} disabled:opacity-50`} disabled={invoking} onClick={() => void handleInvoke()}>
-              {invoking ? (
-                <><Loader2 size={14} className="animate-spin" /> {invokeUseStream ? '流式调用中…' : '调用中…'}</>
-              ) : (
-                <><Play size={14} /> {invokeUseStream ? '流式调用' : '调用'}</>
-              )}
-            </button>
-          </>
-        )}
-      >
-        {detail && (
-          <div className="space-y-5">
-            <div className={`rounded-2xl border p-4 ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200 bg-slate-50/70'}`}>
-              <p className={`text-xs ${textMuted(theme)}`}>资源编码：{detail.resourceCode || detail.resourceId}</p>
-              <div className="mt-2">
-                <AccessPolicyBadge theme={theme} value={detail.accessPolicy} showHint />
-              </div>
-              <p className={`mt-1 text-xs ${textMuted(theme)}`}>调用目标：mcp / {detail.resourceId}</p>
-              <p className={`mt-2 text-sm leading-relaxed ${textSecondary(theme)}`}>{detail.description || '暂无描述'}</p>
-            </div>
-            <div
-              className={`rounded-xl border p-3 text-xs leading-relaxed ${
-                isDark ? 'border-amber-500/25 bg-amber-500/[0.07] text-amber-100/90' : 'border-amber-200 bg-amber-50 text-amber-950/85'
-              }`}
-            >
-              <p className="font-semibold">统一网关 MCP 试用说明</p>
-              <p className={`mt-1.5 ${isDark ? 'text-amber-100/75' : 'text-amber-950/70'}`}>
-                多轮流程（如 initialize → tools/list → tools/call）请<strong className="font-semibold">连续多次点击「调用」</strong>，并保持同一 API Key；
-                <code className="mx-0.5 rounded px-1 py-0.5 font-mono text-[11px] opacity-90">Mcp-Session-Id</code>
-                由网关按密钥与 endpoint 自动维护，前端无需手动传递。工具真实名称须以
-                <code className="mx-0.5 rounded px-1 py-0.5 font-mono text-[11px] opacity-90">tools/list</code>
-                返回为准。
-              </p>
-            </div>
-            <div className="flex items-center justify-between gap-2">
-              <div
-                className={`inline-flex rounded-xl p-1 ${isDark ? 'bg-white/[0.06]' : 'bg-slate-100'}`}
-                role="tablist"
-                aria-label="MCP 详情标签页"
-              >
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={detailTab === 'reviews'}
-                  onClick={() => setDetailTab('reviews')}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    detailTab === 'reviews'
-                      ? isDark ? 'bg-white/12 text-white' : 'bg-white text-slate-900 shadow-sm'
-                      : textMuted(theme)
-                  }`}
-                >
-                  评分评论
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={detailTab === 'invoke'}
-                  onClick={() => setDetailTab('invoke')}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    detailTab === 'invoke'
-                      ? isDark ? 'bg-white/12 text-white' : 'bg-white text-slate-900 shadow-sm'
-                      : textMuted(theme)
-                  }`}
-                >
-                  调用调试
-                </button>
-              </div>
-              <span className={`text-[11px] ${textMuted(theme)}`}>
-                {detailTab === 'invoke' ? '当前：调用参数与结果' : '当前：资源评论区'}
-              </span>
-            </div>
-            {detailTab === 'invoke' && (
-              <>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <label className={`mb-1.5 block text-xs font-semibold ${textSecondary(theme)}`}>调用通道</label>
-                <LantuSelect
-                  theme={theme}
-                  value={invokeGatewayMode}
-                  onChange={(next) => setInvokeGatewayMode(next as InvokeGatewayMode)}
-                  options={[
-                    {
-                      value: 'invoke',
-                      label: invokeUseStream ? `${API_PATH_PREFIX}/invoke-stream（流式）` : `${API_PATH_PREFIX}/invoke（推荐）`,
-                    },
-                    {
-                      value: 'sdk',
-                      label: invokeUseStream ? `${API_PATH_PREFIX}/sdk/v1/invoke-stream（流式）` : `${API_PATH_PREFIX}/sdk/v1/invoke（SDK）`,
-                    },
-                  ]}
-                  triggerClassName="!text-xs"
-                />
-                <label className={`mt-2 flex cursor-pointer items-start gap-2 text-[11px] ${textMuted(theme)}`}>
-                  <input
-                    type="checkbox"
-                    className="mt-0.5 rounded border-slate-400"
-                    checked={invokeUseStream}
-                    onChange={(e) => setInvokeUseStream(e.target.checked)}
-                  />
-                  <span>
-                    流式调用（invoke-stream，fetch 长连接；权限同 invoke）。WebSocket MCP 请保持关闭并使用普通调用。
-                  </span>
-                </label>
-              </div>
-              <div>
-                <label className={`mb-1.5 block text-xs font-semibold ${textSecondary(theme)}`}>X-Api-Key（必填）</label>
-                <div className="relative">
-                  <input
-                    type={showApiKey ? 'text' : 'password'}
-                    name="x-api-key"
-                    autoComplete="new-password"
-                    autoCapitalize="off"
-                    spellCheck={false}
-                    value={invokeApiKey}
-                    onChange={(e) => setInvokeApiKey(e.target.value.replace(/\s+/g, ''))}
-                    placeholder="sk_xxx..."
-                    className={`${nativeInputClass(theme)} pr-10 font-mono text-xs`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowApiKey((v) => !v)}
-                    className={`absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 ${
-                      isDark ? 'text-slate-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'
-                    }`}
-                    title={showApiKey ? '隐藏密钥' : '显示密钥'}
-                  >
-                    {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
-                  </button>
-                </div>
-                <p className={`mt-1 text-[11px] ${textMuted(theme)}`}>
-                  请填写创建 API Key 时返回的完整 <code className="font-mono">sk_...</code> 明文（非 id、prefix、掩码）。
-                </p>
-              </div>
-              <div>
-                <label className={`mb-1.5 block text-xs font-semibold ${textSecondary(theme)}`}>X-Trace-Id（可选，贯穿本轮调试）</label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    readOnly
-                    value={invokeTraceId}
-                    className={`${nativeInputClass(theme)} min-w-0 flex-1 font-mono text-xs`}
-                  />
-                  <button
-                    type="button"
-                    className={`${btnSecondary(theme)} shrink-0 !px-2.5`}
-                    title="重新生成 TraceId"
-                    onClick={() => setInvokeTraceId(newTraceId())}
-                  >
-                    <RefreshCw size={14} />
-                  </button>
-                </div>
-                <p className={`mt-1 text-[11px] ${textMuted(theme)}`}>与网关 SSE 解析及 JSON-RPC id 对齐时可固定使用本值</p>
-              </div>
-              <div>
-                <label className={`mb-1.5 block text-xs font-semibold ${textSecondary(theme)}`}>版本（可选）</label>
-                <input
-                  type="text"
-                  value={invokeVersion}
-                  onChange={(e) => setInvokeVersion(e.target.value)}
-                  placeholder="v1"
-                  className={`${nativeInputClass(theme)} font-mono text-xs`}
-                />
-                <p className={`mt-1 text-[11px] ${textMuted(theme)}`}>不填则走后端默认版本</p>
-              </div>
-              <div>
-                <label className={`mb-1.5 block text-xs font-semibold ${textSecondary(theme)}`}>超时（秒）</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={invokeUseStream ? 600 : 120}
-                  value={invokeTimeoutSec}
-                  onChange={(e) => setInvokeTimeoutSec(Number(e.target.value) || 60)}
-                  className={`${nativeInputClass(theme)} font-mono text-xs`}
-                />
-                <p className={`mt-1 text-[11px] ${textMuted(theme)}`}>
-                  {invokeUseStream ? '流式时最长 600 秒（与网关一致）' : '建议范围 1~120 秒'}
-                </p>
-              </div>
-            </div>
-            {invokeUseStream && (invoking || invokeStreamOutput) && (
-              <div>
-                <p className={`mb-1 text-xs font-semibold ${textSecondary(theme)}`}>流式输出（实时）</p>
-                <pre className={`max-h-[28vh] overflow-auto rounded-xl border p-3 text-xs leading-relaxed whitespace-pre-wrap ${
-                  isDark ? 'border-white/10 bg-lantu-card' : 'border-slate-200 bg-white'
-                }`}>
-                  {invokeStreamOutput || (invoking ? '等待首包…' : '')}
-                </pre>
-              </div>
-            )}
-            <div>
-              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                <span className={`text-xs font-semibold ${textSecondary(theme)}`}>调用参数（JSON-RPC）</span>
-                <div
-                  className={`inline-flex rounded-lg p-0.5 ${isDark ? 'bg-white/[0.06]' : 'bg-slate-100'}`}
-                  role="group"
-                  aria-label="参数编辑模式"
-                >
-                  <button
-                    type="button"
-                    onClick={() => switchPayloadMode('simple')}
-                    className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors ${
-                      mcpPayloadMode === 'simple'
-                        ? isDark
-                          ? 'bg-white/10 text-white shadow-sm'
-                          : 'bg-white text-slate-900 shadow-sm'
-                        : textMuted(theme)
-                    }`}
-                  >
-                    快捷
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => switchPayloadMode('advanced')}
-                    className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors ${
-                      mcpPayloadMode === 'advanced'
-                        ? isDark
-                          ? 'bg-white/10 text-white shadow-sm'
-                          : 'bg-white text-slate-900 shadow-sm'
-                        : textMuted(theme)
-                    }`}
-                  >
-                    高级
-                  </button>
-                </div>
-              </div>
-              {mcpPayloadMode === 'simple' ? (
-                <div className="space-y-2">
-                  <div>
-                    <label className={`mb-1.5 block text-[11px] font-medium ${textMuted(theme)}`}>JSON-RPC method</label>
-                    <LantuSelect
-                      theme={theme}
-                      value={mcpMethod}
-                      onChange={handleMcpMethodChange}
-                      options={mcpMethodOptions}
-                      triggerClassName="!text-xs"
-                    />
-                    <p className={`mt-1 text-[11px] ${textMuted(theme)}`}>展示为中文提示，实际发送仍使用后端要求的 method 值</p>
-                  </div>
-                  <div>
-                    <label className={`mb-1.5 block text-[11px] font-medium ${textMuted(theme)}`}>参数示例模板</label>
-                    <LantuSelect
-                      theme={theme}
-                      value={mcpPresetId}
-                      onChange={handlePresetChange}
-                      options={methodPresetOptions}
-                      triggerClassName="!text-xs"
-                    />
-                    <p className={`mt-1 text-[11px] ${textMuted(theme)}`}>模板中的 `your_tool_name` / `arguments` 为占位，请按当前 MCP 实际工具名修改</p>
-                  </div>
-                  <div>
-                    <label className={`mb-1.5 block text-[11px] font-medium ${textMuted(theme)}`}>params（JSON 对象）</label>
-                    <AutoHeightTextarea
-                      minRows={5}
-                      maxRows={22}
-                      value={mcpParamsJson}
-                      onChange={(e) => setMcpParamsJson(e.target.value)}
-                      className={`${nativeInputClass(theme)} resize-none font-mono text-xs`}
-                      placeholder='例如 tools/call：{ "name": "...", "arguments": {} }'
-                    />
-                    <p className={`mt-1 text-[11px] ${textMuted(theme)}`}>
-                      字段说明：<code className="font-mono">name</code> = 工具名；<code className="font-mono">arguments</code> = 传给该工具的参数对象
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <p className={`mb-1.5 text-[11px] ${textMuted(theme)}`}>
-                    完整 payload，须含 <code className="font-mono">method</code>；可与 <code className="font-mono">params</code> 并列，或按网关约定省略 params 由其余字段充当 params。
-                  </p>
-                  <AutoHeightTextarea
-                    minRows={8}
-                    maxRows={28}
-                    value={invokePayload}
-                    onChange={(e) => setInvokePayload(e.target.value)}
-                    className={`${nativeInputClass(theme)} resize-none font-mono text-xs`}
-                  />
-                </div>
-              )}
-            </div>
-            {invokeResultMessage && (
-              <div className={`rounded-2xl border px-3.5 py-3 text-xs ${
-                isDark ? 'border-blue-500/20 bg-blue-500/[0.08] text-blue-100' : 'border-blue-200 bg-blue-50 text-blue-900'
-              }`}>
-                {invokeResultMessage}
-              </div>
-            )}
-            {invokeResultError && (
-              <div className={`rounded-2xl border px-3.5 py-3 text-xs whitespace-pre-wrap ${
-                isDark ? 'border-rose-500/25 bg-rose-500/[0.08] text-rose-100' : 'border-rose-200 bg-rose-50 text-rose-900'
-              }`}>
-                {invokeResultError}
-              </div>
-            )}
-            {invokeResponse && (
-              <div className={`rounded-2xl border p-4 space-y-4 ${
-                isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200 bg-slate-50'
-              }`}>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <h5 className={`text-sm font-semibold ${textSecondary(theme)}`}>调用结果</h5>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                        invokeResponse.status === 'success'
-                          ? isDark ? 'bg-emerald-500/20 text-emerald-200' : 'bg-emerald-100 text-emerald-700'
-                          : isDark ? 'bg-rose-500/20 text-rose-200' : 'bg-rose-100 text-rose-700'
-                      }`}
-                    >
-                      {invokeResponse.status}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      className={`${btnSecondary(theme)} !px-2.5 !py-1 !text-xs`}
-                      onClick={() => void copyText(JSON.stringify(invokeResponse, null, 2), '已复制完整响应')}
-                    >
-                      <Copy size={12} />
-                      复制响应
-                    </button>
-                    <button
-                      type="button"
-                      className={`${btnSecondary(theme)} !px-2.5 !py-1 !text-xs`}
-                      onClick={() => void copyText(invokeBodyView?.text ?? '', '已复制响应体')}
-                    >
-                      <Copy size={12} />
-                      复制 body
-                    </button>
-                  </div>
-                </div>
-                <div className="grid gap-2 sm:grid-cols-3">
-                  <div className={`rounded-xl border p-2.5 ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-white'}`}>
-                    <p className={`text-[11px] ${textMuted(theme)}`}>状态码</p>
-                    <p className={`mt-1 text-sm font-semibold ${textPrimary(theme)}`}>{invokeResponse.statusCode}</p>
-                  </div>
-                  <div className={`rounded-xl border p-2.5 ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-white'}`}>
-                    <p className={`text-[11px] ${textMuted(theme)}`}>耗时</p>
-                    <p className={`mt-1 text-sm font-semibold ${textPrimary(theme)}`}>{invokeResponse.latencyMs} ms</p>
-                  </div>
-                  <div className={`rounded-xl border p-2.5 ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-white'}`}>
-                    <p className={`text-[11px] ${textMuted(theme)}`}>资源</p>
-                    <p className={`mt-1 text-sm font-semibold ${textPrimary(theme)}`}>{invokeResponse.resourceType}/{invokeResponse.resourceId}</p>
-                  </div>
-                </div>
-                <div className={`grid gap-1.5 rounded-xl border p-3 text-xs ${isDark ? 'border-white/10 bg-black/10' : 'border-slate-200 bg-white'}`}>
-                  <p className={textSecondary(theme)}>requestId：<span className={`${textPrimary(theme)} font-mono break-all`}>{invokeResponse.requestId}</span></p>
-                  <p className={textSecondary(theme)}>traceId（响应）：<span className={`${textPrimary(theme)} font-mono break-all`}>{invokeResponse.traceId}</span></p>
-                  <p className={textSecondary(theme)}>traceId（请求）：<span className={`${textPrimary(theme)} font-mono break-all`}>{invokeRequestTraceId || invokeTraceId}</span></p>
-                </div>
-                <div>
-                  <p className={`mb-2 text-xs font-semibold ${textSecondary(theme)}`}>
-                    body（{invokeBodyView?.asJson ? 'JSON' : '文本'}）
-                  </p>
-                  <pre className={`max-h-[44vh] overflow-auto rounded-xl border p-3 text-xs leading-relaxed whitespace-pre-wrap ${
-                    isDark ? 'border-white/10 bg-lantu-card' : 'border-slate-200 bg-white'
-                  }`}>
-                    {invokeBodyView?.text || ''}
-                  </pre>
-                </div>
-              </div>
-            )}
-              </>
-            )}
-            {detailTab === 'reviews' && (
-              <div className={`rounded-2xl border p-4 ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-slate-50/60'}`}>
-                <h4 className={`mb-3 flex items-center gap-2 text-sm font-semibold ${textPrimary(theme)}`}>
-                  <MessageSquare size={16} className="text-neutral-800" />
-                  评分与评论
-                </h4>
-                <ResourceReviewsSection
-                  targetType="mcp"
-                  targetId={detail.resourceId}
-                  theme={theme}
-                  appearance="airy"
-                  showMessage={showMessage}
-                />
-              </div>
-            )}
-          </div>
-        )}
-      </Modal>
-      <GrantApplicationModal
-        open={grantModalOpen}
-        onClose={() => setGrantModalOpen(false)}
-        theme={theme}
-        resourceType="mcp"
-        resourceId={detail?.resourceId ?? ''}
-        resourceName={detail?.displayName}
-        showMessage={showMessage}
-      />
     </div>
   );
 };

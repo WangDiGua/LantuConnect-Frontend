@@ -1,14 +1,12 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Search,
   Zap,
   Clock,
   Activity,
-  MessageSquare,
   Download,
   Loader2,
-  Heart,
   Star,
   Braces,
   FileText,
@@ -30,7 +28,6 @@ import type { Theme, FontSize, ThemeColor } from '../../types';
 import type { Skill } from '../../types/dto/skill';
 import type { AgentType, SourceType } from '../../types/dto/agent';
 import { skillService } from '../../api/services/skill.service';
-import { userActivityService } from '../../api/services/user-activity.service';
 import { tagService } from '../../api/services/tag.service';
 import { filterTagsForResourceType } from '../../utils/marketTags';
 import type { TagItem } from '../../types/dto/tag';
@@ -54,13 +51,11 @@ import {
 import { BentoCard } from '../../components/common/BentoCard';
 import { Modal } from '../../components/common/Modal';
 import { MarketplaceListingCard, MarketplaceStatItem } from '../../components/market';
-import { ResourceReviewsSection } from '../../components/business/ResourceReviewsSection';
 import { GrantApplicationModal } from '../../components/business/GrantApplicationModal';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
-import { formatDateTime } from '../../utils/formatDateTime';
-import { buildPath, buildUserResourceMarketUrl } from '../../constants/consoleRoutes';
+import { buildPath } from '../../constants/consoleRoutes';
 import { usePersistedGatewayApiKey } from '../../hooks/usePersistedGatewayApiKey';
 import { GatewayApiKeyInput } from '../../components/common/GatewayApiKeyInput';
 import { ApiException } from '../../types/api';
@@ -108,14 +103,10 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _the
   const [keyword, setKeyword] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('全部');
   const [catalogTags, setCatalogTags] = useState<TagItem[]>([]);
-  const [detailSkill, setDetailSkill] = useState<Skill | null>(null);
   const [useSkill, setUseSkill] = useState<Skill | null>(null);
   const [useLoading, setUseLoading] = useState(false);
   const [grantModalOpen, setGrantModalOpen] = useState(false);
-  const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [useResult, setUseResult] = useState<string | null>(null);
-  const [searchParams, setSearchParams] = useSearchParams();
-  const processedResourceId = useRef<string | null>(null);
   const [gatewayApiKeyDraft, setGatewayApiKeyDraft] = usePersistedGatewayApiKey();
   const [listTotal, setListTotal] = useState<number | null>(null);
 
@@ -198,24 +189,6 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _the
     setGrantModalOpen(true);
   }, [useSkill]);
 
-  const handleFavorite = useCallback(async (skill: Skill) => {
-    if (favoriteLoading) return;
-    setFavoriteLoading(true);
-    try {
-      await userActivityService.addFavorite('skill', Number(skill.id));
-      showMessage?.('已加入我的收藏', 'success');
-    } catch (e) {
-      const message = e instanceof Error ? e.message : '收藏失败';
-      if (message.includes('FAVORITE_EXISTS') || message.includes('已收藏')) {
-        showMessage?.('该资源已在收藏夹中', 'info');
-      } else {
-        showMessage?.(message, 'error');
-      }
-    } finally {
-      setFavoriteLoading(false);
-    }
-  }, [favoriteLoading, showMessage]);
-
   useEffect(() => {
     tagService.list()
       .then((list) => setCatalogTags(filterTagsForResourceType(list, 'skill')))
@@ -253,26 +226,6 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _the
     const cleanup = loadSkills();
     return cleanup;
   }, [loadSkills]);
-
-  useEffect(() => {
-    const rid = searchParams.get('resourceId');
-    if (!rid) {
-      processedResourceId.current = null;
-      return;
-    }
-    if (loading || skills.length === 0) return;
-    if (processedResourceId.current === rid) return;
-    processedResourceId.current = rid;
-    const next = new URLSearchParams(searchParams);
-    next.delete('resourceId');
-    setSearchParams(next, { replace: true });
-    const hit = skills.find((s) => String(s.id) === String(rid));
-    if (hit) {
-      setDetailSkill(hit);
-    } else {
-      showMessage?.('未在已上架列表中找到该技能，请确认资源已发布且 ID 正确', 'warning');
-    }
-  }, [loading, skills, searchParams, setSearchParams, showMessage]);
 
   const filtered = useMemo(() => {
     const kw = keyword.trim().toLowerCase();
@@ -386,7 +339,7 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _the
               </div>
               <button
                 type="button"
-                onClick={() => navigate(buildUserResourceMarketUrl('agent'))}
+                onClick={() => navigate(buildPath('user', 'agents-center'))}
                 className="inline-flex w-fit min-h-9 items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white shadow-md transition hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 sm:text-sm dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
               >
                 去逛 Agent 市场
@@ -529,7 +482,7 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _the
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
-                    setDetailSkill(skill);
+                    navigate(buildPath('user', 'skills-center', skill.id));
                   }
                 }}
               >
@@ -538,9 +491,8 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _the
                   hover
                   glow="indigo"
                   padding="md"
-                  selected={detailSkill != null && String(detailSkill.id) === String(skill.id)}
                   className="flex h-full flex-col"
-                  onClick={() => setDetailSkill(skill)}
+                  onClick={() => navigate(buildPath('user', 'skills-center', skill.id))}
                 >
                   <MarketplaceListingCard
                     theme={theme}
@@ -607,56 +559,6 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _the
           </div>
         )}
       </div>
-
-      {/* Detail + Reviews Modal */}
-      <Modal open={!!detailSkill} onClose={() => setDetailSkill(null)} theme={theme} size="lg">
-        {detailSkill && (
-          <>
-            <div className="flex items-center gap-3 mb-4">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-bold shrink-0 ${pickColor(detailSkill.agentName)}`}>{(detailSkill.displayName || detailSkill.agentName).charAt(0)}</div>
-              <div className="min-w-0">
-                <h3 className={`text-lg font-bold truncate ${textPrimary(theme)}`}>{detailSkill.displayName}</h3>
-                <div className="flex items-center gap-2">
-                  <span className={`text-xs font-mono ${textMuted(theme)}`}>{detailSkill.agentName}</span>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${TYPE_BADGE[detailSkill.agentType].cls}`}>{TYPE_BADGE[detailSkill.agentType].label}</span>
-                </div>
-              </div>
-            </div>
-            <div className="space-y-5">
-              <p className={`text-sm leading-relaxed ${textSecondary(theme)}`}>{detailSkill.description || '暂无描述'}</p>
-              <div className={`flex flex-wrap gap-3 text-xs ${textMuted(theme)}`}>
-                <span>
-                  创建者：{resolvePersonDisplay({ names: [detailSkill.createdByName], ids: [detailSkill.createdBy ?? undefined] })}
-                </span>
-                <span className="inline-flex items-center gap-0.5 tabular-nums">
-                  <Star size={13} className="text-amber-500 shrink-0" aria-hidden />
-                  目录评分 {detailSkill.ratingAvg != null ? detailSkill.ratingAvg.toFixed(1) : '—'}（{detailSkill.reviewCount ?? 0} 条）
-                </span>
-                <span className="flex items-center gap-1" title="目录展示热度（网关 invoke 统计，不含技能包本地下载）"><Activity size={13} /> {formatCount(detailSkill.callCount)} 热度</span>
-                <span className="flex items-center gap-1"><Clock size={13} /> {formatLatency(detailSkill.avgLatencyMs)}</span>
-                {detailSkill.successRate > 0 && <span className="text-emerald-500">{detailSkill.successRate}% 成功率</span>}
-                {detailSkill.qualityScore > 0 && <span>评分: {detailSkill.qualityScore}</span>}
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-md font-medium ${SOURCE_BADGE[detailSkill.sourceType].cls}`}>{SOURCE_BADGE[detailSkill.sourceType].label}</span>
-                {detailSkill.createTime && <span>创建: {formatDateTime(detailSkill.createTime)}</span>}
-              </div>
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  className={`${btnSecondary(theme)} disabled:opacity-50`}
-                  disabled={favoriteLoading}
-                  onClick={() => void handleFavorite(detailSkill)}
-                >
-                  {favoriteLoading ? <><Loader2 size={14} className="animate-spin" /> 收藏中…</> : <><Heart size={14} /> 收藏</>}
-                </button>
-              </div>
-              <div>
-                <h4 className={`font-bold text-base mb-4 flex items-center gap-2 ${textPrimary(theme)}`}><MessageSquare size={18} className="text-neutral-800" /> 评分与评论</h4>
-                <ResourceReviewsSection targetType="skill" targetId={detailSkill.id} theme={theme} showMessage={showMessage} />
-              </div>
-            </div>
-          </>
-        )}
-      </Modal>
 
       {/* Use panel */}
       <Modal open={!!useSkill} onClose={() => { setUseSkill(null); setGrantModalOpen(false); }} title={useSkill ? `获取技能包 — ${useSkill.displayName}` : ''} theme={theme} size="md" footer={

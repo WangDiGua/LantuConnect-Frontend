@@ -1,36 +1,25 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Search, LayoutGrid, ExternalLink, MessageSquare, Loader2, Heart, Star, Tag } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Search, LayoutGrid, MessageSquare, Star, Tag } from 'lucide-react';
 import type { Theme, FontSize, ThemeColor } from '../../types';
 import type { SmartApp, EmbedType, AppStatus } from '../../types/dto/smart-app';
 import { smartAppService } from '../../api/services/smart-app.service';
-import { userActivityService } from '../../api/services/user-activity.service';
 import { tagService } from '../../api/services/tag.service';
 import { filterTagsForResourceType } from '../../utils/marketTags';
 import type { TagItem } from '../../types/dto/tag';
-import { resourceCatalogService } from '../../api/services/resource-catalog.service';
-import { mapInvokeFlowError } from '../../utils/invokeError';
-import { ApiException } from '../../types/api';
-import { env } from '../../config/env';
 import {
-  canvasBodyBg, consoleContentTopPad, mainScrollPadBottom, bentoCard, btnPrimary, btnSecondary,
-  iconMuted, textPrimary, textSecondary, textMuted, techBadge,
+  canvasBodyBg, consoleContentTopPad, mainScrollPadBottom, bentoCard, btnPrimary,
+  iconMuted, textPrimary, textMuted, techBadge,
 } from '../../utils/uiClasses';
 import { BentoCard } from '../../components/common/BentoCard';
 import { MarketplaceListingCard, MarketplaceStatItem } from '../../components/market';
 import type { MarketplaceStatusTone } from '../../components/market';
 import { GlassPanel } from '../../components/common/GlassPanel';
-import { Modal } from '../../components/common/Modal';
-import { ResourceReviewsSection } from '../../components/business/ResourceReviewsSection';
-import { GrantApplicationModal } from '../../components/business/GrantApplicationModal';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
-import { usePersistedGatewayApiKey } from '../../hooks/usePersistedGatewayApiKey';
-import { GatewayApiKeyInput } from '../../components/common/GatewayApiKeyInput';
-import { safeOpenHttpUrl } from '../../lib/windowNavigate';
-import { resolvePersonDisplay } from '../../utils/personDisplay';
+import { buildPath } from '../../constants/consoleRoutes';
 
 interface Props { theme: Theme; fontSize: FontSize; themeColor?: ThemeColor; showMessage?: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void; }
 
@@ -55,18 +44,9 @@ function appStatusPresentation(status: AppStatus): { label: string; tone: Market
 }
 
 function safeText(v: unknown): string { return String(v ?? ''); }
-function resolveLaunchUrl(rawUrl?: string): string {
-  const launchUrl = String(rawUrl ?? '').trim();
-  if (!launchUrl) return '';
-  if (/^https?:\/\//i.test(launchUrl)) return launchUrl;
-  const base = env.VITE_API_BASE_URL;
-  const absoluteBase = /^https?:\/\//i.test(base)
-    ? base
-    : `${window.location.origin}${base.startsWith('/') ? base : `/${base}`}`;
-  return new URL(launchUrl, absoluteBase).toString();
-}
 
 export const AppMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, themeColor: _themeColor, showMessage }) => {
+  const navigate = useNavigate();
   const { chromePageTitle } = useLayoutChrome();
   const isDark = theme === 'dark';
   const [apps, setApps] = useState<SmartApp[]>([]);
@@ -75,21 +55,6 @@ export const AppMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, themeCo
   const [keyword, setKeyword] = useState('');
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [catalogTags, setCatalogTags] = useState<TagItem[]>([]);
-  const [detailApp, setDetailApp] = useState<SmartApp | null>(null);
-  const [grantModalOpen, setGrantModalOpen] = useState(false);
-  const [openingAppId, setOpeningAppId] = useState<number | null>(null);
-  const [favoriteLoading, setFavoriteLoading] = useState(false);
-  const [isFavorited, setIsFavorited] = useState(false);
-  const [detailTab, setDetailTab] = useState<'overview' | 'reviews'>('overview');
-  const [searchParams, setSearchParams] = useSearchParams();
-  const processedResourceId = useRef<string | null>(null);
-  const [gatewayApiKeyDraft, setGatewayApiKeyDraft] = usePersistedGatewayApiKey();
-  const [gatewayOpenError, setGatewayOpenError] = useState('');
-
-  useEffect(() => {
-    setGatewayOpenError('');
-  }, [detailApp?.id]);
-
   useEffect(() => {
     tagService.list()
       .then((list) => setCatalogTags(filterTagsForResourceType(list, 'app')))
@@ -123,61 +88,6 @@ export const AppMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, themeCo
     return cleanup;
   }, [loadApps]);
 
-  useEffect(() => {
-    const rid = searchParams.get('resourceId');
-    if (!rid) {
-      processedResourceId.current = null;
-      return;
-    }
-    if (loading || apps.length === 0) return;
-    if (processedResourceId.current === rid) return;
-    processedResourceId.current = rid;
-    const next = new URLSearchParams(searchParams);
-    next.delete('resourceId');
-    setSearchParams(next, { replace: true });
-    const hit = apps.find((a) => String(a.id) === String(rid));
-    if (hit) {
-      setDetailApp(hit);
-      setDetailTab('overview');
-    } else {
-      showMessage?.('未在已上架列表中找到该应用，请确认资源已发布且 ID 正确', 'warning');
-    }
-  }, [loading, apps, searchParams, setSearchParams, showMessage]);
-
-  useEffect(() => {
-    if (!detailApp) {
-      setIsFavorited(false);
-      return;
-    }
-    let cancelled = false;
-    setIsFavorited(false);
-    userActivityService.getFavorites()
-      .then((list) => {
-        if (cancelled) return;
-        const hit = list.some((item) => item.targetType === 'app' && String(item.targetId) === String(detailApp.id));
-        setIsFavorited(hit);
-      })
-      .catch(() => {
-        if (!cancelled) setIsFavorited(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [detailApp]);
-
-  /** 列表项无 spec；GET /catalog/resources/app/{id} 含 embedType/icon/screenshots */
-  useEffect(() => {
-    const id = detailApp?.id;
-    if (id == null) return;
-    let cancelled = false;
-    void smartAppService.getById(Number(id)).then((full) => {
-      if (!cancelled) setDetailApp(full);
-    }).catch(() => { /* 保留列表项兜底 */ });
-    return () => {
-      cancelled = true;
-    };
-  }, [detailApp?.id]);
-
   const filtered = useMemo(() => {
     if (!keyword.trim()) return apps;
     const kw = keyword.toLowerCase();
@@ -187,94 +97,6 @@ export const AppMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, themeCo
       || safeText(a.description).toLowerCase().includes(kw)
       || (a.tags ?? []).some((t) => t.toLowerCase().includes(kw)));
   }, [apps, keyword]);
-
-  const handleOpen = async (app: SmartApp) => {
-    setOpeningAppId(app.id);
-    setGatewayOpenError('');
-    try {
-      const apiKey = gatewayApiKeyDraft.trim();
-      if (!apiKey) {
-        setGatewayOpenError('请先选择并绑定 API Key');
-        return;
-      }
-      let resolved;
-      try {
-        resolved = await resourceCatalogService.resolve({
-          resourceType: 'app',
-          resourceId: String(app.id),
-        }, {
-          headers: { 'X-Api-Key': apiKey },
-        });
-      } catch (err) {
-        if (err instanceof ApiException && err.code === 1009) {
-          setGatewayOpenError(err.message || '请绑定有效的 X-Api-Key');
-        } else if (err instanceof ApiException && (err.status === 401 || err.code === 1002)) {
-          setGatewayOpenError('请先选择有效 API Key');
-        } else if (err instanceof ApiException && (err.status === 403 || err.code === 1003)) {
-          setGatewayOpenError('你暂无该应用使用权限，请先申请授权');
-        } else if (err instanceof Error && (err.message.includes('X-Api-Key') || err.message.includes('API Key'))) {
-          setGatewayOpenError('请先选择并绑定 API Key');
-        } else {
-          setGatewayOpenError(mapInvokeFlowError(err, 'resolve'));
-        }
-        return;
-      }
-      if (resolved.invokeType === 'metadata') {
-        showMessage?.(`该应用为元数据类型：${JSON.stringify(resolved.spec ?? {}, null, 2)}`, 'info');
-        return;
-      }
-      if (resolved.invokeType !== 'redirect') {
-        showMessage?.('当前应用不是可跳转类型，请联系管理员检查资源配置', 'warning');
-        return;
-      }
-      const launchUrl = resolveLaunchUrl(resolved.launchUrl);
-      if (launchUrl) {
-        const opened = safeOpenHttpUrl(launchUrl);
-        if (!opened) {
-          showMessage?.('无法打开：地址非 http(s) 或浏览器拦截了弹窗', 'warning');
-          return;
-        }
-        if (app.embedType === 'iframe') showMessage?.('应用已在新窗口打开', 'info');
-        return;
-      }
-      if (resolved.endpoint) {
-        if (!safeOpenHttpUrl(resolved.endpoint)) {
-          showMessage?.('兼容地址无效或弹窗被拦截（仅支持 http/https）', 'warning');
-          return;
-        }
-        showMessage?.('当前应用使用兼容地址打开（建议后端返回 launchUrl）', 'info');
-        return;
-      }
-      showMessage?.('当前应用未返回可用启动地址，请联系管理员', 'warning');
-    } finally {
-      setOpeningAppId(null);
-    }
-  };
-
-  const handleApplyAuthorization = () => {
-    if (!detailApp) return;
-    setGrantModalOpen(true);
-  };
-
-  const handleFavorite = useCallback(async (app: SmartApp) => {
-    if (favoriteLoading || isFavorited) return;
-    setFavoriteLoading(true);
-    try {
-      await userActivityService.addFavorite('app', Number(app.id));
-      setIsFavorited(true);
-      showMessage?.('已加入我的收藏', 'success');
-    } catch (e) {
-      const message = e instanceof Error ? e.message : '收藏失败';
-      if (message.includes('FAVORITE_EXISTS') || message.includes('已收藏')) {
-        setIsFavorited(true);
-        showMessage?.('该资源已在收藏夹中', 'info');
-      } else {
-        showMessage?.(message, 'error');
-      }
-    } finally {
-      setFavoriteLoading(false);
-    }
-  }, [favoriteLoading, isFavorited, showMessage]);
 
   return (
     <div className={`w-full ${canvasBodyBg(theme)}`}>
@@ -327,8 +149,7 @@ export const AppMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, themeCo
                   hover
                   glow="indigo"
                   padding="md"
-                  selected={detailApp != null && detailApp.id === app.id}
-                  onClick={() => setDetailApp(app)}
+                  onClick={() => navigate(buildPath('user', 'apps-center', app.id))}
                   className="flex flex-col h-full"
                 >
                   <MarketplaceListingCard
@@ -381,8 +202,7 @@ export const AppMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, themeCo
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setDetailApp(app);
-                          setDetailTab('overview');
+                          navigate(buildPath('user', 'apps-center', app.id));
                         }}
                         className={`${btnPrimary} !py-1.5 !px-3 !text-xs`}
                       >
@@ -397,114 +217,6 @@ export const AppMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, themeCo
         )}
         </div>
       </div>
-
-      {/* Detail + Reviews Modal */}
-      <Modal open={!!detailApp} onClose={() => { setDetailApp(null); setGrantModalOpen(false); }} theme={theme} size="lg">
-        {detailApp && (
-          <>
-            <div className="flex items-center gap-3 mb-4">
-              {detailApp.icon ? (
-                <img src={detailApp.icon} alt="" className="w-10 h-10 rounded-xl object-cover shrink-0 ring-1 ring-black/10" />
-              ) : (
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-bold shrink-0 ${pickColor(detailApp.appName)}`}>{(detailApp.displayName || detailApp.appName).charAt(0)}</div>
-              )}
-              <div className="min-w-0 flex-1">
-                <h3 className={`text-lg font-bold truncate ${textPrimary(theme)}`}>{detailApp.displayName}</h3>
-                <div className="flex items-center gap-2">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${EMBED_BADGE[detailApp.embedType].cls}`}>{EMBED_BADGE[detailApp.embedType].label}</span>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${(SOURCE_BADGE[detailApp.sourceType as string] ?? SOURCE_BADGE.internal).cls}`}>{(SOURCE_BADGE[detailApp.sourceType as string] ?? SOURCE_BADGE.internal).label}</span>
-                </div>
-              </div>
-              <div className="mr-8 flex flex-wrap items-center justify-end gap-2 sm:mr-9">
-                <button
-                  type="button"
-                  disabled={favoriteLoading || isFavorited}
-                  onClick={() => detailApp && void handleFavorite(detailApp)}
-                  className={`${btnSecondary(theme)} shrink-0 disabled:opacity-50`}
-                >
-                  {favoriteLoading ? <><Loader2 size={14} className="animate-spin" /> 收藏中…</> : <><Heart size={14} className={isFavorited ? 'fill-current' : ''} /> {isFavorited ? '已收藏' : '收藏'}</>}
-                </button>
-                <button type="button" onClick={handleApplyAuthorization} className={`${btnSecondary(theme)} shrink-0`}>
-                  获取授权指引
-                </button>
-                <button type="button" disabled={openingAppId === detailApp.id} onClick={(e) => { e.stopPropagation(); void handleOpen(detailApp); }} className={`${btnPrimary} shrink-0 disabled:opacity-50`}>{openingAppId === detailApp.id ? '打开中…' : '打开应用'} <ExternalLink size={12} /></button>
-              </div>
-            </div>
-            <div className="space-y-5">
-              <GatewayApiKeyInput
-                theme={theme}
-                id="app-market-gateway-key"
-                value={gatewayApiKeyDraft}
-                errorText={gatewayOpenError || undefined}
-                onChange={(v) => {
-                  setGatewayApiKeyDraft(v);
-                  setGatewayOpenError('');
-                }}
-              />
-              <div
-                className={`inline-flex rounded-xl p-1 ${isDark ? 'bg-white/[0.06]' : 'bg-slate-100'}`}
-                role="tablist"
-                aria-label="应用详情标签页"
-              >
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={detailTab === 'overview'}
-                  onClick={() => setDetailTab('overview')}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    detailTab === 'overview'
-                      ? isDark ? 'bg-white/12 text-white' : 'bg-white text-slate-900 shadow-sm'
-                      : textMuted(theme)
-                  }`}
-                >
-                  应用信息
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={detailTab === 'reviews'}
-                  onClick={() => setDetailTab('reviews')}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    detailTab === 'reviews'
-                      ? isDark ? 'bg-white/12 text-white' : 'bg-white text-slate-900 shadow-sm'
-                      : textMuted(theme)
-                  }`}
-                >
-                  评分评论
-                </button>
-              </div>
-              {detailTab === 'overview' ? (
-                <>
-                  <div className={`flex flex-wrap gap-3 text-xs ${textMuted(theme)}`}>
-                    <span>
-                      创建者：{resolvePersonDisplay({ names: [detailApp.createdByName], ids: [detailApp.createdBy ?? undefined] })}
-                    </span>
-                    <span className="inline-flex items-center gap-0.5 tabular-nums">
-                      <Star size={13} className="text-amber-500 shrink-0" aria-hidden />
-                      目录评分 {detailApp.ratingAvg != null ? detailApp.ratingAvg.toFixed(1) : '—'}（{detailApp.reviewCount ?? 0} 条）
-                    </span>
-                  </div>
-                  <p className={`text-sm leading-relaxed ${textSecondary(theme)}`}>{detailApp.description || '暂无描述'}</p>
-                </>
-              ) : (
-                <div>
-                  <h4 className={`font-bold text-base mb-4 flex items-center gap-2 ${textPrimary(theme)}`}><MessageSquare size={18} className="text-blue-500" /> 评分与评论</h4>
-                  <ResourceReviewsSection targetType="app" targetId={detailApp.id} theme={theme} showMessage={showMessage} />
-                </div>
-              )}
-            </div>
-          </>
-        )}
-      </Modal>
-      <GrantApplicationModal
-        open={grantModalOpen}
-        onClose={() => setGrantModalOpen(false)}
-        theme={theme}
-        resourceType="app"
-        resourceId={detailApp?.id ?? ''}
-        resourceName={detailApp?.displayName}
-        showMessage={showMessage}
-      />
     </div>
   );
 };

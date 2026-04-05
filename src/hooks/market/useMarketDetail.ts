@@ -1,38 +1,16 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useState, useCallback } from 'react';
 import type { UseMarketDetailOptions, UseMarketDetailReturn } from './types';
 
+/**
+ * 列表内打开详情的轻量状态（openDetailById）。
+ * 深链请使用路径 `/user/{center}/:id`；`?resourceId=` 由 MainLayout 统一重定向为路径形式。
+ */
 export function useMarketDetail<T>(
-  options: UseMarketDetailOptions<T>
+  options: UseMarketDetailOptions<T>,
 ): UseMarketDetailReturn<T> {
-  const { items, loading, getId, showMessage } = options;
+  const { items, getId } = options;
 
   const [detailItem, setDetailItem] = useState<T | null>(null);
-  const [searchParams, setSearchParams] = useSearchParams();
-  const processedResourceId = useRef<string | null>(null);
-
-  useEffect(() => {
-    const rid = searchParams.get('resourceId');
-    if (!rid) {
-      processedResourceId.current = null;
-      return;
-    }
-
-    if (loading || items.length === 0) return;
-    if (processedResourceId.current === rid) return;
-
-    processedResourceId.current = rid;
-    const next = new URLSearchParams(searchParams);
-    next.delete('resourceId');
-    setSearchParams(next, { replace: true });
-
-    const hit = items.find((item) => String(getId(item)) === String(rid));
-    if (hit) {
-      setDetailItem(hit);
-    } else {
-      showMessage?.('未在已上架列表中找到该资源，请确认资源已发布且 ID 正确', 'warning');
-    }
-  }, [loading, items, searchParams, setSearchParams, getId, showMessage]);
 
   const openDetailById = useCallback(
     (id: string | number) => {
@@ -41,7 +19,7 @@ export function useMarketDetail<T>(
         setDetailItem(item);
       }
     },
-    [items, getId]
+    [items, getId],
   );
 
   const closeModal = useCallback(() => {

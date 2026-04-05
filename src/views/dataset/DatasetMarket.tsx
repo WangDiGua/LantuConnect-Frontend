@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Search,
   Database,
@@ -11,9 +11,7 @@ import {
   Layers,
   HardDrive,
   FileSearch,
-  Loader2,
   MessageSquare,
-  Heart,
   Star,
   BookOpen,
   Plus,
@@ -22,14 +20,11 @@ import {
 import type { Theme, FontSize, ThemeColor } from '../../types';
 import type { Dataset, DatasetSourceType, DatasetDataType } from '../../types/dto/dataset';
 import { datasetService } from '../../api/services/dataset.service';
-import { userActivityService } from '../../api/services/user-activity.service';
 import { tagService } from '../../api/services/tag.service';
 import { filterTagsForResourceType } from '../../utils/marketTags';
 import type { TagItem } from '../../types/dto/tag';
 import type { ResourceCatalogItemVO } from '../../types/dto/catalog';
 import { resourceCatalogService } from '../../api/services/resource-catalog.service';
-import { mapInvokeFlowError } from '../../utils/invokeError';
-import { safeOpenHttpUrl } from '../../lib/windowNavigate';
 import {
   canvasBodyBg,
   consoleContentTopPad,
@@ -45,16 +40,10 @@ import {
 } from '../../utils/uiClasses';
 import { BentoCard } from '../../components/common/BentoCard';
 import { MarketplaceListingCard, MarketplaceStatItem } from '../../components/market';
-import { Modal } from '../../components/common/Modal';
 import { LantuSelect } from '../../components/common/LantuSelect';
-import { ResourceReviewsSection } from '../../components/business/ResourceReviewsSection';
-import { GrantApplicationModal } from '../../components/business/GrantApplicationModal';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
-import { usePersistedGatewayApiKey } from '../../hooks/usePersistedGatewayApiKey';
-import { GatewayApiKeyInput } from '../../components/common/GatewayApiKeyInput';
-import { ApiException } from '../../types/api';
 import { buildPath } from '../../constants/consoleRoutes';
 import { MARKET_HERO_TITLE_CLASSES } from '../../constants/theme';
 import { nativeInputClass } from '../../utils/formFieldClasses';
@@ -165,14 +154,6 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _t
   const [sourceFilter, setSourceFilter] = useState<DatasetSourceType | ''>('');
   const [dataTypeFilter, setDataTypeFilter] = useState<DatasetDataType | ''>('');
   const [sortPreset, setSortPreset] = useState<SortPreset>('default');
-  const [detailDataset, setDetailDataset] = useState<Dataset | null>(null);
-  const [grantModalOpen, setGrantModalOpen] = useState(false);
-  const [invoking, setInvoking] = useState(false);
-  const [favoriteLoading, setFavoriteLoading] = useState(false);
-  const [invokeResult, setInvokeResult] = useState<string | null>(null);
-  const [gatewayApiKeyDraft, setGatewayApiKeyDraft] = usePersistedGatewayApiKey();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const processedResourceId = useRef<string | null>(null);
 
   useEffect(() => {
     tagService
@@ -233,26 +214,6 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _t
     return cleanup;
   }, [loadDatasets]);
 
-  useEffect(() => {
-    const rid = searchParams.get('resourceId');
-    if (!rid) {
-      processedResourceId.current = null;
-      return;
-    }
-    if (loading || datasets.length === 0) return;
-    if (processedResourceId.current === rid) return;
-    processedResourceId.current = rid;
-    const next = new URLSearchParams(searchParams);
-    next.delete('resourceId');
-    setSearchParams(next, { replace: true });
-    const hit = datasets.find((d) => String(d.id) === String(rid));
-    if (hit) {
-      setDetailDataset(hit);
-    } else {
-      showMessage?.('未在已上架列表中找到该数据集，请确认资源已发布且 ID 正确', 'warning');
-    }
-  }, [loading, datasets, searchParams, setSearchParams, showMessage]);
-
   /** 服务端筛选后，再按已返回行的来源/形态做一次客户端兜底（目录字段缺失时不展示误匹配项） */
   const displayed = useMemo(() => {
     let list = datasets;
@@ -285,77 +246,6 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _t
       { value: 'rating', label: '评分' },
     ],
     [],
-  );
-
-  const runResolve = async (ds: Dataset) => {
-    setInvoking(true);
-    setInvokeResult(null);
-    try {
-      const apiKey = gatewayApiKeyDraft.trim();
-      if (!apiKey) {
-        setInvokeResult('请先填写并绑定有效的 X-Api-Key（创建 Key 时的完整 secretPlain）');
-        return;
-      }
-      let resolved;
-      try {
-        resolved = await resourceCatalogService.resolve(
-          { resourceType: 'dataset', resourceId: String(ds.id) },
-          { headers: { 'X-Api-Key': apiKey } },
-        );
-      } catch (err) {
-        if (err instanceof ApiException && err.code === 1009) {
-          setInvokeResult(err.message || '请绑定有效的 X-Api-Key（创建 Key 时的完整 secretPlain）');
-        } else if (err instanceof ApiException && (err.status === 401 || err.code === 1002)) {
-          setInvokeResult('请先选择有效 API Key');
-        } else if (err instanceof ApiException && (err.status === 403 || err.code === 1003)) {
-          setInvokeResult('你暂无该资源使用权限，请先申请授权');
-        } else if (err instanceof Error && (err.message.includes('X-Api-Key') || err.message.includes('API Key'))) {
-          setInvokeResult('请先填写并绑定 API Key');
-        } else {
-          setInvokeResult(`${mapInvokeFlowError(err, 'resolve')}\n请确认 Key 与 resolve 授权后重试`);
-        }
-        return;
-      }
-      if (resolved.invokeType === 'redirect' && resolved.endpoint) {
-        if (!safeOpenHttpUrl(resolved.endpoint)) {
-          setInvokeResult('无法打开该地址（仅支持 http/https）');
-          return;
-        }
-        setInvokeResult(`该数据集为跳转类型，已打开地址：${resolved.endpoint}`);
-        return;
-      }
-      if (resolved.invokeType === 'metadata') {
-        setInvokeResult(`resolve 元数据：${JSON.stringify(resolved.spec ?? {}, null, 2)}`);
-        return;
-      }
-      setInvokeResult(
-        `resolve 返回 invokeType=${resolved.invokeType ?? '未知'}。\n` +
-          '数据集在本平台以目录与元数据为主，不提供与 Agent/MCP/App 相同的统一 invoke；若需消费数据请按业务约定对接或由专用应用承载。',
-      );
-    } finally {
-      setInvoking(false);
-    }
-  };
-
-  const handleFavorite = useCallback(
-    async (ds: Dataset) => {
-      if (favoriteLoading) return;
-      setFavoriteLoading(true);
-      try {
-        await userActivityService.addFavorite('dataset', Number(ds.id));
-        showMessage?.('已加入我的收藏', 'success');
-      } catch (e) {
-        const message = e instanceof Error ? e.message : '收藏失败';
-        if (message.includes('FAVORITE_EXISTS') || message.includes('已收藏')) {
-          showMessage?.('该资源已在收藏夹中', 'info');
-        } else {
-          showMessage?.(message, 'error');
-        }
-      } finally {
-        setFavoriteLoading(false);
-      }
-    },
-    [favoriteLoading, showMessage],
   );
 
   const FilterSection = ({
@@ -627,9 +517,8 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _t
                         hover
                         glow="emerald"
                         padding="md"
-                        selected={detailDataset != null && detailDataset.id === ds.id}
                         className="flex flex-col h-full"
-                        onClick={() => setDetailDataset(ds)}
+                        onClick={() => navigate(buildPath('user', 'dataset-center', ds.id))}
                       >
                         <MarketplaceListingCard
                           theme={theme}
@@ -690,7 +579,7 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _t
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setDetailDataset(ds);
+                                navigate(buildPath('user', 'dataset-center', ds.id));
                               }}
                               className={`${btnPrimary} !py-1.5 !px-3 !text-xs`}
                             >
@@ -705,154 +594,7 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _t
               )}
             </div>
           </div>
-        </div>
-
-      <Modal
-        open={!!detailDataset}
-        onClose={() => {
-          setDetailDataset(null);
-          setGrantModalOpen(false);
-        }}
-        title={detailDataset?.displayName ?? detailDataset?.name ?? ''}
-        theme={theme}
-        size="md"
-        footer={
-          <>
-            <button type="button" className={btnSecondary(theme)} onClick={() => setDetailDataset(null)}>
-              关闭
-            </button>
-            <button
-              type="button"
-              className={`${btnSecondary(theme)} disabled:opacity-50`}
-              disabled={favoriteLoading || !detailDataset}
-              onClick={() => detailDataset && void handleFavorite(detailDataset)}
-            >
-              {favoriteLoading ? (
-                <>
-                  <Loader2 size={14} className="animate-spin" /> 收藏中…
-                </>
-              ) : (
-                <>
-                  <Heart size={14} /> 收藏
-                </>
-              )}
-            </button>
-            <button
-              type="button"
-              className={`${btnSecondary(theme)} disabled:opacity-50`}
-              disabled={invoking}
-              onClick={() => detailDataset && void runResolve(detailDataset)}
-            >
-              {invoking ? (
-                <>
-                  <Loader2 size={14} className="animate-spin" /> 解析中…
-                </>
-              ) : (
-                <>
-                  <FileSearch size={14} /> 解析目录
-                </>
-              )}
-            </button>
-            <button
-              type="button"
-              className={btnPrimary}
-              onClick={() => {
-                if (detailDataset) setGrantModalOpen(true);
-              }}
-            >
-              申请使用
-            </button>
-          </>
-        }
-      >
-        {detailDataset && (() => {
-          const ds = detailDataset;
-          const sourceType = ds.sourceType ?? 'knowledge';
-          const dataType = ds.dataType ?? 'mixed';
-          const srcBadge = SOURCE_BADGE[sourceType] ?? { label: '—', cls: 'text-slate-600 bg-slate-500/10' };
-          const dtBadge = DATA_TYPE_BADGE[dataType] ?? { label: '—', cls: 'text-slate-600 bg-slate-500/10' };
-          const fmt = ds.format?.trim() ? ds.format.toUpperCase() : '—';
-          return (
-            <div className="space-y-4">
-              <p className={`text-sm leading-relaxed ${textSecondary(theme)}`}>{ds.description || '暂无描述'}</p>
-              <div className="flex flex-wrap gap-1.5">
-                <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${srcBadge.cls}`}>
-                  {srcBadge.label}
-                </span>
-                <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${dtBadge.cls}`}>
-                  {dtBadge.label}
-                </span>
-                <span className={techBadge(theme)}>{fmt}</span>
-              </div>
-              <div className={`grid grid-cols-2 gap-3 rounded-2xl border p-4 ${
-                isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200/80 bg-slate-50/80'
-              }`}>
-                <div>
-                  <div className={`text-[11px] font-medium ${textMuted(theme)}`}>记录数</div>
-                  <div className={`text-base font-bold ${textPrimary(theme)}`}>{formatCount(ds.recordCount)}</div>
-                </div>
-                <div>
-                  <div className={`text-[11px] font-medium ${textMuted(theme)}`}>文件大小</div>
-                  <div className={`text-base font-bold ${textPrimary(theme)}`}>{formatFileSize(ds.fileSize)}</div>
-                </div>
-              </div>
-              <GatewayApiKeyInput
-                theme={theme}
-                id="dataset-market-gateway-key"
-                value={gatewayApiKeyDraft}
-                onChange={setGatewayApiKeyDraft}
-              />
-              <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
-                使用您的 API Key 调用 <span className="font-mono text-[11px]">POST /catalog/resolve</span>（resourceType=dataset）查看目录返回；本平台不对数据集暴露统一{' '}
-                <span className="font-mono text-[11px]">/invoke</span>。
-              </p>
-              <div>
-                <div className={`text-xs font-semibold mb-2 ${textSecondary(theme)}`}>resolve 结果</div>
-                <pre
-                  className={`mt-3 max-h-72 min-h-[4.5rem] overflow-auto rounded-xl border p-3 text-xs ${
-                    isDark ? 'border-white/10 bg-white/[0.03] text-slate-200' : 'border-slate-200 bg-slate-50 text-slate-700'
-                  }`}
-                >
-                  {invokeResult ?? '点击「解析目录」后在此展示 resolve 返回。'}
-                </pre>
-              </div>
-              {(ds.tags ?? []).length > 0 && (
-                <div>
-                  <div className={`text-xs font-semibold mb-2 ${textSecondary(theme)}`}>标签</div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {(ds.tags ?? []).map((tag) => (
-                      <span
-                        key={tag}
-                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                          isDark ? 'bg-white/5 text-slate-300' : 'bg-slate-100 text-slate-600'
-                        }`}
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-              <div>
-                <h4 className={`font-bold text-base mb-4 flex items-center gap-2 ${textPrimary(theme)}`}>
-                  <MessageSquare size={18} className="text-emerald-500" />
-                  评分与评论
-                </h4>
-                <ResourceReviewsSection targetType="dataset" targetId={ds.id} theme={theme} showMessage={showMessage} />
-              </div>
-            </div>
-          );
-        })()}
-      </Modal>
-      <GrantApplicationModal
-        open={grantModalOpen}
-        onClose={() => setGrantModalOpen(false)}
-        theme={theme}
-        resourceType="dataset"
-        resourceId={detailDataset?.id ?? ''}
-        resourceName={detailDataset?.displayName}
-        showMessage={showMessage}
-      />
+      </div>
     </div>
   );
 };

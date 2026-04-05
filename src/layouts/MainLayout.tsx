@@ -75,7 +75,19 @@ const SkillMarket = lazy(() => import('../views/skill/SkillMarket').then((m) => 
 const McpMarket = lazy(() => import('../views/mcp/McpMarket').then((m) => ({ default: m.McpMarket })));
 const DatasetMarket = lazy(() => import('../views/dataset/DatasetMarket').then((m) => ({ default: m.DatasetMarket })));
 const AgentMarket = lazy(() => import('../views/agent/AgentMarket').then((m) => ({ default: m.AgentMarket })));
+const AgentMarketDetailPage = lazy(() =>
+  import('../views/agent/AgentMarketDetailPage').then((m) => ({ default: m.AgentMarketDetailPage })),
+);
 const AppMarket = lazy(() => import('../views/apps/AppMarket').then((m) => ({ default: m.AppMarket })));
+const AppMarketDetailPage = lazy(() =>
+  import('../views/apps/AppMarketDetailPage').then((m) => ({ default: m.AppMarketDetailPage })),
+);
+const SkillMarketDetailPage = lazy(() =>
+  import('../views/skill/SkillMarketDetailPage').then((m) => ({ default: m.SkillMarketDetailPage })),
+);
+const DatasetMarketDetailPage = lazy(() =>
+  import('../views/dataset/DatasetMarketDetailPage').then((m) => ({ default: m.DatasetMarketDetailPage })),
+);
 
 import { useMessage } from '../components/common/Message';
 import { readPersistedNavState, writePersistedNavState } from '../utils/navigationState';
@@ -415,19 +427,63 @@ const MainContent = React.memo<{
         return <UserResourceMarketHub theme={t} fontSize={fs} themeColor={tc} showMessage={msg} />;
 
       case 'skills-center':
-        return <SkillMarket theme={t} fontSize={fs} themeColor={tc} showMessage={msg} />;
+        return rid ? (
+          <SkillMarketDetailPage
+            resourceId={rid}
+            theme={t}
+            fontSize={fs}
+            themeColor={tc}
+            showMessage={msg}
+            onNavigateToList={() => nav('skills-center')}
+          />
+        ) : (
+          <SkillMarket theme={t} fontSize={fs} themeColor={tc} showMessage={msg} />
+        );
 
       case 'mcp-center':
-        return <McpMarket theme={t} fontSize={fs} themeColor={tc} showMessage={msg} />;
+        return <McpMarket theme={t} fontSize={fs} themeColor={tc} showMessage={msg} detailResourceId={rid} />;
 
       case 'dataset-center':
-        return <DatasetMarket theme={t} fontSize={fs} themeColor={tc} showMessage={msg} />;
+        return rid ? (
+          <DatasetMarketDetailPage
+            resourceId={rid}
+            theme={t}
+            fontSize={fs}
+            themeColor={tc}
+            showMessage={msg}
+            onNavigateToList={() => nav('dataset-center')}
+          />
+        ) : (
+          <DatasetMarket theme={t} fontSize={fs} themeColor={tc} showMessage={msg} />
+        );
 
       case 'agents-center':
-        return <AgentMarket theme={t} fontSize={fs} themeColor={tc} showMessage={msg} />;
+        return rid ? (
+          <AgentMarketDetailPage
+            resourceId={rid}
+            theme={t}
+            fontSize={fs}
+            themeColor={tc}
+            showMessage={msg}
+            onNavigateToList={() => nav('agents-center')}
+          />
+        ) : (
+          <AgentMarket theme={t} fontSize={fs} themeColor={tc} showMessage={msg} />
+        );
 
       case 'apps-center':
-        return <AppMarket theme={t} fontSize={fs} themeColor={tc} showMessage={msg} />;
+        return rid ? (
+          <AppMarketDetailPage
+            resourceId={rid}
+            theme={t}
+            fontSize={fs}
+            themeColor={tc}
+            showMessage={msg}
+            onNavigateToList={() => nav('apps-center')}
+          />
+        ) : (
+          <AppMarket theme={t} fontSize={fs} themeColor={tc} showMessage={msg} />
+        );
 
       case 'my-agents-pub':
         return <MyPublishHubPage theme={t} fontSize={fs} />;
@@ -721,6 +777,20 @@ const MainLayoutContent: React.FC<{
   useEffect(() => {
     mainScrollRef.current?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   }, [location.pathname, location.search]);
+
+  /** 用户资源市场：旧版 ?resourceId= 深链统一跳转到 /user/{center}/:id，便于全页详情与分享 */
+  const USER_MARKET_PAGES_WITH_DETAIL = useMemo(
+    () =>
+      new Set<string>(['skills-center', 'mcp-center', 'dataset-center', 'agents-center', 'apps-center']),
+    [],
+  );
+  useEffect(() => {
+    if (layoutIsAdmin) return;
+    if (!page || !USER_MARKET_PAGES_WITH_DETAIL.has(page) || routeId) return;
+    const rid = new URLSearchParams(location.search).get('resourceId')?.trim();
+    if (!rid) return;
+    navigate(buildPath('user', page, rid), { replace: true });
+  }, [layoutIsAdmin, page, routeId, location.search, navigate, USER_MARKET_PAGES_WITH_DETAIL]);
 
   useEffect(() => {
     if (!authUser?.id) return;
@@ -1361,26 +1431,11 @@ const MainLayoutContent: React.FC<{
     if (page === 'resource-catalog') return `${page}?type=${resourceTypeQuery ?? 'agent'}`;
     if (page === 'resource-audit') return `${page}?type=${resourceTypeQuery ?? 'all'}`;
     if (page === 'resource-market') return `resource-market?tab=${marketTabQuery ?? 'agent'}`;
-    if (page === 'skills-center') {
-      const rid = new URLSearchParams(location.search).get('resourceId');
-      return rid ? `skills-center?resourceId=${rid}` : 'skills-center';
-    }
-    if (page === 'mcp-center') {
-      const rid = new URLSearchParams(location.search).get('resourceId');
-      return rid ? `mcp-center?resourceId=${rid}` : 'mcp-center';
-    }
-    if (page === 'dataset-center') {
-      const rid = new URLSearchParams(location.search).get('resourceId');
-      return rid ? `dataset-center?resourceId=${rid}` : 'dataset-center';
-    }
-    if (page === 'agents-center') {
-      const rid = new URLSearchParams(location.search).get('resourceId');
-      return rid ? `agents-center?resourceId=${rid}` : 'agents-center';
-    }
-    if (page === 'apps-center') {
-      const rid = new URLSearchParams(location.search).get('resourceId');
-      return rid ? `apps-center?resourceId=${rid}` : 'apps-center';
-    }
+    if (page === 'skills-center') return routeId ? `skills-center/${routeId}` : 'skills-center';
+    if (page === 'mcp-center') return routeId ? `mcp-center/${routeId}` : 'mcp-center';
+    if (page === 'dataset-center') return routeId ? `dataset-center/${routeId}` : 'dataset-center';
+    if (page === 'agents-center') return routeId ? `agents-center/${routeId}` : 'agents-center';
+    if (page === 'apps-center') return routeId ? `apps-center/${routeId}` : 'apps-center';
     return routeId ? `${page}/${routeId}` : page;
   }, [page, routeId, queryType, resourceTypeQuery, marketTabQuery, location.search]);
 

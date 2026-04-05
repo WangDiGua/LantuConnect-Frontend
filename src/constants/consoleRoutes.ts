@@ -67,44 +67,34 @@ export function buildUserResourceMarketUrl(
 ): string {
   const tab = parseResourceType(tabInput) ?? 'agent';
   if (tab === 'skill') {
-    const params = new URLSearchParams();
     if (extra?.resourceId != null && String(extra.resourceId).length > 0) {
-      params.set('resourceId', String(extra.resourceId));
+      return buildPath('user', 'skills-center', extra.resourceId);
     }
-    const qs = params.toString();
-    return `${buildPath('user', 'skills-center')}${qs ? `?${qs}` : ''}`;
+    return buildPath('user', 'skills-center');
   }
   if (tab === 'mcp') {
-    const params = new URLSearchParams();
     if (extra?.resourceId != null && String(extra.resourceId).length > 0) {
-      params.set('resourceId', String(extra.resourceId));
+      return buildPath('user', 'mcp-center', extra.resourceId);
     }
-    const qs = params.toString();
-    return `${buildPath('user', 'mcp-center')}${qs ? `?${qs}` : ''}`;
+    return buildPath('user', 'mcp-center');
   }
   if (tab === 'dataset') {
-    const params = new URLSearchParams();
     if (extra?.resourceId != null && String(extra.resourceId).length > 0) {
-      params.set('resourceId', String(extra.resourceId));
+      return buildPath('user', 'dataset-center', extra.resourceId);
     }
-    const qs = params.toString();
-    return `${buildPath('user', 'dataset-center')}${qs ? `?${qs}` : ''}`;
+    return buildPath('user', 'dataset-center');
   }
   if (tab === 'agent') {
-    const params = new URLSearchParams();
     if (extra?.resourceId != null && String(extra.resourceId).length > 0) {
-      params.set('resourceId', String(extra.resourceId));
+      return buildPath('user', 'agents-center', extra.resourceId);
     }
-    const qs = params.toString();
-    return `${buildPath('user', 'agents-center')}${qs ? `?${qs}` : ''}`;
+    return buildPath('user', 'agents-center');
   }
   if (tab === 'app') {
-    const params = new URLSearchParams();
     if (extra?.resourceId != null && String(extra.resourceId).length > 0) {
-      params.set('resourceId', String(extra.resourceId));
+      return buildPath('user', 'apps-center', extra.resourceId);
     }
-    const qs = params.toString();
-    return `${buildPath('user', 'apps-center')}${qs ? `?${qs}` : ''}`;
+    return buildPath('user', 'apps-center');
   }
   const params = new URLSearchParams({ tab });
   if (extra?.resourceId != null && String(extra.resourceId).length > 0) {

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Loader2, MessageCircle, Star, ThumbsUp, Trash2, X } from 'lucide-react';
+import { Loader2, MessageCircle, ThumbsUp, Trash2, X } from 'lucide-react';
 import type { Theme } from '../../types';
 import type { UserInfo } from '../../types/dto/auth';
 import { canAccessAdminView } from '../../context/UserRoleContext';
@@ -16,6 +16,15 @@ import { btnGhost, btnPrimary, textMuted, textPrimary, textSecondary } from '../
 import { formatDateTime } from '../../utils/formatDateTime';
 
 type ReviewTargetType = 'agent' | 'skill' | 'app' | 'mcp' | 'dataset';
+
+/** 1–5 分对应表情（由差到好）；未选中时为灰度，选中 / 悬停预览时恢复原色 */
+const RATING_EMOJIS = ['😢', '😕', '😐', '😊', '🤩'] as const;
+
+function ratingEmojiSizeClass(size: number, interactive: boolean): string {
+  if (size >= 18) return interactive ? 'text-4xl sm:text-[2.75rem] leading-none' : 'text-2xl leading-none';
+  if (size >= 14) return 'text-2xl leading-none';
+  return 'text-lg leading-none';
+}
 
 export type ReviewNode = Review & { children: ReviewNode[] };
 
@@ -64,20 +73,55 @@ function StarRating({
   onRate?: (n: number) => void;
 }) {
   const [hover, setHover] = useState(0);
+  const effective = interactive ? (hover > 0 ? hover : rating) : rating;
+  const sizeCls = ratingEmojiSizeClass(size, interactive);
+  const gapCls = size >= 18 && interactive ? 'gap-1.5 sm:gap-2' : 'gap-0.5 sm:gap-1';
+
+  const itemClass = (colored: boolean) =>
+    [
+      sizeCls,
+      'select-none transition-[filter,opacity,transform] duration-200 motion-reduce:transition-none motion-reduce:transform-none',
+      colored ? 'grayscale-0 opacity-100' : 'grayscale opacity-[0.42]',
+    ].join(' ');
+
   return (
-    <div className="flex items-center gap-0.5">
-      {Array.from({ length: 5 }).map((_, i) => {
+    <div
+      className={`flex items-center ${gapCls}`}
+      role={interactive ? 'radiogroup' : 'img'}
+      aria-label={
+        interactive
+          ? '评分，1 分最差 5 分最好'
+          : rating > 0
+            ? `评分 ${rating} 分，满分 5 分`
+            : '暂无评分'
+      }
+    >
+      {RATING_EMOJIS.map((emoji, i) => {
         const val = i + 1;
-        const filled = interactive ? val <= (hover || rating) : val <= rating;
+        const colored = val <= effective && effective > 0;
+        if (interactive) {
+          return (
+            <button
+              key={val}
+              type="button"
+              role="radio"
+              aria-checked={rating === val}
+              aria-label={`${val} 分`}
+              className={`${itemClass(colored)} min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl motion-reduce:hover:scale-100 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50`}
+              onMouseEnter={() => setHover(val)}
+              onMouseLeave={() => setHover(0)}
+              onClick={() => onRate?.(val)}
+            >
+              <span aria-hidden className="block translate-y-px">
+                {emoji}
+              </span>
+            </button>
+          );
+        }
         return (
-          <Star
-            key={i}
-            size={size}
-            className={`transition-colors ${filled ? 'text-amber-500 fill-amber-500' : 'text-slate-300 dark:text-slate-600'} ${interactive ? 'cursor-pointer' : ''}`}
-            onMouseEnter={interactive ? () => setHover(val) : undefined}
-            onMouseLeave={interactive ? () => setHover(0) : undefined}
-            onClick={interactive && onRate ? () => onRate(val) : undefined}
-          />
+          <span key={val} className={itemClass(colored)} title={`${val} 分`} aria-hidden>
+            {emoji}
+          </span>
         );
       })}
     </div>

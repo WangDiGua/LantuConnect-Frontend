@@ -538,6 +538,7 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _the
                   hover
                   glow="indigo"
                   padding="md"
+                  selected={detailSkill != null && String(detailSkill.id) === String(skill.id)}
                   className="flex h-full flex-col"
                   onClick={() => setDetailSkill(skill)}
                 >

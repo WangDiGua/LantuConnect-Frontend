@@ -57,13 +57,21 @@ export const CONSOLE_CARD_SHADOW_LIGHT =
 /** 深色：仍保持柔和层次，避免旧版 0.5 alpha 过重 */
 export const CONSOLE_CARD_SHADOW_DARK =
   'shadow-[0_8px_28px_-8px_rgba(0,0,0,0.28)]';
-const CONSOLE_CARD_BORDER_LIGHT = 'border-slate-100';
-const CONSOLE_CARD_BORDER_DARK = 'border-white/[0.09]';
+/** 图二默认：无边线感，仅靠阴影与画布对比分层（1px 占位避免选中/hover 抢 layout） */
+const CONSOLE_CARD_BORDER_LIGHT_DEFAULT = 'border-transparent';
+const CONSOLE_CARD_BORDER_DARK_DEFAULT = 'border-transparent';
+/** 图三选中：细冷色描边 */
+export const CONSOLE_CARD_BORDER_SELECTED_LIGHT = 'border-sky-200/85';
+export const CONSOLE_CARD_BORDER_SELECTED_DARK = 'border-sky-400/45';
+
+export type BentoCardStyleOptions = {
+  selected?: boolean;
+};
 
 export function canvasCard(theme: Theme) {
   return D(theme)
-    ? `bg-lantu-elevated ${CONSOLE_CARD_RADIUS} ${CONSOLE_CARD_SHADOW_DARK} border ${CONSOLE_CARD_BORDER_DARK}`
-    : `bg-white ${CONSOLE_CARD_RADIUS} ${CONSOLE_CARD_SHADOW_LIGHT} border ${CONSOLE_CARD_BORDER_LIGHT}`;
+    ? `bg-lantu-elevated ${CONSOLE_CARD_RADIUS} ${CONSOLE_CARD_SHADOW_DARK} border ${CONSOLE_CARD_BORDER_DARK_DEFAULT}`
+    : `bg-white ${CONSOLE_CARD_RADIUS} ${CONSOLE_CARD_SHADOW_LIGHT} border ${CONSOLE_CARD_BORDER_LIGHT_DEFAULT}`;
 }
 
 /* ═══════════════════════════════════════════
@@ -79,39 +87,56 @@ export function glassSidebar(theme: Theme) {
 export function glassPanel(theme: Theme) {
   return D(theme)
     ? `bg-lantu-card/55 backdrop-blur-xl border border-white/[0.08] ${CONSOLE_CARD_RADIUS} shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]`
-    : `bg-white/80 backdrop-blur-md border border-slate-200/35 ${CONSOLE_CARD_RADIUS} shadow-[inset_0_1px_0_0_rgba(255,255,255,0.85),0_8px_24px_-4px_rgba(0,0,0,0.02)]`;
+    : `bg-white/80 backdrop-blur-md border border-transparent ${CONSOLE_CARD_RADIUS} shadow-[inset_0_1px_0_0_rgba(255,255,255,0.85),0_8px_24px_-4px_rgba(0,0,0,0.02)]`;
 }
 
 /* ═══════════════════════════════════════════
    Cards — bento 与 canvas 共用 CONSOLE_CARD_* token；hover 以边框+极轻阴影为主，避免重投影
    ═══════════════════════════════════════════ */
 
-/** 可点击卡片 hover（用于 BentoCard、bentoCardHover） */
-const CARD_INTERACTIVE_HOVER_LIGHT =
-  'hover:border-sky-200/75 hover:shadow-[0_10px_28px_-6px_rgba(15,23,42,0.04)] motion-reduce:hover:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.02)]';
-const CARD_INTERACTIVE_HOVER_DARK =
-  'hover:border-white/[0.14] hover:bg-[#1e2636] hover:shadow-[0_10px_32px_-8px_rgba(0,0,0,0.38)] motion-reduce:hover:shadow-[0_8px_28px_-8px_rgba(0,0,0,0.28)]';
+const CARD_HOVER_SHADOW_LIGHT =
+  'hover:shadow-[0_10px_28px_-6px_rgba(15,23,42,0.04)] motion-reduce:hover:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.02)]';
+const CARD_HOVER_SHADOW_DARK =
+  'hover:shadow-[0_10px_32px_-8px_rgba(0,0,0,0.38)] motion-reduce:hover:shadow-[0_8px_28px_-8px_rgba(0,0,0,0.28)]';
 
-export function bentoCard(theme: Theme) {
+/** 未选中：hover 边线弱于图三选中态，避免与 selected 同色 */
+const CARD_INTERACTIVE_HOVER_LIGHT =
+  `hover:border-sky-200/50 ${CARD_HOVER_SHADOW_LIGHT}`;
+const CARD_INTERACTIVE_HOVER_LIGHT_SELECTED =
+  `hover:border-sky-300/95 ${CARD_HOVER_SHADOW_LIGHT}`;
+const CARD_INTERACTIVE_HOVER_DARK =
+  `hover:border-white/[0.14] hover:bg-[#1e2636] ${CARD_HOVER_SHADOW_DARK}`;
+const CARD_INTERACTIVE_HOVER_DARK_SELECTED =
+  `hover:border-sky-400/65 hover:bg-[#1e2636] ${CARD_HOVER_SHADOW_DARK}`;
+
+export function bentoCard(theme: Theme, opts?: BentoCardStyleOptions) {
+  const sel = opts?.selected === true;
+  const border = D(theme)
+    ? sel ? CONSOLE_CARD_BORDER_SELECTED_DARK : CONSOLE_CARD_BORDER_DARK_DEFAULT
+    : sel ? CONSOLE_CARD_BORDER_SELECTED_LIGHT : CONSOLE_CARD_BORDER_LIGHT_DEFAULT;
   return `${CONSOLE_CARD_RADIUS} border transition-all duration-200 motion-reduce:transition-none ${
     D(theme)
-      ? `bg-lantu-elevated ${CONSOLE_CARD_BORDER_DARK} ${CONSOLE_CARD_SHADOW_DARK}`
-      : `bg-white ${CONSOLE_CARD_BORDER_LIGHT} ${CONSOLE_CARD_SHADOW_LIGHT}`
+      ? `bg-lantu-elevated ${border} ${CONSOLE_CARD_SHADOW_DARK}`
+      : `bg-white ${border} ${CONSOLE_CARD_SHADOW_LIGHT}`
   }`;
 }
 
 /** 复合：默认 bento + 浅交互 hover（不含 cursor-pointer，由组件按需添加） */
-export function bentoCardHover(theme: Theme) {
-  return `${bentoCard(theme)} ${D(theme) ? CARD_INTERACTIVE_HOVER_DARK : CARD_INTERACTIVE_HOVER_LIGHT}`;
+export function bentoCardHover(theme: Theme, opts?: BentoCardStyleOptions) {
+  return `${bentoCard(theme, opts)} ${bentoCardPointerHover(theme, opts)}`;
 }
 
 /** BentoCard 专用：与 bentoCard 配套的 pointer hover 类片段 */
-export function bentoCardPointerHover(theme: Theme): string {
-  return D(theme) ? CARD_INTERACTIVE_HOVER_DARK : CARD_INTERACTIVE_HOVER_LIGHT;
+export function bentoCardPointerHover(theme: Theme, opts?: BentoCardStyleOptions): string {
+  const sel = opts?.selected === true;
+  if (D(theme)) {
+    return sel ? CARD_INTERACTIVE_HOVER_DARK_SELECTED : CARD_INTERACTIVE_HOVER_DARK;
+  }
+  return sel ? CARD_INTERACTIVE_HOVER_LIGHT_SELECTED : CARD_INTERACTIVE_HOVER_LIGHT;
 }
 
-export function cardClass(theme: Theme) {
-  return bentoCard(theme);
+export function cardClass(theme: Theme, opts?: BentoCardStyleOptions) {
+  return bentoCard(theme, opts);
 }
 
 /* ═══════════════════════════════════════════

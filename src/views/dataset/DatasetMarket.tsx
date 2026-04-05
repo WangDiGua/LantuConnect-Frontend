@@ -627,6 +627,7 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _t
                         hover
                         glow="emerald"
                         padding="md"
+                        selected={detailDataset != null && detailDataset.id === ds.id}
                         className="flex flex-col h-full"
                         onClick={() => setDetailDataset(ds)}
                       >

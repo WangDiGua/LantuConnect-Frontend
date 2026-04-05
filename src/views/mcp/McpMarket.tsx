@@ -904,6 +904,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                     hover
                     glow="indigo"
                     padding="md"
+                    selected={detail != null && String(detail.resourceId) === String(item.resourceId)}
                     className="flex h-full flex-col"
                     onClick={() => setDetail(item)}
                   >

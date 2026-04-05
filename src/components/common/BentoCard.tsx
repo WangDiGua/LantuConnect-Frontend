@@ -7,6 +7,8 @@ interface Props {
   children: React.ReactNode;
   className?: string;
   hover?: boolean;
+  /** 图三：当前项选中（如详情已打开且对应该卡） */
+  selected?: boolean;
   glow?: 'indigo' | 'emerald' | 'amber' | 'rose' | 'cyan';
   padding?: 'sm' | 'md' | 'lg';
   onClick?: () => void;
@@ -24,14 +26,27 @@ const GLOW_MAP = {
 const PAD_MAP = { sm: 'p-4', md: 'p-6', lg: 'p-8' };
 
 export const BentoCard: React.FC<Props> = ({
-  theme, children, className = '', hover = false, glow, padding = 'md', onClick,
+  theme,
+  children,
+  className = '',
+  hover = false,
+  selected = false,
+  glow,
+  padding = 'md',
+  onClick,
 }) => {
-  const base = bentoCard(theme);
-  const hoverCls = hover ? `${bentoCardPointerHover(theme)} cursor-pointer` : '';
+  const styleOpts = { selected };
+  const base = bentoCard(theme, styleOpts);
+  const hoverCls = hover ? `${bentoCardPointerHover(theme, styleOpts)} cursor-pointer` : '';
   const glowCls = glow ? GLOW_MAP[glow] : '';
 
   return (
-    <div onClick={onClick} className={`${base} ${hoverCls} ${glowCls} ${PAD_MAP[padding]} ${className}`}>
+    <div
+      onClick={onClick}
+      className={`${base} ${hoverCls} ${glowCls} ${PAD_MAP[padding]} ${className}`}
+      aria-current={selected ? 'true' : undefined}
+      data-selected={selected ? 'true' : undefined}
+    >
       {children}
     </div>
   );

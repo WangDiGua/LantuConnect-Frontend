@@ -9,7 +9,15 @@ import {
 import { useNavigate } from 'react-router-dom';
 import type { EChartsOption } from 'echarts';
 import type { Theme, FontSize } from '../../types';
-import { consoleContentTopPad, mainScrollPadBottom, mainScrollPadX, canvasBodyBg } from '../../utils/uiClasses';
+import {
+  canvasBodyBg,
+  CONSOLE_CARD_RADIUS,
+  CONSOLE_CARD_SHADOW_DARK,
+  CONSOLE_CARD_SHADOW_LIGHT,
+  consoleContentTopPad,
+  mainScrollPadBottom,
+  mainScrollPadX,
+} from '../../utils/uiClasses';
 import { ConsolePageFooter } from '../../components/layout/ConsolePageFooter';
 import { buildPath, buildUserResourceMarketUrl } from '../../constants/consoleRoutes';
 import { dashboardService } from '../../api/services/dashboard.service';
@@ -74,19 +82,19 @@ const ANNOUNCEMENT_LABEL: Record<string, string> = {
   notice: '系统通知',
 };
 
-/** 与 HubStatCard 同系边框与阴影（静态，无整卡悬停放大/抬起） */
-const HUB_STAT_BASE_LIGHT = 'border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)]';
-const HUB_STAT_BASE_DARK = 'border-white/10 shadow-[0_2px_10px_rgba(0,0,0,0.2)]';
-/** 仅 HubStatCard：悬停阴影与渐变（配合 translate，不做在其他卡片上） */
+/** 与全站 bento 一致的极淡底影 + 默认无边线（图二） */
+const HUB_STAT_BASE_LIGHT = `border-transparent ${CONSOLE_CARD_SHADOW_LIGHT}`;
+const HUB_STAT_BASE_DARK = `border-transparent ${CONSOLE_CARD_SHADOW_DARK}`;
+/** 仅 HubStatCard：悬停略加重层次，边线弱于市场卡「选中」态 */
 const HUB_STAT_HOVER_LIGHT =
-  'hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] hover:border-gray-200 hover:bg-gradient-to-br hover:from-white hover:to-gray-50';
+  'hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] hover:border-sky-200/50 hover:bg-gradient-to-br hover:from-white hover:to-gray-50';
 const HUB_STAT_HOVER_DARK =
-  'hover:shadow-[0_20px_50px_rgba(0,0,0,0.45)] hover:border-white/20 hover:bg-gradient-to-br hover:from-lantu-card hover:to-lantu-elevated';
+  'hover:shadow-[0_20px_50px_rgba(0,0,0,0.45)] hover:border-sky-400/45 hover:bg-gradient-to-br hover:from-lantu-card hover:to-lantu-elevated';
 
 const Card: React.FC<{ children: React.ReactNode; className?: string; isDark?: boolean }> = ({ children, className = '', isDark = false }) => (
   <div
-    className={`rounded-2xl border overflow-hidden ${
-      isDark ? `bg-lantu-card ${HUB_STAT_BASE_DARK}` : `bg-white ${HUB_STAT_BASE_LIGHT}`
+    className={`${CONSOLE_CARD_RADIUS} border border-transparent overflow-hidden ${
+      isDark ? `bg-lantu-card ${CONSOLE_CARD_SHADOW_DARK}` : `bg-white ${CONSOLE_CARD_SHADOW_LIGHT}`
     } ${className}`}
   >
     {children}
@@ -121,10 +129,10 @@ const SectionTitle: React.FC<{
 );
 
 const hubResourceCardClass = (isDark: boolean) =>
-  `rounded-2xl border px-6 pt-6 pb-8 flex flex-col h-full text-left cursor-pointer transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50 focus-visible:ring-offset-2 ${
+  `${CONSOLE_CARD_RADIUS} border border-transparent px-6 pt-6 pb-8 flex flex-col h-full text-left cursor-pointer transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50 focus-visible:ring-offset-2 ${
     isDark
-      ? `bg-lantu-card ${HUB_STAT_BASE_DARK} focus-visible:ring-offset-lantu-card hover:border-white/18 hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)]`
-      : `bg-white ${HUB_STAT_BASE_LIGHT} focus-visible:ring-offset-white hover:border-slate-200/90 hover:shadow-[0_12px_32px_-8px_rgba(15,23,42,0.1)]`
+      ? `bg-lantu-card ${CONSOLE_CARD_SHADOW_DARK} focus-visible:ring-offset-lantu-card hover:border-sky-400/45 hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)]`
+      : `bg-white ${CONSOLE_CARD_SHADOW_LIGHT} focus-visible:ring-offset-white hover:border-sky-200/50 hover:shadow-[0_12px_32px_-8px_rgba(15,23,42,0.06)]`
   }`;
 
 const HubResourceCard: React.FC<{
@@ -236,7 +244,7 @@ const HubStatCard: React.FC<{
   isDark: boolean;
 }> = ({ icon: Icon, value, label, clickable, onClick, isDark }) => {
   const shell = [
-    'group relative flex h-[156px] min-w-0 w-full flex-col items-center justify-center overflow-hidden rounded-2xl border',
+    `group relative flex h-[156px] min-w-0 w-full flex-col items-center justify-center overflow-hidden ${CONSOLE_CARD_RADIUS} border`,
     'transition-all duration-500 ease-out hover:-translate-y-2',
     isDark
       ? `bg-lantu-card ${HUB_STAT_BASE_DARK} ${HUB_STAT_HOVER_DARK}`

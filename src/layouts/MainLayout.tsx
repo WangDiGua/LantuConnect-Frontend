@@ -1081,7 +1081,7 @@ const MainLayoutContent: React.FC<{
     return rows;
   }, [userSidebarItems, adminSidebarItems]);
 
-  /** 应用壳顶栏：用户域一律隐藏管理一级（接入指南等子页与探索页一致）；抽屉与 Ctrl+K 仍为全量行 */
+  /** 应用壳顶栏：用户域一律隐藏管理一级（接入指南等子页与探索页一致）；抽屉仍为全量行；Ctrl+K 聚焦左侧个人轨「搜索菜单」 */
   const omitAdminPrimaryFromTopNav = !layoutIsAdmin;
   const topNavSidebarRows = useMemo(() => {
     if (layoutIsAdmin) return fullSidebarRows;

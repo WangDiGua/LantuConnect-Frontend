@@ -1,5 +1,5 @@
-import React, { useMemo, useRef, useState, useEffect } from 'react';
-import { ChevronDown, Menu, Search, Command } from 'lucide-react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { ChevronDown, Menu, Search } from 'lucide-react';
 import type { Theme } from '../../types';
 import { iconMuted, mainScrollCompositorClass } from '../../utils/uiClasses';
 import type { ConsoleRole } from '../../constants/consoleRoutes';
@@ -59,9 +59,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
 }) => {
   const searchRows = sidebarSearchRows ?? sidebarRows;
   const isDark = theme === 'dark';
-  const [menuQuery, setMenuQuery] = useState('');
-  const [searchFocused, setSearchFocused] = useState(false);
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [hotSearchFocused, setHotSearchFocused] = useState(false);
   const [openDropdownKey, setOpenDropdownKey] = useState<string | null>(null);
   const [dropdownAnchor, setDropdownAnchor] = useState<HTMLButtonElement | null>(null);
   const [reduceMotion, setReduceMotion] = useState(false);
@@ -73,12 +71,6 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
     mq.addEventListener('change', apply);
     return () => mq.removeEventListener('change', apply);
   }, []);
-
-  const isMac = useMemo(
-    () => typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/i.test(navigator.platform),
-    [],
-  );
-  const normalizedQuery = menuQuery.trim().toLowerCase();
 
   const renderTopNavLeadIcon = (
     item: Extract<ConsoleSidebarRow, { kind: 'item' }>,
@@ -105,27 +97,10 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
       .map((item) => {
         const allChildren = filteredSubGroupsForSidebarId(item.id, item.domain).flatMap((g) => g.items);
         const hasChildren = allChildren.length > 0;
-        const parentMatched = item.label.toLowerCase().includes(normalizedQuery);
-        const matchedChildren = normalizedQuery
-          ? allChildren.filter((child) => child.label.toLowerCase().includes(normalizedQuery))
-          : allChildren;
-
-        if (!normalizedQuery) {
-          return { item, hasChildren, visibleChildren: allChildren };
-        }
-        if (hasChildren) {
-          if (!parentMatched && matchedChildren.length === 0) return null;
-          return {
-            item,
-            hasChildren,
-            visibleChildren: parentMatched ? allChildren : matchedChildren,
-          };
-        }
-        if (!parentMatched) return null;
-        return { item, hasChildren: false, visibleChildren: [] };
+        return { item, hasChildren, visibleChildren: allChildren };
       })
       .filter((v): v is { item: Extract<ConsoleSidebarRow, { kind: 'item' }>; hasChildren: boolean; visibleChildren: SubGroup['items'] } => !!v);
-  }, [filteredSubGroupsForSidebarId, normalizedQuery, searchRows]);
+  }, [filteredSubGroupsForSidebarId, searchRows]);
 
   const navItemStateByKey = useMemo(() => {
     const m = new Map<string, (typeof navItems)[number]>();
@@ -140,9 +115,6 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
     | { kind: 'item'; key: string; block: (typeof navItems)[number] };
 
   const navPieces = useMemo((): NavRenderPiece[] => {
-    if (normalizedQuery) {
-      return navItems.map((n) => ({ kind: 'item' as const, key: `${n.item.domain}-${n.item.id}`, block: n }));
-    }
     const out: NavRenderPiece[] = [];
     let divIdx = 0;
     for (const row of sidebarRows) {
@@ -154,21 +126,10 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
       if (state) out.push({ kind: 'item', key: `${row.domain}-${row.id}`, block: state });
     }
     return out;
-  }, [normalizedQuery, navItems, sidebarRows, navItemStateByKey]);
+  }, [navItems, sidebarRows, navItemStateByKey]);
 
   useEffect(() => {
     const onHotkey = (e: KeyboardEvent) => {
-      const isFocusHotkey = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k';
-      if (isFocusHotkey) {
-        e.preventDefault();
-        searchInputRef.current?.focus();
-        searchInputRef.current?.select();
-        return;
-      }
-      if (e.key === 'Escape' && document.activeElement === searchInputRef.current) {
-        if (menuQuery) setMenuQuery('');
-        searchInputRef.current?.blur();
-      }
       if (e.key === 'Escape') {
         setOpenDropdownKey(null);
         setDropdownAnchor(null);
@@ -176,7 +137,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
     };
     window.addEventListener('keydown', onHotkey);
     return () => window.removeEventListener('keydown', onHotkey);
-  }, [menuQuery]);
+  }, []);
 
   const closeDropdown = () => {
     setOpenDropdownKey(null);
@@ -331,15 +292,12 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
             </div>
           );
         })}
-        {navItems.length === 0 && normalizedQuery ? (
-          <span className="px-2 text-xs text-slate-400">未找到匹配菜单</span>
-        ) : null}
       </nav>
 
       <div
         className={[
           'relative hidden h-9 max-w-[200px] flex flex-1 items-center rounded-full px-3 transition-all duration-200 xl:max-w-xs lg:flex',
-          searchFocused
+          hotSearchFocused
             ? isDark
               ? 'border border-transparent bg-white/10 shadow-[0_0_0_2px_rgba(96,165,250,0.35)]'
               : 'border border-transparent bg-white shadow-[0_0_0_2px_rgba(9,9,11,0.1)]'
@@ -352,7 +310,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
           size={15}
           className={[
             'block shrink-0 transition-colors duration-200',
-            searchFocused
+            hotSearchFocused
               ? isDark
                 ? 'text-slate-100'
                 : 'text-gray-900'
@@ -363,47 +321,22 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
           aria-hidden
         />
         <input
-          ref={searchInputRef}
-          type="text"
-          name="lantu-console-menu-filter-top"
+          type="search"
+          name="lantu-console-hot-search-top"
           inputMode="search"
           autoComplete="off"
           spellCheck={false}
-          value={menuQuery}
-          onChange={(e) => setMenuQuery(e.target.value)}
-          onFocus={() => setSearchFocused(true)}
-          onBlur={() => setSearchFocused(false)}
-          placeholder="搜索菜单..."
+          readOnly
+          tabIndex={0}
+          onFocus={() => setHotSearchFocused(true)}
+          onBlur={() => setHotSearchFocused(false)}
+          placeholder="热门搜索（即将上线）"
           className={[
-            'flex-1 min-w-0 h-full border-none bg-transparent px-2.5 py-0 text-[13px] font-medium leading-none outline-none',
+            'flex-1 min-w-0 h-full cursor-default border-none bg-transparent px-2.5 py-0 text-[13px] font-medium leading-none outline-none',
             isDark ? 'text-slate-200 placeholder:text-slate-500' : 'text-gray-700 placeholder-gray-400',
           ].join(' ')}
-          aria-label="搜索菜单"
+          aria-label="热门搜索（即将上线，暂为占位）"
         />
-        <div
-          className={[
-            'flex shrink-0 select-none items-center justify-center self-center rounded-[5px] px-1.5 py-0.5 text-[10px] font-semibold leading-none tracking-wider transition-all duration-200',
-            searchFocused
-              ? 'pointer-events-none scale-90 opacity-0'
-              : [
-                  'scale-100 opacity-100',
-                  isDark
-                    ? 'border border-white/15 bg-white/10 text-slate-400 shadow-[0_1px_2px_rgba(0,0,0,0.25),0_1px_0_rgba(0,0,0,0.12)]'
-                    : 'border border-gray-200/80 bg-white text-gray-500 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_1px_0_rgba(0,0,0,0.02)]',
-                ].join(' '),
-          ].join(' ')}
-          aria-hidden
-          title={isMac ? '⌘K' : 'Ctrl+K'}
-        >
-          {isMac ? (
-            <span className="flex items-center gap-0.5">
-              <Command size={10} strokeWidth={2.5} className="opacity-90" />
-              <span>K</span>
-            </span>
-          ) : (
-            <span>Ctrl K</span>
-          )}
-        </div>
       </div>
 
       <div className="ml-auto flex min-w-0 shrink-0 items-center">{toolbarRight}</div>

@@ -1,12 +1,12 @@
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { ChevronDown, ChevronRight, LayoutList } from 'lucide-react';
+import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
+import { ChevronDown, ChevronRight, Command, LayoutList, Search } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { Theme } from '../../types';
 import type { ConsoleRole } from '../../constants/consoleRoutes';
 import type { HubPersonalRailSection } from '../../constants/topNavPolicy';
 import { HUB_ADMIN_RAIL_PARENT_IDS, HUB_PERSONAL_RAIL_PARENT_IDS } from '../../constants/topNavPolicy';
 import { ADMIN_SIDEBAR_ITEMS, USER_SIDEBAR_ITEMS } from '../../constants/navigation';
-import { mainScrollCompositorClass } from '../../utils/uiClasses';
+import { iconMuted, mainScrollCompositorClass } from '../../utils/uiClasses';
 import { AvatarGradientFrame, MultiAvatar } from '../common/MultiAvatar';
 
 export interface HubPersonalRailProps {
@@ -29,6 +29,8 @@ type ParentBlock = {
   domain: ConsoleRole;
   sections: HubPersonalRailSection[];
 };
+
+type RowEntry = { sec: HubPersonalRailSection; row: HubPersonalRailSection['rows'][number] };
 
 function buildParentBlocks(flat: HubPersonalRailSection[]): ParentBlock[] {
   const userLabel: Record<string, string> = Object.fromEntries(
@@ -86,6 +88,35 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
   const parentBlocks = useMemo(() => buildParentBlocks(sections), [sections]);
   const hasAdminRail = useMemo(() => parentBlocks.some((b) => b.domain === 'admin'), [parentBlocks]);
 
+  const [menuQuery, setMenuQuery] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
+  const menuSearchInputRef = useRef<HTMLInputElement>(null);
+  const searchMode = Boolean(menuQuery.trim());
+
+  const isMac = useMemo(
+    () => typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/i.test(navigator.platform),
+    [],
+  );
+
+  const filteredBlocks = useMemo(() => {
+    const q = menuQuery.trim().toLowerCase();
+    return parentBlocks.flatMap((block) => {
+      const allRows: RowEntry[] = block.sections.flatMap((sec) => sec.rows.map((row) => ({ sec, row })));
+      const isSingleton = allRows.length === 1;
+      if (!q) return [{ block, rowEntries: allRows, isSingleton }];
+      const parentMatch = block.parentLabel.toLowerCase().includes(q);
+      const rowMatches = (e: RowEntry) => e.row.label.toLowerCase().includes(q);
+      if (isSingleton) {
+        const ok = parentMatch || rowMatches(allRows[0]);
+        if (!ok) return [];
+        return [{ block, rowEntries: allRows, isSingleton: true }];
+      }
+      const matched = allRows.filter(rowMatches);
+      if (!parentMatch && matched.length === 0) return [];
+      return [{ block, rowEntries: parentMatch ? allRows : matched, isSingleton: false }];
+    });
+  }, [parentBlocks, menuQuery]);
+
   /** 与主侧栏一级 id 对齐的语义图标（父级折叠行也展示图标，便于扫读） */
   const parentIconById = useMemo((): Record<string, LucideIcon> => {
     const m: Record<string, LucideIcon> = {};
@@ -113,8 +144,30 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
 
   /** 路由变化时展开所属分组；无匹配时收起（如在探索主画布且无左轨父级） */
   useEffect(() => {
+    if (searchMode) return;
     setExpandedKey(activeBlockKey);
-  }, [activeBlockKey]);
+  }, [activeBlockKey, searchMode]);
+
+  useEffect(() => {
+    const onHotkey = (e: KeyboardEvent) => {
+      const isFocusHotkey = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k';
+      if (isFocusHotkey) {
+        e.preventDefault();
+        menuSearchInputRef.current?.focus();
+        menuSearchInputRef.current?.select();
+        return;
+      }
+      if (e.key === 'Escape' && document.activeElement === menuSearchInputRef.current) {
+        if (menuQuery) setMenuQuery('');
+        menuSearchInputRef.current?.blur();
+      }
+    };
+    window.addEventListener('keydown', onHotkey);
+    return () => window.removeEventListener('keydown', onHotkey);
+  }, [menuQuery]);
+
+  const showUsageEndCap =
+    hasAdminRail && filteredBlocks.length > 0 && filteredBlocks[0]?.block.domain === 'user';
 
   return (
     <nav
@@ -150,10 +203,78 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
       </div>
 
       <div
+        className={[
+          'relative mx-3 mb-2 flex h-9 shrink-0 items-center rounded-full px-3 transition-all duration-200',
+          searchFocused
+            ? isDark
+              ? 'border border-transparent bg-white/10 shadow-[0_0_0_2px_rgba(96,165,250,0.35)]'
+              : 'border border-transparent bg-white shadow-[0_0_0_2px_rgba(9,9,11,0.1)]'
+            : isDark
+              ? 'border border-transparent bg-white/[0.06] shadow-[inset_0_1px_2px_rgba(0,0,0,0.35)] hover:bg-white/[0.09]'
+              : 'border border-transparent bg-slate-100/90 hover:bg-slate-200/60',
+        ].join(' ')}
+      >
+        <Search
+          size={15}
+          className={[
+            'block shrink-0 transition-colors duration-200',
+            searchFocused
+              ? isDark
+                ? 'text-slate-100'
+                : 'text-gray-900'
+              : iconMuted(theme),
+          ].join(' ')}
+          aria-hidden
+        />
+        <input
+          ref={menuSearchInputRef}
+          type="text"
+          name="lantu-console-menu-filter-rail"
+          inputMode="search"
+          autoComplete="off"
+          spellCheck={false}
+          value={menuQuery}
+          onChange={(e) => setMenuQuery(e.target.value)}
+          onFocus={() => setSearchFocused(true)}
+          onBlur={() => setSearchFocused(false)}
+          placeholder="搜索菜单..."
+          className={[
+            'min-w-0 flex-1 border-none bg-transparent px-2.5 py-0 text-[13px] font-medium leading-none outline-none',
+            isDark ? 'text-slate-200 placeholder:text-slate-500' : 'text-gray-700 placeholder-gray-400',
+          ].join(' ')}
+          aria-label="搜索菜单"
+        />
+        <div
+          className={[
+            'flex shrink-0 select-none items-center justify-center self-center rounded-[5px] px-1.5 py-0.5 text-[10px] font-semibold leading-none tracking-wider transition-all duration-200',
+            searchFocused
+              ? 'pointer-events-none scale-90 opacity-0'
+              : [
+                  'scale-100 opacity-100',
+                  isDark
+                    ? 'border border-white/15 bg-white/10 text-slate-400 shadow-[0_1px_2px_rgba(0,0,0,0.25),0_1px_0_rgba(0,0,0,0.12)]'
+                    : 'border border-gray-200/80 bg-white text-gray-500 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_1px_0_rgba(0,0,0,0.02)]',
+                ].join(' '),
+          ].join(' ')}
+          aria-hidden
+          title={isMac ? '⌘K' : 'Ctrl+K'}
+        >
+          {isMac ? (
+            <span className="flex items-center gap-0.5">
+              <Command size={10} strokeWidth={2.5} className="opacity-90" />
+              <span>K</span>
+            </span>
+          ) : (
+            <span>Ctrl K</span>
+          )}
+        </div>
+      </div>
+
+      <div
         className={`min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 pb-4 pt-0 custom-scrollbar ${mainScrollCompositorClass}`}
       >
         <div className="space-y-1">
-          {hasAdminRail && parentBlocks[0]?.domain === 'user' ? (
+          {showUsageEndCap ? (
             <div
               className="mb-3 flex items-center gap-2.5 px-0.5"
               aria-label="个人与日常使用入口"
@@ -175,13 +296,15 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
               />
             </div>
           ) : null}
-          {parentBlocks.map((block, blockIdx) => {
-            const rowEntries = block.sections.flatMap((sec) => sec.rows.map((row) => ({ sec, row })));
-            const isSingleton = rowEntries.length === 1;
+          {filteredBlocks.length === 0 && searchMode ? (
+            <p className="px-1 py-2 text-center text-xs text-slate-400">未找到匹配菜单</p>
+          ) : null}
+          {filteredBlocks.map((fb, blockIdx) => {
+            const { block, rowEntries, isSingleton } = fb;
 
             const adminDivider =
               blockIdx > 0 &&
-              parentBlocks[blockIdx - 1].domain === 'user' &&
+              filteredBlocks[blockIdx - 1].block.domain === 'user' &&
               block.domain === 'admin' ? (
                 <div
                   className={`my-4 flex items-center gap-2.5 px-0.5`}
@@ -239,6 +362,7 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
             }
 
             const ParentIcon = parentIconById[block.parentSidebarId] ?? LayoutList;
+            const childrenOpen = searchMode || isParentOpen(block.key);
             return (
               <div key={block.key}>
                 {adminDivider}
@@ -247,7 +371,7 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
                   <button
                     type="button"
                     onClick={() => toggleParent(block.key)}
-                    aria-expanded={isParentOpen(block.key)}
+                    aria-expanded={childrenOpen}
                     className={`group/parent flex min-h-11 w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
                       isDark ? 'text-slate-200 hover:bg-white/[0.06]' : 'text-slate-800 hover:bg-slate-100'
                     }`}
@@ -263,11 +387,11 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
                       aria-hidden
                       className={`shrink-0 opacity-45 transition-[transform,opacity] duration-200 motion-reduce:transition-none group-hover/parent:opacity-75 ${
                         isDark ? 'text-slate-400' : 'text-slate-500'
-                      } ${isParentOpen(block.key) ? 'rotate-0' : '-rotate-90'}`}
+                      } ${childrenOpen ? 'rotate-0' : '-rotate-90'}`}
                     />
                   </button>
 
-                  {isParentOpen(block.key) ? (
+                  {childrenOpen ? (
                     <ul className="space-y-0.5 pb-2 pl-1">
                       {rowEntries.map(({ sec, row }) => {
                         const isActive =

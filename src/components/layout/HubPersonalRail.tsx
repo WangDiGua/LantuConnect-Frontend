@@ -6,7 +6,7 @@ import type { HubPersonalRailSection } from '../../constants/topNavPolicy';
 import { HUB_ADMIN_RAIL_PARENT_IDS, HUB_PERSONAL_RAIL_PARENT_IDS } from '../../constants/topNavPolicy';
 import { ADMIN_SIDEBAR_ITEMS, USER_SIDEBAR_ITEMS } from '../../constants/navigation';
 import { mainScrollCompositorClass } from '../../utils/uiClasses';
-import { MultiAvatar } from '../common/MultiAvatar';
+import { AvatarGradientFrame, MultiAvatar } from '../common/MultiAvatar';
 
 export interface HubPersonalRailProps {
   theme: Theme;
@@ -117,15 +117,20 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
         <button
           type="button"
           onClick={onProfileClick}
-          className={`flex w-full min-w-0 items-center gap-3 rounded-lg px-1 py-1.5 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
+          className={`group/profile flex w-full min-w-0 items-center gap-3 rounded-lg px-1 py-1.5 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
             isDark ? 'hover:bg-white/[0.04]' : 'hover:bg-slate-50'
           }`}
         >
-          <MultiAvatar
-            seed={avatarSeed}
-            alt={displayName}
-            className={`h-11 w-11 shrink-0 rounded-full ${isDark ? 'border border-white/10' : 'border border-slate-200/80'}`}
-          />
+          <AvatarGradientFrame
+            isDark={isDark}
+            className="group-hover/profile:shadow-[0_0_18px_-4px_rgba(56,189,248,0.4)] group-hover/profile:brightness-[1.05] motion-reduce:group-hover/profile:shadow-none motion-reduce:group-hover/profile:brightness-100"
+          >
+            <MultiAvatar
+              seed={avatarSeed}
+              alt={displayName}
+              className="h-11 w-11 block shrink-0 rounded-full object-cover"
+            />
+          </AvatarGradientFrame>
           <div className="min-w-0 flex-1">
             <div className={`truncate text-sm font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{displayName}</div>
             <div className={`flex items-center gap-0.5 truncate text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>

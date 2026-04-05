@@ -7,7 +7,7 @@ import type { ConsoleRole } from '../../constants/consoleRoutes';
 import type { PlatformRoleCode } from '../../types/dto/auth';
 import { PLATFORM_ROLE_LABELS } from '../../constants/platformRoles';
 import { Logo } from '../common/Logo';
-import { MultiAvatar } from '../common/MultiAvatar';
+import { AvatarGradientFrame, MultiAvatar } from '../common/MultiAvatar';
 
 type IconComponent = React.ComponentType<{
   size?: number;
@@ -471,11 +471,16 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
               isDark ? 'hover:bg-white/[0.06]' : 'hover:bg-slate-200/40'
             }`}
           >
-            <MultiAvatar
-              seed={avatarSeed}
-              alt={displayUserName}
-              className="h-9 w-9 shrink-0 rounded-lg border border-white/10"
-            />
+            <AvatarGradientFrame
+              isDark={isDark}
+              className="group-hover/user:shadow-[0_0_16px_-4px_rgba(56,189,248,0.42)] group-hover/user:brightness-[1.06] motion-reduce:group-hover/user:shadow-none motion-reduce:group-hover/user:brightness-100"
+            >
+              <MultiAvatar
+                seed={avatarSeed}
+                alt={displayUserName}
+                className="h-9 w-9 block shrink-0 rounded-full object-cover"
+              />
+            </AvatarGradientFrame>
             <div className="flex-1 text-left overflow-hidden">
               <div
                 className={`text-[13px] font-bold truncate leading-tight transition-colors ${

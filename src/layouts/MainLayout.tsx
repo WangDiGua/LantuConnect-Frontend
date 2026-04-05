@@ -112,7 +112,7 @@ import {
 import { PageSkeleton } from '../components/common/PageSkeleton';
 import { ConsoleSidebar, type ConsoleSidebarRow } from '../components/layout/ConsoleSidebar';
 import { ConsoleTopNav } from '../components/layout/ConsoleTopNav';
-import { MultiAvatar } from '../components/common/MultiAvatar';
+import { AvatarGradientFrame, MultiAvatar } from '../components/common/MultiAvatar';
 import { PLATFORM_ROLE_LABELS } from '../constants/platformRoles';
 import { Tooltip } from '../components/common/Tooltip';
 import { chromeGpuLayerClass, contentMaxWidth, iconChrome, mainScrollCompositorClass } from '../utils/uiClasses';
@@ -1566,7 +1566,7 @@ const MainLayoutContent: React.FC<{
                       setShowSettingsMenu(false);
                       setShowMessagePanel(false);
                     }}
-                    className={`inline-flex h-9 items-center gap-1.5 rounded-full border px-0.5 py-0.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 ${
+                    className={`group inline-flex h-9 items-center gap-1.5 rounded-full border px-0.5 py-0.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 ${
                       isDark
                         ? 'border-white/10 bg-white/[0.06] hover:bg-white/[0.1] focus-visible:ring-offset-lantu-card'
                         : 'border-slate-200/80 bg-white hover:bg-slate-50 focus-visible:ring-offset-white'
@@ -1574,11 +1574,17 @@ const MainLayoutContent: React.FC<{
                     aria-label={`账户，${displayUserName}，退出登录`}
                     aria-expanded={showUserMenu}
                   >
-                    <MultiAvatar
-                      seed={`${authUser?.id ?? 'user'}-${displayUserName}`}
-                      alt={displayUserName}
-                      className="h-8 w-8 shrink-0 rounded-full border border-white/10"
-                    />
+                    <AvatarGradientFrame
+                      isDark={isDark}
+                      padding="sm"
+                      className="group-hover:shadow-[0_0_14px_-4px_rgba(56,189,248,0.38)] group-hover:brightness-[1.05] motion-reduce:group-hover:shadow-none motion-reduce:group-hover:brightness-100"
+                    >
+                      <MultiAvatar
+                        seed={`${authUser?.id ?? 'user'}-${displayUserName}`}
+                        alt={displayUserName}
+                        className="h-8 w-8 block shrink-0 rounded-full object-cover"
+                      />
+                    </AvatarGradientFrame>
                     <MoreVertical
                       size={14}
                       className={`mr-1 shrink-0 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}

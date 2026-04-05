@@ -467,10 +467,8 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
           <button
             type="button"
             onClick={() => setShowUserMenu((v) => !v)}
-            className={`group/user flex w-full items-center gap-3 rounded-xl p-2.5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 motion-reduce:transition-none ${
-              isDark
-                ? 'bg-white/[0.06] shadow-[0_2px_12px_rgba(0,0,0,0.15)] border border-white/10 hover:bg-white/[0.1] focus-visible:ring-offset-lantu-surface'
-                : 'bg-white shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-slate-200/50 hover:shadow-md focus-visible:ring-offset-white'
+            className={`group/user flex w-full items-center gap-3 rounded-lg border-0 bg-transparent p-2.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent motion-reduce:transition-none ${
+              isDark ? 'hover:bg-white/[0.06]' : 'hover:bg-slate-200/40'
             }`}
           >
             <MultiAvatar

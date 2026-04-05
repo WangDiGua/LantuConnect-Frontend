@@ -749,7 +749,11 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme, fontSize: _fontSi
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
             {hubRail ? (
-              <div className="order-2 col-span-1 lg:order-1 lg:col-span-2 lg:row-span-1">
+              <div
+                className={`order-2 col-span-1 lg:order-1 lg:col-span-2 lg:row-span-1 lg:border-r lg:pr-6 ${
+                  isDark ? 'lg:border-white/[0.08]' : 'lg:border-slate-200/80'
+                }`}
+              >
                 <HubPersonalRail
                   theme={theme}
                   sections={hubRail.sections}

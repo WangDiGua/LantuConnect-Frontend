@@ -79,9 +79,8 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
   onSubItemClick,
 }) => {
   const isDark = theme === 'dark';
-  const shell = isDark
-    ? 'rounded-xl border border-white/[0.08] bg-lantu-card shadow-[0_2px_12px_rgba(0,0,0,0.25)]'
-    : 'rounded-xl border border-slate-200/80 bg-white shadow-[0_2px_12px_rgba(15,23,42,0.06)]';
+  /** 与探索页画布平接，不用独立浮卡；列级分隔由 ExploreHub 父级 border-r 承担 */
+  const shell = 'rounded-none border-0 bg-transparent shadow-none';
 
   const parentBlocks = useMemo(() => buildParentBlocks(sections), [sections]);
 
@@ -118,8 +117,8 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
         <button
           type="button"
           onClick={onProfileClick}
-          className={`flex w-full min-w-0 items-center gap-3 rounded-lg px-1 py-1.5 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 ${
-            isDark ? 'focus-visible:ring-offset-lantu-card hover:bg-white/[0.04]' : 'focus-visible:ring-offset-white hover:bg-slate-50'
+          className={`flex w-full min-w-0 items-center gap-3 rounded-lg px-1 py-1.5 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
+            isDark ? 'hover:bg-white/[0.04]' : 'hover:bg-slate-50'
           }`}
         >
           <MultiAvatar
@@ -157,10 +156,8 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
                   type="button"
                   onClick={() => toggleParent(block.key)}
                   aria-expanded={isParentOpen(block.key)}
-                  className={`flex min-h-11 w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 ${
-                    isDark
-                      ? 'text-slate-200 hover:bg-white/[0.06] focus-visible:ring-offset-lantu-card'
-                      : 'text-slate-800 hover:bg-slate-100 focus-visible:ring-offset-white'
+                  className={`flex min-h-11 w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
+                    isDark ? 'text-slate-200 hover:bg-white/[0.06]' : 'text-slate-800 hover:bg-slate-100'
                   }`}
                 >
                   <ChevronDown
@@ -188,9 +185,7 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
                             type="button"
                             onClick={() => onSubItemClick(row.subItemId, sec.parentSidebarId, sec.domain)}
                             aria-current={isActive ? 'page' : undefined}
-                            className={`flex min-h-10 w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 ${
-                              isDark ? 'focus-visible:ring-offset-lantu-card' : 'focus-visible:ring-offset-white'
-                            } ${
+                            className={`flex min-h-10 w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
                               isActive
                                 ? isDark
                                   ? 'bg-white/10 font-medium text-slate-100'

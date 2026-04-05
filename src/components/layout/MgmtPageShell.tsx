@@ -2,6 +2,7 @@ import React from 'react';
 import { ChevronRight, type LucideIcon } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
+import { consoleContentTopPad, consoleMgmtShellOuterBottomPad } from '../../utils/uiClasses';
 
 export interface MgmtPageShellProps {
   theme: Theme;
@@ -32,8 +33,8 @@ export const MgmtPageShell: React.FC<MgmtPageShellProps> = ({
   const isDark = theme === 'dark';
   const { hasSecondarySidebar } = useLayoutChrome();
   const outerPad = hasSecondarySidebar
-    ? 'px-2 sm:px-3 lg:px-4 py-2 sm:py-3'
-    : 'px-1.5 sm:px-2 lg:px-3 py-2 sm:py-3';
+    ? `px-2 sm:px-3 lg:px-4 ${consoleContentTopPad} ${consoleMgmtShellOuterBottomPad}`
+    : `px-1.5 sm:px-2 lg:px-3 ${consoleContentTopPad} ${consoleMgmtShellOuterBottomPad}`;
 
   const pageTitle = breadcrumbSegments[breadcrumbSegments.length - 1] ?? '';
 
@@ -45,7 +46,7 @@ export const MgmtPageShell: React.FC<MgmtPageShellProps> = ({
   const docScroll = contentScroll === 'document';
   const shellOverflow = docScroll ? 'overflow-visible' : 'overflow-hidden';
   const cardOverflow = docScroll ? 'overflow-visible' : 'overflow-hidden';
-  /** 与顶栏、工具栏之间留出纵向间隙，避免正文「顶格贴住」分隔线 */
+  /** 面包屑/工具栏与正文区块之间的间隙（页顶全局距已在 outer consoleContentTopPad） */
   const bodyTopPad = 'pt-5 sm:pt-6';
   const bodyScrollClass = docScroll
     ? `min-w-0 shrink-0 overflow-visible flex flex-col ${bodyTopPad}`

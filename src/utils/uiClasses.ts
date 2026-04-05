@@ -12,10 +12,17 @@ export function pageBg(_theme: Theme) {
 
 export const mainScrollPadX = 'px-5 sm:px-6 lg:px-8';
 export const mainScrollPadBottom = 'pb-6 sm:pb-8';
+/**
+ * 主滚动区内：路由根容器顶边距（与 MainLayout 固定顶栏的 pt-[calc(4rem+safe-area)] 无关；顶栏占位只在那层处理）。
+ * 全站壳层（管理台 / 仪表盘 / 市场 / 个人页等）应优先复用此 token，避免各页自拟 pt/py 导致「距顶」不一致。
+ */
+export const consoleContentTopPad = 'pt-5 sm:pt-6';
+/** 管理台白卡片外圈：仅保留下边缝，顶距由 consoleContentTopPad 承担，避免 py-* 叠双份 */
+export const consoleMgmtShellOuterBottomPad = 'pb-2 sm:pb-3';
 /** flex 滚动区需要 min-h-0；勿在业务页根再套 overscroll-y-contain（会阻断滚轮到 MainLayout 主滚动） */
 export const mainScrollCompositorClass = 'min-h-0';
-/** 主内容纵向滚动区常用组合（与 MainLayout 主滚动子树一致） */
-export const pageScrollShell = `${mainScrollCompositorClass} ${mainScrollPadX} ${mainScrollPadBottom}`;
+/** 主内容纵向滚动区常用组合（与 MainLayout 主滚动子树一致；含统一顶距） */
+export const pageScrollShell = `${mainScrollCompositorClass} ${mainScrollPadX} ${consoleContentTopPad} ${mainScrollPadBottom}`;
 /** 布局壳层 GPU 合成；勿与同一节点的 overflow-y-auto 主滚动根混用 */
 export const chromeGpuLayerClass = 'transform-gpu';
 /** 主内容区在侧栏与画布内横向占满，不再用 1400px 人为缩窄；可读性由内部卡片/栅格控制 */
@@ -28,8 +35,7 @@ export const cardGap = 'gap-5';
 /** KPI / 小卡片栅格：避免「块之间贴在一起」 */
 export const kpiGridGap = 'gap-4 sm:gap-5';
 /**
- * MgmtPageShell 内文档流子树根（顶栏/工具栏下方留白由壳层 pt-* 提供时常用）
- * 若壳层未加 pt，可改用带 pt 的变体。
+ * MgmtPageShell 内文档流子树根（面包屑/工具栏与正文之间的留白；页顶距顶_scroll 用 consoleContentTopPad）
  */
 export const mgmtPageBodyPadX = 'px-4 sm:px-6';
 export const mgmtPageBodyPad = `${mgmtPageBodyPadX} pb-8`;

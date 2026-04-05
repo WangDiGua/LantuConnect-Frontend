@@ -32,6 +32,7 @@ import { mapInvokeFlowError } from '../../utils/invokeError';
 import { safeOpenHttpUrl } from '../../lib/windowNavigate';
 import {
   canvasBodyBg,
+  consoleContentTopPad,
   mainScrollPadX,
   mainScrollPadBottom,
   btnPrimary,
@@ -423,7 +424,7 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _t
 
   return (
     <div className={`w-full ${canvasBodyBg(theme)}`}>
-      <div className={`${mainScrollPadX} ${mainScrollPadBottom} space-y-5 pt-3 sm:pt-4`}>
+      <div className={`${mainScrollPadX} ${mainScrollPadBottom} space-y-5 ${consoleContentTopPad}`}>
           {/* Hero */}
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="flex min-w-0 items-start gap-3">

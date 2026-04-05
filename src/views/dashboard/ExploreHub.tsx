@@ -9,7 +9,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import type { EChartsOption } from 'echarts';
 import type { Theme, FontSize } from '../../types';
-import { mainScrollPadBottom, mainScrollPadX, canvasBodyBg } from '../../utils/uiClasses';
+import { consoleContentTopPad, mainScrollPadBottom, mainScrollPadX, canvasBodyBg } from '../../utils/uiClasses';
 import { ConsolePageFooter } from '../../components/layout/ConsolePageFooter';
 import { buildPath, buildUserResourceMarketUrl } from '../../constants/consoleRoutes';
 import { dashboardService } from '../../api/services/dashboard.service';
@@ -749,9 +749,9 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
   return (
     <>
       {/*
-        hubRail：仅用外层一份 pt 与顶栏留隙，左右列同起点；勿再在 main 上叠 mt，否则侧栏相对顶栏会明显高于其它控制台页。
+        hubRail：仅用外层一份 consoleContentTopPad 与主滚动区顶对齐其它页；勿再在 main 上叠 mt，否则侧栏相对顶栏会明显高于其它控制台页。
       */}
-      <div className={`w-full ${mainScrollPadBottom} ${canvasBodyBg(theme)} pt-2 sm:pt-3 pb-16 sm:pb-20`}>
+      <div className={`w-full ${mainScrollPadBottom} ${canvasBodyBg(theme)} ${consoleContentTopPad} pb-16 sm:pb-20`}>
         {!hubRail ? <div className={pageContainer}>{hubHeroBanner}</div> : null}
 
         <main className={`${pageContainer} ${hubRail ? 'mt-0' : 'mt-6 sm:mt-7'} space-y-8`}>

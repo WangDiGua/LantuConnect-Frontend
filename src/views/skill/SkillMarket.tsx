@@ -40,6 +40,7 @@ import { fetchSkillPackBlobDownload, resolveSkillArtifactTarget } from '../../ut
 import { safeOpenHttpUrl } from '../../lib/windowNavigate';
 import {
   canvasBodyBg,
+  consoleContentTopPad,
   mainScrollPadX,
   mainScrollPadBottom,
   btnPrimary,
@@ -303,7 +304,7 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _the
 
   return (
     <div className={`w-full ${canvasBodyBg(theme)}`}>
-      <div className={`${mainScrollPadX} ${mainScrollPadBottom} space-y-5 pt-3 sm:pt-4`}>
+      <div className={`${mainScrollPadX} ${mainScrollPadBottom} space-y-5 ${consoleContentTopPad}`}>
         {/* 顶栏：品牌区 + 轻量操作（紧凑版，减少首屏占用） */}
         <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
           <div className="flex min-w-0 items-start gap-3 sm:gap-3.5">

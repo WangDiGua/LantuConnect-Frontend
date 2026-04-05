@@ -41,6 +41,7 @@ import {
   btnPrimary,
   btnSecondary,
   canvasBodyBg,
+  consoleContentTopPad,
   iconMuted,
   mainScrollPadBottom,
   mainScrollPadX,
@@ -699,7 +700,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
 
   return (
     <div className={`w-full ${canvasBodyBg(theme)}`}>
-      <div className={`${mainScrollPadX} ${mainScrollPadBottom} space-y-5 pt-3 sm:pt-4`}>
+      <div className={`${mainScrollPadX} ${mainScrollPadBottom} space-y-5 ${consoleContentTopPad}`}>
         <header className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between lg:gap-6">
           <div className="flex min-w-0 items-start gap-3 sm:gap-3.5">
             <div

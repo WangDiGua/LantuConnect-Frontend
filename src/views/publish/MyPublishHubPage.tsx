@@ -13,6 +13,7 @@ import {
   bentoCardHover,
   btnPrimary,
   canvasBodyBg,
+  consoleContentTopPad,
   textMuted,
   textPrimary,
   textSecondary,
@@ -71,7 +72,7 @@ export const MyPublishHubPage: React.FC<Props> = ({ theme }) => {
 
   return (
     <div className={`flex-1 min-h-0 overflow-y-auto ${canvasBodyBg(theme)}`}>
-      <div className="px-3 py-4 sm:px-4 lg:px-5">
+      <div className={`px-3 sm:px-4 lg:px-5 ${consoleContentTopPad} pb-4 sm:pb-5`}>
         <div className={`${bentoCard(theme)} p-4 sm:p-5`}>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>

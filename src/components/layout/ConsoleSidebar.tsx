@@ -189,7 +189,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
       {showBrandHeader && (
-        <div className="px-2 mt-2 mb-4">
+        <div className="px-4 mt-2 mb-3">
           {onLogoClick ? (
             <button
               type="button"
@@ -208,7 +208,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
       )}
 
       {/* 顶部用户区（与 HubPersonalRail / 产品稿图二一致）；账户菜单下拉 */}
-      <div className={`relative shrink-0 ${showBrandHeader ? 'px-1 pb-3' : 'px-0.5 pb-3'}`} ref={userMenuRef}>
+      <div className={`relative shrink-0 ${showBrandHeader ? 'px-4 pb-3' : 'p-4 pb-3'}`} ref={userMenuRef}>
         <AnimatePresence>
           {showUserMenu && (
             <motion.div
@@ -289,8 +289,8 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
         </button>
       </div>
 
-      {/* Menu Search：微凹底 + 聚焦抬亮与环，快捷键 Chip 非聚焦显示 */}
-      <div className="mb-4 shrink-0">
+      {/* Menu Search：与 Hub 一致 mx-3 mb-2 */}
+      <div className="mx-3 mb-2 shrink-0">
         <div
           className={[
             'relative flex h-9 w-full items-center rounded-full px-3',
@@ -365,7 +365,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
       </div>
 
       {/* Navigation */}
-      <nav className={`flex-1 overflow-y-auto space-y-1.5 custom-scrollbar pr-1 pb-4 ${mainScrollCompositorClass}`}>
+      <nav className={`flex-1 overflow-y-auto space-y-1.5 custom-scrollbar px-3 pb-4 ${mainScrollCompositorClass}`}>
         {navRenderRows.map((row) => {
           if (row.kind === 'section') {
             const isAdminCap = row.label === '管理端';

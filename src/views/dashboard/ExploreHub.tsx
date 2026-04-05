@@ -308,7 +308,7 @@ function heroTerminalSpotlightGradient(x: number, y: number): string {
   return `radial-gradient(95% 88% at ${x.toFixed(2)}% ${y.toFixed(2)}%, rgba(255,255,255,0.09) 0%, rgba(186,230,253,0.04) 34%, rgba(165,180,252,0.025) 52%, transparent 72%)`;
 }
 
-const HeroCodeTerminal: React.FC = () => {
+const HeroCodeTerminal: React.FC<{ compact?: boolean }> = ({ compact = false }) => {
   const [typedCode, setTypedCode] = useState('');
   const wrapRef = useRef<HTMLDivElement>(null);
   const spotlightRef = useRef<HTMLDivElement>(null);
@@ -401,9 +401,17 @@ const HeroCodeTerminal: React.FC = () => {
     [],
   );
 
+  const outerPad = compact ? 'p-4 -m-4 max-w-[calc(100%+2rem)]' : 'p-10 -m-10 max-w-[calc(100%+5rem)]';
+  const termWidth = compact ? 'w-[280px]' : 'w-[420px]';
+  const codeH = compact ? 'h-[132px]' : 'h-[300px]';
+  const codeText = compact ? 'text-[11px] leading-snug' : 'text-sm leading-relaxed';
+  const headPad = compact ? 'px-3 py-2' : 'px-4 py-3';
+  const innerPad = compact ? 'p-3' : 'p-5';
+  const rotate = compact ? 'rotate(-1deg)' : 'rotate(-2deg)';
+
   return (
     <div
-      className="shrink-0 p-10 -m-10 max-w-[calc(100%+5rem)]"
+      className={`shrink-0 ${outerPad}`}
       onMouseMove={onMouseMove}
       onMouseLeave={onMouseLeave}
     >
@@ -411,8 +419,8 @@ const HeroCodeTerminal: React.FC = () => {
         ref={wrapRef}
         role="img"
         aria-label="示例代码窗口：deploy 智能体"
-        className="relative w-[420px] max-w-full shrink-0 rounded-xl"
-        style={{ transform: 'rotate(-2deg)' }}
+        className={`relative ${termWidth} max-w-full shrink-0 rounded-xl`}
+        style={{ transform: rotate }}
       >
       {/* 环境光晕：双层椭圆径向 + 大半径 blur，低饱和避免「塑料霓虹」 */}
       <div
@@ -449,16 +457,16 @@ const HeroCodeTerminal: React.FC = () => {
       <div
         className="relative z-10 overflow-hidden rounded-xl border border-white/[0.09] bg-black/40 shadow-[0_16px_40px_-10px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.04),0_0_48px_-20px_rgba(56,189,248,0.1)] backdrop-blur-xl"
       >
-      <div className="flex items-center px-4 py-3 border-b border-white/5">
-        <div className="flex gap-1.5">
-          <div className="w-3 h-3 rounded-full bg-red-500/80" />
-          <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
-          <div className="w-3 h-3 rounded-full bg-green-500/80" />
+      <div className={`flex items-center border-b border-white/5 ${headPad}`}>
+        <div className={`flex ${compact ? 'gap-1' : 'gap-1.5'}`}>
+          <div className={`${compact ? 'w-2.5 h-2.5' : 'w-3 h-3'} rounded-full bg-red-500/80`} />
+          <div className={`${compact ? 'w-2.5 h-2.5' : 'w-3 h-3'} rounded-full bg-yellow-500/80`} />
+          <div className={`${compact ? 'w-2.5 h-2.5' : 'w-3 h-3'} rounded-full bg-green-500/80`} />
         </div>
-        <div className="mx-auto text-xs text-gray-500 font-mono">agent-deploy.ts</div>
+        <div className={`mx-auto text-gray-500 font-mono ${compact ? 'text-[10px]' : 'text-xs'}`}>agent-deploy.ts</div>
       </div>
 
-      <div className="h-[300px] shrink-0 p-5 font-mono text-sm leading-relaxed overflow-y-auto overflow-x-hidden min-h-0 min-w-0">
+      <div className={`${codeH} shrink-0 ${innerPad} font-mono ${codeText} overflow-y-auto overflow-x-hidden min-h-0 min-w-0`}>
         <div className="text-gray-300 whitespace-pre-wrap break-words min-w-0 pb-1 inline-block max-w-full align-top">
           <Highlight theme={themes.vsDark} code={typedCode} language="tsx">
             {({ className, style, tokens, getLineProps, getTokenProps }) => (
@@ -622,113 +630,123 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme, fontSize: _fontSi
   /** 与主画布内容区留出足够内边距，避免区块贴边 */
   const pageContainer = 'w-full px-4 sm:px-5 lg:px-6 xl:px-8';
 
-  /** Hero：暗色主题与 #0f1117 画布区分层次 + 提升副文案对比（WCAG 友好） */
+  /** Hero：压低高度、参考魔搭「中间栏横幅」；有左轨时仅占主栏宽度 */
   const heroRingOffset = isDark ? 'focus-visible:ring-offset-[#0c0e14]' : 'focus-visible:ring-offset-[#0a0a0a]';
   const heroShellClass = isDark
-    ? `relative w-full overflow-hidden rounded-3xl border border-white/[0.11] bg-gradient-to-b from-[#12151f] via-[#0c0e14] to-[#07080c] px-8 py-6 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_20px_40px_-12px_rgba(0,0,0,0.55),0_0_0_1px_rgba(0,0,0,0.4)] md:px-12 md:py-7 lg:px-14`
-    : `relative w-full overflow-hidden rounded-3xl border border-white/10 bg-[#0a0a0a] px-8 py-6 shadow-[0_20px_40px_-12px_rgba(15,23,42,0.4)] md:px-12 md:py-7 lg:px-14`;
+    ? `relative w-full overflow-hidden rounded-2xl border border-white/[0.11] bg-gradient-to-b from-[#12151f] via-[#0c0e14] to-[#07080c] px-5 py-4 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_12px_28px_-10px_rgba(0,0,0,0.5),0_0_0_1px_rgba(0,0,0,0.35)] sm:px-6 sm:py-5`
+    : `relative w-full overflow-hidden rounded-2xl border border-white/10 bg-[#0a0a0a] px-5 py-4 shadow-[0_12px_28px_-10px_rgba(15,23,42,0.35)] sm:px-6 sm:py-5`;
   const heroGridStyle: React.CSSProperties = {
     backgroundImage: isDark
-      ? 'linear-gradient(to right, rgba(255,255,255,0.052) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.052) 1px, transparent 1px)'
-      : 'linear-gradient(to right, rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.06) 1px, transparent 1px)',
-    backgroundSize: '48px 48px',
+      ? 'linear-gradient(to right, rgba(255,255,255,0.045) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.045) 1px, transparent 1px)'
+      : 'linear-gradient(to right, rgba(255,255,255,0.055) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.055) 1px, transparent 1px)',
+    backgroundSize: '32px 32px',
   };
   const heroVignetteFrom = isDark ? '#0c0e14' : '#0a0a0a';
   const heroLeadClass = isDark
-    ? 'text-slate-400 text-lg md:text-xl font-normal leading-relaxed max-w-xl mb-8'
-    : 'text-slate-300 text-lg md:text-xl font-light leading-relaxed max-w-xl mb-8';
+    ? 'text-slate-400 text-sm sm:text-[15px] font-normal leading-relaxed max-w-xl mb-4'
+    : 'text-slate-300 text-sm sm:text-[15px] font-light leading-relaxed max-w-xl mb-4';
+
+  const heroCompactTerminal = Boolean(hubRail);
+
+  const hubHeroBanner = (
+    <div className={heroShellClass} style={heroGridStyle}>
+      <div
+        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/[0.04] via-transparent to-transparent"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: `linear-gradient(to right, ${heroVignetteFrom}, transparent 28%, transparent 72%, ${heroVignetteFrom})`,
+        }}
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: `linear-gradient(to top, ${heroVignetteFrom}, transparent 38%, transparent 62%, ${heroVignetteFrom})`,
+        }}
+        aria-hidden
+      />
+
+      <div className="relative z-10 w-full lg:flex lg:items-center lg:justify-between lg:gap-6">
+        <div className="w-full min-w-0 lg:max-w-[min(100%,36rem)] xl:max-w-[min(100%,28rem)]">
+          <button
+            type="button"
+            onClick={() => navigate(buildPath('user', 'resource-center'))}
+            className={`group mb-3 inline-flex max-w-full items-center gap-2 rounded-full border border-white/[0.12] bg-white/[0.08] px-3 py-1.5 text-left shadow-md backdrop-blur-md transition-colors hover:border-white/[0.16] hover:bg-white/[0.11] focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/55 focus-visible:ring-offset-2 ${heroRingOffset}`}
+          >
+            <Sparkles className="h-3.5 w-3.5 shrink-0 text-sky-400" strokeWidth={2} aria-hidden />
+            <span className="text-xs font-medium text-white sm:text-[13px]">Nexus Pro 2.0 现已发布</span>
+            <ChevronRight
+              className="ml-0.5 h-3.5 w-3.5 shrink-0 text-slate-500 transition-transform group-hover:translate-x-0.5 group-hover:text-slate-400"
+              strokeWidth={2}
+              aria-hidden
+            />
+          </button>
+
+          <h1 className="text-2xl sm:text-3xl md:text-[2rem] font-bold text-white tracking-tight leading-snug mb-3">
+            Build the future of <span className="whitespace-nowrap">campus AI.</span>
+          </h1>
+
+          <p className={heroLeadClass}>
+            数字化资产与能力门户：目录发现与按权消费；统一注册、审核与 API Key / Grant 详见接入指南。
+          </p>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <button
+              type="button"
+              onClick={() => navigate(buildPath('user', 'resource-center'))}
+              className={`bg-white text-black px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-neutral-100 active:scale-[0.98] transition-all flex items-center justify-center gap-2 w-full sm:w-auto shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 ${heroRingOffset}`}
+            >
+              开始发布 <ArrowRight size={15} aria-hidden />
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate(buildPath('user', 'api-docs'))}
+              className={`text-slate-400 text-sm font-medium hover:text-white transition-colors rounded-lg px-2 py-1.5 -ml-1 border border-transparent hover:border-white/15 hover:bg-white/[0.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/45 focus-visible:ring-offset-2 ${heroRingOffset}`}
+            >
+              查看文档
+            </button>
+          </div>
+        </div>
+
+        <div
+          className={`mt-5 flex justify-center lg:mt-0 lg:shrink-0 ${heroCompactTerminal ? 'hidden min-[1280px]:flex' : 'hidden lg:flex'} lg:justify-end`}
+        >
+          <div className={`relative max-w-full ${heroCompactTerminal ? '' : 'w-[420px]'}`}>
+            <HeroCodeTerminal compact={heroCompactTerminal} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const statsGridEl = (
+    <div className="grid w-full min-w-0 grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-3 sm:gap-3 md:gap-4">
+      {statsData.map((stat) => (
+        <HubStatCard
+          key={stat.id}
+          icon={stat.icon}
+          value={formatCount(stat.value)}
+          label={stat.label}
+          clickable={Boolean(stat.marketTab)}
+          onClick={stat.marketTab ? () => navigate(buildUserResourceMarketUrl(stat.marketTab)) : undefined}
+          isDark={isDark}
+        />
+      ))}
+    </div>
+  );
 
   return (
     <div className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${mainScrollPadBottom}`}>
       <div className={`min-h-screen pt-2 sm:pt-3 pb-20 ${canvasBodyBg(theme)}`}>
-        <div className={pageContainer}>
-          <div className={heroShellClass} style={heroGridStyle}>
-            <div
-              className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/[0.04] via-transparent to-transparent"
-              aria-hidden
-            />
-            <div
-              className="pointer-events-none absolute inset-0"
-              style={{
-                background: `linear-gradient(to right, ${heroVignetteFrom}, transparent 28%, transparent 72%, ${heroVignetteFrom})`,
-              }}
-              aria-hidden
-            />
-            <div
-              className="pointer-events-none absolute inset-0"
-              style={{
-                background: `linear-gradient(to top, ${heroVignetteFrom}, transparent 35%, transparent 65%, ${heroVignetteFrom})`,
-              }}
-              aria-hidden
-            />
+        {!hubRail ? <div className={pageContainer}>{hubHeroBanner}</div> : null}
 
-            <div className="relative z-10 w-full lg:flex lg:items-center lg:justify-between lg:gap-10">
-              <div className="w-full lg:max-w-[58%]">
-                <button
-                  type="button"
-                  onClick={() => navigate(buildPath('user', 'resource-center'))}
-                  className={`group mb-6 inline-flex max-w-full items-center gap-2.5 rounded-full border border-white/[0.12] bg-white/[0.08] px-4 py-2.5 text-left shadow-lg backdrop-blur-md transition-colors hover:border-white/[0.16] hover:bg-white/[0.11] focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/55 focus-visible:ring-offset-2 ${heroRingOffset}`}
-                >
-                  <Sparkles className="h-4 w-4 shrink-0 text-sky-400" strokeWidth={2} aria-hidden />
-                  <span className="text-sm font-medium text-white">Nexus Pro 2.0 现已发布</span>
-                  <ChevronRight
-                    className="ml-0.5 h-4 w-4 shrink-0 text-slate-500 transition-transform group-hover:translate-x-0.5 group-hover:text-slate-400"
-                    strokeWidth={2}
-                    aria-hidden
-                  />
-                </button>
+        <main className={`${pageContainer} ${hubRail ? 'mt-2 sm:mt-3' : 'mt-6 sm:mt-7'} space-y-8`}>
+          {hubRail ? null : statsGridEl}
 
-                <h1 className="text-5xl md:text-[6rem] font-bold text-white tracking-tighter leading-[0.95] mb-6">
-                  Build the future<br />of campus AI.
-                </h1>
-
-                <p className={heroLeadClass}>
-                  数字化资产与能力门户：目录发现与按权消费；网关调用量不等同于全部使用量（技能下载等单独统计）。统一注册、审核发布与 API Key / Grant / accessPolicy 详见接入指南。
-                </p>
-
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-                  <button
-                    type="button"
-                    onClick={() => navigate(buildPath('user', 'resource-center'))}
-                    className={`bg-white text-black px-8 py-4 rounded-xl text-sm font-bold hover:bg-neutral-100 active:scale-[0.98] transition-all flex items-center justify-center gap-2 w-full sm:w-auto shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 ${heroRingOffset}`}
-                  >
-                    开始发布 <ArrowRight size={16} aria-hidden />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => navigate(buildPath('user', 'api-docs'))}
-                    className={`text-slate-400 text-sm font-medium hover:text-white transition-colors rounded-lg px-2 py-1 -ml-1 border border-transparent hover:border-white/15 hover:bg-white/[0.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/45 focus-visible:ring-offset-2 ${heroRingOffset}`}
-                  >
-                    查看文档
-                  </button>
-                </div>
-              </div>
-
-              <div className="hidden lg:flex lg:w-[38%] lg:min-w-0 lg:justify-end">
-                <div className="relative shrink-0 w-[420px] max-w-full">
-                  <HeroCodeTerminal />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <main className={`${pageContainer} mt-10 space-y-12`}>
-          <div className="grid w-full min-w-0 grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-3 sm:gap-3 md:gap-4">
-            {statsData.map((stat) => (
-              <HubStatCard
-                key={stat.id}
-                icon={stat.icon}
-                value={formatCount(stat.value)}
-                label={stat.label}
-                clickable={Boolean(stat.marketTab)}
-                onClick={stat.marketTab ? () => navigate(buildUserResourceMarketUrl(stat.marketTab)) : undefined}
-                isDark={isDark}
-              />
-            ))}
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
             {hubRail ? (
               <div className="order-2 col-span-1 lg:order-1 lg:col-span-2 lg:row-span-1">
                 <HubPersonalRail
@@ -746,8 +764,14 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme, fontSize: _fontSi
               </div>
             ) : null}
             <div
-              className={`space-y-10 order-1 ${hubRail ? 'lg:order-2 lg:col-span-7' : 'lg:col-span-8'}`}
+              className={`space-y-8 order-1 ${hubRail ? 'lg:order-2 lg:col-span-7' : 'lg:col-span-8'}`}
             >
+              {hubRail ? (
+                <div className="space-y-6">
+                  {hubHeroBanner}
+                  {statsGridEl}
+                </div>
+              ) : null}
               <div>
                 <SectionTitle
                   title="校园热门资源"
@@ -869,7 +893,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({ theme, fontSize: _fontSi
               </div>
             </div>
 
-            <div className={`space-y-10 order-3 ${hubRail ? 'lg:col-span-3' : 'lg:col-span-4'}`}>
+            <div className={`space-y-8 order-3 ${hubRail ? 'lg:col-span-3' : 'lg:col-span-4'}`}>
               {(stats?.callsTrend7d?.length ?? 0) > 0 && (
                 <EChartCard
                   theme={theme}

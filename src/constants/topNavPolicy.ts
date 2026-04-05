@@ -11,6 +11,17 @@ export type UserTopNavSidebarId = (typeof USER_TOP_NAV_SIDEBAR_IDS)[number];
 /** 首页 ExploreHub 左栏数据来源：与 sidebar id 一致，数据仍来自 getNavSubGroups + MainLayout 过滤 */
 export const HUB_PERSONAL_RAIL_PARENT_IDS = ['workspace', 'user-settings'] as const;
 
+/**
+ * 平台管理一级（与 ADMIN_SIDEBAR_ITEMS.id 一致；实际渲染顺序以 MainLayout 权限过滤后的 adminSidebarItems 为准）
+ */
+export const HUB_ADMIN_RAIL_PARENT_IDS = [
+  'overview',
+  'admin-resource-ops',
+  'user-management',
+  'monitoring',
+  'system-config',
+] as const;
+
 export type HubPersonalRailRow = {
   subItemId: string;
   label: string;
@@ -60,10 +71,19 @@ export function buildHubPersonalNavModel(
 
 const USER_TOP_NAV_SET = new Set<string>(USER_TOP_NAV_SIDEBAR_IDS);
 
+export type SlimTopNavOptions = {
+  /**
+   * 为 true 时不输出管理域一级项（用于探索首页顶栏瘦身；抽屉与搜索仍用全量行）
+   */
+  omitAdminPrimary?: boolean;
+};
+
 /**
- * 顶栏横向：用户域仅保留 allowlist 内一级项；管理域项全保留；分区标题仅在后面仍有输出项时写入。
+ * 应用壳顶栏横向：用户域仅保留 allowlist 内一级项。
+ * `omitAdminPrimary` 为 true 时跳过管理域一级（与探索首页左轨下沉管理目录配合）。
  */
-export function filterSidebarRowsForUserTopNav(fullRows: ConsoleSidebarRow[]): ConsoleSidebarRow[] {
+export function filterSidebarRowsForSlimTopNav(fullRows: ConsoleSidebarRow[], options?: SlimTopNavOptions): ConsoleSidebarRow[] {
+  const omitAdminPrimary = options?.omitAdminPrimary ?? false;
   const out: ConsoleSidebarRow[] = [];
   let pendingSection: Extract<ConsoleSidebarRow, { kind: 'section' }> | null = null;
 
@@ -80,6 +100,10 @@ export function filterSidebarRowsForUserTopNav(fullRows: ConsoleSidebarRow[]): C
       continue;
     }
     if (row.domain === 'admin') {
+      if (omitAdminPrimary) {
+        pendingSection = null;
+        continue;
+      }
       flushSection();
       out.push(row);
       continue;
@@ -92,4 +116,9 @@ export function filterSidebarRowsForUserTopNav(fullRows: ConsoleSidebarRow[]): C
     }
   }
   return out;
+}
+
+/** @deprecated 使用 {@link filterSidebarRowsForSlimTopNav} */
+export function filterSidebarRowsForUserTopNav(fullRows: ConsoleSidebarRow[]): ConsoleSidebarRow[] {
+  return filterSidebarRowsForSlimTopNav(fullRows);
 }

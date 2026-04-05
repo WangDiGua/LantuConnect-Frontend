@@ -39,7 +39,7 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
   return (
     <nav
       className={`${shell} p-4 ${mainScrollCompositorClass}`}
-      aria-label="个人与工作台"
+      aria-label="探索首页导航"
     >
       <button
         type="button"

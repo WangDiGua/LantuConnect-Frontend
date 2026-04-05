@@ -27,7 +27,7 @@ import {
 import {
   buildHubPersonalNavModel,
   HUB_PERSONAL_RAIL_PARENT_IDS,
-  filterSidebarRowsForUserTopNav,
+  filterSidebarRowsForSlimTopNav,
   type ExploreHubRailConfig,
   type HubPersonalRailSection,
 } from '../constants/topNavPolicy';
@@ -932,11 +932,12 @@ const MainLayoutContent: React.FC<{
     return rows;
   }, [userSidebarItems, adminSidebarItems]);
 
-  /** 用户壳顶栏一级瘦身；管理壳保持全量（与计划一致） */
+  /** 应用壳顶栏：管理路由页全量；用户路由下探索首页可再隐藏管理一级（下沉左轨） */
+  const omitAdminPrimaryFromTopNav = page === 'hub' && adminSidebarItems.length > 0;
   const topNavSidebarRows = useMemo(() => {
     if (layoutIsAdmin) return fullSidebarRows;
-    return filterSidebarRowsForUserTopNav(fullSidebarRows);
-  }, [fullSidebarRows, layoutIsAdmin]);
+    return filterSidebarRowsForSlimTopNav(fullSidebarRows, { omitAdminPrimary: omitAdminPrimaryFromTopNav });
+  }, [fullSidebarRows, layoutIsAdmin, omitAdminPrimaryFromTopNav]);
 
   const filteredSubGroupsForSidebarId = useCallback(
     (sidebarId: string, domain: ConsoleRole) => {
@@ -962,14 +963,30 @@ const MainLayoutContent: React.FC<{
   );
 
   const hubPersonalRailSections: HubPersonalRailSection[] = useMemo(() => {
-    if (layoutIsAdmin || consoleRole !== 'user') return [];
+    if (consoleRole !== 'user') return [];
     const out: HubPersonalRailSection[] = [];
     for (const parentId of HUB_PERSONAL_RAIL_PARENT_IDS) {
       const groups = filteredSubGroupsForSidebarId(parentId, 'user');
       out.push(...buildHubPersonalNavModel(parentId, 'user', groups));
     }
     return out;
-  }, [layoutIsAdmin, consoleRole, filteredSubGroupsForSidebarId]);
+  }, [consoleRole, filteredSubGroupsForSidebarId]);
+
+  /** 有平台管理权限时，探索首页左轨追加管理目录（与顶栏/子菜单同源权限过滤） */
+  const hubAdminRailSections: HubPersonalRailSection[] = useMemo(() => {
+    if (consoleRole !== 'user' || adminSidebarItems.length === 0) return [];
+    const out: HubPersonalRailSection[] = [];
+    for (const item of adminSidebarItems) {
+      const groups = filteredSubGroupsForSidebarId(item.id, 'admin');
+      out.push(...buildHubPersonalNavModel(item.id, 'admin', groups));
+    }
+    return out;
+  }, [consoleRole, adminSidebarItems, filteredSubGroupsForSidebarId]);
+
+  const exploreHubRailSections: HubPersonalRailSection[] = useMemo(
+    () => [...hubPersonalRailSections, ...hubAdminRailSections],
+    [hubPersonalRailSections, hubAdminRailSections],
+  );
 
   useEffect(() => {
     const groups = filteredSubGroupsForSidebarId(activeSidebar, consoleRole);
@@ -1167,9 +1184,9 @@ const MainLayoutContent: React.FC<{
   }, [activeSidebar, activeSubItem, navChildrenForActiveSidebar, layoutIsAdmin, page]);
 
   const exploreHubRail = useMemo((): ExploreHubRailConfig | undefined => {
-    if (layoutIsAdmin || consoleRole !== 'user' || hubPersonalRailSections.length === 0) return undefined;
+    if (consoleRole !== 'user' || exploreHubRailSections.length === 0) return undefined;
     return {
-      sections: hubPersonalRailSections,
+      sections: exploreHubRailSections,
       displayName: displayUserName,
       subtitle: authUser?.username ?? '',
       avatarSeed: `${authUser?.id ?? 'user'}-${displayUserName}`,
@@ -1180,9 +1197,8 @@ const MainLayoutContent: React.FC<{
       onProfileClick: () => navigate(buildPath('user', 'profile')),
     };
   }, [
-    layoutIsAdmin,
     consoleRole,
-    hubPersonalRailSections,
+    exploreHubRailSections,
     displayUserName,
     authUser?.username,
     authUser?.id,

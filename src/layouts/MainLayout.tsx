@@ -1165,8 +1165,20 @@ const MainLayoutContent: React.FC<{
 
   /** 应用壳顶栏：用户域一律隐藏管理一级（接入指南等子页与探索页一致）；抽屉仍为全量行；Ctrl+K 聚焦左侧个人轨「搜索菜单」 */
   const omitAdminPrimaryFromTopNav = !layoutIsAdmin;
+
+  /** 管理端桌面：左侧固定仅含管理一级；顶栏横向不再投喂 fullSidebarRows（避免与用户广场条目挤满横条） */
+  const adminDesktopSidebarRows: ConsoleSidebarRow[] = useMemo(() => {
+    if (adminSidebarItems.length === 0) return [];
+    return [
+      { kind: 'section', label: '管理端' },
+      ...adminSidebarItems.map((item) => ({ kind: 'item' as const, ...item, domain: 'admin' as const })),
+    ];
+  }, [adminSidebarItems]);
+
+  const showAdminDesktopSidebar = layoutIsAdmin && adminDesktopSidebarRows.length > 0;
+
   const topNavSidebarRows = useMemo(() => {
-    if (layoutIsAdmin) return fullSidebarRows;
+    if (layoutIsAdmin) return [];
     return filterSidebarRowsForSlimTopNav(fullSidebarRows, { omitAdminPrimary: omitAdminPrimaryFromTopNav });
   }, [fullSidebarRows, layoutIsAdmin, omitAdminPrimaryFromTopNav]);
 
@@ -1724,7 +1736,54 @@ const MainLayoutContent: React.FC<{
           }
         />
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col px-3 pb-3 pt-[calc(4rem+env(safe-area-inset-top,0px))] md:px-4 md:pb-4">
+        <div
+          className={`flex min-h-0 min-w-0 flex-1 flex-col px-3 pb-3 pt-[calc(4rem+env(safe-area-inset-top,0px))] md:px-4 md:pb-4 ${showAdminDesktopSidebar ? 'lg:pl-[240px]' : ''}`}
+        >
+        {showAdminDesktopSidebar && (
+          <aside
+            className={`${chromeGpuLayerClass} fixed left-0 z-20 hidden h-[calc(100dvh-4rem-env(safe-area-inset-top,0px))] w-[240px] shrink-0 flex-col border-r px-3 py-2 motion-reduce:transition-none lg:flex top-[calc(4rem+env(safe-area-inset-top,0px))] ${
+              isDark ? 'border-white/[0.08] bg-lantu-chrome' : 'border-slate-200/80 bg-lantu-chrome'
+            }`}
+            aria-label="管理端导航"
+          >
+            <ConsoleSidebar
+              theme={theme}
+              routeRole={consoleRole}
+              activeSidebar={activeSidebar}
+              activeSubItem={activeSubItem}
+              sidebarRows={adminDesktopSidebarRows}
+              expandedGroups={expandedGroups}
+              platformRole={platformRole}
+              displayUserName={displayUserName}
+              avatarSeed={`${authUser?.id ?? 'user'}-${displayUserName}`}
+              onSidebarClick={handleSidebarClick}
+              onSubItemClick={handleChromeSubItemClick}
+              onToggleGroup={toggleGroup}
+              onNavigateToProfile={() => {
+                navigate(buildPath('user', 'profile'));
+                if (layoutIsAdmin) setRole('user');
+              }}
+              onLogout={async () => {
+                showMessage('已退出登录', 'info');
+                const accessToken = tokenStorage.get(env.VITE_TOKEN_KEY) ?? useAuthStore.getState().token;
+                try {
+                  if (accessToken) await authService.logout(accessToken);
+                } catch {
+                  /* still clear local session */
+                }
+                storeLogout();
+                navigate('/login', { replace: true });
+              }}
+              onLogoClick={() => {
+                setExpandedGroups([]);
+                navigate(buildPath('admin', 'dashboard'));
+                setMobileNavOpen(false);
+              }}
+              filteredSubGroupsForSidebarId={filteredSubGroupsForSidebarId}
+              enableMenuSearchHotkey={false}
+            />
+          </aside>
+        )}
         <aside
           className={`${chromeGpuLayerClass} fixed inset-y-0 left-0 z-50 flex h-full w-[240px] shrink-0 flex-col px-3 py-2 transition-transform duration-200 ease-out motion-reduce:transition-none lg:hidden ${
             mobileNavOpen ? 'translate-x-0' : '-translate-x-full'

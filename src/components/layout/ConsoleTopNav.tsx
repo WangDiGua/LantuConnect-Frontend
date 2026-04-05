@@ -176,7 +176,11 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
 
       <nav
         aria-label="主导航"
-        className={`mx-1 hidden min-h-0 min-w-0 flex-1 items-center gap-0.5 overflow-x-auto lg:flex ${mainScrollCompositorClass} [scrollbar-width:thin]`}
+        className={
+          routeRole === 'admin'
+            ? 'hidden'
+            : `mx-1 hidden min-h-0 min-w-0 flex-1 items-center gap-0.5 overflow-x-auto lg:flex ${mainScrollCompositorClass} [scrollbar-width:thin]`
+        }
       >
         {navPieces.map((piece, i) => {
           if (piece.kind === 'divider') {

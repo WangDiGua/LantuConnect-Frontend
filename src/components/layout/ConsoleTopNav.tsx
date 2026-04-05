@@ -225,13 +225,20 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
           const active =
             isSelfActive || isChildActive;
           const navWeightCls = active ? 'font-semibold' : 'font-medium';
+          /** 轻量选中：无整片色块，靠字重/对比 + 底部分割线，与玻璃顶栏更协调 */
           const activeCls = active
             ? isDark
-              ? 'bg-sky-400/[0.14] text-slate-50 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.35)]'
-              : 'bg-sky-500/[0.11] text-slate-900 shadow-[inset_0_0_0_1px_rgba(14,165,233,0.28)]'
+              ? [
+                  'relative text-slate-100',
+                  'after:pointer-events-none after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:rounded-full after:bg-sky-400 after:opacity-95 after:content-[""]',
+                ].join(' ')
+              : [
+                  'relative text-slate-900',
+                  'after:pointer-events-none after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:rounded-full after:bg-sky-500 after:opacity-90 after:content-[""]',
+                ].join(' ')
             : isDark
               ? 'text-slate-400 hover:bg-white/[0.06] hover:text-slate-200'
-              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900';
+              : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900';
 
           if (!hasChildren) {
             return (
@@ -240,7 +247,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
                 type="button"
                 onClick={() => onSidebarClick(item.id, item.domain)}
                 aria-current={active ? 'page' : undefined}
-                className={`inline-flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-sm ${navWeightCls} transition-[color,background-color,box-shadow] duration-200 motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${activeCls}`}
+                className={`inline-flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 pb-2.5 text-sm ${navWeightCls} transition-colors duration-200 motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${activeCls}`}
               >
                 {renderTopNavLeadIcon(item)}
                 <span className="whitespace-nowrap leading-none">{item.label}</span>
@@ -263,7 +270,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
                     setOpenDropdownKey(key);
                   }
                 }}
-                className={`inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm ${navWeightCls} transition-[color,background-color,box-shadow] duration-200 motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${activeCls}`}
+                className={`inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-2 pb-2.5 text-sm ${navWeightCls} transition-colors duration-200 motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${activeCls}`}
               >
                 {renderTopNavLeadIcon(item)}
                 <span className="whitespace-nowrap leading-none">{item.label}</span>

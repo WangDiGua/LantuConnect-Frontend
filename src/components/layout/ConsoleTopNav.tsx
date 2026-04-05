@@ -80,13 +80,23 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
   );
   const normalizedQuery = menuQuery.trim().toLowerCase();
 
-  const renderTopNavLeadIcon = (item: Extract<ConsoleSidebarRow, { kind: 'item' }>) => {
+  const renderTopNavLeadIcon = (
+    item: Extract<ConsoleSidebarRow, { kind: 'item' }>,
+    navItemActive: boolean,
+  ) => {
     if (!USER_TOP_NAV_SVG_SET.has(item.id)) return null;
     const Icon = item.icon;
     if (reduceMotion) {
       return <Icon size={18} className="shrink-0 opacity-90" aria-hidden />;
     }
-    return <NexusTopNavPrimaryAnimatedIcon sidebarId={item.id} isDark={isDark} className="h-[18px] w-[18px] shrink-0" />;
+    return (
+      <NexusTopNavPrimaryAnimatedIcon
+        sidebarId={item.id}
+        isDark={isDark}
+        motionActive={navItemActive}
+        className="h-[18px] w-[18px] shrink-0"
+      />
+    );
   };
 
   const navItems = useMemo(() => {
@@ -243,7 +253,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
                 aria-current={active ? 'page' : undefined}
                 className={`inline-flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-sm ${navWeightCls} transition-colors duration-200 motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${activeCls}`}
               >
-                {renderTopNavLeadIcon(item)}
+                {renderTopNavLeadIcon(item, active)}
                 <span className="whitespace-nowrap leading-none">{item.label}</span>
               </button>
             );
@@ -266,7 +276,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
                 }}
                 className={`inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm ${navWeightCls} transition-colors duration-200 motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${activeCls}`}
               >
-                {renderTopNavLeadIcon(item)}
+                {renderTopNavLeadIcon(item, active)}
                 <span className="whitespace-nowrap leading-none">{item.label}</span>
                 <ChevronDown
                   size={14}

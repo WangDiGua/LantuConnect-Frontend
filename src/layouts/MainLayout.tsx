@@ -1148,14 +1148,14 @@ const MainLayoutContent: React.FC<{
     });
   }, [platformRole, hasPermission]);
 
-  /** 同一侧栏内合并应用路由与管理路由分组（全量：抽屉与顶栏搜索） */
+  /** 同一侧栏内合并使用端与管理端分组（全量：桌面管理轨、抽屉与顶栏搜索；分区名与产品稿图二一致） */
   const fullSidebarRows: ConsoleSidebarRow[] = useMemo(() => {
     const rows: ConsoleSidebarRow[] = [
-      { kind: 'section', label: '应用 / 工作台' },
+      { kind: 'section', label: '使用端' },
       ...userSidebarItems.map((item) => ({ kind: 'item' as const, ...item, domain: 'user' as const })),
     ];
     if (adminSidebarItems.length > 0) {
-      rows.push({ kind: 'section', label: '平台管理' });
+      rows.push({ kind: 'section', label: '管理端' });
       rows.push(
         ...adminSidebarItems.map((item) => ({ kind: 'item' as const, ...item, domain: 'admin' as const })),
       );
@@ -1171,16 +1171,8 @@ const MainLayoutContent: React.FC<{
     [fullSidebarRows],
   );
 
-  /** 管理端桌面：左侧固定仅含管理一级 */
-  const adminDesktopSidebarRows: ConsoleSidebarRow[] = useMemo(() => {
-    if (adminSidebarItems.length === 0) return [];
-    return [
-      { kind: 'section', label: '管理端' },
-      ...adminSidebarItems.map((item) => ({ kind: 'item' as const, ...item, domain: 'admin' as const })),
-    ];
-  }, [adminSidebarItems]);
-
-  const showAdminDesktopSidebar = layoutIsAdmin && adminDesktopSidebarRows.length > 0;
+  /** 管理端桌面：左侧固定与图二一致，为「使用端 + 管理端」全量侧栏（与移动抽屉同源） */
+  const showAdminDesktopSidebar = layoutIsAdmin;
 
   const filteredSubGroupsForSidebarId = useCallback(
     (sidebarId: string, domain: ConsoleRole) => {
@@ -1744,14 +1736,14 @@ const MainLayoutContent: React.FC<{
             className={`${chromeGpuLayerClass} fixed left-0 z-20 hidden h-[calc(100dvh-4rem-env(safe-area-inset-top,0px))] w-[240px] shrink-0 flex-col border-r px-3 py-2 motion-reduce:transition-none lg:flex lg:flex-col top-[calc(4rem+env(safe-area-inset-top,0px))] ${
               isDark ? 'border-white/[0.08] bg-lantu-chrome' : 'border-slate-200/80 bg-lantu-chrome'
             }`}
-            aria-label="管理端导航"
+            aria-label="控制台导航"
           >
             <ConsoleSidebar
               theme={theme}
               routeRole={consoleRole}
               activeSidebar={activeSidebar}
               activeSubItem={activeSubItem}
-              sidebarRows={adminDesktopSidebarRows}
+              sidebarRows={fullSidebarRows}
               expandedGroups={expandedGroups}
               platformRole={platformRole}
               displayUserName={displayUserName}

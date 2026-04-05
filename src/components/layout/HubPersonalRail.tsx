@@ -97,7 +97,6 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
   const shell = 'rounded-none border-0 bg-transparent shadow-none';
 
   const parentBlocks = useMemo(() => buildParentBlocks(sections), [sections]);
-  const hasAdminRail = useMemo(() => parentBlocks.some((b) => b.domain === 'admin'), [parentBlocks]);
 
   const [menuQuery, setMenuQuery] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
@@ -190,9 +189,6 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
     window.addEventListener('keydown', onHotkey);
     return () => window.removeEventListener('keydown', onHotkey);
   }, [menuQuery, suppressGlobalMenuSearchHotkey]);
-
-  const showUsageEndCap =
-    hasAdminRail && filteredBlocks.length > 0 && filteredBlocks[0]?.block.domain === 'user';
 
   const navAria = ariaLabel ?? '探索首页导航';
 
@@ -392,28 +388,6 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
         className={`min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 pb-4 pt-0 custom-scrollbar ${mainScrollCompositorClass}`}
       >
         <div className="space-y-1">
-          {showUsageEndCap ? (
-            <div
-              className="mb-3 flex items-center gap-2.5 px-0.5"
-              aria-label="个人与日常使用入口"
-            >
-              <div
-                className={`h-px min-w-[1rem] flex-1 ${isDark ? 'bg-gradient-to-r from-transparent to-white/[0.18]' : 'bg-gradient-to-r from-transparent to-slate-400/45'}`}
-                aria-hidden
-              />
-              <span
-                className={`max-w-[12rem] shrink-0 text-center text-[10px] font-bold uppercase leading-none tracking-wider ${
-                  isDark ? 'text-slate-400' : 'text-slate-600'
-                }`}
-              >
-                使用端
-              </span>
-              <div
-                className={`h-px min-w-[1rem] flex-1 ${isDark ? 'bg-gradient-to-l from-transparent to-white/[0.18]' : 'bg-gradient-to-l from-transparent to-slate-400/45'}`}
-                aria-hidden
-              />
-            </div>
-          ) : null}
           {filteredBlocks.length === 0 && searchMode ? (
             <p className="px-1 py-2 text-center text-xs text-slate-400">未找到匹配菜单</p>
           ) : null}
@@ -455,7 +429,6 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
                 activeSubItem === row.subItemId;
               return (
                 <div key={block.key}>
-                  {adminDivider}
                   <div className="rounded-lg border border-transparent">
                     <button
                       type="button"
@@ -483,8 +456,6 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
             const childrenOpen = searchMode || isParentOpen(block.key);
             return (
               <div key={block.key}>
-                {adminDivider}
-
                 <div className="rounded-lg border border-transparent">
                   <button
                     type="button"

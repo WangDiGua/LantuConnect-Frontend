@@ -66,7 +66,7 @@ export interface NavSubGroup {
 // ==================== 管理员菜单（接入平台管理视角）====================
 
 export const ADMIN_SIDEBAR_ITEMS = [
-  { id: 'overview', icon: LayoutDashboard, label: '总览' },
+  { id: 'overview', icon: LayoutDashboard, label: '系统总览' },
   { id: 'admin-resource-ops', icon: Boxes, label: '资源与运营' },
   { id: 'user-management', icon: Users, label: '用户与权限' },
   { id: 'monitoring', icon: Activity, label: '监控中心' },

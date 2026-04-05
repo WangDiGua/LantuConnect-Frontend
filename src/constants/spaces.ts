@@ -105,7 +105,7 @@ function standalone(
 export const ADMIN_SPACES: Space[] = [
   {
     id: 'admin-dashboard',
-    label: '总览',
+    label: '系统总览',
     icon: LayoutDashboard,
     accentFrom: '#3B82F6',
     accentTo: '#6366F1',

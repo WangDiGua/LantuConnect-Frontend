@@ -373,13 +373,16 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
                             isDark ? 'bg-white/10' : 'bg-slate-200/60'
                           }`}
                         />
-                        {children.map((subItem) => (
+                        {children.map((subItem) => {
+                          const subActive =
+                            activeSubItem === subItem.id && activeSidebar === item.id && routeRole === item.domain;
+                          return (
                           <button
                             key={subItem.id}
                             type="button"
                             onClick={() => onSubItemClick(subItem.id, item.id, item.domain)}
-                            className={`w-full text-left px-3 py-2 text-[13px] rounded-lg transition-colors relative focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-inset ${
-                              activeSubItem === subItem.id && activeSidebar === item.id && routeRole === item.domain
+                            className={`flex w-full items-start gap-2 text-left px-3 py-2 text-[13px] rounded-lg transition-colors relative focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-inset ${
+                              subActive
                                 ? isDark
                                   ? 'bg-white/10 text-neutral-300 font-semibold shadow-[0_2px_8px_rgba(0,0,0,0.15)]'
                                   : 'bg-white/60 text-neutral-800 font-semibold shadow-[0_2px_8px_rgba(0,0,0,0.02)]'
@@ -388,29 +391,46 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
                                   : 'text-slate-500 hover:text-slate-800 hover:bg-slate-200/40'
                             }`}
                           >
-                            {activeSubItem === subItem.id && activeSidebar === item.id && routeRole === item.domain && (
+                            {subActive && (
                               <div
                                 className={`absolute left-[-20px] top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-neutral-900 ring-4 ${
                                   'ring-lantu-chrome'
                                 }`}
                               />
                             )}
-                            <span className="inline-flex items-center gap-1.5 flex-wrap">
-                              <span>{subItem.label}</span>
-                              {subItem.tag && (
-                                <span
-                                  className={`shrink-0 text-[10px] font-bold px-1.5 py-px rounded-md ${
-                                    isDark
-                                      ? 'bg-white/[0.08] text-slate-200 border border-white/[0.12]'
-                                      : 'bg-[#F2F4F7] text-[#111827] border border-slate-400/40'
-                                  }`}
-                                >
-                                  {subItem.tag}
-                                </span>
-                              )}
+                            <subItem.icon
+                              size={15}
+                              strokeWidth={2}
+                              className={`mt-0.5 shrink-0 ${
+                                subActive
+                                  ? isDark
+                                    ? 'text-sky-300/95'
+                                    : 'text-sky-600'
+                                  : isDark
+                                    ? 'text-slate-500'
+                                    : 'text-slate-400'
+                              }`}
+                              aria-hidden
+                            />
+                            <span className="inline-flex min-w-0 flex-1 flex-col items-start gap-1">
+                              <span className="inline-flex items-center gap-1.5 flex-wrap">
+                                <span>{subItem.label}</span>
+                                {subItem.tag && (
+                                  <span
+                                    className={`shrink-0 text-[10px] font-bold px-1.5 py-px rounded-md ${
+                                      isDark
+                                        ? 'bg-white/[0.08] text-slate-200 border border-white/[0.12]'
+                                        : 'bg-[#F2F4F7] text-[#111827] border border-slate-400/40'
+                                    }`}
+                                  >
+                                    {subItem.tag}
+                                  </span>
+                                )}
+                              </span>
                             </span>
                           </button>
-                        ))}
+                          );
+                        })}
                       </div>
                     </motion.div>
                   )}

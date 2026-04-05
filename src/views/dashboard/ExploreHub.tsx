@@ -800,8 +800,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
   return (
     <>
       {/*
-        hubRail：与 MainLayout 全局固定 ConsoleSidebar 同源；lg 及以上仅保留全局侧栏，勿再内嵌 HubPersonalRail，避免双栏。
-        小屏仍保留内嵌轨，便于未展开抽屉时的快速目录。
+        hubRail：仅用外层一份 consoleContentTopPad 与主滚动区顶对齐其它页；勿再在 main 上叠 mt，否则侧栏相对顶栏会明显高于其它控制台页。
       */}
       <div className={`w-full ${mainScrollPadBottom} ${canvasBodyBg(theme)} ${consoleContentTopPad} pb-16 sm:pb-20`}>
         {!hubRail ? <div className={pageContainer}>{hubHeroBanner}</div> : null}
@@ -812,9 +811,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
           <div className="grid grid-cols-1 items-stretch gap-8 lg:grid-cols-12 lg:gap-10">
             {hubRail ? (
               <div
-                className={`order-2 col-span-1 flex h-full min-h-0 flex-col border-r pr-6 lg:hidden ${
-                  isDark ? 'border-white/[0.08]' : 'border-slate-200/80'
-                }`}
+                className={`order-2 col-span-1 flex h-full min-h-0 flex-col lg:hidden`}
               >
                 <HubPersonalRail
                   theme={theme}
@@ -832,7 +829,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
               </div>
             ) : null}
             <div
-              className={`space-y-8 order-1 ${hubRail ? 'lg:order-2 lg:col-span-12' : 'lg:col-span-8'}`}
+              className={`space-y-8 order-1 ${hubRail ? 'lg:order-2 lg:col-span-9' : 'lg:col-span-8'}`}
             >
               {hubRail ? (
                 <div className="space-y-6">

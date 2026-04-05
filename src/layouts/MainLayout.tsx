@@ -115,7 +115,8 @@ import { ConsoleTopNav } from '../components/layout/ConsoleTopNav';
 import { MultiAvatar } from '../components/common/MultiAvatar';
 import { PLATFORM_ROLE_LABELS } from '../constants/platformRoles';
 import { Tooltip } from '../components/common/Tooltip';
-import { chromeGpuLayerClass, contentMaxWidth, iconChrome, mainScrollCompositorClass } from '../utils/uiClasses';
+import { chromeGpuLayerClass, contentMaxWidth, iconChrome, mainScrollCompositorClass, mainScrollPadX } from '../utils/uiClasses';
+import { ConsolePageFooter } from '../components/layout/ConsolePageFooter';
 
 const springTransition = { type: 'spring' as const, stiffness: 300, damping: 30 };
 
@@ -1673,6 +1674,7 @@ const MainLayoutContent: React.FC<{
                 </RouteContentMotion>
               </AnimatePresence>
             </div>
+            <ConsolePageFooter theme={theme} className={mainScrollPadX} />
           </div>
         </main>
         </div>

@@ -1418,17 +1418,13 @@ const MainLayoutContent: React.FC<{
         </aside>
 
         <main
-          className={`${chromeGpuLayerClass} relative z-0 flex min-h-0 flex-1 flex-col overflow-hidden ${
-            isDark
-              ? 'rounded-2xl border border-white/[0.06] bg-lantu-card shadow-sm'
-              : 'rounded-2xl border border-slate-200/60 bg-white shadow-sm'
-          }`}
+          className={`${chromeGpuLayerClass} relative z-0 flex min-h-0 flex-1 flex-col overflow-hidden bg-transparent`}
         >
           <header
             className={`${chromeGpuLayerClass} sticky top-0 z-10 flex h-[72px] shrink-0 items-center border-b px-4 sm:px-5 lg:px-6 ${
               isDark
-                ? 'border-white/[0.06] bg-lantu-card/95 backdrop-blur-sm'
-                : 'border-slate-200/50 bg-white/95 backdrop-blur-sm'
+                ? 'border-white/[0.06] bg-lantu-chrome/95 backdrop-blur-sm'
+                : 'border-slate-200/50 bg-lantu-chrome/95 backdrop-blur-sm'
             }`}
           >
             <h2 className={`text-xl font-bold ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>

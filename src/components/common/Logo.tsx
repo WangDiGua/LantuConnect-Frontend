@@ -57,7 +57,7 @@ export interface LogoProps {
   followSystemColorScheme?: boolean;
   theme?: Theme;
   compact?: boolean;
-  /** 顶栏：图标 + 精简标题/副标题（高度约 60px 的导航条） */
+  /** 顶栏：图标 + 英文标题（导航条） */
   topBar?: boolean;
   /** @deprecated 保留兼容，忽略 */
   fontSize?: string;
@@ -88,20 +88,17 @@ export const Logo: React.FC<LogoProps> = ({
     return (
       <div
         className={`flex min-w-0 items-center gap-2 select-none ${className}`.trim()}
-        title={`Nexus — ${APP_BRAND_NAME}`}
+        title="Nexus"
       >
         <div className="h-8 w-8 flex-shrink-0">
           <EclipseMark className="h-full w-full" fillColor={fillColor} maskId={`${maskId}-tb`} />
         </div>
-        <div className="hidden min-w-0 flex-col justify-center leading-tight sm:flex">
-          <span
-            className={`truncate text-sm font-semibold tracking-tight ${titleCls}`}
-            style={{ fontFamily: SERIF_STACK }}
-          >
-            Nexus
-          </span>
-          <span className={`truncate text-[10px] font-normal ${subtitleCls}`}>{APP_BRAND_NAME}</span>
-        </div>
+        <span
+          className={`hidden min-w-0 truncate text-sm font-semibold tracking-tight sm:inline ${titleCls}`}
+          style={{ fontFamily: SERIF_STACK }}
+        >
+          Nexus
+        </span>
       </div>
     );
   }

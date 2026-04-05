@@ -132,9 +132,6 @@ import { PLATFORM_ROLE_LABELS } from '../constants/platformRoles';
 import { Tooltip } from '../components/common/Tooltip';
 import {
   chromeGpuLayerClass,
-  CONSOLE_CARD_RADIUS,
-  CONSOLE_CARD_SHADOW_DARK,
-  CONSOLE_CARD_SHADOW_LIGHT,
   consoleContentTopPad,
   contentMaxWidth,
   iconChrome,
@@ -1167,15 +1164,12 @@ const MainLayoutContent: React.FC<{
   }, [userSidebarItems, adminSidebarItems]);
 
   /**
-   * 顶栏始终不出现「平台管理」一级（与 topNavPolicy 一致）；管理一级仅在桌面固定左轨与移动抽屉中展示。
+   * 顶栏始终不出现「平台管理」一级（与 topNavPolicy 一致）；管理端入口在侧栏与移动抽屉与使用端同一套 HubPersonalRail。
    */
   const topNavSidebarRows = useMemo(
     () => filterSidebarRowsForSlimTopNav(fullSidebarRows, { omitAdminPrimary: true }),
     [fullSidebarRows],
   );
-
-  /** 仅管理端桌面固定左轨（用户端桌面仍用内容区内嵌 HubPersonalRail，与产品稿一致） */
-  const showAdminDesktopSidebar = layoutIsAdmin;
 
   const filteredSubGroupsForSidebarId = useCallback(
     (sidebarId: string, domain: ConsoleRole) => {
@@ -1233,25 +1227,18 @@ const MainLayoutContent: React.FC<{
     return out;
   }, [adminSidebarItems, filteredSubGroupsForSidebarId]);
 
-  /** 全壳统一左轨数据：桌面管理轨、移动抽屉、探索 Hub 内嵌轨均由此派生 */
+  /** 全壳统一左轨数据：移动抽屉、探索 Hub、与用户/管理桌面同一套内容区左轨均由此派生 */
   const unifiedRailSections: HubPersonalRailSection[] = useMemo(
     () => [...railSectionsUser, ...railSectionsAdmin],
     [railSectionsUser, railSectionsAdmin],
   );
 
-  /** 仅用户壳下探索页注入 Hub（管理员壳不展示探索左轨配置） */
-  const exploreHubRailSections: HubPersonalRailSection[] = useMemo(
-    () => (consoleRole === 'user' ? unifiedRailSections : []),
-    [consoleRole, unifiedRailSections],
-  );
-
   /**
-   * 独立个人左轨开关必须与 URL 同步，否则整页刷新后 state 回到 false，子页（如工作台）会丢了左轨。
-   * hub 页由内嵌 exploreHubRail 提供左轨，这里保持 standalone 关闭以免重复。
-   * 顶栏五类「广场/中心」仅主内容，不叠独立左轨（与顶栏语义一致）。
+   * 独立左轨开关与 URL 同步；hub 由内嵌轨提供故关闭 standalone。
+   * 顶栏五类「广场/中心」仅主内容不叠左轨。应用壳与管理壳共用逻辑。
    */
   useEffect(() => {
-    if (consoleRole !== 'user' || exploreHubRailSections.length === 0) {
+    if (unifiedRailSections.length === 0) {
       setPersonalRailOpen(false);
       return;
     }
@@ -1264,7 +1251,7 @@ const MainLayoutContent: React.FC<{
       return;
     }
     setPersonalRailOpen(true);
-  }, [consoleRole, exploreHubRailSections.length, page, activeSidebar]);
+  }, [unifiedRailSections.length, page, activeSidebar]);
 
   const handleSidebarClick = (id: string, domain: ConsoleRole) => {
     setMobileNavOpen(false);
@@ -1469,10 +1456,11 @@ const MainLayoutContent: React.FC<{
     return activeChild.label;
   }, [activeSidebar, activeSubItem, navChildrenForActiveSidebar, layoutIsAdmin, page]);
 
-  const exploreHubRail = useMemo((): ExploreHubRailConfig | undefined => {
-    if (consoleRole !== 'user' || exploreHubRailSections.length === 0) return undefined;
+  /** 用户壳与管理壳共用：与探索页 Hub 内嵌、桌面内容区左轨同源 */
+  const shellPersonalRail = useMemo((): ExploreHubRailConfig | undefined => {
+    if (unifiedRailSections.length === 0) return undefined;
     return {
-      sections: exploreHubRailSections,
+      sections: unifiedRailSections,
       displayName: displayUserName,
       roleLabel: PLATFORM_ROLE_LABELS[platformRole],
       avatarSeed: `${authUser?.id ?? 'user'}-${displayUserName}`,
@@ -1482,24 +1470,27 @@ const MainLayoutContent: React.FC<{
       onSubItemClick: handleChromeSubItemClick,
       onProfileClick: () => {
         navigate(buildPath('user', 'profile'));
+        if (layoutIsAdmin) setRole('user');
       },
     };
   }, [
-    consoleRole,
-    exploreHubRailSections,
+    unifiedRailSections,
     displayUserName,
     authUser?.id,
     platformRole,
     activeSidebar,
     activeSubItem,
+    consoleRole,
     handleChromeSubItemClick,
     navigate,
+    layoutIsAdmin,
+    setRole,
   ]);
 
-  const exploreHubRailForContent = page === 'hub' && exploreHubRail ? exploreHubRail : undefined;
+  const exploreHubRailForContent = page === 'hub' && shellPersonalRail ? shellPersonalRail : undefined;
 
   const showStandalonePersonalRail =
-    consoleRole === 'user' && personalRailOpen && Boolean(exploreHubRail) && page !== 'hub';
+    personalRailOpen && Boolean(shellPersonalRail) && page !== 'hub';
 
   return (
     <LayoutChromeProvider value={{ hasSecondarySidebar, chromePageTitle: headerTitle }}>
@@ -1732,40 +1723,7 @@ const MainLayoutContent: React.FC<{
           }
         />
 
-        <div
-          className={`flex min-h-0 min-w-0 flex-1 flex-col px-3 pb-3 pt-[calc(4rem+env(safe-area-inset-top,0px))] md:px-4 md:pb-4 ${
-            showAdminDesktopSidebar ? 'lg:pl-[calc(1rem+240px+1rem)]' : ''
-          }`}
-        >
-        {showAdminDesktopSidebar && (
-          <aside
-            className={`${chromeGpuLayerClass} fixed z-20 hidden w-[240px] shrink-0 flex-col overflow-hidden px-0 py-2 motion-reduce:transition-none lg:flex lg:flex-col left-[max(1rem,env(safe-area-inset-left,0px))] top-[calc(4rem+env(safe-area-inset-top,0px)+1rem)] bottom-[max(1rem,env(safe-area-inset-bottom,0px))] border ${CONSOLE_CARD_RADIUS} ${
-              isDark
-                ? `border-white/[0.1] bg-lantu-elevated ${CONSOLE_CARD_SHADOW_DARK}`
-                : `border-slate-200/70 bg-white ${CONSOLE_CARD_SHADOW_LIGHT}`
-            }`}
-            aria-label="控制台导航"
-          >
-            <HubPersonalRail
-              theme={theme}
-              sections={unifiedRailSections}
-              displayName={displayUserName}
-              roleLabel={PLATFORM_ROLE_LABELS[platformRole]}
-              avatarSeed={`${authUser?.id ?? 'user'}-${displayUserName}`}
-              activeSidebar={activeSidebar}
-              activeSubItem={activeSubItem}
-              routeRole={consoleRole}
-              onProfileClick={() => {
-                navigate(buildPath('user', 'profile'));
-                if (layoutIsAdmin) setRole('user');
-              }}
-              onSubItemClick={handleChromeSubItemClick}
-              suppressGlobalMenuSearchHotkey={false}
-              onLogout={handleRailLogout}
-              ariaLabel="控制台导航"
-            />
-          </aside>
-        )}
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col px-3 pb-3 pt-[calc(4rem+env(safe-area-inset-top,0px))] md:px-4 md:pb-4">
         <aside
           className={`${chromeGpuLayerClass} fixed inset-y-0 left-0 z-50 flex h-full w-[240px] shrink-0 flex-col overflow-hidden px-0 py-2 transition-transform duration-200 ease-out motion-reduce:transition-none lg:hidden ${
             mobileNavOpen ? 'translate-x-0' : '-translate-x-full'
@@ -1816,7 +1774,7 @@ const MainLayoutContent: React.FC<{
             className={`min-h-0 min-w-0 flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass}`}
           >
             <div className={`w-full ${chromeGpuLayerClass}`}>
-              {showStandalonePersonalRail && exploreHubRail ? (
+              {showStandalonePersonalRail && shellPersonalRail ? (
                 <div className={`mx-auto w-full ${contentMaxWidth} px-4 sm:px-5 lg:px-6 xl:px-8`}>
                   <div className="grid grid-cols-1 items-stretch gap-8 lg:grid-cols-12 lg:gap-10">
                     <div
@@ -1826,15 +1784,15 @@ const MainLayoutContent: React.FC<{
                     >
                       <HubPersonalRail
                         theme={theme}
-                        sections={exploreHubRail.sections}
-                        displayName={exploreHubRail.displayName}
-                        roleLabel={exploreHubRail.roleLabel}
-                        avatarSeed={exploreHubRail.avatarSeed}
-                        activeSidebar={exploreHubRail.activeSidebar}
-                        activeSubItem={exploreHubRail.activeSubItem}
-                        routeRole={exploreHubRail.routeRole}
-                        onProfileClick={exploreHubRail.onProfileClick}
-                        onSubItemClick={exploreHubRail.onSubItemClick}
+                        sections={shellPersonalRail.sections}
+                        displayName={shellPersonalRail.displayName}
+                        roleLabel={shellPersonalRail.roleLabel}
+                        avatarSeed={shellPersonalRail.avatarSeed}
+                        activeSidebar={shellPersonalRail.activeSidebar}
+                        activeSubItem={shellPersonalRail.activeSubItem}
+                        routeRole={shellPersonalRail.routeRole}
+                        onProfileClick={shellPersonalRail.onProfileClick}
+                        onSubItemClick={shellPersonalRail.onSubItemClick}
                         suppressGlobalMenuSearchHotkey={mobileNavOpen}
                       />
                     </div>

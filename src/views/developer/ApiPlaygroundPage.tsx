@@ -13,6 +13,7 @@ import {
 } from '../../utils/uiClasses';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
+import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 import { env } from '../../config/env';
 import { buildPath } from '../../constants/consoleRoutes';
 import {
@@ -300,7 +301,7 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme, fon
               {(method === 'POST' || method === 'PUT') && (
                 <div>
                   <span className={`text-xs font-semibold ${textSecondary(theme)}`}>Body (JSON)</span>
-                  <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={6} className={`mt-2 ${nativeInputClass(theme)} font-mono resize-none`} placeholder='{"key": "value"}' />
+                  <AutoHeightTextarea value={body} onChange={(e) => setBody(e.target.value)} minRows={6} maxRows={28} className={`mt-2 ${nativeInputClass(theme)} font-mono resize-none`} placeholder='{"key": "value"}' />
                 </div>
               )}
             </div>

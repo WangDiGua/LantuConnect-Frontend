@@ -32,6 +32,7 @@ import { nullDisplay } from '../../utils/errorHandler';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
 import { MgmtPageShell } from './MgmtPageShell';
+import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 
 interface Props {
   theme: Theme;
@@ -329,15 +330,16 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, fontSize, sho
             <label htmlFor="grant-reject-reason" className={`mt-3 block text-xs font-medium ${textSecondary(theme)}`}>
               驳回原因（reason）
             </label>
-            <textarea
+            <AutoHeightTextarea
               id="grant-reject-reason"
-              rows={4}
+              minRows={4}
+              maxRows={14}
               value={rejectReason}
               onChange={(e) => {
                 setRejectReason(e.target.value);
                 setRejectReasonError('');
               }}
-              className={`mt-1.5 w-full rounded-xl border px-3 py-2 text-sm ${
+              className={`mt-1.5 w-full rounded-xl border px-3 py-2 text-sm resize-none ${
                 isDark ? 'border-white/10 bg-white/[0.04] text-slate-200' : 'border-slate-200 bg-white text-slate-700'
               }${rejectReasonError ? ` ${inputBaseError()}` : ''}`}
               placeholder="请输入驳回原因（reason）"

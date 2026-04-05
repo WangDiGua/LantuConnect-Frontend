@@ -17,6 +17,7 @@ import { healthService } from '../../api/services/health.service';
 import type { CircuitBreakerItem } from '../../types/dto/health';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { RESOURCE_TYPE_LABEL, resourceTypeLabel } from '../../constants/resourceTypes';
+import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 
 interface Props {
   theme: Theme;
@@ -273,7 +274,7 @@ export const CircuitBreakerPage: React.FC<Props> = ({ theme, fontSize, showMessa
           </div>
           <div>
             <label className={`${labelCls} mb-1.5 block`}>降级提示消息</label>
-            <textarea className={`${inputCls} min-h-[80px] resize-y`} value={draft.fallbackMessage ?? ''} onChange={(e) => setDraft((p) => ({ ...p, fallbackMessage: e.target.value }))} />
+            <AutoHeightTextarea className={`${inputCls} resize-none`} minRows={3} maxRows={16} value={draft.fallbackMessage ?? ''} onChange={(e) => setDraft((p) => ({ ...p, fallbackMessage: e.target.value }))} />
           </div>
         </div>
       </Modal>

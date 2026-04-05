@@ -32,6 +32,7 @@ import { PageError } from '../../components/common/PageError';
 import { Pagination } from '../../components/common/Pagination';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
+import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 
 interface Props { theme: Theme; fontSize: FontSize; showMessage: (msg: string, type?: 'success' | 'error' | 'info') => void; }
 
@@ -435,8 +436,10 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
           </div>
           <div>
             <label className={`text-sm font-medium ${textSecondary(theme)} mb-1 block`}>摘要（手填）</label>
-            <textarea
-              className={`${inputCls} min-h-[84px] resize-none${announcementFieldErrors.summary ? ` ${inputBaseError()}` : ''}`}
+            <AutoHeightTextarea
+              minRows={3}
+              maxRows={10}
+              className={`${inputCls} resize-none${announcementFieldErrors.summary ? ` ${inputBaseError()}` : ''}`}
               value={draft.summary ?? ''}
               onChange={(e) => {
                 const v = e.target.value;

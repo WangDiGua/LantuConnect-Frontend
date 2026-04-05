@@ -13,6 +13,7 @@ import type { DeveloperApplicationCreateRequest, DeveloperApplicationVO } from '
 import type { Theme } from '../../types';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { btnPrimary, btnSecondary } from '../../utils/uiClasses';
+import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 
 function statusLabel(status: DeveloperApplicationVO['status']): string {
   if (status === 'pending') return '审核中';
@@ -162,10 +163,12 @@ export const DeveloperOnboardingPage: React.FC<DeveloperOnboardingPageProps> = (
                 </div>
                 <div>
                   <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">申请原因</label>
-                  <textarea
+                  <AutoHeightTextarea
                     value={form.applyReason}
                     onChange={(e) => setForm((prev) => ({ ...prev, applyReason: e.target.value }))}
-                    className={`h-32 w-full resize-none ${nativeInputClass(theme)}`}
+                    minRows={5}
+                    maxRows={16}
+                    className={`w-full resize-none ${nativeInputClass(theme)}`}
                     placeholder="请说明你的使用场景、计划与预期收益"
                   />
                 </div>

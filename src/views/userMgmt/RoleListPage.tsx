@@ -20,6 +20,7 @@ import {
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { MgmtPageShell } from './MgmtPageShell';
+import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 
 interface RoleListPageProps { theme: Theme; fontSize: FontSize; breadcrumbBase: string[]; }
 type ViewMode = 'list' | 'create' | 'edit';
@@ -252,7 +253,7 @@ export const RoleListPage: React.FC<RoleListPageProps> = ({ theme, fontSize, bre
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={springT} className="space-y-4">
             <div><label className={labelCls}>角色名称</label><input className={nativeInputClass(theme)} value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="如：学科助理" /></div>
             <div><label className={labelCls}>角色代码</label><input className={nativeInputClass(theme)} value={form.code} onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))} placeholder="英文标识" /></div>
-            <div><label className={labelCls}>描述</label><textarea rows={3} className={`${nativeInputClass(theme)} min-h-[5.5rem]`} value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} placeholder="简要说明" /></div>
+            <div><label className={labelCls}>描述</label><AutoHeightTextarea minRows={3} maxRows={14} className={`${nativeInputClass(theme)} resize-none`} value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} placeholder="简要说明" /></div>
             <div>
               <span className={labelCls}>权限分组</span>
               <div className={`rounded-xl border p-3 space-y-2 ${isDark ? 'border-white/[0.06] bg-white/[0.02]' : 'border-slate-100 bg-slate-50/50'}`}>

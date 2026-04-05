@@ -33,6 +33,7 @@ import { safeOpenHttpUrl } from '../../lib/windowNavigate';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { BentoCard } from '../../components/common/BentoCard';
+import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 import { MarketplaceListingCard, MarketplaceStatItem } from '../../components/market';
 import { Modal } from '../../components/common/Modal';
 import { ResourceReviewsSection } from '../../components/business/ResourceReviewsSection';
@@ -1243,8 +1244,9 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                   </div>
                   <div>
                     <label className={`mb-1.5 block text-[11px] font-medium ${textMuted(theme)}`}>params（JSON 对象）</label>
-                    <textarea
-                      rows={5}
+                    <AutoHeightTextarea
+                      minRows={5}
+                      maxRows={22}
                       value={mcpParamsJson}
                       onChange={(e) => setMcpParamsJson(e.target.value)}
                       className={`${nativeInputClass(theme)} resize-none font-mono text-xs`}
@@ -1260,8 +1262,9 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                   <p className={`mb-1.5 text-[11px] ${textMuted(theme)}`}>
                     完整 payload，须含 <code className="font-mono">method</code>；可与 <code className="font-mono">params</code> 并列，或按网关约定省略 params 由其余字段充当 params。
                   </p>
-                  <textarea
-                    rows={8}
+                  <AutoHeightTextarea
+                    minRows={8}
+                    maxRows={28}
                     value={invokePayload}
                     onChange={(e) => setInvokePayload(e.target.value)}
                     className={`${nativeInputClass(theme)} resize-none font-mono text-xs`}

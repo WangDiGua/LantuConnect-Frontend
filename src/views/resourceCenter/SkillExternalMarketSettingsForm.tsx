@@ -11,6 +11,7 @@ import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { btnGhost, btnPrimary, textMuted, textPrimary, textSecondary } from '../../utils/uiClasses';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
+import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 
 const INPUT_FOCUS = 'focus:ring-2 focus:ring-neutral-900/20 focus:border-neutral-900/35';
 
@@ -473,8 +474,10 @@ export const SkillExternalMarketSettingsForm: React.FC<Props> = ({ theme, fontSi
             </div>
             <div className="sm:col-span-2">
               <label className={`${labelCls} mb-1.5 block`}>发现关键词（每行，≥2 字符；留空则服务端内置）</label>
-              <textarea
-                className={`${inputCls} min-h-[120px] font-mono text-xs`}
+              <AutoHeightTextarea
+                minRows={10}
+                maxRows={32}
+                className={`${inputCls} font-mono text-xs resize-none`}
                 value={skillHubQueriesText}
                 onChange={(e) => setSkillHubQueriesText(e.target.value)}
               />
@@ -605,8 +608,10 @@ export const SkillExternalMarketSettingsForm: React.FC<Props> = ({ theme, fontSi
             </div>
             <div className="sm:col-span-2">
               <label className={`${labelCls} mb-1.5 block`}>发现关键词（每行一条）</label>
-              <textarea
-                className={`${inputCls} min-h-[140px] font-mono text-xs`}
+              <AutoHeightTextarea
+                minRows={10}
+                maxRows={32}
+                className={`${inputCls} font-mono text-xs resize-none`}
                 value={queriesText}
                 onChange={(e) => setQueriesText(e.target.value)}
               />
@@ -634,8 +639,10 @@ export const SkillExternalMarketSettingsForm: React.FC<Props> = ({ theme, fontSi
               </div>
               <div className="sm:col-span-2">
                 <label className={`${labelCls} mb-1.5 block`}>附加 URL（每行一个）</label>
-                <textarea
-                  className={`${inputCls} min-h-[88px] font-mono text-xs`}
+                <AutoHeightTextarea
+                  minRows={6}
+                  maxRows={24}
+                  className={`${inputCls} font-mono text-xs resize-none`}
                   value={mirrorUrlsText}
                   onChange={(e) => setMirrorUrlsText(e.target.value)}
                   placeholder="https://skill0.atypica.ai/api/skills"

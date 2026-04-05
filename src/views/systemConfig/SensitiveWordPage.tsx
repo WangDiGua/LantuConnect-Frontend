@@ -29,6 +29,7 @@ import {
 } from '../../utils/uiClasses';
 import { TOOLBAR_ROW_LIST } from '../../utils/toolbarFieldClasses';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
+import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 
 interface Props {
   theme: Theme;
@@ -588,8 +589,9 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
         <div className="space-y-3">
           <div>
             <label className={`text-sm font-medium ${textSecondary(theme)} mb-1 block`}>JSON 内容</label>
-            <textarea
-              rows={8}
+            <AutoHeightTextarea
+              minRows={8}
+              maxRows={36}
               className={`${inputCls} font-mono text-xs resize-none${batchJsonError ? ` ${inputBaseError()}` : ''}`}
               value={batchJson}
               onChange={(e) => {

@@ -32,6 +32,7 @@ import { nullDisplay } from '../../utils/errorHandler';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
 import { AccessPolicyBadge } from '../../components/business/AccessPolicyBadge';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
+import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 
 interface Props {
   theme: Theme;
@@ -321,15 +322,16 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
             <label htmlFor="resource-audit-reject-reason" className={`mt-3 block text-xs font-medium ${textSecondary(theme)}`}>
               驳回原因（reason）
             </label>
-            <textarea
+            <AutoHeightTextarea
               id="resource-audit-reject-reason"
-              rows={4}
+              minRows={4}
+              maxRows={14}
               value={rejectReason}
               onChange={(e) => {
                 setRejectReason(e.target.value);
                 setRejectReasonError('');
               }}
-              className={`mt-1.5 w-full rounded-xl border px-3 py-2 text-sm ${
+              className={`mt-1.5 w-full rounded-xl border px-3 py-2 text-sm resize-none ${
                 isDark ? 'border-white/10 bg-white/[0.04] text-slate-200' : 'border-slate-200 bg-white text-slate-700'
               }${rejectReasonError ? ` ${inputBaseError()}` : ''}`}
               placeholder="请输入驳回原因（reason）"
@@ -390,11 +392,12 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
             <p className={`mt-2 text-xs leading-relaxed ${textMuted(theme)}`}>
               调用 <span className="font-mono">POST /audit/resources/&#123;resourceId&#125;/platform-force-deprecate</span>，资源 id：{forceDeprecateTarget.resourceId || '—'}。
             </p>
-            <textarea
-              rows={4}
+            <AutoHeightTextarea
+              minRows={4}
+              maxRows={14}
               value={forceDeprecateReason}
               onChange={(e) => setForceDeprecateReason(e.target.value)}
-              className={`mt-3 w-full rounded-xl border px-3 py-2 text-sm ${
+              className={`mt-3 w-full rounded-xl border px-3 py-2 text-sm resize-none ${
                 isDark ? 'border-white/10 bg-white/[0.04] text-slate-200' : 'border-slate-200 bg-white text-slate-700'
               }`}
               placeholder="下架原因（可选）"

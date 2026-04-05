@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef } from 'react';
 import { Highlight, themes } from 'prism-react-renderer';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -35,6 +35,13 @@ import { useUserRole, canAccessAdminView } from '../../context/UserRoleContext';
 import { useMessage } from '../../components/common/Message';
 import type { ExploreHubRailConfig } from '../../constants/topNavPolicy';
 import { HubPersonalRail } from '../../components/layout/HubPersonalRail';
+import {
+  measureTextBlockHeightCached,
+  PRETEXT_FONT_MONO_11_SNUG,
+  PRETEXT_FONT_MONO_14_RELAXED,
+  PRETEXT_LINE_HEIGHT_11_SNUG,
+  PRETEXT_LINE_HEIGHT_14_RELAXED,
+} from '../../utils/pretextTypography';
 
 interface ExploreHubProps {
   theme: Theme;
@@ -313,6 +320,8 @@ function heroTerminalSpotlightGradient(x: number, y: number): string {
 
 const HeroCodeTerminal: React.FC<{ compact?: boolean }> = ({ compact = false }) => {
   const [typedCode, setTypedCode] = useState('');
+  const codeBoxRef = useRef<HTMLDivElement>(null);
+  const [codeBoxH, setCodeBoxH] = useState(() => (compact ? 132 : 300));
   const wrapRef = useRef<HTMLDivElement>(null);
   const spotlightRef = useRef<HTMLDivElement>(null);
   const glowRafRef = useRef<number>(0);
@@ -340,6 +349,37 @@ const HeroCodeTerminal: React.FC<{ compact?: boolean }> = ({ compact = false }) 
     }, 45);
     return () => window.clearInterval(typingInterval);
   }, []);
+
+  const measureCodeBox = useCallback(() => {
+    const el = codeBoxRef.current;
+    if (!el) return;
+    const cs = getComputedStyle(el);
+    const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+    const w = Math.max(1, el.clientWidth - padX);
+    const font = compact ? PRETEXT_FONT_MONO_11_SNUG : PRETEXT_FONT_MONO_14_RELAXED;
+    const lh = compact ? PRETEXT_LINE_HEIGHT_11_SNUG : PRETEXT_LINE_HEIGHT_14_RELAXED;
+    const maxPx = compact ? 132 : 300;
+    const minPx = Math.min(compact ? 4 * lh : 6 * lh, maxPx);
+    const { height } = measureTextBlockHeightCached(typedCode, w, lh, font, { whiteSpace: 'pre-wrap' });
+    const capped = Math.min(Math.max(height + 4, minPx), maxPx);
+    setCodeBoxH(capped);
+  }, [typedCode, compact]);
+
+  useLayoutEffect(() => {
+    measureCodeBox();
+  }, [measureCodeBox]);
+
+  useEffect(() => {
+    setCodeBoxH(compact ? 132 : 300);
+  }, [compact]);
+
+  useEffect(() => {
+    const el = codeBoxRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => measureCodeBox());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [measureCodeBox]);
 
   const runGlowTick = useCallback(() => {
     const spot = spotlightRef.current;
@@ -406,7 +446,6 @@ const HeroCodeTerminal: React.FC<{ compact?: boolean }> = ({ compact = false }) 
 
   const outerPad = compact ? 'p-4 -m-4 max-w-[calc(100%+2rem)]' : 'p-10 -m-10 max-w-[calc(100%+5rem)]';
   const termWidth = compact ? 'w-[280px]' : 'w-[420px]';
-  const codeH = compact ? 'h-[132px]' : 'h-[300px]';
   const codeText = compact ? 'text-[11px] leading-snug' : 'text-sm leading-relaxed';
   const headPad = compact ? 'px-3 py-2' : 'px-4 py-3';
   const innerPad = compact ? 'p-3' : 'p-5';
@@ -469,7 +508,11 @@ const HeroCodeTerminal: React.FC<{ compact?: boolean }> = ({ compact = false }) 
         <div className={`mx-auto text-gray-500 font-mono ${compact ? 'text-[10px]' : 'text-xs'}`}>agent-deploy.ts</div>
       </div>
 
-      <div className={`${codeH} shrink-0 ${innerPad} font-mono ${codeText} overflow-y-auto overflow-x-hidden min-h-0 min-w-0`}>
+      <div
+        ref={codeBoxRef}
+        className={`shrink-0 ${innerPad} font-mono ${codeText} overflow-y-auto overflow-x-hidden min-h-0 min-w-0`}
+        style={{ height: codeBoxH }}
+      >
         <div className="text-gray-300 whitespace-pre-wrap break-words min-w-0 pb-1 inline-block max-w-full align-top">
           <Highlight theme={themes.vsDark} code={typedCode} language="tsx">
             {({ className, style, tokens, getLineProps, getTokenProps }) => (

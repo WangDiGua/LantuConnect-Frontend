@@ -2,6 +2,7 @@ import React from 'react';
 import type { LucideIcon } from 'lucide-react';
 import type { Theme } from '../../types';
 import { textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import { descriptionClampMinHeightPx } from '../../utils/pretextTypography';
 
 export type MarketplaceStatusTone = 'published' | 'draft' | 'neutral' | 'accent';
 
@@ -77,7 +78,8 @@ export const MarketplaceListingCard: React.FC<MarketplaceListingCardProps> = ({
   className = '',
 }) => {
   const isDark = theme === 'dark';
-  const clampCls = descriptionClamp === 2 ? 'line-clamp-2 min-h-[2.5rem]' : 'line-clamp-3';
+  const clampCls = descriptionClamp === 2 ? 'line-clamp-2' : 'line-clamp-3';
+  const descMinH = descriptionClampMinHeightPx(descriptionClamp);
   const borderT = isDark ? 'border-white/[0.08]' : 'border-slate-200/55';
 
   return (
@@ -108,7 +110,10 @@ export const MarketplaceListingCard: React.FC<MarketplaceListingCardProps> = ({
         <div className="mt-2.5 flex min-w-0 flex-wrap items-center gap-2">{metaRow}</div>
       ) : null}
 
-      <p className={`mt-3 flex-1 text-sm leading-relaxed ${clampCls} ${textSecondary(theme)}`}>
+      <p
+        className={`mt-3 flex-1 text-sm leading-relaxed ${clampCls} ${textSecondary(theme)}`}
+        style={{ minHeight: descMinH }}
+      >
         {description?.trim() ? description : '暂无描述'}
       </p>
 

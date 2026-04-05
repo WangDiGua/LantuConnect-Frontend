@@ -66,6 +66,12 @@ import {
 3. **降级**：`prefers-reduced-motion`、超大文本可做采样或防抖 prepare，避免主线程长任务（见 ui-ux-pro-max 性能项）。
 4. **macOS**：避免用 `system-ui` 作为测量字体（Pretext 文档标注可能影响精度），改用具体 family。
 
+## 本项目已接入
+
+- **`src/utils/pretextTypography.ts`**：与 Tailwind / `@theme` 对齐的 `font` 与行高常量；`measureTextBlockHeight*`；`descriptionClampMinHeightPx`（列表卡多行描述最小高度）。
+- **`src/components/common/AutoHeightTextarea.tsx`**：基于 `pre-wrap` + Pretext 的自增高文本框（全站表单 `textarea` 已统一为此组件）。
+- **`ExploreHub` 英雄区终端**：打字机代码块高度由 Pretext 随内容变化，仍限最大高度并保留滚动。
+
 ## 参考位置
 
 - 包文档与语义：`node_modules/@chenglou/pretext` 或 [chenglou/pretext README](https://github.com/chenglou/pretext)。

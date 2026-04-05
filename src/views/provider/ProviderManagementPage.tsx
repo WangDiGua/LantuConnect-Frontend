@@ -21,6 +21,7 @@ import {
 } from '../../utils/uiClasses';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { formatDateTime } from '../../utils/formatDateTime';
+import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 
 interface Props {
   theme: Theme;
@@ -198,7 +199,7 @@ export const ProviderManagementPage: React.FC<Props> = ({
               <FilterSelect value={form.providerType} onChange={(v) => setForm((prev) => ({ ...prev, providerType: v as ProviderType }))} options={TYPE_OPTIONS.filter((opt) => opt.value !== '') as Array<{ value: ProviderType; label: string }>} theme={theme} />
               <FilterSelect value={form.authType} onChange={(v) => setForm((prev) => ({ ...prev, authType: v as AuthType }))} options={[{ value: 'none', label: 'none' }, { value: 'api_key', label: 'api_key' }, { value: 'oauth2', label: 'oauth2' }, { value: 'basic', label: 'basic' }]} theme={theme} />
               <input className={`md:col-span-2 ${nativeInputClass(theme)}`} placeholder="baseUrl (optional)" value={form.baseUrl} onChange={(e) => setForm((prev) => ({ ...prev, baseUrl: e.target.value }))} />
-              <textarea className={`md:col-span-2 ${nativeInputClass(theme)} resize-none`} rows={3} placeholder="description (optional)" value={form.description} onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))} />
+              <AutoHeightTextarea className={`md:col-span-2 ${nativeInputClass(theme)} resize-none`} minRows={3} maxRows={12} placeholder="description (optional)" value={form.description} onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))} />
             </div>
             <div className="mt-4 flex items-center gap-2">
               <button type="button" className={btnPrimary} onClick={() => void createProvider()} disabled={creating} aria-label="创建 Provider">

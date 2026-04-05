@@ -16,6 +16,7 @@ import { BentoCard } from '../../components/common/BentoCard';
 import {
   btnPrimary, btnSecondary, textPrimary, textSecondary, textMuted, fieldErrorText, inputBaseError,
 } from '../../utils/uiClasses';
+import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 
 interface PageProps {
   theme: Theme;
@@ -183,9 +184,11 @@ export const SystemParamsPage: React.FC<PageProps> = ({ theme, fontSize, showMes
                 </div>
                 {isJsonSystemParam(p) ? (
                   <>
-                    <textarea
+                    <AutoHeightTextarea
                       id={`sys-param-json-${idx}`}
-                      className={`${inputCls} min-h-[180px] w-full font-mono text-xs leading-relaxed resize-y${
+                      minRows={12}
+                      maxRows={48}
+                      className={`${inputCls} w-full font-mono text-xs leading-relaxed resize-none${
                         jsonParamErrors[p.key] ? ` ${inputBaseError()}` : ''
                       }`}
                       value={p.value}
@@ -432,7 +435,7 @@ export const NetworkConfigPage: React.FC<PageProps> = ({ theme, fontSize, showMe
             ) : null}
             <div>
               <label className={`${labelCls} mb-1.5 block`}>管理端 IP 白名单（每行一个 CIDR）</label>
-              <textarea className={`${inputCls} min-h-[120px] font-mono text-xs`} value={allowlist} onChange={(e) => setAllowlist(e.target.value)} aria-label="IP 白名单 CIDR 列表" disabled={loadingList} />
+              <AutoHeightTextarea className={`${inputCls} font-mono text-xs resize-none`} minRows={8} maxRows={30} value={allowlist} onChange={(e) => setAllowlist(e.target.value)} aria-label="IP 白名单 CIDR 列表" disabled={loadingList} />
               <p className={`text-xs mt-1.5 leading-relaxed ${textMuted(theme)}`}>每行一条，例如 10.0.0.0/8；点击应用后写入数据库并于关闭集成 mock 时可接真实网关下发。</p>
             </div>
             <button type="button" className={`${btnPrimary} disabled:opacity-50`} disabled={saving || loadingList} onClick={handleApply}>

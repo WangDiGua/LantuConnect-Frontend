@@ -11,6 +11,7 @@ import { MultiAvatar } from '../common/MultiAvatar';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { btnGhost, btnPrimary, textMuted, textPrimary, textSecondary } from '../../utils/uiClasses';
 import { formatDateTime } from '../../utils/formatDateTime';
+import { AutoHeightTextarea } from '../common/AutoHeightTextarea';
 
 type ReviewTargetType = 'agent' | 'skill' | 'app' | 'mcp' | 'dataset';
 
@@ -368,11 +369,12 @@ export const ResourceReviewsSection: React.FC<Props> = ({ targetType, targetId, 
             <span className={`text-sm ${textSecondary(theme)}`}>评分：</span>
             <StarRating rating={myRating} size={18} interactive onRate={setMyRating} />
           </div>
-          <textarea
+          <AutoHeightTextarea
             value={myComment}
             onChange={(e) => setMyComment(e.target.value)}
             placeholder="分享你的使用体验..."
-            rows={3}
+            minRows={3}
+            maxRows={12}
             className={`${nativeInputClass(theme)} mb-3 resize-none`}
           />
           <div className="flex justify-end">
@@ -393,11 +395,12 @@ export const ResourceReviewsSection: React.FC<Props> = ({ targetType, targetId, 
           <span className={`text-sm ${textSecondary(theme)}`}>评分：</span>
           <StarRating rating={myRating} size={18} interactive onRate={setMyRating} />
         </div>
-        <textarea
+        <AutoHeightTextarea
           value={myComment}
           onChange={(e) => setMyComment(e.target.value)}
           placeholder="分享你的使用体验..."
-          rows={3}
+          minRows={3}
+          maxRows={12}
           className={`${nativeInputClass(theme)} resize-none mb-3`}
         />
         <div className="flex justify-end">

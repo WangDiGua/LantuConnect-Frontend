@@ -13,6 +13,7 @@ import { buildPath } from '../../constants/consoleRoutes';
 import { apiKeyScopesAllowGatewayFlow } from '../../utils/apiKeyScopes';
 import { LantuDateTimePicker } from '../common/LantuDateTimePicker';
 import { PageSkeleton } from '../common/PageSkeleton';
+import { AutoHeightTextarea } from '../common/AutoHeightTextarea';
 
 const ACTION_OPTIONS: Array<{ value: string; label: string }> = [
   { value: 'catalog', label: 'catalog（查询）' },
@@ -259,8 +260,9 @@ export const GrantApplicationModal: React.FC<Props> = ({
           <label className={`text-xs font-semibold block mb-1.5 ${textSecondary(theme)}`}>
             使用场景说明
           </label>
-          <textarea
-            rows={3}
+          <AutoHeightTextarea
+            minRows={3}
+            maxRows={14}
             className={`${nativeInputClass(theme)} resize-none`}
             placeholder="简要描述使用场景和目的（可选）"
             value={useCase}

@@ -19,6 +19,8 @@ import {
 } from '../../utils/uiClasses';
 import type { DomainStatus } from '../../utils/uiClasses';
 import { PublishStatusStepper } from './PublishStatusStepper';
+import { AutoHeightTextarea } from '../common/AutoHeightTextarea';
+import { descriptionClampMinHeightPx } from '../../utils/pretextTypography';
 
 const ICON_BG = ['bg-violet-500', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500', 'bg-cyan-500'] as const;
 function pickColor(str: string): string {
@@ -104,7 +106,12 @@ export const PublishResourceCard: React.FC<Props> = ({
             {statusLabel(item.status as DomainStatus)}
           </span>
         </div>
-        <p className={`line-clamp-2 text-sm leading-relaxed ${textSecondary(theme)}`}>{item.description || '暂无描述'}</p>
+        <p
+          className={`line-clamp-2 text-sm leading-relaxed ${textSecondary(theme)}`}
+          style={{ minHeight: descriptionClampMinHeightPx(2) }}
+        >
+          {item.description || '暂无描述'}
+        </p>
         <PublishStatusStepper theme={theme} current={item.status} />
       </div>
 
@@ -199,11 +206,12 @@ export const PublishResourceCard: React.FC<Props> = ({
           <p className={`mt-1 text-xs leading-relaxed ${textMuted(theme)}`}>
             与「资源审核」台相同接口：<span className="font-mono">POST /audit/resources/{'{id}'}/reject</span>，id 为资源主键。
           </p>
-          <textarea
-            rows={4}
+          <AutoHeightTextarea
+            minRows={3}
+            maxRows={12}
             value={rejectReason}
             onChange={(e) => setRejectReason(e.target.value)}
-            className={`mt-3 w-full rounded-xl border px-3 py-2 text-sm ${
+            className={`mt-3 w-full rounded-xl border px-3 py-2 text-sm resize-none ${
               isDark ? 'border-white/10 bg-white/[0.04] text-slate-200' : 'border-slate-200 bg-white text-slate-700'
             }`}
             placeholder="请输入驳回原因"

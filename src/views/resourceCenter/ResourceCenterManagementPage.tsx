@@ -42,6 +42,7 @@ import {
 import { nullDisplay } from '../../utils/errorHandler';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
+import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 
 function skillSubmitBlocked(item: ResourceCenterItemVO): boolean {
   if (item.resourceType !== 'skill') return false;
@@ -818,15 +819,16 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
             <label htmlFor="resource-center-audit-reject-reason" className={`mt-3 block text-xs font-medium ${textSecondary(theme)}`}>
               驳回原因
             </label>
-            <textarea
+            <AutoHeightTextarea
               id="resource-center-audit-reject-reason"
-              rows={4}
+              minRows={4}
+              maxRows={14}
               value={auditRejectReason}
               onChange={(e) => {
                 setAuditRejectReason(e.target.value);
                 setAuditRejectReasonError('');
               }}
-              className={`mt-1.5 w-full rounded-xl border px-3 py-2 text-sm ${
+              className={`mt-1.5 w-full rounded-xl border px-3 py-2 text-sm resize-none ${
                 isDark ? 'border-white/10 bg-white/[0.04] text-slate-200' : 'border-slate-200 bg-white text-slate-700'
               }${auditRejectReasonError ? ` ${inputBaseError()}` : ''}`}
               placeholder="请输入驳回原因"
@@ -888,11 +890,12 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
             <p className={`mt-2 text-xs leading-relaxed ${textMuted(theme)}`}>
               仅平台管理员可操作；资源将进入 deprecated，与开发者自助下线不同。原因会通知资源 owner。
             </p>
-            <textarea
-              rows={4}
+            <AutoHeightTextarea
+              minRows={4}
+              maxRows={14}
               value={platformForceReason}
               onChange={(e) => setPlatformForceReason(e.target.value)}
-              className={`mt-3 w-full rounded-xl border px-3 py-2 text-sm ${
+              className={`mt-3 w-full rounded-xl border px-3 py-2 text-sm resize-none ${
                 isDark ? 'border-white/10 bg-white/[0.04] text-slate-200' : 'border-slate-200 bg-white text-slate-700'
               }`}
               placeholder="下架原因（可选，空则记为「平台强制下架」）"

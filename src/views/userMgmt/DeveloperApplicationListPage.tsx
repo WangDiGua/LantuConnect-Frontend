@@ -27,6 +27,7 @@ import {
 } from '../../utils/uiClasses';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
+import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 
 interface Props {
   theme: Theme;
@@ -321,8 +322,10 @@ export const DeveloperApplicationListPage: React.FC<Props> = ({ theme, fontSize,
       >
         <div className="space-y-3">
           <p className={textSecondary(theme)}>请填写驳回原因：</p>
-          <textarea
-            className={`w-full rounded-xl border px-3 py-2 text-sm min-h-[80px] resize-none outline-none ${
+          <AutoHeightTextarea
+            minRows={4}
+            maxRows={14}
+            className={`w-full rounded-xl border px-3 py-2 text-sm resize-none outline-none ${
               isDark ? 'bg-white/[0.04] border-white/[0.08] text-white' : 'bg-white border-slate-200 text-slate-900'
             }${rejectCommentError ? ` ${inputBaseError()}` : ''}`}
             value={rejectComment}

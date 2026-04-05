@@ -17,6 +17,7 @@ import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { EmptyState } from '../../components/common/EmptyState';
 import { tagService } from '../../api/services/tag.service';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
+import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 import type { TagItem as TagDTO } from '../../types/dto/tag';
 
 interface Props {
@@ -394,7 +395,7 @@ export const TagManagementPage: React.FC<Props> = ({ theme, fontSize, showMessag
         <div className="space-y-4">
           <div>
             <label className={`${labelCls} mb-1.5 block`}>标签列表（每行一个）</label>
-            <textarea value={batchText} onChange={(e) => setBatchText(e.target.value)} placeholder="文档生成\n图像处理\n数据分析\n…" rows={8} className={`${inputCls} !min-h-[180px] resize-none font-mono`} />
+            <AutoHeightTextarea value={batchText} onChange={(e) => setBatchText(e.target.value)} placeholder="文档生成\n图像处理\n数据分析\n…" minRows={8} maxRows={28} className={`${inputCls} resize-none font-mono`} />
           </div>
           <div>
             <label className={`${labelCls} mb-1.5 block`}>统一分类</label>

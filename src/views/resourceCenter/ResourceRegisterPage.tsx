@@ -22,6 +22,7 @@ import {
   textPrimary,
 } from '../../utils/uiClasses';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
+import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 import { parseMcpConfigPaste } from '../../utils/mcpConfigImport';
 
 interface Props {
@@ -1315,11 +1316,12 @@ export const ResourceRegisterPage: React.FC<Props> = ({
               />
             </Field>
             <Field label="描述（选填）" full theme={theme}>
-              <textarea
+              <AutoHeightTextarea
                 value={form.description}
                 onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-                rows={3}
-                className={inputClass(isDark)}
+                minRows={3}
+                maxRows={12}
+                className={`${inputClass(isDark)} resize-none`}
                 placeholder="用途与场景简述（选填）"
               />
             </Field>
@@ -1402,11 +1404,12 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     支持含 <span className="font-mono">mcpServers</span> 的 JSON（如 Claude/Cursor 导出），或单个含{' '}
                     <span className="font-mono">url</span> 的条目。仅解析远程 URL 类；stdio 会提示须自备边车。
                   </p>
-                  <textarea
+                  <AutoHeightTextarea
                     value={mcpImportPaste}
                     onChange={(e) => setMcpImportPaste(e.target.value)}
-                    rows={4}
-                    className={`${inputClass(isDark)} font-mono text-xs`}
+                    minRows={4}
+                    maxRows={22}
+                    className={`${inputClass(isDark)} font-mono text-xs resize-none`}
                     placeholder='例如：{ "mcpServers": { "demo": { "url": "https://example.com/mcp" } } }'
                   />
                   <div className="mt-2 flex flex-wrap gap-2">
@@ -1555,12 +1558,13 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                       Api Key 模板
                     </button>
                   </div>
-                  <textarea
+                  <AutoHeightTextarea
                     id={rrFieldId('authConfigJson')}
                     value={form.authConfigJson}
                     onChange={(e) => setForm((p) => ({ ...p, authConfigJson: e.target.value }))}
-                    rows={5}
-                    className={`${inputClass(isDark, !!mcpAuthJsonMerged)} font-mono text-xs`}
+                    minRows={5}
+                    maxRows={30}
+                    className={`${inputClass(isDark, !!mcpAuthJsonMerged)} font-mono text-xs resize-none`}
                     aria-invalid={!!mcpAuthJsonMerged}
                     aria-describedby={mcpAuthJsonMerged ? `${rrFieldId('authConfigJson')}-err` : undefined}
                     placeholder={DEFAULT_MCP_AUTH_CONFIG_JSON}
@@ -1612,12 +1616,13 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                       填入示例
                     </button>
                   </div>
-                  <textarea
+                  <AutoHeightTextarea
                     id={rrFieldId('specJson')}
                     value={form.specJson}
                     onChange={(e) => setForm((p) => ({ ...p, specJson: e.target.value }))}
-                    rows={4}
-                    className={`${inputClass(isDark, !!fieldErrors.specJson)} font-mono text-xs`}
+                    minRows={4}
+                    maxRows={28}
+                    className={`${inputClass(isDark, !!fieldErrors.specJson)} font-mono text-xs resize-none`}
                     aria-invalid={!!fieldErrors.specJson}
                     aria-describedby={fieldErrors.specJson ? `${rrFieldId('specJson')}-err` : undefined}
                     placeholder='{"url":"https://…","timeout":30}'
@@ -1636,11 +1641,12 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                   />
                 </Field>
                 <Field label="系统提示词（选填）" full theme={theme}>
-                  <textarea
+                  <AutoHeightTextarea
                     value={form.systemPrompt}
                     onChange={(e) => setForm((p) => ({ ...p, systemPrompt: e.target.value }))}
-                    rows={3}
-                    className={inputClass(isDark)}
+                    minRows={3}
+                    maxRows={20}
+                    className={`${inputClass(isDark)} resize-none`}
                     placeholder="角色与回答约束（选填）"
                   />
                 </Field>
@@ -2086,12 +2092,13 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                         />
                       </Field>
                       <Field label="manifest JSON" full theme={theme} error={fieldErrors.manifestJson} fieldId={rrFieldId('manifestJson')}>
-                        <textarea
+                        <AutoHeightTextarea
                           id={rrFieldId('manifestJson')}
                           value={form.manifestJson}
                           onChange={(e) => setForm((p) => ({ ...p, manifestJson: e.target.value }))}
-                          rows={4}
-                          className={`${inputClass(isDark, !!fieldErrors.manifestJson)} font-mono text-xs`}
+                          minRows={4}
+                          maxRows={30}
+                          className={`${inputClass(isDark, !!fieldErrors.manifestJson)} font-mono text-xs resize-none`}
                           aria-invalid={!!fieldErrors.manifestJson}
                           aria-describedby={fieldErrors.manifestJson ? `${rrFieldId('manifestJson')}-err` : undefined}
                         />
@@ -2102,12 +2109,13 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                             置为 {}
                           </button>
                         </div>
-                        <textarea
+                        <AutoHeightTextarea
                           id={rrFieldId('specJson')}
                           value={form.specJson}
                           onChange={(e) => setForm((p) => ({ ...p, specJson: e.target.value }))}
-                          rows={3}
-                          className={`${inputClass(isDark, !!fieldErrors.specJson)} font-mono text-xs`}
+                          minRows={3}
+                          maxRows={28}
+                          className={`${inputClass(isDark, !!fieldErrors.specJson)} font-mono text-xs resize-none`}
                           aria-invalid={!!fieldErrors.specJson}
                           aria-describedby={fieldErrors.specJson ? `${rrFieldId('specJson')}-err` : undefined}
                         />
@@ -2122,12 +2130,13 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                             示例模板
                           </button>
                         </div>
-                        <textarea
+                        <AutoHeightTextarea
                           id={rrFieldId('paramsSchemaJson')}
                           value={form.paramsSchemaJson}
                           onChange={(e) => setForm((p) => ({ ...p, paramsSchemaJson: e.target.value }))}
-                          rows={4}
-                          className={`${inputClass(isDark, !!fieldErrors.paramsSchemaJson)} font-mono text-xs`}
+                          minRows={4}
+                          maxRows={30}
+                          className={`${inputClass(isDark, !!fieldErrors.paramsSchemaJson)} font-mono text-xs resize-none`}
                           aria-invalid={!!fieldErrors.paramsSchemaJson}
                           aria-describedby={fieldErrors.paramsSchemaJson ? `${rrFieldId('paramsSchemaJson')}-err` : undefined}
                         />
@@ -2175,11 +2184,12 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                   />
                 </Field>
                 <Field label="截图 URL（选填，每行一条）" full theme={theme}>
-                  <textarea
+                  <AutoHeightTextarea
                     value={form.appScreenshotsText}
                     onChange={(e) => setForm((p) => ({ ...p, appScreenshotsText: e.target.value }))}
-                    rows={4}
-                    className={`${inputClass(isDark)} font-mono text-xs`}
+                    minRows={4}
+                    maxRows={18}
+                    className={`${inputClass(isDark)} font-mono text-xs resize-none`}
                   />
                 </Field>
                 <Field label="对外公开" theme={theme}>

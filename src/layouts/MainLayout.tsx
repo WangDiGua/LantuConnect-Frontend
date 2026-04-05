@@ -203,7 +203,6 @@ const MainContent = React.memo<{
   setShowUserMenu: (show: boolean) => void;
   setShowAppearanceMenu: (show: boolean) => void;
   exploreHubRail?: ExploreHubRailConfig;
-  onOpenExplorePersonalRail?: () => void;
 }>(({
   page: p,
   routeId: rid,
@@ -218,7 +217,6 @@ const MainContent = React.memo<{
   setShowUserMenu: setMenu,
   setShowAppearanceMenu: setAppMenu,
   exploreHubRail,
-  onOpenExplorePersonalRail,
 }) => {
   const renderResourceList = (type: ResourceType) => (
     <ResourceCenterManagementPage
@@ -357,7 +355,6 @@ const MainContent = React.memo<{
             theme={t}
             fontSize={fs}
             hubRail={exploreHubRail}
-            onOpenPersonalRail={onOpenExplorePersonalRail}
           />
         );
       case 'workspace':
@@ -515,8 +512,7 @@ const MainContent = React.memo<{
     prevProps.themePreference === nextProps.themePreference &&
     prevProps.themeColor === nextProps.themeColor &&
     prevProps.fontSize === nextProps.fontSize &&
-    prevProps.exploreHubRail === nextProps.exploreHubRail &&
-    prevProps.onOpenExplorePersonalRail === nextProps.onOpenExplorePersonalRail
+    prevProps.exploreHubRail === nextProps.exploreHubRail
   );
 });
 
@@ -673,7 +669,10 @@ const MainLayoutContent: React.FC<{
   /** 主内容滚动区：Hash 路由切换不会整页刷新，需手动滚回顶部 */
   const mainScrollRef = useRef<HTMLDivElement>(null);
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
-  /** 为 true 时展示探索个人左轨（仅来自左轨/显式开启；顶栏与抽屉导航会置 false） */
+  /**
+   * 探索 hub 页始终内嵌个人左轨。
+   * 其他子页：为 true 时在主栏外展示独立左轨（从左轨进入子项会置 true；顶栏/Logo 导航会置 false）
+   */
   const [personalRailOpen, setPersonalRailOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
@@ -1205,10 +1204,6 @@ const MainLayoutContent: React.FC<{
     [navigateSubItem],
   );
 
-  const openExplorePersonalRail = useCallback(() => {
-    setPersonalRailOpen(true);
-  }, []);
-
   useEffect(() => {
     if (!showUserMenu && !showMessagePanel && !showSettingsMenu) return;
     const onDocMouseDown = (e: MouseEvent) => {
@@ -1408,14 +1403,10 @@ const MainLayoutContent: React.FC<{
     navigate,
   ]);
 
-  const exploreHubRailForContent =
-    page === 'hub' && personalRailOpen && exploreHubRail ? exploreHubRail : undefined;
+  const exploreHubRailForContent = page === 'hub' && exploreHubRail ? exploreHubRail : undefined;
 
   const showStandalonePersonalRail =
     consoleRole === 'user' && personalRailOpen && Boolean(exploreHubRail) && page !== 'hub';
-
-  const onOpenExplorePersonalRail =
-    page === 'hub' && exploreHubRail && !personalRailOpen ? openExplorePersonalRail : undefined;
 
   return (
     <LayoutChromeProvider value={{ hasSecondarySidebar, chromePageTitle: headerTitle }}>
@@ -1748,7 +1739,6 @@ const MainLayoutContent: React.FC<{
                               setShowUserMenu={setShowUserMenu}
                               setShowAppearanceMenu={setShowAppearanceMenu}
                               exploreHubRail={undefined}
-                              onOpenExplorePersonalRail={undefined}
                             />
                           </div>
                         </RouteContentMotion>
@@ -1780,7 +1770,6 @@ const MainLayoutContent: React.FC<{
                         setShowUserMenu={setShowUserMenu}
                         setShowAppearanceMenu={setShowAppearanceMenu}
                         exploreHubRail={exploreHubRailForContent}
-                        onOpenExplorePersonalRail={onOpenExplorePersonalRail}
                       />
                     </div>
                   </RouteContentMotion>

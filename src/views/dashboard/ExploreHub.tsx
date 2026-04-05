@@ -40,8 +40,6 @@ interface ExploreHubProps {
   theme: Theme;
   fontSize: FontSize;
   hubRail?: ExploreHubRailConfig;
-  /** 顶栏进入探索且无左轨时，用于展开个人侧栏（与顶栏全局导航区分） */
-  onOpenPersonalRail?: () => void;
 }
 
 function formatCount(n: number | null | undefined): string {
@@ -500,7 +498,6 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
   theme,
   fontSize: _fontSize,
   hubRail,
-  onOpenPersonalRail,
 }) => {
   const navigate = useNavigate();
   const { platformRole } = useUserRole();
@@ -750,21 +747,6 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
     <>
       <div className={`w-full ${mainScrollPadBottom} ${canvasBodyBg(theme)} pt-2 sm:pt-3 pb-16 sm:pb-20`}>
         {!hubRail ? <div className={pageContainer}>{hubHeroBanner}</div> : null}
-        {!hubRail && onOpenPersonalRail ? (
-          <div className={`${pageContainer} mt-3 flex flex-wrap justify-end sm:mt-4`}>
-            <button
-              type="button"
-              onClick={onOpenPersonalRail}
-              className={`text-sm font-medium rounded-lg px-3 py-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
-                isDark
-                  ? 'text-sky-300 hover:bg-white/[0.06] focus-visible:ring-sky-400/50 focus-visible:ring-offset-lantu-card'
-                  : 'text-sky-800 hover:bg-slate-100/90 focus-visible:ring-neutral-900/25 focus-visible:ring-offset-white'
-              }`}
-            >
-              显示左侧个人导航
-            </button>
-          </div>
-        ) : null}
 
         <main className={`${pageContainer} ${hubRail ? 'mt-2 sm:mt-3' : 'mt-6 sm:mt-7'} space-y-8`}>
           {hubRail ? null : statsGridEl}

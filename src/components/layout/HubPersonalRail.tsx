@@ -176,7 +176,7 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
 
   return (
     <nav
-      className={`${shell} flex max-h-[min(92vh,52rem)] flex-col ${mainScrollCompositorClass}`}
+      className={`${shell} flex h-full min-h-0 flex-col ${mainScrollCompositorClass}`}
       aria-label="探索首页导航"
     >
       <div className="shrink-0 p-4 pb-3">

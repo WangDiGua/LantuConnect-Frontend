@@ -1717,9 +1717,9 @@ const MainLayoutContent: React.FC<{
             <div className={`w-full ${chromeGpuLayerClass}`}>
               {showStandalonePersonalRail && exploreHubRail ? (
                 <div className={`mx-auto w-full ${contentMaxWidth} px-4 sm:px-5 lg:px-6 xl:px-8`}>
-                  <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10">
+                  <div className="grid grid-cols-1 items-stretch gap-8 lg:grid-cols-12 lg:gap-10">
                     <div
-                      className={`order-2 col-span-1 lg:order-1 lg:col-span-2 lg:row-span-1 lg:border-r lg:pr-6 ${
+                      className={`order-2 col-span-1 flex h-full min-h-0 flex-col lg:order-1 lg:col-span-2 lg:border-r lg:pr-6 ${
                         isDark ? 'lg:border-white/[0.08]' : 'lg:border-slate-200/80'
                       }`}
                     >

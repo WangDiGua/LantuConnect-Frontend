@@ -754,10 +754,10 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
         <main className={`${pageContainer} ${hubRail ? 'mt-2 sm:mt-3' : 'mt-6 sm:mt-7'} space-y-8`}>
           {hubRail ? null : statsGridEl}
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
+          <div className="grid grid-cols-1 items-stretch gap-8 lg:grid-cols-12 lg:gap-10">
             {hubRail ? (
               <div
-                className={`order-2 col-span-1 lg:order-1 lg:col-span-2 lg:row-span-1 lg:border-r lg:pr-6 ${
+                className={`order-2 col-span-1 flex h-full min-h-0 flex-col lg:order-1 lg:col-span-2 lg:border-r lg:pr-6 ${
                   isDark ? 'lg:border-white/[0.08]' : 'lg:border-slate-200/80'
                 }`}
               >

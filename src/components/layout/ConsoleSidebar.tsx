@@ -45,6 +45,8 @@ export interface ConsoleSidebarProps {
   /** 点击品牌区回到当前身份目录首页 */
   onLogoClick?: () => void;
   filteredSubGroupsForSidebarId: (id: string, domain: ConsoleRole) => SubGroup[];
+  /** 仅抽屉打开时注册 ⌘/Ctrl+K，避免与桌面 Hub 个人轨重复聚焦 */
+  enableMenuSearchHotkey?: boolean;
 }
 
 export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
@@ -64,6 +66,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
   onLogout,
   onLogoClick,
   filteredSubGroupsForSidebarId,
+  enableMenuSearchHotkey = false,
 }) => {
   const isDark = theme === 'dark';
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -160,6 +163,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
   }, [showUserMenu]);
 
   useEffect(() => {
+    if (!enableMenuSearchHotkey) return;
     const onHotkey = (e: KeyboardEvent) => {
       const isFocusHotkey = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k';
       if (isFocusHotkey) {
@@ -175,7 +179,7 @@ export const ConsoleSidebar: React.FC<ConsoleSidebarProps> = ({
     };
     window.addEventListener('keydown', onHotkey);
     return () => window.removeEventListener('keydown', onHotkey);
-  }, [menuQuery]);
+  }, [menuQuery, enableMenuSearchHotkey]);
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">

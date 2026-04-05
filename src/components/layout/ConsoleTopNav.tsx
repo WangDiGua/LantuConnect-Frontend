@@ -327,6 +327,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
           autoComplete="off"
           spellCheck={false}
           readOnly
+          aria-readonly="true"
           tabIndex={0}
           onFocus={() => setHotSearchFocused(true)}
           onBlur={() => setHotSearchFocused(false)}
@@ -335,7 +336,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
             'flex-1 min-w-0 h-full cursor-default border-none bg-transparent px-2.5 py-0 text-[13px] font-medium leading-none outline-none',
             isDark ? 'text-slate-200 placeholder:text-slate-500' : 'text-gray-700 placeholder-gray-400',
           ].join(' ')}
-          aria-label="热门搜索（即将上线，暂为占位）"
+          aria-label="热门搜索，功能即将上线，当前为只读占位不可输入"
         />
       </div>
 

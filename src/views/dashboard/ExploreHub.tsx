@@ -40,6 +40,8 @@ interface ExploreHubProps {
   theme: Theme;
   fontSize: FontSize;
   hubRail?: ExploreHubRailConfig;
+  /** 与 MainLayout 移动抽屉联动：打开时抑制轨内全局 ⌘/Ctrl+K */
+  mobileNavDrawerOpen?: boolean;
 }
 
 function formatCount(n: number | null | undefined): string {
@@ -498,6 +500,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
   theme,
   fontSize: _fontSize,
   hubRail,
+  mobileNavDrawerOpen = false,
 }) => {
   const navigate = useNavigate();
   const { platformRole } = useUserRole();
@@ -769,6 +772,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
                   routeRole={hubRail.routeRole}
                   onProfileClick={hubRail.onProfileClick}
                   onSubItemClick={hubRail.onSubItemClick}
+                  suppressGlobalMenuSearchHotkey={mobileNavDrawerOpen}
                 />
               </div>
             ) : null}

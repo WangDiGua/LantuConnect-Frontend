@@ -20,6 +20,8 @@ export interface HubPersonalRailProps {
   routeRole: ConsoleRole;
   onProfileClick: () => void;
   onSubItemClick: (subItemId: string, parentSidebarId: string, domain: ConsoleRole) => void;
+  /** 移动抽屉打开时由侧栏接管 ⌘/Ctrl+K，避免双监听 */
+  suppressGlobalMenuSearchHotkey?: boolean;
 }
 
 type ParentBlock = {
@@ -80,6 +82,7 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
   routeRole,
   onProfileClick,
   onSubItemClick,
+  suppressGlobalMenuSearchHotkey = false,
 }) => {
   const isDark = theme === 'dark';
   /** 与探索页画布平接，不用独立浮卡；列级分隔由 ExploreHub 父级 border-r 承担 */
@@ -149,6 +152,7 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
   }, [activeBlockKey, searchMode]);
 
   useEffect(() => {
+    if (suppressGlobalMenuSearchHotkey) return;
     const onHotkey = (e: KeyboardEvent) => {
       const isFocusHotkey = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k';
       if (isFocusHotkey) {
@@ -164,7 +168,7 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
     };
     window.addEventListener('keydown', onHotkey);
     return () => window.removeEventListener('keydown', onHotkey);
-  }, [menuQuery]);
+  }, [menuQuery, suppressGlobalMenuSearchHotkey]);
 
   const showUsageEndCap =
     hasAdminRail && filteredBlocks.length > 0 && filteredBlocks[0]?.block.domain === 'user';

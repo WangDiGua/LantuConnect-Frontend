@@ -203,6 +203,8 @@ const MainContent = React.memo<{
   setShowUserMenu: (show: boolean) => void;
   setShowAppearanceMenu: (show: boolean) => void;
   exploreHubRail?: ExploreHubRailConfig;
+  /** 移动侧栏打开时与 Hub 轨 ⌘/Ctrl+K 互斥 */
+  mobileNavOpen: boolean;
 }>(({
   page: p,
   routeId: rid,
@@ -217,6 +219,7 @@ const MainContent = React.memo<{
   setShowUserMenu: setMenu,
   setShowAppearanceMenu: setAppMenu,
   exploreHubRail,
+  mobileNavOpen,
 }) => {
   const renderResourceList = (type: ResourceType) => (
     <ResourceCenterManagementPage
@@ -355,6 +358,7 @@ const MainContent = React.memo<{
             theme={t}
             fontSize={fs}
             hubRail={exploreHubRail}
+            mobileNavDrawerOpen={mobileNavOpen}
           />
         );
       case 'workspace':
@@ -512,7 +516,8 @@ const MainContent = React.memo<{
     prevProps.themePreference === nextProps.themePreference &&
     prevProps.themeColor === nextProps.themeColor &&
     prevProps.fontSize === nextProps.fontSize &&
-    prevProps.exploreHubRail === nextProps.exploreHubRail
+    prevProps.exploreHubRail === nextProps.exploreHubRail &&
+    prevProps.mobileNavOpen === nextProps.mobileNavOpen
   );
 });
 
@@ -1695,6 +1700,7 @@ const MainLayoutContent: React.FC<{
               setMobileNavOpen(false);
             }}
             filteredSubGroupsForSidebarId={filteredSubGroupsForSidebarId}
+            enableMenuSearchHotkey={mobileNavOpen}
           />
         </aside>
 
@@ -1725,6 +1731,7 @@ const MainLayoutContent: React.FC<{
                         routeRole={exploreHubRail.routeRole}
                         onProfileClick={exploreHubRail.onProfileClick}
                         onSubItemClick={exploreHubRail.onSubItemClick}
+                        suppressGlobalMenuSearchHotkey={mobileNavOpen}
                       />
                     </div>
                     <div className="order-1 min-w-0 lg:order-2 lg:col-span-10">
@@ -1751,6 +1758,7 @@ const MainLayoutContent: React.FC<{
                               setShowUserMenu={setShowUserMenu}
                               setShowAppearanceMenu={setShowAppearanceMenu}
                               exploreHubRail={undefined}
+                              mobileNavOpen={mobileNavOpen}
                             />
                           </div>
                         </RouteContentMotion>
@@ -1782,6 +1790,7 @@ const MainLayoutContent: React.FC<{
                         setShowUserMenu={setShowUserMenu}
                         setShowAppearanceMenu={setShowAppearanceMenu}
                         exploreHubRail={exploreHubRailForContent}
+                        mobileNavOpen={mobileNavOpen}
                       />
                     </div>
                   </RouteContentMotion>

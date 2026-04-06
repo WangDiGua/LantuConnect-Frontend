@@ -66,6 +66,8 @@ function toSmartApp(item: ResourceCatalogItemVO | CatalogResourceDetailVO): Smar
     createdByName: item.createdByName ?? undefined,
     ratingAvg: item.ratingAvg ?? undefined,
     reviewCount: item.reviewCount != null ? Number(item.reviewCount) : undefined,
+    usageCount: Number(item.usageCount ?? 0),
+    viewCount: Number(item.viewCount ?? 0),
     serviceDetailMd: detail.serviceDetailMd,
   };
 }

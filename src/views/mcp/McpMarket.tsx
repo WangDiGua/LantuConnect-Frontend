@@ -14,6 +14,8 @@ import {
   Sparkles,
   Star,
   Zap,
+  Eye,
+  BarChart2,
 } from 'lucide-react';
 import type { Theme, FontSize, ThemeColor } from '../../types';
 import type { CatalogResourceDetailVO, ResourceCatalogItemVO } from '../../types/dto/catalog';
@@ -48,6 +50,13 @@ import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { MarkdownView } from '../../components/common/MarkdownView';
 import { buildPath } from '../../constants/consoleRoutes';
 import { MARKET_HERO_TITLE_CLASSES } from '../../constants/theme';
+import {
+  catalogAuthorDisplay,
+  catalogPrimaryMetricLabel,
+  catalogPrimaryMetricValue,
+  catalogViewCountValue,
+  formatMarketMetric,
+} from '../../utils/marketMetrics';
 
 interface Props {
   theme: Theme;
@@ -670,16 +679,31 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                         </>
                       )}
                       description={item.description || '暂无描述'}
+                      descriptionClamp={3}
                       footerLeft={(
-                        <span
-                          className="block truncate font-mono text-xs"
-                          title={item.resourceCode || item.resourceId}
-                        >
-                          @{item.resourceCode || item.resourceId}
-                        </span>
+                        <div className="min-w-0 space-y-0.5">
+                          <div
+                            className={`truncate text-xs ${textSecondary(theme)}`}
+                            title={catalogAuthorDisplay(item)}
+                          >
+                            作者：{catalogAuthorDisplay(item)}
+                          </div>
+                          <span
+                            className="block truncate font-mono text-xs"
+                            title={item.resourceCode || item.resourceId}
+                          >
+                            @{item.resourceCode || item.resourceId}
+                          </span>
+                        </div>
                       )}
                       footerStats={(
                         <>
+                          <MarketplaceStatItem icon={BarChart2} title={catalogPrimaryMetricLabel('mcp')}>
+                            {formatMarketMetric(catalogPrimaryMetricValue('mcp', item))}
+                          </MarketplaceStatItem>
+                          <MarketplaceStatItem icon={Eye} title="浏览量">
+                            {formatMarketMetric(catalogViewCountValue(item))}
+                          </MarketplaceStatItem>
                           <MarketplaceStatItem icon={Star} title="目录评分">
                             {item.ratingAvg != null ? item.ratingAvg.toFixed(1) : '—'}
                           </MarketplaceStatItem>

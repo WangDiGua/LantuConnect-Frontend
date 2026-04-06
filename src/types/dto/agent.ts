@@ -45,6 +45,8 @@ export interface Agent {
   reviewCount?: number;
   /** 市场详情「智能体介绍」Markdown */
   serviceDetailMd?: string;
+  /** 目录项：详情页累计浏览（t_resource.view_count） */
+  viewCount?: number;
 }
 
 export interface AgentCreatePayload {

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Star, Heart, TrendingUp, Rocket, ChevronRight, Package, MessageSquare } from 'lucide-react';
+import { Star, Heart, TrendingUp, Rocket, ChevronRight, Package, MessageSquare, Eye, BarChart2 } from 'lucide-react';
 import type { Theme, FontSize, ThemeColor } from '../../types';
 import { THEME_COLOR_CLASSES } from '../../constants/theme';
 import { useMarketList, useMarketTags } from '../../hooks/market';
@@ -23,6 +23,7 @@ import type { Agent } from '../../types/dto/agent';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { btnPrimary, btnSecondary, textPrimary, textSecondary, textMuted, techBadge } from '../../utils/uiClasses';
+import { formatMarketMetric } from '../../utils/marketMetrics';
 
 export interface AgentMarketProps {
   theme: Theme;
@@ -34,11 +35,13 @@ export interface AgentMarketProps {
 interface MarketCard {
   id: string;
   name: string;
+  code: string;
   emoji: string;
   description: string;
   author: string;
   tags: string[];
-  installs: string;
+  callCount: number;
+  viewCount: number;
   rating: string;
   reviewCount: number;
   featured: boolean;
@@ -82,11 +85,13 @@ function agentToCard(agent: Agent): MarketCard {
   return {
     id: String(agent.id),
     name: agent.displayName,
+    code: agent.agentName || String(agent.id),
     emoji: agent.icon || '🤖',
     description: agent.description,
     author,
     tags,
-    installs: agent.callCount > 1000 ? `${(agent.callCount / 1000).toFixed(1)}K` : String(agent.callCount),
+    callCount: Math.max(0, Math.floor(Number(agent.callCount ?? 0)) || 0),
+    viewCount: Math.max(0, Math.floor(Number(agent.viewCount ?? 0)) || 0),
     rating: ratingStr,
     reviewCount: Math.max(0, Math.floor(Number(agent.reviewCount ?? 0)) || 0),
     featured: agent.qualityScore >= 80 || (agent.ratingAvg != null && agent.ratingAvg >= 4.5),
@@ -262,7 +267,10 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
                             </span>
                           ))}
                         </div>
-                        <p className={`text-sm leading-relaxed line-clamp-3 mb-3 ${textSecondary(theme)}`}>
+                        <p
+                          className={`text-sm leading-relaxed line-clamp-3 mb-3 ${textSecondary(theme)}`}
+                          title={a.description?.trim() ? a.description.trim() : undefined}
+                        >
                           {a.description}
                         </p>
                         <div className="flex flex-col gap-3">
@@ -276,7 +284,9 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
                             <span className="mx-2 opacity-40">|</span>
                             <span>{a.reviewCount} 条评价</span>
                             <span className="mx-2 opacity-40">|</span>
-                            <span>{a.installs} 次安装</span>
+                            <span>{formatMarketMetric(a.callCount)} 调用</span>
+                            <span className="mx-2 opacity-40">|</span>
+                            <span>{formatMarketMetric(a.viewCount)} 浏览</span>
                           </div>
                           <div className="flex gap-2">
                             <button
@@ -333,14 +343,22 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
                       description={a.description}
                       descriptionClamp={3}
                       footerLeft={(
-                        <span className="truncate text-xs" title={a.author}>
-                          {a.author}
-                        </span>
+                        <div className="min-w-0 space-y-0.5">
+                          <div className={`truncate text-xs ${textSecondary(theme)}`} title={a.author}>
+                            作者：{a.author}
+                          </div>
+                          <span className="block truncate font-mono text-xs" title={`@${a.code}`}>
+                            @{a.code}
+                          </span>
+                        </div>
                       )}
                       footerStats={(
                         <>
-                          <MarketplaceStatItem icon={TrendingUp} title="调用/安装展示">
-                            {a.installs}
+                          <MarketplaceStatItem icon={BarChart2} title="调用量">
+                            {formatMarketMetric(a.callCount)}
+                          </MarketplaceStatItem>
+                          <MarketplaceStatItem icon={Eye} title="浏览量">
+                            {formatMarketMetric(a.viewCount)}
                           </MarketplaceStatItem>
                           <MarketplaceStatItem icon={Star} title="评分">
                             {a.rating}

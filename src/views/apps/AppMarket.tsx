@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, LayoutGrid, MessageSquare, Star, Tag } from 'lucide-react';
+import { Search, LayoutGrid, MessageSquare, Star, Tag, Eye, BarChart2 } from 'lucide-react';
 import type { Theme, FontSize, ThemeColor } from '../../types';
 import type { SmartApp, EmbedType, AppStatus } from '../../types/dto/smart-app';
 import { smartAppService } from '../../api/services/smart-app.service';
@@ -9,7 +9,7 @@ import { filterTagsForResourceType } from '../../utils/marketTags';
 import type { TagItem } from '../../types/dto/tag';
 import {
   canvasBodyBg, consoleContentTopPad, mainScrollPadBottom, bentoCard, btnPrimary,
-  iconMuted, textPrimary, textMuted, techBadge, statusLabel,
+  iconMuted, textPrimary, textMuted, textSecondary, techBadge, statusLabel,
 } from '../../utils/uiClasses';
 import { BentoCard } from '../../components/common/BentoCard';
 import { MarketplaceListingCard, MarketplaceStatItem } from '../../components/market';
@@ -20,6 +20,13 @@ import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
 import { buildPath } from '../../constants/consoleRoutes';
+import {
+  catalogAuthorDisplay,
+  catalogPrimaryMetricLabel,
+  catalogPrimaryMetricValue,
+  catalogViewCountValue,
+  formatMarketMetric,
+} from '../../utils/marketMetrics';
 
 interface Props { theme: Theme; fontSize: FontSize; themeColor?: ThemeColor; showMessage?: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void; }
 
@@ -169,13 +176,28 @@ export const AppMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, themeCo
                       </>
                     )}
                     description={app.description || '暂无描述'}
+                    descriptionClamp={3}
                     footerLeft={(
-                      <span className="block truncate font-mono text-xs" title={`@${app.appName}`}>
-                        @{app.appName}
-                      </span>
+                      <div className="min-w-0 space-y-0.5">
+                        <div
+                          className={`truncate text-xs ${textSecondary(theme)}`}
+                          title={catalogAuthorDisplay(app)}
+                        >
+                          作者：{catalogAuthorDisplay(app)}
+                        </div>
+                        <span className="block truncate font-mono text-xs" title={`@${app.appName}`}>
+                          @{app.appName}
+                        </span>
+                      </div>
                     )}
                     footerStats={(
                       <>
+                        <MarketplaceStatItem icon={BarChart2} title={catalogPrimaryMetricLabel('app')}>
+                          {formatMarketMetric(catalogPrimaryMetricValue('app', app))}
+                        </MarketplaceStatItem>
+                        <MarketplaceStatItem icon={Eye} title="浏览量">
+                          {formatMarketMetric(catalogViewCountValue(app))}
+                        </MarketplaceStatItem>
                         <MarketplaceStatItem icon={Star} title="目录评分">
                           {app.ratingAvg != null ? app.ratingAvg.toFixed(1) : '—'}
                         </MarketplaceStatItem>

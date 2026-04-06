@@ -3,9 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import {
   Search,
   Zap,
-  Clock,
-  Activity,
   Download,
+  Eye,
   Loader2,
   Star,
   Braces,
@@ -61,6 +60,13 @@ import { GatewayApiKeyInput } from '../../components/common/GatewayApiKeyInput';
 import { ApiException } from '../../types/api';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
 import { MARKET_HERO_TITLE_CLASSES } from '../../constants/theme';
+import {
+  catalogAuthorDisplay,
+  catalogPrimaryMetricLabel,
+  catalogPrimaryMetricValue,
+  catalogViewCountValue,
+  formatMarketMetric,
+} from '../../utils/marketMetrics';
 
 interface Props { theme: Theme; fontSize: FontSize; themeColor?: ThemeColor; showMessage?: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void; }
 
@@ -68,9 +74,6 @@ const TYPE_BADGE: Record<AgentType, { label: string; cls: string }> = { mcp: { l
 const SOURCE_BADGE: Record<SourceType, { label: string; cls: string }> = { internal: { label: '自研', cls: 'text-sky-600 bg-sky-500/10' }, partner: { label: '合作方', cls: 'text-neutral-900 bg-neutral-900/10' }, cloud: { label: '云服务', cls: 'text-cyan-600 bg-cyan-500/10' } };
 const ICON_COLORS = ['bg-neutral-900', 'bg-neutral-800', 'bg-neutral-700', 'bg-stone-800', 'bg-zinc-800', 'bg-neutral-600', 'bg-slate-800', 'bg-neutral-950'];
 function pickColor(str: string): string { let h = 0; for (let i = 0; i < str.length; i++) h = str.charCodeAt(i) + ((h << 5) - h); return ICON_COLORS[Math.abs(h) % ICON_COLORS.length]; }
-function formatLatency(ms: number): string { return ms >= 1000 ? (ms / 1000).toFixed(1) + 's' : ms + 'ms'; }
-function formatCount(n: number): string { if (n >= 10000) return (n / 10000).toFixed(1) + '万'; if (n >= 1000) return (n / 1000).toFixed(1) + 'k'; return String(n); }
-
 function safeText(v: unknown): string { return String(v ?? ''); }
 
 const CATEGORY_SCROLL_ICON_CYCLE = [
@@ -457,7 +460,7 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _the
           <Zap className="mt-0.5 h-4 w-4 shrink-0 text-amber-500 dark:text-amber-400" aria-hidden />
           <p>
             <strong className="font-semibold">{chromePageTitle || 'Skills 中心'}</strong>
-            ：浏览已发布技能包并下载制品。网关不对 skill 做 invoke 统计；热度为目录侧的调用展示，下载请使用「获取技能包」。
+            ：浏览已发布技能包并下载制品。市场卡片展示下载量（技能包受控下载次数）与详情浏览量；调用统计见其它资源类型。
           </p>
         </div>
 
@@ -520,23 +523,31 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _the
                         ))}
                       </>
                     )}
-                    descriptionClamp={2}
+                    descriptionClamp={3}
                     description={skill.description || '暂无描述'}
                     footerLeft={(
-                      <span className="truncate font-mono text-xs" title={`@${skill.agentName}`}>
-                        @{skill.agentName}
-                      </span>
+                      <div className="min-w-0 space-y-0.5">
+                        <div
+                          className={`truncate text-xs ${textSecondary(theme)}`}
+                          title={catalogAuthorDisplay(skill)}
+                        >
+                          作者：{catalogAuthorDisplay(skill)}
+                        </div>
+                        <span className="truncate font-mono text-xs" title={`@${skill.agentName}`}>
+                          @{skill.agentName}
+                        </span>
+                      </div>
                     )}
                     footerStats={(
                       <>
-                        <MarketplaceStatItem icon={Activity} title="目录热度">
-                          {formatCount(skill.callCount)}
+                        <MarketplaceStatItem icon={Download} title={catalogPrimaryMetricLabel('skill')}>
+                          {formatMarketMetric(catalogPrimaryMetricValue('skill', skill))}
+                        </MarketplaceStatItem>
+                        <MarketplaceStatItem icon={Eye} title="浏览量">
+                          {formatMarketMetric(catalogViewCountValue(skill))}
                         </MarketplaceStatItem>
                         <MarketplaceStatItem icon={Star} title="目录评分">
                           {skill.ratingAvg != null ? skill.ratingAvg.toFixed(1) : '—'}
-                        </MarketplaceStatItem>
-                        <MarketplaceStatItem icon={Clock} title="平均延迟">
-                          {formatLatency(skill.avgLatencyMs)}
                         </MarketplaceStatItem>
                       </>
                     )}

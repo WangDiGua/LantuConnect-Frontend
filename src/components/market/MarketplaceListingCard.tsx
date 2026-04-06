@@ -113,6 +113,7 @@ export const MarketplaceListingCard: React.FC<MarketplaceListingCardProps> = ({
       <p
         className={`mt-3 flex-1 text-sm leading-relaxed ${clampCls} ${textSecondary(theme)}`}
         style={{ minHeight: descMinH }}
+        title={description?.trim() ? description.trim() : undefined}
       >
         {description?.trim() ? description : '暂无描述'}
       </p>

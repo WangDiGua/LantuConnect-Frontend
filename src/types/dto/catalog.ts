@@ -36,6 +36,14 @@ export interface ResourceCatalogItemVO {
   tags?: string[];
   /** 与后端 ResourceCatalogItemVO.accessPolicy 一致 */
   accessPolicy?: string;
+  /** t_call_log 聚合 */
+  callCount?: number;
+  /** 应用 usage_record invoke 次数 */
+  usageCount?: number;
+  /** 技能包下载事件计数等 */
+  downloadCount?: number;
+  /** t_resource.view_count */
+  viewCount?: number;
   categoryName?: string;
   /** 数据集目录项扩展字段（若有） */
   dataType?: string;

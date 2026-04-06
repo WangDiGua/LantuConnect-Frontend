@@ -39,6 +39,9 @@ export interface Skill {
   reviewCount?: number;
   /** 目录/详情接口返回的扩展介绍 Markdown */
   serviceDetailMd?: string;
+  /** 技能包下载次数（后端下载事件表聚合） */
+  downloadCount?: number;
+  viewCount?: number;
 }
 
 export interface SkillCreatePayload {

@@ -29,6 +29,9 @@ export interface SmartApp {
   reviewCount?: number;
   /** 市场详情「应用介绍」Markdown */
   serviceDetailMd?: string;
+  /** 应用网关 invoke 写入 usage_record 的累计次数 */
+  usageCount?: number;
+  viewCount?: number;
 }
 
 export interface SmartAppCreatePayload {

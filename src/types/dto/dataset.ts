@@ -33,6 +33,11 @@ export interface Dataset {
   reviewCount?: number | null;
   /** 市场详情「数据集介绍」Markdown */
   serviceDetailMd?: string;
+  /** 暂无独立下载流水时多为 0 */
+  downloadCount?: number;
+  viewCount?: number;
+  /** t_call_log 聚合；数据集通常无 invoke */
+  callCount?: number;
   createTime: string;
   updateTime: string;
   deleted?: number;

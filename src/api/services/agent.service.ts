@@ -39,13 +39,14 @@ function toAgent(item: ResourceCatalogItemVO): Agent {
     qualityScore: 0,
     avgLatencyMs: 0,
     successRate: 0,
-    callCount: 0,
+    callCount: Number(item.callCount ?? 0),
     createTime: item.updateTime || '',
     updateTime: item.updateTime || '',
     createdBy,
     createdByName: item.createdByName ?? undefined,
     ratingAvg: item.ratingAvg ?? undefined,
     reviewCount: item.reviewCount != null ? Number(item.reviewCount) : undefined,
+    viewCount: Number(item.viewCount ?? 0),
     serviceDetailMd: detail.serviceDetailMd,
   };
 }

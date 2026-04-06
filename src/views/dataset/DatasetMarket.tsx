@@ -16,6 +16,8 @@ import {
   BookOpen,
   Plus,
   ShieldCheck,
+  Eye,
+  Download,
 } from 'lucide-react';
 import type { Theme, FontSize, ThemeColor } from '../../types';
 import type { Dataset, DatasetSourceType, DatasetDataType } from '../../types/dto/dataset';
@@ -47,6 +49,13 @@ import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { buildPath } from '../../constants/consoleRoutes';
 import { MARKET_HERO_TITLE_CLASSES } from '../../constants/theme';
 import { nativeInputClass } from '../../utils/formFieldClasses';
+import {
+  catalogAuthorDisplay,
+  catalogPrimaryMetricLabel,
+  catalogPrimaryMetricValue,
+  catalogViewCountValue,
+  formatMarketMetric,
+} from '../../utils/marketMetrics';
 
 interface Props {
   theme: Theme;
@@ -553,13 +562,28 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _t
                             </>
                           )}
                           description={ds.description || '暂无描述'}
+                          descriptionClamp={3}
                           footerLeft={(
-                            <span className="block truncate font-mono text-xs" title={String(ds.name ?? '')}>
-                              @{ds.name}
-                            </span>
+                            <div className="min-w-0 space-y-0.5">
+                              <div
+                                className={`truncate text-xs ${textSecondary(theme)}`}
+                                title={catalogAuthorDisplay(ds)}
+                              >
+                                作者：{catalogAuthorDisplay(ds)}
+                              </div>
+                              <span className="block truncate font-mono text-xs" title={String(ds.name ?? '')}>
+                                @{ds.name}
+                              </span>
+                            </div>
                           )}
                           footerStats={(
                             <>
+                              <MarketplaceStatItem icon={Download} title={catalogPrimaryMetricLabel('dataset')}>
+                                {formatMarketMetric(catalogPrimaryMetricValue('dataset', ds))}
+                              </MarketplaceStatItem>
+                              <MarketplaceStatItem icon={Eye} title="浏览量">
+                                {formatMarketMetric(catalogViewCountValue(ds))}
+                              </MarketplaceStatItem>
                               <MarketplaceStatItem icon={HardDrive} title="体积">
                                 {formatFileSize(ds.fileSize)}
                               </MarketplaceStatItem>

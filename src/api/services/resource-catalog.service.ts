@@ -71,6 +71,10 @@ export function normalizeCatalogItem(row: unknown): ResourceCatalogItemVO {
     recordCount:
       x.recordCount == null && x.record_count == null ? undefined : numStat(x.recordCount ?? x.record_count),
     fileSize: x.fileSize == null && x.file_size == null ? undefined : numStat(x.fileSize ?? x.file_size),
+    callCount: numStat(x.callCount ?? x.call_count),
+    usageCount: numStat(x.usageCount ?? x.usage_count),
+    downloadCount: numStat(x.downloadCount ?? x.download_count),
+    viewCount: numStat(x.viewCount ?? x.view_count),
     observability:
       x.observability && typeof x.observability === 'object'
         ? (x.observability as Record<string, unknown>)

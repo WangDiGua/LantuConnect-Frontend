@@ -189,12 +189,27 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
     };
   }, [detail]);
 
+  /** 关键词筛选后：可调用靠前，其次按浏览量、调用量、评分依次降序，最后按名称稳定序 */
   const filtered = useMemo(() => {
     const term = keyword.trim().toLowerCase();
-    if (!term) return rows;
-    return rows.filter((item) => {
-      const blob = `${item.displayName} ${item.resourceCode} ${item.description ?? ''} ${(item.tags ?? []).join(' ')}`.toLowerCase();
-      return blob.includes(term);
+    const base = !term
+      ? rows
+      : rows.filter((item) => {
+          const blob = `${item.displayName} ${item.resourceCode} ${item.description ?? ''} ${(item.tags ?? []).join(' ')}`.toLowerCase();
+          return blob.includes(term);
+        });
+    return [...base].sort((a, b) => {
+      const tier = (x: ResourceCatalogItemVO) => (isCatalogMcpCallable(x) ? 0 : 1);
+      const dTier = tier(a) - tier(b);
+      if (dTier !== 0) return dTier;
+      const dView = catalogViewCountValue(b) - catalogViewCountValue(a);
+      if (dView !== 0) return dView;
+      const dCall = catalogPrimaryMetricValue('mcp', b) - catalogPrimaryMetricValue('mcp', a);
+      if (dCall !== 0) return dCall;
+      const ra = Number(a.ratingAvg ?? 0);
+      const rb = Number(b.ratingAvg ?? 0);
+      if (ra !== rb) return rb - ra;
+      return String(a.displayName ?? '').localeCompare(String(b.displayName ?? ''), 'zh-CN');
     });
   }, [keyword, rows]);
 

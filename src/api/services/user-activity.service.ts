@@ -157,9 +157,39 @@ function normalizeUserUsageStats(raw: unknown): UserUsageStats {
     };
   });
 
-  const todayKey = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const todayKey = now.toISOString().slice(0, 10);
+  const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  /** 从 recentDays 的 date 解析出 YYYY-MM，兼容 YYYY-MM-DD 与 MM-DD（缺省当前年） */
+  const trendDayMonthPrefix = (dateRaw: string): string | null => {
+    const key = String(dateRaw).trim();
+    if (!key) return null;
+    const ymd = key.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (ymd) return `${ymd[1]}-${ymd[2]}`;
+    const md = key.match(/^(\d{2})-(\d{2})$/);
+    if (md) return `${now.getFullYear()}-${md[1]}`;
+    return null;
+  };
   const todayCallsFromTrend = recentDays.find((d) => d.date === todayKey)?.calls ?? 0;
   const weekCallsFromTrend = recentDays.reduce((sum, d) => sum + num(d.calls), 0);
+  const monthCallsFromTrend = recentDays.reduce((sum, d) => {
+    const mp = trendDayMonthPrefix(d.date);
+    return mp === monthPrefix ? sum + num(d.calls) : sum;
+  }, 0);
+
+  const rawMonth = num(
+    o.monthCalls
+      ?? o.month_calls
+      ?? o.monthInvokeCount
+      ?? o.month_invoke_count
+      ?? counters.monthCalls
+      ?? counters.month_calls
+      ?? counters.monthInvokeCount
+      ?? counters.month_invoke_count,
+  );
+  /** API 本月为 0 但趋势含当月数据时，用当月日汇总兜底 */
+  const monthCalls =
+    rawMonth === 0 && monthCallsFromTrend > 0 ? monthCallsFromTrend : rawMonth;
 
   return {
     todayCalls: num(
@@ -180,7 +210,7 @@ function normalizeUserUsageStats(raw: unknown): UserUsageStats {
       ?? counters.week_calls
       ?? weekCallsFromTrend,
     ),
-    monthCalls: num(o.monthCalls ?? o.month_calls ?? o.monthInvokeCount ?? o.month_invoke_count),
+    monthCalls,
     totalCalls: num(
       o.totalCalls
       ?? o.total_calls

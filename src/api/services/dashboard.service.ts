@@ -3,6 +3,7 @@ import { extractArray } from '../../utils/normalizeApiPayload';
 import type {
   AdminOverview,
   UserWorkspace,
+  UserWorkspaceRecentUsage,
   HealthSummary,
   UsageStatsData,
   DataReportsData,
@@ -130,6 +131,13 @@ function normalizeUsageStatsData(raw: unknown): UsageStatsData {
   };
 }
 
+const WORKSPACE_USAGE_TYPES = ['agent', 'skill', 'mcp', 'app', 'dataset'] as const;
+type WorkspaceUsageType = (typeof WORKSPACE_USAGE_TYPES)[number];
+
+function isWorkspaceUsageType(s: string): s is WorkspaceUsageType {
+  return (WORKSPACE_USAGE_TYPES as readonly string[]).includes(s);
+}
+
 /** 后端 GET /dashboard/user-workspace 为 UserWorkspaceVO：profile、recent[]、widgets */
 function normalizeUserWorkspace(raw: unknown): UserWorkspace {
   const r = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
@@ -139,23 +147,34 @@ function normalizeUserWorkspace(raw: unknown): UserWorkspace {
   const resourceTypeOf = (row: Record<string, unknown>) =>
     String(row.targetType ?? row.resourceType ?? '').toLowerCase().trim();
 
-  const mapRow = (row: Record<string, unknown>) => ({
+  const mapUsage = (row: Record<string, unknown>, rt: WorkspaceUsageType): UserWorkspaceRecentUsage => ({
     id: num(row.id),
+    resourceType: rt,
+    resourceId: row.resourceId != null && row.resourceId !== '' ? num(row.resourceId) : null,
     displayName: String(row.displayName ?? row.targetId ?? row.name ?? '未命名资源'),
     icon: row.icon ? String(row.icon) : null,
     lastUsedTime: String(row.createTime ?? row.lastUsedTime ?? ''),
   });
 
-  const recentAgents = recentRaw
-    .filter((item) => resourceTypeOf(item as Record<string, unknown>) === 'agent')
-    .map((item) => mapRow(item as Record<string, unknown>));
-  const recentSkills = recentRaw
-    .filter((item) => resourceTypeOf(item as Record<string, unknown>) === 'skill')
-    .map((item) => mapRow(item as Record<string, unknown>));
+  const recentUsages: UserWorkspaceRecentUsage[] = [];
+  for (const item of recentRaw) {
+    const row = item as Record<string, unknown>;
+    const rt = resourceTypeOf(row);
+    if (!isWorkspaceUsageType(rt)) continue;
+    recentUsages.push(mapUsage(row, rt));
+  }
+
+  const narrow = (u: UserWorkspaceRecentUsage) => ({
+    id: u.id,
+    displayName: u.displayName,
+    icon: u.icon,
+    lastUsedTime: u.lastUsedTime,
+  });
 
   return {
-    recentAgents,
-    recentSkills,
+    recentUsages,
+    recentAgents: recentUsages.filter((u) => u.resourceType === 'agent').map(narrow),
+    recentSkills: recentUsages.filter((u) => u.resourceType === 'skill').map(narrow),
     favoriteCount: num(widgets.favoriteCount),
     totalUsageToday: num(widgets.totalUsageToday ?? widgets.todayCalls),
     unreadNotifications: num(widgets.unreadNotifications),

@@ -10,7 +10,19 @@ export interface AdminOverview {
   recentRegistrations: { name: string; type: string; status: string; time: string }[];
 }
 
+/** 与 GET /dashboard/user-workspace recent[] 对齐，含 agent/skill/mcp/app/dataset */
+export interface UserWorkspaceRecentUsage {
+  id: number;
+  resourceType: 'agent' | 'skill' | 'mcp' | 'app' | 'dataset';
+  resourceId: number | null;
+  displayName: string;
+  icon: string | null;
+  lastUsedTime: string;
+}
+
 export interface UserWorkspace {
+  /** 最近使用记录（全类型，已按时间序） */
+  recentUsages: UserWorkspaceRecentUsage[];
   recentAgents: { id: number; displayName: string; icon: string | null; lastUsedTime: string }[];
   recentSkills: { id: number; displayName: string; icon: string | null; lastUsedTime: string }[];
   favoriteCount: number;

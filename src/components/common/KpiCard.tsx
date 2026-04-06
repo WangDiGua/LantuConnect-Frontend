@@ -12,7 +12,7 @@ interface Props {
   trendType?: 'up' | 'down' | 'flat';
   previousValue?: string | number;
   icon?: React.ReactNode;
-  glow?: 'indigo' | 'emerald' | 'amber' | 'rose';
+  glow?: 'indigo' | 'emerald' | 'amber' | 'rose' | 'violet' | 'cyan';
   delay?: number;
 }
 
@@ -21,6 +21,8 @@ const GLOW_MAP = {
   emerald: 'hover:shadow-[var(--shadow-glow-emerald)]',
   amber: 'hover:shadow-[var(--shadow-glow-amber)]',
   rose: 'hover:shadow-[var(--shadow-glow-rose)]',
+  violet: 'hover:shadow-[var(--shadow-glow-violet)]',
+  cyan: 'hover:shadow-[var(--shadow-glow-cyan)]',
 };
 
 export const KpiCard: React.FC<Props> = ({

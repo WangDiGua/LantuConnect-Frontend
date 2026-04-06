@@ -2,8 +2,22 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  Bot, Zap, Cpu, Clock, ChevronRight, Sparkles,
-  FileText, Rocket, Heart, BarChart3, Bell, TrendingUp, LayoutGrid,
+  Bot,
+  Zap,
+  Cpu,
+  Clock,
+  ChevronRight,
+  Sparkles,
+  FileText,
+  Rocket,
+  Heart,
+  BarChart3,
+  Bell,
+  TrendingUp,
+  LayoutGrid,
+  Puzzle,
+  AppWindow,
+  Database,
 } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import type { UserWorkspace } from '../../types/dto/dashboard';
@@ -41,7 +55,19 @@ const ACTIVITY_LABEL: Record<string, string> = {
 };
 
 const RESOURCE_TYPE_LABEL: Record<string, string> = {
-  agent: '智能体', skill: '技能',
+  agent: '智能体',
+  skill: '技能',
+  mcp: 'MCP',
+  app: '应用',
+  dataset: '数据集',
+};
+
+const RECENT_TYPE_ICON: Record<string, typeof Bot> = {
+  agent: Bot,
+  skill: Zap,
+  mcp: Puzzle,
+  app: AppWindow,
+  dataset: Database,
 };
 
 export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontSize }) => {
@@ -116,12 +142,20 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
   const todayUsage = dashboard?.quotaUsage?.dailyUsed ?? workspace?.totalUsageToday ?? 0;
   const unreadCount = dashboard?.unreadNotifications ?? workspace?.unreadNotifications ?? 0;
 
-  const recentItems = workspace
-    ? [
-        ...workspace.recentAgents.map((a) => ({ id: a.id, name: a.displayName, type: '智能体' as const, time: formatDateTime(a.lastUsedTime), icon: a.icon, marketTab: 'agent' as const })),
-        ...workspace.recentSkills.map((s) => ({ id: s.id, name: s.displayName, type: '技能' as const, time: formatDateTime(s.lastUsedTime), icon: s.icon, marketTab: 'skill' as const })),
-      ].slice(0, 5)
+  const recentItems = workspace?.recentUsages?.length
+    ? workspace.recentUsages.slice(0, 8).map((u) => ({
+        id: u.id,
+        resourceId: u.resourceId,
+        name: u.displayName,
+        typeLabel: RESOURCE_TYPE_LABEL[u.resourceType] ?? u.resourceType,
+        time: formatDateTime(u.lastUsedTime),
+        icon: u.icon,
+        marketTab: u.resourceType as ResourceType,
+      }))
     : [];
+
+  const recentCountByType = (rt: ResourceType) =>
+    workspace?.recentUsages?.filter((u) => u.resourceType === rt).length ?? 0;
 
   if (loading) {
     return (
@@ -156,17 +190,22 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
               欢迎回来，{displayName}
             </h1>
             <p className={`text-sm ${ts}`}>
-              Nexus AI 智能体协同平台为你提供 AI 智能体、技能与智能应用服务。
+              Nexus AI 协同平台为你提供智能体、技能、MCP、数据集与应用等资源；下方「最近使用」与顶部导航五类市场对齐。
             </p>
           </BentoCard>
         </motion.div>
 
-        {/* KPI + Quota Row */}
-        <div className={`grid grid-cols-2 lg:grid-cols-4 ${kpiGridGap}`}>
-          <KpiCard theme={theme} label="最近智能体" value={workspace?.recentAgents?.length ?? 0} icon={<Bot size={16} />} glow="indigo" delay={0.05} />
-          <KpiCard theme={theme} label="最近技能" value={workspace?.recentSkills?.length ?? 0} icon={<Zap size={16} />} glow="emerald" delay={0.08} />
-          <KpiCard theme={theme} label="今日使用" value={todayUsage} icon={<Cpu size={16} />} glow="amber" delay={0.11} />
-          <KpiCard theme={theme} label="未读通知" value={unreadCount} icon={<Bell size={16} />} glow="rose" delay={0.14} />
+        {/* 最近使用条数：与 usage_record 中各类 invoke 一致（同一批最多 8 条内计数） */}
+        <div className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 ${kpiGridGap}`}>
+          <KpiCard theme={theme} label="最近·智能体" value={recentCountByType('agent')} icon={<Bot size={16} />} glow="indigo" delay={0.05} />
+          <KpiCard theme={theme} label="最近·技能" value={recentCountByType('skill')} icon={<Zap size={16} />} glow="emerald" delay={0.07} />
+          <KpiCard theme={theme} label="最近·MCP" value={recentCountByType('mcp')} icon={<Puzzle size={16} />} glow="violet" delay={0.09} />
+          <KpiCard theme={theme} label="最近·应用" value={recentCountByType('app')} icon={<AppWindow size={16} />} glow="cyan" delay={0.11} />
+          <KpiCard theme={theme} label="最近·数据集" value={recentCountByType('dataset')} icon={<Database size={16} />} glow="emerald" delay={0.13} />
+        </div>
+        <div className={`grid grid-cols-2 ${kpiGridGap}`}>
+          <KpiCard theme={theme} label="今日使用" value={todayUsage} icon={<Cpu size={16} />} glow="amber" delay={0.15} />
+          <KpiCard theme={theme} label="未读通知" value={unreadCount} icon={<Bell size={16} />} glow="rose" delay={0.17} />
         </div>
 
         {/* Quota Usage */}
@@ -292,29 +331,76 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
             <AnimatedList className={`divide-y ${isDark ? 'divide-white/[0.04]' : 'divide-slate-100'}`}>
               {recentItems.length === 0 ? [
                 <div key="empty" className={`px-5 py-8 text-center text-sm ${tm}`}>暂无使用记录</div>,
-              ] : recentItems.map((r) => (
-                <div key={`${r.id}-${r.type}-${r.time}`}
-                  onClick={() => navigate(buildUserResourceMarketUrl(r.marketTab))}
-                  className={`flex items-center gap-4 px-5 py-3.5 transition-colors cursor-pointer ${isDark ? 'hover:bg-white/[0.04]' : 'hover:bg-slate-50'}`}>
-                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                    r.type === '智能体' ? 'bg-blue-500/10 text-blue-500' : 'bg-neutral-900/10 text-neutral-800'
-                  }`}>
-                    {r.icon ? <span className="text-base">{r.icon}</span> : r.type === '智能体' ? <Bot size={16} /> : <Zap size={16} />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className={`text-sm font-medium truncate ${tp}`}>{r.name}</span>
-                      <span className={`text-xs px-1.5 py-0.5 rounded shrink-0 ${
-                        r.type === '智能体'
-                          ? isDark ? 'bg-blue-500/15 text-blue-400' : 'bg-blue-50 text-blue-700'
-                          : isDark ? 'bg-neutral-900/10 text-neutral-300' : 'bg-neutral-100 text-neutral-800'
-                      }`}>{r.type}</span>
+              ] : recentItems.map((r) => {
+                const TypeIcon = RECENT_TYPE_ICON[r.marketTab] ?? Zap;
+                const badgeTone =
+                  r.marketTab === 'agent'
+                    ? isDark
+                      ? 'bg-blue-500/15 text-blue-400'
+                      : 'bg-blue-50 text-blue-700'
+                    : r.marketTab === 'skill'
+                      ? isDark
+                        ? 'bg-emerald-500/15 text-emerald-300'
+                        : 'bg-emerald-50 text-emerald-800'
+                      : r.marketTab === 'mcp'
+                        ? isDark
+                          ? 'bg-violet-500/15 text-violet-300'
+                          : 'bg-violet-50 text-violet-800'
+                        : r.marketTab === 'app'
+                          ? isDark
+                            ? 'bg-sky-500/15 text-sky-300'
+                            : 'bg-sky-50 text-sky-800'
+                          : isDark
+                            ? 'bg-teal-500/15 text-teal-300'
+                            : 'bg-teal-50 text-teal-900';
+                const iconWrap =
+                  r.marketTab === 'agent'
+                    ? 'bg-blue-500/10 text-blue-500'
+                    : r.marketTab === 'skill'
+                      ? 'bg-emerald-500/10 text-emerald-600'
+                      : r.marketTab === 'mcp'
+                        ? 'bg-violet-500/10 text-violet-600'
+                        : r.marketTab === 'app'
+                          ? 'bg-sky-500/10 text-sky-600'
+                          : 'bg-teal-500/10 text-teal-700';
+                return (
+                  <div
+                    key={`${r.id}-${r.marketTab}-${r.time}`}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() =>
+                      navigate(
+                        buildUserResourceMarketUrl(r.marketTab, {
+                          resourceId: r.resourceId != null ? r.resourceId : undefined,
+                        }),
+                      )
+                    }
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        navigate(
+                          buildUserResourceMarketUrl(r.marketTab, {
+                            resourceId: r.resourceId != null ? r.resourceId : undefined,
+                          }),
+                        );
+                      }
+                    }}
+                    className={`flex items-center gap-4 px-5 py-3.5 transition-colors cursor-pointer ${isDark ? 'hover:bg-white/[0.04]' : 'hover:bg-slate-50'}`}
+                  >
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${iconWrap}`}>
+                      {r.icon ? <span className="text-base">{r.icon}</span> : <TypeIcon size={16} />}
                     </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-sm font-medium truncate ${tp}`}>{r.name}</span>
+                        <span className={`text-xs px-1.5 py-0.5 rounded shrink-0 font-medium ${badgeTone}`}>{r.typeLabel}</span>
+                      </div>
+                    </div>
+                    <span className={`text-xs whitespace-nowrap shrink-0 ${tm}`}>{r.time}</span>
+                    <ChevronRight size={14} className={tm} />
                   </div>
-                  <span className={`text-xs whitespace-nowrap shrink-0 ${tm}`}>{r.time}</span>
-                  <ChevronRight size={14} className={tm} />
-                </div>
-              ))}
+                );
+              })}
             </AnimatedList>
           </BentoCard>
         </motion.div>

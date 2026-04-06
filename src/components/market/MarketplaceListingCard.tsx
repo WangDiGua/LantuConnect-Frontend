@@ -2,7 +2,6 @@ import React from 'react';
 import type { LucideIcon } from 'lucide-react';
 import type { Theme } from '../../types';
 import { textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
-import { descriptionClampMinHeightPx } from '../../utils/pretextTypography';
 
 export type MarketplaceStatusTone = 'published' | 'draft' | 'neutral' | 'accent';
 
@@ -79,7 +78,8 @@ export const MarketplaceListingCard: React.FC<MarketplaceListingCardProps> = ({
 }) => {
   const isDark = theme === 'dark';
   const clampCls = descriptionClamp === 2 ? 'line-clamp-2' : 'line-clamp-3';
-  const descMinH = descriptionClampMinHeightPx(descriptionClamp);
+  /** 与 `text-sm leading-relaxed`（行高 1.625）一致，避免仅 line-clamp 时在 flex 长高子项下露出半行 */
+  const descMaxH = descriptionClamp === 2 ? 'max-h-[3.25em]' : 'max-h-[4.875em]';
   const borderT = isDark ? 'border-white/[0.08]' : 'border-slate-200/55';
 
   return (
@@ -110,13 +110,14 @@ export const MarketplaceListingCard: React.FC<MarketplaceListingCardProps> = ({
         <div className="mt-2.5 flex min-w-0 flex-wrap items-center gap-2">{metaRow}</div>
       ) : null}
 
-      <p
-        className={`mt-3 flex-1 text-sm leading-relaxed ${clampCls} ${textSecondary(theme)}`}
-        style={{ minHeight: descMinH }}
-        title={description?.trim() ? description.trim() : undefined}
-      >
-        {description?.trim() ? description : '暂无描述'}
-      </p>
+      <div className="mt-3 min-h-0 flex-1">
+        <p
+          className={`text-sm leading-relaxed ${clampCls} ${descMaxH} overflow-hidden break-words ${textSecondary(theme)}`}
+          title={description?.trim() ? description.trim() : undefined}
+        >
+          {description?.trim() ? description : '暂无描述'}
+        </p>
+      </div>
 
       <div className={`mt-4 border-t pt-3 ${borderT}`}>
         <div className="flex items-end justify-between gap-2">

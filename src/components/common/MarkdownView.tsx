@@ -26,7 +26,7 @@ interface MarkdownViewProps {
 
 export const MarkdownView: React.FC<MarkdownViewProps> = ({ value, className = '' }) => {
   return (
-    <div className={`markdown-view ${className}`.trim()}>
+    <div className={`markdown-view min-w-0 max-w-none ${className}`.trim()}>
       <Viewer value={value} plugins={MD_PLUGINS} sanitize={tightenAnnouncementMarkdownSchema} />
     </div>
   );

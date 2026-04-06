@@ -16,6 +16,8 @@ export interface ResourceCatalogQueryRequest {
   /** 数据集等扩展筛选，以后端 query 支持为准 */
   sourceType?: string;
   dataType?: string;
+  /** 为 true 时后端仅返回当前网关可 invoke 的资源（健康/熔断与 POST /invoke 一致） */
+  callableOnly?: boolean;
 }
 
 export interface ResourceCatalogItemVO {
@@ -52,6 +54,8 @@ export interface ResourceCatalogItemVO {
   fileSize?: number;
   observability?: Record<string, unknown>;
   quality?: Record<string, unknown>;
+  /** 仅当请求携带 X-Api-Key 时后端可能返回：与 invoke Grant/策略判定一致 */
+  hasGrantForKey?: boolean | null;
 }
 
 export type ResourceCatalogPage = PaginatedData<ResourceCatalogItemVO>;

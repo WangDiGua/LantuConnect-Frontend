@@ -107,6 +107,8 @@ export function normalizeCatalogItem(row: unknown): ResourceCatalogItemVO {
     viewCount: numStat(x.viewCount ?? x.view_count),
     observability: normalizeCatalogObservability(x),
     quality: x.quality && typeof x.quality === 'object' ? (x.quality as Record<string, unknown>) : undefined,
+    hasGrantForKey:
+      x.hasGrantForKey == null && x.has_grant_for_key == null ? undefined : Boolean(x.hasGrantForKey ?? x.has_grant_for_key),
   };
 }
 

@@ -62,6 +62,16 @@ export interface ApiKeyRevokePayload {
   smsCode?: string;
 }
 
+/** POST /user-settings/api-keys/{id}/invoke-eligibility */
+export interface InvokeEligibilityRequest {
+  resourceType: string;
+  resourceIds: string[];
+}
+
+export interface InvokeEligibilityResponse {
+  byResourceId: Record<string, boolean>;
+}
+
 /** 创建接口成功时，后端可能返回 secretPlain 与/或 plainKey，二者均为完整可调用密钥（仅响应一次）。 */
 export type CreatedUserApiKey = UserApiKey & { plainKey: string; secretPlain?: string };
 

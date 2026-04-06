@@ -4,6 +4,8 @@ import { extractArray } from '../../utils/normalizeApiPayload';
 import type {
   ApiKeyRevokePayload,
   CreateUserApiKeyPayload,
+  InvokeEligibilityRequest,
+  InvokeEligibilityResponse,
   UserApiKey,
   UserApiKeyResourceGrant,
   UserStats,
@@ -101,6 +103,13 @@ export const userSettingsService = {
     });
     return extractArray<unknown>(raw).map(mapResourceGrantRow);
   },
+
+  /** 与网关 invoke Grant/策略一致；无需完整 secret，服务端按 Key id + 登录态校验 */
+  postInvokeEligibility: (apiKeyId: string, body: InvokeEligibilityRequest) =>
+    http.post<InvokeEligibilityResponse>(
+      `/user-settings/api-keys/${encodeURIComponent(apiKeyId)}/invoke-eligibility`,
+      body,
+    ),
 
   sendRevokeApiKeySms: () => http.post<void>('/user-settings/api-keys/revoke/send-sms'),
 

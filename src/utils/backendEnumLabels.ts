@@ -44,7 +44,7 @@ export function resourceHealthBadgeClass(theme: Theme, raw: string | null | unde
       ? 'bg-amber-500/15 text-amber-200 border border-amber-500/25'
       : 'bg-amber-50 text-amber-900 border border-amber-200/70';
   }
-  if (!k) {
+  if (!k || k === 'unknown') {
     return D(theme) ? 'bg-white/[0.06] text-slate-400 border border-white/10' : 'bg-slate-100 text-slate-600 border border-slate-200/80';
   }
   return D(theme)

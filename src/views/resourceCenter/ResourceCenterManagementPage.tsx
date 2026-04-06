@@ -817,9 +817,27 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                       </div>
                     </div>
                     <p className={`mt-2 text-xs ${textSecondary(theme)}`}>{nullDisplay(item.description, '暂无描述')}</p>
+                    <div className={`mt-2 flex flex-wrap items-center gap-2 text-xs ${textSecondary(theme)}`}>
+                      <span>运行健康</span>
+                      <span
+                        className={`inline-flex items-center rounded-lg px-2 py-0.5 text-xs font-semibold ${resourceHealthBadgeClass(theme, item.healthStatus)}`}
+                        title={
+                          item.healthStatus
+                            ? `与监控中心健康检查配置一致，原始值：${item.healthStatus}`
+                            : '未返回健康字段时多为未配置探测'
+                        }
+                      >
+                        {resourceHealthLabelZh(item.healthStatus)}
+                      </span>
+                      {item.circuitState && item.circuitState !== 'unknown' ? (
+                        <span className="opacity-80" title="熔断状态">
+                          · 熔断 {circuitBreakerLabelZh(item.circuitState)}
+                        </span>
+                      ) : null}
+                    </div>
                     {(item.statusHint || item.lastRejectReason || item.degradationHint) && (
                       <div className={`mt-2 rounded-lg px-2 py-1.5 text-xs ${isDark ? 'bg-white/[0.03] text-slate-300' : 'bg-slate-50 text-slate-600'}`}>
-                        {item.statusHint ? <div>提示: {item.statusHint}</div> : null}
+                        {item.statusHint ? <div>登记/生命周期提示: {item.statusHint}</div> : null}
                         {item.lastRejectReason && item.status !== 'rejected' ? <div>驳回原因: {item.lastRejectReason}</div> : null}
                         {item.degradationHint ? <div>降级提示: {item.degradationHint}</div> : null}
                       </div>

@@ -37,6 +37,7 @@ export function isNotificationMessage(msg: RealtimeServerMessage): boolean {
   return msg.type === 'notification';
 }
 
+/** 管理端保存健康配置（非探活结果） */
 export function isHealthConfigUpdated(msg: RealtimeServerMessage): boolean {
   return msg.type === 'health' && msg.action === 'config_updated';
 }
@@ -51,6 +52,15 @@ export function isAlertFiring(msg: RealtimeServerMessage): boolean {
 
 export function isAuditPendingChanged(msg: RealtimeServerMessage): boolean {
   return msg.type === 'audit' && msg.action === 'pending_changed';
+}
+
+/** 定时探活写入的 health_status 变化 */
+export function isHealthProbeStatusChanged(msg: RealtimeServerMessage): boolean {
+  return msg.type === 'health' && msg.action === 'probe_status_changed';
+}
+
+export function isMonitoringKpiDigest(msg: RealtimeServerMessage): boolean {
+  return msg.type === 'monitoring' && msg.action === 'kpi_digest';
 }
 
 /**

@@ -96,6 +96,10 @@ import {
   subscribeRealtimePush,
   isAlertFiring,
   isAuditPendingChanged,
+  isHealthConfigUpdated,
+  isHealthProbeStatusChanged,
+  isCircuitStateChanged,
+  isMonitoringKpiDigest,
 } from '../lib/realtimePush';
 import { readPersistedNavState, writePersistedNavState } from '../utils/navigationState';
 import {
@@ -809,6 +813,31 @@ const MainLayoutContent: React.FC<{
         const t = `待审核队列已更新，当前 ${n} 条待审`;
         showMessage(t, 'info', 3500);
         setRealtimeLiveText(t);
+      } else if (isHealthConfigUpdated(msg)) {
+        const label = String((msg.payload?.displayName as string) || msg.payload?.resourceCode || '资源');
+        const st = String((msg.payload?.healthStatus as string) || '');
+        const t = `健康检查配置已更新：${label}${st ? `，状态 ${st}` : ''}`;
+        showMessage(t, 'info', 3800);
+        setRealtimeLiveText(t);
+      } else if (isHealthProbeStatusChanged(msg)) {
+        const label = String((msg.payload?.displayName as string) || msg.payload?.resourceCode || '资源');
+        const st = String((msg.payload?.healthStatus as string) || '');
+        const t = `健康状态已变化：${label}${st ? ` → ${st}` : ''}`;
+        showMessage(t, st === 'down' ? 'error' : 'info', 3800);
+        setRealtimeLiveText(t);
+      } else if (isCircuitStateChanged(msg)) {
+        const label = String((msg.payload?.displayName as string) || msg.payload?.resourceCode || '资源');
+        const ns = String((msg.payload?.newState as string) || '');
+        const t = `熔断状态已变化：${label}${ns ? ` → ${ns}` : ''}`;
+        showMessage(t, ns.toUpperCase().includes('OPEN') ? 'warning' : 'info', 3800);
+        setRealtimeLiveText(t);
+      } else if (isMonitoringKpiDigest(msg)) {
+        const summary =
+          (msg.payload?.summary as string) ||
+          (typeof msg.payload?.message === 'string' ? (msg.payload.message as string) : '') ||
+          '监控指标已更新';
+        showMessage(summary, 'info', 3500);
+        setRealtimeLiveText(summary);
       }
     });
   }, [authUser?.id, showMessage]);

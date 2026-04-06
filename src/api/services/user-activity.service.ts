@@ -18,25 +18,31 @@ function normalizeActivityType(raw: unknown): ActivityType {
   return (ACTIVITY_TYPES as readonly string[]).includes(value) ? (value as ActivityType) : 'agent';
 }
 
-function toAuthorizedSkill(raw: any): AuthorizedSkillItem {
-  const id = Number(raw?.id ?? raw?.skillId ?? 0) || 0;
+function toAuthorizedSkill(raw: unknown): AuthorizedSkillItem {
+  const r = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const id = Number(r.id ?? r.skillId ?? 0) || 0;
   const pack =
-    raw?.packFormat ?? raw?.pack_format ?? raw?.agentType ?? raw?.agent_type ?? undefined;
+    r.packFormat ?? r.pack_format ?? r.agentType ?? r.agent_type ?? undefined;
   return {
     id,
-    skillId: Number(raw?.skillId ?? id) || id,
-    displayName: String(raw?.displayName ?? raw?.display_name ?? raw?.skillName ?? raw?.name ?? `Skill-${id}`),
-    description: String(raw?.description ?? ''),
-    status: raw?.status ? String(raw.status) : undefined,
-    agentName: raw?.agentName != null ? String(raw.agentName) : raw?.resourceCode != null ? String(raw.resourceCode) : undefined,
-    source: raw?.source ? String(raw.source) : undefined,
+    skillId: Number(r.skillId ?? id) || id,
+    displayName: String(r.displayName ?? r.display_name ?? r.skillName ?? r.name ?? `Skill-${id}`),
+    description: String(r.description ?? ''),
+    status: r.status != null ? String(r.status) : undefined,
+    agentName:
+      r.agentName != null
+        ? String(r.agentName)
+        : r.resourceCode != null
+          ? String(r.resourceCode)
+          : undefined,
+    source: r.source != null ? String(r.source) : undefined,
     packFormat: pack != null ? String(pack) : undefined,
-    updateTime: raw?.updateTime != null ? String(raw.updateTime) : raw?.update_time != null ? String(raw.update_time) : undefined,
+    updateTime: r.updateTime != null ? String(r.updateTime) : r.update_time != null ? String(r.update_time) : undefined,
     lastUsedTime:
-      raw?.lastUsedTime != null
-        ? String(raw.lastUsedTime)
-        : raw?.last_used_time != null
-          ? String(raw.last_used_time)
+      r.lastUsedTime != null
+        ? String(r.lastUsedTime)
+        : r.last_used_time != null
+          ? String(r.last_used_time)
           : undefined,
   };
 }
@@ -45,21 +51,27 @@ function normalizeAuthorizedSkills(raw: unknown): PaginatedData<AuthorizedSkillI
   return normalizePaginated<AuthorizedSkillItem>(raw, toAuthorizedSkill);
 }
 
-function toRecentUse(raw: any): RecentUseItem {
-  const id = Number(raw?.recordId ?? raw?.id ?? raw?.targetId ?? 0) || 0;
-  const targetType = normalizeActivityType(raw?.targetType ?? raw?.type) as RecentUseItem['targetType'];
+function toRecentUse(raw: unknown): RecentUseItem {
+  const r = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const id = Number(r.recordId ?? r.id ?? r.targetId ?? 0) || 0;
+  const targetType = normalizeActivityType(r.targetType ?? r.type) as RecentUseItem['targetType'];
   return {
     id,
     targetType,
-    targetId: Number(raw?.targetId ?? 0) || 0,
-    targetCode: raw?.targetCode ? String(raw.targetCode) : undefined,
-    displayName: String(raw?.targetName ?? raw?.displayName ?? raw?.name ?? `资源-${id}`),
-    description: raw?.description ? String(raw.description) : undefined,
-    action: raw?.action ? String(raw.action) : undefined,
-    status: raw?.status ? String(raw.status) : undefined,
-    latencyMs: Number(raw?.latencyMs ?? raw?.latency_ms ?? 0) || 0,
-    createTime: raw?.createTime ? String(raw.createTime) : undefined,
-    lastUsedTime: raw?.lastUsedTime ? String(raw.lastUsedTime) : (raw?.createTime ? String(raw.createTime) : undefined),
+    targetId: Number(r.targetId ?? 0) || 0,
+    targetCode: r.targetCode != null ? String(r.targetCode) : undefined,
+    displayName: String(r.targetName ?? r.displayName ?? r.name ?? `资源-${id}`),
+    description: r.description != null ? String(r.description) : undefined,
+    action: r.action != null ? String(r.action) : undefined,
+    status: r.status != null ? String(r.status) : undefined,
+    latencyMs: Number(r.latencyMs ?? r.latency_ms ?? 0) || 0,
+    createTime: r.createTime != null ? String(r.createTime) : undefined,
+    lastUsedTime:
+      r.lastUsedTime != null
+        ? String(r.lastUsedTime)
+        : r.createTime != null
+          ? String(r.createTime)
+          : undefined,
   };
 }
 
@@ -137,10 +149,13 @@ function normalizeUserUsageStats(raw: unknown): UserUsageStats {
     ?? (o as { trend?: unknown }).trend
     ?? trends.last7Days,
   );
-  const recentDays = days.map((d: any) => ({
-    date: String(d?.date ?? d?.day ?? d?.statDate ?? d?.stat_date ?? ''),
-    calls: num(d?.calls ?? d?.count ?? d?.cnt ?? d?.invokeCount ?? d?.invoke_count),
-  }));
+  const recentDays = days.map((d: unknown) => {
+    const x = d && typeof d === 'object' ? (d as Record<string, unknown>) : {};
+    return {
+      date: String(x.date ?? x.day ?? x.statDate ?? x.stat_date ?? ''),
+      calls: num(x.calls ?? x.count ?? x.cnt ?? x.invokeCount ?? x.invoke_count),
+    };
+  });
 
   const todayKey = new Date().toISOString().slice(0, 10);
   const todayCallsFromTrend = recentDays.find((d) => d.date === todayKey)?.calls ?? 0;
@@ -149,32 +164,32 @@ function normalizeUserUsageStats(raw: unknown): UserUsageStats {
   return {
     todayCalls: num(
       o.todayCalls
-      ?? (o as any).today_calls
-      ?? (o as any).todayInvokeCount
-      ?? (o as any).today_invoke_count
+      ?? o.today_calls
+      ?? o.todayInvokeCount
+      ?? o.today_invoke_count
       ?? counters.todayCalls
-      ?? (counters as any).today_calls
+      ?? counters.today_calls
       ?? todayCallsFromTrend,
     ),
     weekCalls: num(
       o.weekCalls
-      ?? (o as any).week_calls
-      ?? (o as any).weekInvokeCount
-      ?? (o as any).week_invoke_count
+      ?? o.week_calls
+      ?? o.weekInvokeCount
+      ?? o.week_invoke_count
       ?? counters.weekCalls
-      ?? (counters as any).week_calls
+      ?? counters.week_calls
       ?? weekCallsFromTrend,
     ),
-    monthCalls: num(o.monthCalls ?? (o as any).month_calls ?? (o as any).monthInvokeCount ?? (o as any).month_invoke_count),
+    monthCalls: num(o.monthCalls ?? o.month_calls ?? o.monthInvokeCount ?? o.month_invoke_count),
     totalCalls: num(
       o.totalCalls
-      ?? (o as any).total_calls
-      ?? (o as any).totalInvokeCount
-      ?? (o as any).total_invoke_count
+      ?? o.total_calls
+      ?? o.totalInvokeCount
+      ?? o.total_invoke_count
       ?? counters.totalUsageRecords
-      ?? (counters as any).total_usage_records,
+      ?? counters.total_usage_records,
     ),
-    favoriteCount: num(o.favoriteCount ?? (o as any).favorite_count ?? (o as any).favorites ?? (o as any).favoriteCnt),
+    favoriteCount: num(o.favoriteCount ?? o.favorite_count ?? o.favorites ?? o.favoriteCnt),
     recentDays,
   };
 }

@@ -146,10 +146,10 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-30 flex w-full shrink-0 flex-col border-b pt-[env(safe-area-inset-top,0px)] backdrop-blur-xl backdrop-saturate-150 motion-reduce:backdrop-blur-none ${
+      className={`fixed top-0 left-0 right-0 z-30 flex w-full shrink-0 flex-col border-b pt-[env(safe-area-inset-top,0px)] bg-[var(--glass-nav-bg)] backdrop-blur-2xl backdrop-saturate-150 motion-reduce:backdrop-blur-none motion-reduce:bg-[var(--glass-nav-fallback)] ${
         isDark
-          ? 'border-white/[0.08] bg-[var(--glass-bg)] motion-reduce:bg-lantu-card'
-          : 'border-slate-200/55 bg-[var(--glass-bg)] motion-reduce:bg-white'
+          ? 'border-white/[0.08]'
+          : 'border-slate-200/55'
       }`}
     >
       <div className="flex h-16 min-w-0 items-center gap-3 px-3 sm:px-4 md:gap-4 md:px-6">

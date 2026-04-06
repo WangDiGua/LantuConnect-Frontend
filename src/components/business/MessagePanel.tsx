@@ -7,6 +7,7 @@ import {
   Bell,
   CheckCheck,
   ChevronRight,
+  ChevronLeft,
   X,
   Mail,
   AlertCircle,
@@ -20,8 +21,10 @@ import { formatDateTime } from '../../utils/formatDateTime';
 import {
   formatNotificationTimeValue,
   humanizeNotificationType,
+  notificationListPreviewBody,
   parseStructuredNotificationBody,
 } from '../../utils/notificationDetailFormat';
+import { normalizePaginated } from '../../utils/normalizeApiPayload';
 import { LantuDateTimePicker } from '../common/LantuDateTimePicker';
 import { LantuSelect } from '../common/LantuSelect';
 import { mainScrollCompositorClass } from '../../utils/uiClasses';
@@ -168,6 +171,8 @@ interface MessagePanelProps {
   anchorRef?: React.RefObject<HTMLElement | null>;
 }
 
+const PAGE_SIZE = 10;
+
 export const MessagePanel: React.FC<MessagePanelProps> = ({
   theme,
   onClose,
@@ -179,21 +184,31 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
   const isDark = theme === 'dark';
   const [tab, setTab] = useState<TabId>('all');
   const [items, setItems] = useState<MessageItem[]>([]);
+  const [listPage, setListPage] = useState(1);
+  const [listTotal, setListTotal] = useState(0);
+  const [listLoading, setListLoading] = useState(false);
+  const [reloadToken, setReloadToken] = useState(0);
+  const [serverUnreadCount, setServerUnreadCount] = useState(0);
   const [detailMessage, setDetailMessage] = useState<MessageItem | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [fixedPlacement, setFixedPlacement] = useState({ top: 0, right: 0 });
   const [activeDatePicker, setActiveDatePicker] = useState<'start' | 'end' | null>(null);
-  const [filters, setFilters] = useState<{
+  type FilterState = {
     type: string;
     isRead: 'all' | 'read' | 'unread';
     startTime: string;
     endTime: string;
-  }>({
+  };
+  const defaultFilters: FilterState = {
     type: 'all',
     isRead: 'all',
     startTime: '',
     endTime: '',
-  });
+  };
+  /** 筛选区草稿（点「筛选」后写入 applied） */
+  const [filters, setFilters] = useState<FilterState>(defaultFilters);
+  /** 已生效的查询条件（与后端分页请求一致） */
+  const [appliedFilters, setAppliedFilters] = useState<FilterState>(defaultFilters);
 
   const usePortal = anchor === 'top' && anchorRef != null;
 
@@ -214,37 +229,73 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
     };
   }, [usePortal, anchorRef]);
 
-  const unreadCount = items.filter((m) => !m.read).length;
-  const filtered = tab === 'unread' ? items.filter((m) => !m.read) : items;
+  const appliedFilterKey = `${appliedFilters.type}|${appliedFilters.isRead}|${appliedFilters.startTime}|${appliedFilters.endTime}`;
 
-  const fetchNotifications = useCallback(async (queryFilters?: typeof filters) => {
-    const current = queryFilters ?? filters;
-    const params: {
-      page: number;
-      pageSize: number;
-      type?: string;
-      isRead?: boolean;
-      startTime?: string;
-      endTime?: string;
-    } = { page: 1, pageSize: 50 };
-    if (current.type !== 'all') params.type = current.type;
-    if (current.isRead === 'read') params.isRead = true;
-    else if (current.isRead === 'unread') params.isRead = false;
-    if (current.startTime) params.startTime = `${current.startTime} 00:00:00`;
-    if (current.endTime) params.endTime = `${current.endTime} 23:59:59`;
+  const refreshServerUnread = useCallback(async () => {
     try {
-      const page = await notificationService.list(params);
-      setItems((page.list ?? []).map(mapNotification));
+      const data = await notificationService.getUnreadCount();
+      let n = 0;
+      if (typeof data === 'number') n = data;
+      else if (data && typeof data === 'object' && 'count' in data) n = Number((data as { count: number }).count);
+      n = Number.isFinite(n) && n > 0 ? Math.min(9999, Math.floor(n)) : 0;
+      setServerUnreadCount(n);
+      onUnreadChange?.(n);
     } catch {
-      /* 静默失败，保持空列表 */
+      /* keep previous */
     }
-  }, [filters]);
-
-  useEffect(() => { void fetchNotifications(); }, [fetchNotifications]);
+  }, [onUnreadChange]);
 
   useEffect(() => {
-    onUnreadChange?.(unreadCount);
-  }, [unreadCount, onUnreadChange]);
+    void refreshServerUnread();
+  }, [refreshServerUnread]);
+
+  useEffect(() => {
+    setListPage(1);
+  }, [tab, appliedFilterKey]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setListLoading(true);
+      const params: {
+        page: number;
+        pageSize: number;
+        type?: string;
+        isRead?: boolean;
+        startTime?: string;
+        endTime?: string;
+      } = { page: listPage, pageSize: PAGE_SIZE };
+      const af = appliedFilters;
+      if (af.type !== 'all') params.type = af.type;
+      if (tab === 'unread') {
+        params.isRead = false;
+      } else {
+        if (af.isRead === 'read') params.isRead = true;
+        else if (af.isRead === 'unread') params.isRead = false;
+      }
+      if (af.startTime) params.startTime = `${af.startTime} 00:00:00`;
+      if (af.endTime) params.endTime = `${af.endTime} 23:59:59`;
+      try {
+        const raw = await notificationService.list(params);
+        if (cancelled) return;
+        const pageData = normalizePaginated<Notification>(raw);
+        setItems(pageData.list.map(mapNotification));
+        setListTotal(pageData.total);
+      } catch {
+        if (!cancelled) {
+          setItems([]);
+          setListTotal(0);
+        }
+      } finally {
+        if (!cancelled) setListLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, listPage, appliedFilterKey, reloadToken]);
+
+  const totalPages = Math.max(1, Math.ceil(listTotal / PAGE_SIZE));
 
   useEffect(() => {
     if (!detailMessage) return;
@@ -256,13 +307,24 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
   }, [detailMessage]);
 
   const markAllRead = async () => {
-    try { await notificationService.markAllRead(); } catch { /* ignore */ }
-    setItems((prev) => prev.map((m) => ({ ...m, read: true })));
+    try {
+      await notificationService.markAllRead();
+    } catch {
+      return;
+    }
+    setListPage(1);
+    setReloadToken((n) => n + 1);
+    await refreshServerUnread();
   };
 
   const markRead = async (id: string) => {
-    try { await notificationService.markRead(Number(id)); } catch { /* ignore */ }
+    try {
+      await notificationService.markRead(Number(id));
+    } catch {
+      return;
+    }
     setItems((prev) => prev.map((m) => (m.id === id ? { ...m, read: true } : m)));
+    await refreshServerUnread();
   };
 
   const openDetail = (m: MessageItem, e: React.MouseEvent) => {
@@ -288,39 +350,40 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
 
   const applyFilters = () => {
     setActiveDatePicker(null);
-    void fetchNotifications(filters);
+    setAppliedFilters({ ...filters });
   };
 
   const resetFilters = () => {
-    const reset = { type: 'all', isRead: 'all' as const, startTime: '', endTime: '' };
+    const reset: FilterState = { type: 'all', isRead: 'all', startTime: '', endTime: '' };
     setFilters(reset);
+    setAppliedFilters(reset);
     setActiveDatePicker(null);
-    void fetchNotifications(reset);
+    setListPage(1);
   };
 
   const surface = isDark ? 'bg-lantu-card border-white/10' : 'bg-white border-slate-200';
-  const dropdownClassName = `z-[60] overflow-hidden rounded-[24px] border shadow-xl ${
+  const dropdownClassName = `z-[60] overflow-hidden rounded-[24px] border shadow-xl flex flex-col min-h-0 max-h-[min(90vh,560px)] ${
     usePortal
-      ? `fixed w-[min(calc(100vw-1.5rem),380px)] ${surface}`
+      ? `fixed w-[min(calc(100vw-1.5rem),400px)] ${surface}`
       : anchor === 'top'
-        ? `absolute left-auto right-0 top-full mt-2 w-[min(calc(100vw-1.5rem),380px)] ${surface}`
+        ? `absolute left-auto right-0 top-full mt-2 w-[min(calc(100vw-1.5rem),400px)] ${surface}`
         : `absolute bottom-full left-4 right-4 mb-2 ${surface}`
   }`;
 
   const panelInner = (
     <>
-        <div className={`flex items-center justify-between gap-2 px-4 py-3 border-b ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
+        <div className={`shrink-0 flex items-center justify-between gap-2 px-4 py-3 border-b ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
           <div className="flex items-center gap-2 min-w-0">
             <MessageSquare size={18} className={isDark ? 'text-slate-400' : 'text-slate-500'} />
             <span className={`font-bold text-[15px] truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>消息中心</span>
-            {unreadCount > 0 && (
+            {serverUnreadCount > 0 && (
               <span className="px-1.5 py-0.5 rounded-md text-xs font-bold bg-blue-600 text-white min-w-[1.25rem] text-center">
-                {unreadCount}
+                {serverUnreadCount}
               </span>
             )}
           </div>
           <div className="flex items-center gap-1">
-            {unreadCount > 0 && (
+            {serverUnreadCount > 0 && (
               <button
                 type="button"
                 onClick={markAllRead}
@@ -342,7 +405,7 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
           </div>
         </div>
 
-        <div className={`flex border-b ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
+        <div className={`shrink-0 flex border-b ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
           <button
             type="button"
             onClick={() => setTab('all')}
@@ -372,13 +435,13 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
             }`}
           >
             未读
-            {unreadCount > 0 && (
-              <span className="ml-1.5 text-xs opacity-80">({unreadCount})</span>
+            {serverUnreadCount > 0 && (
+              <span className="ml-1.5 text-xs opacity-80">({serverUnreadCount})</span>
             )}
           </button>
         </div>
 
-        <div className={`px-3 py-2 border-b ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-slate-50/70'}`}>
+        <div className={`shrink-0 px-3 py-2 border-b ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-slate-50/70'}`}>
           <div className="grid grid-cols-2 gap-2">
             <LantuSelect
               theme={theme}
@@ -448,15 +511,23 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
           </div>
         </div>
 
-        <div className={`max-h-[min(70vh,360px)] overflow-y-auto custom-scrollbar ${mainScrollCompositorClass}`}>
-          {filtered.length === 0 ? (
+        <div className="flex flex-col min-h-0 flex-1">
+          <div
+            className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass}`}
+            aria-busy={listLoading}
+          >
+          {!listLoading && items.length === 0 ? (
             <div className={`flex flex-col items-center justify-center py-12 px-4 ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
               <Mail size={32} className="opacity-50 mb-3" />
               <p className="text-sm">暂无{tab === 'unread' ? '未读' : ''}消息</p>
             </div>
+          ) : listLoading && items.length === 0 ? (
+            <div className={`flex flex-col items-center justify-center py-12 px-4 text-sm ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
+              加载中…
+            </div>
           ) : (
             <ul className={isDark ? 'divide-y divide-dashed divide-white/10' : 'divide-y divide-dashed divide-slate-200'}>
-              {filtered.map((m) => {
+              {items.map((m) => {
                 const cfg = typeConfig[m.type] ?? typeConfig.system;
                 const Icon = cfg.icon;
                 return (
@@ -483,7 +554,7 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
                           )}
                         </div>
                         <p className={`text-[12px] mt-0.5 line-clamp-2 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                          {m.body}
+                          {notificationListPreviewBody(m.body)}
                         </p>
                         <p className={`text-xs mt-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{m.time}</p>
                       </div>
@@ -494,6 +565,53 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
               })}
             </ul>
           )}
+          </div>
+
+          {items.length > 0 && totalPages > 1 ? (
+            <nav
+              className={`shrink-0 flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 border-t ${
+                isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-slate-50/80'
+              }`}
+              aria-label="消息列表分页"
+            >
+              <p className={`text-[11px] tabular-nums ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                第 <span className="font-semibold">{listPage}</span> / {totalPages} 页 · 共 {listTotal} 条
+                {listLoading ? <span className="ml-1.5 opacity-80">· 加载中</span> : null}
+              </p>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  disabled={listPage <= 1 || listLoading}
+                  onClick={() => setListPage((p) => Math.max(1, p - 1))}
+                  className={`min-w-[40px] min-h-[40px] inline-flex items-center justify-center rounded-xl text-sm font-medium transition-colors disabled:opacity-40 disabled:pointer-events-none ${
+                    isDark ? 'text-slate-300 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-200/80'
+                  }`}
+                  aria-label="上一页"
+                >
+                  <ChevronLeft size={18} aria-hidden />
+                </button>
+                <button
+                  type="button"
+                  disabled={listPage >= totalPages || listLoading}
+                  onClick={() => setListPage((p) => Math.min(totalPages, p + 1))}
+                  className={`min-w-[40px] min-h-[40px] inline-flex items-center justify-center rounded-xl text-sm font-medium transition-colors disabled:opacity-40 disabled:pointer-events-none ${
+                    isDark ? 'text-slate-300 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-200/80'
+                  }`}
+                  aria-label="下一页"
+                >
+                  <ChevronRight size={18} aria-hidden />
+                </button>
+              </div>
+            </nav>
+          ) : items.length > 0 && listTotal > 0 ? (
+            <div
+              className={`shrink-0 px-3 py-2 text-center text-[11px] tabular-nums border-t ${
+                isDark ? 'border-white/10 text-slate-500' : 'border-slate-200 text-slate-500'
+              }`}
+            >
+              共 {listTotal} 条
+            </div>
+          ) : null}
         </div>
     </>
   );

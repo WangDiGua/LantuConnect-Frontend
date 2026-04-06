@@ -71,6 +71,19 @@ const TYPE_LABEL_ZH: Record<string, string> = {
   platform_resource_force_deprecated: '平台下架',
 };
 
+/** 列表摘要：避免在窄卡片里铺满「事件/结果/时间」长文 */
+export function notificationListPreviewBody(body: string, maxLen = 80): string {
+  const parsed = parseStructuredNotificationBody(body);
+  if (parsed) {
+    const fromResult = parsed.headers.find((h) => h.key === '结果')?.value?.trim();
+    const fromEvent = parsed.headers.find((h) => h.key === '事件')?.value?.trim();
+    const t = (fromResult || fromEvent || '').trim();
+    if (t) return t.length > maxLen ? `${t.slice(0, maxLen)}…` : t;
+  }
+  const line = body.split(/\r?\n/).map((l) => l.trim()).find(Boolean) ?? body.trim();
+  return line.length > maxLen ? `${line.slice(0, maxLen)}…` : line;
+}
+
 export function humanizeNotificationType(raw: string | null | undefined): string {
   if (raw == null || !String(raw).trim()) return '';
   const k = String(raw).trim().toLowerCase();

@@ -28,7 +28,7 @@ export function classifyError(err: unknown): ClassifiedError {
     if (s === 409 || c === 1005 || c === 1006 || c === 4001 || c === 4003 || c === 4004 || c === 4005 || c === 4007 || c === 4008 || c === 4009 || c === 4010 || c === 4011 || c === 4012)
       return { severity: 'conflict', message: err.message, code: c, status: s, canRetry: false };
 
-    if (s === 429 || c === 3001 || c === 3002 || c === 3003 || c === 3004 || c === 3005)
+    if (s === 429 || c === 3001 || c === 3002 || c === 3003 || c === 3004 || c === 3005 || c === 3006)
       return { severity: 'ratelimit', message: err.message, code: c, status: s, canRetry: true };
 
     if (s >= 500 || c === 5001 || c === 5002 || c === 5003 || c === 5004 || c === 5005 || c === 5006)

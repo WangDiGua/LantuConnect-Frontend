@@ -186,13 +186,17 @@ function mapErrorMessage(status: number, code?: number, fallback?: string): stri
   if (status === 409 || code === 1005 || code === 1006 || code === 4001) {
     return fallback || '当前状态与操作冲突，请刷新状态后重试';
   }
-  if (status === 429 || code === 3001) {
+  if (code === 3001) {
     return fallback || '请求过于频繁，请稍后重试';
   }
   if (code === 3002) return fallback || '今日调用额度已用尽，请明日再试';
   if (code === 3003) return fallback || '本月调用额度已用尽，请下月再试';
   if (code === 3004) return fallback || '服务熔断中，请稍后重试';
   if (code === 3005) return fallback || '配额已耗尽，请联系管理员调整';
+  if (code === 3006) return fallback || '资源健康检查未通过，暂不可调用';
+  if (status === 429) {
+    return fallback || '请求过于频繁，请稍后重试';
+  }
   if (status === 400 || code === 1001) return fallback || '请求参数错误，请检查必填字段';
   if (code === 1007) return fallback || '文件类型不受支持，请更换上传文件';
   if (code === 1008) return fallback || '文件大小超出限制，请压缩后重试';

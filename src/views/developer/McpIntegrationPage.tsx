@@ -113,6 +113,54 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
   /** 递增以在选中 Key 不变时手动重试 Grant 请求 */
   const [grantFetchNonce, setGrantFetchNonce] = useState(0);
 
+  /** 与本文、ApiDocs、本页「刷新目录」一致的可复制请求（AI 门户应运行时调用，勿仅依赖导出 JSON） */
+  const catalogListUrl = useMemo(
+    () =>
+      `${apiBaseUrl}/catalog/resources?resourceType=mcp&status=published&page=1&pageSize=100`,
+    [apiBaseUrl],
+  );
+  const sdkListUrl = useMemo(
+    () =>
+      `${apiBaseUrl}/sdk/v1/resources?resourceType=mcp&status=published&page=1&pageSize=100`,
+    [apiBaseUrl],
+  );
+  const resourceGrantsUrl = useMemo(() => {
+    const id = selectedKeyId.trim() ? encodeURIComponent(selectedKeyId.trim()) : '{apiKeyId}';
+    return `${apiBaseUrl}/user-settings/api-keys/${id}/resource-grants`;
+  }, [apiBaseUrl, selectedKeyId]);
+
+  const catalogCurlExample = useMemo(
+    () =>
+      [
+        `curl -sS "${catalogListUrl}" \\`,
+        `  -H "X-Api-Key: <完整密钥 secretPlain，请勿提交到仓库>" \\`,
+        `  -H "Content-Type: application/json"`,
+        ``,
+        `# 浏览目录须至少带 X-Api-Key 或登录态 X-User-Id，二选一规则见接入指南。`,
+      ].join('\n'),
+    [catalogListUrl],
+  );
+
+  const sdkCurlExample = useMemo(
+    () =>
+      [
+        `# 仅 Key 集成（须 X-Api-Key）`,
+        `curl -sS "${sdkListUrl}" \\`,
+        `  -H "X-Api-Key: <完整密钥>"`,
+      ].join('\n'),
+    [sdkListUrl],
+  );
+
+  const grantsCurlExample = useMemo(() => {
+    const id = selectedKeyId.trim() ? encodeURIComponent(selectedKeyId.trim()) : '{apiKeyId}';
+    return [
+      `# Grant 列表仅允许查询「本人」的 Key；须浏览器/服务端登录态（如 X-User-Id + Bearer）。`,
+      `curl -sS "${apiBaseUrl}/user-settings/api-keys/${id}/resource-grants" \\`,
+      `  -H "Authorization: Bearer <token>" \\`,
+      `  -H "X-User-Id: <当前用户数字 ID>"`,
+    ].join('\n');
+  }, [apiBaseUrl, selectedKeyId]);
+
   const loadKeys = useCallback(async () => {
     setKeysLoading(true);
     try {
@@ -305,7 +353,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
       fontSize={fontSize}
       titleIcon={Puzzle}
       breadcrumbSegments={['开发者中心', 'MCP 对外集成']}
-      description="以「选择 API Key」为主线：对照已发布 MCP 目录、合并 accessPolicy 与针对当前 Key 的 Grant 状态，并导出 Lantu 网关专用 JSON（不含密钥明文）。调用须完整 X-Api-Key；MCP JSON-RPC 建议使用 POST /mcp/v1/.../message，与 /invoke 的 payload 语义一致。"
+      description="以「选择 API Key」为主线：本页与下方「对外 HTTP 接口」可复制路径，和接入指南、Playground 为同一套网关。表格数据来自运行时目录与 Grant；导出 JSON 仅为快照。调用须完整 X-Api-Key；MCP 消息路径见集成说明。"
       toolbar={toolbar}
       contentScroll="document"
     >
@@ -339,6 +387,82 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
             <button type="button" className={btnSecondary(theme)} onClick={() => void loadMcpCatalog()}>
               <RefreshCw size={14} aria-hidden /> 刷新 MCP 目录
             </button>
+          </div>
+        </section>
+
+        <section
+          className={`rounded-2xl border p-4 space-y-4 ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-white'}`}
+          aria-labelledby="mcp-runtime-api"
+        >
+          <h2 id="mcp-runtime-api" className={`text-sm font-bold ${textPrimary(theme)}`}>
+            对外 HTTP 接口（运行时拉目录 / Grant）
+          </h2>
+          <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
+            AI 门户或集成服务应直接请求下列地址（与「刷新 MCP 目录」、Grant 列使用相同后端能力）。分页请按总条数递增 <span className="font-mono">page</span>
+            ；未列出更多页时默认只展示前 100 条，与当前控制台策略一致。
+          </p>
+
+          <div className="space-y-3">
+            <div>
+              <div className={`text-xs font-semibold mb-1 ${textSecondary(theme)}`}>
+                1. 列举已发布 MCP（目录，GET）
+              </div>
+              <div className="flex flex-wrap items-start gap-2">
+                <code
+                  className={`flex-1 min-w-0 break-all text-[11px] leading-snug rounded-lg px-2 py-1.5 font-mono ${
+                    isDark ? 'bg-black/30 text-slate-200' : 'bg-slate-100 text-slate-800'
+                  }`}
+                >
+                  {catalogListUrl}
+                </code>
+                <CopyTextBtn text={catalogListUrl} isDark={isDark} label="复制 URL" />
+              </div>
+              <div className="flex flex-wrap items-center gap-2 mt-2">
+                <CopyTextBtn text={catalogCurlExample} isDark={isDark} label="复制 curl 示例" />
+              </div>
+            </div>
+
+            <div>
+              <div className={`text-xs font-semibold mb-1 ${textSecondary(theme)}`}>
+                2. 仅 API Key 拉目录（SDK 列表，GET，须 X-Api-Key）
+              </div>
+              <div className="flex flex-wrap items-start gap-2">
+                <code
+                  className={`flex-1 min-w-0 break-all text-[11px] leading-snug rounded-lg px-2 py-1.5 font-mono ${
+                    isDark ? 'bg-black/30 text-slate-200' : 'bg-slate-100 text-slate-800'
+                  }`}
+                >
+                  {sdkListUrl}
+                </code>
+                <CopyTextBtn text={sdkListUrl} isDark={isDark} label="复制 URL" />
+              </div>
+              <div className="flex flex-wrap gap-2 mt-2">
+                <CopyTextBtn text={sdkCurlExample} isDark={isDark} label="复制 curl 示例" />
+              </div>
+            </div>
+
+            <div>
+              <div className={`text-xs font-semibold mb-1 ${textSecondary(theme)}`}>
+                3. 当前 Key 的 Grant 列表（GET，须本人 Key + 登录态）
+              </div>
+              <p className={`text-[11px] mb-1 ${textMuted(theme)}`}>
+                路径中 <span className="font-mono">apiKeyId</span> 为 Key 的数据库 id（非 secret）。未选择 Key 时占位为{' '}
+                <span className="font-mono">{'{apiKeyId}'}</span>；省略 query 时后端默认 <span className="font-mono">resourceType=mcp</span>。
+              </p>
+              <div className="flex flex-wrap items-start gap-2">
+                <code
+                  className={`flex-1 min-w-0 break-all text-[11px] leading-snug rounded-lg px-2 py-1.5 font-mono ${
+                    isDark ? 'bg-black/30 text-slate-200' : 'bg-slate-100 text-slate-800'
+                  }`}
+                >
+                  {resourceGrantsUrl}
+                </code>
+                <CopyTextBtn text={resourceGrantsUrl} isDark={isDark} label="复制 URL" />
+              </div>
+              <div className="flex flex-wrap gap-2 mt-2">
+                <CopyTextBtn text={grantsCurlExample} isDark={isDark} label="复制 curl 示例" />
+              </div>
+            </div>
           </div>
         </section>
 

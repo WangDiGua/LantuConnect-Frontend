@@ -1,0 +1,35 @@
+---
+alwaysApply: true
+---
+
+# 本地数据库表结构 / 数据变更
+
+当任务涉及 **LantuConnect（`lantu_connect`）库的表结构或数据变更**（DDL/DML），且用户在当前环境已运行本地 MySQL 时，代理应 **在终端使用 `mysql` 客户端直连并执行** 已准备好的 SQL 或脚本，完成变更，而不是只把 SQL 写在回复里让用户自行执行。
+
+## 安全（必遵守）
+
+- **禁止** 将真实数据库账号、密码写入本仓库任意会被提交的文件（含规则、README、示例 `.env` 等）。
+- 优先使用 **环境变量**（仅在开发者本机配置，不提交）：
+  - `LANTU_MYSQL_HOST`（可选，默认 `127.0.0.1`）
+  - `LANTU_MYSQL_PORT`（可选，默认 `3306`）
+  - `LANTU_MYSQL_DATABASE`（可选，默认 `lantu_connect`）
+  - `LANTU_MYSQL_USER`
+  - `LANTU_MYSQL_PASSWORD`
+- 若用户 **仅在本对话中** 提供连接信息，只能用于当次会话执行命令；**不得**复制进仓库文件。
+
+## 连接与 JDBC 对照
+
+本地 JDBC 示例（勿把明文密码写进仓库）：
+
+`jdbc:mysql://localhost:3306/lantu_connect?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true`
+
+终端等价示例（密码用环境变量，避免出现在命令历史明文）：
+
+`mysql -h "%LANTU_MYSQL_HOST%" -P "%LANTU_MYSQL_PORT%" -u "%LANTU_MYSQL_USER%" -p"%LANTU_MYSQL_PASSWORD%" "%LANTU_MYSQL_DATABASE%" --default-character-set=utf8mb4`
+
+（Linux/macOS 视 shell 改用 `$VAR` 语法。）
+
+## 执行规范
+
+- 变更需 **尽量幂等** 或明确标注执行顺序与风险；大表变更提醒用户备份。
+- 若仓库或技能（如 `mysql-manual-migrations`）约定脚本放在 `sql/` 等目录，应遵循该约定并一并维护脚本内容。

@@ -822,9 +822,11 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                       <span
                         className={`inline-flex items-center rounded-lg px-2 py-0.5 text-xs font-semibold ${resourceHealthBadgeClass(theme, item.healthStatus)}`}
                         title={
-                          item.healthStatus
-                            ? `与监控中心健康检查配置一致，原始值：${item.healthStatus}`
-                            : '未返回健康字段时多为未配置探测'
+                          item.degradationHint
+                            ? `已合并最近一次网关调用结果与健康检查表。当前提示：${item.degradationHint}`
+                            : item.healthStatus
+                              ? `与监控中心健康检查配置一致，原始值：${item.healthStatus}；若曾调用失败，后端会据此覆盖为不可用`
+                              : '未返回健康字段时多为未配置探测'
                         }
                       >
                         {resourceHealthLabelZh(item.healthStatus)}

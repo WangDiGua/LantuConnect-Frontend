@@ -24,7 +24,7 @@
 @theme {
   /*
    * 排版与 Tailwind：Display/H1 多用 text-4xl~text-3xl font-bold leading-tight（可选 tracking-display-tight）；
-   * Body 默认继承根字号（外观「默认/大/小」见 src/constants/theme.ts）+ text-base leading-normal；
+   * Body 默认继承根字号（外观三档根字号 14/16/18px，见 theme.ts `FONT_SIZE_ROOT_PX`）+ text-base leading-normal；
    * 说明/次要 text-sm leading-relaxed（可选 tracking-caption-read）；代码 font-mono；西文优先 Inter + 中文回退。
    */
   --font-sans:

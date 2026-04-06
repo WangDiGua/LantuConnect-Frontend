@@ -2,21 +2,30 @@ import { FontSize, FontFamily, ThemeColor } from '../types';
 
 /**
  * 同步到 `document.documentElement.style.fontSize`，使全站 rem 字号随外观设置变化。
- * 档位对齐常见 Web 可读性基准：默认 16px（正文下限）；小 / 大 对称 ±2px，与 Tailwind text-sm / text-lg 在 16px 根下接近 14 / 18。
+ *
+ * 三档采用常见 **标准网页根字号**（px）：14 / 16 / 18，对应相对 16px 基准的比例
+ * 0.875rem / 1rem / 1.125rem，与 Tailwind 默认 `text-sm` / `text-base` / `text-lg` 的步进一致。
+ * 默认档 16px 为浏览器与 WCAG 正文常用基准；小、大各 ±2px。
  *
  * 排版角色（与 `src/styles/index.css` @theme 注释一致）：Display/H1 用 TITLE_SIZE_CLASSES + leading-tight；
  * 正文用 FONT_SIZE_CLASSES + leading-normal；说明/次要 text-sm leading-relaxed；等宽 font-mono。
  */
+export const FONT_SIZE_ROOT_PX: Record<FontSize, number> = {
+  small: 14,
+  medium: 16,
+  large: 18,
+};
+
 export function getRootFontSizePx(fontSize: FontSize): string {
-  switch (fontSize) {
-    case 'small':
-      return '14px';
-    case 'large':
-      return '18px';
-    default:
-      return '16px';
-  }
+  return `${FONT_SIZE_ROOT_PX[fontSize]}px`;
 }
+
+/** 外观面板分段控件上的文案（含标准像素，便于用户对照） */
+export const FONT_SIZE_OPTION_UI_LABEL: Record<FontSize, string> = {
+  small: '小 14px',
+  medium: '中 16px（默认）',
+  large: '大 18px',
+};
 
 /** @deprecated 优先使用根字号 `getRootFontSizePx`；需与 rem 缩放一致时请用 text-sm / text-base / text-lg */
 export const FONT_SIZE_CLASSES: Record<FontSize, string> = {

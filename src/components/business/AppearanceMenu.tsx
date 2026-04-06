@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Sun, Moon, Monitor, RotateCcw } from 'lucide-react';
 import { Theme, ThemeMode, FontSize, FontFamily, AnimationStyle } from '../../types';
+import { FONT_SIZE_OPTION_UI_LABEL, FONT_SIZE_ROOT_PX } from '../../constants/theme';
 
 const FONT_LABELS: Record<FontFamily, string> = {
   sans: '系统无衬线',
@@ -150,6 +151,7 @@ export const AppearanceMenu: React.FC<AppearanceMenuProps> = ({
                 type="button"
                 key={size}
                 onClick={() => setFontSize(size)}
+                title={`根字号 ${FONT_SIZE_ROOT_PX[size]}px（全站 1rem 基准）`}
                 className={`flex-1 rounded-lg py-2.5 px-2 text-sm font-semibold transition-all ${
                   fontSize === size
                     ? theme === 'light'
@@ -160,7 +162,7 @@ export const AppearanceMenu: React.FC<AppearanceMenuProps> = ({
                       : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                {size === 'small' ? '小' : size === 'medium' ? '中（默认）' : '大'}
+                {FONT_SIZE_OPTION_UI_LABEL[size]}
               </button>
             ))}
           </div>

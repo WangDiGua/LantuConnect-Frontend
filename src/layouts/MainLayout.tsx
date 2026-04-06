@@ -10,7 +10,7 @@ import {
   LogOut,
 } from 'lucide-react';
 import { Theme, ThemeMode, ThemeColor, FontSize, FontFamily, AnimationStyle } from '../types';
-import { FONT_FAMILY_CLASSES, getRootFontSizePx } from '../constants/theme';
+import { FONT_FAMILY_CLASSES, FONT_SIZE_ROOT_PX, getRootFontSizePx } from '../constants/theme';
 import { LayoutChromeProvider } from '../context/LayoutChromeContext';
 import { UserRoleProvider, useUserRole, platformRoleToConsoleRole, canAccessAdminView, normalizeRole } from '../context/UserRoleContext';
 import { useAuthStore } from '../stores/authStore';
@@ -1332,7 +1332,8 @@ const MainLayoutContent: React.FC<{
   };
   const handleSetFontSize = (size: FontSize) => {
     setFontSize(size);
-    showMessage(`字号已调整为 ${size === 'small' ? '小' : size === 'medium' ? '中' : '大'}`, 'success');
+    const tier = size === 'small' ? '小' : size === 'medium' ? '中' : '大';
+    showMessage(`字号已调整为 ${tier}（${FONT_SIZE_ROOT_PX[size]}px）`, 'success');
   };
   const FONT_LABELS_MSG: Record<FontFamily, string> = {
     sans: '系统无衬线',

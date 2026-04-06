@@ -260,8 +260,19 @@ instance.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   config.headers['X-Trace-Id'] = traceId;
 
   if (!config.headers['X-Api-Key']) {
-    const apiKey = getStoredApiKey();
-    if (apiKey) config.headers['X-Api-Key'] = apiKey;
+    const path = normalizeRequestPath(config.url);
+    const method = (config.method ?? 'get').toLowerCase();
+    /** 市场目录 GET 应以登录态 RBAC 为准；自动附带个人 Key 会与后端「Key+Grant」裁剪叠加，导致非资源所有者看到空列表 */
+    const skipAutoApiKeyForCatalogGet =
+      method === 'get' &&
+      (path === '/catalog/resources' ||
+        path.startsWith('/catalog/resources/trending') ||
+        path.startsWith('/catalog/resources/search-suggestions') ||
+        /^\/catalog\/resources\/[^/]+\/[^/]+(\/stats)?$/.test(path));
+    if (!skipAutoApiKeyForCatalogGet) {
+      const apiKey = getStoredApiKey();
+      if (apiKey) config.headers['X-Api-Key'] = apiKey;
+    }
   }
   if (!config.headers['X-Sandbox-Token']) {
     const sandboxToken = getStoredSandboxToken();

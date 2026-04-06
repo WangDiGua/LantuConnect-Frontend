@@ -25,6 +25,8 @@ export interface GrantApplicationVO {
   reviewerName?: string;
   rejectReason?: string;
   reviewTime?: string;
+  /** 审批通过后写入的资源授权 ID，用于待办「撤回授权」 */
+  createdGrantId?: number | null;
   expiresAt?: string;
   createTime?: string;
 }

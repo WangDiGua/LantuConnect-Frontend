@@ -9,7 +9,6 @@ import {
   btnPrimary,
   statusBadgeClass,
   statusDot,
-  statusLabel,
   textMuted,
   textPrimary,
   textSecondary,
@@ -18,10 +17,10 @@ import {
   tableCellActionChipsRow,
   mgmtTableActionDanger,
   mgmtTableActionPositive,
-  type DomainStatus,
 } from '../../utils/uiClasses';
 import { TOOLBAR_ROW_LIST } from '../../utils/toolbarFieldClasses';
 import { FilterSelect, Pagination, SearchInput, TableCellEllipsis } from '../../components/common';
+import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { MgmtDataTable } from '../../components/management/MgmtDataTable';
 import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
 import { EmptyState } from '../../components/common/EmptyState';
@@ -43,12 +42,6 @@ interface Props {
 const GRANT_PAGE_DESC =
   '待办范围由后端按角色过滤：platform_admin、admin、reviewer 可查看职责范围内的全部申请；其余用户仅能看到「自己是资源创建者」的资源上的申请。「全部状态」包含待审批、已通过、已驳回。';
 
-function grantToDomainStatus(status: GrantApplicationVO['status']): DomainStatus {
-  if (status === 'pending') return 'pending_review';
-  if (status === 'approved') return 'published';
-  return 'rejected';
-}
-
 export const GrantApplicationListPage: React.FC<Props> = ({ theme, fontSize, showMessage }) => {
   const isDark = theme === 'dark';
   const [loading, setLoading] = useState(true);
@@ -64,6 +57,7 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, fontSize, sho
   const [rejectReasonError, setRejectReasonError] = useState('');
   const [loadError, setLoadError] = useState<Error | null>(null);
   const [runningActionId, setRunningActionId] = useState<string | null>(null);
+  const [revokeTarget, setRevokeTarget] = useState<GrantApplicationVO | null>(null);
   const PAGE_SIZE = 20;
 
   useEffect(() => {
@@ -178,11 +172,26 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, fontSize, sho
         id: 'status',
         header: '状态',
         cell: (item) => {
-          const domainStatus = grantToDomainStatus(item.status);
+          if (item.status === 'pending') {
+            return (
+              <span className={statusBadgeClass('pending_review', theme)}>
+                <span className={statusDot('pending_review')} />
+                待审批
+              </span>
+            );
+          }
+          if (item.status === 'approved') {
+            return (
+              <span className={statusBadgeClass('published', theme)}>
+                <span className={statusDot('published')} />
+                已通过
+              </span>
+            );
+          }
           return (
-            <span className={statusBadgeClass(domainStatus, theme)}>
-              <span className={statusDot(domainStatus)} />
-              {statusLabel(domainStatus)}
+            <span className={statusBadgeClass('rejected', theme)}>
+              <span className={statusDot('rejected')} />
+              已驳回
             </span>
           );
         },
@@ -238,6 +247,15 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, fontSize, sho
                   驳回
                 </button>
               </>
+            ) : item.status === 'approved' ? (
+              <button
+                type="button"
+                className={mgmtTableActionDanger}
+                disabled={!!runningActionId}
+                onClick={() => setRevokeTarget(item)}
+              >
+                撤回授权
+              </button>
             ) : (
               <span className={`text-xs ${textMuted(theme)}`}>无可执行动作</span>
             )}
@@ -391,6 +409,34 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, fontSize, sho
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!revokeTarget}
+        loading={runningActionId != null && runningActionId.startsWith('revoke-')}
+        title="撤回资源授权"
+        message={
+          revokeTarget
+            ? `确定撤销申请 #${revokeTarget.id}（${revokeTarget.resourceType}/${revokeTarget.resourceId}）对已授权 API Key 的调用权限？撤销后立即生效。`
+            : ''
+        }
+        confirmText="撤回授权"
+        variant="warning"
+        onConfirm={() => {
+          if (!revokeTarget) return;
+          const row = revokeTarget;
+          setRunningActionId(`revoke-${row.id}`);
+          void grantApplicationService
+            .revokeEffectiveGrant(row.id)
+            .then(async () => {
+              showMessage('已撤回该资源授权', 'success');
+              setRevokeTarget(null);
+              await fetchData();
+            })
+            .catch((err) => showMessage(err instanceof Error ? err.message : '撤回失败', 'error'))
+            .finally(() => setRunningActionId(null));
+        }}
+        onCancel={() => setRevokeTarget(null)}
+      />
     </>
   );
 };

@@ -20,6 +20,8 @@ function normalizeVO(raw: any): GrantApplicationVO {
     reviewerName: raw?.reviewerName ? String(raw.reviewerName) : undefined,
     rejectReason: raw?.rejectReason ? String(raw.rejectReason) : undefined,
     reviewTime: raw?.reviewTime ? String(raw.reviewTime) : undefined,
+    createdGrantId:
+      raw?.createdGrantId != null && raw?.createdGrantId !== '' ? Number(raw.createdGrantId) : undefined,
     expiresAt: raw?.expiresAt ? String(raw.expiresAt) : undefined,
     createTime: raw?.createTime ? String(raw.createTime) : undefined,
   };
@@ -47,4 +49,8 @@ export const grantApplicationService = {
 
   reject: (id: number, payload: ResourceRejectRequest): Promise<void> =>
     http.post<void>(`/grant-applications/${id}/reject`, payload),
+
+  /** 撤销已通过申请对应的生效资源授权（需与审批相同权限） */
+  revokeEffectiveGrant: (id: number): Promise<void> =>
+    http.post<void>(`/grant-applications/${id}/revoke-grant`),
 };

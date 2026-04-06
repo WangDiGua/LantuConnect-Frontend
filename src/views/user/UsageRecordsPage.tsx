@@ -121,7 +121,7 @@ export const UsageRecordsPage: React.FC<UsageRecordsPageProps> = ({ theme, fontS
         mcp: isDark ? 'bg-violet-500/10 text-violet-300 ring-1 ring-violet-500/20' : 'bg-violet-50 text-violet-700 ring-1 ring-violet-200/70',
         dataset: isDark ? 'bg-emerald-500/10 text-emerald-300 ring-1 ring-emerald-500/20' : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/70',
       };
-      return `inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${styles[type] || ''}`;
+      return `inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${styles[type] || ''}`;
     };
     const statusCls = (status: string) => (status === 'success' ? 'text-emerald-500' : 'text-rose-500');
     return [

@@ -52,7 +52,7 @@ export const MyFavoritesPage: React.FC<MyFavoritesPageProps> = ({ theme, fontSiz
       mcp: isDark ? 'bg-violet-500/10 text-violet-300 ring-1 ring-violet-500/20' : 'bg-violet-50 text-violet-700 ring-1 ring-violet-200/70',
       dataset: isDark ? 'bg-emerald-500/10 text-emerald-300 ring-1 ring-emerald-500/20' : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/70',
     };
-    return `inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${styles[type] || ''}`;
+    return `inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${styles[type] || ''}`;
   };
 
   const TypeIcon = ({ type }: { type: string }) => {
@@ -144,7 +144,7 @@ export const MyFavoritesPage: React.FC<MyFavoritesPageProps> = ({ theme, fontSiz
                       </span>
                     </div>
                     <p className={`text-xs leading-relaxed line-clamp-2 ${textMuted(theme)}`}>{item.description}</p>
-                    {item.createTime && <p className={`text-[11px] mt-0.5 ${textMuted(theme)}`}>收藏于 {formatDateTime(item.createTime)}</p>}
+                    {item.createTime && <p className={`text-xs mt-0.5 ${textMuted(theme)}`}>收藏于 {formatDateTime(item.createTime)}</p>}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 mt-auto pt-1">

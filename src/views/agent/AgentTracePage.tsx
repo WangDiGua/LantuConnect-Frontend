@@ -253,7 +253,7 @@ export const AgentTracePage: React.FC<AgentTracePageProps> = ({ theme, fontSize,
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,320px)_1fr] gap-4">
             <GlassPanel theme={theme} padding="sm" className="max-h-[520px] flex flex-col overflow-hidden">
-              <div className={`px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider border-b shrink-0 ${isDark ? 'border-white/[0.06] text-slate-500' : 'border-slate-100 text-slate-400'}`}>
+              <div className={`px-4 py-2.5 text-xs font-semibold uppercase tracking-wider border-b shrink-0 ${isDark ? 'border-white/[0.06] text-slate-500' : 'border-slate-100 text-slate-400'}`}>
                 最近 Trace（已聚合）
               </div>
               <ul className="overflow-y-auto flex-1">
@@ -266,8 +266,8 @@ export const AgentTracePage: React.FC<AgentTracePageProps> = ({ theme, fontSize,
                       aria-current={selectedId === g.traceId ? 'true' : undefined}
                     >
                       <div className={`font-mono text-xs truncate ${textPrimary(theme)}`}>{g.traceId}</div>
-                      <div className={`text-[11px] mt-1 ${textMuted(theme)}`}>{g.listItem.route}</div>
-                      <div className="flex justify-between mt-1.5 text-[11px]">
+                      <div className={`text-xs mt-1 ${textMuted(theme)}`}>{g.listItem.route}</div>
+                      <div className="flex justify-between mt-1.5 text-xs">
                         <span className={textMuted(theme)}>{g.listItem.startedAt}</span>
                         <span className={`tabular-nums ${textSecondary(theme)}`}>{g.listItem.durationMs} ms</span>
                         <span className={g.listItem.status === 'error' ? 'text-rose-500 font-semibold' : 'text-emerald-500'}>

@@ -288,7 +288,7 @@ export const DataReportsPage: React.FC<DataReportsPageProps> = ({ theme, fontSiz
                         </span>
                         <div className="flex-1 min-w-0">
                           <div className={`text-sm font-medium truncate ${textPrimary(theme)}`}>{agent.name}</div>
-                          <div className={`text-[10px] ${textMuted(theme)}`}>
+                          <div className={`text-xs ${textMuted(theme)}`}>
                             {agent.resourceType ? (RESOURCE_TYPE_LABEL[agent.resourceType] ?? agent.resourceType) : '—'}
                           </div>
                           <div className="flex items-center gap-3 mt-1">

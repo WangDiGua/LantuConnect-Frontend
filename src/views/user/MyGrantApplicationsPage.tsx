@@ -202,7 +202,7 @@ export const MyGrantApplicationsPage: React.FC<Props> = ({ theme, fontSize }) =>
                             {item.actions.map((a) => (
                               <span
                                 key={a}
-                                className={`shrink-0 rounded-md border px-2 py-0.5 text-[11px] font-medium whitespace-nowrap ${
+                                className={`shrink-0 rounded-md border px-2 py-0.5 text-xs font-medium whitespace-nowrap ${
                                   isDark ? 'border-white/[0.08] bg-white/[0.06]' : 'border-slate-200/80 bg-slate-50'
                                 }`}
                               >

@@ -125,7 +125,7 @@ export function DataTable<T extends Record<string, any>>({
   return (
     <div className={`rounded-2xl border overflow-hidden shadow-sm ${isDark ? 'bg-lantu-card border-white/10' : 'bg-white border-neutral-200'} ${className}`}>
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-[13px] whitespace-nowrap min-w-full">
+        <table className="w-full text-left text-sm whitespace-nowrap min-w-full">
           <thead className={`border-b ${isDark ? 'border-white/10 bg-white/[0.03]' : 'bg-neutral-50/80 border-neutral-200'}`}>
             <tr>
               {columns.map((column) => (
@@ -189,7 +189,7 @@ export function DataTable<T extends Record<string, any>>({
                     return (
                       <td
                         key={column.key}
-                        className={`px-6 py-4 text-[13px] ${column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : 'text-left'} ${isDark ? 'text-neutral-300' : 'text-neutral-700'}`}
+                        className={`px-6 py-4 text-sm ${column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : 'text-left'} ${isDark ? 'text-neutral-300' : 'text-neutral-700'}`}
                         style={{ minWidth: column.minWidth }}
                       >
                         {content}
@@ -229,7 +229,7 @@ export function DataTable<T extends Record<string, any>>({
 
       {pagination && pagination.totalPages > 1 && (
         <div className={`px-6 py-3 border-t flex items-center justify-between ${isDark ? 'border-white/10' : 'border-neutral-100'}`}>
-          <div className={`text-[13px] ${isDark ? 'text-neutral-500' : 'text-neutral-500'}`}>
+          <div className={`text-sm ${isDark ? 'text-neutral-500' : 'text-neutral-500'}`}>
             第 {pagination.currentPage} / {pagination.totalPages} 页
           </div>
           <div className="flex items-center gap-1">
@@ -238,7 +238,7 @@ export function DataTable<T extends Record<string, any>>({
               aria-label="上一页"
               onClick={() => pagination.onPageChange(pagination.currentPage - 1)}
               disabled={pagination.currentPage === 1}
-              className={`h-9 w-9 min-h-9 min-w-9 inline-flex items-center justify-center rounded-lg text-[13px] transition-colors motion-reduce:transition-none disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 ${isDark ? 'text-neutral-300 hover:bg-white/5 focus-visible:ring-offset-lantu-card' : 'text-neutral-600 hover:bg-neutral-100 focus-visible:ring-offset-white'}`}
+              className={`h-9 w-9 min-h-9 min-w-9 inline-flex items-center justify-center rounded-lg text-sm transition-colors motion-reduce:transition-none disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 ${isDark ? 'text-neutral-300 hover:bg-white/5 focus-visible:ring-offset-lantu-card' : 'text-neutral-600 hover:bg-neutral-100 focus-visible:ring-offset-white'}`}
             >
               <ChevronLeft size={16} />
             </button>
@@ -247,7 +247,7 @@ export function DataTable<T extends Record<string, any>>({
               aria-label="下一页"
               onClick={() => pagination.onPageChange(pagination.currentPage + 1)}
               disabled={pagination.currentPage === pagination.totalPages}
-              className={`h-9 w-9 min-h-9 min-w-9 inline-flex items-center justify-center rounded-lg text-[13px] transition-colors motion-reduce:transition-none disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 ${isDark ? 'text-neutral-300 hover:bg-white/5 focus-visible:ring-offset-lantu-card' : 'text-neutral-600 hover:bg-neutral-100 focus-visible:ring-offset-white'}`}
+              className={`h-9 w-9 min-h-9 min-w-9 inline-flex items-center justify-center rounded-lg text-sm transition-colors motion-reduce:transition-none disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 ${isDark ? 'text-neutral-300 hover:bg-white/5 focus-visible:ring-offset-lantu-card' : 'text-neutral-600 hover:bg-neutral-100 focus-visible:ring-offset-white'}`}
             >
               <ChevronRight size={16} />
             </button>

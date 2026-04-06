@@ -57,7 +57,7 @@ export const ReviewMarkdownEditor: React.FC<ReviewMarkdownEditorProps> = ({
         .join(' ')}
     >
       <Editor value={value} plugins={PLUGINS} locale={LOCALE} onChange={onChange} mode={editorMode} />
-      {placeholder ? <p className={`mt-1.5 text-[11px] ${textMuted(theme)}`}>{placeholder}</p> : null}
+      {placeholder ? <p className={`mt-1.5 text-xs ${textMuted(theme)}`}>{placeholder}</p> : null}
     </div>
   );
 };

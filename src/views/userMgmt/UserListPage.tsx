@@ -136,7 +136,7 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
         header: '状态',
         cell: (u) => (
           <span
-            className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+            className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${
               u.status === 'active'
                 ? isDark
                   ? 'bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20'

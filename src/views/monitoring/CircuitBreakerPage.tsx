@@ -168,7 +168,7 @@ export const CircuitBreakerPage: React.FC<Props> = ({ theme, fontSize, showMessa
                     <div className={`text-xs font-medium ${textMuted(theme)}`}>{label}</div>
                     <div className="flex items-center gap-2 mt-1">
                       <span className={`text-2xl font-bold ${textPrimary(theme)}`}>{count}</span>
-                      <span className={`inline-flex shrink-0 items-center whitespace-nowrap px-2 py-0.5 rounded-lg text-[11px] font-medium ${isDark ? cfg.dark : cfg.light}`}>{cfg.label}</span>
+                      <span className={`inline-flex shrink-0 items-center whitespace-nowrap px-2 py-0.5 rounded-lg text-xs font-medium ${isDark ? cfg.dark : cfg.light}`}>{cfg.label}</span>
                     </div>
                   </BentoCard>
                 );

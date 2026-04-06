@@ -371,7 +371,7 @@ export const TagManagementPage: React.FC<Props> = ({ theme, fontSize, showMessag
                         分类: {tag.category}（{tagCategoryToApi(tag.category)}）· 引用: {tag.usageCount}
                       </div>
                       {isConfirming && tag.usageCount > 0 && (
-                        <p className="text-[11px] text-red-500 mt-2">此标签正在被 {tag.usageCount} 个资源使用，删除后将从所有资源中移除。</p>
+                        <p className="text-xs text-red-500 mt-2">此标签正在被 {tag.usageCount} 个资源使用，删除后将从所有资源中移除。</p>
                       )}
                     </PortalDropdown>
                   </div>

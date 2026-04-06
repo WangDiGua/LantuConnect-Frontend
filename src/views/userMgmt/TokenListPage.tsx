@@ -122,7 +122,7 @@ export const TokenListPage: React.FC<TokenListPageProps> = ({ theme, fontSize, s
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className={`font-semibold truncate min-w-0 ${textPrimary(theme)}`} title={t.name}>{t.name}</span>
-                        <span className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${isDark ? ss.dark : ss.light}`}>{ss.label}</span>
+                        <span className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${isDark ? ss.dark : ss.light}`}>{ss.label}</span>
                       </div>
                       <div className={`mt-0.5 flex min-w-0 flex-wrap items-baseline gap-x-1 text-xs ${textMuted(theme)}`}>
                         <div className={`max-w-full min-w-0 font-mono ${tableCellScrollInner}`}>{t.scopes.join(', ')}</div>

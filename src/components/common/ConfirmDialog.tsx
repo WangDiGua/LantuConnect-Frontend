@@ -73,14 +73,14 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             className="relative w-full max-w-sm rounded-[2rem] border p-6 bg-white dark:bg-lantu-card border-neutral-200/60 dark:border-white/[0.08] shadow-2xl"
           >
             <h3 id={titleId} className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 tracking-tight">{title}</h3>
-            <p id={messageId} className="mt-2 text-[13px] text-neutral-500 dark:text-neutral-400 leading-relaxed">{message}</p>
+            <p id={messageId} className="mt-2 text-sm text-neutral-500 dark:text-neutral-400 leading-relaxed">{message}</p>
 
             <div className="mt-6 flex items-center justify-end gap-3">
               <button
                 type="button"
                 disabled={loading}
                 onClick={onCancel}
-                className="px-4 py-2.5 rounded-xl text-[13px] font-medium transition-colors motion-reduce:transition-none text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-white/5 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-lantu-card"
+                className="px-4 py-2.5 rounded-xl text-sm font-medium transition-colors motion-reduce:transition-none text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-white/5 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-lantu-card"
               >
                 {cancelText}
               </button>
@@ -88,7 +88,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                 type="button"
                 disabled={loading}
                 onClick={onConfirm}
-                className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-medium transition-all motion-reduce:transition-none active:scale-[0.98] motion-reduce:active:scale-100 shadow-sm disabled:opacity-50 disabled:pointer-events-none focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-neutral-900/25 dark:focus-visible:ring-white/25 dark:focus-visible:ring-offset-lantu-card ${VARIANT_CLASSES[variant]}`}
+                className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all motion-reduce:transition-none active:scale-[0.98] motion-reduce:active:scale-100 shadow-sm disabled:opacity-50 disabled:pointer-events-none focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-neutral-900/25 dark:focus-visible:ring-white/25 dark:focus-visible:ring-offset-lantu-card ${VARIANT_CLASSES[variant]}`}
               >
                 {loading && <Loader2 size={14} className="animate-spin" />}
                 {confirmText}

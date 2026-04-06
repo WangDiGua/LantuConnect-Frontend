@@ -212,7 +212,7 @@ export const GrantApplicationModal: React.FC<Props> = ({
             placeholder="从列表选择 Key"
             disabled={keysLoading}
           />
-          <p className={`mt-1.5 text-[11px] ${textMuted(theme)}`}>
+          <p className={`mt-1.5 text-xs ${textMuted(theme)}`}>
             或手动填写 Key 的 id（须与上表某条记录一致）
           </p>
           <input

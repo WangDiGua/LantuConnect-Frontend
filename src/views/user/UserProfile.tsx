@@ -136,7 +136,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ theme }) => {
     }
   };
 
-  const thCls = `text-left text-[11px] font-semibold uppercase tracking-wider py-2.5 px-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`;
+  const thCls = `text-left text-xs font-semibold uppercase tracking-wider py-2.5 px-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`;
   const tdCls = `py-2.5 px-3 text-sm ${textSecondary(theme)}`;
   const trCls = `border-b last:border-0 ${isDark ? 'border-white/[0.04]' : 'border-slate-100'}`;
   const infoRowCls = `flex items-center justify-between py-2.5 px-1`;
@@ -188,10 +188,10 @@ export const UserProfile: React.FC<UserProfileProps> = ({ theme }) => {
                     {displayDept}
                   </p>
                   <div className="mt-3 flex flex-wrap justify-center gap-2">
-                    <span className={`px-2.5 py-0.5 text-[11px] font-semibold rounded-full ${isDark ? 'bg-neutral-900/10 text-neutral-300' : 'bg-neutral-100 text-neutral-900'}`}>
+                    <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full ${isDark ? 'bg-neutral-900/10 text-neutral-300' : 'bg-neutral-100 text-neutral-900'}`}>
                       {displayRole}
                     </span>
-                    <span className={`px-2.5 py-0.5 text-[11px] font-semibold rounded-full ${isDark ? 'bg-emerald-500/15 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>
+                    <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full ${isDark ? 'bg-emerald-500/15 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>
                       {user?.status === 'active' || !user ? '已认证' : '未激活'}
                     </span>
                   </div>
@@ -271,7 +271,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ theme }) => {
                         <td className={tdCls}>{row.location || '—'}</td>
                         <td className={tdCls}>{row.loginType || '—'}</td>
                         <td className={tdCls}>
-                          <span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-semibold ${
+                          <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${
                             isSuccess
                               ? (isDark ? 'bg-emerald-500/15 text-emerald-400' : 'bg-emerald-50 text-emerald-600')
                               : (isDark ? 'bg-rose-500/15 text-rose-400' : 'bg-rose-50 text-rose-600')
@@ -331,7 +331,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ theme }) => {
                       <td className={tdCls}>
                         <span className="flex items-center gap-1.5">
                           {s.device || '—'}
-                          {s.current && <span className="ml-1 inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-500">当前</span>}
+                          {s.current && <span className="ml-1 inline-flex px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-500">当前</span>}
                         </span>
                       </td>
                       <td className={tdCls}>{s.os || '—'} / {s.browser || '—'}</td>

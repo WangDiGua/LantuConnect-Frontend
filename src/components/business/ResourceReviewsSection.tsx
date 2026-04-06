@@ -197,7 +197,7 @@ const ReviewThreadNode = React.memo(function ReviewThreadNode({
               <span className={`text-sm font-medium ${textPrimary(theme)}`}>{node.userName}</span>
               {showStars ? <StarRating rating={node.rating} size={11} /> : null}
               {isReply ? (
-                <span className={`inline-flex items-center gap-0.5 text-[10px] font-medium uppercase ${textMuted(theme)}`}>
+                <span className={`inline-flex items-center gap-0.5 text-xs font-medium uppercase ${textMuted(theme)}`}>
                   <MessageCircle size={10} aria-hidden />
                   回复
                 </span>

@@ -66,7 +66,7 @@ export const KpiCard: React.FC<Props> = ({
         )}
       </div>
       {previousValue !== undefined && previousValue !== null && (
-        <p className={`mt-2 text-[11px] ${textSecondary(theme)}`}>前值: {String(previousValue)}</p>
+        <p className={`mt-2 text-xs ${textSecondary(theme)}`}>前值: {String(previousValue)}</p>
       )}
     </motion.div>
   );

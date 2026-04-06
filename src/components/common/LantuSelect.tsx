@@ -123,7 +123,7 @@ export const LantuSelect: React.FC<LantuSelectProps> = ({
                 role="option"
                 aria-selected={active}
                 onClick={() => handlePick(opt.value)}
-                className={`w-full px-4 py-2.5 text-left text-[13px] min-h-10 transition-colors motion-reduce:transition-none flex items-center justify-between focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-500/35 ${itemBase} ${itemHover} ${active ? itemActive : ''}`}
+                className={`w-full px-4 py-2.5 text-left text-sm min-h-10 transition-colors motion-reduce:transition-none flex items-center justify-between focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-500/35 ${itemBase} ${itemHover} ${active ? itemActive : ''}`}
               >
                 {opt.label}
               </button>

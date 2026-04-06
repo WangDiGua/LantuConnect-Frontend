@@ -170,7 +170,7 @@ export const AppMarket: React.FC<Props> = ({ theme, fontSize: _fontSize, themeCo
                     )}
                     description={app.description || '暂无描述'}
                     footerLeft={(
-                      <span className="block truncate font-mono text-[11px]" title={`@${app.appName}`}>
+                      <span className="block truncate font-mono text-xs" title={`@${app.appName}`}>
                         @{app.appName}
                       </span>
                     )}

@@ -77,7 +77,7 @@ export const Tooltip: React.FC<TooltipProps> = ({ content, children, preferredSi
         ref={panelRef}
         role="tooltip"
         style={{ transform: `translateX(calc(-50% + ${offsetX}px))` }}
-        className={`pointer-events-none absolute z-[80] whitespace-nowrap rounded-lg border border-neutral-200 bg-white px-2.5 py-1 text-[11px] font-medium text-neutral-700 shadow-lg transition-all duration-150 dark:border-white/10 dark:bg-lantu-card dark:text-neutral-200 ${panelPosClass} ${open ? 'opacity-100' : 'opacity-0'}`}
+        className={`pointer-events-none absolute z-[80] whitespace-nowrap rounded-lg border border-neutral-200 bg-white px-2.5 py-1 text-xs font-medium text-neutral-700 shadow-lg transition-all duration-150 dark:border-white/10 dark:bg-lantu-card dark:text-neutral-200 ${panelPosClass} ${open ? 'opacity-100' : 'opacity-0'}`}
       >
         {content}
         <span

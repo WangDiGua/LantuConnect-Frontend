@@ -84,7 +84,7 @@ export const UserResourceMarketHub: React.FC<Props> = ({ theme, fontSize, themeC
           isDark ? 'border-white/[0.08] bg-white/[0.03]' : 'border-slate-200/80 bg-white/80 shadow-sm'
         }`}
       >
-        <p className={`mb-4 text-[11px] leading-relaxed sm:text-xs ${tm}`}>
+        <p className={`mb-4 text-xs leading-relaxed ${tm}`}>
           各类型列表卡片均展示<strong className="font-semibold">创建者</strong>与<strong className="font-semibold">目录评分·评论数</strong>（无数据时显示「—」或 0，与统一目录接口一致）。
         </p>
         <div className="flex flex-wrap gap-2" role="tablist" aria-label="资源类型">

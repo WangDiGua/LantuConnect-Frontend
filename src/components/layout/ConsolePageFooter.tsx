@@ -7,7 +7,7 @@ import { buildPath } from '../../constants/consoleRoutes';
 const PRODUCT_NAME = 'Nexus';
 
 const linkClass = (isDark: boolean) =>
-  `text-[11px] font-medium whitespace-nowrap transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 rounded-sm ${
+  `text-xs font-medium whitespace-nowrap transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 rounded-sm ${
     isDark
       ? 'text-slate-400 hover:text-slate-200 focus-visible:ring-offset-transparent'
       : 'text-slate-500 hover:text-slate-900 focus-visible:ring-offset-transparent'
@@ -36,7 +36,7 @@ export const ConsolePageFooter: React.FC<ConsolePageFooterProps> = ({ theme, cla
           <span className={`text-xs font-semibold tracking-tight ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
             {PRODUCT_NAME}
           </span>
-          <span className={`text-[11px] leading-snug ${muted}`}>
+          <span className={`text-xs leading-snug ${muted}`}>
             {' '}
             © {year} {PRODUCT_NAME}。保留所有权利。校园数字化能力与资产门户 · 授权访问与合规使用
           </span>
@@ -62,7 +62,7 @@ export const ConsolePageFooter: React.FC<ConsolePageFooterProps> = ({ theme, cla
           </div>
         </nav>
       </div>
-      <p className={`mt-1 max-w-4xl text-[10px] leading-snug md:text-right md:ml-auto ${muted}`}>
+      <p className={`mt-1 max-w-4xl text-xs leading-snug md:text-right md:ml-auto ${muted}`}>
         用户协议与隐私政策以学校及平台公示为准；技术支持与合规咨询请联系学校信息化管理部门。
       </p>
     </footer>

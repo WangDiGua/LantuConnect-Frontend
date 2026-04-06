@@ -307,7 +307,7 @@ export const AgentMonitoringPage: React.FC<AgentMonitoringPageProps> = ({ theme,
                   />
                 </div>
               </div>
-              <p className={`mb-2 text-[11px] leading-relaxed ${textMuted(theme)}`}>
+              <p className={`mb-2 text-xs leading-relaxed ${textMuted(theme)}`}>
                 统计统一网关 invoke 写入的调用日志。迁移后新数据带 <span className="font-mono">resource_type</span>；
                 旧库中无类型字段的记录仅在类型选「Agent」时与历史行为一致一并统计。
               </p>

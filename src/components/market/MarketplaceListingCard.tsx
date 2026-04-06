@@ -94,7 +94,7 @@ export const MarketplaceListingCard: React.FC<MarketplaceListingCardProps> = ({
             </h3>
             {statusChip ? (
               <span
-                className={`inline-flex max-w-[10rem] shrink-0 items-center gap-0.5 truncate rounded-full border px-2 py-0.5 text-[11px] font-semibold ${chipClass(theme, statusChip.tone ?? 'neutral')}`}
+                className={`inline-flex max-w-[10rem] shrink-0 items-center gap-0.5 truncate rounded-full border px-2 py-0.5 text-xs font-semibold ${chipClass(theme, statusChip.tone ?? 'neutral')}`}
               >
                 {statusChip.label}
               </span>

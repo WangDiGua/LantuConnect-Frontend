@@ -216,7 +216,7 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
             <MessageSquare size={18} className={isDark ? 'text-slate-400' : 'text-slate-500'} />
             <span className={`font-bold text-[15px] truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>消息中心</span>
             {unreadCount > 0 && (
-              <span className="px-1.5 py-0.5 rounded-md text-[11px] font-bold bg-blue-600 text-white min-w-[1.25rem] text-center">
+              <span className="px-1.5 py-0.5 rounded-md text-xs font-bold bg-blue-600 text-white min-w-[1.25rem] text-center">
                 {unreadCount}
               </span>
             )}
@@ -248,7 +248,7 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
           <button
             type="button"
             onClick={() => setTab('all')}
-            className={`flex-1 px-4 py-2.5 text-[13px] font-medium transition-colors ${
+            className={`flex-1 px-4 py-2.5 text-sm font-medium transition-colors ${
               tab === 'all'
                 ? isDark
                   ? 'text-blue-400 border-b-2 border-blue-400'
@@ -263,7 +263,7 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
           <button
             type="button"
             onClick={() => setTab('unread')}
-            className={`flex-1 px-4 py-2.5 text-[13px] font-medium transition-colors ${
+            className={`flex-1 px-4 py-2.5 text-sm font-medium transition-colors ${
               tab === 'unread'
                 ? isDark
                   ? 'text-blue-400 border-b-2 border-blue-400'
@@ -275,7 +275,7 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
           >
             未读
             {unreadCount > 0 && (
-              <span className="ml-1.5 text-[11px] opacity-80">({unreadCount})</span>
+              <span className="ml-1.5 text-xs opacity-80">({unreadCount})</span>
             )}
           </button>
         </div>
@@ -354,7 +354,7 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
           {filtered.length === 0 ? (
             <div className={`flex flex-col items-center justify-center py-12 px-4 ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
               <Mail size={32} className="opacity-50 mb-3" />
-              <p className="text-[13px]">暂无{tab === 'unread' ? '未读' : ''}消息</p>
+              <p className="text-sm">暂无{tab === 'unread' ? '未读' : ''}消息</p>
             </div>
           ) : (
             <ul className={isDark ? 'divide-y divide-dashed divide-white/10' : 'divide-y divide-dashed divide-slate-200'}>
@@ -377,7 +377,7 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
                       </span>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`font-semibold text-[13px] truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                          <span className={`font-semibold text-sm truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
                             {m.title}
                           </span>
                           {!m.read && (
@@ -387,7 +387,7 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
                         <p className={`text-[12px] mt-0.5 line-clamp-2 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
                           {m.body}
                         </p>
-                        <p className={`text-[11px] mt-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{m.time}</p>
+                        <p className={`text-xs mt-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{m.time}</p>
                       </div>
                       <ChevronRight size={16} className="mt-0.5 shrink-0 self-start text-slate-400" />
                     </button>
@@ -451,7 +451,7 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
                     </div>
                     <div className={`px-5 py-4 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                       {detailLoading ? (
-                        <p className={`text-[13px] ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>正在加载详情…</p>
+                        <p className={`text-sm ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>正在加载详情…</p>
                       ) : (
                         <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{detailMessage.body}</p>
                       )}

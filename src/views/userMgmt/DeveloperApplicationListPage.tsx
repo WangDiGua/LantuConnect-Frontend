@@ -151,7 +151,7 @@ export const DeveloperApplicationListPage: React.FC<Props> = ({ theme, fontSize,
         cell: (app) => (
           <div>
             <div>{app.contactEmail}</div>
-            {app.contactPhone ? <div className="text-[11px] mt-0.5">{app.contactPhone}</div> : null}
+            {app.contactPhone ? <div className="text-xs mt-0.5">{app.contactPhone}</div> : null}
           </div>
         ),
       },
@@ -175,12 +175,12 @@ export const DeveloperApplicationListPage: React.FC<Props> = ({ theme, fontSize,
           <div>
             <div className="whitespace-nowrap">{formatDateTime(app.createTime, '-')}</div>
             {app.applyReason ? (
-              <div className={`text-[11px] mt-0.5 line-clamp-1 max-w-[200px]`} title={app.applyReason}>
+              <div className={`text-xs mt-0.5 line-clamp-1 max-w-[200px]`} title={app.applyReason}>
                 原因: {app.applyReason}
               </div>
             ) : null}
             {app.reviewComment ? (
-              <div className="text-[11px] mt-0.5 line-clamp-1 max-w-[200px] text-amber-500" title={app.reviewComment}>
+              <div className="text-xs mt-0.5 line-clamp-1 max-w-[200px] text-amber-500" title={app.reviewComment}>
                 意见: {app.reviewComment}
               </div>
             ) : null}

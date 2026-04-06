@@ -821,7 +821,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
           onTabChange={(id) => setDetailTab(id as McpDetailTab)}
           mainColumn={(
             <div className="space-y-5">
-              <p className={`text-[11px] ${textMuted(theme)}`}>
+              <p className={`text-xs ${textMuted(theme)}`}>
                 {detailTab === 'service'
                   ? '当前：服务详情（Markdown）'
                   : detailTab === 'invoke'
@@ -861,7 +861,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                     ]}
                     triggerClassName="!text-xs"
                   />
-                  <label className={`mt-2 flex cursor-pointer items-start gap-2 text-[11px] ${textMuted(theme)}`}>
+                  <label className={`mt-2 flex cursor-pointer items-start gap-2 text-xs ${textMuted(theme)}`}>
                     <input
                       type="checkbox"
                       className={`mt-0.5 ${lantuCheckboxPrimaryClass}`}
@@ -898,7 +898,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                       {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
                     </button>
                   </div>
-                  <p className={`mt-1 text-[11px] ${textMuted(theme)}`}>
+                  <p className={`mt-1 text-xs ${textMuted(theme)}`}>
                     请填写创建 API Key 时返回的完整 <code className="font-mono">sk_...</code> 明文（非 id、prefix、掩码）。
                   </p>
                 </div>
@@ -920,7 +920,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                       <RefreshCw size={14} />
                     </button>
                   </div>
-                  <p className={`mt-1 text-[11px] ${textMuted(theme)}`}>与网关 SSE 解析及 JSON-RPC id 对齐时可固定使用本值</p>
+                  <p className={`mt-1 text-xs ${textMuted(theme)}`}>与网关 SSE 解析及 JSON-RPC id 对齐时可固定使用本值</p>
                 </div>
                 <div>
                   <label className={`mb-1.5 block text-xs font-semibold ${textSecondary(theme)}`}>解析版本</label>
@@ -943,7 +943,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                       <RefreshCw size={14} className={detailPageLoading ? 'animate-spin' : ''} />
                     </button>
                   </div>
-                  <p className={`mt-1 text-[11px] ${textMuted(theme)}`}>
+                  <p className={`mt-1 text-xs ${textMuted(theme)}`}>
                     自动使用本页目录详情中的默认版本（发布者「设为当前」）；若为空则与不指定版本行为一致。
                   </p>
                 </div>
@@ -957,7 +957,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                     onChange={(e) => setInvokeTimeoutSec(Number(e.target.value) || 60)}
                     className={`${nativeInputClass(theme)} font-mono text-xs`}
                   />
-                  <p className={`mt-1 text-[11px] ${textMuted(theme)}`}>
+                  <p className={`mt-1 text-xs ${textMuted(theme)}`}>
                     {invokeUseStream ? '流式时最长 600 秒（与网关一致）' : '建议范围 1~120 秒'}
                   </p>
                 </div>
@@ -1011,7 +1011,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                 {mcpPayloadMode === 'simple' ? (
                   <div className="space-y-2">
                     <div>
-                      <label className={`mb-1.5 block text-[11px] font-medium ${textMuted(theme)}`}>JSON-RPC method</label>
+                      <label className={`mb-1.5 block text-xs font-medium ${textMuted(theme)}`}>JSON-RPC method</label>
                       <LantuSelect
                         theme={theme}
                         value={mcpMethod}
@@ -1019,10 +1019,10 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                         options={mcpMethodOptions}
                         triggerClassName="!text-xs"
                       />
-                      <p className={`mt-1 text-[11px] ${textMuted(theme)}`}>展示为中文提示，实际发送仍使用后端要求的 method 值</p>
+                      <p className={`mt-1 text-xs ${textMuted(theme)}`}>展示为中文提示，实际发送仍使用后端要求的 method 值</p>
                     </div>
                     <div>
-                      <label className={`mb-1.5 block text-[11px] font-medium ${textMuted(theme)}`}>参数示例模板</label>
+                      <label className={`mb-1.5 block text-xs font-medium ${textMuted(theme)}`}>参数示例模板</label>
                       <LantuSelect
                         theme={theme}
                         value={mcpPresetId}
@@ -1030,10 +1030,10 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                         options={methodPresetOptions}
                         triggerClassName="!text-xs"
                       />
-                      <p className={`mt-1 text-[11px] ${textMuted(theme)}`}>模板中的 `your_tool_name` / `arguments` 为占位，请按当前 MCP 实际工具名修改</p>
+                      <p className={`mt-1 text-xs ${textMuted(theme)}`}>模板中的 `your_tool_name` / `arguments` 为占位，请按当前 MCP 实际工具名修改</p>
                     </div>
                     <div>
-                      <label className={`mb-1.5 block text-[11px] font-medium ${textMuted(theme)}`}>params（JSON 对象）</label>
+                      <label className={`mb-1.5 block text-xs font-medium ${textMuted(theme)}`}>params（JSON 对象）</label>
                       <AutoHeightTextarea
                         minRows={5}
                         maxRows={22}
@@ -1042,14 +1042,14 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                         className={`${nativeInputClass(theme)} resize-none font-mono text-xs`}
                         placeholder='例如 tools/call：{ "name": "...", "arguments": {} }'
                       />
-                      <p className={`mt-1 text-[11px] ${textMuted(theme)}`}>
+                      <p className={`mt-1 text-xs ${textMuted(theme)}`}>
                         字段说明：<code className="font-mono">name</code> = 工具名；<code className="font-mono">arguments</code> = 传给该工具的参数对象
                       </p>
                     </div>
                   </div>
                 ) : (
                   <div>
-                    <p className={`mb-1.5 text-[11px] ${textMuted(theme)}`}>
+                    <p className={`mb-1.5 text-xs ${textMuted(theme)}`}>
                       完整 payload，须含 <code className="font-mono">method</code>；可与 <code className="font-mono">params</code> 并列，或按网关约定省略 params 由其余字段充当 params。
                     </p>
                     <AutoHeightTextarea
@@ -1084,7 +1084,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                     <div className="flex flex-wrap items-center gap-2">
                       <h5 className={`text-sm font-semibold ${textSecondary(theme)}`}>调用结果</h5>
                       <span
-                        className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                        className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                           invokeJsonRpcError
                             ? isDark ? 'bg-amber-500/20 text-amber-100' : 'bg-amber-100 text-amber-900'
                             : invokeGatewaySuccess
@@ -1096,7 +1096,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                       </span>
                       {invokeJsonRpcError && (
                         <span
-                          className={`rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums ${
+                          className={`rounded-full px-2 py-0.5 text-xs font-medium tabular-nums ${
                             isDark ? 'bg-white/10 text-white/70' : 'bg-slate-200/80 text-slate-700'
                           }`}
                         >
@@ -1148,15 +1148,15 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                   ) : null}
                   <div className="grid gap-2 sm:grid-cols-3">
                     <div className={`rounded-xl border p-2.5 ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-white'}`}>
-                      <p className={`text-[11px] ${textMuted(theme)}`}>状态码</p>
+                      <p className={`text-xs ${textMuted(theme)}`}>状态码</p>
                       <p className={`mt-1 text-sm font-semibold ${textPrimary(theme)}`}>{invokeResponse.statusCode}</p>
                     </div>
                     <div className={`rounded-xl border p-2.5 ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-white'}`}>
-                      <p className={`text-[11px] ${textMuted(theme)}`}>耗时</p>
+                      <p className={`text-xs ${textMuted(theme)}`}>耗时</p>
                       <p className={`mt-1 text-sm font-semibold ${textPrimary(theme)}`}>{invokeResponse.latencyMs} ms</p>
                     </div>
                     <div className={`rounded-xl border p-2.5 ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-white'}`}>
-                      <p className={`text-[11px] ${textMuted(theme)}`}>资源</p>
+                      <p className={`text-xs ${textMuted(theme)}`}>资源</p>
                       <p className={`mt-1 text-sm font-semibold ${textPrimary(theme)}`}>
                         {invokeResponse.resourceType}
                         {'/'}
@@ -1216,9 +1216,9 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                 <p className="font-semibold">统一网关 MCP 试用说明</p>
                 <p className={`mt-1.5 ${isDark ? 'text-amber-100/75' : 'text-amber-950/70'}`}>
                   多轮流程（如 initialize → tools/list → tools/call）请<strong className="font-semibold">连续多次点击顶栏「调用」</strong>，并保持同一 API Key；
-                  <code className="mx-0.5 rounded px-1 py-0.5 font-mono text-[11px] opacity-90">Mcp-Session-Id</code>
+                  <code className="mx-0.5 rounded px-1 py-0.5 font-mono text-xs opacity-90">Mcp-Session-Id</code>
                   由网关按密钥与 endpoint 自动维护，前端无需手动传递。工具真实名称须以
-                  <code className="mx-0.5 rounded px-1 py-0.5 font-mono text-[11px] opacity-90">tools/list</code>
+                  <code className="mx-0.5 rounded px-1 py-0.5 font-mono text-xs opacity-90">tools/list</code>
                   返回为准。
                 </p>
               </div>
@@ -1259,7 +1259,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
               <Puzzle className="h-6 w-6 sm:h-6 sm:w-6" strokeWidth={2.25} />
             </div>
             <div className="min-w-0">
-              <p className={`text-[11px] font-semibold uppercase tracking-wider ${textMuted(theme)}`}>MCP plaza</p>
+              <p className={`text-xs font-semibold uppercase tracking-wider ${textMuted(theme)}`}>MCP plaza</p>
               <h1 className={`mt-0.5 font-bold tracking-tight ${MARKET_HERO_TITLE_CLASSES[fontSize]}`}>
                 <span className="bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-500 bg-clip-text text-transparent dark:from-violet-400 dark:via-indigo-400 dark:to-cyan-400">
                   {chromePageTitle || 'MCP 广场'}
@@ -1298,7 +1298,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
               isDark ? 'border-violet-500/20 bg-gradient-to-br from-violet-600/15 to-slate-900/30' : 'border-violet-200/70 bg-gradient-to-br from-violet-50 to-white'
             }`}
           >
-            <div className="mb-2 inline-flex rounded-full bg-violet-500/15 px-2.5 py-0.5 text-[11px] font-bold text-violet-700 dark:text-violet-200">
+            <div className="mb-2 inline-flex rounded-full bg-violet-500/15 px-2.5 py-0.5 text-xs font-bold text-violet-700 dark:text-violet-200">
               <Zap className="mr-1 h-3.5 w-3.5" aria-hidden />
               接入
             </div>
@@ -1312,7 +1312,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
               isDark ? 'border-cyan-500/20 bg-gradient-to-br from-cyan-600/12 to-slate-900/30' : 'border-cyan-200/70 bg-gradient-to-br from-cyan-50/90 to-white'
             }`}
           >
-            <div className="mb-2 inline-flex rounded-full bg-cyan-500/15 px-2.5 py-0.5 text-[11px] font-bold text-cyan-800 dark:text-cyan-200">
+            <div className="mb-2 inline-flex rounded-full bg-cyan-500/15 px-2.5 py-0.5 text-xs font-bold text-cyan-800 dark:text-cyan-200">
               调试
             </div>
             <p className={`text-sm font-semibold ${textPrimary(theme)}`}>JSON-RPC 模板</p>
@@ -1325,7 +1325,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
               isDark ? 'border-fuchsia-500/20 bg-gradient-to-br from-fuchsia-600/12 to-slate-900/30' : 'border-fuchsia-200/70 bg-gradient-to-br from-fuchsia-50/90 to-white'
             }`}
           >
-            <div className="mb-2 inline-flex rounded-full bg-fuchsia-500/15 px-2.5 py-0.5 text-[11px] font-bold text-fuchsia-800 dark:text-fuchsia-200">
+            <div className="mb-2 inline-flex rounded-full bg-fuchsia-500/15 px-2.5 py-0.5 text-xs font-bold text-fuchsia-800 dark:text-fuchsia-200">
               治理
             </div>
             <p className={`text-sm font-semibold ${textPrimary(theme)}`}>收藏与评价</p>
@@ -1469,7 +1469,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                           {(item.tags ?? []).slice(0, 5).map((tg) => (
                             <span
                               key={tg}
-                              className={`rounded-md px-2 py-0.5 text-[11px] font-medium ${
+                              className={`rounded-md px-2 py-0.5 text-xs font-medium ${
                                 isDark ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-600'
                               }`}
                             >
@@ -1482,7 +1482,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                       description={item.description || '暂无描述'}
                       footerLeft={(
                         <span
-                          className="block truncate font-mono text-[11px]"
+                          className="block truncate font-mono text-xs"
                           title={item.resourceCode || item.resourceId}
                         >
                           @{item.resourceCode || item.resourceId}

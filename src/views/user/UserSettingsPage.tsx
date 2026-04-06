@@ -409,7 +409,7 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
             {newPlainKey && (
               <div className={`rounded-xl p-3 border space-y-2 ${isDark ? 'bg-emerald-500/10 border-emerald-500/25' : 'bg-emerald-50 border-emerald-200'}`}>
                 <p className={`text-xs font-semibold ${isDark ? 'text-emerald-100' : 'text-emerald-950'}`}>密钥仅出现这一次</p>
-                <p className={`text-[11px] leading-relaxed ${textSecondary(theme)}`}>
+                <p className={`text-xs leading-relaxed ${textSecondary(theme)}`}>
                   服务端只保存密钥的校验摘要，<strong className={textPrimary(theme)}>无法找回</strong>明文。请复制到密码管理器或环境变量；需要在本站「市场 / 网关调试」里用时，可一键写入下面共用的本机存储。
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -470,18 +470,18 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
                   <div key={key.id} className={`flex items-center justify-between gap-3 py-2.5 border-b last:border-0 ${isDark ? 'border-white/[0.05]' : 'border-slate-100'}`}>
                     <div className="min-w-0">
                       <p className={`text-sm font-semibold truncate ${textPrimary(theme)}`}>{key.name}</p>
-                      <p className={`text-[10px] font-mono ${textMuted(theme)}`}>id: {key.id}</p>
-                      <p className={`text-[10px] font-mono ${textMuted(theme)}`} title="网关按 scope 校验 catalog/resolve/invoke">
+                      <p className={`text-xs font-mono ${textMuted(theme)}`}>id: {key.id}</p>
+                      <p className={`text-xs font-mono ${textMuted(theme)}`} title="网关按 scope 校验 catalog/resolve/invoke">
                         scope: {key.scopes?.length ? key.scopes.join(', ') : '—'}
                       </p>
                       {!apiKeyScopesAllowGatewayFlow(key.scopes) ? (
-                        <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5">
+                        <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
                           Scope 不完整，调用可能失败；请撤销后重建或查看 API 文档。
                         </p>
                       ) : null}
                       <p className={`text-xs ${textMuted(theme)}`} title="掩码或前缀，不可作为 X-Api-Key">
                         {key.maskedKey || key.prefix}
-                        <span className={`block text-[10px] mt-0.5 ${textMuted(theme)}`}>（掩码，非请求头密钥）</span>
+                        <span className={`block text-xs mt-0.5 ${textMuted(theme)}`}>（掩码，非请求头密钥）</span>
                       </p>
                     </div>
                     <button

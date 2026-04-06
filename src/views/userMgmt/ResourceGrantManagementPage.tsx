@@ -241,7 +241,7 @@ export const ResourceGrantManagementPage: React.FC<Props> = ({ theme, fontSize, 
                   {grantFieldErrors.granteeApiKeyId}
                 </p>
               ) : null}
-              <p className={`text-[11px] ${textSecondary(theme)}`}>填写被授权 Key 的<strong>记录 id</strong>（非请求头明文）。<code className="font-mono">X-Api-Key</code> 与 <code className="font-mono">secretPlain</code> 说明见 API 文档。</p>
+              <p className={`text-xs ${textSecondary(theme)}`}>填写被授权 Key 的<strong>记录 id</strong>（非请求头明文）。<code className="font-mono">X-Api-Key</code> 与 <code className="font-mono">secretPlain</code> 说明见 API 文档。</p>
             </div>
             <input
               className={nativeInputClass(theme)}

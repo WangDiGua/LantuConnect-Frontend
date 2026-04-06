@@ -22,7 +22,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
     <h3 className="text-[15px] font-semibold text-neutral-900 dark:text-neutral-200 tracking-tight mb-2">
       {title}
     </h3>
-    <p className="text-[13px] text-neutral-500 dark:text-neutral-400 max-w-[280px] mb-6 leading-relaxed">
+    <p className="text-sm text-neutral-500 dark:text-neutral-400 max-w-[280px] mb-6 leading-relaxed">
       {description}
     </p>
 

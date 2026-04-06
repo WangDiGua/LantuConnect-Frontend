@@ -279,7 +279,7 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme, fon
                 />
               </div>
               {playgroundPathNeedsApiKey(url) && (
-                <p className={`text-[11px] leading-snug rounded-lg px-3 py-2 ${isDark ? 'bg-amber-500/10 text-amber-100/90 border border-amber-500/20' : 'bg-amber-50 text-amber-950 border border-amber-200/80'}`}>
+                <p className={`text-xs leading-snug rounded-lg px-3 py-2 ${isDark ? 'bg-amber-500/10 text-amber-100/90 border border-amber-500/20' : 'bg-amber-50 text-amber-950 border border-amber-200/80'}`}>
                   当前 URL 属于<strong>执行向</strong>：须有效的 <span className="font-mono">X-Api-Key</span>。若已从本机注入，请检查下方 Headers 中的对应行。
                 </p>
               )}

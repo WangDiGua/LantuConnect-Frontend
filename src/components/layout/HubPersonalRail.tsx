@@ -217,7 +217,7 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
                       setShowUserMenu(false);
                       onProfileClick();
                     }}
-                    className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-inset ${
+                    className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-inset ${
                       isDark ? 'text-slate-200 hover:bg-white/[0.08]' : 'text-slate-800 hover:bg-slate-100'
                     }`}
                   >
@@ -231,7 +231,7 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
                       setShowUserMenu(false);
                       void onLogout();
                     }}
-                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium text-red-500 hover:bg-red-500/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/45 focus-visible:ring-inset"
+                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-red-500 hover:bg-red-500/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/45 focus-visible:ring-inset"
                   >
                     <LogOut size={15} aria-hidden />
                     退出登录
@@ -263,7 +263,7 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
                 <div className={`truncate text-sm font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{displayName}</div>
                 <div className="mt-1 flex min-w-0 items-center gap-1.5">
                   <span
-                    className={`inline-flex max-w-full shrink truncate rounded-md border px-2 py-0.5 text-[11px] font-medium leading-tight tabular-nums ${
+                    className={`inline-flex max-w-full shrink truncate rounded-md border px-2 py-0.5 text-xs font-medium leading-tight tabular-nums ${
                       isDark
                         ? 'border-white/12 bg-white/[0.08] text-slate-300'
                         : 'border-slate-200/80 bg-slate-100/90 text-slate-600'
@@ -300,7 +300,7 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
               <div className={`truncate text-sm font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{displayName}</div>
               <div className="mt-1 flex min-w-0 items-center gap-1.5">
                 <span
-                  className={`inline-flex max-w-full shrink truncate rounded-md border px-2 py-0.5 text-[11px] font-medium leading-tight tabular-nums ${
+                  className={`inline-flex max-w-full shrink truncate rounded-md border px-2 py-0.5 text-xs font-medium leading-tight tabular-nums ${
                     isDark
                       ? 'border-white/12 bg-white/[0.08] text-slate-300'
                       : 'border-slate-200/80 bg-slate-100/90 text-slate-600'
@@ -353,14 +353,14 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
           onBlur={() => setSearchFocused(false)}
           placeholder="搜索菜单..."
           className={[
-            'min-w-0 flex-1 border-none bg-transparent px-2.5 py-0 text-[13px] font-medium leading-none outline-none',
+            'min-w-0 flex-1 border-none bg-transparent px-2.5 py-0 text-sm font-medium leading-none outline-none',
             isDark ? 'text-slate-200 placeholder:text-slate-500' : 'text-gray-700 placeholder-gray-400',
           ].join(' ')}
           aria-label="搜索菜单"
         />
         <div
           className={[
-            'flex shrink-0 select-none items-center justify-center self-center rounded-[5px] px-1.5 py-0.5 text-[10px] font-semibold leading-none tracking-wider transition-all duration-200',
+            'flex shrink-0 select-none items-center justify-center self-center rounded-[5px] px-1.5 py-0.5 text-xs font-semibold leading-none tracking-wider transition-all duration-200',
             searchFocused
               ? 'pointer-events-none scale-90 opacity-0'
               : [
@@ -408,7 +408,7 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
                     aria-hidden
                   />
                   <span
-                    className={`max-w-[12rem] shrink-0 text-center text-[10px] font-bold uppercase leading-none tracking-wider ${
+                    className={`max-w-[12rem] shrink-0 text-center text-xs font-bold uppercase leading-none tracking-wider ${
                       isDark ? 'text-slate-400' : 'text-slate-600'
                     }`}
                   >
@@ -500,7 +500,7 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
                               type="button"
                               onClick={() => onSubItemClick(row.subItemId, sec.parentSidebarId, sec.domain)}
                               aria-current={isActive ? 'page' : undefined}
-                              className={`flex min-h-9 w-full items-center gap-2 rounded-md py-1.5 pl-1 pr-2 text-left text-[13px] leading-snug transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
+                              className={`flex min-h-9 w-full items-center gap-2 rounded-md py-1.5 pl-1 pr-2 text-left text-sm leading-snug transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
                                 isActive
                                   ? isDark
                                     ? 'bg-white/12 font-medium text-slate-50'

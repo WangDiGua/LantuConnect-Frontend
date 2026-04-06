@@ -150,15 +150,15 @@ export const AlertMgmtPage: React.FC<AlertMgmtPageProps> = ({ theme, fontSize })
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className={`font-semibold truncate min-w-0 ${textPrimary(theme)}`} title={safeText(r.ruleName)}>{safeText(r.ruleName) || '未命名规则'}</span>
-                          <span className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${isDark ? sevBadge.dark : sevBadge.light}`}>
+                          <span className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${isDark ? sevBadge.dark : sevBadge.light}`}>
                             {sevBadge.label}
                           </span>
                           <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap">
                             <span className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[r.status]}`} />
-                            <span className={`text-[11px] font-medium ${textSecondary(theme)}`}>{STATUS_LABEL[r.status]}</span>
+                            <span className={`text-xs font-medium ${textSecondary(theme)}`}>{STATUS_LABEL[r.status]}</span>
                           </span>
                           {resBadge ? (
-                            <span className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-semibold ${isDark ? 'bg-violet-500/15 text-violet-300' : 'bg-violet-50 text-violet-800'}`}>
+                            <span className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${isDark ? 'bg-violet-500/15 text-violet-300' : 'bg-violet-50 text-violet-800'}`}>
                               {resBadge}
                             </span>
                           ) : null}

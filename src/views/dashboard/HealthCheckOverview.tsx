@@ -176,7 +176,7 @@ export const HealthCheckOverview: React.FC<Props> = ({ theme }) => {
                               </span>
                             </td>
                             <td className={tableCell()}>
-                              <span className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${isDark ? cfg.darkBg : cfg.lightBg}`}>
+                              <span className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap px-2.5 py-0.5 rounded-full text-xs font-semibold ${isDark ? cfg.darkBg : cfg.lightBg}`}>
                                 <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot} ${item.status === 'healthy' ? 'animate-pulse' : ''}`} />
                                 {cfg.label}
                               </span>

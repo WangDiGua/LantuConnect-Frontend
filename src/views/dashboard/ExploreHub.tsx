@@ -160,7 +160,7 @@ const HubResourceCard: React.FC<{
           </span>
           {showReason && item.reason?.trim() ? (
             <span
-              className={`text-[10px] font-semibold px-2 py-0.5 rounded-md truncate max-w-[200px] ${
+              className={`text-xs font-semibold px-2 py-0.5 rounded-md truncate max-w-[200px] ${
                 isDark ? 'bg-sky-500/15 text-sky-200 border border-sky-400/25' : 'bg-sky-50 text-sky-800 border border-sky-100'
               }`}
               title={item.reason}
@@ -217,7 +217,7 @@ const HubResourceCard: React.FC<{
       >
         <div className={`flex items-center gap-2 text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
           <div
-            className={`w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-[10px] ${
+            className={`w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-xs ${
               isDark ? 'bg-gradient-to-br from-slate-600 to-slate-700' : 'bg-gradient-to-br from-slate-200 to-slate-300'
             }`}
           >
@@ -282,7 +282,7 @@ const HubStatCard: React.FC<{
         }`}>
           {value}
         </div>
-        <div className={`text-[11px] font-medium transition-colors duration-300 ${
+        <div className={`text-xs font-medium transition-colors duration-300 ${
           isDark ? 'text-slate-400 group-hover:text-slate-200' : 'text-slate-500 group-hover:text-slate-800'
         }`}>
           {label}
@@ -454,7 +454,7 @@ const HeroCodeTerminal: React.FC<{ compact?: boolean }> = ({ compact = false }) 
 
   const outerPad = compact ? 'p-4 -m-4 max-w-[calc(100%+2rem)]' : 'p-10 -m-10 max-w-[calc(100%+5rem)]';
   const termWidth = compact ? 'w-[280px]' : 'w-[420px]';
-  const codeText = compact ? 'text-[11px] leading-snug' : 'text-sm leading-relaxed';
+  const codeText = compact ? 'text-xs leading-snug' : 'text-sm leading-relaxed';
   const headPad = compact ? 'px-3 py-2' : 'px-4 py-3';
   const innerPad = compact ? 'p-3' : 'p-5';
   const rotate = compact ? 'rotate(-1deg)' : 'rotate(-2deg)';
@@ -513,7 +513,7 @@ const HeroCodeTerminal: React.FC<{ compact?: boolean }> = ({ compact = false }) 
           <div className={`${compact ? 'w-2.5 h-2.5' : 'w-3 h-3'} rounded-full bg-yellow-500/80`} />
           <div className={`${compact ? 'w-2.5 h-2.5' : 'w-3 h-3'} rounded-full bg-green-500/80`} />
         </div>
-        <div className={`mx-auto text-gray-500 font-mono ${compact ? 'text-[10px]' : 'text-xs'}`}>agent-deploy.ts</div>
+        <div className={`mx-auto text-gray-500 font-mono ${compact ? 'text-xs' : 'text-xs'}`}>agent-deploy.ts</div>
       </div>
 
       <div
@@ -736,7 +736,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
             className={`group mb-3 inline-flex max-w-full items-center gap-2 rounded-full border border-white/[0.12] bg-white/[0.08] px-3 py-1.5 text-left shadow-md backdrop-blur-md transition-colors hover:border-white/[0.16] hover:bg-white/[0.11] focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/55 focus-visible:ring-offset-2 ${heroRingOffset}`}
           >
             <Sparkles className="h-3.5 w-3.5 shrink-0 text-sky-400" strokeWidth={2} aria-hidden />
-            <span className="text-xs font-medium text-white sm:text-[13px]">Nexus Pro 2.0 现已发布</span>
+            <span className="text-xs font-medium text-white sm:text-sm">Nexus Pro 2.0 现已发布</span>
             <ChevronRight
               className="ml-0.5 h-3.5 w-3.5 shrink-0 text-slate-500 transition-transform group-hover:translate-x-0.5 group-hover:text-slate-400"
               strokeWidth={2}

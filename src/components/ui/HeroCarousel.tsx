@@ -72,7 +72,7 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
                 <div className="grid sm:grid-cols-[1fr_auto] gap-6 items-center">
                   <div className="min-w-0 space-y-3 sm:space-y-4">
                     <p
-                      className={`text-[11px] font-bold uppercase tracking-[0.2em] ${
+                      className={`text-xs font-bold uppercase tracking-[0.2em] ${
                         isDark ? s.kickerDark : s.kickerLight
                       }`}
                     >
@@ -112,7 +112,7 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
           isDark ? 'border-white/10 bg-black/20' : 'border-slate-200/90 bg-white/60'
         } backdrop-blur-md`}
       >
-        <span className={`text-[11px] font-medium ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
+        <span className={`text-xs font-medium ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
           智能体接入平台 · 工作台要闻
         </span>
       </div>

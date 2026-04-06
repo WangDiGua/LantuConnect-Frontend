@@ -36,7 +36,7 @@ export function GatewayApiKeyInput({ theme, value, onChange, className, id, erro
           {errorText}
         </p>
       ) : null}
-      <p className={`mt-1.5 text-[11px] leading-snug ${textMuted(theme)}`}>
+      <p className={`mt-1.5 text-xs leading-snug ${textMuted(theme)}`}>
         与用户设置、MCP 市场共用本地存储。浏览目录可仅用登录态；解析与执行（resolve / invoke / 应用打开）须填写有效 Key。
       </p>
     </div>

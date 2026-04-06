@@ -152,15 +152,15 @@ export const glowRose = 'hover:shadow-[var(--shadow-glow-rose)]';
    Buttons — Vercel / Linear style
    ═══════════════════════════════════════════ */
 
-export const btnPrimary = 'inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[13px] leading-none font-semibold whitespace-nowrap text-white bg-neutral-900 hover:bg-neutral-800 active:scale-[0.98] transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/45 disabled:opacity-50 disabled:pointer-events-none';
+export const btnPrimary = 'inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm leading-none font-semibold whitespace-nowrap text-white bg-neutral-900 hover:bg-neutral-800 active:scale-[0.98] transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/45 disabled:opacity-50 disabled:pointer-events-none';
 
-export const btnDanger = 'inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[13px] leading-none font-medium whitespace-nowrap text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none';
+export const btnDanger = 'inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm leading-none font-medium whitespace-nowrap text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none';
 
 export const btnHeroPrimary = 'inline-flex items-center gap-2 px-6 py-3 bg-white text-neutral-900 text-sm leading-none font-bold whitespace-nowrap rounded-xl hover:scale-[1.02] transition-transform shadow-lg shadow-white/10';
 export const btnHeroSecondary = 'inline-flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 text-white text-sm leading-none font-semibold whitespace-nowrap rounded-xl backdrop-blur-sm transition-colors border border-white/5';
 
 export function btnSecondary(theme: Theme) {
-  return `inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[13px] leading-none font-semibold whitespace-nowrap transition-all duration-200 motion-reduce:transition-none active:scale-[0.98] motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/40 ${
+  return `inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm leading-none font-semibold whitespace-nowrap transition-all duration-200 motion-reduce:transition-none active:scale-[0.98] motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/40 ${
     D(theme)
       ? 'bg-white/10 text-neutral-300 hover:bg-white/15 hover:text-white focus-visible:ring-sky-400/45'
       : 'bg-neutral-100 text-neutral-900 hover:bg-neutral-200/80'
@@ -168,7 +168,7 @@ export function btnSecondary(theme: Theme) {
 }
 
 export function btnGhost(theme: Theme) {
-  return `inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-[13px] leading-none font-medium whitespace-nowrap transition-all duration-200 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/35 ${
+  return `inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm leading-none font-medium whitespace-nowrap transition-all duration-200 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/35 ${
     D(theme) ? 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5 focus-visible:ring-sky-400/40' : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
   }`;
 }
@@ -192,7 +192,7 @@ export function tableBodyRow(theme: Theme, index: number) {
 }
 
 export function tableCell() {
-  return 'px-6 py-4 text-[13px]';
+  return 'px-6 py-4 text-sm';
 }
 
 /** 表单元格内横向滚动单行（配合 td max-w；样式见 index.css `lantu-table-cell-scroll-x`） */
@@ -297,7 +297,7 @@ export function statusBadgeClass(status: DomainStatus | string, theme: Theme) {
   const s = typeof status === 'string' ? coerceToDomainStatus(status) : status;
   const c = STATUS_COLOR[s] || STATUS_COLOR.unknown;
   /** `whitespace-nowrap shrink-0`：避免宽表挤压时中文/标签被压成一字一行 */
-  return `inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-semibold tracking-wide whitespace-nowrap shrink-0 ${D(theme) ? c.dark : c.light}`;
+  return `inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold tracking-wide whitespace-nowrap shrink-0 ${D(theme) ? c.dark : c.light}`;
 }
 
 export function statusDot(status: DomainStatus | string) {
@@ -343,7 +343,7 @@ export function cardHeading(theme: Theme) {
 
 /** 表单字段标签 */
 export function labelBase(theme: Theme) {
-  return `text-[13px] font-medium ${D(theme) ? 'text-neutral-300' : 'text-neutral-700'}`;
+  return `text-sm font-medium ${D(theme) ? 'text-neutral-300' : 'text-neutral-700'}`;
 }
 
 /** 辅助说明 / 表单项下提示 */
@@ -411,7 +411,7 @@ export const transitionStandard = 'transition-all duration-200 ease-out motion-r
    ═══════════════════════════════════════════ */
 
 export function techBadge(theme: Theme) {
-  return `text-[11px] uppercase tracking-wide font-medium px-2 py-0.5 rounded-lg border ${
+  return `text-xs uppercase tracking-wide font-medium px-2 py-0.5 rounded-lg border ${
     D(theme) ? 'bg-white/5 text-neutral-500 border-white/10' : 'bg-neutral-100 text-neutral-600 border-neutral-200/60'
   }`;
 }

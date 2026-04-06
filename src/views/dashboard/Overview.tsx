@@ -156,7 +156,7 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
                   <div className={`text-lg font-bold tabular-nums ${tp}`}>
                     {rt?.publishedResourceCounts?.[t] ?? '—'}
                   </div>
-                  <div className={`text-[10px] ${tm}`}>已登记资源</div>
+                  <div className={`text-xs ${tm}`}>已登记资源</div>
                 </div>
               ))}
             </div>
@@ -322,7 +322,7 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
                   <div className="text-right">
                     <span className={`text-sm font-bold tabular-nums ${tp}`}>{formatNum(item.calls)}</span>
                     {item.successRate != null && item.successRate > 0 ? (
-                      <div className={`text-[10px] tabular-nums ${tm}`}>成功率 {item.successRate}%</div>
+                      <div className={`text-xs tabular-nums ${tm}`}>成功率 {item.successRate}%</div>
                     ) : null}
                   </div>
                 </div>

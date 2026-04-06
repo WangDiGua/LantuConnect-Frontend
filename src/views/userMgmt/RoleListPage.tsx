@@ -125,7 +125,7 @@ export const RoleListPage: React.FC<RoleListPageProps> = ({ theme, fontSize, bre
         header: '系统内置',
         cell: (r) =>
           r.isSystem ? (
-            <span className={`inline-flex shrink-0 items-center whitespace-nowrap text-[11px] px-1.5 py-0.5 rounded ${isDark ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-50 text-amber-600'}`}>是</span>
+            <span className={`inline-flex shrink-0 items-center whitespace-nowrap text-xs px-1.5 py-0.5 rounded ${isDark ? 'bg-amber-500/10 text-amber-400' : 'bg-amber-50 text-amber-600'}`}>是</span>
           ) : (
             <span className={textMuted(theme)}>否</span>
           ),

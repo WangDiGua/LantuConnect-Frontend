@@ -1620,7 +1620,7 @@ const MainLayoutContent: React.FC<{
                     <Bell size={18} strokeWidth={1.75} />
                     {messageUnreadCount > 0 && (
                       <span
-                        className={`absolute -right-1 -top-1 flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 px-1 text-[10px] font-bold leading-none text-white shadow-sm ${
+                        className={`absolute -right-1 -top-1 flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 px-1 text-xs font-bold leading-none text-white shadow-sm ${
                           isDark ? 'border-lantu-card bg-rose-500' : 'border-white bg-rose-500'
                         }`}
                       >
@@ -1681,7 +1681,7 @@ const MainLayoutContent: React.FC<{
                           storeLogout();
                           navigate('/login', { replace: true });
                         }}
-                        className="flex min-h-11 w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium text-red-500 transition-colors hover:bg-red-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/45 focus-visible:ring-inset"
+                        className="flex min-h-11 w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-red-500 transition-colors hover:bg-red-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/45 focus-visible:ring-inset"
                       >
                         <LogOut size={15} aria-hidden />
                         退出登录

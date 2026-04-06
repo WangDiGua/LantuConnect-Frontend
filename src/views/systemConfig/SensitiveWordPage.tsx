@@ -536,7 +536,7 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
           <div>
             <label className={`text-sm font-medium ${textSecondary(theme)} mb-1 block`}>敏感词</label>
             <p className={`font-mono text-sm ${textPrimary(theme)}`}>{editingItem?.word ?? '—'}</p>
-            <p className={`mt-1 text-[11px] ${textMuted(theme)}`}>
+            <p className={`mt-1 text-xs ${textMuted(theme)}`}>
               词面修改需后端在 PUT 请求体中支持 `word` 字段后，再扩展前端 DTO 与表单。
             </p>
           </div>
@@ -655,7 +655,7 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
               }}
               aria-invalid={!!importFileError}
             />
-            <p className={`mt-1 text-[11px] ${textMuted(theme)}`}>支持 txt/csv/xlsx；txt 每行一个词，# 开头为注释。</p>
+            <p className={`mt-1 text-xs ${textMuted(theme)}`}>支持 txt/csv/xlsx；txt 每行一个词，# 开头为注释。</p>
             {importFileError ? (
               <p className={`mt-1 ${fieldErrorText()}`} role="alert">
                 {importFileError}

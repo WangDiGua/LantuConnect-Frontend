@@ -261,7 +261,7 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
                           <span className={tm}>{ACTIVITY_LABEL[act] ?? '操作了'}</span>
                           <span className="font-medium">{a.resourceName}</span>
                           {typeBadge ? (
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                            <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
                               isDark ? 'bg-white/[0.08] text-neutral-400' : 'bg-slate-100 text-slate-600'
                             }`}>{typeBadge}</span>
                           ) : null}
@@ -303,7 +303,7 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className={`text-[13px] font-medium truncate ${tp}`}>{r.name}</span>
+                      <span className={`text-sm font-medium truncate ${tp}`}>{r.name}</span>
                       <span className={`text-xs px-1.5 py-0.5 rounded shrink-0 ${
                         r.type === '智能体'
                           ? isDark ? 'bg-blue-500/15 text-blue-400' : 'bg-blue-50 text-blue-700'
@@ -311,7 +311,7 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
                       }`}>{r.type}</span>
                     </div>
                   </div>
-                  <span className={`text-[11px] whitespace-nowrap shrink-0 ${tm}`}>{r.time}</span>
+                  <span className={`text-xs whitespace-nowrap shrink-0 ${tm}`}>{r.time}</span>
                   <ChevronRight size={14} className={tm} />
                 </div>
               ))}

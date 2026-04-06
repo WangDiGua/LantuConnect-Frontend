@@ -144,12 +144,12 @@ export const SdkDownloadPage: React.FC<SdkDownloadPageProps> = ({ theme, fontSiz
               <p className={`font-semibold ${textPrimary(theme)}`}>SDK v1 网关（与业务网关同源能力）</p>
               <p className={`mt-1 text-xs ${textSecondary(theme)}`}>
                 所有路径挂在本应用的 API 前缀下，例如完整路径形如
-                <code className={`mx-1 rounded px-1 font-mono text-[11px] ${isDark ? 'bg-white/10' : 'bg-slate-100'}`}>{`${apiBaseHint}/sdk/v1/invoke`}</code>
+                <code className={`mx-1 rounded px-1 font-mono text-xs ${isDark ? 'bg-white/10' : 'bg-slate-100'}`}>{`${apiBaseHint}/sdk/v1/invoke`}</code>
                 。每个请求须携带请求头
-                <code className={`mx-1 rounded px-1 font-mono text-[11px] ${isDark ? 'bg-white/10' : 'bg-slate-100'}`}>X-Api-Key</code>
+                <code className={`mx-1 rounded px-1 font-mono text-xs ${isDark ? 'bg-white/10' : 'bg-slate-100'}`}>X-Api-Key</code>
                 （创建个人/管理 Key 时返回的完整密钥，见接入指南）。返回体统一为
-                <code className={`mx-1 rounded px-1 font-mono text-[11px] ${isDark ? 'bg-white/10' : 'bg-slate-100'}`}>code / data / message</code>
-                ，成功时一般为 <code className="font-mono text-[11px]">code === 0</code>。
+                <code className={`mx-1 rounded px-1 font-mono text-xs ${isDark ? 'bg-white/10' : 'bg-slate-100'}`}>code / data / message</code>
+                ，成功时一般为 <code className="font-mono text-xs">code === 0</code>。
               </p>
             </div>
           </div>
@@ -212,7 +212,7 @@ export const SdkDownloadPage: React.FC<SdkDownloadPageProps> = ({ theme, fontSiz
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className={`font-bold ${textPrimary(theme)}`}>{sdk.name}</h3>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-md font-semibold uppercase ${isDark ? 'bg-amber-500/20 text-amber-300' : 'bg-amber-100 text-amber-800'}`}>规划中</span>
+                      <span className={`text-xs px-2 py-0.5 rounded-md font-semibold uppercase ${isDark ? 'bg-amber-500/20 text-amber-300' : 'bg-amber-100 text-amber-800'}`}>规划中</span>
                     </div>
                     <p className={`text-xs mt-1 leading-relaxed ${textMuted(theme)}`}>{sdk.description}</p>
                   </div>

@@ -15,9 +15,9 @@ export function descriptionClampMinHeightPx(lines: 2 | 3): number {
   return lines * PRETEXT_LINE_HEIGHT_SM_RELAXED;
 }
 
-/** Prism / 终端：`text-[11px] leading-snug` */
-export const PRETEXT_FONT_MONO_11_SNUG = '400 11px "JetBrains Mono", ui-monospace, monospace';
-export const PRETEXT_LINE_HEIGHT_11_SNUG = 11 * 1.375;
+/** Prism / 终端 compact：与 Tailwind `text-xs leading-snug`（12px × 1.375）对齐 */
+export const PRETEXT_FONT_MONO_11_SNUG = '400 12px "JetBrains Mono", ui-monospace, monospace';
+export const PRETEXT_LINE_HEIGHT_11_SNUG = 12 * 1.375;
 
 /** 终端非 compact：`text-sm leading-relaxed` + mono */
 export const PRETEXT_FONT_MONO_14_RELAXED = '400 14px "JetBrains Mono", ui-monospace, monospace';

@@ -1,22 +1,25 @@
 import { FontSize, FontFamily, ThemeColor } from '../types';
 
-/** 同步到 `document.documentElement.style.fontSize`，使全站 rem 字号随外观设置变化 */
+/**
+ * 同步到 `document.documentElement.style.fontSize`，使全站 rem 字号随外观设置变化。
+ * 档位对齐常见 Web 可读性基准：默认 16px（正文下限）；小 / 大 对称 ±2px，与 Tailwind text-sm / text-lg 在 16px 根下接近 14 / 18。
+ */
 export function getRootFontSizePx(fontSize: FontSize): string {
   switch (fontSize) {
     case 'small':
       return '14px';
     case 'large':
-      return '17px';
+      return '18px';
     default:
-      return '15px';
+      return '16px';
   }
 }
 
-/** @deprecated 优先使用根字号 `getRootFontSizePx`；保留供少数需固定档位的场景 */
+/** @deprecated 优先使用根字号 `getRootFontSizePx`；需与 rem 缩放一致时请用 text-sm / text-base / text-lg */
 export const FONT_SIZE_CLASSES: Record<FontSize, string> = {
-  small: 'text-[14px]',
-  medium: 'text-[15px]',
-  large: 'text-[17px]',
+  small: 'text-sm',
+  medium: 'text-base',
+  large: 'text-lg',
 };
 
 export const TITLE_SIZE_CLASSES: Record<FontSize, string> = {

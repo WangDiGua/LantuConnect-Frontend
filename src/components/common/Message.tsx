@@ -94,7 +94,7 @@ export const MessageProvider: React.FC<MessageProviderProps> = ({ children, them
               <div className="flex-shrink-0">
                 {getIcon(msg.type)}
               </div>
-              <div className="flex-1 text-[13px] font-medium leading-tight">
+              <div className="flex-1 text-sm font-medium leading-tight">
                 {msg.content}
               </div>
               <button

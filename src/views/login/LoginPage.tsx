@@ -130,10 +130,10 @@ export const LoginPage: React.FC = () => {
               <span className="text-lg font-medium tracking-wide">NEXUS</span>
             </div>
             <div className="text-right shrink-0">
-              <div className="text-[10px] font-mono text-neutral-600 mb-1 tracking-widest uppercase">System.Status</div>
+              <div className="text-xs font-mono text-neutral-600 mb-1 tracking-widest uppercase">System.Status</div>
               <div className="flex items-center justify-end gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[11px] font-mono text-neutral-300 tracking-wider">OPTIMAL</span>
+                <span className="text-xs font-mono text-neutral-300 tracking-wider">OPTIMAL</span>
               </div>
             </div>
           </div>
@@ -165,18 +165,18 @@ export const LoginPage: React.FC = () => {
                   Orchestrated.
                 </span>
               </h1>
-              <p className="text-neutral-500 max-w-sm text-[13px] leading-relaxed font-light tracking-wide [@media(min-width:1024px)_and_(max-height:720px)]:lg:text-xs [@media(min-width:1024px)_and_(max-height:640px)]:lg:hidden">
+              <p className="text-neutral-500 max-w-sm text-sm leading-relaxed font-light tracking-wide [@media(min-width:1024px)_and_(max-height:720px)]:lg:text-xs [@media(min-width:1024px)_and_(max-height:640px)]:lg:hidden">
                 构建企业级智能体协同中枢。<br />优雅、强大、深不可测。
               </p>
             </div>
             <div className="text-left sm:text-right space-y-3 shrink-0 [@media(min-width:1024px)_and_(max-height:680px)]:lg:space-y-2">
               <div>
-                <div className="text-[10px] font-mono text-neutral-600 mb-1 tracking-widest uppercase">Node.Latency</div>
-                <div className="text-[11px] font-mono text-neutral-300 tracking-wider">{latency} ms</div>
+                <div className="text-xs font-mono text-neutral-600 mb-1 tracking-widest uppercase">Node.Latency</div>
+                <div className="text-xs font-mono text-neutral-300 tracking-wider">{latency} ms</div>
               </div>
               <div>
-                <div className="text-[10px] font-mono text-neutral-600 mb-1 tracking-widest uppercase">Sync.Hash</div>
-                <div className="text-[11px] font-mono text-neutral-400 tracking-wider">{hash}</div>
+                <div className="text-xs font-mono text-neutral-600 mb-1 tracking-widest uppercase">Sync.Hash</div>
+                <div className="text-xs font-mono text-neutral-400 tracking-wider">{hash}</div>
               </div>
             </div>
           </div>
@@ -302,7 +302,7 @@ export const LoginPage: React.FC = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <span className="ml-2.5 text-[13px] text-neutral-600 group-hover:text-neutral-900 transition-colors select-none">保持会话 (Keep me signed in)</span>
+              <span className="ml-2.5 text-sm text-neutral-600 group-hover:text-neutral-900 transition-colors select-none">保持会话 (Keep me signed in)</span>
             </label>
 
             <div className="space-y-3 pt-2 [@media(min-width:1024px)_and_(max-height:780px)]:lg:space-y-2 [@media(min-width:1024px)_and_(max-height:780px)]:lg:pt-1">
@@ -323,7 +323,7 @@ export const LoginPage: React.FC = () => {
 
               <div className="relative flex items-center py-3 [@media(min-width:1024px)_and_(max-height:760px)]:lg:py-2 [@media(min-width:1024px)_and_(max-height:660px)]:lg:py-1.5">
                 <div className="flex-grow border-t border-neutral-100" />
-                <span className="flex-shrink-0 mx-4 text-[11px] text-neutral-400 uppercase tracking-widest font-mono">Alternative</span>
+                <span className="flex-shrink-0 mx-4 text-xs text-neutral-400 uppercase tracking-widest font-mono">Alternative</span>
                 <div className="flex-grow border-t border-neutral-100" />
               </div>
 
@@ -338,7 +338,7 @@ export const LoginPage: React.FC = () => {
             </div>
           </form>
 
-          <div className="flex items-center justify-between text-xs text-neutral-400 pt-8 border-t border-neutral-100 [@media(min-width:1024px)_and_(max-height:800px)]:lg:pt-4 [@media(min-width:1024px)_and_(max-height:680px)]:lg:pt-3 [@media(min-width:1024px)_and_(max-height:800px)]:lg:text-[11px]">
+          <div className="flex items-center justify-between text-xs text-neutral-400 pt-8 border-t border-neutral-100 [@media(min-width:1024px)_and_(max-height:800px)]:lg:pt-4 [@media(min-width:1024px)_and_(max-height:680px)]:lg:pt-3 [@media(min-width:1024px)_and_(max-height:800px)]:lg:text-xs">
             <span>&copy; 2026 Nexus AI</span>
             <div className="flex gap-4">
               <a href="#" className="rounded-md hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/25 transition-colors">Privacy</a>

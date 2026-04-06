@@ -454,7 +454,7 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _t
 
               {catalogTags.length > 0 && (
                 <FilterSection title="标签">
-                  <p className={`text-[11px] leading-snug mb-2 ${textMuted(theme)}`}>
+                  <p className={`text-xs leading-snug mb-2 ${textMuted(theme)}`}>
                     计数来自已上架列表快照（单页最多 100 条）；切换标签会重新请求目录。
                   </p>
                   <TagNav />
@@ -554,7 +554,7 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _t
                           )}
                           description={ds.description || '暂无描述'}
                           footerLeft={(
-                            <span className="block truncate font-mono text-[11px]" title={String(ds.name ?? '')}>
+                            <span className="block truncate font-mono text-xs" title={String(ds.name ?? '')}>
                               @{ds.name}
                             </span>
                           )}

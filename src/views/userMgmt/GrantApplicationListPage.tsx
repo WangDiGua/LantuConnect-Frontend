@@ -155,7 +155,7 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, fontSize, sho
                 {item.actions.map((a) => (
                   <span
                     key={a}
-                    className={`shrink-0 rounded-md border px-2 py-0.5 text-[11px] font-medium whitespace-nowrap ${
+                    className={`shrink-0 rounded-md border px-2 py-0.5 text-xs font-medium whitespace-nowrap ${
                       isDark ? 'border-white/[0.08] bg-white/[0.06]' : 'border-slate-200/80 bg-slate-50'
                     }`}
                   >
@@ -192,7 +192,7 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, fontSize, sho
         cell: (item) => (
           <span className={textSecondary(theme)}>
             <div>申请：{resolvePersonDisplay({ names: [item.applicantName], ids: [item.applicantId] })}</div>
-            <div className={`text-[11px] ${textMuted(theme)}`}>
+            <div className={`text-xs ${textMuted(theme)}`}>
               审核：{resolvePersonDisplay({ names: [item.reviewerName], ids: [item.reviewerId] })}
             </div>
           </span>

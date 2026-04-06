@@ -116,7 +116,7 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize,
         cellClassName: 'align-middle',
         cell: (k) => (
           <span
-            className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+            className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${
               k.status === 'active'
                 ? isDark
                   ? 'bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20'
@@ -140,7 +140,7 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize,
               {k.scopes.map((s) => (
                 <span
                   key={s}
-                  className={`shrink-0 rounded-md border px-2 py-0.5 text-[11px] font-medium whitespace-nowrap font-mono ${
+                  className={`shrink-0 rounded-md border px-2 py-0.5 text-xs font-medium whitespace-nowrap font-mono ${
                     isDark ? 'border-white/[0.08] bg-white/[0.06]' : 'border-slate-200/80 bg-slate-50'
                   }`}
                 >

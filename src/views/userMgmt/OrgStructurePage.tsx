@@ -197,8 +197,8 @@ export const OrgStructurePage: React.FC<OrgStructurePageProps> = ({ theme, fontS
                         <span className={`w-3.5 h-px ${isDark ? 'bg-white/10' : 'bg-slate-200'}`} aria-hidden />
                       )}
                       <span className={`font-medium text-sm truncate ${textPrimary(theme)}`} title={d.name}>{d.name}</span>
-                      {d.type && <span className={`text-[10px] px-1.5 py-0.5 rounded shrink-0 ${isDark ? 'bg-white/5 text-slate-500' : 'bg-slate-100 text-slate-500'}`}>{typeLabel(d.type)}</span>}
-                      {d.leader && <span className={`text-[11px] truncate max-w-[8rem] ${textMuted(theme)}`}>负责人: {d.leader}</span>}
+                      {d.type && <span className={`text-xs px-1.5 py-0.5 rounded shrink-0 ${isDark ? 'bg-white/5 text-slate-500' : 'bg-slate-100 text-slate-500'}`}>{typeLabel(d.type)}</span>}
+                      {d.leader && <span className={`text-xs truncate max-w-[8rem] ${textMuted(theme)}`}>负责人: {d.leader}</span>}
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
                       <div className="flex items-center gap-1.5 min-w-[2.5rem] justify-end">

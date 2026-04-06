@@ -1452,7 +1452,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                 ]}
                 placeholder="grant_required"
               />
-              <p className={`mt-1.5 text-[11px] leading-relaxed ${textMuted(theme)}`}>
+              <p className={`mt-1.5 text-xs leading-relaxed ${textMuted(theme)}`}>
                 {accessPolicyHelpLines()[form.accessPolicy] ?? accessPolicyHelpLines().grant_required}
               </p>
             </Field>
@@ -1504,7 +1504,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                   </p>
                 </div>
                 <Field label="粘贴配置导入" full theme={theme}>
-                  <p className={`mb-2 text-[11px] ${textMuted(theme)}`}>
+                  <p className={`mb-2 text-xs ${textMuted(theme)}`}>
                     支持含 <span className="font-mono">mcpServers</span> 的 JSON（如 Claude/Cursor 导出），或单个含{' '}
                     <span className="font-mono">url</span> 的条目。仅解析远程 URL 类；stdio 会提示须自备边车。
                   </p>
@@ -1603,7 +1603,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                   />
                 </Field>
                 <Field label="鉴权配置（JSON）" full theme={theme} error={mcpAuthJsonMerged} fieldId={rrFieldId('authConfigJson')}>
-                  <p className={`mb-2 text-[11px] ${textMuted(theme)}`}>详见到接入指南；可点击下方模板快速填入。</p>
+                  <p className={`mb-2 text-xs ${textMuted(theme)}`}>详见到接入指南；可点击下方模板快速填入。</p>
                   <div className="mb-2 flex flex-wrap gap-2">
                     <button
                       type="button"
@@ -1689,7 +1689,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                       '探测连通性（initialize）'
                     )}
                   </button>
-                  <span className={`text-[11px] ${textMuted(theme)}`}>
+                  <span className={`text-xs ${textMuted(theme)}`}>
                     由平台代发一次 JSON-RPC initialize，不创建资源、不托管您的 MCP。
                   </span>
                 </div>
@@ -1839,7 +1839,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                   }`}
                 >
                   <p className={`text-xs font-semibold ${textPrimary(theme)}`}>技能注册支线</p>
-                  <p className={`mt-1 text-[11px] leading-relaxed ${textMuted(theme)}`}>
+                  <p className={`mt-1 text-xs leading-relaxed ${textMuted(theme)}`}>
                     后端仍是同一「技能」资源类型；此处按使用场景拆分说明。托管侧重存档与审核，可挂载侧重智能体侧单技能语义（skillRoot 子树）。
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
@@ -1961,16 +1961,16 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                           ) : null}
                           {skillHasArtifact ? (
                             <>
-                              <p className={`break-all font-mono text-[11px] leading-snug ${textMuted(theme)}`}>
+                              <p className={`break-all font-mono text-xs leading-snug ${textMuted(theme)}`}>
                                 <span className="opacity-90">制品路径 </span>
                                 {truncateSkillArtifactPath(form.artifactUri.trim(), 72)}
                               </p>
                               {form.artifactSha256.trim() ? (
-                                <p className={`font-mono text-[11px] ${textMuted(theme)}`}>
+                                <p className={`font-mono text-xs ${textMuted(theme)}`}>
                                   SHA-256 {form.artifactSha256.trim().slice(0, 20)}…
                                 </p>
                               ) : null}
-                              <p className={`text-[11px] ${textMuted(theme)}`}>
+                              <p className={`text-xs ${textMuted(theme)}`}>
                                 展示名：<span className={textPrimary(theme)}>{skillArtifactDisplayLabel(form.artifactUri)}</span>
                               </p>
                             </>
@@ -2018,7 +2018,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                         {fieldErrors.skillRootPath}
                       </p>
                     ) : null}
-                    <p className={`mt-1 text-[11px] leading-relaxed ${textMuted(theme)}`}>
+                    <p className={`mt-1 text-xs leading-relaxed ${textMuted(theme)}`}>
                       {skillRegisterTrack === 'mountable'
                         ? '本支线以该子树为技能根：SKILL.md 校验、resolve 的 skillRootPath、网关挂载范围均针对此路径。上传前请填好。'
                         : '留空时按整包做安全扫描与可选语义校验；仅当包内含多个并列技能、需指定其一作为制品语义边界时再填写。'}

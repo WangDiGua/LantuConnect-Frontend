@@ -85,7 +85,7 @@ export const CallLogPage: React.FC<CallLogPageProps> = ({ theme, fontSize }) => 
           const label = t ? (RESOURCE_TYPE_LABEL[t] ?? (t === 'unknown' ? '未分类' : t)) : '未分类';
           return (
             <span
-              className={`inline-flex shrink-0 whitespace-nowrap px-2 py-0.5 rounded-lg text-[11px] font-semibold ${
+              className={`inline-flex shrink-0 whitespace-nowrap px-2 py-0.5 rounded-lg text-xs font-semibold ${
                 t
                   ? isDark
                     ? 'bg-violet-500/15 text-violet-300'
@@ -105,7 +105,7 @@ export const CallLogPage: React.FC<CallLogPageProps> = ({ theme, fontSize }) => 
         header: '方法',
         cell: (r) => (
           <span
-            className={`inline-flex shrink-0 items-center whitespace-nowrap px-2 py-0.5 rounded-lg text-[11px] font-bold font-mono ${
+            className={`inline-flex shrink-0 items-center whitespace-nowrap px-2 py-0.5 rounded-lg text-xs font-bold font-mono ${
               safeText(r.method).startsWith('GET')
                 ? isDark ? 'bg-sky-500/15 text-sky-400' : 'bg-sky-50 text-sky-700'
                 : isDark ? 'bg-neutral-900/10 text-neutral-300' : 'bg-neutral-100 text-neutral-800'
@@ -137,7 +137,7 @@ export const CallLogPage: React.FC<CallLogPageProps> = ({ theme, fontSize }) => 
         cell: (r) => {
           const badge = STATUS_BADGE[r.status] ?? STATUS_BADGE.error;
           return (
-            <span className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${isDark ? badge.dark : badge.light}`}>
+            <span className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${isDark ? badge.dark : badge.light}`}>
               {badge.label}
             </span>
           );
@@ -148,7 +148,7 @@ export const CallLogPage: React.FC<CallLogPageProps> = ({ theme, fontSize }) => 
         header: '状态码',
         cell: (r) => (
           <span
-            className={`inline-flex shrink-0 items-center whitespace-nowrap px-2 py-0.5 rounded-lg text-[11px] font-mono font-semibold ${
+            className={`inline-flex shrink-0 items-center whitespace-nowrap px-2 py-0.5 rounded-lg text-xs font-mono font-semibold ${
               r.statusCode >= 500
                 ? isDark ? 'bg-rose-500/15 text-rose-400' : 'bg-rose-50 text-rose-700'
                 : r.statusCode >= 400

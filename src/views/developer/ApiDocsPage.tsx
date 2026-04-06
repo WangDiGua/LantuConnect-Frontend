@@ -175,7 +175,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
                       key={item.id}
                       type="button"
                       onClick={() => scrollToId(item.id)}
-                      className={`block w-full text-left py-1.5 text-[13px] transition-colors rounded-r-md pr-2 ${
+                      className={`block w-full text-left py-1.5 text-sm transition-colors rounded-r-md pr-2 ${
                         isDark ? 'text-slate-400 hover:text-emerald-300' : 'text-slate-600 hover:text-emerald-700'
                       }`}
                     >

@@ -200,7 +200,7 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
         header: '标题',
         cellClassName: `align-middle max-w-[12rem] ${textPrimary(theme)}`,
         cell: (a: AnnouncementItem) => (
-          <span className="font-semibold text-[13px] line-clamp-2">{a.title}</span>
+          <span className="font-semibold text-sm line-clamp-2">{a.title}</span>
         ),
       },
       {

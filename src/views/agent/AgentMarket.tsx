@@ -333,7 +333,7 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
                       description={a.description}
                       descriptionClamp={3}
                       footerLeft={(
-                        <span className="truncate text-[11px]" title={a.author}>
+                        <span className="truncate text-xs" title={a.author}>
                           {a.author}
                         </span>
                       )}

@@ -272,7 +272,7 @@ export const AlertRulesPage: React.FC<Props> = ({ theme, fontSize, showMessage }
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className={`font-semibold ${textPrimary(theme)}`}>{r.name}</span>
-                <span className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${isDark ? sev.dark : sev.light}`}>
+                <span className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${isDark ? sev.dark : sev.light}`}>
                   {SEV_LABEL[r.severity] ?? r.severity}
                 </span>
                 <span className={`inline-flex shrink-0 items-center whitespace-nowrap text-xs px-1.5 py-0.5 rounded ${isDark ? 'bg-white/5 text-slate-500' : 'bg-slate-50 text-slate-400'}`}>

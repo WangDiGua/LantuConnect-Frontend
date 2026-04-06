@@ -282,11 +282,11 @@ export const DatasetMarketDetailPage: React.FC<DatasetMarketDetailPageProps> = (
                 }`}
                 >
                   <div>
-                    <div className={`text-[11px] font-medium ${textMuted(theme)}`}>记录数</div>
+                    <div className={`text-xs font-medium ${textMuted(theme)}`}>记录数</div>
                     <div className={`text-base font-bold ${textPrimary(theme)}`}>{formatCount(ds.recordCount)}</div>
                   </div>
                   <div>
-                    <div className={`text-[11px] font-medium ${textMuted(theme)}`}>文件大小</div>
+                    <div className={`text-xs font-medium ${textMuted(theme)}`}>文件大小</div>
                     <div className={`text-base font-bold ${textPrimary(theme)}`}>{formatFileSize(ds.fileSize)}</div>
                   </div>
                 </div>
@@ -312,9 +312,9 @@ export const DatasetMarketDetailPage: React.FC<DatasetMarketDetailPageProps> = (
               <div className="space-y-4">
                 <GatewayApiKeyInput theme={theme} id="dataset-detail-gateway-key" value={gatewayApiKeyDraft} onChange={setGatewayApiKeyDraft} />
                 <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
-                  使用您的 API Key 调用 <span className="font-mono text-[11px]">POST /catalog/resolve</span>
+                  使用您的 API Key 调用 <span className="font-mono text-xs">POST /catalog/resolve</span>
                   （resourceType=dataset）查看目录返回；本平台不对数据集暴露统一{' '}
-                  <span className="font-mono text-[11px]">/invoke</span>。
+                  <span className="font-mono text-xs">/invoke</span>。
                 </p>
                 <button
                   type="button"

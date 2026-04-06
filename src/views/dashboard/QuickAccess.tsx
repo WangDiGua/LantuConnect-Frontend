@@ -141,7 +141,7 @@ export const QuickAccess: React.FC<QuickAccessProps> = ({ theme, fontSize: _font
                     <tool.icon size={24} />
                   </div>
                   <div>
-                    <span className={`text-[13px] font-medium block ${textPrimary(theme)}`}>{tool.name}</span>
+                    <span className={`text-sm font-medium block ${textPrimary(theme)}`}>{tool.name}</span>
                     <span className={`text-xs ${textMuted(theme)}`}>{tool.desc}</span>
                   </div>
                 </BentoCard>

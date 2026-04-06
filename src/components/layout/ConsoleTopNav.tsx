@@ -277,7 +277,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
                     <span className="min-w-0 flex-1">{subItem.label}</span>
                     {subItem.tag ? (
                       <span
-                        className={`shrink-0 text-[10px] font-bold px-1.5 py-px rounded-md ${
+                        className={`shrink-0 text-xs font-bold px-1.5 py-px rounded-md ${
                           isDark
                             ? 'bg-white/[0.08] text-slate-200 border border-white/[0.12]'
                             : 'bg-[#F2F4F7] text-[#111827] border border-slate-400/40'
@@ -333,7 +333,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
           onBlur={() => setHotSearchFocused(false)}
           placeholder="热门搜索（即将上线）"
           className={[
-            'flex-1 min-w-0 h-full cursor-default border-none bg-transparent px-2.5 py-0 text-[13px] font-medium leading-none outline-none',
+            'flex-1 min-w-0 h-full cursor-default border-none bg-transparent px-2.5 py-0 text-sm font-medium leading-none outline-none',
             isDark ? 'text-slate-200 placeholder:text-slate-500' : 'text-gray-700 placeholder-gray-400',
           ].join(' ')}
           aria-label="热门搜索，功能即将上线，当前为只读占位不可输入"

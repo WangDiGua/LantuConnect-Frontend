@@ -642,7 +642,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                             {item.ownerName ? ` · ${item.ownerName}` : ''}
                           </span>
                         </div>
-                        <div className={`mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] ${textMuted(theme)}`}>
+                        <div className={`mt-0.5 flex flex-wrap items-center gap-x-2 text-xs ${textMuted(theme)}`}>
                           <span>创建: {nullDisplay(formatDateTime(item.createTime))}</span>
                           <span>更新: {nullDisplay(formatDateTime(item.updateTime))}</span>
                           {item.catalogTagNames && item.catalogTagNames.length > 0 && (
@@ -818,7 +818,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                     </div>
                     <p className={`mt-2 text-xs ${textSecondary(theme)}`}>{nullDisplay(item.description, '暂无描述')}</p>
                     {(item.statusHint || item.lastRejectReason || item.degradationHint) && (
-                      <div className={`mt-2 rounded-lg px-2 py-1.5 text-[11px] ${isDark ? 'bg-white/[0.03] text-slate-300' : 'bg-slate-50 text-slate-600'}`}>
+                      <div className={`mt-2 rounded-lg px-2 py-1.5 text-xs ${isDark ? 'bg-white/[0.03] text-slate-300' : 'bg-slate-50 text-slate-600'}`}>
                         {item.statusHint ? <div>提示: {item.statusHint}</div> : null}
                         {item.lastRejectReason && item.status !== 'rejected' ? <div>驳回原因: {item.lastRejectReason}</div> : null}
                         {item.degradationHint ? <div>降级提示: {item.degradationHint}</div> : null}
@@ -880,11 +880,11 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                 开发者：接口与快照行为说明
               </summary>
               <p className="mt-2 leading-relaxed pl-0.5">
-                列表 <span className="font-mono text-[11px]">GET /resource-center/resources/:id/versions</span>；新建{' '}
-                <span className="font-mono text-[11px]">POST …/versions</span>（body：<span className="font-mono text-[11px]">version</span>、
-                <span className="font-mono text-[11px]">makeCurrent</span>）写入当前主资源快照；切换默认{' '}
-                <span className="font-mono text-[11px]">POST …/versions/:version/switch</span>，仅 <span className="font-mono text-[11px]">active</span> 可切；
-                写回主资源 <span className="font-mono text-[11px]">POST …/versions/:version/apply-to-working-copy</span>。
+                列表 <span className="font-mono text-xs">GET /resource-center/resources/:id/versions</span>；新建{' '}
+                <span className="font-mono text-xs">POST …/versions</span>（body：<span className="font-mono text-xs">version</span>、
+                <span className="font-mono text-xs">makeCurrent</span>）写入当前主资源快照；切换默认{' '}
+                <span className="font-mono text-xs">POST …/versions/:version/switch</span>，仅 <span className="font-mono text-xs">active</span> 可切；
+                写回主资源 <span className="font-mono text-xs">POST …/versions/:version/apply-to-working-copy</span>。
               </p>
             </details>
             {isActionAllowed(versionTarget, 'update') && (
@@ -938,12 +938,12 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                         <div className="flex flex-wrap items-center gap-2">
                           <span className={`text-sm font-medium ${textPrimary(theme)}`}>{ver.version}</span>
                           {ver.isCurrent && (
-                            <span className={`rounded px-1.5 py-0.5 text-[11px] ${isDark ? 'bg-emerald-500/20 text-emerald-300' : 'bg-emerald-100 text-emerald-800'}`}>
+                            <span className={`rounded px-1.5 py-0.5 text-xs ${isDark ? 'bg-emerald-500/20 text-emerald-300' : 'bg-emerald-100 text-emerald-800'}`}>
                               当前默认
                             </span>
                           )}
                           <span
-                            className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${
+                            className={`rounded px-1.5 py-0.5 text-xs font-medium ${
                               status === 'active'
                                 ? isDark
                                   ? 'bg-emerald-500/15 text-emerald-200'
@@ -957,7 +957,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                           </span>
                         </div>
                         {ver.createTime && (
-                          <p className={`mt-0.5 text-[11px] ${textMuted(theme)}`}>创建 {formatDateTime(ver.createTime)}</p>
+                          <p className={`mt-0.5 text-xs ${textMuted(theme)}`}>创建 {formatDateTime(ver.createTime)}</p>
                         )}
                       </div>
                       <div className="flex flex-wrap items-center justify-end gap-1.5 shrink-0">
@@ -1072,7 +1072,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                 创建后立即设为当前默认解析版本
               </label>
               {!makeNewVersionCurrent && (
-                <p className={`mt-1 text-[11px] ${isDark ? 'text-amber-200/90' : 'text-amber-800'}`}>
+                <p className={`mt-1 text-xs ${isDark ? 'text-amber-200/90' : 'text-amber-800'}`}>
                   若取消勾选，新版本可能不会成为「当前」解析版本，直至你手动「设为当前」。
                 </p>
               )}
@@ -1262,7 +1262,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                 <div className="flex flex-wrap items-center gap-2 py-0.5">
                   <span className={textSecondary(theme)}>健康</span>
                   <span
-                    className={`inline-flex items-center rounded-lg px-2 py-0.5 text-[11px] font-semibold ${resourceHealthBadgeClass(theme, observabilityData.healthStatus)}`}
+                    className={`inline-flex items-center rounded-lg px-2 py-0.5 text-xs font-semibold ${resourceHealthBadgeClass(theme, observabilityData.healthStatus)}`}
                     title={observabilityData.healthStatus ? `原始值：${observabilityData.healthStatus}` : undefined}
                   >
                     {resourceHealthLabelZh(observabilityData.healthStatus)}
@@ -1271,7 +1271,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                 <div className="mt-1.5 flex flex-wrap items-center gap-2 py-0.5">
                   <span className={textSecondary(theme)}>熔断</span>
                   <span
-                    className={`inline-flex items-center rounded-lg px-2 py-0.5 text-[11px] font-semibold ${circuitBreakerBadgeClass(theme, observabilityData.circuitState)}`}
+                    className={`inline-flex items-center rounded-lg px-2 py-0.5 text-xs font-semibold ${circuitBreakerBadgeClass(theme, observabilityData.circuitState)}`}
                     title={observabilityData.circuitState ? `原始值：${observabilityData.circuitState}` : undefined}
                   >
                     {circuitBreakerLabelZh(observabilityData.circuitState)}

@@ -56,10 +56,10 @@ export interface VditorMarkdownEditorProps {
   mode: 'sv' | 'ir';
   className?: string;
   /**
-   * 窄表单内嵌：弱化字数条、去掉预览区「多设备」切换条，避免与分屏一起挤占宽度。
-   * 通常与外层 `mode="ir"` 连用。
+   * `inlineForm`：单栏 IR + 隐藏预览多设备条 + 关字数（旧「表单单栏」预设）。
+   * `formSplit`：保留分屏/编辑模式，仅隐藏预览区 Desktop/Tablet 等多设备切换，适合资源注册等表单。
    */
-  embedPreset?: 'default' | 'inlineForm';
+  embedPreset?: 'default' | 'inlineForm' | 'formSplit';
 }
 
 /**
@@ -93,6 +93,7 @@ export const VditorMarkdownEditor: React.FC<VditorMarkdownEditorProps> = ({
     el.innerHTML = '';
 
     const inlineForm = embedPreset === 'inlineForm';
+    const formSplit = embedPreset === 'formSplit';
 
     const vd = new Vditor(el, {
       cdn: vditorCdnPrefix(),
@@ -118,7 +119,12 @@ export const VditorMarkdownEditor: React.FC<VditorMarkdownEditorProps> = ({
               mode: 'editor' as const,
               maxWidth: 2048,
             }
-          : {}),
+          : formSplit
+            ? {
+                actions: [],
+                maxWidth: 2048,
+              }
+            : {}),
       },
       counter: {
         enable: !inlineForm,
@@ -167,7 +173,11 @@ export const VditorMarkdownEditor: React.FC<VditorMarkdownEditorProps> = ({
     }
   }, [value]);
 
-  const outerClass = [className.trim(), embedPreset === 'inlineForm' ? 'vditor--embed-inline-form' : '']
+  const outerClass = [
+    className.trim(),
+    embedPreset === 'inlineForm' ? 'vditor--embed-inline-form' : '',
+    embedPreset === 'formSplit' ? 'vditor--embed-form-split' : '',
+  ]
     .filter(Boolean)
     .join(' ');
 

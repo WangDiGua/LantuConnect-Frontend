@@ -21,8 +21,8 @@
   border-bottom-color: rgb(255 255 255 / 0.08);
 }
 
-/* 资源注册等表单：占满栅格宽度，避免嵌套 max-width 把编辑区压得过窄 */
-.review-md-editor--inline-form {
+/* 资源注册等表单：占满栅格宽度 */
+.review-md-editor--form-split {
   width: 100%;
   min-width: 0;
 }

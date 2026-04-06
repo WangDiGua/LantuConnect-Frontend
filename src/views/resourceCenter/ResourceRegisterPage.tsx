@@ -1414,8 +1414,9 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                 theme={theme}
                 value={form.serviceDetailMd}
                 onChange={(v) => setForm((p) => ({ ...p, serviceDetailMd: v }))}
-                variant="compact"
-                useInlineFormLayout
+                variant="default"
+                editorMode="auto"
+                stripPreviewDeviceBar
                 placeholder={
                   resourceType === 'mcp'
                     ? '支持 Markdown：能力说明、认证方式、配额与示例等；将在 MCP 市场详情页「服务详情」展示'

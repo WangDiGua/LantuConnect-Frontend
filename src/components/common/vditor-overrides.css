@@ -39,3 +39,10 @@
 .vditor--embed-inline-form .vditor-content {
   min-height: 200px;
 }
+
+/* 表单内分屏：编辑/预览区略加最小高度（外层包一层 .vditor--embed-form-split） */
+.vditor--embed-form-split .vditor-sv .vditor-content,
+.vditor--embed-form-split .vditor-ir .vditor-content,
+.vditor--embed-form-split .vditor-preview {
+  min-height: 200px;
+}

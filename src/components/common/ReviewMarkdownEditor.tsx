@@ -15,6 +15,10 @@ export interface ReviewMarkdownEditorProps {
    * `split` / `auto`（宽屏）：分屏编辑+预览；`tab` / `auto`（窄屏）：即时渲染单栏。
    */
   editorMode?: 'tab' | 'split' | 'auto';
+  /**
+   * 资源注册等窄栅格表单：始终单栏即时渲染（IR），加高编辑区，减少分屏+多设备预览带来的压抑感。
+   */
+  useInlineFormLayout?: boolean;
 }
 
 export const ReviewMarkdownEditor: React.FC<ReviewMarkdownEditorProps> = ({
@@ -25,25 +29,38 @@ export const ReviewMarkdownEditor: React.FC<ReviewMarkdownEditorProps> = ({
   variant = 'default',
   className = '',
   editorMode = 'split',
+  useInlineFormLayout = false,
 }) => {
   const isDark = theme === 'dark';
-  const minHeight = variant === 'compact' ? 160 : 240;
+
+  const minHeight = useInlineFormLayout
+    ? variant === 'compact'
+      ? 220
+      : 280
+    : variant === 'compact'
+      ? 160
+      : 240;
 
   const [autoMode, setAutoMode] = useState<'sv' | 'ir'>(() =>
     typeof window !== 'undefined' && window.matchMedia('(min-width: 800px)').matches ? 'sv' : 'ir',
   );
 
   useEffect(() => {
-    if (editorMode !== 'auto') return;
+    if (useInlineFormLayout || editorMode !== 'auto') return;
     const mq = window.matchMedia('(min-width: 800px)');
     const apply = () => setAutoMode(mq.matches ? 'sv' : 'ir');
     apply();
     mq.addEventListener('change', apply);
     return () => mq.removeEventListener('change', apply);
-  }, [editorMode]);
+  }, [editorMode, useInlineFormLayout]);
 
-  const vdMode: 'sv' | 'ir' =
-    editorMode === 'tab' ? 'ir' : editorMode === 'split' ? 'sv' : autoMode;
+  const vdMode: 'sv' | 'ir' = useInlineFormLayout
+    ? 'ir'
+    : editorMode === 'tab'
+      ? 'ir'
+      : editorMode === 'split'
+        ? 'sv'
+        : autoMode;
 
   return (
     <div
@@ -51,19 +68,21 @@ export const ReviewMarkdownEditor: React.FC<ReviewMarkdownEditorProps> = ({
         'review-md-editor',
         variant === 'compact' ? 'review-md-editor--compact' : '',
         isDark ? 'review-md-editor--dark' : '',
+        useInlineFormLayout ? 'review-md-editor--inline-form' : '',
         className,
       ]
         .filter(Boolean)
         .join(' ')}
     >
       <VditorMarkdownEditor
-        key={vdMode}
+        key={useInlineFormLayout ? 'form-ir' : vdMode}
         isDark={isDark}
         value={value}
         onChange={onChange}
         placeholder={placeholder}
         minHeight={minHeight}
         mode={vdMode}
+        embedPreset={useInlineFormLayout ? 'inlineForm' : 'default'}
       />
     </div>
   );

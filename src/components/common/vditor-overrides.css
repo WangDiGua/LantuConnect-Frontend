@@ -1,0 +1,41 @@
+/**
+ * Vditor 全局微调：表情面板加宽、网格对齐（减少「一行挤满、下一行只剩一个」的错落感）。
+ */
+.vditor-panel:has(.vditor-emojis) {
+  max-width: min(28rem, calc(100vw - 2rem));
+  padding: 8px;
+}
+
+.vditor-panel .vditor-emojis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-content: flex-start;
+  max-height: min(260px, 45vh);
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.vditor-panel .vditor-emojis button {
+  float: none;
+  margin: 0;
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 1;
+  padding: 0;
+}
+
+.vditor-panel .vditor-emojis img {
+  float: none;
+  margin: 0;
+}
+
+/* 资源表单内嵌：单栏 IR 时内容区略舒展 */
+.vditor--embed-inline-form .vditor-content {
+  min-height: 200px;
+}

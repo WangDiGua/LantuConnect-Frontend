@@ -1,6 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import Vditor from 'vditor';
 import 'vditor/dist/index.css';
+import { getVditorEmojiMap } from '../../constants/vditorEmoji';
+import './vditor-overrides.css';
 
 function vditorCdnPrefix(): string {
   const base = import.meta.env.BASE_URL ?? '/';
@@ -53,6 +55,11 @@ export interface VditorMarkdownEditorProps {
   /** `sv` 分屏；`ir` 即时渲染（偏单栏） */
   mode: 'sv' | 'ir';
   className?: string;
+  /**
+   * 窄表单内嵌：弱化字数条、去掉预览区「多设备」切换条，避免与分屏一起挤占宽度。
+   * 通常与外层 `mode="ir"` 连用。
+   */
+  embedPreset?: 'default' | 'inlineForm';
 }
 
 /**
@@ -66,6 +73,7 @@ export const VditorMarkdownEditor: React.FC<VditorMarkdownEditorProps> = ({
   minHeight,
   mode,
   className = '',
+  embedPreset = 'default',
 }) => {
   const wrapRef = useRef<HTMLDivElement>(null);
   const instRef = useRef<Vditor | null>(null);
@@ -84,6 +92,8 @@ export const VditorMarkdownEditor: React.FC<VditorMarkdownEditorProps> = ({
     readyRef.current = false;
     el.innerHTML = '';
 
+    const inlineForm = embedPreset === 'inlineForm';
+
     const vd = new Vditor(el, {
       cdn: vditorCdnPrefix(),
       width: '100%',
@@ -96,12 +106,22 @@ export const VditorMarkdownEditor: React.FC<VditorMarkdownEditorProps> = ({
       placeholder,
       cache: { enable: false },
       toolbar: [...SHARED_TOOLBAR],
+      hint: {
+        emoji: getVditorEmojiMap(),
+      },
       preview: {
         theme: { current: isDark ? 'dark' : 'light' },
         markdown: { gfmAutoLink: true },
+        ...(inlineForm
+          ? {
+              actions: [],
+              mode: 'editor' as const,
+              maxWidth: 2048,
+            }
+          : {}),
       },
       counter: {
-        enable: true,
+        enable: !inlineForm,
         type: 'markdown',
       },
       after() {
@@ -135,7 +155,7 @@ export const VditorMarkdownEditor: React.FC<VditorMarkdownEditorProps> = ({
       }
       el.innerHTML = '';
     };
-  }, [isDark, minHeight, mode, placeholder]);
+  }, [embedPreset, isDark, minHeight, mode, placeholder]);
 
   useEffect(() => {
     const vd = instRef.current;
@@ -147,5 +167,13 @@ export const VditorMarkdownEditor: React.FC<VditorMarkdownEditorProps> = ({
     }
   }, [value]);
 
-  return <div className={className.trim()} ref={wrapRef} />;
+  const outerClass = [className.trim(), embedPreset === 'inlineForm' ? 'vditor--embed-inline-form' : '']
+    .filter(Boolean)
+    .join(' ');
+
+  return (
+    <div className={outerClass || undefined}>
+      <div ref={wrapRef} />
+    </div>
+  );
 };

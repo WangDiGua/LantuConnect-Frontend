@@ -39,6 +39,36 @@ function optLong(v: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+/**
+ * 目录行与资源中心列表对齐：健康/熔断/降级可能在行根上（healthStatus、circuitState），
+ * 也可能在 observability 内；合并后供广场与 catalogObservability 统一读取。
+ */
+function normalizeCatalogObservability(x: Record<string, unknown>): Record<string, unknown> | undefined {
+  const nested =
+    x.observability && typeof x.observability === 'object'
+      ? { ...(x.observability as Record<string, unknown>) }
+      : {};
+
+  const hasVal = (o: Record<string, unknown>, camel: string, snake: string) => {
+    const a = o[camel];
+    const b = o[snake];
+    return (a != null && String(a).trim() !== '') || (b != null && String(b).trim() !== '');
+  };
+
+  const mergeRoot = (camel: string, snake: string) => {
+    if (hasVal(nested, camel, snake)) return;
+    const v = x[camel] ?? x[snake];
+    if (v == null || v === '') return;
+    nested[camel] = v;
+  };
+
+  mergeRoot('healthStatus', 'health_status');
+  mergeRoot('circuitState', 'circuit_state');
+  mergeRoot('degradationHint', 'degradation_hint');
+
+  return Object.keys(nested).length ? nested : undefined;
+}
+
 /** SDK 列表等与控制台目录共用行映射 */
 export function normalizeCatalogItem(row: unknown): ResourceCatalogItemVO {
   const x = row && typeof row === 'object' ? (row as Record<string, unknown>) : {};
@@ -75,10 +105,7 @@ export function normalizeCatalogItem(row: unknown): ResourceCatalogItemVO {
     usageCount: numStat(x.usageCount ?? x.usage_count),
     downloadCount: numStat(x.downloadCount ?? x.download_count),
     viewCount: numStat(x.viewCount ?? x.view_count),
-    observability:
-      x.observability && typeof x.observability === 'object'
-        ? (x.observability as Record<string, unknown>)
-        : undefined,
+    observability: normalizeCatalogObservability(x),
     quality: x.quality && typeof x.quality === 'object' ? (x.quality as Record<string, unknown>) : undefined,
   };
 }
@@ -103,9 +130,8 @@ function normalizeCatalogDetail(raw: unknown): CatalogResourceDetailVO {
     })(),
   };
   if (Array.isArray(x.tags)) merged.tags = (x.tags as unknown[]).map((t) => String(t));
-  if (x.observability && typeof x.observability === 'object') {
-    merged.observability = x.observability as Record<string, unknown>;
-  }
+  /** 勿仅用嵌套 observability 覆盖：须与行根 healthStatus/circuitState 合并（与 normalizeCatalogItem 一致） */
+  merged.observability = normalizeCatalogObservability(x);
   if (x.quality && typeof x.quality === 'object') {
     merged.quality = x.quality as Record<string, unknown>;
   }

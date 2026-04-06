@@ -25,7 +25,27 @@ export function catalogItemCircuitState(item: Pick<ResourceCatalogItemVO, 'obser
 }
 
 export function catalogItemDegradationHint(item: Pick<ResourceCatalogItemVO, 'observability'>): string | undefined {
-  return obsString(item.observability, 'degradationHint', 'degradation_hint');
+  if (!item.observability) return undefined;
+  const o = item.observability;
+  const raw = o.degradationHint ?? o.degradation_hint;
+  if (raw == null || raw === '') return undefined;
+  if (typeof raw === 'string') {
+    const s = raw.trim();
+    return s || undefined;
+  }
+  if (typeof raw === 'object' && raw !== null) {
+    const rec = raw as Record<string, unknown>;
+    const u = rec.userFacingHint ?? rec.user_facing_hint;
+    if (u != null && String(u).trim() !== '') return String(u).trim();
+    try {
+      const j = JSON.stringify(raw);
+      return j === '{}' ? undefined : j;
+    } catch {
+      return undefined;
+    }
+  }
+  const s = String(raw).trim();
+  return s || undefined;
 }
 
 /**

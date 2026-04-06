@@ -3,6 +3,7 @@ import { Boxes, Download, Pencil, Plus, RefreshCw, Store } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { ResourceType } from '../../types/dto/catalog';
 import type {
+  LifecycleTimelineEventVO,
   LifecycleTimelineVO,
   ObservabilitySummaryVO,
   ResourceCenterItemVO,
@@ -44,6 +45,20 @@ import { nullDisplay } from '../../utils/errorHandler';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
+
+/** 生命周期时间轴节点颜色（按 status / eventType 粗分） */
+function lifecycleTimelineNodeClass(ev: LifecycleTimelineEventVO): string {
+  const s = (ev.status ?? '').trim().toLowerCase();
+  const t = (ev.eventType ?? '').trim().toLowerCase();
+  if (s === 'published' || t === 'published') return 'bg-emerald-500 ring-emerald-500/25';
+  if (s === 'pending_review' || t === 'submitted') return 'bg-amber-500 ring-amber-500/25';
+  if (s === 'testing') return 'bg-blue-500 ring-blue-500/25';
+  if (s === 'rejected' || t === 'rejected') return 'bg-red-500 ring-red-500/25';
+  if (s === 'draft' || t === 'created') return 'bg-neutral-400 ring-neutral-400/20';
+  if (s === 'deprecated') return 'bg-orange-500 ring-orange-500/25';
+  if (s === 'merged_live') return 'bg-teal-500 ring-teal-500/25';
+  return 'bg-sky-500 ring-sky-500/25';
+}
 
 function skillSubmitBlocked(item: ResourceCenterItemVO): boolean {
   if (item.resourceType !== 'skill') return false;
@@ -1192,15 +1207,43 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
               </div>
             ) : null}
             {timelineData?.events?.length ? (
-              timelineData.events.map((ev, idx) => (
-                <div key={`${ev.eventType}-${idx}`} className={`rounded-lg border px-3 py-2 text-xs ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
-                  <div className={`font-medium ${textPrimary(theme)}`}>{ev.title || ev.eventType}</div>
-                  <div className={textMuted(theme)}>
-                    {nullDisplay(ev.status)} · {nullDisplay(ev.actor)} · {nullDisplay(formatDateTime(ev.eventTime))}
-                  </div>
-                  {ev.reason ? <div className={`mt-1 ${textSecondary(theme)}`}>{ev.reason}</div> : null}
+              <div>
+                <p className={`mb-3 text-xs font-medium uppercase tracking-wide ${textSecondary(theme)}`}>事件时间轴</p>
+                <div className="relative">
+                  {timelineData.events.map((ev, idx) => {
+                    const isLast = idx === timelineData.events.length - 1;
+                    const key = `${ev.eventType}-${idx}-${ev.eventTime ?? ''}-${ev.title ?? ''}`;
+                    return (
+                      <div key={key} className="flex gap-3">
+                        <div className="flex w-5 shrink-0 flex-col items-center">
+                          <div
+                            className={`mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full ring-2 ${isDark ? 'ring-slate-950' : 'ring-white'} ${lifecycleTimelineNodeClass(ev)}`}
+                            aria-hidden
+                          />
+                          {!isLast ? (
+                            <div className={`mt-0.5 w-px flex-1 min-h-[2.5rem] ${isDark ? 'bg-white/15' : 'bg-slate-200'}`} aria-hidden />
+                          ) : null}
+                        </div>
+                        <div className={`min-w-0 flex-1 ${isLast ? '' : 'pb-5'}`}>
+                          <div className={`text-sm font-medium ${textPrimary(theme)}`}>{ev.title || ev.eventType}</div>
+                          <div className={`mt-0.5 text-xs ${textMuted(theme)}`}>
+                            <span className="font-mono">{nullDisplay(ev.status)}</span>
+                            <span className="mx-1 opacity-50">·</span>
+                            <span>{nullDisplay(ev.actor, '—')}</span>
+                            <span className="mx-1 opacity-50">·</span>
+                            <span>{nullDisplay(formatDateTime(ev.eventTime))}</span>
+                          </div>
+                          {ev.reason ? (
+                            <div className={`mt-1.5 rounded-lg px-2 py-1.5 text-xs ${isDark ? 'bg-white/[0.04]' : 'bg-slate-100'} ${textSecondary(theme)}`}>
+                              {ev.reason}
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              ))
+              </div>
             ) : (
               <p className={`text-sm ${textMuted(theme)}`}>暂无生命周期事件</p>
             )}

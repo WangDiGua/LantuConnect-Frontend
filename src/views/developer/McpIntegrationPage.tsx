@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   BookOpen,
   Check,
+  ChevronDown,
   Copy,
   ExternalLink,
   Loader2,
@@ -538,15 +539,9 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
             集成说明
           </h2>
           <p className={`text-sm leading-relaxed ${textSecondary(theme)}`}>
-            调用链：先 <span className="font-mono text-xs">POST /catalog/resolve</span>（或{' '}
-            <span className="font-mono text-xs">POST /sdk/v1/resolve</span>）解析资源；再按返回的{' '}
-            <span className="font-mono text-xs">invokeType</span> 选择{' '}
-            <span className="font-mono text-xs">POST /invoke</span> /{' '}
-            <span className="font-mono text-xs">invoke-stream</span>，或走 MCP{' '}
-            <span className="font-mono text-xs break-all">{mcpMessagePathTemplate}</span>（JSON-RPC：<span className="font-mono text-xs">initialize</span> →{' '}
-            <span className="font-mono text-xs">tools/list</span> 枚举工具 → <span className="font-mono text-xs">tools/call</span>）。不存在可直接 GET「全部工具」的独立 REST。下文{' '}
-            <strong className={textPrimary(theme)}>B. 解析与调用</strong> 与 1～4 同级提供可复制 URL / curl。须在请求头携带完整{' '}
-            <span className="font-mono text-xs">X-Api-Key</span>（浏览器场景建议经 BFF，勿把 secret 暴露到前端）。若上游为 WebSocket MCP 或 redirect 型，以 resolve 为准并做好超时与重试。
+            实际执行多是<strong className={textPrimary(theme)}>「解析 → 三选一调用」</strong>：先 <span className="font-mono text-xs">POST /catalog/resolve</span>，再按返回的 <span className="font-mono text-xs">invokeType</span> 选用{' '}
+            <span className="font-mono text-xs">/invoke</span>、<span className="font-mono text-xs">/invoke-stream</span> 或 <span className="font-mono text-xs break-all">…/message</span>（JSON-RPC）。下文<strong className={textPrimary(theme)}> 常用三种方式 </strong>
+            已展开；拉目录、Grant、预判及 SDK 等价路径请用<strong className={textPrimary(theme)}> 展开更多 </strong>。须带完整 <span className="font-mono text-xs">X-Api-Key</span>；浏览器场景建议经 BFF。
           </p>
           <div className="flex flex-wrap gap-2">
             <button
@@ -574,9 +569,9 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
             对外 HTTP 接口（可复制 URL / curl）
           </h2>
           <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
-            AI 门户或集成服务应直接请求下列地址。<strong className={textPrimary(theme)}>A</strong> 为发现与授权（目录、Grant、预判）；{' '}
-            <strong className={textPrimary(theme)}>B</strong> 为解析与调用（须完整 <span className="font-mono">X-Api-Key</span>）。目录可加{' '}
-            <span className="font-mono">callableOnly=true</span> 与网关 invoke 前健康/熔断对齐；本页勾选「仅显示健康可调用」时会带上该参数。
+            大多数集成只需<strong className={textPrimary(theme)}> 下方解析 + 三选一调用 </strong>。拉目录、Grant、预判及 <span className="font-mono">/sdk/v1/*</span> 等价路径在底部{' '}
+            <strong className={textPrimary(theme)}>展开更多</strong>。执行向须完整 <span className="font-mono">X-Api-Key</span>；目录 URL 会随「仅显示健康可调用」带上{' '}
+            <span className="font-mono">callableOnly</span>。
           </p>
           {!curlLines.hasStoredKey ? (
             <p className={`text-xs leading-relaxed ${isDark ? 'text-amber-200/90' : 'text-amber-900'}`}>
@@ -590,13 +585,119 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
             </p>
           )}
 
-          <h3 className={`text-xs font-bold uppercase tracking-wide ${textMuted(theme)}`}>A. 发现与授权（运行时）</h3>
+          <div className="space-y-1">
+            <h3 className={`text-sm font-bold ${textPrimary(theme)}`}>常用：解析 → 三种调用（三选一）</h3>
+            <p className={`text-[11px] leading-relaxed ${textMuted(theme)}`}>
+              ① 可选：展开更多用目录拿到 <span className="font-mono">resourceId</span>。② <span className="font-mono">POST /catalog/resolve</span>。③ 按 resolve 的 <span className="font-mono">invokeType</span> 只选下列<strong>一种</strong>，勿与另外两种混在同一次业务里。
+            </p>
+          </div>
 
-          <div className="space-y-3">
-            <div>
-              <div className={`text-xs font-semibold mb-1 ${textSecondary(theme)}`}>
-                1. 列举已发布 MCP（目录，GET）
+          <div
+            className={`rounded-xl border p-3 space-y-2 ${isDark ? 'border-emerald-500/20 bg-emerald-500/[0.06]' : 'border-emerald-200 bg-emerald-50/60'}`}
+          >
+            <div className={`text-xs font-bold ${textSecondary(theme)}`}>② 解析：POST /catalog/resolve</div>
+            <p className={`text-[11px] ${textMuted(theme)}`}>
+              body 中 <span className="font-mono">{'{resourceId}'}</span> 换为目录中的值。仅走 Key 的集成可用 <span className="font-mono">POST /sdk/v1/resolve</span>（展开更多）。
+            </p>
+            <div className="flex flex-wrap items-start gap-2">
+              <code
+                className={`flex-1 min-w-0 break-all text-[11px] leading-snug rounded-lg px-2 py-1.5 font-mono ${
+                  isDark ? 'bg-black/30 text-slate-200' : 'bg-white text-slate-800'
+                }`}
+              >
+                {catalogResolveUrl}
+              </code>
+              <CopyTextBtn text={catalogResolveUrl} isDark={isDark} label="复制 URL" />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <CopyTextBtn text={resolveCatalogCurlExample} isDark={isDark} label="复制 curl（resolve）" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+            <div
+              className={`rounded-xl border p-3 space-y-2 flex flex-col ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200 bg-white'}`}
+            >
+              <div className={`text-xs font-bold ${textSecondary(theme)}`}>③ 同步：POST /invoke</div>
+              <p className={`text-[11px] flex-1 ${textMuted(theme)}`}>统一 JSON 响应，最常用。</p>
+              <div className="flex flex-wrap items-start gap-2">
+                <code
+                  className={`flex-1 min-w-0 break-all text-[11px] leading-snug rounded-lg px-2 py-1.5 font-mono ${
+                    isDark ? 'bg-black/30 text-slate-200' : 'bg-slate-100 text-slate-800'
+                  }`}
+                >
+                  {`${apiBaseUrl}/invoke`}
+                </code>
+                <CopyTextBtn text={`${apiBaseUrl}/invoke`} isDark={isDark} label="复制 URL" />
               </div>
+              <CopyTextBtn text={invokeCurlExample} isDark={isDark} label="复制 curl" />
+            </div>
+            <div
+              className={`rounded-xl border p-3 space-y-2 flex flex-col ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200 bg-white'}`}
+            >
+              <div className={`text-xs font-bold ${textSecondary(theme)}`}>③ 流式：POST /invoke-stream</div>
+              <p className={`text-[11px] flex-1 ${textMuted(theme)}`}>SSE 等流式上游。</p>
+              <div className="flex flex-wrap items-start gap-2">
+                <code
+                  className={`flex-1 min-w-0 break-all text-[11px] leading-snug rounded-lg px-2 py-1.5 font-mono ${
+                    isDark ? 'bg-black/30 text-slate-200' : 'bg-slate-100 text-slate-800'
+                  }`}
+                >
+                  {`${apiBaseUrl}/invoke-stream`}
+                </code>
+                <CopyTextBtn text={`${apiBaseUrl}/invoke-stream`} isDark={isDark} label="复制 URL" />
+              </div>
+              <CopyTextBtn text={invokeStreamCurlExample} isDark={isDark} label="复制 curl" />
+            </div>
+            <div
+              className={`rounded-xl border p-3 space-y-2 flex flex-col ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200 bg-white'}`}
+            >
+              <div className={`text-xs font-bold ${textSecondary(theme)}`}>③ MCP：…/message + JSON-RPC</div>
+              <p className={`text-[11px] flex-1 ${textMuted(theme)}`}>
+                单 URL 上 <span className="font-mono">tools/list</span> / <span className="font-mono">tools/call</span> 等。
+              </p>
+              <div className="flex flex-wrap items-start gap-2">
+                <code
+                  className={`flex-1 min-w-0 break-all text-[11px] leading-snug rounded-lg px-2 py-1.5 font-mono ${
+                    isDark ? 'bg-black/30 text-slate-200' : 'bg-slate-100 text-slate-800'
+                  }`}
+                >
+                  {mcpMessagePathTemplate}
+                </code>
+                <CopyTextBtn text={mcpMessagePathTemplate} isDark={isDark} label="复制 URL" />
+              </div>
+              <CopyTextBtn text={mcpJsonRpcCurlExamples} isDark={isDark} label="复制 curl（合集）" />
+            </div>
+          </div>
+
+          <details
+            className={`group rounded-xl border overflow-hidden ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-white'}`}
+          >
+            <summary
+              className={`flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-semibold [&::-webkit-details-marker]:hidden ${
+                isDark ? 'bg-white/[0.04] hover:bg-white/[0.07]' : 'bg-slate-50 hover:bg-slate-100'
+              }`}
+            >
+              <ChevronDown
+                size={16}
+                className={`shrink-0 transition-transform group-open:rotate-180 ${textMuted(theme)}`}
+                aria-hidden
+              />
+              <span className={textPrimary(theme)}>展开更多</span>
+              <span className={`text-xs font-normal ${textMuted(theme)}`}>
+                目录与 Grant、invoke 预判、仅 Key 目录、POST /sdk/v1/resolve …
+              </span>
+            </summary>
+            <div
+              className={`space-y-4 border-t px-4 pb-4 pt-3 ${isDark ? 'border-white/10' : 'border-slate-200'}`}
+            >
+              <h4 className={`text-xs font-bold uppercase tracking-wide ${textMuted(theme)}`}>发现与授权（运行时）</h4>
+
+              <div className="space-y-3">
+                <div>
+                  <div className={`text-xs font-semibold mb-1 ${textSecondary(theme)}`}>
+                    1. 列举已发布 MCP（目录，GET）
+                  </div>
               <div className="flex flex-wrap items-start gap-2">
                 <code
                   className={`flex-1 min-w-0 break-all text-[11px] leading-snug rounded-lg px-2 py-1.5 font-mono ${
@@ -665,107 +766,47 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
                 <CopyTextBtn text={eligibilityCurlExample} isDark={isDark} label="复制 curl 示例" />
               </div>
             </div>
-          </div>
-
-          <h3 className={`text-xs font-bold uppercase tracking-wide pt-2 ${textMuted(theme)}`}>B. 解析与调用（须 X-Api-Key）</h3>
-          <p className={`text-[11px] leading-relaxed ${textMuted(theme)}`}>
-            下列请求必须带创建 API Key 时返回的完整 <span className="font-mono">secretPlain</span>。若本机已保存密钥，curl 会自动预填；复制出的命令请勿进入版本库或公开渠道。
-          </p>
-
-          <div className="space-y-3">
-            <div>
-              <div className={`text-xs font-semibold mb-1 ${textSecondary(theme)}`}>
-                5. 解析资源（POST /catalog/resolve；与 POST /sdk/v1/resolve 等价）
               </div>
-              <p className={`text-[11px] mb-1 ${textMuted(theme)}`}>
-                将 <span className="font-mono">{'{resourceId}'}</span> 换为目录中的值；返回 <span className="font-mono">invokeType</span>、<span className="font-mono">endpoint</span> 等，供步骤 6～8 选用。
+
+              <h4 className={`text-xs font-bold uppercase tracking-wide pt-1 ${textMuted(theme)}`}>
+                解析路径补充（与上方「② 解析」等价）
+              </h4>
+              <p className={`text-[11px] ${textMuted(theme)}`}>
+                主区域已给出 <span className="font-mono">POST /catalog/resolve</span>。若集成固定走 <span className="font-mono">/sdk/v1</span>，可用下列 URL / curl；<span className="font-mono">/invoke</span>、<span className="font-mono">/invoke-stream</span>、<span className="font-mono">…/message</span> 的可复制块与主区域<strong className={textPrimary(theme)}> 三列 </strong>相同。
               </p>
-              <div className="flex flex-wrap items-start gap-2">
-                <code
-                  className={`flex-1 min-w-0 break-all text-[11px] leading-snug rounded-lg px-2 py-1.5 font-mono ${
-                    isDark ? 'bg-black/30 text-slate-200' : 'bg-slate-100 text-slate-800'
-                  }`}
-                >
-                  {catalogResolveUrl}
-                </code>
-                <CopyTextBtn text={catalogResolveUrl} isDark={isDark} label="复制 URL" />
-              </div>
-              <div className="flex flex-wrap items-start gap-2 mt-2">
-                <code
-                  className={`flex-1 min-w-0 break-all text-[11px] leading-snug rounded-lg px-2 py-1.5 font-mono ${
-                    isDark ? 'bg-black/30 text-slate-200' : 'bg-slate-100 text-slate-800'
-                  }`}
-                >
-                  {sdkResolveUrl}
-                </code>
-                <CopyTextBtn text={sdkResolveUrl} isDark={isDark} label="复制 SDK resolve URL" />
-              </div>
-              <div className="flex flex-wrap gap-2 mt-2">
-                <CopyTextBtn text={resolveCatalogCurlExample} isDark={isDark} label="复制 curl（catalog）" />
-                <CopyTextBtn text={resolveSdkCurlExample} isDark={isDark} label="复制 curl（sdk）" />
-              </div>
-            </div>
-
-            <div>
-              <div className={`text-xs font-semibold mb-1 ${textSecondary(theme)}`}>
-                6. 统一调用（POST /invoke）
-              </div>
-              <div className="flex flex-wrap items-start gap-2">
-                <code
-                  className={`flex-1 min-w-0 break-all text-[11px] leading-snug rounded-lg px-2 py-1.5 font-mono ${
-                    isDark ? 'bg-black/30 text-slate-200' : 'bg-slate-100 text-slate-800'
-                  }`}
-                >
-                  {`${apiBaseUrl}/invoke`}
-                </code>
-                <CopyTextBtn text={`${apiBaseUrl}/invoke`} isDark={isDark} label="复制 URL" />
-              </div>
-              <div className="flex flex-wrap gap-2 mt-2">
-                <CopyTextBtn text={invokeCurlExample} isDark={isDark} label="复制 curl 示例" />
+              <div className="space-y-3">
+                <div>
+                  <div className={`text-xs font-semibold mb-1 ${textSecondary(theme)}`}>
+                    POST /catalog/resolve 与 POST /sdk/v1/resolve（双路径）
+                  </div>
+                  <div className="flex flex-wrap items-start gap-2">
+                    <code
+                      className={`flex-1 min-w-0 break-all text-[11px] leading-snug rounded-lg px-2 py-1.5 font-mono ${
+                        isDark ? 'bg-black/30 text-slate-200' : 'bg-slate-100 text-slate-800'
+                      }`}
+                    >
+                      {catalogResolveUrl}
+                    </code>
+                    <CopyTextBtn text={catalogResolveUrl} isDark={isDark} label="复制 URL" />
+                  </div>
+                  <div className="flex flex-wrap items-start gap-2 mt-2">
+                    <code
+                      className={`flex-1 min-w-0 break-all text-[11px] leading-snug rounded-lg px-2 py-1.5 font-mono ${
+                        isDark ? 'bg-black/30 text-slate-200' : 'bg-slate-100 text-slate-800'
+                      }`}
+                    >
+                      {sdkResolveUrl}
+                    </code>
+                    <CopyTextBtn text={sdkResolveUrl} isDark={isDark} label="复制 SDK resolve URL" />
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    <CopyTextBtn text={resolveCatalogCurlExample} isDark={isDark} label="复制 curl（catalog）" />
+                    <CopyTextBtn text={resolveSdkCurlExample} isDark={isDark} label="复制 curl（sdk）" />
+                  </div>
+                </div>
               </div>
             </div>
-
-            <div>
-              <div className={`text-xs font-semibold mb-1 ${textSecondary(theme)}`}>
-                7. 流式调用（POST /invoke-stream）
-              </div>
-              <div className="flex flex-wrap items-start gap-2">
-                <code
-                  className={`flex-1 min-w-0 break-all text-[11px] leading-snug rounded-lg px-2 py-1.5 font-mono ${
-                    isDark ? 'bg-black/30 text-slate-200' : 'bg-slate-100 text-slate-800'
-                  }`}
-                >
-                  {`${apiBaseUrl}/invoke-stream`}
-                </code>
-                <CopyTextBtn text={`${apiBaseUrl}/invoke-stream`} isDark={isDark} label="复制 URL" />
-              </div>
-              <div className="flex flex-wrap gap-2 mt-2">
-                <CopyTextBtn text={invokeStreamCurlExample} isDark={isDark} label="复制 curl 示例" />
-              </div>
-            </div>
-
-            <div>
-              <div className={`text-xs font-semibold mb-1 ${textSecondary(theme)}`}>
-                8. MCP JSON-RPC（POST …/mcp/v1/resources/mcp/{'{resourceId}'}/message）
-              </div>
-              <p className={`text-[11px] mb-1 ${textMuted(theme)}`}>
-                同一 URL 上发送单对象 JSON-RPC；用 <span className="font-mono">tools/list</span> 枚举工具（无单独 GET REST）。示例含 <span className="font-mono">initialize</span>、<span className="font-mono">tools/list</span>、<span className="font-mono">tools/call</span> 三条 curl。
-              </p>
-              <div className="flex flex-wrap items-start gap-2">
-                <code
-                  className={`flex-1 min-w-0 break-all text-[11px] leading-snug rounded-lg px-2 py-1.5 font-mono ${
-                    isDark ? 'bg-black/30 text-slate-200' : 'bg-slate-100 text-slate-800'
-                  }`}
-                >
-                  {mcpMessagePathTemplate}
-                </code>
-                <CopyTextBtn text={mcpMessagePathTemplate} isDark={isDark} label="复制 URL 模板" />
-              </div>
-              <div className="flex flex-wrap gap-2 mt-2">
-                <CopyTextBtn text={mcpJsonRpcCurlExamples} isDark={isDark} label="复制 curl（JSON-RPC 合集）" />
-              </div>
-            </div>
-          </div>
+          </details>
         </section>
 
         {keysLoading || mcpLoading ? (

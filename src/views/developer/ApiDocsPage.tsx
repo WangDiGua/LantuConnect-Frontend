@@ -591,13 +591,20 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
               </div>
             </div>
 
+            {/*
+              外侧不用 overflow-hidden，否则 position:sticky 无法在页面滚动时相对视口固定侧栏。
+              圆角拆到左右子元素，避免侧栏粘滞时被父级裁剪。
+            */}
             <div
-              className={`flex-1 min-h-0 flex rounded-[24px] overflow-hidden border ${
+              className={`flex w-full flex-1 min-h-0 items-start rounded-[24px] border ${
                 isDark ? 'border-white/[0.06]' : 'border-slate-100'
               }`}
             >
-              <div className={`w-52 shrink-0 overflow-y-auto ${glassSidebar(theme)}`}>
-                <div className="p-3 space-y-1">
+              <aside
+                aria-label="API 分类"
+                className={`sticky top-6 z-20 w-52 shrink-0 self-start rounded-l-[24px] ${glassSidebar(theme)}`}
+              >
+                <div className="max-h-[min(100vh-6rem,100dvh-6rem)] overflow-y-auto overscroll-y-contain p-3 space-y-1 custom-scrollbar">
                   <p className={`text-xs font-semibold uppercase tracking-wider px-3 py-2 ${textMuted(theme)}`}>API 分类</p>
                   {API_CATEGORIES.map((cat) => (
                     <button
@@ -610,15 +617,15 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
                           : isDark ? 'text-slate-400 hover:bg-white/5' : 'text-slate-600 hover:bg-slate-100'
                       }`}
                     >
-                      <ChevronRight size={14} className={activeCat === cat.id ? 'opacity-100' : 'opacity-40'} />
+                      <ChevronRight size={14} className={activeCat === cat.id ? 'opacity-100' : 'opacity-40'} aria-hidden />
                       <span className="truncate">{cat.label}</span>
-                      <span className={`ml-auto text-xs px-1.5 py-0.5 rounded-md ${isDark ? 'bg-white/5 text-slate-500' : 'bg-slate-100 text-slate-400'}`}>{cat.endpoints.length}</span>
+                      <span className={`ml-auto text-xs px-1.5 py-0.5 rounded-md tabular-nums ${isDark ? 'bg-white/5 text-slate-500' : 'bg-slate-100 text-slate-400'}`}>{cat.endpoints.length}</span>
                     </button>
                   ))}
                 </div>
-              </div>
+              </aside>
 
-              <div className="flex-1 min-w-0 overflow-y-auto p-4 sm:p-6 space-y-4">
+              <div className="flex-1 min-w-0 rounded-r-[24px] p-4 sm:p-6 space-y-4">
                 <h2 className={`text-base font-bold ${textPrimary(theme)}`}>{category.label}</h2>
                 {category.endpoints.map((ep, idx) => {
                   const mc = METHOD_COLORS[ep.method];

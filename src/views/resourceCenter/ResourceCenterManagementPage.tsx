@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Boxes, Download, Plus, RefreshCw, Store } from 'lucide-react';
+import { Boxes, Download, Pencil, Plus, RefreshCw, Store } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { ResourceType } from '../../types/dto/catalog';
 import type {
@@ -254,19 +254,43 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
     actionKey: string,
     action: () => Promise<ResourceCenterItemVO>,
     okText: string,
-  ) => {
+  ): Promise<ResourceCenterItemVO | undefined> => {
     setRunningActionKey(actionKey);
     try {
       const updated = await action();
       setItems((prev) => prev.map((it) => (it.id === updated.id ? { ...it, ...updated } : it)));
       showMessage(updated.statusHint || okText, 'success');
       await fetchData();
+      return updated;
     } catch (err) {
       showMessage(err instanceof Error ? err.message : '操作失败', 'error');
+      return undefined;
     } finally {
       setRunningActionKey(null);
     }
   };
+
+  /** 创建/切换版本后同步弹窗标题区的「当前版本」与列表行状态，避免仅刷新外层列表、弹窗仍显示旧元数据 */
+  const syncVersionModalFromServer = useCallback(
+    async (resourceId: number) => {
+      try {
+        const [fresh, vers] = await Promise.all([
+          resourceCenterService.getById(resourceId),
+          resourceCenterService.listVersions(resourceId),
+        ]);
+        setVersionTarget(fresh);
+        setVersions(vers);
+        const nextLabel =
+          fresh.currentVersion && fresh.currentVersion.trim()
+            ? bumpVersionLabel(fresh.currentVersion.trim())
+            : 'v2';
+        setNewVersion(nextLabel);
+      } catch (e) {
+        showMessage(e instanceof Error ? e.message : '刷新版本信息失败', 'error');
+      }
+    },
+    [showMessage],
+  );
 
   const openLifecycleModal = async (item: ResourceCenterItemVO) => {
     setTimelineTarget(item);
@@ -671,13 +695,61 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
       >
         {versionTarget && (
           <>
-            <p className={`mb-3 text-xs leading-relaxed ${textMuted(theme)}`}>
-              与后端对齐：加载列表为 <span className="font-mono text-[11px]">GET …/resources/:id/versions</span>；新建版本会写入当前资源快照（
-              <span className="font-mono text-[11px]">POST …/versions</span>，body 含 <span className="font-mono text-[11px]">version</span>、可选{' '}
-              <span className="font-mono text-[11px]">makeCurrent</span>）。回退或切换默认版本使用{' '}
-              <span className="font-mono text-[11px]">POST …/versions/:version/switch</span>，且仅 <span className="font-mono text-[11px]">status=active</span>{' '}
-              的行可切换。
-            </p>
+            <div
+              className={`mb-3 rounded-xl border px-3 py-2.5 text-xs leading-relaxed ${
+                isDark ? 'border-white/[0.08] bg-white/[0.03]' : 'border-slate-200 bg-slate-50'
+              }`}
+            >
+              <p className={textSecondary(theme)}>
+                <span className="font-medium text-slate-900 dark:text-slate-100">版本在做什么：</span>
+                新建版本会把<strong className="font-medium">当时主资源上的配置</strong>打成快照存入历史，便于<strong>回退默认版本</strong>；<strong>不会</strong>自动生成「可编辑副本」。
+              </p>
+              {versionTarget.status === 'published' && (
+                <p className={`mt-2 ${isDark ? 'text-amber-200/95' : 'text-amber-900'}`}>
+                  <span className="font-medium">若要改 URL、说明等再继续上架：</span>
+                  请先在列表对该资源点「下线」进入可编辑态 → 点「编辑」修改 → 再提交审核并发布。快照与「设为当前」仅影响<strong>默认解析版本</strong>，不能替代这一流程。
+                </p>
+              )}
+              {versionTarget.status === 'testing' && (
+                <p className={`mt-2 ${isDark ? 'text-amber-200/95' : 'text-amber-900'}`}>
+                  <span className="font-medium">测试阶段要改配置：</span>
+                  可点「撤回审核」回草稿后编辑；或「下线」后再编辑并重走提审/发布。新建版本只存快照，不会解锁登记页编辑。
+                </p>
+              )}
+              {(versionTarget.status === 'draft' ||
+                versionTarget.status === 'rejected' ||
+                versionTarget.status === 'deprecated') && (
+                <p className={`mt-2 ${textMuted(theme)}`}>
+                  当前可编辑：可直接关闭本窗口，在列表点「编辑」更新主资源；保存后主表变更，需要时可再来此<strong>新建版本</strong>保留历史快照。
+                </p>
+              )}
+            </div>
+            <details className={`mb-3 text-xs ${textMuted(theme)}`}>
+              <summary className="cursor-pointer select-none font-medium text-slate-600 dark:text-slate-400">
+                开发者：接口与快照行为说明
+              </summary>
+              <p className="mt-2 leading-relaxed pl-0.5">
+                列表 <span className="font-mono text-[11px]">GET /resource-center/resources/:id/versions</span>；新建{' '}
+                <span className="font-mono text-[11px]">POST …/versions</span>（body：<span className="font-mono text-[11px]">version</span>、
+                <span className="font-mono text-[11px]">makeCurrent</span>）写入当前主资源快照；切换默认{' '}
+                <span className="font-mono text-[11px]">POST …/versions/:version/switch</span>，仅 <span className="font-mono text-[11px]">active</span> 可切。
+              </p>
+            </details>
+            {isActionAllowed(versionTarget, 'update') && (
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  className={`${btnSecondary(theme)} inline-flex items-center gap-1.5`}
+                  onClick={() => {
+                    onNavigateRegister(versionTarget.resourceType, versionTarget.id);
+                    closeVersionModal();
+                  }}
+                >
+                  <Pencil size={14} aria-hidden />
+                  去编辑登记页（改主资源）
+                </button>
+              </div>
+            )}
             <div className="space-y-2">
               {versionsLoading ? (
                 <p className={`py-4 text-center text-sm ${textMuted(theme)}`}>加载版本列表…</p>
@@ -725,12 +797,14 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                           type="button"
                           title="将网关解析与目录默认指向此版本（回退即切换到较早的 active 版本）"
                           onClick={async () => {
-                            await runMutationAction(
+                            const updated = await runMutationAction(
                               `switch-version-${versionTarget.id}-${ver.version}`,
                               () => resourceCenterService.switchVersion(versionTarget.id, ver.version),
                               `已设为当前版本 ${ver.version}`,
                             );
-                            setVersions(await resourceCenterService.listVersions(versionTarget.id));
+                            if (updated) {
+                              await syncVersionModalFromServer(versionTarget.id);
+                            }
                           }}
                           className={btnGhost(theme)}
                         >
@@ -767,19 +841,28 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                       return;
                     }
                     setNewVersionError('');
-                    await runAction(
-                      `create-version-${versionTarget.id}`,
-                      () =>
-                        resourceCenterService
-                          .createVersion(versionTarget.id, { version: vv, makeCurrent: makeNewVersionCurrent })
-                          .then(() => undefined),
-                      makeNewVersionCurrent ? `已创建并设为当前版本 ${vv}` : `已创建版本 ${vv}`,
-                    );
-                    setVersions(await resourceCenterService.listVersions(versionTarget.id));
+                    setRunningActionKey(`create-version-${versionTarget.id}`);
+                    try {
+                      await resourceCenterService.createVersion(versionTarget.id, {
+                        version: vv,
+                        makeCurrent: makeNewVersionCurrent,
+                      });
+                      showMessage(
+                        makeNewVersionCurrent ? `已创建并设为当前版本 ${vv}` : `已创建版本 ${vv}（可在列表中切换默认）`,
+                        'success',
+                      );
+                      await fetchData();
+                      await syncVersionModalFromServer(versionTarget.id);
+                    } catch (err) {
+                      showMessage(err instanceof Error ? err.message : '创建版本失败', 'error');
+                    } finally {
+                      setRunningActionKey(null);
+                    }
                   }}
+                  disabled={runningActionKey === `create-version-${versionTarget.id}`}
                   className={btnPrimary}
                 >
-                  新建版本
+                  {runningActionKey === `create-version-${versionTarget.id}` ? '创建中…' : '新建版本'}
                 </button>
               </div>
               {newVersionError ? (
@@ -794,7 +877,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                   checked={makeNewVersionCurrent}
                   onChange={(e) => setMakeNewVersionCurrent(e.target.checked)}
                 />
-                创建后立即设为当前默认版本（对应 <span className="font-mono">makeCurrent: true</span>）
+                创建后立即设为当前默认解析版本
               </label>
               {!makeNewVersionCurrent && (
                 <p className={`mt-1 text-[11px] ${isDark ? 'text-amber-200/90' : 'text-amber-800'}`}>

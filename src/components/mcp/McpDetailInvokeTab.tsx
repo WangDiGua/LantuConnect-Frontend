@@ -589,9 +589,10 @@ export const McpDetailInvokeTab: React.FC<McpDetailInvokeTabProps> = ({
       ) : null}
 
       <div
-        className={`rounded-2xl border p-4 ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-slate-50/60'} ${invokeDisabled ? 'pointer-events-none select-none opacity-45' : ''}`}
-        aria-hidden={invokeDisabled || undefined}
+        inert={invokeDisabled}
+        className={`space-y-5 ${invokeDisabled ? 'select-none opacity-45' : ''}`}
       >
+      <div className={`rounded-2xl border p-4 ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-slate-50/60'}`}>
         <h3 className={`text-sm font-bold ${textPrimary(theme)}`}>鉴权与超时</h3>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <div className="sm:col-span-2">
@@ -853,6 +854,7 @@ export const McpDetailInvokeTab: React.FC<McpDetailInvokeTabProps> = ({
         invoking={invoking}
         streamHintWhenQuick={invokeUseStream}
       />
+      </div>
     </div>
   );
 };

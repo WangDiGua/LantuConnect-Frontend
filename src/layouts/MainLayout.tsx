@@ -23,6 +23,7 @@ import { authService } from '../api/services/auth.service';
 import { notificationService } from '../api/services/notification.service';
 import { tokenStorage } from '../lib/security';
 import { env } from '../config/env';
+import { connectUserPushSocket, readAccessTokenForRealtime } from '../lib/realtimePush';
 import {
   ADMIN_SIDEBAR_ITEMS,
   USER_SIDEBAR_ITEMS,
@@ -772,6 +773,19 @@ const MainLayoutContent: React.FC<{
   useEffect(() => {
     void refreshMessageUnreadCount();
   }, [refreshMessageUnreadCount]);
+
+  /** 站内通知：WebSocket 实时推送未读数，避免仅依赖窗口聚焦再拉取 */
+  useEffect(() => {
+    if (!authUser?.id) return;
+    const token = readAccessTokenForRealtime();
+    if (!token) return;
+    const disconnect = connectUserPushSocket(token, {
+      onServerPush: () => {
+        void refreshMessageUnreadCount();
+      },
+    });
+    return disconnect;
+  }, [authUser?.id, refreshMessageUnreadCount]);
 
   useEffect(() => {
     const inner = routeContentScrollRef.current;

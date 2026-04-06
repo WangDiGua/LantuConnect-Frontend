@@ -397,6 +397,15 @@ export const McpDetailInvokeTab: React.FC<McpDetailInvokeTabProps> = ({
           }
           setListedTools(parsed.tools);
           setToolListMessage(parsed.tools.length === 0 ? '服务端返回的工具列表为空' : null);
+          if (parsed.tools.length > 0) {
+            const first = parsed.tools[0]?.name?.trim() ?? '';
+            setSelectedToolName(first);
+            setToolArgumentsJson('{}');
+            setArgsJsonError(null);
+          } else {
+            setSelectedToolName('');
+            setToolArgumentsJson('{}');
+          }
           setInvokeResponse(out.response);
         }
       }

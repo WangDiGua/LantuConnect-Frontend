@@ -223,6 +223,14 @@ function mapErrorMessage(status: number, code?: number, fallback?: string): stri
   return fallback || '请求失败';
 }
 
+function readApiErrorDetails(body: ApiResponse<unknown> | undefined): Record<string, string[]> | undefined {
+  if (body == null || typeof body !== 'object') return undefined;
+  const b = body as { details?: unknown };
+  const d = b.details;
+  if (d && typeof d === 'object' && !Array.isArray(d)) return d as Record<string, string[]>;
+  return undefined;
+}
+
 function sanitizeUserMessage(message: string): string {
   if (!message) return message;
   return message
@@ -380,7 +388,7 @@ instance.interceptors.response.use(
           code: bizCode ?? 403,
           message: sanitizeUserMessage(withPathHint(path, baseMessage)),
           status: 403,
-          details: (body as any)?.details,
+          details: readApiErrorDetails(body),
         }),
       );
     }
@@ -435,7 +443,7 @@ instance.interceptors.response.use(
         code: bizCode ?? status!,
         message: sanitizeUserMessage(mapErrorMessage(status!, bizCode, body?.message)),
         status: status!,
-        details: (body as any)?.details,
+        details: readApiErrorDetails(body),
       }),
     );
   },
@@ -446,12 +454,16 @@ function unwrap<T>(res: AxiosResponse<ApiResponse<T>>): T {
   if (body == null || typeof body !== 'object') {
     return undefined as T;
   }
-  const data = body.data as any;
-  if (data && typeof data === 'object' && Array.isArray(data.list) && (data.total === undefined || data.total === null)) {
-    const totalCount = res.headers?.['x-total-count'];
-    if (totalCount !== undefined) {
-      const parsed = Number(totalCount);
-      if (!Number.isNaN(parsed)) data.total = parsed;
+  const data = body.data as unknown;
+  if (data && typeof data === 'object' && !Array.isArray(data)) {
+    const rec = data as Record<string, unknown>;
+    const list = rec.list;
+    if (Array.isArray(list) && (rec.total === undefined || rec.total === null)) {
+      const totalCount = res.headers?.['x-total-count'];
+      if (totalCount !== undefined) {
+        const parsed = Number(totalCount);
+        if (!Number.isNaN(parsed)) rec.total = parsed;
+      }
     }
   }
   return data as T;

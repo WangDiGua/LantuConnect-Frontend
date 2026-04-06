@@ -57,201 +57,207 @@ function asRecordObject(value: unknown): Record<string, unknown> | undefined {
   return undefined;
 }
 
-function toResourceItem(raw: any): ResourceCenterItemVO {
-  const id = Number(raw?.id ?? raw?.resourceId ?? 0) || 0;
-  const type = String(raw?.resourceType ?? 'agent') as ResourceCenterItemVO['resourceType'];
-  const manifest = asRecordObject(raw?.manifest);
+function toResourceItem(raw: unknown): ResourceCenterItemVO {
+  const r = raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
+  const id = Number(r.id ?? r.resourceId ?? 0) || 0;
+  const type = String(r.resourceType ?? 'agent') as ResourceCenterItemVO['resourceType'];
+  const manifest = asRecordObject(r.manifest);
   return {
     id,
     resourceType: type,
-    resourceId: String(raw?.resourceId ?? id),
-    resourceCode: String(raw?.resourceCode ?? `res-${id}`),
-    displayName: String(raw?.displayName ?? raw?.name ?? `资源-${id}`),
-    description: raw?.description ? String(raw.description) : '',
-    sourceType: raw?.sourceType ? String(raw.sourceType) : undefined,
-    providerId: raw?.providerId != null && raw?.providerId !== '' ? String(raw.providerId) : undefined,
-    categoryId: raw?.categoryId != null && raw?.categoryId !== '' ? String(raw.categoryId) : undefined,
-    authType: raw?.authType ? String(raw.authType) : undefined,
+    resourceId: String(r?.resourceId ?? id),
+    resourceCode: String(r?.resourceCode ?? `res-${id}`),
+    displayName: String(r?.displayName ?? r?.name ?? `资源-${id}`),
+    description: r?.description ? String(r.description) : '',
+    sourceType: r?.sourceType ? String(r.sourceType) : undefined,
+    providerId: r?.providerId != null && r?.providerId !== '' ? String(r.providerId) : undefined,
+    categoryId: r?.categoryId != null && r?.categoryId !== '' ? String(r.categoryId) : undefined,
+    authType: r?.authType ? String(r.authType) : undefined,
     authConfig:
-      raw?.authConfig && typeof raw.authConfig === 'object' && !Array.isArray(raw.authConfig)
-        ? (raw.authConfig as Record<string, unknown>)
+      r?.authConfig && typeof r.authConfig === 'object' && !Array.isArray(r.authConfig)
+        ? (r.authConfig as Record<string, unknown>)
         : undefined,
-    status: normalizeStatus(raw?.status),
-    currentVersion: raw?.currentVersion ? String(raw.currentVersion) : undefined,
-    createTime: raw?.createTime ? String(raw.createTime) : undefined,
-    updateTime: raw?.updateTime ? String(raw.updateTime) : undefined,
-    submitTime: raw?.submitTime ? String(raw.submitTime) : undefined,
+    status: normalizeStatus(r?.status),
+    currentVersion: r?.currentVersion ? String(r.currentVersion) : undefined,
+    createTime: r?.createTime ? String(r.createTime) : undefined,
+    updateTime: r?.updateTime ? String(r.updateTime) : undefined,
+    submitTime: r?.submitTime ? String(r.submitTime) : undefined,
     ownerId:
-      raw?.ownerId != null && raw?.ownerId !== ''
-        ? String(raw.ownerId)
-        : raw?.createdBy != null && raw?.createdBy !== ''
-          ? String(raw.createdBy)
+      r?.ownerId != null && r?.ownerId !== ''
+        ? String(r.ownerId)
+        : r?.createdBy != null && r?.createdBy !== ''
+          ? String(r.createdBy)
           : undefined,
-    ownerName: raw?.ownerName ? String(raw.ownerName) : raw?.createdByName ? String(raw.createdByName) : undefined,
-    endpoint: raw?.endpoint ? String(raw.endpoint) : undefined,
-    protocol: raw?.protocol ? String(raw.protocol) : undefined,
+    ownerName: r?.ownerName ? String(r.ownerName) : r?.createdByName ? String(r.createdByName) : undefined,
+    endpoint: r?.endpoint ? String(r.endpoint) : undefined,
+    protocol: r?.protocol ? String(r.protocol) : undefined,
     serviceDetailMd:
-      raw?.serviceDetailMd != null && String(raw.serviceDetailMd).trim() !== ''
-        ? String(raw.serviceDetailMd)
-        : raw?.service_detail_md != null && String(raw.service_detail_md).trim() !== ''
-          ? String(raw.service_detail_md)
+      r?.serviceDetailMd != null && String(r.serviceDetailMd).trim() !== ''
+        ? String(r.serviceDetailMd)
+        : r?.service_detail_md != null && String(r.service_detail_md).trim() !== ''
+          ? String(r.service_detail_md)
           : undefined,
-    appUrl: raw?.appUrl ? String(raw.appUrl) : undefined,
-    embedType: raw?.embedType ? String(raw.embedType) : undefined,
-    icon: raw?.icon != null && raw?.icon !== '' ? String(raw.icon) : undefined,
-    screenshots: Array.isArray(raw?.screenshots) ? raw.screenshots.map((s: unknown) => String(s)) : undefined,
+    appUrl: r?.appUrl ? String(r.appUrl) : undefined,
+    embedType: r?.embedType ? String(r.embedType) : undefined,
+    icon: r?.icon != null && r?.icon !== '' ? String(r.icon) : undefined,
+    screenshots: Array.isArray(r?.screenshots) ? r.screenshots.map((s: unknown) => String(s)) : undefined,
     isPublic:
-      typeof raw?.isPublic === 'boolean'
-        ? raw.isPublic
-        : raw?.isPublic === 1 || raw?.isPublic === '1'
+      typeof r?.isPublic === 'boolean'
+        ? r.isPublic
+        : r?.isPublic === 1 || r?.isPublic === '1'
           ? true
-          : raw?.isPublic === 0 || raw?.isPublic === '0'
+          : r?.isPublic === 0 || r?.isPublic === '0'
             ? false
             : undefined,
-    accessPolicy: normalizeAccessPolicy(raw?.accessPolicy ?? raw?.access_policy),
+    accessPolicy: normalizeAccessPolicy(r?.accessPolicy ?? r?.access_policy),
     hidden:
-      typeof raw?.hidden === 'boolean'
-        ? raw.hidden
-        : raw?.hidden === 1 || raw?.hidden === '1'
+      typeof r?.hidden === 'boolean'
+        ? r.hidden
+        : r?.hidden === 1 || r?.hidden === '1'
           ? true
-          : raw?.hidden === 0 || raw?.hidden === '0'
+          : r?.hidden === 0 || r?.hidden === '0'
             ? false
             : undefined,
     agentType:
-      raw?.agentType != null && raw?.agentType !== ''
-        ? String(raw.agentType)
-        : raw?.agent_type != null && raw?.agent_type !== ''
-          ? String(raw.agent_type)
+      r?.agentType != null && r?.agentType !== ''
+        ? String(r.agentType)
+        : r?.agent_type != null && r?.agent_type !== ''
+          ? String(r.agent_type)
           : undefined,
-    spec: asRecordObject(raw?.spec ?? raw?.spec_json),
+    spec: asRecordObject(r?.spec ?? r?.spec_json),
     systemPrompt:
-      raw?.systemPrompt != null && String(raw.systemPrompt).trim() !== ''
-        ? String(raw.systemPrompt)
-        : raw?.system_prompt != null && String(raw.system_prompt).trim() !== ''
-          ? String(raw.system_prompt)
+      r?.systemPrompt != null && String(r.systemPrompt).trim() !== ''
+        ? String(r.systemPrompt)
+        : r?.system_prompt != null && String(r.system_prompt).trim() !== ''
+          ? String(r.system_prompt)
           : undefined,
     maxSteps:
-      raw?.maxSteps != null && Number.isFinite(Number(raw.maxSteps))
-        ? Number(raw.maxSteps)
-        : raw?.max_steps != null && Number.isFinite(Number(raw.max_steps))
-          ? Number(raw.max_steps)
+      r?.maxSteps != null && Number.isFinite(Number(r.maxSteps))
+        ? Number(r.maxSteps)
+        : r?.max_steps != null && Number.isFinite(Number(r.max_steps))
+          ? Number(r.max_steps)
           : undefined,
     temperature:
-      raw?.temperature != null && Number.isFinite(Number(raw.temperature))
-        ? Number(raw.temperature)
+      r?.temperature != null && Number.isFinite(Number(r.temperature))
+        ? Number(r.temperature)
         : undefined,
-    relatedResourceIds: Array.isArray(raw?.relatedResourceIds ?? raw?.related_resource_ids)
-      ? (raw.relatedResourceIds ?? raw.related_resource_ids)
-          .map((n: unknown) => Number(n))
-          .filter((n: number) => Number.isFinite(n) && n > 0)
-      : undefined,
-    dataType: raw?.dataType ? String(raw.dataType) : undefined,
-    format: raw?.format ? String(raw.format) : undefined,
-    recordCount: Number(raw?.recordCount ?? 0) || 0,
-    fileSize: Number(raw?.fileSize ?? 0) || 0,
-    tags: Array.isArray(raw?.tags) ? raw.tags.map((tag: unknown) => String(tag)) : [],
-    catalogTagNames: Array.isArray(raw?.catalogTagNames)
-      ? raw.catalogTagNames.map((t: unknown) => String(t))
+    relatedResourceIds: (() => {
+      const refIds = r?.relatedResourceIds ?? r?.related_resource_ids;
+      if (!Array.isArray(refIds)) return undefined;
+      return refIds
+        .map((n: unknown) => Number(n))
+        .filter((n: number) => Number.isFinite(n) && n > 0);
+    })(),
+    dataType: r?.dataType ? String(r.dataType) : undefined,
+    format: r?.format ? String(r.format) : undefined,
+    recordCount: Number(r?.recordCount ?? 0) || 0,
+    fileSize: Number(r?.fileSize ?? 0) || 0,
+    tags: Array.isArray(r?.tags) ? r.tags.map((tag: unknown) => String(tag)) : [],
+    catalogTagNames: Array.isArray(r?.catalogTagNames)
+      ? r.catalogTagNames.map((t: unknown) => String(t))
       : undefined,
     skillType:
-      raw?.skillType != null && raw?.skillType !== ''
-        ? String(raw.skillType)
-        : raw?.skill_type != null && raw?.skill_type !== ''
-          ? String(raw.skill_type)
+      r?.skillType != null && r?.skillType !== ''
+        ? String(r.skillType)
+        : r?.skill_type != null && r?.skill_type !== ''
+          ? String(r.skill_type)
           : undefined,
     artifactUri:
-      raw?.artifactUri != null && String(raw.artifactUri).trim() !== ''
-        ? String(raw.artifactUri).trim()
-        : raw?.artifact_uri != null && String(raw.artifact_uri).trim() !== ''
-          ? String(raw.artifact_uri).trim()
+      r?.artifactUri != null && String(r.artifactUri).trim() !== ''
+        ? String(r.artifactUri).trim()
+        : r?.artifact_uri != null && String(r.artifact_uri).trim() !== ''
+          ? String(r.artifact_uri).trim()
           : undefined,
     artifactSha256:
-      raw?.artifactSha256 != null && String(raw.artifactSha256).trim() !== ''
-        ? String(raw.artifactSha256).trim()
-        : raw?.artifact_sha256 != null && String(raw.artifact_sha256).trim() !== ''
-          ? String(raw.artifact_sha256).trim()
+      r?.artifactSha256 != null && String(r.artifactSha256).trim() !== ''
+        ? String(r.artifactSha256).trim()
+        : r?.artifact_sha256 != null && String(r.artifact_sha256).trim() !== ''
+          ? String(r.artifact_sha256).trim()
           : undefined,
     manifest,
-    entryDoc: raw?.entryDoc != null && raw?.entryDoc !== '' ? String(raw.entryDoc) : undefined,
-    packValidationStatus: normalizePackStatus(raw?.packValidationStatus ?? raw?.pack_validation_status),
+    entryDoc: r?.entryDoc != null && r?.entryDoc !== '' ? String(r.entryDoc) : undefined,
+    packValidationStatus: normalizePackStatus(r?.packValidationStatus ?? r?.pack_validation_status),
     packValidatedAt:
-      raw?.packValidatedAt != null && raw?.packValidatedAt !== ''
-        ? String(raw.packValidatedAt)
-        : raw?.pack_validated_at != null && raw?.pack_validated_at !== ''
-          ? String(raw.pack_validated_at)
+      r?.packValidatedAt != null && r?.packValidatedAt !== ''
+        ? String(r.packValidatedAt)
+        : r?.pack_validated_at != null && r?.pack_validated_at !== ''
+          ? String(r.pack_validated_at)
           : undefined,
     packValidationMessage:
-      raw?.packValidationMessage != null
-        ? String(raw.packValidationMessage)
-        : raw?.pack_validation_message != null
-          ? String(raw.pack_validation_message)
+      r?.packValidationMessage != null
+        ? String(r.packValidationMessage)
+        : r?.pack_validation_message != null
+          ? String(r.pack_validation_message)
           : undefined,
     skillRootPath:
-      raw?.skillRootPath != null && String(raw.skillRootPath).trim() !== ''
-        ? String(raw.skillRootPath)
-        : raw?.skill_root_path != null && String(raw.skill_root_path).trim() !== ''
-          ? String(raw.skill_root_path)
+      r?.skillRootPath != null && String(r.skillRootPath).trim() !== ''
+        ? String(r.skillRootPath)
+        : r?.skill_root_path != null && String(r.skill_root_path).trim() !== ''
+          ? String(r.skill_root_path)
           : undefined,
-    mode: raw?.mode != null && raw?.mode !== '' ? String(raw.mode) : undefined,
+    mode: r?.mode != null && r?.mode !== '' ? String(r.mode) : undefined,
     maxConcurrency:
-      raw?.maxConcurrency != null && Number.isFinite(Number(raw.maxConcurrency))
-        ? Number(raw.maxConcurrency)
+      r?.maxConcurrency != null && Number.isFinite(Number(r.maxConcurrency))
+        ? Number(r.maxConcurrency)
         : undefined,
     parentResourceId:
-      raw?.parentResourceId != null && Number.isFinite(Number(raw.parentResourceId))
-        ? Number(raw.parentResourceId)
-        : raw?.parent_resource_id != null && Number.isFinite(Number(raw.parent_resource_id))
-          ? Number(raw.parent_resource_id)
+      r?.parentResourceId != null && Number.isFinite(Number(r.parentResourceId))
+        ? Number(r.parentResourceId)
+        : r?.parent_resource_id != null && Number.isFinite(Number(r.parent_resource_id))
+          ? Number(r.parent_resource_id)
           : undefined,
     displayTemplate:
-      raw?.displayTemplate != null && raw?.displayTemplate !== ''
-        ? String(raw.displayTemplate)
-        : raw?.display_template != null && raw?.display_template !== ''
-          ? String(raw.display_template)
+      r?.displayTemplate != null && r?.displayTemplate !== ''
+        ? String(r.displayTemplate)
+        : r?.display_template != null && r?.display_template !== ''
+          ? String(r.display_template)
           : undefined,
-    parametersSchema: asRecordObject(raw?.parametersSchema ?? raw?.parameters_schema),
+    parametersSchema: asRecordObject(r?.parametersSchema ?? r?.parameters_schema),
     pendingAuditItemId:
-      raw?.pendingAuditItemId != null && Number.isFinite(Number(raw.pendingAuditItemId))
-        ? Number(raw.pendingAuditItemId)
+      r?.pendingAuditItemId != null && Number.isFinite(Number(r.pendingAuditItemId))
+        ? Number(r.pendingAuditItemId)
         : undefined,
-    lastAuditStatus: raw?.lastAuditStatus != null ? String(raw.lastAuditStatus) : undefined,
-    lastRejectReason: raw?.lastRejectReason != null ? String(raw.lastRejectReason) : undefined,
+    lastAuditStatus: r?.lastAuditStatus != null ? String(r.lastAuditStatus) : undefined,
+    lastRejectReason: r?.lastRejectReason != null ? String(r.lastRejectReason) : undefined,
     lastReviewerId:
-      raw?.lastReviewerId != null && Number.isFinite(Number(raw.lastReviewerId))
-        ? Number(raw.lastReviewerId)
+      r?.lastReviewerId != null && Number.isFinite(Number(r.lastReviewerId))
+        ? Number(r.lastReviewerId)
         : undefined,
-    lastSubmitTime: raw?.lastSubmitTime != null ? String(raw.lastSubmitTime) : undefined,
-    lastReviewTime: raw?.lastReviewTime != null ? String(raw.lastReviewTime) : undefined,
-    allowedActions: Array.isArray(raw?.allowedActions) ? raw.allowedActions.map((a: unknown) => String(a)) : undefined,
-    statusHint: raw?.statusHint != null ? String(raw.statusHint) : undefined,
-    hasWorkingDraft: raw?.hasWorkingDraft === true,
+    lastSubmitTime: r?.lastSubmitTime != null ? String(r.lastSubmitTime) : undefined,
+    lastReviewTime: r?.lastReviewTime != null ? String(r.lastReviewTime) : undefined,
+    allowedActions: Array.isArray(r?.allowedActions) ? r.allowedActions.map((a: unknown) => String(a)) : undefined,
+    statusHint: r?.statusHint != null ? String(r.statusHint) : undefined,
+    hasWorkingDraft: r?.hasWorkingDraft === true,
     workingDraftUpdatedAt:
-      raw?.workingDraftUpdatedAt != null ? String(raw.workingDraftUpdatedAt) : undefined,
+      r?.workingDraftUpdatedAt != null ? String(r.workingDraftUpdatedAt) : undefined,
     workingDraftAuditTier:
-      raw?.workingDraftAuditTier != null ? String(raw.workingDraftAuditTier) : undefined,
-    pendingPublishedUpdate: raw?.pendingPublishedUpdate === true,
-    healthStatus: raw?.healthStatus != null ? String(raw.healthStatus) : undefined,
-    circuitState: raw?.circuitState != null ? String(raw.circuitState) : undefined,
-    degradationCode: raw?.degradationCode != null ? String(raw.degradationCode) : undefined,
-    degradationHint: raw?.degradationHint != null ? String(raw.degradationHint) : undefined,
-    qualityScore: raw?.qualityScore != null && Number.isFinite(Number(raw.qualityScore)) ? Number(raw.qualityScore) : undefined,
-    qualityFactors: asRecordObject(raw?.qualityFactors),
+      r?.workingDraftAuditTier != null ? String(r.workingDraftAuditTier) : undefined,
+    pendingPublishedUpdate: r?.pendingPublishedUpdate === true,
+    healthStatus: r?.healthStatus != null ? String(r.healthStatus) : undefined,
+    circuitState: r?.circuitState != null ? String(r.circuitState) : undefined,
+    degradationCode: r?.degradationCode != null ? String(r.degradationCode) : undefined,
+    degradationHint: r?.degradationHint != null ? String(r.degradationHint) : undefined,
+    qualityScore: r?.qualityScore != null && Number.isFinite(Number(r.qualityScore)) ? Number(r.qualityScore) : undefined,
+    qualityFactors: asRecordObject(r?.qualityFactors),
   };
 }
 
 function normalizePage(raw: unknown): ResourceCenterPage {
-  if (raw && typeof raw === 'object' && Array.isArray((raw as any).list)) {
-    const page = raw as any;
-    return {
-      list: page.list.map(toResourceItem),
-      total: Number(page.total ?? page.list.length ?? 0) || 0,
-      page: Number(page.page ?? 1) || 1,
-      pageSize: Number(page.pageSize ?? page.list.length ?? 20) || 20,
-    };
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    const page = raw as Record<string, unknown>;
+    const list = page.list;
+    if (Array.isArray(list)) {
+      return {
+        list: list.map((row) => toResourceItem(row)),
+        total: Number(page.total ?? list.length ?? 0) || 0,
+        page: Number(page.page ?? 1) || 1,
+        pageSize: Number(page.pageSize ?? list.length ?? 20) || 20,
+      };
+    }
   }
   if (Array.isArray(raw)) {
     return {
-      list: raw.map(toResourceItem),
+      list: raw.map((row) => toResourceItem(row)),
       total: raw.length,
       page: 1,
       pageSize: raw.length || 20,
@@ -260,16 +266,17 @@ function normalizePage(raw: unknown): ResourceCenterPage {
   return { list: [], total: 0, page: 1, pageSize: 20 };
 }
 
-function toSkillCatalogItem(raw: any): SkillExternalCatalogItemVO {
-  const starsRaw = raw?.stars;
+function toSkillCatalogItem(row: unknown): SkillExternalCatalogItemVO {
+  const item = row && typeof row === 'object' && !Array.isArray(row) ? (row as Record<string, unknown>) : {};
+  const starsRaw = item.stars;
   const stars = starsRaw != null && starsRaw !== '' ? Number(starsRaw) : undefined;
   return {
-    id: String(raw?.id ?? ''),
-    name: String(raw?.name ?? ''),
-    summary: raw?.summary != null ? String(raw.summary) : undefined,
-    packUrl: String(raw?.packUrl ?? ''),
-    licenseNote: raw?.licenseNote != null ? String(raw.licenseNote) : undefined,
-    sourceUrl: raw?.sourceUrl != null ? String(raw.sourceUrl) : undefined,
+    id: String(item.id ?? ''),
+    name: String(item.name ?? ''),
+    summary: item.summary != null ? String(item.summary) : undefined,
+    packUrl: String(item.packUrl ?? ''),
+    licenseNote: item.licenseNote != null ? String(item.licenseNote) : undefined,
+    sourceUrl: item.sourceUrl != null ? String(item.sourceUrl) : undefined,
     stars: Number.isFinite(stars) ? stars : undefined,
   };
 }
@@ -376,77 +383,100 @@ function normalizeSkillHubUrlsFromApi(sh: Record<string, unknown>): { baseUrl: s
   return { baseUrl, fallbackBaseUrl };
 }
 
-function toSkillExternalCatalogProperties(raw: any): SkillExternalCatalogProperties {
-  const sm = raw?.skillsmp ?? {};
-  const queriesRaw = sm?.discoveryQueries;
+function toSkillExternalCatalogProperties(raw: unknown): SkillExternalCatalogProperties {
+  const rec = raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
+  const smRaw = rec.skillsmp;
+  const sm =
+    smRaw && typeof smRaw === 'object' && !Array.isArray(smRaw)
+      ? (smRaw as Record<string, unknown>)
+      : {};
+  const queriesRaw = sm.discoveryQueries;
   const discoveryQueries = Array.isArray(queriesRaw)
     ? queriesRaw.map((q: unknown) => String(q ?? '').trim()).filter(Boolean)
     : [];
-  const entriesRaw = raw?.entries;
+  const entriesRaw = rec.entries;
   const entries = Array.isArray(entriesRaw)
-    ? entriesRaw.map((e: any) => ({
-        id: e?.id != null ? String(e.id) : '',
-        name: e?.name != null ? String(e.name) : '',
-        summary: e?.summary != null ? String(e.summary) : undefined,
-        packUrl: e?.packUrl != null ? String(e.packUrl) : '',
-        licenseNote: e?.licenseNote != null ? String(e.licenseNote) : undefined,
-        sourceUrl: e?.sourceUrl != null ? String(e.sourceUrl) : undefined,
-      }))
+    ? entriesRaw.map((e: unknown) => {
+        const row = e && typeof e === 'object' && !Array.isArray(e) ? (e as Record<string, unknown>) : {};
+        return {
+          id: row.id != null ? String(row.id) : '',
+          name: row.name != null ? String(row.name) : '',
+          summary: row.summary != null ? String(row.summary) : undefined,
+          packUrl: row.packUrl != null ? String(row.packUrl) : '',
+          licenseNote: row.licenseNote != null ? String(row.licenseNote) : undefined,
+          sourceUrl: row.sourceUrl != null ? String(row.sourceUrl) : undefined,
+        };
+      })
     : [];
-  const urlsRaw = raw?.mirrorCatalogUrls;
+  const urlsRaw = rec.mirrorCatalogUrls;
   const mirrorCatalogUrls = Array.isArray(urlsRaw)
     ? urlsRaw.map((u: unknown) => String(u ?? '').trim()).filter(Boolean)
     : [];
-  const sourcesRaw = raw?.catalogHttpSources;
+  const sourcesRaw = rec.catalogHttpSources;
   const catalogHttpSources = Array.isArray(sourcesRaw)
     ? sourcesRaw
-        .map((s: any) => ({
-          url: s?.url != null ? String(s.url).trim() : '',
-          format: s?.format != null ? String(s.format).trim() : 'AUTO',
-        }))
+        .map((s: unknown) => {
+          const row = s && typeof s === 'object' && !Array.isArray(s) ? (s as Record<string, unknown>) : {};
+          return {
+            url: row.url != null ? String(row.url).trim() : '',
+            format: row.format != null ? String(row.format).trim() : 'AUTO',
+          };
+        })
         .filter((s: SkillExternalCatalogHttpSource) => s.url.length > 0)
     : [];
-  const sh = (raw?.skillhub ?? {}) as Record<string, unknown>;
+  const shRaw = rec.skillhub;
+  const sh =
+    shRaw && typeof shRaw === 'object' && !Array.isArray(shRaw)
+      ? (shRaw as Record<string, unknown>)
+      : {};
   const shUrls = normalizeSkillHubUrlsFromApi(sh);
-  const shQueriesRaw = sh?.discoveryQueries;
+  const shQueriesRaw = sh.discoveryQueries;
   const skillhubDiscoveryQueries = Array.isArray(shQueriesRaw)
     ? shQueriesRaw.map((q: unknown) => String(q ?? '').trim()).filter(Boolean)
     : [];
+  const outbound = rec.outboundHttpProxy;
+  const outboundRec =
+    outbound && typeof outbound === 'object' && !Array.isArray(outbound)
+      ? (outbound as Record<string, unknown>)
+      : {};
+  const ghm = rec.githubZipMirror;
+  const ghmRec =
+    ghm && typeof ghm === 'object' && !Array.isArray(ghm) ? (ghm as Record<string, unknown>) : {};
   return {
-    provider: raw?.provider != null ? String(raw.provider) : 'skillsmp',
-    remoteCatalogMode: normalizeRemoteCatalogMode(raw?.remoteCatalogMode),
-    cacheTtlSeconds: num(raw?.cacheTtlSeconds, 3600),
-    persistenceEnabled: raw?.persistenceEnabled !== false,
-    mirrorCatalogUrl: raw?.mirrorCatalogUrl != null ? String(raw.mirrorCatalogUrl) : '',
+    provider: rec.provider != null ? String(rec.provider) : 'skillsmp',
+    remoteCatalogMode: normalizeRemoteCatalogMode(rec.remoteCatalogMode),
+    cacheTtlSeconds: num(rec.cacheTtlSeconds, 3600),
+    persistenceEnabled: rec.persistenceEnabled !== false,
+    mirrorCatalogUrl: rec.mirrorCatalogUrl != null ? String(rec.mirrorCatalogUrl) : '',
     mirrorCatalogUrls,
     catalogHttpSources,
     skillhub: {
-      enabled: sh?.enabled !== false,
+      enabled: sh.enabled !== false,
       baseUrl: shUrls.baseUrl,
       fallbackBaseUrl: shUrls.fallbackBaseUrl,
-      limitPerQuery: num(sh?.limitPerQuery, 10),
-      maxQueriesPerRequest: num(sh?.maxQueriesPerRequest, 12),
-      githubDefaultBranch: sh?.githubDefaultBranch != null ? String(sh.githubDefaultBranch) : 'main',
+      limitPerQuery: num(sh.limitPerQuery, 10),
+      maxQueriesPerRequest: num(sh.maxQueriesPerRequest, 12),
+      githubDefaultBranch: sh.githubDefaultBranch != null ? String(sh.githubDefaultBranch) : 'main',
       discoveryQueries: skillhubDiscoveryQueries,
     },
     outboundHttpProxy: {
-      host: raw?.outboundHttpProxy?.host != null ? String(raw.outboundHttpProxy.host) : '',
-      port: num(raw?.outboundHttpProxy?.port, 0),
+      host: outboundRec.host != null ? String(outboundRec.host) : '',
+      port: num(outboundRec.port, 0),
     },
     githubZipMirror: {
-      mode: raw?.githubZipMirror?.mode != null ? String(raw.githubZipMirror.mode) : 'none',
-      prefix: raw?.githubZipMirror?.prefix != null ? String(raw.githubZipMirror.prefix) : '',
+      mode: ghmRec.mode != null ? String(ghmRec.mode) : 'none',
+      prefix: ghmRec.prefix != null ? String(ghmRec.prefix) : '',
     },
     entries,
     skillsmp: {
       /** 与后端 SkillsMp.enabled 默认 false 一致；仅显式 true 视为开启 */
-      enabled: sm?.enabled === true,
-      baseUrl: sm?.baseUrl != null ? String(sm.baseUrl) : 'https://skillsmp.com/api/v1',
-      apiKey: sm?.apiKey != null ? String(sm.apiKey) : '',
-      sortBy: sm?.sortBy != null ? String(sm.sortBy) : 'stars',
-      limitPerQuery: num(sm?.limitPerQuery, 100),
-      maxQueriesPerRequest: num(sm?.maxQueriesPerRequest, 12),
-      githubDefaultBranch: sm?.githubDefaultBranch != null ? String(sm.githubDefaultBranch) : 'main',
+      enabled: sm.enabled === true,
+      baseUrl: sm.baseUrl != null ? String(sm.baseUrl) : 'https://skillsmp.com/api/v1',
+      apiKey: sm.apiKey != null ? String(sm.apiKey) : '',
+      sortBy: sm.sortBy != null ? String(sm.sortBy) : 'stars',
+      limitPerQuery: num(sm.limitPerQuery, 100),
+      maxQueriesPerRequest: num(sm.maxQueriesPerRequest, 12),
+      githubDefaultBranch: sm.githubDefaultBranch != null ? String(sm.githubDefaultBranch) : 'main',
       discoveryQueries,
     },
   };
@@ -454,23 +484,28 @@ function toSkillExternalCatalogProperties(raw: any): SkillExternalCatalogPropert
 
 function toSkillExternalCatalogSettingsResponse(raw: unknown): SkillExternalCatalogSettingsResponse {
   const o = raw as Record<string, unknown> | null | undefined;
-  const cfg = (o?.config ?? o) as any;
+  const cfgRaw = o?.config ?? o;
+  const cfg =
+    cfgRaw && typeof cfgRaw === 'object' && !Array.isArray(cfgRaw)
+      ? (cfgRaw as Record<string, unknown>)
+      : {};
   return {
-    config: toSkillExternalCatalogProperties(cfg && typeof cfg === 'object' ? cfg : {}),
+    config: toSkillExternalCatalogProperties(cfg),
     skillsmpApiKeyConfigured: o?.skillsmpApiKeyConfigured === true,
   };
 }
 
-function toVersionItem(raw: any): ResourceVersionVO {
-  const currentFlag = raw?.isCurrent ?? raw?.current;
+function toVersionItem(row: unknown): ResourceVersionVO {
+  const r = row && typeof row === 'object' && !Array.isArray(row) ? (row as Record<string, unknown>) : {};
+  const currentFlag = r.isCurrent ?? r.current;
   return {
-    id: Number(raw?.id ?? 0) || 0,
-    resourceId: Number(raw?.resourceId ?? 0) || 0,
-    version: String(raw?.version ?? ''),
+    id: Number(r.id ?? 0) || 0,
+    resourceId: Number(r.resourceId ?? 0) || 0,
+    version: String(r.version ?? ''),
     isCurrent: currentFlag === true || currentFlag === 1 || currentFlag === '1',
-    status: raw?.status ? String(raw.status) : undefined,
-    createTime: raw?.createTime ? String(raw.createTime) : undefined,
-    updateTime: raw?.updateTime ? String(raw.updateTime) : undefined,
+    status: r.status != null ? String(r.status) : undefined,
+    createTime: r.createTime != null ? String(r.createTime) : undefined,
+    updateTime: r.updateTime != null ? String(r.updateTime) : undefined,
   };
 }
 
@@ -580,8 +615,10 @@ export const resourceCenterService = {
   listVersions: async (id: number): Promise<ResourceVersionVO[]> => {
     const raw = await http.get<unknown>(`/resource-center/resources/${id}/versions`);
     if (Array.isArray(raw)) return raw.map(toVersionItem);
-    if (raw && typeof raw === 'object' && Array.isArray((raw as any).list)) {
-      return (raw as any).list.map(toVersionItem);
+    if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+      const o = raw as Record<string, unknown>;
+      const list = o.list;
+      if (Array.isArray(list)) return list.map((v) => toVersionItem(v));
     }
     return [];
   },

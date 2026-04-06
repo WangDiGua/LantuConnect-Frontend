@@ -7,7 +7,7 @@ import { grantApplicationService } from '../../api/services';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { EmptyState } from '../../components/common/EmptyState';
-import { Pagination, FilterSelect } from '../../components/common';
+import { Pagination, FilterSelect, TableCellEllipsis } from '../../components/common';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { TOOLBAR_ROW_LIST } from '../../utils/toolbarFieldClasses';
 import {
@@ -22,7 +22,6 @@ import {
   tableBodyRow,
   tableCell,
   tableCellActionChipsRow,
-  tableCellScrollInnerMono,
 } from '../../utils/uiClasses';
 import type { DomainStatus } from '../../utils/uiClasses';
 import { nullDisplay } from '../../utils/errorHandler';
@@ -191,9 +190,9 @@ export const MyGrantApplicationsPage: React.FC<Props> = ({ theme, fontSize }) =>
                       <td className={`${tableCell()} font-mono ${textSecondary(theme)}`}>{item.id}</td>
                       <td className={`${tableCell()} ${textSecondary(theme)}`}>{nullDisplay(item.resourceType)}</td>
                       <td className={`${tableCell()} font-mono ${textSecondary(theme)}`}>{item.resourceId}</td>
-                      <td className={`${tableCell()} max-w-[200px] align-middle font-mono ${textSecondary(theme)}`}>
+                      <td className={`${tableCell()} max-w-[200px] min-w-0 align-middle ${textSecondary(theme)}`}>
                         {item.apiKeyId ? (
-                          <div className={tableCellScrollInnerMono}>{item.apiKeyId}</div>
+                          <TableCellEllipsis text={item.apiKeyId} mono className={textSecondary(theme)} />
                         ) : (
                           '--'
                         )}

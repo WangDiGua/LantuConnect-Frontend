@@ -4,13 +4,12 @@ import { Ban, Shield } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { AnimatedList } from '../../components/common/AnimatedList';
-import { SearchInput, FilterSelect, Pagination } from '../../components/common';
+import { SearchInput, FilterSelect, Pagination, TableCellEllipsis } from '../../components/common';
 import { userMgmtService } from '../../api/services/user-mgmt.service';
 import type { TokenRecord } from '../../types/dto/user-mgmt';
 import {
   bentoCardHover, btnGhost,
   textPrimary, textSecondary, textMuted,
-  tableCellScrollInner,
 } from '../../utils/uiClasses';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
@@ -127,7 +126,9 @@ export const TokenListPage: React.FC<TokenListPageProps> = ({ theme, fontSize, s
                         <span className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${isDark ? ss.dark : ss.light}`}>{ss.label}</span>
                       </div>
                       <div className={`mt-0.5 flex min-w-0 flex-wrap items-baseline gap-x-1 text-xs ${textMuted(theme)}`}>
-                        <div className={`max-w-full min-w-0 font-mono ${tableCellScrollInner}`}>{t.scopes.join(', ')}</div>
+                        <div className="max-w-full min-w-0">
+                          <TableCellEllipsis text={t.scopes.join(', ')} mono className={textMuted(theme)} />
+                        </div>
                         <span className="shrink-0 whitespace-nowrap">· 过期 {formatDateTime(t.expiresAt)}</span>
                       </div>
                     </div>

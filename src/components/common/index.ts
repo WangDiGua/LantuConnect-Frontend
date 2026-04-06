@@ -49,3 +49,6 @@ export { SplashScreen } from './SplashScreen';
 // Logo component is exported but LogoProps is not exported from Logo.tsx
 // If needed, add: export type { LogoProps } from './Logo';
 export { Logo, APP_BRAND_NAME } from './Logo';
+
+export { TableCellEllipsis } from './TableCellEllipsis';
+export type { TableCellEllipsisProps } from './TableCellEllipsis';

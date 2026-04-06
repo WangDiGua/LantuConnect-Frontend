@@ -4,7 +4,7 @@ import type { Theme, FontSize } from '../../types';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { Modal } from '../../components/common/Modal';
-import { SearchInput, Pagination } from '../../components/common';
+import { SearchInput, Pagination, TableCellEllipsis } from '../../components/common';
 import { MgmtDataTable } from '../../components/management/MgmtDataTable';
 import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
 import { userMgmtService } from '../../api/services/user-mgmt.service';
@@ -13,7 +13,7 @@ import {
   btnPrimary, btnSecondary, btnGhost,
   fieldErrorText, inputBaseError,
   textPrimary, textSecondary, textMuted,
-  tableCellActionChipsRow, tableCellScrollInnerMono,
+  tableCellActionChipsRow,
 } from '../../utils/uiClasses';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
@@ -103,14 +103,16 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize,
       {
         id: 'keyId',
         header: 'Key ID',
-        cellClassName: 'max-w-[140px] align-middle',
-        cell: (k) => <div className={tableCellScrollInnerMono}>{k.id}</div>,
+        cellClassName: 'max-w-[140px] min-w-0 align-middle',
+        cell: (k) => <TableCellEllipsis text={String(k.id)} mono className={textSecondary(theme)} />,
       },
       {
         id: 'masked',
         header: '密钥',
-        cellClassName: 'max-w-[200px] align-middle',
-        cell: (k) => <div className={tableCellScrollInnerMono}>{k.maskedKey || `${k.prefix}••••••••`}</div>,
+        cellClassName: 'max-w-[200px] min-w-0 align-middle',
+        cell: (k) => (
+          <TableCellEllipsis text={k.maskedKey || `${k.prefix}••••••••`} mono className={textSecondary(theme)} />
+        ),
       },
       {
         id: 'status',

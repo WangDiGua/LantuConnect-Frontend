@@ -7,9 +7,10 @@ import { LantuSelect } from '../../components/common/LantuSelect';
 import { TOOLBAR_ROW_LIST, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
 import {
   btnPrimary, btnSecondary, iconMuted, mgmtTableActionGhost, pageBlockStack,
-  tableHeadCell, tableBodyRow, tableCell, tableCellScrollInnerMono, textPrimary, textSecondary, textMuted,
+  tableHeadCell, tableBodyRow, tableCell, textPrimary, textSecondary, textMuted,
 } from '../../utils/uiClasses';
 import { Modal } from '../../components/common/Modal';
+import { TableCellEllipsis } from '../../components/common/TableCellEllipsis';
 import { BentoCard } from '../../components/common/BentoCard';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { healthService } from '../../api/services/health.service';
@@ -177,8 +178,13 @@ export const HealthConfigPage: React.FC<Props> = ({ theme, fontSize, showMessage
                           <td className={tableCell()}>
                             <span className={`inline-flex shrink-0 items-center whitespace-nowrap px-2 py-0.5 rounded-lg text-xs font-medium ${isDark ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>{safeText(r.checkType).toUpperCase() || 'HTTP'}</span>
                           </td>
-                          <td className={`${tableCell()} max-w-[200px] align-middle ${textMuted(theme)}`}>
-                            <div className={tableCellScrollInnerMono}>{safeText(r.checkUrl) || '—'}</div>
+                          <td className={`${tableCell()} max-w-[200px] min-w-0 align-middle ${textMuted(theme)}`}>
+                            <TableCellEllipsis
+                              text={safeText(r.checkUrl)}
+                              mono
+                              className={textMuted(theme)}
+                              emptyLabel="—"
+                            />
                           </td>
                           <td className={`${tableCell()} text-xs text-center ${textMuted(theme)}`}>{r.intervalSec}</td>
                           <td className={`${tableCell()} text-xs text-center ${textMuted(theme)}`}>{r.healthyThreshold}</td>

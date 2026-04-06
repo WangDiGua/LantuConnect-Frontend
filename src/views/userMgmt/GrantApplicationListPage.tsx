@@ -16,13 +16,12 @@ import {
   fieldErrorText,
   inputBaseError,
   tableCellActionChipsRow,
-  tableCellScrollInnerMono,
   mgmtTableActionDanger,
   mgmtTableActionPositive,
   type DomainStatus,
 } from '../../utils/uiClasses';
 import { TOOLBAR_ROW_LIST } from '../../utils/toolbarFieldClasses';
-import { FilterSelect, Pagination, SearchInput } from '../../components/common';
+import { FilterSelect, Pagination, SearchInput, TableCellEllipsis } from '../../components/common';
 import { MgmtDataTable } from '../../components/management/MgmtDataTable';
 import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
 import { EmptyState } from '../../components/common/EmptyState';
@@ -140,8 +139,8 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, fontSize, sho
         header: 'API Key',
         cell: (item) =>
           item.apiKeyId ? (
-            <div className={`max-w-[200px] font-mono ${textSecondary(theme)}`}>
-              <div className={tableCellScrollInnerMono}>{item.apiKeyId}</div>
+            <div className={`max-w-[200px] min-w-0 ${textSecondary(theme)}`}>
+              <TableCellEllipsis text={item.apiKeyId} mono className={textSecondary(theme)} />
             </div>
           ) : (
             <span className={textSecondary(theme)}>{nullDisplay(undefined)}</span>

@@ -195,14 +195,14 @@ export function tableCell() {
   return 'px-6 py-4 text-sm';
 }
 
-/** 表单元格内横向滚动单行（配合 td max-w；样式见 index.css `lantu-table-cell-scroll-x`） */
-export const tableCellScrollInner = 'lantu-table-cell-scroll-x min-w-0 max-w-full whitespace-nowrap';
+/** 表单元格内单行省略（历史类名 scroll-x，现为 ellipsis；列上请设 max-w-*） */
+export const tableCellScrollInner = 'lantu-table-cell-scroll-x min-w-0 max-w-full';
 
-export const tableCellScrollInnerMono = `${tableCellScrollInner} font-mono text-[12px]`;
+export const tableCellScrollInnerMono = `${tableCellScrollInner} whitespace-nowrap font-mono text-[12px]`;
 
-/** 操作权限等多 chip 横排容器 */
+/** 操作权限等多 chip：换行展示，避免单元格内横向滚动条 */
 export function tableCellActionChipsRow() {
-  return `${tableCellScrollInner} flex flex-nowrap items-center gap-1.5 py-0.5`;
+  return 'flex min-w-0 max-w-full flex-wrap items-center gap-1.5 py-0.5';
 }
 
 /** 管理列表行内「查看 / 编辑」等：胶囊、纯文字、浅灰底 */

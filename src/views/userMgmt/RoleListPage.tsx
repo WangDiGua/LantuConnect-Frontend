@@ -5,7 +5,7 @@ import type { Theme, FontSize } from '../../types';
 import { PERMISSION_PRESETS } from '../../constants/userMgmt';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
-import { SearchInput, Pagination } from '../../components/common';
+import { SearchInput, Pagination, TableCellEllipsis } from '../../components/common';
 import { EmptyState } from '../../components/common/EmptyState';
 import { MgmtDataTable } from '../../components/management/MgmtDataTable';
 import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
@@ -15,7 +15,6 @@ import {
   btnPrimary, btnSecondary,
   mgmtTableActionDanger, mgmtTableActionGhost,
   textPrimary, textSecondary, textMuted,
-  tableCellScrollInner,
 } from '../../utils/uiClasses';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { formatDateTime } from '../../utils/formatDateTime';
@@ -138,9 +137,7 @@ export const RoleListPage: React.FC<RoleListPageProps> = ({ theme, fontSize, bre
         cellClassName: 'max-w-[min(280px,100%)] align-middle',
         cell: (r) =>
           r.permissions?.length > 0 ? (
-            <div className={`${tableCellScrollInner} text-[12px] ${textSecondary(theme)}`} title={r.permissions.join(', ')}>
-              {r.permissions.slice(0, 3).join(', ')}{r.permissions.length > 3 ? ` +${r.permissions.length - 3}` : ''}
-            </div>
+            <TableCellEllipsis text={r.permissions.join(', ')} className={`text-[12px] ${textSecondary(theme)}`} />
           ) : (
             '—'
           ),

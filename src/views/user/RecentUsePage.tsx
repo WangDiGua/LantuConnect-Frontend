@@ -8,15 +8,10 @@ import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { MgmtDataTable } from '../../components/management/MgmtDataTable';
 import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
-import {
-  btnGhost,
-  tableCellScrollInnerMono,
-  textMuted,
-  textPrimary,
-  textSecondary,
-} from '../../utils/uiClasses';
+import { btnGhost, textMuted, textPrimary, textSecondary } from '../../utils/uiClasses';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { LantuSelect } from '../../components/common/LantuSelect';
+import { TableCellEllipsis } from '../../components/common/TableCellEllipsis';
 
 interface Props {
   theme: Theme;
@@ -87,7 +82,11 @@ export const RecentUsePage: React.FC<Props> = ({ theme, fontSize }) => {
         header: '资源编码',
         cellClassName: 'max-w-[200px] align-middle',
         cell: (item) =>
-          item.targetCode ? <div className={tableCellScrollInnerMono}>{item.targetCode}</div> : <span className={textSecondary(theme)}>—</span>,
+          item.targetCode ? (
+            <TableCellEllipsis text={item.targetCode} mono className={textSecondary(theme)} />
+          ) : (
+            <span className={textSecondary(theme)}>—</span>
+          ),
       },
       { id: 'type', header: '类型', cell: (item) => <span className={textSecondary(theme)}>{TYPE_LABEL[item.targetType] ?? item.targetType}</span> },
       { id: 'action', header: '动作', cell: (item) => <span className={textSecondary(theme)}>{item.action || '—'}</span> },

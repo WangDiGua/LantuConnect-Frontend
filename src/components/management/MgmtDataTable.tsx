@@ -68,7 +68,7 @@ export function MgmtDataTable<T>({
               {columns.map((col) => (
                 <td
                   key={col.id}
-                  className={[tableCell(), col.cellClassName ?? ''].filter(Boolean).join(' ')}
+                  className={[tableCell(), 'min-w-0', col.cellClassName ?? ''].filter(Boolean).join(' ')}
                 >
                   {col.cell(row)}
                 </td>

@@ -5,12 +5,9 @@ import { useCallLogs } from '../../hooks/queries/useMonitoring';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { PageError } from '../../components/common/PageError';
 import { EmptyState } from '../../components/common/EmptyState';
-import { SearchInput, FilterSelect, Pagination } from '../../components/common';
+import { SearchInput, FilterSelect, Pagination, TableCellEllipsis } from '../../components/common';
 import type { CallLogEntry } from '../../types/dto/monitoring';
-import {
-  textPrimary, textSecondary, textMuted,
-  tableCellScrollInner, tableCellScrollInnerMono,
-} from '../../utils/uiClasses';
+import { textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedContentToTop';
@@ -128,9 +125,7 @@ export const CallLogPage: React.FC<CallLogPageProps> = ({ theme, fontSize }) => 
         header: 'TraceId',
         cellClassName: 'max-w-[180px]',
         cell: (r) => (
-          <div className={`${tableCellScrollInnerMono} ${textMuted(theme)} truncate`} title={safeText(r.traceId)}>
-            {safeText(r.traceId) || '—'}
-          </div>
+          <TableCellEllipsis text={safeText(r.traceId)} mono className={textMuted(theme)} emptyLabel="—" />
         ),
       },
       {
@@ -181,9 +176,11 @@ export const CallLogPage: React.FC<CallLogPageProps> = ({ theme, fontSize }) => 
         header: '错误信息',
         cellClassName: 'max-w-[220px]',
         cell: (r) => (
-          <div className={`${tableCellScrollInner} text-[12px] truncate`} title={r.errorMessage || undefined}>
-            {r.errorMessage || '—'}
-          </div>
+          <TableCellEllipsis
+            text={r.errorMessage}
+            className={`text-[12px] ${textSecondary(theme)}`}
+            emptyLabel="—"
+          />
         ),
       },
     ],

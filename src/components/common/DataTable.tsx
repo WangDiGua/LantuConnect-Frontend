@@ -191,7 +191,7 @@ export function DataTable<T extends Record<string, any>>({
                     return (
                       <td
                         key={column.key}
-                        className={`px-6 py-4 text-sm ${column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : 'text-left'} ${isDark ? 'text-neutral-300' : 'text-neutral-700'}`}
+                        className={`min-w-0 px-6 py-4 text-sm ${column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : 'text-left'} ${isDark ? 'text-neutral-300' : 'text-neutral-700'}`}
                         style={{ minWidth: column.minWidth }}
                       >
                         {content}

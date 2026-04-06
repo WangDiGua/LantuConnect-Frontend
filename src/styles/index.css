@@ -175,23 +175,13 @@
     letter-spacing: 0.01em;
   }
 
-  /** 表格单元格内横向滚动：覆盖全局隐藏滚动条，窄列内标签横排 + 滑动手势仍可滚动 */
+  /** 表格单元格内单行省略（勿在单元格内出现横向滚动条；全文见 TableCellEllipsis / Tooltip） */
   .lantu-table-cell-scroll-x {
-    overflow-x: auto;
-    overflow-y: hidden;
-    scrollbar-width: thin;
-    -ms-overflow-style: auto;
-  }
-  .lantu-table-cell-scroll-x::-webkit-scrollbar {
-    display: block;
-    height: 6px;
-  }
-  .lantu-table-cell-scroll-x::-webkit-scrollbar-thumb {
-    border-radius: 9999px;
-    background-color: rgb(163 163 163 / 0.55);
-  }
-  [data-theme="dark"] .lantu-table-cell-scroll-x::-webkit-scrollbar-thumb {
-    background-color: rgb(148 163 184 / 0.45);
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .logo-nav-btn {
@@ -255,7 +245,7 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
 }
 
-/* Scrollbar — 全局隐藏，仍可滚轮/触控滑动；需可见横条见 .lantu-table-cell-scroll-x 或局部 Tailwind */
+/* Scrollbar — 全局隐藏，仍可滚轮/触控滑动；宽表整体横向滚动由表格外层 overflow-x-auto 承担 */
 @layer base {
   * {
     scrollbar-width: none;

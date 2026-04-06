@@ -190,11 +190,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
         aria-label="主导航"
         className={`mx-1 hidden min-h-0 min-w-0 flex-1 items-center overflow-x-auto lg:flex ${mainScrollCompositorClass} [scrollbar-width:thin]`}
       >
-        <div
-          className={`inline-flex min-w-0 shrink-0 items-center gap-0.5 rounded-2xl border px-1.5 py-1 ${
-            isDark ? 'border-slate-800/90 bg-slate-900/50 backdrop-blur-md' : 'border-slate-100 bg-[#f8fafc]'
-          }`}
-        >
+        <div className="inline-flex min-w-0 shrink-0 items-center gap-0.5">
         {navPieces.map((piece, i) => {
           if (piece.kind === 'divider') {
             if (i === 0) return null;
@@ -214,11 +210,11 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
             isSelfActive || isChildActive;
           const pillBtn = active
             ? isDark
-              ? 'bg-slate-800 text-blue-400 shadow-none'
-              : 'bg-white text-blue-600 shadow-sm'
+              ? 'text-blue-400'
+              : 'text-blue-600'
             : isDark
-              ? 'text-slate-500 hover:bg-white/[0.06] hover:text-slate-200'
-              : 'text-slate-500 hover:bg-slate-200/50 hover:text-slate-900';
+              ? 'text-slate-500 hover:text-slate-200'
+              : 'text-slate-500 hover:text-slate-900';
 
           if (!hasChildren) {
             return (

@@ -19,7 +19,6 @@ import type { ResourceCatalogItemVO } from '../../types/dto/catalog';
 import type { UserApiKey, UserApiKeyResourceGrant } from '../../types/dto/user-settings';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { LantuSelect } from '../../components/common/LantuSelect';
-import { nativeInputClass } from '../../utils/formFieldClasses';
 import {
   btnPrimary,
   btnSecondary,
@@ -54,17 +53,29 @@ function accessPolicyLabel(policy?: string): string {
   return policy || '须显式授权（Grant）';
 }
 
-function CopyTextBtn({ text, isDark, label }: { text: string; isDark: boolean; label?: string }) {
+function CopyTextBtn({
+  text,
+  isDark,
+  label,
+  disabled,
+}: {
+  text: string;
+  isDark: boolean;
+  label?: string;
+  disabled?: boolean;
+}) {
   const [ok, setOk] = useState(false);
   return (
     <button
       type="button"
+      disabled={disabled}
       onClick={() => {
+        if (disabled) return;
         void navigator.clipboard.writeText(text);
         setOk(true);
         setTimeout(() => setOk(false), 1500);
       }}
-      className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium transition-colors ${
+      className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium transition-colors disabled:opacity-45 disabled:pointer-events-none ${
         isDark ? 'hover:bg-white/10 text-slate-300' : 'hover:bg-slate-100 text-slate-600'
       }`}
       aria-label={label ?? '复制'}
@@ -76,6 +87,7 @@ function CopyTextBtn({ text, isDark, label }: { text: string; isDark: boolean; l
 }
 
 type McpRow = ResourceCatalogItemVO & {
+  /** 仅当 Grant 列表已成功拉取后可信；加载中或失败时勿用于断言授权 */
   hasGrantForKey: boolean;
   policyLabel: string;
 };
@@ -98,6 +110,8 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
   const [grantsLoading, setGrantsLoading] = useState(false);
   const [grantsError, setGrantsError] = useState<string | null>(null);
   const [selectedExportIds, setSelectedExportIds] = useState<Set<string>>(new Set());
+  /** 递增以在选中 Key 不变时手动重试 Grant 请求 */
+  const [grantFetchNonce, setGrantFetchNonce] = useState(0);
 
   const loadKeys = useCallback(async () => {
     setKeysLoading(true);
@@ -134,7 +148,12 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
   }, [loadMcpCatalog]);
 
   useEffect(() => {
-    if (keys.length && !selectedKeyId) {
+    if (!keys.length) {
+      setSelectedKeyId('');
+      return;
+    }
+    const valid = keys.some((k) => k.id === selectedKeyId);
+    if (!selectedKeyId || !valid) {
       setSelectedKeyId(keys[0].id);
     }
   }, [keys, selectedKeyId]);
@@ -142,6 +161,8 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
   useEffect(() => {
     if (!selectedKeyId.trim()) {
       setGrants([]);
+      setGrantsError(null);
+      setGrantsLoading(false);
       return;
     }
     let cancelled = false;
@@ -154,7 +175,9 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
       })
       .catch((e) => {
         if (!cancelled) {
-          setGrantsError(e instanceof Error ? e.message : '授权列表加载失败');
+          const msg =
+            e instanceof Error ? e.message : typeof e === 'string' ? e : '授权列表加载失败';
+          setGrantsError(msg);
           setGrants([]);
         }
       })
@@ -164,7 +187,9 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
     return () => {
       cancelled = true;
     };
-  }, [selectedKeyId]);
+  }, [selectedKeyId, grantFetchNonce]);
+
+  const grantsReliable = !grantsLoading && !grantsError;
 
   const grantResourceIdSet = useMemo(() => {
     const s = new Set<string>();
@@ -178,10 +203,10 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
     () =>
       mcpList.map((m) => ({
         ...m,
-        hasGrantForKey: grantResourceIdSet.has(m.resourceId),
+        hasGrantForKey: grantsReliable ? grantResourceIdSet.has(m.resourceId) : false,
         policyLabel: accessPolicyLabel(m.accessPolicy),
       })),
-    [mcpList, grantResourceIdSet],
+    [mcpList, grantResourceIdSet, grantsReliable],
   );
 
   useEffect(() => {
@@ -371,14 +396,27 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
               </div>
 
               {grantsLoading ? (
-                <p className={`text-xs flex items-center gap-2 px-4 py-6 ${textMuted(theme)}`}>
-                  <Loader2 size={14} className="animate-spin" aria-hidden /> 正在加载当前 Key 的 Grant…
+                <p className={`text-xs flex items-center gap-2 px-4 py-2 border-b ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-100 bg-slate-50/80'}`}>
+                  <Loader2 size={14} className="animate-spin shrink-0" aria-hidden /> 正在加载当前 Key 的 Grant…
                 </p>
-              ) : grantsError ? (
-                <p className="text-xs text-rose-500 px-4 py-6" role="alert">
-                  {grantsError}
-                </p>
-              ) : tableRows.length === 0 ? (
+              ) : null}
+              {grantsError ? (
+                <div
+                  className={`text-xs flex flex-wrap items-center gap-2 px-4 py-2 border-b ${isDark ? 'border-rose-500/30 bg-rose-500/10' : 'border-rose-200 bg-rose-50'}`}
+                  role="alert"
+                >
+                  <span className="text-rose-600 dark:text-rose-300">{grantsError}</span>
+                  <button
+                    type="button"
+                    className={`shrink-0 rounded-lg px-2 py-1 font-medium underline-offset-2 hover:underline ${textPrimary(theme)}`}
+                    onClick={() => setGrantFetchNonce((n) => n + 1)}
+                  >
+                    重试
+                  </button>
+                </div>
+              ) : null}
+
+              {tableRows.length === 0 ? (
                 <div className="px-4 py-8 space-y-2">
                   <p className={`text-sm ${textMuted(theme)}`}>目录中暂无已发布 MCP。</p>
                   <button
@@ -425,13 +463,15 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
                             className={`border-t ${isDark ? 'border-white/10 hover:bg-white/[0.03]' : 'border-slate-100 hover:bg-slate-50/80'}`}
                           >
                             <td className="px-3 py-2 align-middle">
-                              <input
-                                type="checkbox"
-                                className="rounded border-slate-300"
-                                checked={selectedExportIds.has(row.resourceId)}
-                                onChange={() => toggleExportId(row.resourceId)}
-                                aria-label={`将 ${row.displayName} 加入导出`}
-                              />
+                              <label className="inline-flex cursor-pointer items-center justify-center p-3 -m-2 min-h-[44px] min-w-[44px]">
+                                <input
+                                  type="checkbox"
+                                  className="rounded border-slate-300 h-4 w-4 shrink-0 cursor-pointer accent-neutral-900"
+                                  checked={selectedExportIds.has(row.resourceId)}
+                                  onChange={() => toggleExportId(row.resourceId)}
+                                  aria-label={`将 ${row.displayName} 加入导出`}
+                                />
+                              </label>
                             </td>
                             <td className={`px-3 py-2 align-middle ${textPrimary(theme)}`}>
                               <div className="font-medium">{row.displayName}</div>
@@ -440,19 +480,27 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
                             <td className={`px-3 py-2 align-middle font-mono text-xs ${textPrimary(theme)}`}>{row.resourceId}</td>
                             <td className={`px-3 py-2 align-middle text-xs ${textSecondary(theme)} max-w-[200px]`}>{row.policyLabel}</td>
                             <td className="px-3 py-2 align-middle">
-                              <span
-                                className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                                  row.hasGrantForKey
-                                    ? isDark
-                                      ? 'bg-emerald-500/20 text-emerald-300'
-                                      : 'bg-emerald-50 text-emerald-800'
-                                    : isDark
-                                      ? 'bg-slate-500/20 text-slate-300'
-                                      : 'bg-slate-100 text-slate-700'
-                                }`}
-                              >
-                                {row.hasGrantForKey ? '已授权' : '未授权'}
-                              </span>
+                              {grantsLoading ? (
+                                <span className={`text-xs ${textMuted(theme)}`} aria-busy>
+                                  …
+                                </span>
+                              ) : grantsError ? (
+                                <span className="text-xs text-rose-500 dark:text-rose-400">无法判定</span>
+                              ) : (
+                                <span
+                                  className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                                    row.hasGrantForKey
+                                      ? isDark
+                                        ? 'bg-emerald-500/20 text-emerald-300'
+                                        : 'bg-emerald-50 text-emerald-800'
+                                      : isDark
+                                        ? 'bg-slate-500/20 text-slate-300'
+                                        : 'bg-slate-100 text-slate-700'
+                                  }`}
+                                >
+                                  {row.hasGrantForKey ? '已授权' : '未授权'}
+                                </span>
+                              )}
                             </td>
                             <td className="px-3 py-2 align-middle">
                               <div className="flex flex-wrap gap-1">
@@ -475,7 +523,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
               )}
             </div>
 
-            {!grantsLoading && !grantsError && tableRows.length > 0 && grants.length === 0 && selectedKeyId ? (
+            {grantsReliable && tableRows.length > 0 && grants.length === 0 && selectedKeyId ? (
               <p className={`text-xs ${textMuted(theme)}`}>
                 当前 Key 在 MCP 上尚无生效 Grant；若资源策略为 grant_required，请通过工单或资源拥有者授权。
                 <button
@@ -496,21 +544,34 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
                   <h3 className={`text-sm font-bold ${textPrimary(theme)}`}>导出 JSON</h3>
                   <p className={`text-xs mt-0.5 ${textMuted(theme)}`}>
                     含 schemaVersion、apiBaseUrl、granteeApiKeyId、granteeApiKeyName、exportedAt 与所选 mcps；不包含 secretPlain。
+                    {grantsLoading ? ' Grant 加载完成后再导出，以确保 hasGrantForKey 准确。' : ''}
+                    {grantsError ? ' Grant 加载失败时已禁用导出，请先在上文点击「重试」。' : ''}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <CopyTextBtn text={exportJson} isDark={isDark} label="复制 JSON" />
+                  <CopyTextBtn
+                    text={exportJson}
+                    isDark={isDark}
+                    label="复制 JSON"
+                    disabled={grantsLoading || !!grantsError}
+                  />
                   <button
                     type="button"
                     className={btnPrimary}
                     onClick={downloadExport}
-                    disabled={!selectedKeyId || selectedExportIds.size === 0}
+                    disabled={grantsLoading || !!grantsError || !selectedKeyId || selectedExportIds.size === 0}
                   >
                     下载 .json
                   </button>
                 </div>
               </div>
-              {selectedExportIds.size === 0 ? (
+              {grantsLoading ? (
+                <p className={`text-xs ${textMuted(theme)}`}>Grant 加载中，请稍候再复制或下载。</p>
+              ) : grantsError ? (
+                <p className={`text-xs text-rose-600 dark:text-rose-400`}>
+                  无法生成含准确 hasGrantForKey 的导出，请先修复 Grant 列表加载（上文「重试」）。
+                </p>
+              ) : selectedExportIds.size === 0 ? (
                 <p className={`text-xs ${textMuted(theme)}`}>请至少选择一行 MCP 后再导出。</p>
               ) : (
                 <pre

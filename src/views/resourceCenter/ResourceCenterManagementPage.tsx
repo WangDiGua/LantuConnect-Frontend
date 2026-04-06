@@ -29,6 +29,7 @@ import {
   btnGhost,
   btnPrimary,
   btnSecondary,
+  coerceToDomainStatus,
   fieldErrorText,
   inputBaseError,
   mgmtTableActionDanger,
@@ -41,6 +42,14 @@ import {
   textPrimary,
   textSecondary,
 } from '../../utils/uiClasses';
+import {
+  circuitBreakerBadgeClass,
+  circuitBreakerLabelZh,
+  resourceHealthBadgeClass,
+  resourceHealthLabelZh,
+  resourceVersionSnapshotLabelZh,
+  skillPackValidationLabelZh,
+} from '../../utils/backendEnumLabels';
 import { nullDisplay } from '../../utils/errorHandler';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
@@ -660,7 +669,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                                       : textMuted(theme)
                                 }
                               >
-                                {item.packValidationStatus}
+                                {skillPackValidationLabelZh(item.packValidationStatus)}
                               </span>
                             </span>
                           )}
@@ -933,17 +942,17 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                             </span>
                           )}
                           <span
-                            className={`rounded px-1.5 py-0.5 text-[11px] font-mono ${
+                            className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${
                               status === 'active'
                                 ? isDark
-                                  ? 'bg-white/10 text-slate-300'
-                                  : 'bg-slate-200/80 text-slate-700'
+                                  ? 'bg-emerald-500/15 text-emerald-200'
+                                  : 'bg-emerald-100 text-emerald-900'
                                 : isDark
                                   ? 'bg-amber-500/15 text-amber-200'
                                   : 'bg-amber-100 text-amber-900'
                             }`}
                           >
-                            {status === 'active' ? 'active · 可切换' : `status: ${ver.status ?? '—'}`}
+                            {resourceVersionSnapshotLabelZh(ver.status)}
                           </span>
                         </div>
                         {ver.createTime && (
@@ -1247,19 +1256,46 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
           <div className="space-y-3">
             {observabilityData && (
               <div className={`rounded-xl border p-3 text-xs ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200 bg-slate-50'}`}>
-                <div>健康: {nullDisplay(observabilityData.healthStatus)}</div>
-                <div>熔断: {nullDisplay(observabilityData.circuitState)}</div>
-                <div>质量分: {nullDisplay(observabilityData.qualityScore)}</div>
-                {observabilityData.generatedAt ? <div>生成时间: {nullDisplay(formatDateTime(observabilityData.generatedAt))}</div> : null}
+                <div className="flex flex-wrap items-center gap-2 py-0.5">
+                  <span className={textSecondary(theme)}>健康</span>
+                  <span
+                    className={`inline-flex items-center rounded-lg px-2 py-0.5 text-[11px] font-semibold ${resourceHealthBadgeClass(theme, observabilityData.healthStatus)}`}
+                    title={observabilityData.healthStatus ? `原始值：${observabilityData.healthStatus}` : undefined}
+                  >
+                    {resourceHealthLabelZh(observabilityData.healthStatus)}
+                  </span>
+                </div>
+                <div className="mt-1.5 flex flex-wrap items-center gap-2 py-0.5">
+                  <span className={textSecondary(theme)}>熔断</span>
+                  <span
+                    className={`inline-flex items-center rounded-lg px-2 py-0.5 text-[11px] font-semibold ${circuitBreakerBadgeClass(theme, observabilityData.circuitState)}`}
+                    title={observabilityData.circuitState ? `原始值：${observabilityData.circuitState}` : undefined}
+                  >
+                    {circuitBreakerLabelZh(observabilityData.circuitState)}
+                  </span>
+                </div>
+                <div className={`mt-1.5 ${textPrimary(theme)}`}>质量分: {nullDisplay(observabilityData.qualityScore)}</div>
+                {observabilityData.generatedAt ? (
+                  <div className={`mt-1 ${textSecondary(theme)}`}>生成时间: {nullDisplay(formatDateTime(observabilityData.generatedAt))}</div>
+                ) : null}
                 {observabilityData.degradationHint?.userFacingHint ? (
-                  <div>提示: {observabilityData.degradationHint.userFacingHint}</div>
+                  <div className={`mt-1.5 ${textSecondary(theme)}`}>提示: {observabilityData.degradationHint.userFacingHint}</div>
                 ) : null}
               </div>
             )}
             {timelineData ? (
               <div className={`rounded-xl border p-3 text-xs ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-slate-50/70'}`}>
-                <div>当前状态: {nullDisplay(timelineData.currentStatus)}</div>
-                <div>资源编码: {nullDisplay(timelineData.resourceCode)}</div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={textSecondary(theme)}>当前状态</span>
+                  <span
+                    className={statusBadgeClass(coerceToDomainStatus(timelineData.currentStatus), theme)}
+                    title={timelineData.currentStatus ? `接口原始值：${timelineData.currentStatus}` : undefined}
+                  >
+                    <span className={statusDot(coerceToDomainStatus(timelineData.currentStatus))} />
+                    {statusLabel(coerceToDomainStatus(timelineData.currentStatus))}
+                  </span>
+                </div>
+                <div className={`mt-1.5 ${textPrimary(theme)}`}>资源编码: {nullDisplay(timelineData.resourceCode)}</div>
               </div>
             ) : null}
             {timelineData?.events?.length ? (
@@ -1282,11 +1318,14 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                         </div>
                         <div className={`min-w-0 flex-1 ${isLast ? '' : 'pb-5'}`}>
                           <div className={`text-sm font-medium ${textPrimary(theme)}`}>{ev.title || ev.eventType}</div>
-                          <div className={`mt-0.5 text-xs ${textMuted(theme)}`}>
-                            <span className="font-mono">{nullDisplay(ev.status)}</span>
-                            <span className="mx-1 opacity-50">·</span>
+                          <div className={`mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs ${textMuted(theme)}`}>
+                            <span className={statusBadgeClass(coerceToDomainStatus(ev.status), theme)}>
+                              <span className={statusDot(coerceToDomainStatus(ev.status))} />
+                              {statusLabel(coerceToDomainStatus(ev.status))}
+                            </span>
+                            <span className="opacity-50">·</span>
                             <span>{nullDisplay(ev.actor, '—')}</span>
-                            <span className="mx-1 opacity-50">·</span>
+                            <span className="opacity-50">·</span>
                             <span>{nullDisplay(formatDateTime(ev.eventTime))}</span>
                           </div>
                           {ev.reason ? (

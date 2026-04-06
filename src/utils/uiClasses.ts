@@ -231,42 +231,83 @@ export const mgmtTableActionDanger =
    Status Badges
    ═══════════════════════════════════════════ */
 
-export type DomainStatus = 'draft' | 'pending_review' | 'testing' | 'published' | 'rejected' | 'deprecated' | 'merged_live' | 'active' | 'inactive';
+export type DomainStatus =
+  | 'draft'
+  | 'pending_review'
+  | 'testing'
+  | 'published'
+  | 'rejected'
+  | 'deprecated'
+  | 'merged_live'
+  | 'active'
+  | 'inactive'
+  /** 后端枚举无法识别或字段缺失 */
+  | 'unknown';
 
 const STATUS_LABEL: Record<DomainStatus, string> = {
-  draft: '草稿', pending_review: '待审核', testing: '测试中', published: '已发布',
-  rejected: '已驳回', deprecated: '已废弃', merged_live: '已合并上线', active: '启用', inactive: '停用',
+  draft: '草稿',
+  pending_review: '待审核',
+  testing: '测试中',
+  published: '已发布',
+  rejected: '已驳回',
+  deprecated: '已废弃',
+  merged_live: '已合并上线',
+  active: '启用',
+  inactive: '停用',
+  unknown: '未知',
 };
 
 const STATUS_DOT: Record<DomainStatus, string> = {
-  draft: 'bg-neutral-400', pending_review: 'bg-amber-400', testing: 'bg-blue-400', published: 'bg-emerald-400',
-  rejected: 'bg-red-400', deprecated: 'bg-orange-400', merged_live: 'bg-teal-400', active: 'bg-emerald-400', inactive: 'bg-neutral-400',
+  draft: 'bg-neutral-400',
+  pending_review: 'bg-amber-400',
+  testing: 'bg-blue-400',
+  published: 'bg-emerald-400',
+  rejected: 'bg-red-400',
+  deprecated: 'bg-orange-400',
+  merged_live: 'bg-teal-400',
+  active: 'bg-emerald-400',
+  inactive: 'bg-neutral-400',
+  unknown: 'bg-neutral-500',
 };
 
 const STATUS_COLOR: Record<DomainStatus, { light: string; dark: string }> = {
-  draft:          { light: 'bg-neutral-100 text-neutral-700 border border-neutral-200/60', dark: 'bg-neutral-500/10 text-neutral-400 border border-neutral-500/20' },
-  pending_review: { light: 'bg-amber-50 text-amber-700 border border-amber-200/60',       dark: 'bg-amber-500/10 text-amber-400 border border-amber-500/20' },
-  testing:        { light: 'bg-blue-50 text-blue-700 border border-blue-200/60',           dark: 'bg-blue-500/10 text-blue-400 border border-blue-500/20' },
-  published:      { light: 'bg-emerald-50 text-emerald-700 border border-emerald-200/60', dark: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' },
-  rejected:       { light: 'bg-red-50 text-red-700 border border-red-200/60',             dark: 'bg-red-500/10 text-red-400 border border-red-500/20' },
-  deprecated:     { light: 'bg-orange-50 text-orange-700 border border-orange-200/60',     dark: 'bg-orange-500/10 text-orange-400 border border-orange-500/20' },
-  merged_live:    { light: 'bg-teal-50 text-teal-800 border border-teal-200/60',           dark: 'bg-teal-500/10 text-teal-300 border border-teal-500/25' },
-  active:         { light: 'bg-emerald-50 text-emerald-700 border border-emerald-200/60', dark: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' },
-  inactive:       { light: 'bg-neutral-100 text-neutral-700 border border-neutral-200/60', dark: 'bg-neutral-500/10 text-neutral-400 border border-neutral-500/20' },
+  draft: { light: 'bg-neutral-100 text-neutral-700 border border-neutral-200/60', dark: 'bg-neutral-500/10 text-neutral-400 border border-neutral-500/20' },
+  pending_review: { light: 'bg-amber-50 text-amber-700 border border-amber-200/60', dark: 'bg-amber-500/10 text-amber-400 border border-amber-500/20' },
+  testing: { light: 'bg-blue-50 text-blue-700 border border-blue-200/60', dark: 'bg-blue-500/10 text-blue-400 border border-blue-500/20' },
+  published: { light: 'bg-emerald-50 text-emerald-700 border border-emerald-200/60', dark: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' },
+  rejected: { light: 'bg-red-50 text-red-700 border border-red-200/60', dark: 'bg-red-500/10 text-red-400 border border-red-500/20' },
+  deprecated: { light: 'bg-orange-50 text-orange-700 border border-orange-200/60', dark: 'bg-orange-500/10 text-orange-400 border border-orange-500/20' },
+  merged_live: { light: 'bg-teal-50 text-teal-800 border border-teal-200/60', dark: 'bg-teal-500/10 text-teal-300 border border-teal-500/25' },
+  active: { light: 'bg-emerald-50 text-emerald-700 border border-emerald-200/60', dark: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' },
+  inactive: { light: 'bg-neutral-100 text-neutral-700 border border-neutral-200/60', dark: 'bg-neutral-500/10 text-neutral-400 border border-neutral-500/20' },
+  unknown: { light: 'bg-slate-100 text-slate-600 border border-slate-200/80', dark: 'bg-white/[0.06] text-slate-400 border border-white/10' },
 };
 
-export function statusBadgeClass(status: DomainStatus, theme: Theme) {
-  const c = STATUS_COLOR[status] || STATUS_COLOR.draft;
+const DOMAIN_STATUS_KEYS = new Set<string>(Object.keys(STATUS_LABEL));
+
+/** 将接口返回的状态串归一化为领域状态，便于统一标签与配色（无法识别时为 unknown）。 */
+export function coerceToDomainStatus(raw: string | null | undefined): DomainStatus {
+  if (raw == null || String(raw).trim() === '') return 'unknown';
+  const k = String(raw).trim().toLowerCase().replace(/-/g, '_');
+  if (DOMAIN_STATUS_KEYS.has(k)) return k as DomainStatus;
+  return 'unknown';
+}
+
+export function statusBadgeClass(status: DomainStatus | string, theme: Theme) {
+  const s = typeof status === 'string' ? coerceToDomainStatus(status) : status;
+  const c = STATUS_COLOR[s] || STATUS_COLOR.unknown;
   /** `whitespace-nowrap shrink-0`：避免宽表挤压时中文/标签被压成一字一行 */
-  return `inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-semibold tracking-wide uppercase whitespace-nowrap shrink-0 ${D(theme) ? c.dark : c.light}`;
+  return `inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-semibold tracking-wide whitespace-nowrap shrink-0 ${D(theme) ? c.dark : c.light}`;
 }
 
-export function statusDot(status: DomainStatus) {
-  return `w-1.5 h-1.5 rounded-full ${STATUS_DOT[status] || 'bg-neutral-400'}`;
+export function statusDot(status: DomainStatus | string) {
+  const s = typeof status === 'string' ? coerceToDomainStatus(status) : status;
+  return `w-1.5 h-1.5 rounded-full ${STATUS_DOT[s] ?? STATUS_DOT.unknown}`;
 }
 
-export function statusLabel(status: DomainStatus) {
-  return STATUS_LABEL[status] || status;
+export function statusLabel(status: DomainStatus | string | null | undefined) {
+  const key = coerceToDomainStatus(status == null ? undefined : String(status));
+  return STATUS_LABEL[key];
 }
 
 /* ═══════════════════════════════════════════

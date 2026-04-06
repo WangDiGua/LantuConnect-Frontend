@@ -21,6 +21,7 @@ import {
 } from '../../utils/uiClasses';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { formatDateTime } from '../../utils/formatDateTime';
+import { providerStatusLabelZh, providerTypeLabelZh } from '../../utils/backendEnumLabels';
 import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 
 interface Props {
@@ -280,7 +281,8 @@ export const ProviderManagementPage: React.FC<Props> = ({
                   <div key={row.id} className={`rounded-xl border px-3 py-2 ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-white'}`}>
                     <p className={`text-sm font-semibold ${textPrimary(theme)}`}>{row.providerName}</p>
                     <p className={`text-xs ${textSecondary(theme)}`}>
-                      code: {row.providerCode} · type: {row.providerType} · status: {row.status} · update: {row.updateTime === '-' ? '—' : formatDateTime(row.updateTime)}
+                      编码 {row.providerCode} · 类型 {providerTypeLabelZh(row.providerType)} · 状态 {providerStatusLabelZh(row.status)} · 更新{' '}
+                      {row.updateTime === '-' ? '—' : formatDateTime(row.updateTime)}
                     </p>
                   </div>
                 ))}

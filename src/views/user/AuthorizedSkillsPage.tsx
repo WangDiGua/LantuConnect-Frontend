@@ -14,6 +14,7 @@ import {
   textSecondary,
   textMuted,
 } from '../../utils/uiClasses';
+import { authorizedSkillRowStatusLabelZh } from '../../utils/backendEnumLabels';
 import { buildPath, buildUserResourceMarketUrl } from '../../constants/consoleRoutes';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 
@@ -94,7 +95,7 @@ export const AuthorizedSkillsPage: React.FC<Props> = ({ theme, fontSize }) => {
                     <p className={`mt-0.5 truncate text-xs ${textMuted(theme)}`} title={item.description || undefined}>{item.description || '暂无描述'}</p>
                   </div>
                   <span className={`shrink-0 rounded-lg px-2 py-0.5 text-xs font-medium ${isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-700'}`}>
-                    {item.status === 'authorized' || !item.status ? '已授权' : item.status}
+                    {authorizedSkillRowStatusLabelZh(item.status)}
                   </span>
                 </div>
                 <div className={`mt-2 flex flex-wrap items-center gap-3 text-xs ${textSecondary(theme)}`}>

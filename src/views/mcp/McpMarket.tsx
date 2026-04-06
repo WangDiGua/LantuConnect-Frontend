@@ -53,6 +53,8 @@ import {
   iconMuted,
   mainScrollPadBottom,
   mainScrollPadX,
+  statusBadgeClass,
+  statusDot,
   statusLabel,
   textMuted,
   textPrimary,
@@ -66,6 +68,7 @@ import { ApiException } from '../../types/api';
 import { env } from '../../config/env';
 import { buildPath } from '../../constants/consoleRoutes';
 import { MARKET_HERO_TITLE_CLASSES } from '../../constants/theme';
+import { invokeGatewayStatusLabelZh } from '../../utils/backendEnumLabels';
 
 const API_PATH_PREFIX = env.VITE_API_BASE_URL.replace(/\/$/, '');
 
@@ -782,8 +785,9 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                 <h1 className={`text-2xl font-bold tracking-tight sm:text-3xl ${textPrimary(theme)}`}>{detail.displayName}</h1>
                 <div className={`flex flex-wrap items-center gap-2 text-xs ${textMuted(theme)}`}>
                   <span className="font-mono">@{detail.resourceCode || detail.resourceId}</span>
-                  <span className={`inline-flex items-center rounded-md px-2 py-0.5 font-medium ${isDark ? 'bg-white/10 text-slate-200' : 'bg-slate-100 text-slate-700'}`}>
-                    {statusLabel(detail.status as never)}
+                  <span className={statusBadgeClass(detail.status ?? 'unknown', theme)}>
+                    <span className={statusDot(detail.status ?? 'unknown')} />
+                    {statusLabel(detail.status)}
                   </span>
                   <span className="inline-flex items-center gap-0.5 tabular-nums">
                     <Star size={12} className="text-amber-500" aria-hidden />
@@ -1088,7 +1092,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                               : isDark ? 'bg-rose-500/20 text-rose-200' : 'bg-rose-100 text-rose-700'
                         }`}
                       >
-                        {invokeJsonRpcError ? 'JSON-RPC 错误' : invokeResponse.status}
+                        {invokeJsonRpcError ? 'JSON-RPC 错误' : invokeGatewayStatusLabelZh(invokeResponse.status)}
                       </span>
                       {invokeJsonRpcError && (
                         <span
@@ -1096,7 +1100,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                             isDark ? 'bg-white/10 text-white/70' : 'bg-slate-200/80 text-slate-700'
                           }`}
                         >
-                          网关 {invokeResponse.status} · HTTP {invokeResponse.statusCode}
+                          网关 {invokeGatewayStatusLabelZh(invokeResponse.status)} · HTTP {invokeResponse.statusCode}
                         </span>
                       )}
                     </div>
@@ -1450,7 +1454,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                       theme={theme}
                       title={item.displayName}
                       statusChip={{
-                        label: statusLabel(item.status as never),
+                        label: statusLabel(item.status),
                         tone: item.status === 'published' ? 'published' : 'neutral',
                       }}
                       trailing={(

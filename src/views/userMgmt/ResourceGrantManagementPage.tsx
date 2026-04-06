@@ -19,6 +19,7 @@ import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
+import { resourceGrantActionsLabelZh, resourceGrantRecordStatusLabelZh } from '../../utils/backendEnumLabels';
 
 interface Props {
   theme: Theme;
@@ -337,7 +338,10 @@ export const ResourceGrantManagementPage: React.FC<Props> = ({ theme, fontSize, 
                   <div className="flex-1 min-w-0">
                     <p className={`text-sm font-medium truncate ${textPrimary(theme)}`}>{row.granteeApiKeyPrefix || '未返回 Key 前缀'}</p>
                     <p className={`text-xs truncate ${textSecondary(theme)}`}>
-                      keyId: {nullDisplay(row.granteeApiKeyId)} · actions: {row.actions && row.actions.length > 0 ? row.actions.join(', ') : '--'} · status: {nullDisplay(row.status)} · grantedBy: {resolvePersonDisplay({ names: [row.grantedByName], ids: [row.grantedBy] })} · expiresAt: {formatDateTime(row.expiresAt)} · createdAt: {formatDateTime(row.createdAt)}
+                      密钥 ID：{nullDisplay(row.granteeApiKeyId)} · 权限：{resourceGrantActionsLabelZh(row.actions ?? [])} · 状态：
+                      {resourceGrantRecordStatusLabelZh(row.status)} · 授权人：
+                      {resolvePersonDisplay({ names: [row.grantedByName], ids: [row.grantedBy] })} · 到期：
+                      {formatDateTime(row.expiresAt)} · 创建：{formatDateTime(row.createdAt)}
                     </p>
                   </div>
                   <button type="button" className={mgmtTableActionDanger} onClick={() => setDeleteId(row.id)}>

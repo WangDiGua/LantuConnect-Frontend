@@ -17,6 +17,7 @@ import type { AdminOverview, HealthSummary } from '../../types/dto/dashboard';
 import { DashboardLayout } from '../../components/layout/PageLayouts';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { RESOURCE_TYPE_LABEL, RESOURCE_TYPE_ORDER } from '../../constants/resourceTypes';
+import { healthDistributionSummaryZh } from '../../utils/backendEnumLabels';
 
 interface OverviewProps { theme: Theme; fontSize: FontSize; }
 
@@ -220,7 +221,11 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
               <div className={`rounded-lg p-3 ${isDark ? 'bg-white/[0.03]' : 'bg-slate-50'}`}>
                 <div className={`text-xs ${tm}`}>状态分布</div>
                 <div className={`mt-1 text-sm ${tp}`}>
-                  healthy: {healthSummary.statusDistribution?.healthy ?? healthSummary.healthy} / degraded: {healthSummary.statusDistribution?.degraded ?? healthSummary.degraded} / down: {healthSummary.statusDistribution?.down ?? healthSummary.down}
+                  {healthDistributionSummaryZh({
+                    healthy: healthSummary.statusDistribution?.healthy ?? healthSummary.healthy,
+                    degraded: healthSummary.statusDistribution?.degraded ?? healthSummary.degraded,
+                    down: healthSummary.statusDistribution?.down ?? healthSummary.down,
+                  })}
                 </div>
               </div>
               <div className={`rounded-lg p-3 ${isDark ? 'bg-white/[0.03]' : 'bg-slate-50'}`}>

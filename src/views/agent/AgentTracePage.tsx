@@ -10,6 +10,7 @@ import type { TraceSpan as TraceSpanDTO } from '../../types/dto/monitoring';
 import {
   btnGhost, pageBlockStack, textPrimary, textSecondary, textMuted,
 } from '../../utils/uiClasses';
+import { distributedTraceStatusLabelZh } from '../../utils/backendEnumLabels';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { TOOLBAR_ROW_LIST } from '../../utils/toolbarFieldClasses';
@@ -136,7 +137,9 @@ const SpanTree: React.FC<SpanTreeProps> = ({ span, depth, theme, expanded, toggl
             <span className={`font-mono text-xs ${textPrimary(theme)}`}>{span.name}</span>
             <span className={`text-xs px-1.5 py-0.5 rounded ${isDark ? 'bg-white/5 text-slate-500' : 'bg-slate-50 text-slate-400'}`}>{span.service}</span>
             <span className={`text-xs tabular-nums ${textMuted(theme)}`}>{span.durationMs} ms</span>
-            {span.status === 'error' && <span className="text-xs font-bold text-rose-500">error</span>}
+            {span.status === 'error' && (
+              <span className="text-xs font-bold text-rose-500">{distributedTraceStatusLabelZh('error')}</span>
+            )}
           </div>
         </div>
       </button>
@@ -267,7 +270,9 @@ export const AgentTracePage: React.FC<AgentTracePageProps> = ({ theme, fontSize,
                       <div className="flex justify-between mt-1.5 text-[11px]">
                         <span className={textMuted(theme)}>{g.listItem.startedAt}</span>
                         <span className={`tabular-nums ${textSecondary(theme)}`}>{g.listItem.durationMs} ms</span>
-                        <span className={g.listItem.status === 'error' ? 'text-rose-500 font-semibold' : 'text-emerald-500'}>{g.listItem.status}</span>
+                        <span className={g.listItem.status === 'error' ? 'text-rose-500 font-semibold' : 'text-emerald-500'}>
+                          {distributedTraceStatusLabelZh(g.listItem.status)}
+                        </span>
                       </div>
                     </button>
                   </li>

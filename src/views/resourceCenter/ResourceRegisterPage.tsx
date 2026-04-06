@@ -21,6 +21,7 @@ import {
   textMuted,
   textPrimary,
 } from '../../utils/uiClasses';
+import { skillPackValidationLabelZh, workingDraftAuditTierLabelZh } from '../../utils/backendEnumLabels';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 import { parseMcpConfigPaste } from '../../utils/mcpConfigImport';
@@ -1353,7 +1354,8 @@ export const ResourceRegisterPage: React.FC<Props> = ({
             ) : null}
             {loadedResourceMeta.workingDraftAuditTier ? (
               <p className={`mt-1 text-xs ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                后端估算风险分级：{loadedResourceMeta.workingDraftAuditTier}（低风险且具备部门/平台管理员权限时可能免审直合）
+                后端估算风险分级：{workingDraftAuditTierLabelZh(loadedResourceMeta.workingDraftAuditTier) || loadedResourceMeta.workingDraftAuditTier}
+                （低风险且具备部门/平台管理员权限时可能免审直合）
               </p>
             ) : null}
           </div>
@@ -1899,7 +1901,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                               : 'bg-slate-100 text-slate-600'
                       }`}
                     >
-                      {form.packValidationStatus || 'none'}
+                      {skillPackValidationLabelZh(form.packValidationStatus || 'none')}
                     </span>
                   </div>
                   {resourceId && loading && !skillHasArtifact && !skillEchoVisible ? (

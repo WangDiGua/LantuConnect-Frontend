@@ -65,6 +65,7 @@ const DeveloperApplicationListPage = lazy(() => import('../views/userMgmt/Develo
 const ApiDocsPage = lazy(() => import('../views/developer/ApiDocsPage').then(m => ({ default: m.ApiDocsPage })));
 const SdkDownloadPage = lazy(() => import('../views/developer/SdkDownloadPage').then(m => ({ default: m.SdkDownloadPage })));
 const ApiPlaygroundPage = lazy(() => import('../views/developer/ApiPlaygroundPage').then(m => ({ default: m.ApiPlaygroundPage })));
+const McpIntegrationPage = lazy(() => import('../views/developer/McpIntegrationPage').then(m => ({ default: m.McpIntegrationPage })));
 const DeveloperStatsPage = lazy(() => import('../views/developer/DeveloperStatsPage').then(m => ({ default: m.DeveloperStatsPage })));
 const DataReportsPage = lazy(() => import('../views/dashboard/DataReportsPage').then(m => ({ default: m.DataReportsPage })));
 const HealthCheckOverview = lazy(() => import('../views/dashboard/HealthCheckOverview').then(m => ({ default: m.HealthCheckOverview })));
@@ -217,6 +218,7 @@ const DEVELOPER_PORTAL_PAGES = new Set([
   'api-docs',
   'sdk-download',
   'api-playground',
+  'mcp-integration',
   'developer-statistics',
 ]);
 
@@ -550,6 +552,8 @@ const MainContent = React.memo<{
         return <SdkDownloadPage theme={t} fontSize={fs} />;
       case 'api-playground':
         return <ApiPlaygroundPage theme={t} fontSize={fs} />;
+      case 'mcp-integration':
+        return <McpIntegrationPage theme={t} fontSize={fs} />;
       case 'developer-statistics':
         return <DeveloperStatsPage theme={t} fontSize={fs} />;
 

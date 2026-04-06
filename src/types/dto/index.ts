@@ -22,5 +22,13 @@ export * from './explore';
 export * from './catalog';
 export * from './resource-center';
 export * from './notification';
-export type { NotificationPrefs, UserApiKey, CreateUserApiKeyPayload, UserStats } from './user-settings';
+export type {
+  NotificationPrefs,
+  UserApiKey,
+  CreateUserApiKeyPayload,
+  CreatedUserApiKey,
+  UserStats,
+  UserApiKeyResourceGrant,
+  ApiKeyRevokePayload,
+} from './user-settings';
 export type { UserWorkspace as UserSettingsWorkspace } from './user-settings';

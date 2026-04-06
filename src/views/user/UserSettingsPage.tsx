@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  Settings, Lock, Smartphone, Monitor, Bell, Mail, Eye, Database, Palette,
+  Settings, Lock, Smartphone, Monitor, Bell, Mail, Eye, EyeOff, Database, Palette,
   ChevronRight, Trash2, Download, Loader2, KeyRound, Plus, Copy, Check, DownloadCloud,
 } from 'lucide-react';
 import type { Theme, ThemeMode, FontSize, ThemeColor } from '../../types';
@@ -98,7 +98,15 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
   const [apiKeysError, setApiKeysError] = useState<string | null>(null);
   const [newKeyName, setNewKeyName] = useState('');
   const [creatingApiKey, setCreatingApiKey] = useState(false);
-  const [deletingApiKeyId, setDeletingApiKeyId] = useState<string | null>(null);
+  const [revokeKeyTarget, setRevokeKeyTarget] = useState<UserApiKey | null>(null);
+  const [revokePassword, setRevokePassword] = useState('');
+  const [revokeSmsCode, setRevokeSmsCode] = useState('');
+  const [revokeShowPassword, setRevokeShowPassword] = useState(false);
+  const [revokeSubmitting, setRevokeSubmitting] = useState(false);
+  const [revokeSmsSending, setRevokeSmsSending] = useState(false);
+  const [revokeSmsCd, setRevokeSmsCd] = useState(0);
+  const [revokeFieldErrors, setRevokeFieldErrors] = useState<{ password?: string; sms?: string; form?: string }>({});
+  const revokeSmsIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [newPlainKey, setNewPlainKey] = useState<string | null>(null);
   const createApiKeyInFlightRef = useRef(false);
 
@@ -163,23 +171,106 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
     }
   }, [loadApiKeys, newKeyName, showMessage]);
 
-  const handleDeleteApiKey = useCallback(async (id: string) => {
-    if (!id?.trim()) {
-      showMessage('无法撤销：缺少密钥 ID，请刷新页面后重试', 'error');
+  const openRevokeApiKeyModal = useCallback((key: UserApiKey) => {
+    setRevokeKeyTarget(key);
+    setRevokePassword('');
+    setRevokeSmsCode('');
+    setRevokeShowPassword(false);
+    setRevokeFieldErrors({});
+  }, []);
+
+  const closeRevokeApiKeyModal = useCallback(() => {
+    setRevokeKeyTarget(null);
+    setRevokePassword('');
+    setRevokeSmsCode('');
+    setRevokeFieldErrors({});
+    setRevokeSmsCd(0);
+    if (revokeSmsIntervalRef.current) {
+      clearInterval(revokeSmsIntervalRef.current);
+      revokeSmsIntervalRef.current = null;
+    }
+  }, []);
+
+  const handleSendRevokeSms = useCallback(async () => {
+    if (revokeSmsSending || revokeSmsCd > 0) return;
+    setRevokeSmsSending(true);
+    setRevokeFieldErrors((e) => ({ ...e, sms: undefined, form: undefined }));
+    try {
+      await userSettingsService.sendRevokeApiKeySms();
+      showMessage('验证码已发送（演示环境见后端日志 mock code）', 'success');
+      if (revokeSmsIntervalRef.current) {
+        clearInterval(revokeSmsIntervalRef.current);
+        revokeSmsIntervalRef.current = null;
+      }
+      setRevokeSmsCd(60);
+      revokeSmsIntervalRef.current = setInterval(() => {
+        setRevokeSmsCd((v) => {
+          if (v <= 1) {
+            if (revokeSmsIntervalRef.current) {
+              clearInterval(revokeSmsIntervalRef.current);
+              revokeSmsIntervalRef.current = null;
+            }
+            return 0;
+          }
+          return v - 1;
+        });
+      }, 1000);
+    } catch (e) {
+      pageErrorUnlessServerToast(e, '发送失败', showMessage);
+    } finally {
+      setRevokeSmsSending(false);
+    }
+  }, [revokeSmsSending, revokeSmsCd, showMessage]);
+
+  React.useEffect(
+    () => () => {
+      if (revokeSmsIntervalRef.current) {
+        clearInterval(revokeSmsIntervalRef.current);
+        revokeSmsIntervalRef.current = null;
+      }
+    },
+    [],
+  );
+
+  const handleConfirmRevokeApiKey = useCallback(async () => {
+    if (!revokeKeyTarget?.id?.trim()) {
+      showMessage('无法撤销：缺少密钥', 'error');
       return;
     }
-    if (deletingApiKeyId) return;
-    setDeletingApiKeyId(id);
+    if (revokeSubmitting) return;
+    setRevokeFieldErrors({});
+    setRevokeSubmitting(true);
     try {
-      await userSettingsService.deleteApiKey(id);
+      await userSettingsService.revokeApiKey(revokeKeyTarget.id, {
+        password: revokePassword.trim() || undefined,
+        smsCode: revokeSmsCode.trim() || undefined,
+      });
       showMessage('API Key 已撤销', 'success');
+      closeRevokeApiKeyModal();
       await loadApiKeys();
     } catch (e) {
+      if (isServerErrorGloballyNotified(e)) return;
+      const msg = e instanceof Error ? e.message : '撤销失败';
+      if (/密码|password/i.test(msg)) {
+        setRevokeFieldErrors({ password: msg });
+      } else if (/验证码|短信|sms/i.test(msg)) {
+        setRevokeFieldErrors({ sms: msg });
+      } else {
+        setRevokeFieldErrors({ form: msg });
+      }
       pageErrorUnlessServerToast(e, 'API Key 撤销失败，请重试', showMessage);
     } finally {
-      setDeletingApiKeyId(null);
+      setRevokeSubmitting(false);
     }
-  }, [deletingApiKeyId, loadApiKeys, showMessage]);
+  }, [
+    revokeKeyTarget,
+    revokeSubmitting,
+    revokePassword,
+    revokeSmsCode,
+    showMessage,
+    loadApiKeys,
+    closeRevokeApiKeyModal,
+  ]);
 
   const [showPwdModal, setShowPwdModal] = useState(false);
   const [pwdCurrent, setPwdCurrent] = useState('');
@@ -486,11 +577,11 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
                     </div>
                     <button
                       type="button"
-                      onClick={() => void handleDeleteApiKey(key.id)}
-                      disabled={deletingApiKeyId !== null}
+                      onClick={() => openRevokeApiKeyModal(key)}
+                      disabled={revokeSubmitting}
                       className="text-xs px-2.5 py-1.5 rounded-lg bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 disabled:opacity-60"
                     >
-                      {deletingApiKeyId === key.id ? '撤销中…' : '撤销'}
+                      撤销
                     </button>
                   </div>
                 ))}
@@ -519,6 +610,120 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
           <div><label className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>新密码</label><input type="password" value={pwdNew} onChange={(e) => setPwdNew(e.target.value)} placeholder="至少 6 个字符" className={nativeInputClass(theme)} /></div>
           <div><label className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>确认新密码</label><input type="password" value={pwdConfirm} onChange={(e) => setPwdConfirm(e.target.value)} className={nativeInputClass(theme)} /></div>
           {pwdError && <p className="text-xs text-rose-500 font-medium">{pwdError}</p>}
+        </div>
+      </Modal>
+
+      <Modal
+        open={!!revokeKeyTarget}
+        onClose={closeRevokeApiKeyModal}
+        title="撤销 API Key"
+        theme={theme}
+        size="sm"
+        footer={
+          <>
+            <button type="button" className={btnSecondary(theme)} onClick={closeRevokeApiKeyModal}>
+              取消
+            </button>
+            <button
+              type="button"
+              className={`${btnPrimary} disabled:opacity-50 border border-rose-600/40 bg-rose-600 hover:bg-rose-700 text-white`}
+              disabled={revokeSubmitting}
+              onClick={() => void handleConfirmRevokeApiKey()}
+              aria-label="确认撤销 API Key"
+            >
+              {revokeSubmitting ? (
+                <>
+                  <Loader2 size={14} className="animate-spin inline mr-1" aria-hidden />
+                  处理中…
+                </>
+              ) : (
+                '确认撤销'
+              )}
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <p className={`text-xs ${textSecondary(theme)}`}>
+            密钥：<span className="font-mono">{revokeKeyTarget?.name}</span>。已设本地密码时需验证密码；无密码账户须验证发往已绑定手机的短信验证码。
+          </p>
+          <div>
+            <label htmlFor="revoke-pwd" className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>
+              登录密码
+            </label>
+            <div className="relative">
+              <input
+                id="revoke-pwd"
+                type={revokeShowPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                value={revokePassword}
+                onChange={(e) => {
+                  setRevokePassword(e.target.value);
+                  setRevokeFieldErrors((x) => ({ ...x, password: undefined }));
+                }}
+                className={`${nativeInputClass(theme)} pr-10${revokeFieldErrors.password ? ` ${inputBaseError()}` : ''}`}
+                aria-invalid={!!revokeFieldErrors.password}
+                aria-describedby={revokeFieldErrors.password ? 'revoke-pwd-err' : undefined}
+              />
+              <button
+                type="button"
+                className={`absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md ${isDark ? 'text-slate-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'}`}
+                onClick={() => setRevokeShowPassword((v) => !v)}
+                aria-label={revokeShowPassword ? '隐藏密码' : '显示密码'}
+              >
+                {revokeShowPassword ? <EyeOff size={16} aria-hidden /> : <Eye size={16} aria-hidden />}
+              </button>
+            </div>
+            {revokeFieldErrors.password ? (
+              <p id="revoke-pwd-err" className={`mt-1 ${fieldErrorText()} text-xs`} role="alert">
+                {revokeFieldErrors.password}
+              </p>
+            ) : null}
+          </div>
+          <div>
+            <label htmlFor="revoke-sms" className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>
+              短信验证码（无密码账户必填）
+            </label>
+            <div className="flex gap-2">
+              <input
+                id="revoke-sms"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                value={revokeSmsCode}
+                onChange={(e) => {
+                  setRevokeSmsCode(e.target.value);
+                  setRevokeFieldErrors((x) => ({ ...x, sms: undefined }));
+                }}
+                className={`${nativeInputClass(theme)} flex-1${revokeFieldErrors.sms ? ` ${inputBaseError()}` : ''}`}
+                aria-invalid={!!revokeFieldErrors.sms}
+              />
+              <button
+                type="button"
+                disabled={revokeSmsSending || revokeSmsCd > 0}
+                onClick={() => void handleSendRevokeSms()}
+                className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap ${
+                  revokeSmsCd > 0 || revokeSmsSending
+                    ? isDark
+                      ? 'bg-white/5 text-slate-500 cursor-not-allowed'
+                      : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                    : `text-white ${tc.bg}`
+                }`}
+              >
+                {revokeSmsCd > 0 ? `${revokeSmsCd}s` : revokeSmsSending ? '发送中…' : '发送验证码'}
+              </button>
+            </div>
+            {revokeFieldErrors.sms ? (
+              <p className={`mt-1 ${fieldErrorText()} text-xs`} role="alert">
+                {revokeFieldErrors.sms}
+              </p>
+            ) : null}
+          </div>
+          {revokeFieldErrors.form ? (
+            <p className={`${fieldErrorText()} text-xs`} role="alert">
+              {revokeFieldErrors.form}
+            </p>
+          ) : null}
         </div>
       </Modal>
 

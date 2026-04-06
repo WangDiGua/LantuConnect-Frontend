@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { userSettingsService } from '../../api/services/user-settings.service';
-import type { CreateUserApiKeyPayload, UserWorkspace } from '../../types/dto/user-settings';
+import type { ApiKeyRevokePayload, CreateUserApiKeyPayload, UserWorkspace } from '../../types/dto/user-settings';
 
 export const userSettingsKeys = {
   workspace: ['userSettings', 'workspace'] as const,
@@ -32,10 +32,11 @@ export function useCreateUserApiKey() {
   });
 }
 
-export function useDeleteUserApiKey() {
+export function useRevokeUserApiKey() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => userSettingsService.deleteApiKey(id),
+    mutationFn: ({ id, body }: { id: string; body: ApiKeyRevokePayload }) =>
+      userSettingsService.revokeApiKey(id, body),
     onSuccess: () => { qc.invalidateQueries({ queryKey: userSettingsKeys.apiKeys }); },
   });
 }

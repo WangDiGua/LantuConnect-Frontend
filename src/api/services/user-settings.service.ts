@@ -2,8 +2,10 @@ import { http } from '../../lib/http';
 import { DEFAULT_USER_API_KEY_SCOPES } from '../../utils/apiKeyScopes';
 import { extractArray } from '../../utils/normalizeApiPayload';
 import type {
+  ApiKeyRevokePayload,
   CreateUserApiKeyPayload,
   UserApiKey,
+  UserApiKeyResourceGrant,
   UserStats,
   UserWorkspace,
 } from '../../types/dto/user-settings';
@@ -43,6 +45,26 @@ function mapUserApiKeyRecord(raw: unknown): UserApiKey {
   };
 }
 
+function mapResourceGrantRow(raw: unknown): UserApiKeyResourceGrant {
+  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const actionsRaw = o.actions;
+  const actions = Array.isArray(actionsRaw) ? actionsRaw.map((x) => String(x)) : [];
+  return {
+    id: numPg(o.id, 0),
+    resourceType: String(o.resourceType ?? ''),
+    resourceId: numPg(o.resourceId, 0),
+    granteeType: String(o.granteeType ?? ''),
+    granteeId: String(o.granteeId ?? ''),
+    actions,
+    status: String(o.status ?? ''),
+    grantedByUserId: o.grantedByUserId != null ? numPg(o.grantedByUserId, 0) : undefined,
+    grantedByName: o.grantedByName == null ? undefined : String(o.grantedByName),
+    expiresAt: o.expiresAt == null ? undefined : String(o.expiresAt),
+    createTime: o.createTime == null ? undefined : String(o.createTime),
+    updateTime: o.updateTime == null ? undefined : String(o.updateTime),
+  };
+}
+
 export const userSettingsService = {
   getWorkspace: () =>
     http.get<UserWorkspace>('/user-settings/workspace'),
@@ -72,6 +94,18 @@ export const userSettingsService = {
 
   deleteApiKey: (id: string) =>
     http.delete(`/user-settings/api-keys/${id}`),
+
+  listResourceGrantsForApiKey: async (apiKeyId: string, resourceType?: string) => {
+    const raw = await http.get<unknown>(`/user-settings/api-keys/${encodeURIComponent(apiKeyId)}/resource-grants`, {
+      params: resourceType?.trim() ? { resourceType: resourceType.trim() } : undefined,
+    });
+    return extractArray<unknown>(raw).map(mapResourceGrantRow);
+  },
+
+  sendRevokeApiKeySms: () => http.post<void>('/user-settings/api-keys/revoke/send-sms'),
+
+  revokeApiKey: (id: string, body: ApiKeyRevokePayload) =>
+    http.post<void>(`/user-settings/api-keys/${encodeURIComponent(id)}/revoke`, body),
 
   getStats: () => http.get<UserStats>('/user-settings/stats'),
 };

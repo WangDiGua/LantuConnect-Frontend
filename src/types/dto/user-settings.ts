@@ -41,6 +41,27 @@ export interface CreateUserApiKeyPayload {
   expiresAt?: string;
 }
 
+/** GET /user-settings/api-keys/{id}/resource-grants 单行（与后端 ResourceGrantVO 对齐） */
+export interface UserApiKeyResourceGrant {
+  id: number;
+  resourceType: string;
+  resourceId: number;
+  granteeType: string;
+  granteeId: string;
+  actions: string[];
+  status: string;
+  grantedByUserId?: number;
+  grantedByName?: string;
+  expiresAt?: string;
+  createTime?: string;
+  updateTime?: string;
+}
+
+export interface ApiKeyRevokePayload {
+  password?: string;
+  smsCode?: string;
+}
+
 /** 创建接口成功时，后端可能返回 secretPlain 与/或 plainKey，二者均为完整可调用密钥（仅响应一次）。 */
 export type CreatedUserApiKey = UserApiKey & { plainKey: string; secretPlain?: string };
 

@@ -166,7 +166,7 @@ const USER_SIDEBAR_PAGES: Record<string, string[]> = {
     'dataset-list', 'dataset-register',
     'usage-records', 'recent-use', 'usage-stats', 'grant-applications', 'developer-applications', 'my-grant-applications',
   ],
-  'developer-portal': ['api-docs', 'sdk-download', 'api-playground', 'developer-statistics'],
+  'developer-portal': ['api-docs', 'sdk-download', 'api-playground', 'mcp-integration', 'developer-statistics'],
   'user-settings': ['profile', 'preferences'],
 };
 

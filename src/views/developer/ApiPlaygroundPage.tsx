@@ -45,6 +45,7 @@ function playgroundPathNeedsApiKey(rawUrl: string): boolean {
   const path = toRelativeApiPath(rawUrl).split('?')[0];
   if (/^https?:\/\//i.test(path)) return false;
   if (path === '/invoke' || path === '/invoke-stream' || path === '/catalog/resolve') return true;
+  if (path.startsWith('/mcp/v1/')) return true;
   if (path.startsWith('/sdk/v1/')) return true;
   return false;
 }

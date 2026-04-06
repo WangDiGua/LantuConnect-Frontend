@@ -46,6 +46,7 @@ import {
   ClipboardCheck,
   Code2,
   Terminal,
+  Plug,
   Download,
   Compass,
   Library,
@@ -246,6 +247,7 @@ export const ADMIN_DEVELOPER_PORTAL_GROUPS: NavSubGroup[] = [
       { id: 'api-docs', icon: FileText, label: '接入指南' },
       { id: 'sdk-download', icon: Download, label: 'SDK 下载' },
       { id: 'api-playground', icon: Terminal, label: 'API Playground' },
+      { id: 'mcp-integration', icon: Plug, label: 'MCP 对外集成' },
     ],
   },
   {

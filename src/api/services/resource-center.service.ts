@@ -556,6 +556,14 @@ export const resourceCenterService = {
     return toResourceItem(raw);
   },
 
+  /** 将指定 active 版本快照合并写回主资源（与 PUT 更新同约束：published/pending_review 不可） */
+  applyVersionToWorkingCopy: async (id: number, version: string): Promise<ResourceCenterItemVO> => {
+    const raw = await http.post<unknown>(
+      `/resource-center/resources/${id}/versions/${encodeURIComponent(version)}/apply-to-working-copy`,
+    );
+    return toResourceItem(raw);
+  },
+
   getLifecycleTimeline: (id: number): Promise<LifecycleTimelineVO> =>
     http.get<LifecycleTimelineVO>(`/resource-center/resources/${id}/lifecycle-timeline`),
 

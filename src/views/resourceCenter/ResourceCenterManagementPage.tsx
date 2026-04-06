@@ -292,6 +292,45 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
     [showMessage],
   );
 
+  const canApplyVersionSnapshotToWorkingCopy = useMemo(
+    () =>
+      versionTarget != null &&
+      !['published', 'pending_review'].includes(versionTarget.status as ResourceStatus),
+    [versionTarget],
+  );
+
+  const runApplyVersionToWorkingCopy = useCallback(
+    async (versionLabel: string, openEditorAfter: boolean) => {
+      if (!versionTarget) return;
+      const key = openEditorAfter
+        ? `apply-open-${versionTarget.id}-${versionLabel}`
+        : `apply-wc-${versionTarget.id}-${versionLabel}`;
+      setRunningActionKey(key);
+      try {
+        await resourceCenterService.applyVersionToWorkingCopy(versionTarget.id, versionLabel);
+        showMessage(
+          openEditorAfter
+            ? `版本 ${versionLabel} 已写回主资源，正在打开登记页`
+            : `已将版本 ${versionLabel} 快照写回主资源，可在列表点「编辑」后继续提审/发布`,
+          'success',
+        );
+        await fetchData();
+        await syncVersionModalFromServer(versionTarget.id);
+        if (openEditorAfter) {
+          onNavigateRegister(versionTarget.resourceType, versionTarget.id);
+          setVersionTarget(null);
+          setVersions([]);
+          setMakeNewVersionCurrent(true);
+        }
+      } catch (err) {
+        showMessage(err instanceof Error ? err.message : '写回主资源失败', 'error');
+      } finally {
+        setRunningActionKey(null);
+      }
+    },
+    [versionTarget, showMessage, fetchData, syncVersionModalFromServer, onNavigateRegister],
+  );
+
   const openLifecycleModal = async (item: ResourceCenterItemVO) => {
     setTimelineTarget(item);
     setTimelineLoading(true);
@@ -703,6 +742,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
               <p className={textSecondary(theme)}>
                 <span className="font-medium text-slate-900 dark:text-slate-100">版本在做什么：</span>
                 新建版本会把<strong className="font-medium">当时主资源上的配置</strong>打成快照存入历史，便于<strong>回退默认版本</strong>；<strong>不会</strong>自动生成「可编辑副本」。
+                列表中每条 active 版本可使用<strong className="font-medium">写回登记</strong>，将快照合并到主资源后再编辑（已发布 / 待审核时需先下线或审结）。
               </p>
               {versionTarget.status === 'published' && (
                 <p className={`mt-2 ${isDark ? 'text-amber-200/95' : 'text-amber-900'}`}>
@@ -732,7 +772,8 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                 列表 <span className="font-mono text-[11px]">GET /resource-center/resources/:id/versions</span>；新建{' '}
                 <span className="font-mono text-[11px]">POST …/versions</span>（body：<span className="font-mono text-[11px]">version</span>、
                 <span className="font-mono text-[11px]">makeCurrent</span>）写入当前主资源快照；切换默认{' '}
-                <span className="font-mono text-[11px]">POST …/versions/:version/switch</span>，仅 <span className="font-mono text-[11px]">active</span> 可切。
+                <span className="font-mono text-[11px]">POST …/versions/:version/switch</span>，仅 <span className="font-mono text-[11px]">active</span> 可切；
+                写回主资源 <span className="font-mono text-[11px]">POST …/versions/:version/apply-to-working-copy</span>。
               </p>
             </details>
             {isActionAllowed(versionTarget, 'update') && (
@@ -761,6 +802,8 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                 versions.map((ver) => {
                   const status = (ver.status ?? 'active').toLowerCase();
                   const canSwitch = !ver.isCurrent && status === 'active';
+                  const applyKey = `apply-wc-${versionTarget.id}-${ver.version}`;
+                  const applyOpenKey = `apply-open-${versionTarget.id}-${ver.version}`;
                   return (
                     <div
                       key={`${ver.id}-${ver.version}`}
@@ -792,25 +835,58 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                           <p className={`mt-0.5 text-[11px] ${textMuted(theme)}`}>创建 {formatDateTime(ver.createTime)}</p>
                         )}
                       </div>
-                      {canSwitch && (
-                        <button
-                          type="button"
-                          title="将网关解析与目录默认指向此版本（回退即切换到较早的 active 版本）"
-                          onClick={async () => {
-                            const updated = await runMutationAction(
-                              `switch-version-${versionTarget.id}-${ver.version}`,
-                              () => resourceCenterService.switchVersion(versionTarget.id, ver.version),
-                              `已设为当前版本 ${ver.version}`,
-                            );
-                            if (updated) {
-                              await syncVersionModalFromServer(versionTarget.id);
-                            }
-                          }}
-                          className={btnGhost(theme)}
-                        >
-                          设为当前
-                        </button>
-                      )}
+                      <div className="flex flex-wrap items-center justify-end gap-1.5 shrink-0">
+                        {canSwitch && (
+                          <button
+                            type="button"
+                            title="将网关解析与目录默认指向此版本（回退即切换到较早的 active 版本）"
+                            disabled={!!runningActionKey}
+                            onClick={async () => {
+                              const updated = await runMutationAction(
+                                `switch-version-${versionTarget.id}-${ver.version}`,
+                                () => resourceCenterService.switchVersion(versionTarget.id, ver.version),
+                                `已设为当前版本 ${ver.version}`,
+                              );
+                              if (updated) {
+                                await syncVersionModalFromServer(versionTarget.id);
+                              }
+                            }}
+                            className={btnGhost(theme)}
+                          >
+                            设为当前
+                          </button>
+                        )}
+                        {status === 'active' && (
+                          <>
+                            <button
+                              type="button"
+                              title={
+                                canApplyVersionSnapshotToWorkingCopy
+                                  ? '将该版本快照合并到主资源，随后在列表点「编辑」继续改'
+                                  : '已发布或待审核中的资源请先在列表「下线」或等待审核结束'
+                              }
+                              disabled={!canApplyVersionSnapshotToWorkingCopy || !!runningActionKey}
+                              onClick={() => void runApplyVersionToWorkingCopy(ver.version, false)}
+                              className={btnGhost(theme)}
+                            >
+                              {runningActionKey === applyKey ? '写回中…' : '写回登记'}
+                            </button>
+                            <button
+                              type="button"
+                              title={
+                                canApplyVersionSnapshotToWorkingCopy
+                                  ? '写回主资源并打开登记页'
+                                  : '已发布或待审核中的资源请先在列表「下线」或等待审核结束'
+                              }
+                              disabled={!canApplyVersionSnapshotToWorkingCopy || !!runningActionKey}
+                              onClick={() => void runApplyVersionToWorkingCopy(ver.version, true)}
+                              className={`${btnSecondary(theme)} text-sm`}
+                            >
+                              {runningActionKey === applyOpenKey ? '打开中…' : '写回并打开登记页'}
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   );
                 })

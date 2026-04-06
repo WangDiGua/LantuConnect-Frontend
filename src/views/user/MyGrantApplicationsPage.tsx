@@ -28,6 +28,7 @@ import type { DomainStatus } from '../../utils/uiClasses';
 import { nullDisplay } from '../../utils/errorHandler';
 import { expiryRelativeToNow, formatDateTime } from '../../utils/formatDateTime';
 import { buildPath, buildUserResourceMarketUrl, type ConsoleRole } from '../../constants/consoleRoutes';
+import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedContentToTop';
 
 interface Props {
   theme: Theme;
@@ -64,6 +65,7 @@ export const MyGrantApplicationsPage: React.FC<Props> = ({ theme, fontSize }) =>
   const [items, setItems] = useState<GrantApplicationVO[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  useScrollPaginatedContentToTop(page);
   const [statusFilter, setStatusFilter] = useState<'all' | string>('all');
   const PAGE_SIZE = 20;
 

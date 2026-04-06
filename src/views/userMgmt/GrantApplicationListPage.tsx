@@ -32,6 +32,7 @@ import { nullDisplay } from '../../utils/errorHandler';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
 import { MgmtPageShell } from './MgmtPageShell';
+import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedContentToTop';
 import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 
 interface Props {
@@ -57,6 +58,7 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, fontSize, sho
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
+  useScrollPaginatedContentToTop(page);
   const [total, setTotal] = useState(0);
   const [rejectTarget, setRejectTarget] = useState<GrantApplicationVO | null>(null);
   const [rejectReason, setRejectReason] = useState('');

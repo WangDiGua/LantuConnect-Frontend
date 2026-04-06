@@ -14,6 +14,7 @@ import { resourceCenterService } from '../../api/services/resource-center.servic
 import { resourceAuditService } from '../../api/services/resource-audit.service';
 import { useUserRole } from '../../context/UserRoleContext';
 import { useAuthStore } from '../../stores/authStore';
+import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedContentToTop';
 import { AccessPolicyBadge } from '../../components/business/AccessPolicyBadge';
 import { RESOURCE_TYPES, RESOURCE_TYPE_LABEL_ZH } from '../../constants/resourceTypes';
 import { Modal } from '../../components/common/Modal';
@@ -252,6 +253,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
   const [keyword, setKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | ResourceStatus>('all');
   const [page, setPage] = useState(1);
+  useScrollPaginatedContentToTop(page);
   const [total, setTotal] = useState(0);
   const [loadError, setLoadError] = useState<Error | null>(null);
   const [confirmAction, setConfirmAction] = useState<{ id: number; type: 'remove' | 'deprecate' | 'withdraw' } | null>(null);

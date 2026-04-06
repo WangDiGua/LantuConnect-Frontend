@@ -15,6 +15,7 @@ import {
 } from '../../utils/uiClasses';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
+import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedContentToTop';
 import { resourceTypeLabel } from '../../constants/resourceTypes';
 
 function alertResourceBadgeText(r: AlertRecord): string | null {
@@ -55,6 +56,7 @@ export const AlertMgmtPage: React.FC<AlertMgmtPageProps> = ({ theme, fontSize })
   const [statusF, setStatusF] = useState<string>('all');
   const [resourceType, setResourceType] = useState<string>('all');
   const [page, setPage] = useState(1);
+  useScrollPaginatedContentToTop(page);
 
   useEffect(() => {
     const id = window.setTimeout(() => setDebouncedQ(q.trim()), 300);

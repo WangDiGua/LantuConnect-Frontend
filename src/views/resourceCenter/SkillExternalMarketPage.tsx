@@ -21,6 +21,7 @@ import {
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { nullDisplay } from '../../utils/errorHandler';
 import { SkillExternalMarketSettingsForm } from './SkillExternalMarketSettingsForm';
+import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedContentToTop';
 
 interface Props {
   theme: Theme;
@@ -42,6 +43,7 @@ export const SkillExternalMarketPage: React.FC<Props> = ({ theme, fontSize, show
   const [rows, setRows] = useState<SkillExternalCatalogItemVO[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  useScrollPaginatedContentToTop(page);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [error, setError] = useState<Error | null>(null);

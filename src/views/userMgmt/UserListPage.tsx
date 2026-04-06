@@ -22,6 +22,7 @@ import { formatDateTime } from '../../utils/formatDateTime';
 import { MgmtPageShell } from './MgmtPageShell';
 import { useUserRole } from '../../context/UserRoleContext';
 import { useMessage } from '../../components/common/Message';
+import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedContentToTop';
 
 interface UserListPageProps {
   theme: Theme;
@@ -58,6 +59,7 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'disabled'>('all');
   const [form, setForm] = useState(emptyForm());
   const [page, setPage] = useState(1);
+  useScrollPaginatedContentToTop(page);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   const listSegments = useMemo(() => [...breadcrumbBase, '用户列表'] as const, [breadcrumbBase]);

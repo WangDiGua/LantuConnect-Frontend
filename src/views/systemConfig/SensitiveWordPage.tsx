@@ -30,6 +30,7 @@ import {
 import { TOOLBAR_ROW_LIST } from '../../utils/toolbarFieldClasses';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
 import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
+import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedContentToTop';
 
 interface Props {
   theme: Theme;
@@ -68,6 +69,7 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
 
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  useScrollPaginatedContentToTop(page);
   const [data, setData] = useState<PaginatedData<SensitiveWord> | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<SensitiveWord | null>(null);
   const [deleting, setDeleting] = useState(false);

@@ -23,6 +23,7 @@ import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { providerStatusLabelZh, providerTypeLabelZh } from '../../utils/backendEnumLabels';
 import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
+import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedContentToTop';
 
 interface Props {
   theme: Theme;
@@ -63,6 +64,7 @@ export const ProviderManagementPage: React.FC<Props> = ({
   const [keyword, setKeyword] = useState('');
   const [providerType, setProviderType] = useState<'' | ProviderType>('');
   const [page, setPage] = useState(1);
+  useScrollPaginatedContentToTop(page);
   const [total, setTotal] = useState(0);
   const pageSize = 20;
 

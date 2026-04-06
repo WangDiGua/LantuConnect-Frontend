@@ -11,6 +11,7 @@ import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { Modal } from '../../components/common/Modal';
 import { SearchInput } from '../../components/common/SearchInput';
 import { Pagination } from '../../components/common/Pagination';
+import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedContentToTop';
 import { MgmtDataTable } from '../../components/management/MgmtDataTable';
 import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
 import { TOOLBAR_ROW_LIST } from '../../utils/toolbarFieldClasses';
@@ -58,6 +59,7 @@ export const DeveloperApplicationListPage: React.FC<Props> = ({ theme, fontSize,
   const isDark = theme === 'dark';
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  useScrollPaginatedContentToTop(page);
   const [data, setData] = useState<PaginatedData<DeveloperApplicationVO> | null>(null);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');

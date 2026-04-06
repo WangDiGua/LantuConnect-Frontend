@@ -11,6 +11,7 @@ import { DataTable, SearchInput, FilterSelect, type Column } from '../../compone
 import { btnSecondary, textSecondary, textMuted } from '../../utils/uiClasses';
 import type { AuditLogEntry } from '../../types/dto/system-config';
 import { formatDateTime } from '../../utils/formatDateTime';
+import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedContentToTop';
 
 interface AuditLogPageProps {
   theme: Theme;
@@ -40,6 +41,7 @@ export const AuditLogPage: React.FC<AuditLogPageProps> = ({
   const [resourceTypeFilter, setResourceTypeFilter] = useState('');
   const [onlyFail, setOnlyFail] = useState(false);
   const [page, setPage] = useState(1);
+  useScrollPaginatedContentToTop(page);
 
   const auditQuery = useMemo(
     () => ({

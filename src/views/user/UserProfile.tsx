@@ -22,6 +22,7 @@ import { PageSkeleton } from '../../components/common/PageSkeleton';
 import type { PlatformRoleCode } from '../../types/dto/auth';
 import { PLATFORM_ROLE_LABELS } from '../../constants/platformRoles';
 import { normalizeRole } from '../../context/UserRoleContext';
+import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedContentToTop';
 
 interface UserProfileProps { theme: Theme; fontSize: FontSize; }
 
@@ -69,11 +70,13 @@ export const UserProfile: React.FC<UserProfileProps> = ({ theme }) => {
   const sessionPageSize = 10;
   const [loginHistory, setLoginHistory] = useState<LoginHistoryRow[]>([]);
   const [historyPage, setHistoryPage] = useState(1);
+  useScrollPaginatedContentToTop(historyPage);
   const [historyTotal, setHistoryTotal] = useState(0);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [sessions, setSessions] = useState<SessionItem[]>([]);
   const [sessionPage, setSessionPage] = useState(1);
+  useScrollPaginatedContentToTop(sessionPage);
   const [sessionTotal, setSessionTotal] = useState(0);
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [sessionsError, setSessionsError] = useState<string | null>(null);

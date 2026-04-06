@@ -20,6 +20,7 @@ import {
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { MgmtPageShell } from './MgmtPageShell';
+import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedContentToTop';
 import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 
 interface RoleListPageProps { theme: Theme; fontSize: FontSize; breadcrumbBase: string[]; }
@@ -43,6 +44,7 @@ export const RoleListPage: React.FC<RoleListPageProps> = ({ theme, fontSize, bre
   const [search, setSearch] = useState('');
   const [form, setForm] = useState(emptyForm());
   const [page, setPage] = useState(1);
+  useScrollPaginatedContentToTop(page);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);

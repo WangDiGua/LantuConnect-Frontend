@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Theme } from '../../types';
+import { scrollPaginationContainersToTop } from '../../utils/scrollPaginationContainers';
 
 export interface PaginationProps {
   theme: Theme;
@@ -64,16 +65,22 @@ export const Pagination: React.FC<PaginationProps> = ({
   total,
   onChange,
 }) => {
+  const rootRef = useRef<HTMLDivElement>(null);
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const pages = useMemo(() => buildPageNumbers(page, totalPages), [page, totalPages]);
 
   const rangeStart = Math.min((page - 1) * pageSize + 1, total);
   const rangeEnd = Math.min(page * pageSize, total);
 
+  const go = (next: number) => {
+    onChange(next);
+    queueMicrotask(() => scrollPaginationContainersToTop(rootRef.current));
+  };
+
   if (total === 0) return null;
 
   return (
-    <div className={`flex items-center justify-between gap-4 px-1 py-3 text-xs ${metaTextClass(theme)}`}>
+    <div ref={rootRef} className={`flex items-center justify-between gap-4 px-1 py-3 text-xs ${metaTextClass(theme)}`}>
       <span>
         第 {rangeStart}–{rangeEnd} 条，共 {total} 条
       </span>
@@ -83,7 +90,7 @@ export const Pagination: React.FC<PaginationProps> = ({
           type="button"
           aria-label="上一页"
           disabled={page <= 1}
-          onClick={() => onChange(page - 1)}
+          onClick={() => go(page - 1)}
           className={navBtnClass(theme)}
         >
           <ChevronLeft size={16} />
@@ -103,7 +110,7 @@ export const Pagination: React.FC<PaginationProps> = ({
               type="button"
               aria-label={`第 ${p} 页`}
               aria-current={p === page ? 'page' : undefined}
-              onClick={() => onChange(p)}
+              onClick={() => go(p)}
               className={pageBtnClass(p === page, theme)}
             >
               {p}
@@ -115,7 +122,7 @@ export const Pagination: React.FC<PaginationProps> = ({
           type="button"
           aria-label="下一页"
           disabled={page >= totalPages}
-          onClick={() => onChange(page + 1)}
+          onClick={() => go(page + 1)}
           className={navBtnClass(theme)}
         >
           <ChevronRight size={16} />

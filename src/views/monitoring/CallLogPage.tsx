@@ -13,6 +13,7 @@ import {
 } from '../../utils/uiClasses';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
+import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedContentToTop';
 import { MgmtDataTable } from '../../components/management/MgmtDataTable';
 import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
 import { RESOURCE_TYPE_LABEL } from '../../constants/resourceTypes';
@@ -45,6 +46,7 @@ export const CallLogPage: React.FC<CallLogPageProps> = ({ theme, fontSize }) => 
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [resourceTypeFilter, setResourceTypeFilter] = useState<string>('all');
   const [page, setPage] = useState(1);
+  useScrollPaginatedContentToTop(page);
 
   useEffect(() => {
     const id = window.setTimeout(() => setDebouncedQ(q.trim()), 300);

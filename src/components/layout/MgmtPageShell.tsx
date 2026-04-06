@@ -156,7 +156,10 @@ export const MgmtPageShell: React.FC<MgmtPageShellProps> = ({
               {toolbar}
             </div>
           ) : null}
-          <div className={bodyScrollClass}>
+          <div
+            className={bodyScrollClass}
+            {...(contentScroll === 'inner' ? { 'data-lantu-inner-scroll': '' } : {})}
+          >
             {children}
           </div>
         </div>

@@ -1877,6 +1877,7 @@ const MainLayoutContent: React.FC<{
                   <div className="order-1 flex min-h-0 min-w-0 flex-col lg:order-2 lg:col-span-10">
                     <div
                       ref={routeContentScrollRef}
+                      data-lantu-main-scroll
                       className={`flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain custom-scrollbar ${mainScrollCompositorClass}`}
                     >
                       <div className={`w-full min-w-0 ${chromeGpuLayerClass}`}>
@@ -1917,6 +1918,7 @@ const MainLayoutContent: React.FC<{
           ) : (
             <div
               ref={mainScrollRef}
+              data-lantu-main-scroll
               className={`min-h-0 min-w-0 flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass}`}
             >
               <div className={`w-full ${chromeGpuLayerClass}`}>

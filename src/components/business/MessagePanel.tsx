@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useCallback, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -193,6 +193,7 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
   const [detailLoading, setDetailLoading] = useState(false);
   const [fixedPlacement, setFixedPlacement] = useState({ top: 0, right: 0 });
   const [activeDatePicker, setActiveDatePicker] = useState<'start' | 'end' | null>(null);
+  const listScrollRef = useRef<HTMLDivElement>(null);
   type FilterState = {
     type: string;
     isRead: 'all' | 'read' | 'unread';
@@ -294,6 +295,10 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
       cancelled = true;
     };
   }, [tab, listPage, appliedFilterKey, reloadToken]);
+
+  useLayoutEffect(() => {
+    listScrollRef.current?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [listPage, tab, appliedFilterKey, reloadToken]);
 
   const totalPages = Math.max(1, Math.ceil(listTotal / PAGE_SIZE));
 
@@ -513,6 +518,7 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
 
         <div className="flex flex-col min-h-0 flex-1">
           <div
+            ref={listScrollRef}
             className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass}`}
             aria-busy={listLoading}
           >

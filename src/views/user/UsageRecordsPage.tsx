@@ -11,6 +11,7 @@ import { bentoCard, btnGhost, pageBlockStack, textPrimary, textSecondary, textMu
 import { formatDateTime } from '../../utils/formatDateTime';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
+import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedContentToTop';
 
 type TimeFilter = 'today' | '7d' | '30d';
 type TypeFilter = 'all' | 'agent' | 'skill' | 'app' | 'mcp' | 'dataset';
@@ -33,6 +34,7 @@ export const UsageRecordsPage: React.FC<UsageRecordsPageProps> = ({ theme, fontS
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  useScrollPaginatedContentToTop(page);
   const [records, setRecords] = useState<UsageRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<Error | null>(null);

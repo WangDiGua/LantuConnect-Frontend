@@ -32,6 +32,7 @@ import { nullDisplay } from '../../utils/errorHandler';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
 import { AccessPolicyBadge } from '../../components/business/AccessPolicyBadge';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
+import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedContentToTop';
 import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 
 interface Props {
@@ -60,6 +61,7 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
   }, [defaultType]);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  useScrollPaginatedContentToTop(page);
   const [total, setTotal] = useState(0);
   const [rejectTarget, setRejectTarget] = useState<ResourceAuditItemVO | null>(null);
   const [rejectReason, setRejectReason] = useState('');

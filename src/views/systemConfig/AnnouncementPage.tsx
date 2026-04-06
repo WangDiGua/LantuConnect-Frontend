@@ -28,6 +28,7 @@ import { TOOLBAR_ROW_LIST } from '../../utils/toolbarFieldClasses';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { PageError } from '../../components/common/PageError';
 import { Pagination } from '../../components/common/Pagination';
+import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedContentToTop';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
 import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
@@ -63,6 +64,7 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
   const [list, setList] = useState<AnnouncementItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  useScrollPaginatedContentToTop(page);
   const [filterKeyword, setFilterKeyword] = useState('');
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
   const [filterType, setFilterType] = useState('');

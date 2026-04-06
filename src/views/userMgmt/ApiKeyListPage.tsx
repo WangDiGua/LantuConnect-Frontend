@@ -20,6 +20,7 @@ import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { MgmtPageShell } from './MgmtPageShell';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
+import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedContentToTop';
 
 interface ApiKeyListPageProps { theme: Theme; fontSize: FontSize; showMessage: (msg: string, type?: 'success' | 'error' | 'info') => void; breadcrumbSegments: string[]; }
 
@@ -38,6 +39,7 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize,
   const [revealedOnce, setRevealedOnce] = useState<{ full: string; prefix: string } | null>(null);
   const [copied, setCopied] = useState(false);
   const [page, setPage] = useState(1);
+  useScrollPaginatedContentToTop(page);
   const [revokeTarget, setRevokeTarget] = useState<string | null>(null);
   const [newNameError, setNewNameError] = useState('');
 

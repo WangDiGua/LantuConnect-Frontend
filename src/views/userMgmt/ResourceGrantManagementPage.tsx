@@ -20,6 +20,7 @@ import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
 import { resourceGrantActionsLabelZh, resourceGrantRecordStatusLabelZh } from '../../utils/backendEnumLabels';
+import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedContentToTop';
 
 interface Props {
   theme: Theme;
@@ -64,6 +65,7 @@ export const ResourceGrantManagementPage: React.FC<Props> = ({ theme, fontSize, 
     grantedByName?: string;
   }>>([]);
   const [page, setPage] = useState(1);
+  useScrollPaginatedContentToTop(page);
   const [total, setTotal] = useState(0);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<Error | null>(null);

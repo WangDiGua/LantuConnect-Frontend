@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Theme } from '../../types';
+import { scrollPaginationContainersToTop } from '../../utils/scrollPaginationContainers';
 import { EmptyState } from './EmptyState';
 import { PageSkeleton } from './PageSkeleton';
 
@@ -59,6 +60,7 @@ export function DataTable<T extends Record<string, any>>({
   enableSorting = true,
   enableFiltering = false,
 }: DataTableProps<T>) {
+  const paginationFooterRef = useRef<HTMLDivElement>(null);
   const [sortConfig, setSortConfig] = useState<SortConfig>(null);
   const [filters, setFilters] = useState<Record<string, string>>({});
   const isDark = theme === 'dark';
@@ -228,7 +230,10 @@ export function DataTable<T extends Record<string, any>>({
       </div>
 
       {pagination && pagination.totalPages > 1 && (
-        <div className={`px-6 py-3 border-t flex items-center justify-between ${isDark ? 'border-white/10' : 'border-neutral-100'}`}>
+        <div
+          ref={paginationFooterRef}
+          className={`px-6 py-3 border-t flex items-center justify-between ${isDark ? 'border-white/10' : 'border-neutral-100'}`}
+        >
           <div className={`text-sm ${isDark ? 'text-neutral-500' : 'text-neutral-500'}`}>
             第 {pagination.currentPage} / {pagination.totalPages} 页
           </div>
@@ -236,7 +241,10 @@ export function DataTable<T extends Record<string, any>>({
             <button
               type="button"
               aria-label="上一页"
-              onClick={() => pagination.onPageChange(pagination.currentPage - 1)}
+              onClick={() => {
+                pagination.onPageChange(pagination.currentPage - 1);
+                queueMicrotask(() => scrollPaginationContainersToTop(paginationFooterRef.current));
+              }}
               disabled={pagination.currentPage === 1}
               className={`h-9 w-9 min-h-9 min-w-9 inline-flex items-center justify-center rounded-lg text-sm transition-colors motion-reduce:transition-none disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 ${isDark ? 'text-neutral-300 hover:bg-white/5 focus-visible:ring-offset-lantu-card' : 'text-neutral-600 hover:bg-neutral-100 focus-visible:ring-offset-white'}`}
             >
@@ -245,7 +253,10 @@ export function DataTable<T extends Record<string, any>>({
             <button
               type="button"
               aria-label="下一页"
-              onClick={() => pagination.onPageChange(pagination.currentPage + 1)}
+              onClick={() => {
+                pagination.onPageChange(pagination.currentPage + 1);
+                queueMicrotask(() => scrollPaginationContainersToTop(paginationFooterRef.current));
+              }}
               disabled={pagination.currentPage === pagination.totalPages}
               className={`h-9 w-9 min-h-9 min-w-9 inline-flex items-center justify-center rounded-lg text-sm transition-colors motion-reduce:transition-none disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 ${isDark ? 'text-neutral-300 hover:bg-white/5 focus-visible:ring-offset-lantu-card' : 'text-neutral-600 hover:bg-neutral-100 focus-visible:ring-offset-white'}`}
             >

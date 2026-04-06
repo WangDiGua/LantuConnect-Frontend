@@ -15,6 +15,7 @@ import {
 import { formatDateTime } from '../../utils/formatDateTime';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { MgmtPageShell } from './MgmtPageShell';
+import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedContentToTop';
 
 interface TokenListPageProps { theme: Theme; fontSize: FontSize; showMessage: (msg: string, type?: 'success' | 'error' | 'info') => void; breadcrumbSegments: string[]; }
 
@@ -35,6 +36,7 @@ export const TokenListPage: React.FC<TokenListPageProps> = ({ theme, fontSize, s
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | TokenRecord['status']>('all');
   const [page, setPage] = useState(1);
+  useScrollPaginatedContentToTop(page);
   const [revokeTarget, setRevokeTarget] = useState<string | null>(null);
 
   useEffect(() => {

@@ -78,6 +78,8 @@ export default defineConfig(({ mode }) => {
         [apiBase]: {
           target: proxyTarget,
           changeOrigin: true,
+          /** 开发态 /regis/ws/push 等 WebSocket 需显式转发到后端 */
+          ws: true,
         },
       },
     },

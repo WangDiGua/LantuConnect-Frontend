@@ -79,6 +79,8 @@ export const VditorMarkdownEditor: React.FC<VditorMarkdownEditorProps> = ({
     const el = wrapRef.current;
     if (!el) return;
 
+    /** 卸载后禁止 after 回写，避免与下一轮 effect 竞态 */
+    let alive = true;
     readyRef.current = false;
     el.innerHTML = '';
 
@@ -103,12 +105,18 @@ export const VditorMarkdownEditor: React.FC<VditorMarkdownEditorProps> = ({
         type: 'markdown',
       },
       after() {
+        if (!alive) return;
         readyRef.current = true;
         instRef.current = vd;
         const v = valueRef.current;
-        if (vd.getValue() !== v) vd.setValue(v);
+        try {
+          if (vd.getValue() !== v) vd.setValue(v);
+        } catch {
+          /* Lute 尚未就绪 */
+        }
       },
       input(v) {
+        if (!alive) return;
         onChangeRef.current(v);
       },
     });
@@ -116,9 +124,16 @@ export const VditorMarkdownEditor: React.FC<VditorMarkdownEditorProps> = ({
     instRef.current = vd;
 
     return () => {
+      alive = false;
       readyRef.current = false;
       instRef.current = null;
-      vd.destroy();
+      try {
+        // 异步 init 未完成时内部 this.vditor 仍为 undefined，destroy 会抛错
+        vd.destroy();
+      } catch {
+        /* ignore */
+      }
+      el.innerHTML = '';
     };
   }, [isDark, minHeight, mode, placeholder]);
 

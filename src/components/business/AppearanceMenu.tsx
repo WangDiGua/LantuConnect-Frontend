@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Sun, Moon, Monitor, RotateCcw } from 'lucide-react';
 import { Theme, ThemeMode, FontSize, FontFamily, AnimationStyle } from '../../types';
-import { FONT_SIZE_OPTION_UI_LABEL, FONT_SIZE_ROOT_PX } from '../../constants/theme';
+import { FONT_SIZE_ROOT_PX, FONT_SIZE_SEGMENT_ROW2 } from '../../constants/theme';
 
 const FONT_LABELS: Record<FontFamily, string> = {
   sans: '系统无衬线',
@@ -151,8 +151,8 @@ export const AppearanceMenu: React.FC<AppearanceMenuProps> = ({
                 type="button"
                 key={size}
                 onClick={() => setFontSize(size)}
-                title={`根字号 ${FONT_SIZE_ROOT_PX[size]}px（全站 1rem 基准）`}
-                className={`flex-1 rounded-lg py-2.5 px-2 text-sm font-semibold transition-all ${
+                title={`${FONT_SIZE_SEGMENT_ROW2[size]} · 根字号 ${FONT_SIZE_ROOT_PX[size]}px（1rem 基准）`}
+                className={`flex flex-1 min-w-0 items-stretch rounded-lg px-1.5 py-2 transition-all ${
                   fontSize === size
                     ? theme === 'light'
                       ? 'bg-white shadow-sm text-neutral-900'
@@ -162,7 +162,23 @@ export const AppearanceMenu: React.FC<AppearanceMenuProps> = ({
                       : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                {FONT_SIZE_OPTION_UI_LABEL[size]}
+                <span className="flex w-full min-w-0 flex-col items-center justify-center gap-1 text-center">
+                  <span className="flex items-center justify-center gap-1 whitespace-nowrap text-sm font-semibold leading-none">
+                    {size === 'small' ? '小' : size === 'medium' ? '中' : '大'}
+                    {size === 'medium' && (
+                      <span
+                        className={`rounded px-1 py-px text-[10px] font-medium leading-none ${
+                          theme === 'light' ? 'bg-slate-200/90 text-slate-600' : 'bg-white/15 text-slate-300'
+                        }`}
+                      >
+                        默认
+                      </span>
+                    )}
+                  </span>
+                  <span className="whitespace-nowrap font-mono text-[10px] font-medium leading-none opacity-80 tabular-nums sm:text-[11px]">
+                    {FONT_SIZE_SEGMENT_ROW2[size]} · {FONT_SIZE_ROOT_PX[size]}px
+                  </span>
+                </span>
               </button>
             ))}
           </div>

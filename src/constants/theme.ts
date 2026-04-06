@@ -20,11 +20,11 @@ export function getRootFontSizePx(fontSize: FontSize): string {
   return `${FONT_SIZE_ROOT_PX[fontSize]}px`;
 }
 
-/** 外观面板分段控件上的文案（含标准像素，便于用户对照） */
-export const FONT_SIZE_OPTION_UI_LABEL: Record<FontSize, string> = {
-  small: '小 14px',
-  medium: '中 16px（默认）',
-  large: '大 18px',
+/** 外观面板字号分段：首行档位 + 次行 Tailwind 语义类与像素（与 `FONT_SIZE_CLASSES` / `FONT_SIZE_ROOT_PX` 一致） */
+export const FONT_SIZE_SEGMENT_ROW2: Record<FontSize, string> = {
+  small: 'text-sm',
+  medium: 'text-base',
+  large: 'text-lg',
 };
 
 /** @deprecated 优先使用根字号 `getRootFontSizePx`；需与 rem 缩放一致时请用 text-sm / text-base / text-lg */

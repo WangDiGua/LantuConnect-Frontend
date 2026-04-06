@@ -49,25 +49,22 @@ export const AvatarGradientFrame: React.FC<AvatarGradientFrameProps> = ({
   );
 };
 
-/** 全站统一：Dicebear pixel-art（与 fun-emoji 等其它风格区分） */
+/**
+ * 全站统一：Dicebear「Fun Emoji」矢量头像（彩色圆角底 + 简笔表情，CC BY 4.0）。
+ * 见 https://www.dicebear.com/styles/fun-emoji/
+ */
 export const MultiAvatar: React.FC<MultiAvatarProps> = ({ seed, alt = 'avatar', className = '', imageUrl }) => {
-  const { src, isGenerated } = useMemo(() => {
+  const src = useMemo(() => {
     const trimmed = typeof imageUrl === 'string' ? imageUrl.trim() : '';
-    if (trimmed) return { src: trimmed, isGenerated: false };
-    const safeSeed = encodeURIComponent(seed || 'user');
-    return {
-      src: `https://api.dicebear.com/9.x/pixel-art/svg?seed=${safeSeed}&radius=16`,
-      isGenerated: true,
-    };
+    if (trimmed) return trimmed;
+    const q = new URLSearchParams({
+      seed: String(seed ?? '').trim() || 'user',
+      radius: '22',
+      backgroundType: 'solid',
+      scale: '100',
+    });
+    return `https://api.dicebear.com/9.x/fun-emoji/svg?${q.toString()}`;
   }, [seed, imageUrl]);
 
-  return (
-    <img
-      src={src}
-      alt={alt}
-      loading="lazy"
-      decoding="async"
-      className={`${isGenerated ? '[image-rendering:pixelated] ' : ''}${className}`.trim()}
-    />
-  );
+  return <img src={src} alt={alt} loading="lazy" decoding="async" className={className} />;
 };

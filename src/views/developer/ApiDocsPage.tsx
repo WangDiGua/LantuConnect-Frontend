@@ -9,7 +9,8 @@ import type { ConsoleRole } from '../../constants/consoleRoutes';
 import { buildPath, buildUserResourceMarketUrl } from '../../constants/consoleRoutes';
 import { BentoCard } from '../../components/common/BentoCard';
 import {
-  glassSidebar, textPrimary, textSecondary, textMuted,
+  glassSidebar,
+  textPrimary, textSecondary, textMuted,
   btnSecondary,
 } from '../../utils/uiClasses';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
@@ -161,13 +162,14 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
     >
       <div className="min-h-0 w-full flex flex-col px-4 sm:px-6 pb-8">
         {viewMode === 'guide' && (
-          <div
-            className={`flex-1 min-h-0 flex rounded-[24px] overflow-hidden border ${
-              isDark ? 'border-white/[0.06]' : 'border-slate-100'
-            }`}
-          >
-            <div className={`hidden md:flex w-56 shrink-0 flex-col overflow-y-auto ${glassSidebar(theme)}`}>
-              <div className="sticky top-0 p-4">
+          <div className="flex-1 min-h-0 flex w-full min-w-0">
+            <aside
+              aria-label="本页目录"
+              className={`hidden md:flex w-56 shrink-0 flex-col overflow-y-auto border-r ${
+                isDark ? 'border-white/[0.08] bg-transparent' : 'border-slate-200/70 bg-transparent'
+              }`}
+            >
+              <div className="sticky top-0 py-2 pl-0 pr-3">
                 <p className={`text-xs font-semibold uppercase tracking-wider ${textMuted(theme)}`}>本页目录</p>
                 <nav className="mt-3 space-y-0.5 border-l-2 pl-3" style={{ borderColor: isDark ? 'rgba(16,185,129,0.35)' : 'rgba(16,185,129,0.45)' }}>
                   {GUIDE_TOC.map((item) => (
@@ -184,10 +186,10 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
                   ))}
                 </nav>
               </div>
-            </div>
+            </aside>
 
             <div className="flex-1 min-w-0 overflow-y-auto">
-              <article className={`mx-auto max-w-3xl px-4 py-6 sm:px-8 sm:py-10 ${isDark ? '' : ''}`}>
+              <article className="mx-auto max-w-3xl px-4 py-6 sm:px-8 sm:py-10">
                 <div className="md:hidden mb-6 flex flex-wrap gap-2">
                   {GUIDE_TOC.map((item) => (
                     <button key={item.id} type="button" onClick={() => scrollToId(item.id)} className={`rounded-full px-3 py-1 text-xs font-medium ${isDark ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>

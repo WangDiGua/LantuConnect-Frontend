@@ -9,6 +9,19 @@ export const MCP_JSONRPC_METHODS = [
   'tools/call',
 ] as const;
 
+/**
+ * MCP `initialize` 最小合法参数。仅发送 `params: {}` 时，多数服务端会返回 JSON-RPC -32602（Invalid params）。
+ * @see Model Context Protocol 规范：InitializeRequest 须含 protocolVersion、capabilities、clientInfo。
+ */
+export const MCP_DEFAULT_INITIALIZE_PARAMS: Record<string, unknown> = {
+  protocolVersion: '2024-11-05',
+  capabilities: {},
+  clientInfo: {
+    name: 'LantuConnect-Console',
+    version: '1.0.0',
+  },
+};
+
 export type McpPayloadMode = 'simple' | 'advanced';
 
 export function newMcpTraceId(): string {
@@ -180,7 +193,7 @@ export function buildMcpInvokePayload(
     if (!parsed.ok) return { ok: false, message: parsed.message };
     const raw = parsed.payload;
     if (!raw || Object.keys(raw).length === 0) {
-      return { ok: true, payload: { method: 'initialize', params: {} } };
+      return { ok: true, payload: { method: 'initialize', params: { ...MCP_DEFAULT_INITIALIZE_PARAMS } } };
     }
     return { ok: true, payload: raw };
   }

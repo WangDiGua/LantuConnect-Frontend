@@ -1,4 +1,4 @@
-import { MCP_JSONRPC_METHODS } from '../../utils/mcpInvoke';
+import { MCP_DEFAULT_INITIALIZE_PARAMS, MCP_JSONRPC_METHODS } from '../../utils/mcpInvoke';
 
 export const MCP_METHOD_LABELS: Record<(typeof MCP_JSONRPC_METHODS)[number], string> = {
   initialize: '初始化握手',
@@ -8,7 +8,7 @@ export const MCP_METHOD_LABELS: Record<(typeof MCP_JSONRPC_METHODS)[number], str
 };
 
 export const MCP_METHOD_PARAM_EXAMPLES: Record<string, Record<string, unknown>> = {
-  initialize: {},
+  initialize: { ...MCP_DEFAULT_INITIALIZE_PARAMS },
   'notifications/initialized': {},
   'tools/list': {},
   'tools/call': {
@@ -27,7 +27,12 @@ export type McpParamPreset = {
 };
 
 export const MCP_PARAM_PRESETS: McpParamPreset[] = [
-  { id: 'initialize-basic', label: '初始化（空参数）', method: 'initialize', params: {} },
+  {
+    id: 'initialize-basic',
+    label: '初始化（规范最小参数）',
+    method: 'initialize',
+    params: { ...MCP_DEFAULT_INITIALIZE_PARAMS },
+  },
   { id: 'notification-ready', label: '通知已就绪（空参数）', method: 'notifications/initialized', params: {} },
   { id: 'tools-list-basic', label: '获取工具列表（空参数）', method: 'tools/list', params: {} },
   {
@@ -58,4 +63,8 @@ export function getDefaultPresetIdByMethod(method: string): string {
   return MCP_PARAM_PRESETS.find((preset) => preset.method === method)?.id ?? 'custom';
 }
 
-export const DEFAULT_MCP_PAYLOAD_TEXT = '{\n  "method": "initialize",\n  "params": {}\n}';
+export const DEFAULT_MCP_PAYLOAD_TEXT = JSON.stringify(
+  { method: 'initialize', params: MCP_DEFAULT_INITIALIZE_PARAMS },
+  null,
+  2,
+);

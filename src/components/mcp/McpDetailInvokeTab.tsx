@@ -13,6 +13,7 @@ import {
   buildMcpInvokePayload,
   extractParamsFromMcpPayload,
   newMcpTraceId,
+  MCP_DEFAULT_INITIALIZE_PARAMS,
   parseJsonRpcErrorFromBody,
   parseToolsListFromInvokeBody,
   tryParseJsonObject,
@@ -315,7 +316,7 @@ export const McpDetailInvokeTab: React.FC<McpDetailInvokeTabProps> = ({
 
   const connectSteps = useMemo(() => {
     const steps: Array<{ method: string; params: Record<string, unknown>; label: string }> = [
-      { method: 'initialize', params: {}, label: 'initialize' },
+      { method: 'initialize', params: { ...MCP_DEFAULT_INITIALIZE_PARAMS }, label: 'initialize' },
     ];
     if (!skipInitializedNotification) {
       steps.push({ method: 'notifications/initialized', params: {}, label: 'notifications/initialized' });
@@ -329,7 +330,7 @@ export const McpDetailInvokeTab: React.FC<McpDetailInvokeTabProps> = ({
       showMessage?.('请先关闭「流式调用」后再使用自动连接', 'warning');
       return;
     }
-    const invalidReason = validateMcpInvokePayload({ method: 'initialize', params: {} }, {
+    const invalidReason = validateMcpInvokePayload({ method: 'initialize', params: { ...MCP_DEFAULT_INITIALIZE_PARAMS } }, {
       hasApiKey: !!invokeApiKey.trim(),
       hasResourceId: !!detail?.resourceId,
       invokeTimeoutSec,

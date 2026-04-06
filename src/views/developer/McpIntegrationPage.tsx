@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   BookOpen,
@@ -31,6 +31,7 @@ import { buildPath, buildUserResourceMarketUrl } from '../../constants/consoleRo
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { useAuthStore } from '../../stores/authStore';
 import { getStoredGatewayApiKey } from '../../lib/safeStorage';
+import { buildCurlTriple, buildCurlTripleMulti } from '../../lib/curlCommandFormat';
 
 export interface McpIntegrationPageProps {
   theme: Theme;
@@ -69,11 +70,6 @@ function isResourceOwner(createdBy: number | null | undefined, userId: string | 
   return String(createdBy) === String(userId);
 }
 
-/** curl -H 中单引号包裹；含 `'` 时按 Bash 规则转义 */
-function shellSingleQuotedHeader(nameValue: string): string {
-  return `'${nameValue.replace(/'/g, `'\\''`)}'`;
-}
-
 const GATEWAY_API_KEY_LS = 'lantu_api_key';
 
 function CopyTextBtn({
@@ -106,6 +102,100 @@ function CopyTextBtn({
       {ok ? <Check size={14} className="text-emerald-500" aria-hidden /> : <Copy size={14} aria-hidden />}
       {label ?? '复制'}
     </button>
+  );
+}
+
+function CopyCurlPlatformBtn({
+  triple,
+  isDark,
+  label,
+  disabled,
+}: {
+  triple: { bash: string; cmd: string; powershell: string };
+  isDark: boolean;
+  label?: string;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [open]);
+
+  const baseBtn = `inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium transition-colors disabled:opacity-45 disabled:pointer-events-none ${
+    isDark ? 'hover:bg-white/10 text-slate-300' : 'hover:bg-slate-100 text-slate-600'
+  }`;
+  const menuPanel = isDark
+    ? 'border-white/15 bg-slate-950/98 text-slate-100 shadow-xl backdrop-blur-sm'
+    : 'border-slate-200 bg-white text-slate-800 shadow-lg';
+  const menuItem = isDark ? 'hover:bg-white/10' : 'hover:bg-slate-50';
+
+  const onPick = (text: string) => {
+    void navigator.clipboard.writeText(text);
+    setCopied(true);
+    setOpen(false);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  return (
+    <div className="relative inline-block text-left" ref={wrapRef}>
+      <button
+        type="button"
+        disabled={disabled}
+        className={baseBtn}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={label ? `${label}（选择终端格式）` : '复制 curl（选择终端格式）'}
+        onClick={() => {
+          if (disabled) return;
+          setOpen((o) => !o);
+        }}
+      >
+        {copied ? <Check size={14} className="text-emerald-500 shrink-0" aria-hidden /> : <Copy size={14} className="shrink-0" aria-hidden />}
+        <span>{label ?? '复制 curl'}</span>
+        <ChevronDown size={14} className={`shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden />
+      </button>
+      {open && !disabled ? (
+        <div
+          className={`absolute left-0 top-full z-50 mt-1 min-w-[240px] rounded-lg border py-1 ${menuPanel}`}
+          role="menu"
+        >
+          <button
+            type="button"
+            role="menuitem"
+            className={`block w-full px-3 py-2 text-left text-xs ${menuItem}`}
+            onClick={() => onPick(triple.bash)}
+          >
+            Bash / macOS / Linux
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className={`block w-full px-3 py-2 text-left text-xs ${menuItem}`}
+            onClick={() => onPick(triple.cmd)}
+          >
+            Windows CMD（curl.exe 一行）
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className={`block w-full px-3 py-2 text-left text-xs ${menuItem}`}
+            onClick={() => onPick(triple.powershell)}
+          >
+            PowerShell（curl.exe 一行）
+          </button>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -156,27 +246,19 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
     };
   }, []);
 
-  const curlLines = useMemo(() => {
+  const curlPack = useMemo(() => {
     void curlSourceTick;
     const storedKey = getStoredGatewayApiKey();
     const bearer = token?.trim();
     const uid = user?.id?.trim();
-    const keyOptional = storedKey
-      ? `  -H ${shellSingleQuotedHeader(`X-Api-Key: ${storedKey}`)} \\`
-      : `  -H "X-Api-Key: <可选：与登录态二选一；完整 secretPlain；勿提交仓库>" \\`;
-    const keyRequired = storedKey
-      ? `  -H ${shellSingleQuotedHeader(`X-Api-Key: ${storedKey}`)} \\`
-      : `  -H "X-Api-Key: <完整 secretPlain；偏好设置保存或与 API Playground 共用本地键 ${GATEWAY_API_KEY_LS}；勿提交仓库>" \\`;
-    const bearerC = bearer
-      ? `  -H ${shellSingleQuotedHeader(`Authorization: Bearer ${bearer}`)} \\`
-      : `  -H "Authorization: Bearer <token>" \\`;
-    const uidC = uid
-      ? `  -H ${shellSingleQuotedHeader(`X-User-Id: ${uid}`)}`
-      : `  -H "X-User-Id: <当前用户 ID>"`;
-    const uidCCont = uid
-      ? `  -H ${shellSingleQuotedHeader(`X-User-Id: ${uid}`)} \\`
-      : `  -H "X-User-Id: <当前用户 ID>" \\`;
-    return { keyOptional, keyRequired, bearerC, uidC, uidCCont, hasStoredKey: !!storedKey };
+    const keyOptVal =
+      storedKey ?? '<可选：与登录态二选一；完整 secretPlain；勿提交仓库>';
+    const keyReqVal =
+      storedKey ??
+      `<完整 secretPlain；偏好设置保存或与 API Playground 共用本地键 ${GATEWAY_API_KEY_LS}；勿提交仓库>`;
+    const bearerVal = bearer ?? '<token>';
+    const uidVal = uid ?? '<当前用户 ID>';
+    return { hasStoredKey: !!storedKey, keyOptVal, keyReqVal, bearerVal, uidVal };
   }, [curlSourceTick, token, user?.id]);
 
   /** 与本文、ApiDocs、本页「刷新目录」一致的可复制请求（AI 门户应运行时调用，勿仅依赖导出 JSON） */
@@ -192,134 +274,179 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
       `${apiBaseUrl}/sdk/v1/resources?resourceType=mcp&status=published&page=1&pageSize=100`,
     [apiBaseUrl],
   );
-  const resourceGrantsUrl = useMemo(() => {
-    const id = selectedKeyId.trim() ? encodeURIComponent(selectedKeyId.trim()) : '{apiKeyId}';
-    return `${apiBaseUrl}/user-settings/api-keys/${id}/resource-grants`;
-  }, [apiBaseUrl, selectedKeyId]);
-
-  const catalogCurlExample = useMemo(
-    () =>
-      [
-        `curl -sS "${catalogListUrl}" \\`,
-        curlLines.keyOptional.replace(/\s*\\$/, ''),
-        `# GET 无 body；须至少带 X-Api-Key 或登录态之一（可同时带），二选一规则见接入指南。`,
-        `# 若已在本页预填密钥，仍请勿将命令粘贴到仓库或公开渠道。`,
-      ].join('\n'),
-    [catalogListUrl, curlLines.keyOptional],
+  const apiKeyPathSegment = useMemo(
+    () => (selectedKeyId.trim() ? encodeURIComponent(selectedKeyId.trim()) : '{apiKeyId}'),
+    [selectedKeyId],
+  );
+  const resourceGrantsUrl = useMemo(
+    () => `${apiBaseUrl}/user-settings/api-keys/${apiKeyPathSegment}/resource-grants`,
+    [apiBaseUrl, apiKeyPathSegment],
+  );
+  const invokeEligibilityUrl = useMemo(
+    () => `${apiBaseUrl}/user-settings/api-keys/${apiKeyPathSegment}/invoke-eligibility`,
+    [apiBaseUrl, apiKeyPathSegment],
   );
 
-  const sdkCurlExample = useMemo(
+  const catalogCurlTriple = useMemo(
     () =>
-      [
-        `# 仅 Key 集成（须 X-Api-Key，不可仅登录态）`,
-        `curl -sS "${sdkListUrl}" \\`,
-        curlLines.keyRequired.replace(/\s*\\$/, ''),
-      ].join('\n'),
-    [sdkListUrl, curlLines.keyRequired],
+      buildCurlTriple({
+        method: 'GET',
+        url: catalogListUrl,
+        headers: [{ name: 'X-Api-Key', value: curlPack.keyOptVal }],
+        notes: [
+          'GET 无 body；须至少带 X-Api-Key 或登录态之一（可同时带），二选一规则见接入指南。',
+          '若已在本页预填密钥，仍请勿将命令粘贴到仓库或公开渠道。',
+        ],
+      }),
+    [catalogListUrl, curlPack.keyOptVal],
   );
 
-  const grantsCurlExample = useMemo(() => {
-    const id = selectedKeyId.trim() ? encodeURIComponent(selectedKeyId.trim()) : '{apiKeyId}';
-    return [
-      `# Grant 列表仅允许查询「本人」的 Key；须登录态（Bearer + X-User-Id）。`,
-      `curl -sS "${apiBaseUrl}/user-settings/api-keys/${id}/resource-grants" \\`,
-      curlLines.bearerC,
-      curlLines.uidC,
-    ].join('\n');
-  }, [apiBaseUrl, selectedKeyId, curlLines.bearerC, curlLines.uidC]);
+  const sdkCurlTriple = useMemo(
+    () =>
+      buildCurlTriple({
+        method: 'GET',
+        url: sdkListUrl,
+        headers: [{ name: 'X-Api-Key', value: curlPack.keyReqVal }],
+        comments: ['仅 Key 集成（须 X-Api-Key，不可仅登录态）'],
+      }),
+    [sdkListUrl, curlPack.keyReqVal],
+  );
 
-  const eligibilityCurlExample = useMemo(() => {
-    const id = selectedKeyId.trim() ? encodeURIComponent(selectedKeyId.trim()) : '{apiKeyId}';
-    return [
-      `# 与 POST /invoke Grant 判定一致（open_platform / owner Key / Grant 行等）；须登录态。`,
-      `curl -sS -X POST "${apiBaseUrl}/user-settings/api-keys/${id}/invoke-eligibility" \\`,
-      curlLines.bearerC,
-      `  -H "Content-Type: application/json" \\`,
-      curlLines.uidCCont,
-      `  -d '{"resourceType":"mcp","resourceIds":["58","57"]}'`,
-    ].join('\n');
-  }, [apiBaseUrl, selectedKeyId, curlLines.bearerC, curlLines.uidCCont]);
+  const grantsCurlTriple = useMemo(
+    () =>
+      buildCurlTriple({
+        method: 'GET',
+        url: resourceGrantsUrl,
+        headers: [
+          { name: 'Authorization', value: `Bearer ${curlPack.bearerVal}` },
+          { name: 'X-User-Id', value: curlPack.uidVal },
+        ],
+        comments: ['Grant 列表仅允许查询「本人」的 Key；须登录态（Bearer + X-User-Id）。'],
+      }),
+    [resourceGrantsUrl, curlPack.bearerVal, curlPack.uidVal],
+  );
+
+  const eligibilityCurlTriple = useMemo(
+    () =>
+      buildCurlTriple({
+        method: 'POST',
+        url: invokeEligibilityUrl,
+        headers: [
+          { name: 'Authorization', value: `Bearer ${curlPack.bearerVal}` },
+          { name: 'Content-Type', value: 'application/json' },
+          { name: 'X-User-Id', value: curlPack.uidVal },
+        ],
+        body: '{"resourceType":"mcp","resourceIds":["58","57"]}',
+        comments: ['与 POST /invoke Grant 判定一致（open_platform / owner Key / Grant 行等）；须登录态。'],
+      }),
+    [invokeEligibilityUrl, curlPack.bearerVal, curlPack.uidVal],
+  );
 
   const catalogResolveUrl = useMemo(() => `${apiBaseUrl}/catalog/resolve`, [apiBaseUrl]);
   const sdkResolveUrl = useMemo(() => `${apiBaseUrl}/sdk/v1/resolve`, [apiBaseUrl]);
 
-  const resolveCatalogCurlExample = useMemo(
+  const resolveCatalogCurlTriple = useMemo(
     () =>
-      [
-        `# 解析须完整 X-Api-Key；将 {resourceId} 换成本表 resourceId。`,
-        `curl -sS -X POST "${catalogResolveUrl}" \\`,
-        curlLines.keyRequired,
-        `  -H "Content-Type: application/json" \\`,
-        `  -d '{"resourceType":"mcp","resourceId":"{resourceId}"}'`,
-      ].join('\n'),
-    [catalogResolveUrl, curlLines.keyRequired],
+      buildCurlTriple({
+        method: 'POST',
+        url: catalogResolveUrl,
+        headers: [
+          { name: 'X-Api-Key', value: curlPack.keyReqVal },
+          { name: 'Content-Type', value: 'application/json' },
+        ],
+        body: '{"resourceType":"mcp","resourceId":"{resourceId}"}',
+        comments: ['解析须完整 X-Api-Key；将 {resourceId} 换成本表 resourceId。'],
+      }),
+    [catalogResolveUrl, curlPack.keyReqVal],
   );
 
-  const resolveSdkCurlExample = useMemo(
+  const resolveSdkCurlTriple = useMemo(
     () =>
-      [
-        `# 与上一请求语义相同，供仅走 /sdk/v1 的集成方。`,
-        `curl -sS -X POST "${sdkResolveUrl}" \\`,
-        curlLines.keyRequired,
-        `  -H "Content-Type: application/json" \\`,
-        `  -d '{"resourceType":"mcp","resourceId":"{resourceId}"}'`,
-      ].join('\n'),
-    [sdkResolveUrl, curlLines.keyRequired],
+      buildCurlTriple({
+        method: 'POST',
+        url: sdkResolveUrl,
+        headers: [
+          { name: 'X-Api-Key', value: curlPack.keyReqVal },
+          { name: 'Content-Type', value: 'application/json' },
+        ],
+        body: '{"resourceType":"mcp","resourceId":"{resourceId}"}',
+        comments: ['与上一请求语义相同，供仅走 /sdk/v1 的集成方。'],
+      }),
+    [sdkResolveUrl, curlPack.keyReqVal],
   );
 
-  const invokeCurlExample = useMemo(
+  const invokeCurlTriple = useMemo(
     () =>
-      [
-        `# 统一 HTTP 调用；实际路径/流式请以 resolve 返回的 invokeType、endpoint 为准。`,
-        `curl -sS -X POST "${apiBaseUrl}/invoke" \\`,
-        curlLines.keyRequired,
-        `  -H "Content-Type: application/json" \\`,
-        `  -d '{"resourceType":"mcp","resourceId":"{resourceId}","payload":{}}'`,
-      ].join('\n'),
-    [apiBaseUrl, curlLines.keyRequired],
+      buildCurlTriple({
+        method: 'POST',
+        url: `${apiBaseUrl}/invoke`,
+        headers: [
+          { name: 'X-Api-Key', value: curlPack.keyReqVal },
+          { name: 'Content-Type', value: 'application/json' },
+        ],
+        body: '{"resourceType":"mcp","resourceId":"{resourceId}","payload":{}}',
+        comments: ['统一 HTTP 调用；实际路径/流式请以 resolve 返回的 invokeType、endpoint 为准。'],
+      }),
+    [apiBaseUrl, curlPack.keyReqVal],
   );
 
-  const invokeStreamCurlExample = useMemo(
+  const invokeStreamCurlTriple = useMemo(
     () =>
-      [
-        `# 流式（SSE 等）；权限与 /invoke 一致。`,
-        `curl -sS -X POST "${apiBaseUrl}/invoke-stream" \\`,
-        curlLines.keyRequired,
-        `  -H "Content-Type: application/json" \\`,
-        `  -H "Accept: text/event-stream" \\`,
-        `  -d '{"resourceType":"mcp","resourceId":"{resourceId}","payload":{}}'`,
-      ].join('\n'),
-    [apiBaseUrl, curlLines.keyRequired],
+      buildCurlTriple({
+        method: 'POST',
+        url: `${apiBaseUrl}/invoke-stream`,
+        headers: [
+          { name: 'X-Api-Key', value: curlPack.keyReqVal },
+          { name: 'Content-Type', value: 'application/json' },
+          { name: 'Accept', value: 'text/event-stream' },
+        ],
+        body: '{"resourceType":"mcp","resourceId":"{resourceId}","payload":{}}',
+        comments: ['流式（SSE 等）；权限与 /invoke 一致。'],
+      }),
+    [apiBaseUrl, curlPack.keyReqVal],
   );
 
   /** 无独立 GET 列举工具接口；在 message URL 上使用 JSON-RPC。 */
-  const mcpJsonRpcCurlExamples = useMemo(() => {
+  const mcpJsonRpcCurlTriple = useMemo(() => {
     const msgUrl = `${apiBaseUrl}/mcp/v1/resources/mcp/{resourceId}/message`;
-    const k = curlLines.keyRequired;
-    const ct = `  -H "Content-Type: application/json" \\`;
-    return [
-      `# 将 {resourceId} 替换为目录中的 MCP resourceId（可与下表「复制消息 URL」对照）。`,
-      `# 无独立「GET 全部工具」REST；通过 JSON-RPC tools/list 枚举工具；与 POST /invoke 的取舍以 resolve 返回的 invokeType 为准。`,
-      ``,
-      `# initialize（按上游要求）`,
-      `curl -sS -X POST "${msgUrl}" \\`,
-      k,
-      ct,
-      `  -d '{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"curl","version":"1"}}}'`,
-      ``,
-      `# tools/list（枚举工具）`,
-      `curl -sS -X POST "${msgUrl}" \\`,
-      k,
-      ct,
-      `  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'`,
-      ``,
-      `# tools/call（示例；name 换为列表中的工具名）`,
-      `curl -sS -X POST "${msgUrl}" \\`,
-      k,
-      ct,
-      `  -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"某工具名","arguments":{}}}'`,
-    ].join('\n');
-  }, [apiBaseUrl, curlLines.keyRequired]);
+    const baseHeaders = [
+      { name: 'X-Api-Key', value: curlPack.keyReqVal },
+      { name: 'Content-Type', value: 'application/json' },
+    ];
+    return buildCurlTripleMulti([
+      {
+        comments: [
+          '将 {resourceId} 替换为目录中的 MCP resourceId（可与下表「复制消息 URL」对照）。',
+          '无独立「GET 全部工具」REST；通过 JSON-RPC tools/list 枚举工具；与 POST /invoke 的取舍以 resolve 返回的 invokeType 为准。',
+          'initialize（按上游要求）',
+        ],
+        spec: {
+          method: 'POST',
+          url: msgUrl,
+          headers: baseHeaders,
+          body: '{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"curl","version":"1"}}}',
+        },
+      },
+      {
+        comments: ['tools/list（枚举工具）'],
+        spec: {
+          method: 'POST',
+          url: msgUrl,
+          headers: baseHeaders,
+          body: '{"jsonrpc":"2.0","id":1,"method":"tools/list"}',
+        },
+      },
+      {
+        comments: ['tools/call（示例；name 换为列表中的工具名）'],
+        spec: {
+          method: 'POST',
+          url: msgUrl,
+          headers: baseHeaders,
+          body: '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"某工具名","arguments":{}}}',
+        },
+      },
+    ]);
+  }, [apiBaseUrl, curlPack.keyReqVal]);
 
   const loadKeys = useCallback(async () => {
     setKeysLoading(true);
@@ -571,9 +698,9 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
           <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
             大多数集成只需<strong className={textPrimary(theme)}> 下方解析 + 三选一调用 </strong>。拉目录、Grant、预判及 <span className="font-mono">/sdk/v1/*</span> 等价路径在底部{' '}
             <strong className={textPrimary(theme)}>展开更多</strong>。执行向须完整 <span className="font-mono">X-Api-Key</span>；目录 URL 会随「仅显示健康可调用」带上{' '}
-            <span className="font-mono">callableOnly</span>。
+            <span className="font-mono">callableOnly</span>。<span className="block mt-1">「复制 curl」可从菜单选择 <strong className={textPrimary(theme)}>Bash、Windows CMD、PowerShell</strong>，避免将 Bash 续行粘贴进 CMD 导致只执行首行。</span>
           </p>
-          {!curlLines.hasStoredKey ? (
+          {!curlPack.hasStoredKey ? (
             <p className={`text-xs leading-relaxed ${isDark ? 'text-amber-200/90' : 'text-amber-900'}`}>
               在<strong className={textPrimary(theme)}> 偏好设置 </strong>
               保存网关 API Key 后，与本页及 API Playground 共用的本地存储（<span className="font-mono">lantu_api_key</span>）将用于预填下方 curl 的{' '}
@@ -610,7 +737,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
               <CopyTextBtn text={catalogResolveUrl} isDark={isDark} label="复制 URL" />
             </div>
             <div className="flex flex-wrap gap-2">
-              <CopyTextBtn text={resolveCatalogCurlExample} isDark={isDark} label="复制 curl（resolve）" />
+              <CopyCurlPlatformBtn triple={resolveCatalogCurlTriple} isDark={isDark} label="复制 curl（resolve）" />
             </div>
           </div>
 
@@ -630,7 +757,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
                 </code>
                 <CopyTextBtn text={`${apiBaseUrl}/invoke`} isDark={isDark} label="复制 URL" />
               </div>
-              <CopyTextBtn text={invokeCurlExample} isDark={isDark} label="复制 curl" />
+              <CopyCurlPlatformBtn triple={invokeCurlTriple} isDark={isDark} label="复制 curl" />
             </div>
             <div
               className={`rounded-xl border p-3 space-y-2 flex flex-col ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200 bg-white'}`}
@@ -647,7 +774,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
                 </code>
                 <CopyTextBtn text={`${apiBaseUrl}/invoke-stream`} isDark={isDark} label="复制 URL" />
               </div>
-              <CopyTextBtn text={invokeStreamCurlExample} isDark={isDark} label="复制 curl" />
+              <CopyCurlPlatformBtn triple={invokeStreamCurlTriple} isDark={isDark} label="复制 curl" />
             </div>
             <div
               className={`rounded-xl border p-3 space-y-2 flex flex-col ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200 bg-white'}`}
@@ -666,7 +793,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
                 </code>
                 <CopyTextBtn text={mcpMessagePathTemplate} isDark={isDark} label="复制 URL" />
               </div>
-              <CopyTextBtn text={mcpJsonRpcCurlExamples} isDark={isDark} label="复制 curl（合集）" />
+              <CopyCurlPlatformBtn triple={mcpJsonRpcCurlTriple} isDark={isDark} label="复制 curl（合集）" />
             </div>
           </div>
 
@@ -709,7 +836,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
                 <CopyTextBtn text={catalogListUrl} isDark={isDark} label="复制 URL" />
               </div>
               <div className="flex flex-wrap items-center gap-2 mt-2">
-                <CopyTextBtn text={catalogCurlExample} isDark={isDark} label="复制 curl 示例" />
+                <CopyCurlPlatformBtn triple={catalogCurlTriple} isDark={isDark} label="复制 curl 示例" />
               </div>
             </div>
 
@@ -728,7 +855,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
                 <CopyTextBtn text={sdkListUrl} isDark={isDark} label="复制 URL" />
               </div>
               <div className="flex flex-wrap gap-2 mt-2">
-                <CopyTextBtn text={sdkCurlExample} isDark={isDark} label="复制 curl 示例" />
+                <CopyCurlPlatformBtn triple={sdkCurlTriple} isDark={isDark} label="复制 curl 示例" />
               </div>
             </div>
 
@@ -751,7 +878,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
                 <CopyTextBtn text={resourceGrantsUrl} isDark={isDark} label="复制 URL" />
               </div>
               <div className="flex flex-wrap gap-2 mt-2">
-                <CopyTextBtn text={grantsCurlExample} isDark={isDark} label="复制 curl 示例" />
+                <CopyCurlPlatformBtn triple={grantsCurlTriple} isDark={isDark} label="复制 curl 示例" />
               </div>
             </div>
 
@@ -763,7 +890,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
                 与网关 <span className="font-mono">ResourceInvokeGrantService</span> 一致（open_platform、owner Key、Grant 行等）；控制台 Grant 列与导出 JSON 依赖此接口而非仅 Grant 表。
               </p>
               <div className="flex flex-wrap gap-2 mt-2">
-                <CopyTextBtn text={eligibilityCurlExample} isDark={isDark} label="复制 curl 示例" />
+                <CopyCurlPlatformBtn triple={eligibilityCurlTriple} isDark={isDark} label="复制 curl 示例" />
               </div>
             </div>
               </div>
@@ -800,8 +927,8 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
                     <CopyTextBtn text={sdkResolveUrl} isDark={isDark} label="复制 SDK resolve URL" />
                   </div>
                   <div className="flex flex-wrap gap-2 mt-2">
-                    <CopyTextBtn text={resolveCatalogCurlExample} isDark={isDark} label="复制 curl（catalog）" />
-                    <CopyTextBtn text={resolveSdkCurlExample} isDark={isDark} label="复制 curl（sdk）" />
+                    <CopyCurlPlatformBtn triple={resolveCatalogCurlTriple} isDark={isDark} label="复制 curl（catalog）" />
+                    <CopyCurlPlatformBtn triple={resolveSdkCurlTriple} isDark={isDark} label="复制 curl（sdk）" />
                   </div>
                 </div>
               </div>

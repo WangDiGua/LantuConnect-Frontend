@@ -58,6 +58,7 @@ import {
   formatMarketMetric,
 } from '../../utils/marketMetrics';
 import {
+  catalogInvokeSupplementHint,
   catalogItemCircuitState,
   catalogItemHealthStatus,
   catalogRunBadgeHealthKeyForDisplay,
@@ -320,6 +321,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
     }
     const mcpCallable = isCatalogMcpCallable(detail);
     const mcpBlockReason = mcpInvokeBlockedReason(detail);
+    const mcpSupplementHint = catalogInvokeSupplementHint(detail);
     const detailHealthProbeKey = catalogItemHealthStatus(detail) ?? 'unknown';
     const detailRunBadgeKey = catalogRunBadgeHealthKeyForDisplay(detail);
     const detailCircuit = catalogItemCircuitState(detail);
@@ -400,6 +402,17 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                   <p className={`mt-2 text-xs ${isDark ? 'text-rose-100/70' : 'text-rose-900/70'}`}>
                     您仍可查看服务说明与评论；待运行恢复或熔断闭合后，「工具测试」将自动可用。
                   </p>
+                </div>
+              ) : null}
+              {mcpCallable && mcpSupplementHint ? (
+                <div
+                  role="status"
+                  className={`rounded-2xl border px-4 py-3 text-sm leading-relaxed ${
+                    isDark ? 'border-sky-500/30 bg-sky-500/10 text-sky-100' : 'border-sky-200 bg-sky-50 text-sky-950'
+                  }`}
+                >
+                  <p className="font-semibold">网关提示（可能因账号或配额而异）</p>
+                  <p className={`mt-1 text-xs ${isDark ? 'text-sky-100/90' : 'text-sky-950/90'}`}>{mcpSupplementHint}</p>
                 </div>
               ) : null}
               <p className={`text-xs ${textMuted(theme)}`}>

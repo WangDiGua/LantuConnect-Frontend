@@ -292,12 +292,23 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
     [showMessage],
   );
 
-  const canApplyVersionSnapshotToWorkingCopy = useMemo(
-    () =>
-      versionTarget != null &&
-      !['published', 'pending_review'].includes(versionTarget.status as ResourceStatus),
-    [versionTarget],
-  );
+  const canApplyVersionSnapshotToWorkingCopy = useMemo(() => {
+    if (versionTarget == null) return false;
+    const st = String(versionTarget.status ?? '').trim().toLowerCase();
+    return !['published', 'pending_review'].includes(st);
+  }, [versionTarget]);
+
+  const writeBackBlockedByMainStatus = useMemo(() => {
+    if (versionTarget == null) return false;
+    const st = String(versionTarget.status ?? '').trim().toLowerCase();
+    return ['published', 'pending_review'].includes(st);
+  }, [versionTarget]);
+
+  const applyWriteBackDisabled =
+    !canApplyVersionSnapshotToWorkingCopy || !!runningActionKey;
+  const applyWriteBackDisabledClass = applyWriteBackDisabled
+    ? 'cursor-not-allowed opacity-45'
+    : '';
 
   const runApplyVersionToWorkingCopy = useCallback(
     async (versionLabel: string, openEditorAfter: boolean) => {
@@ -791,6 +802,19 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                 </button>
               </div>
             )}
+            {writeBackBlockedByMainStatus && (
+              <p
+                className={`mb-3 rounded-lg border px-3 py-2 text-xs leading-relaxed ${
+                  isDark
+                    ? 'border-amber-500/35 bg-amber-500/10 text-amber-100'
+                    : 'border-amber-200 bg-amber-50 text-amber-900'
+                }`}
+              >
+                <span className="font-medium">写回按钮当前不可点：</span>
+                主资源状态为「{statusLabel(versionTarget.status)}」（已发布或待审核）时，写回登记会与上架规则冲突。
+                请先在列表对该资源点「下线」或等待审核结束，再打开本窗口写回。
+              </p>
+            )}
             <div className="space-y-2">
               {versionsLoading ? (
                 <p className={`py-4 text-center text-sm ${textMuted(theme)}`}>加载版本列表…</p>
@@ -865,9 +889,9 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                                   ? '将该版本快照合并到主资源，随后在列表点「编辑」继续改'
                                   : '已发布或待审核中的资源请先在列表「下线」或等待审核结束'
                               }
-                              disabled={!canApplyVersionSnapshotToWorkingCopy || !!runningActionKey}
+                              disabled={applyWriteBackDisabled}
                               onClick={() => void runApplyVersionToWorkingCopy(ver.version, false)}
-                              className={btnGhost(theme)}
+                              className={`${btnGhost(theme)} ${applyWriteBackDisabledClass}`}
                             >
                               {runningActionKey === applyKey ? '写回中…' : '写回登记'}
                             </button>
@@ -878,9 +902,9 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                                   ? '写回主资源并打开登记页'
                                   : '已发布或待审核中的资源请先在列表「下线」或等待审核结束'
                               }
-                              disabled={!canApplyVersionSnapshotToWorkingCopy || !!runningActionKey}
+                              disabled={applyWriteBackDisabled}
                               onClick={() => void runApplyVersionToWorkingCopy(ver.version, true)}
-                              className={`${btnSecondary(theme)} text-sm`}
+                              className={`${btnSecondary(theme)} text-sm ${applyWriteBackDisabledClass}`}
                             >
                               {runningActionKey === applyOpenKey ? '打开中…' : '写回并打开登记页'}
                             </button>

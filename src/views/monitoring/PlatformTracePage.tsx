@@ -11,6 +11,7 @@ import { nativeInputClass } from '../../utils/formFieldClasses';
 import {
   btnPrimary, btnGhost, pageBlockStack, textSecondary, textMuted, fieldErrorText, inputBaseError,
 } from '../../utils/uiClasses';
+import { distributedTraceStatusLabelZh } from '../../utils/backendEnumLabels';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 
 const PAGE_DESC = '输入 Trace ID 查看完整调用链路';
@@ -35,8 +36,9 @@ function formatTraceTree(spans: TraceSpan[], traceId: string): string {
     return nodes.map((node, i) => {
       const isLast = i === nodes.length - 1;
       const branch = isLast ? '└─ ' : '├─ ';
-      const serviceName = node.service || node.serviceName || 'unknown-service';
-      const line = `${prefix}${branch}${serviceName} · ${node.operationName} (${node.duration}ms) [${node.status}]\n`;
+      const serviceName = node.service || node.serviceName || '未知服务';
+      const statusZh = distributedTraceStatusLabelZh(node.status);
+      const line = `${prefix}${branch}${serviceName} · ${node.operationName} (${node.duration}ms) [${statusZh}]\n`;
       const children = byParent.get(node.id) ?? [];
       const nextPrefix = prefix + (isLast ? '   ' : '│  ');
       return line + (children.length ? walk(children, nextPrefix) : '');

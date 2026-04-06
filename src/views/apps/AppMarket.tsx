@@ -9,7 +9,7 @@ import { filterTagsForResourceType } from '../../utils/marketTags';
 import type { TagItem } from '../../types/dto/tag';
 import {
   canvasBodyBg, consoleContentTopPad, mainScrollPadBottom, bentoCard, btnPrimary,
-  iconMuted, textPrimary, textMuted, techBadge,
+  iconMuted, textPrimary, textMuted, techBadge, statusLabel,
 } from '../../utils/uiClasses';
 import { BentoCard } from '../../components/common/BentoCard';
 import { MarketplaceListingCard, MarketplaceStatItem } from '../../components/market';
@@ -29,18 +29,10 @@ const ICON_COLORS = ['bg-neutral-900', 'bg-neutral-800', 'bg-neutral-700', 'bg-s
 function pickColor(str: string): string { let h = 0; for (let i = 0; i < str.length; i++) h = str.charCodeAt(i) + ((h << 5) - h); return ICON_COLORS[Math.abs(h) % ICON_COLORS.length]; }
 
 function appStatusPresentation(status: AppStatus): { label: string; tone: MarketplaceStatusTone } {
-  switch (status) {
-    case 'published':
-      return { label: '已发布', tone: 'published' };
-    case 'draft':
-      return { label: '草稿', tone: 'draft' };
-    case 'testing':
-      return { label: '测试中', tone: 'neutral' };
-    case 'deprecated':
-      return { label: '已下线', tone: 'neutral' };
-    default:
-      return { label: String(status), tone: 'neutral' };
-  }
+  return {
+    label: statusLabel(status),
+    tone: status === 'published' ? 'published' : status === 'draft' ? 'draft' : 'neutral',
+  };
 }
 
 function safeText(v: unknown): string { return String(v ?? ''); }

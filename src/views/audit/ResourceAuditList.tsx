@@ -172,7 +172,7 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
                   type="button"
                   className={mgmtTableActionPositive(theme)}
                   disabled={runningActionId === `approve-${item.id}`}
-                  onClick={() => void runAction(`approve-${item.id}`, () => resourceAuditService.approve(item.id), '已通过审核，状态进入 testing')}
+                  onClick={() => void runAction(`approve-${item.id}`, () => resourceAuditService.approve(item.id), '已通过审核，资源已进入测试中')}
                 >
                   {runningActionId === `approve-${item.id}` ? '处理中…' : '通过'}
                 </button>
@@ -192,7 +192,7 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
                     type="button"
                     className={mgmtTableActionPositive(theme)}
                     disabled={runningActionId === `publish-${item.id}`}
-                    onClick={() => void runAction(`publish-${item.id}`, () => resourceAuditService.publish(item.id), '已发布，状态进入 published')}
+                    onClick={() => void runAction(`publish-${item.id}`, () => resourceAuditService.publish(item.id), '已发布，资源已进入已发布状态')}
                   >
                     {runningActionId === `publish-${item.id}` ? '发布中…' : '发布'}
                   </button>

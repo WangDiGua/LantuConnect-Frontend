@@ -45,8 +45,13 @@ function statusBadge(status: string) {
     rejected: 'bg-rose-500/10 text-rose-600 dark:text-rose-400',
   };
   const cls = map[status] ?? 'bg-slate-500/10 text-slate-500';
-  const label: Record<string, string> = { pending: '待审核', approved: '已通过', rejected: '已驳回' };
-  return <span className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ${cls}`}>{label[status] ?? status}</span>;
+  const label: Record<string, string> = {
+    pending: '待审核',
+    approved: '已通过',
+    rejected: '已驳回',
+    unknown: '未知',
+  };
+  return <span className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ${cls}`}>{label[status] ?? '未知状态'}</span>;
 }
 
 export const DeveloperApplicationListPage: React.FC<Props> = ({ theme, fontSize, showMessage }) => {

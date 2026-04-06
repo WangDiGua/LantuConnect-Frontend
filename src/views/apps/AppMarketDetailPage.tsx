@@ -8,7 +8,7 @@ import { resourceCatalogService } from '../../api/services/resource-catalog.serv
 import { mapInvokeFlowError } from '../../utils/invokeError';
 import { ApiException } from '../../types/api';
 import { env } from '../../config/env';
-import { btnPrimary, btnSecondary, textPrimary, textSecondary, textMuted, techBadge } from '../../utils/uiClasses';
+import { btnPrimary, btnSecondary, textPrimary, textSecondary, textMuted, techBadge, statusLabel } from '../../utils/uiClasses';
 import { ResourceMarketDetailShell } from '../../components/market';
 import { ResourceReviewsSection } from '../../components/business/ResourceReviewsSection';
 import { GrantApplicationModal } from '../../components/business/GrantApplicationModal';
@@ -48,18 +48,10 @@ function pickColor(str: string): string {
 }
 
 function appStatusPresentation(status: AppStatus): { label: string; tone: MarketplaceStatusTone } {
-  switch (status) {
-    case 'published':
-      return { label: '已发布', tone: 'published' };
-    case 'draft':
-      return { label: '草稿', tone: 'draft' };
-    case 'testing':
-      return { label: '测试中', tone: 'neutral' };
-    case 'deprecated':
-      return { label: '已下线', tone: 'neutral' };
-    default:
-      return { label: String(status), tone: 'neutral' };
-  }
+  return {
+    label: statusLabel(status),
+    tone: status === 'published' ? 'published' : status === 'draft' ? 'draft' : 'neutral',
+  };
 }
 
 function resolveLaunchUrl(rawUrl?: string): string {

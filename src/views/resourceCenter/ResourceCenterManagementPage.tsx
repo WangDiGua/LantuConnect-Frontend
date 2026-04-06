@@ -799,7 +799,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                           </button>
                         )}
                         {item.status === 'testing' && !canPublishResource && (
-                          <span className={`text-xs ${textMuted(theme)}`}>无发布权限（须为资源 owner 或部门/平台管理员）</span>
+                          <span className={`text-xs ${textMuted(theme)}`}>无发布权限（须为资源负责人或部门/平台管理员）</span>
                         )}
                         {item.status === 'published' && isPlatformAdmin && (
                           <button
@@ -853,12 +853,12 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
               <p className={textSecondary(theme)}>
                 <span className="font-medium text-slate-900 dark:text-slate-100">版本在做什么：</span>
                 新建版本会把<strong className="font-medium">当时线上默认解析用的配置</strong>打成快照存入历史，便于<strong>回退默认版本</strong>；<strong>不会</strong>自动生成「可编辑副本」。
-                列表中每条 active 版本可使用<strong className="font-medium">写回登记</strong>：对已发布资源写入<strong>登记草稿</strong>（不影响线上解析，需保存后提交审核合并）；待首次提审（pending_review）时请先审结或撤回。
+                列表中每条<strong className="font-medium">生效中</strong>的版本可使用<strong className="font-medium">写回登记</strong>：对已发布资源写入<strong>登记草稿</strong>（不影响线上解析，需保存后提交审核合并）；首次处于<strong className="font-medium">待审核</strong>时请先审结或撤回。
               </p>
               {versionTarget.status === 'published' && (
                 <p className={`mt-2 ${isDark ? 'text-amber-200/95' : 'text-amber-900'}`}>
                   <span className="font-medium">若要改 URL、说明等再继续上架：</span>
-                  若需将整个资源改为可任意编辑的 deprecated 态，可在列表点「暂停对外」。日常改版推荐：直接点「编辑」改<strong>草稿</strong>并「保存并提审」。快照与「设为当前」仅影响<strong>默认解析版本</strong>。
+                  若需将整个资源改为可任意编辑的<strong className="font-medium">已暂停对外</strong>状态，可在列表点「暂停对外」。日常改版推荐：直接点「编辑」改<strong>草稿</strong>并「保存并提审」。快照与「设为当前」仅影响<strong>默认解析版本</strong>。
                 </p>
               )}
               {versionTarget.status === 'testing' && (
@@ -1164,7 +1164,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
               平台强制下架 · {platformForceTarget.displayName}
             </h3>
             <p className={`mt-2 text-xs leading-relaxed ${textMuted(theme)}`}>
-              仅平台管理员可操作；资源将进入 deprecated，与开发者自助下线不同。原因会通知资源 owner。
+              仅平台管理员可操作；资源将进入「已暂停对外」，与开发者自助下线不同。原因会通知资源负责人。
             </p>
             <AutoHeightTextarea
               minRows={4}
@@ -1212,7 +1212,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
           confirmAction?.type === 'remove'
             ? '确认删除该草稿资源？删除后不可恢复。'
             : confirmAction?.type === 'deprecate'
-              ? '确认将资源标记为 deprecated（暂停对外，历史版本数据保留）？'
+              ? '确认将资源标记为「已暂停对外」？历史版本数据将保留。'
               : '确认将该资源撤回到草稿状态？'
         }
         confirmText={

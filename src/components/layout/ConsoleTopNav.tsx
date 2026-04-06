@@ -72,6 +72,12 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
     return () => mq.removeEventListener('change', apply);
   }, []);
 
+  const leadIconShell = (active: boolean, reduceMotionFallback: boolean) =>
+    [
+      'flex shrink-0 items-center justify-center transition-transform duration-500 motion-reduce:transition-none h-5 w-5',
+      reduceMotionFallback ? (active ? 'scale-110' : '') : active ? 'scale-110' : 'grayscale opacity-60',
+    ].join(' ');
+
   const renderTopNavLeadIcon = (
     item: Extract<ConsoleSidebarRow, { kind: 'item' }>,
     navItemActive: boolean,
@@ -79,15 +85,21 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
     if (!USER_TOP_NAV_SVG_SET.has(item.id)) return null;
     const Icon = item.icon;
     if (reduceMotion) {
-      return <Icon size={20} className="shrink-0 opacity-90" aria-hidden />;
+      return (
+        <span className={leadIconShell(navItemActive, true)}>
+          <Icon size={20} className="shrink-0 opacity-90" aria-hidden />
+        </span>
+      );
     }
     return (
-      <NexusTopNavPrimaryAnimatedIcon
-        sidebarId={item.id}
-        isDark={isDark}
-        motionActive={navItemActive}
-        className="h-5 w-5 shrink-0"
-      />
+      <span className={leadIconShell(navItemActive, false)}>
+        <NexusTopNavPrimaryAnimatedIcon
+          sidebarId={item.id}
+          isDark={isDark}
+          motionActive={navItemActive}
+          className="h-full w-full"
+        />
+      </span>
     );
   };
 
@@ -176,15 +188,20 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
 
       <nav
         aria-label="主导航"
-        className={`mx-1 hidden min-h-0 min-w-0 flex-1 items-center gap-1 overflow-x-auto lg:flex ${mainScrollCompositorClass} [scrollbar-width:thin]`}
+        className={`mx-1 hidden min-h-0 min-w-0 flex-1 items-center overflow-x-auto lg:flex ${mainScrollCompositorClass} [scrollbar-width:thin]`}
       >
+        <div
+          className={`inline-flex min-w-0 shrink-0 items-center gap-0.5 rounded-2xl border px-1.5 py-1 ${
+            isDark ? 'border-slate-800/90 bg-slate-900/50 backdrop-blur-md' : 'border-slate-100 bg-[#f8fafc]'
+          }`}
+        >
         {navPieces.map((piece, i) => {
           if (piece.kind === 'divider') {
             if (i === 0) return null;
             return (
               <div
                 key={piece.key}
-                className={`mx-1 h-5 w-px shrink-0 self-center ${isDark ? 'bg-white/12' : 'bg-slate-200'}`}
+                className={`mx-0.5 h-5 w-px shrink-0 self-center ${isDark ? 'bg-white/15' : 'bg-slate-200/90'}`}
                 aria-hidden
               />
             );
@@ -195,15 +212,13 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
           const isSelfActive = !hasChildren && activeSidebar === item.id && routeRole === item.domain;
           const active =
             isSelfActive || isChildActive;
-          const navWeightCls = active ? 'font-semibold' : 'font-medium';
-          /** 选中仅字重+字色，无底线/无悬停底：避免「一条亮线 + 邻项悬停色块」并存的割裂感 */
-          const activeCls = active
+          const pillBtn = active
             ? isDark
-              ? 'text-slate-100'
-              : 'text-slate-900'
+              ? 'bg-slate-800 text-blue-400 shadow-none'
+              : 'bg-white text-blue-600 shadow-sm'
             : isDark
-              ? 'text-slate-400 hover:text-slate-200'
-              : 'text-slate-500 hover:text-slate-800';
+              ? 'text-slate-500 hover:bg-white/[0.06] hover:text-slate-200'
+              : 'text-slate-500 hover:bg-slate-200/50 hover:text-slate-900';
 
           if (!hasChildren) {
             return (
@@ -212,10 +227,10 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
                 type="button"
                 onClick={() => onSidebarClick(item.id, item.domain)}
                 aria-current={active ? 'page' : undefined}
-                className={`inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg px-3 py-2 text-base ${navWeightCls} transition-colors duration-200 motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${activeCls}`}
+                className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-bold transition-all duration-300 motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${pillBtn}`}
               >
                 {renderTopNavLeadIcon(item, active)}
-                <span className="whitespace-nowrap leading-snug">{item.label}</span>
+                <span className={`whitespace-nowrap leading-snug ${active ? '' : 'opacity-70'}`}>{item.label}</span>
               </button>
             );
           }
@@ -235,10 +250,10 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
                     setOpenDropdownKey(key);
                   }
                 }}
-                className={`inline-flex min-h-11 shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-base ${navWeightCls} transition-colors duration-200 motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${activeCls}`}
+                className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-bold transition-all duration-300 motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${pillBtn}`}
               >
                 {renderTopNavLeadIcon(item, active)}
-                <span className="whitespace-nowrap leading-snug">{item.label}</span>
+                <span className={`whitespace-nowrap leading-snug ${active ? '' : 'opacity-70'}`}>{item.label}</span>
                 <ChevronDown
                   size={16}
                   aria-hidden
@@ -292,6 +307,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
             </div>
           );
         })}
+        </div>
       </nav>
 
       <div

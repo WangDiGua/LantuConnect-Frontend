@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Settings, Lock, Smartphone, Monitor, Bell, Mail, Eye, EyeOff, Database, Palette,
   ChevronRight, Trash2, Download, Loader2, KeyRound, Plus, Copy, Check, DownloadCloud,
+  Info, RefreshCw,
 } from 'lucide-react';
 import type { Theme, ThemeMode, FontSize, ThemeColor } from '../../types';
 import { THEME_COLOR_CLASSES } from '../../constants/theme';
@@ -107,6 +108,16 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
   const [revokeSmsCd, setRevokeSmsCd] = useState(0);
   const [revokeFieldErrors, setRevokeFieldErrors] = useState<{ password?: string; sms?: string; form?: string }>({});
   const revokeSmsIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [detailKeyTarget, setDetailKeyTarget] = useState<UserApiKey | null>(null);
+  const [rotateKeyTarget, setRotateKeyTarget] = useState<UserApiKey | null>(null);
+  const [rotatePassword, setRotatePassword] = useState('');
+  const [rotateSmsCode, setRotateSmsCode] = useState('');
+  const [rotateShowPassword, setRotateShowPassword] = useState(false);
+  const [rotateSubmitting, setRotateSubmitting] = useState(false);
+  const [rotateSmsSending, setRotateSmsSending] = useState(false);
+  const [rotateSmsCd, setRotateSmsCd] = useState(0);
+  const [rotateFieldErrors, setRotateFieldErrors] = useState<{ password?: string; sms?: string; form?: string }>({});
+  const rotateSmsIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [newPlainKey, setNewPlainKey] = useState<string | null>(null);
   const createApiKeyInFlightRef = useRef(false);
 
@@ -228,9 +239,106 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
         clearInterval(revokeSmsIntervalRef.current);
         revokeSmsIntervalRef.current = null;
       }
+      if (rotateSmsIntervalRef.current) {
+        clearInterval(rotateSmsIntervalRef.current);
+        rotateSmsIntervalRef.current = null;
+      }
     },
     [],
   );
+
+  const openRotateApiKeyModal = useCallback((key: UserApiKey) => {
+    setRotateKeyTarget(key);
+    setRotatePassword('');
+    setRotateSmsCode('');
+    setRotateShowPassword(false);
+    setRotateFieldErrors({});
+  }, []);
+
+  const closeRotateApiKeyModal = useCallback(() => {
+    setRotateKeyTarget(null);
+    setRotatePassword('');
+    setRotateSmsCode('');
+    setRotateFieldErrors({});
+    setRotateSmsCd(0);
+    if (rotateSmsIntervalRef.current) {
+      clearInterval(rotateSmsIntervalRef.current);
+      rotateSmsIntervalRef.current = null;
+    }
+  }, []);
+
+  const handleSendRotateSms = useCallback(async () => {
+    if (rotateSmsSending || rotateSmsCd > 0) return;
+    setRotateSmsSending(true);
+    setRotateFieldErrors((e) => ({ ...e, sms: undefined, form: undefined }));
+    try {
+      await userSettingsService.sendRevokeApiKeySms();
+      showMessage('验证码已发送（与撤销 API Key 共用通道；演示环境见后端日志）', 'success');
+      if (rotateSmsIntervalRef.current) {
+        clearInterval(rotateSmsIntervalRef.current);
+        rotateSmsIntervalRef.current = null;
+      }
+      setRotateSmsCd(60);
+      rotateSmsIntervalRef.current = setInterval(() => {
+        setRotateSmsCd((v) => {
+          if (v <= 1) {
+            if (rotateSmsIntervalRef.current) {
+              clearInterval(rotateSmsIntervalRef.current);
+              rotateSmsIntervalRef.current = null;
+            }
+            return 0;
+          }
+          return v - 1;
+        });
+      }, 1000);
+    } catch (e) {
+      pageErrorUnlessServerToast(e, '发送失败', showMessage);
+    } finally {
+      setRotateSmsSending(false);
+    }
+  }, [rotateSmsSending, rotateSmsCd, showMessage]);
+
+  const handleConfirmRotateApiKey = useCallback(async () => {
+    if (!rotateKeyTarget?.id?.trim()) {
+      showMessage('无法轮换：缺少密钥', 'error');
+      return;
+    }
+    if (rotateSubmitting) return;
+    setRotateFieldErrors({});
+    setRotateSubmitting(true);
+    try {
+      const rotated = await userSettingsService.rotateApiKey(rotateKeyTarget.id, {
+        password: rotatePassword.trim() || undefined,
+        smsCode: rotateSmsCode.trim() || undefined,
+      });
+      const plain = rotated.plainKey?.trim() || '';
+      setNewPlainKey(plain || null);
+      showMessage('已生成新密钥；旧密钥已失效，请立即更新所有引用。', 'success');
+      closeRotateApiKeyModal();
+      await loadApiKeys();
+    } catch (e) {
+      if (isServerErrorGloballyNotified(e)) return;
+      const msg = e instanceof Error ? e.message : '轮换失败';
+      if (/密码|password/i.test(msg)) {
+        setRotateFieldErrors({ password: msg });
+      } else if (/验证码|短信|sms/i.test(msg)) {
+        setRotateFieldErrors({ sms: msg });
+      } else {
+        setRotateFieldErrors({ form: msg });
+      }
+      pageErrorUnlessServerToast(e, 'API Key 轮换失败，请重试', showMessage);
+    } finally {
+      setRotateSubmitting(false);
+    }
+  }, [
+    rotateKeyTarget,
+    rotateSubmitting,
+    rotatePassword,
+    rotateSmsCode,
+    showMessage,
+    loadApiKeys,
+    closeRotateApiKeyModal,
+  ]);
 
   const handleConfirmRevokeApiKey = useCallback(async () => {
     if (!revokeKeyTarget?.id?.trim()) {
@@ -462,11 +570,11 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
             <KeyRound size={18} className={tc.text} /> API Key（个人调用）
           </h2>
           <p className={`text-xs mb-2 ${textMuted(theme)}`}>
-            用于接口请求头 <span className="font-mono">X-Api-Key</span>。创建后<strong className={textSecondary(theme)}>仅当次响应</strong>可复制完整密钥，请先保存再关闭提示。
+            用于接口请求头 <span className="font-mono">X-Api-Key</span>。创建后<strong className={textSecondary(theme)}>仅当次响应</strong>会展示完整密钥；若未保存，可在<strong className={textSecondary(theme)}>验证身份后轮换密钥</strong>以获取新明文（<strong className={textPrimary(theme)}>旧串立即作废</strong>）。
             新建将自动带上默认可调用权限（scope）。
           </p>
           <p className={`text-xs mb-3 ${textMuted(theme)}`}>
-            列表中的掩码、前缀、id 不能代替完整密钥；撤销后本条将不再显示。
+            服务端只存密钥摘要，无法「找回」原明文。列表中的掩码、前缀、id 不能作为请求头；撤销后本条将不再显示。
             <button type="button" onClick={() => navigate(buildPath(consoleRole, 'api-docs'))} className={`ml-1 underline font-medium ${tc.text}`}>
               完整说明见 API 文档
             </button>
@@ -501,7 +609,7 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
               <div className={`rounded-xl p-3 border space-y-2 ${isDark ? 'bg-emerald-500/10 border-emerald-500/25' : 'bg-emerald-50 border-emerald-200'}`}>
                 <p className={`text-xs font-semibold ${isDark ? 'text-emerald-100' : 'text-emerald-950'}`}>密钥仅出现这一次</p>
                 <p className={`text-xs leading-relaxed ${textSecondary(theme)}`}>
-                  服务端只保存密钥的校验摘要，<strong className={textPrimary(theme)}>无法找回</strong>明文。请复制到密码管理器或环境变量；需要在本站「市场 / 网关调试」里用时，可一键写入下面共用的本机存储。
+                  服务端只保存摘要，无法用原 id 解密出旧明文。请复制到密码管理器或环境变量；若已丢失，可从列表使用「轮换密钥」在验证密码/短信后获得新串（旧串作废）。需要在本站「市场 / 网关调试」里用时，可一键写入下面共用的本机存储。
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <code className={`text-xs break-all flex-1 min-w-[12rem] rounded-lg px-2 py-1.5 ${isDark ? 'bg-black/30 text-emerald-300' : 'bg-white text-emerald-700'}`}>{newPlainKey}</code>
@@ -558,8 +666,8 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
             ) : (
               <div className="space-y-2">
                 {apiKeys.map((key) => (
-                  <div key={key.id} className={`flex items-center justify-between gap-3 py-2.5 border-b last:border-0 ${isDark ? 'border-white/[0.05]' : 'border-slate-100'}`}>
-                    <div className="min-w-0">
+                  <div key={key.id} className={`flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 py-2.5 border-b last:border-0 ${isDark ? 'border-white/[0.05]' : 'border-slate-100'}`}>
+                    <div className="min-w-0 flex-1">
                       <p className={`text-sm font-semibold truncate ${textPrimary(theme)}`}>{key.name}</p>
                       <p className={`text-xs font-mono ${textMuted(theme)}`}>id: {key.id}</p>
                       <p className={`text-xs font-mono ${textMuted(theme)}`} title="网关按 scope 校验 catalog/resolve/invoke">
@@ -575,14 +683,31 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
                         <span className={`block text-xs mt-0.5 ${textMuted(theme)}`}>（掩码，非请求头密钥）</span>
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => openRevokeApiKeyModal(key)}
-                      disabled={revokeSubmitting}
-                      className="text-xs px-2.5 py-1.5 rounded-lg bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 disabled:opacity-60"
-                    >
-                      撤销
-                    </button>
+                    <div className="flex flex-wrap gap-1.5 shrink-0 justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setDetailKeyTarget(key)}
+                        className={`text-xs px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1 ${isDark ? 'bg-white/10 text-slate-200 hover:bg-white/15' : 'bg-slate-100 text-slate-800 hover:bg-slate-200'}`}
+                      >
+                        <Info size={14} aria-hidden /> 详情
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openRotateApiKeyModal(key)}
+                        disabled={rotateSubmitting || revokeSubmitting}
+                        className={`text-xs px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1 ${isDark ? 'bg-sky-500/15 text-sky-200 hover:bg-sky-500/25' : 'bg-sky-50 text-sky-900 hover:bg-sky-100'} disabled:opacity-50`}
+                      >
+                        <RefreshCw size={14} aria-hidden /> 轮换密钥
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openRevokeApiKeyModal(key)}
+                        disabled={revokeSubmitting}
+                        className="text-xs px-2.5 py-1.5 rounded-lg bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 disabled:opacity-60"
+                      >
+                        撤销
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -722,6 +847,183 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
           {revokeFieldErrors.form ? (
             <p className={`${fieldErrorText()} text-xs`} role="alert">
               {revokeFieldErrors.form}
+            </p>
+          ) : null}
+        </div>
+      </Modal>
+
+      <Modal
+        open={!!detailKeyTarget}
+        onClose={() => setDetailKeyTarget(null)}
+        title="API Key 详情"
+        theme={theme}
+        size="sm"
+        footer={
+          <button type="button" className={btnPrimary} onClick={() => setDetailKeyTarget(null)}>
+            关闭
+          </button>
+        }
+      >
+        {detailKeyTarget ? (
+          <div className={`space-y-2 text-xs ${textSecondary(theme)}`}>
+            <p>
+              <span className={`font-semibold ${textSecondary(theme)}`}>名称：</span>
+              {detailKeyTarget.name}
+            </p>
+            <p className="font-mono break-all">
+              <span className={`font-semibold ${textSecondary(theme)}`}>id：</span>
+              {detailKeyTarget.id}
+            </p>
+            <p className="font-mono">
+              <span className={`font-semibold ${textSecondary(theme)}`}>scope：</span>
+              {detailKeyTarget.scopes?.length ? detailKeyTarget.scopes.join(', ') : '—'}
+            </p>
+            <p>
+              <span className={`font-semibold ${textSecondary(theme)}`}>掩码 / 前缀：</span>
+              {detailKeyTarget.maskedKey || detailKeyTarget.prefix || '—'}
+            </p>
+            <p>
+              <span className={`font-semibold ${textSecondary(theme)}`}>状态：</span>
+              {detailKeyTarget.status}
+            </p>
+            {detailKeyTarget.createdAt ? (
+              <p>
+                <span className={`font-semibold ${textSecondary(theme)}`}>创建时间：</span>
+                {detailKeyTarget.createdAt}
+              </p>
+            ) : null}
+            {detailKeyTarget.expiresAt ? (
+              <p>
+                <span className={`font-semibold ${textSecondary(theme)}`}>过期时间：</span>
+                {detailKeyTarget.expiresAt}
+              </p>
+            ) : null}
+            {detailKeyTarget.lastUsedAt || detailKeyTarget.lastUsed ? (
+              <p>
+                <span className={`font-semibold ${textSecondary(theme)}`}>最近使用：</span>
+                {detailKeyTarget.lastUsedAt || detailKeyTarget.lastUsed}
+              </p>
+            ) : null}
+            <p>
+              <span className={`font-semibold ${textSecondary(theme)}`}>调用次数：</span>
+              {detailKeyTarget.callCount ?? '—'}
+            </p>
+            <p className={`pt-2 border-t ${isDark ? 'border-white/10' : 'border-slate-200'} ${textMuted(theme)} leading-relaxed`}>
+              完整 <span className="font-mono">secretPlain</span> 不由列表接口返回。若遗失，请使用「轮换密钥」在验证身份后获取<strong className={textPrimary(theme)}>新的</strong>可调用串（旧串立即失效）。
+            </p>
+          </div>
+        ) : null}
+      </Modal>
+
+      <Modal
+        open={!!rotateKeyTarget}
+        onClose={closeRotateApiKeyModal}
+        title="轮换 API Key（生成新明文）"
+        theme={theme}
+        size="sm"
+        footer={
+          <>
+            <button type="button" className={btnSecondary(theme)} onClick={closeRotateApiKeyModal}>
+              取消
+            </button>
+            <button
+              type="button"
+              className={`${btnPrimary} disabled:opacity-50 border border-sky-600/40 bg-sky-600 hover:bg-sky-700 text-white`}
+              disabled={rotateSubmitting}
+              onClick={() => void handleConfirmRotateApiKey()}
+              aria-label="确认轮换 API Key"
+            >
+              {rotateSubmitting ? (
+                <>
+                  <Loader2 size={14} className="animate-spin inline mr-1" aria-hidden />
+                  处理中…
+                </>
+              ) : (
+                '确认轮换'
+              )}
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <p className={`text-xs ${textSecondary(theme)}`}>
+            密钥：<span className="font-mono">{rotateKeyTarget?.name}</span>。验证规则与撤销相同。轮换成功后<strong className={textPrimary(theme)}>仅当次响应</strong>展示新完整密钥；<strong className={textPrimary(theme)}>旧密钥立刻无法调用</strong>，请同步更新环境变量与集成配置。
+          </p>
+          <div>
+            <label htmlFor="rotate-pwd" className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>
+              登录密码
+            </label>
+            <div className="relative">
+              <input
+                id="rotate-pwd"
+                type={rotateShowPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                value={rotatePassword}
+                onChange={(e) => {
+                  setRotatePassword(e.target.value);
+                  setRotateFieldErrors((x) => ({ ...x, password: undefined }));
+                }}
+                className={`${nativeInputClass(theme)} pr-10${rotateFieldErrors.password ? ` ${inputBaseError()}` : ''}`}
+                aria-invalid={!!rotateFieldErrors.password}
+                aria-describedby={rotateFieldErrors.password ? 'rotate-pwd-err' : undefined}
+              />
+              <button
+                type="button"
+                className={`absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md ${isDark ? 'text-slate-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'}`}
+                onClick={() => setRotateShowPassword((v) => !v)}
+                aria-label={rotateShowPassword ? '隐藏密码' : '显示密码'}
+              >
+                {rotateShowPassword ? <EyeOff size={16} aria-hidden /> : <Eye size={16} aria-hidden />}
+              </button>
+            </div>
+            {rotateFieldErrors.password ? (
+              <p id="rotate-pwd-err" className={`mt-1 ${fieldErrorText()} text-xs`} role="alert">
+                {rotateFieldErrors.password}
+              </p>
+            ) : null}
+          </div>
+          <div>
+            <label htmlFor="rotate-sms" className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>
+              短信验证码（无密码账户必填）
+            </label>
+            <div className="flex gap-2">
+              <input
+                id="rotate-sms"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                value={rotateSmsCode}
+                onChange={(e) => {
+                  setRotateSmsCode(e.target.value);
+                  setRotateFieldErrors((x) => ({ ...x, sms: undefined }));
+                }}
+                className={`${nativeInputClass(theme)} flex-1${rotateFieldErrors.sms ? ` ${inputBaseError()}` : ''}`}
+                aria-invalid={!!rotateFieldErrors.sms}
+              />
+              <button
+                type="button"
+                disabled={rotateSmsSending || rotateSmsCd > 0}
+                onClick={() => void handleSendRotateSms()}
+                className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap ${
+                  rotateSmsCd > 0 || rotateSmsSending
+                    ? isDark
+                      ? 'bg-white/5 text-slate-500 cursor-not-allowed'
+                      : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                    : `text-white ${tc.bg}`
+                }`}
+              >
+                {rotateSmsCd > 0 ? `${rotateSmsCd}s` : rotateSmsSending ? '发送中…' : '发送验证码'}
+              </button>
+            </div>
+            {rotateFieldErrors.sms ? (
+              <p className={`mt-1 ${fieldErrorText()} text-xs`} role="alert">
+                {rotateFieldErrors.sms}
+              </p>
+            ) : null}
+          </div>
+          {rotateFieldErrors.form ? (
+            <p className={`${fieldErrorText()} text-xs`} role="alert">
+              {rotateFieldErrors.form}
             </p>
           ) : null}
         </div>

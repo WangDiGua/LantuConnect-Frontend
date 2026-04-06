@@ -116,5 +116,17 @@ export const userSettingsService = {
   revokeApiKey: (id: string, body: ApiKeyRevokePayload) =>
     http.post<void>(`/user-settings/api-keys/${encodeURIComponent(id)}/revoke`, body),
 
+  /** 验证密码或短信后轮换明文；返回新 secretPlain（旧值立即失效） */
+  rotateApiKey: async (id: string, body: ApiKeyRevokePayload) => {
+    const raw = await http.post<UserApiKey & { plainKey?: string; secretPlain?: string }>(
+      `/user-settings/api-keys/${encodeURIComponent(id)}/rotate`,
+      body,
+    );
+    const plain =
+      (raw as { secretPlain?: string; plainKey?: string }).secretPlain ?? (raw as { plainKey?: string }).plainKey ?? '';
+    const base = mapUserApiKeyRecord(raw);
+    return { ...base, plainKey: plain };
+  },
+
   getStats: () => http.get<UserStats>('/user-settings/stats'),
 };

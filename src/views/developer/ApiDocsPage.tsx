@@ -49,6 +49,9 @@ const API_CATEGORIES: ApiCategory[] = [
     { method: 'GET', path: '/catalog/resources', description: '按 resourceType、keyword、status、tags、sortBy 等查询资源目录（逛市场）。列表项含创建者、目录聚合评分与评论数等。须至少有登录态（Authorization → X-User-Id）或 X-Api-Key 之一；二者可同时携带。', params: [{ name: 'page', type: 'number', required: false, description: '页码，默认 1' }, { name: 'pageSize', type: 'number', required: false, description: '每页，默认 20' }, { name: 'resourceType', type: 'string', required: false, description: 'agent/skill/mcp/app/dataset' }, { name: 'keyword', type: 'string', required: false, description: '关键字' }, { name: 'status', type: 'string', required: false, description: '如 published' }, { name: 'sortBy', type: 'string', required: false, description: 'callCount / rating / publishedAt / name（以后端为准）' }, { name: 'sortOrder', type: 'string', required: false, description: 'asc / desc' }, { name: 'tags', type: 'string', required: false, description: '标签名筛选（格式以后端为准，可与 keyword 等组合）' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { list: [{ resourceType: 'agent', resourceId: '1', resourceCode: 'course-advisor', displayName: '选课助手', status: 'published', tags: ['教务'], updateTime: '2026-04-01T10:00:00', createdBy: 1001, createdByName: 'alice', ratingAvg: 4.5, reviewCount: 12 }], total: 42, page: 1, pageSize: 20 } }, null, 2) },
     { method: 'GET', path: '/catalog/resources/{type}/{id}', description: '查询单个资源详情（目录项 + 解析字段，逛市场）。含 createdBy / createdByName 等。头要求同 GET /catalog/resources；可与登录态同传 X-Api-Key。', params: [{ name: 'type', type: 'string', required: true, description: '资源类型' }, { name: 'id', type: 'string', required: true, description: '资源 ID' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { resourceType: 'skill', resourceId: '9', resourceCode: 'weather-tool', displayName: '天气查询', status: 'published', createdBy: 1001, createdByName: 'alice', invokeType: 'http', endpoint: 'https://gateway/invoke/skill/9', tags: ['工具'] } }, null, 2) },
     { method: 'GET', path: '/catalog/resources/{type}/{id}/stats', description: '资源使用与口碑摘要（调用量、成功率、评分、收藏、趋势、相关推荐）。无评论时 rating 为 null；callTrend 为按日的 cnt 列表。头要求同 GET /catalog/resources。', params: [{ name: 'type', type: 'string', required: true, description: '资源类型' }, { name: 'id', type: 'string', required: true, description: '资源 ID' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { callCount: 1200, successRate: 98.5, rating: 4.2, favoriteCount: 15, callTrend: [{ day: '2026-04-01', cnt: 40 }], relatedResources: [] } }, null, 2) },
+    { method: 'GET', path: '/catalog/resources/trending', description: '热门/趋势资源（工作台「探索发现」等可用）；可按 resourceType 筛选。', params: [{ name: 'resourceType', type: 'string', required: false, description: 'agent/skill/mcp/...' }, { name: 'limit', type: 'number', required: false, description: '默认 10' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: [{ resourceType: 'agent', resourceId: '1', displayName: '示例' }] }, null, 2) },
+    { method: 'GET', path: '/catalog/resources/search-suggestions', description: '目录搜索补全建议，参数 q 为前缀。', params: [{ name: 'q', type: 'string', required: true, description: '搜索前缀' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: [{ text: '选课', type: 'agent' }] }, null, 2) },
+    { method: 'GET', path: '/catalog/apps/launch', description: '应用启动：匿名可访问，消费 resolve 下发的短期 launchToken 后 302 跳转真实 app_url；服务端校验 token 绑定的 Key 仍有效且具备 resolve + Grant。', params: [{ name: 'token', type: 'string', required: true, description: 'launchToken' }], responseExample: 'HTTP 302 → appUrl' },
   ]},
   { id: 'reviews', label: '资源评论', endpoints: [
     { method: 'GET', path: '/reviews/page', description: '分页查询某资源的评论（替代全量 GET /reviews）。须至少有 X-User-Id（登录）或 X-Api-Key 之一，策略与 GET /catalog/resources 一致。', params: [{ name: 'targetType', type: 'string', required: true, description: 'agent/skill/mcp/app/dataset' }, { name: 'targetId', type: 'string | number', required: true, description: '资源 ID' }, { name: 'page', type: 'number', required: false, description: '页码' }, { name: 'pageSize', type: 'number', required: false, description: '每页条数' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { list: [{ id: 1, targetType: 'mcp', targetId: 56, userId: 1002, userName: 'bob', rating: 5, content: '稳定可用', createTime: '2026-04-01T10:00:00' }], total: 3, page: 1, pageSize: 20 } }, null, 2) },
@@ -64,6 +67,25 @@ const API_CATEGORIES: ApiCategory[] = [
     { method: 'GET', path: '/grant-applications/pending', description: '**待我审批**的申请列表。**须 X-User-Id**。可见范围由后端按操作者角色过滤：平台管理员全量；部门管理员仅 owner 属本部门的待办；开发者仅本人名下资源上的待办。**并非**仅平台管理员可见。', params: [{ name: 'status', type: 'string', required: false, description: '状态筛选' }, { name: 'keyword / q', type: 'string', required: false, description: '关键字' }, { name: 'page', type: 'number', required: false, description: '页码' }, { name: 'pageSize', type: 'number', required: false, description: '每页条数' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { list: [], total: 0, page: 1, pageSize: 20 } }, null, 2) },
     { method: 'POST', path: '/grant-applications/{id}/approve', description: '审批通过。调用者须通过服务层校验（资源 owner / 全平台 reviewer / platform_admin 等与直接 Grant 管理能力一致）。', params: [{ name: 'id', type: 'number', required: true, description: '申请 ID（路径参数）' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: null }, null, 2) },
     { method: 'POST', path: '/grant-applications/{id}/reject', description: '驳回申请；body 含驳回原因。**权限同 approve**。', params: [{ name: 'id', type: 'number', required: true, description: '申请 ID' }, { name: 'reason', type: 'string', required: false, description: 'ResourceRejectRequest.reason' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: null }, null, 2) },
+    { method: 'POST', path: '/grant-applications/{id}/revoke-grant', description: '撤销**已通过**工单所建立的生效 Grant（与审批人范围一致：资源 owner / reviewer / platform_admin）。', params: [{ name: 'id', type: 'number', required: true, description: '工单 ID' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: null }, null, 2) },
+  ]},
+  { id: 'developer', label: '开发者入驻与个人统计', endpoints: [
+    { method: 'POST', path: '/developer/applications', description: '提交开发者入驻申请。**须 X-User-Id**。任意已登录用户可提交；通过后由 platform_admin / reviewer 审批并开通 developer 等平台能力（以后台策略为准）。', params: [{ name: 'body', type: 'DeveloperApplicationCreateRequest', required: true, description: '申请说明等字段' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { id: 1, userId: 1001, status: 'pending' } }, null, 2) },
+    { method: 'GET', path: '/developer/applications/me', description: '查询本人入驻申请历史（列表，按时间倒序）。', params: [], responseExample: JSON.stringify({ code: 0, message: 'ok', data: [] }, null, 2) },
+    { method: 'GET', path: '/developer/my-statistics', description: '个人侧调用类摘要（控制台「开发者统计」个人视角；与 Owner 资源成效 GET /dashboard/owner-resource-stats 口径不同）。', params: [], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { invokeCount: 0, favorites: 0 } }, null, 2) },
+  ]},
+  { id: 'resource-center-api', label: '资源登记（资源中心）', endpoints: [
+    { method: 'POST', path: '/resource-center/resources', description: '登记五类资源之一（草稿）。**须 X-User-Id**。请求体为 ResourceUpsertRequest，详见 OpenAPI / 注册表单。', params: [{ name: 'body', type: 'ResourceUpsertRequest', required: true, description: 'resourceType、displayName、spec 等' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { id: 101, resourceType: 'mcp', status: 'draft' } }, null, 2) },
+    { method: 'GET', path: '/resource-center/resources/mine', description: '分页查询本人登记的资源（草稿/审核中/已发布等）。', params: [{ name: 'page', type: 'number', required: false, description: '默认 1' }, { name: 'pageSize', type: 'number', required: false, description: '默认 20' }, { name: 'resourceType', type: 'string', required: false, description: '' }, { name: 'status', type: 'string', required: false, description: '' }, { name: 'keyword', type: 'string', required: false, description: '' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { records: [], total: 0, page: 1, pageSize: 20 } }, null, 2) },
+    { method: 'POST', path: '/resource-center/resources/{id}/submit', description: '提交审核（进入审核队列）；后续由 reviewer 等在 /audit/* 或统一审核列表处理。', params: [{ name: 'id', type: 'number', required: true, description: '资源主键' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { id: 101, status: 'pending_review' } }, null, 2) },
+    { method: 'POST', path: '/resource-center/resources/mcp/connectivity-probe', description: '登记 MCP 前可选：JSON-RPC initialize 短探测，验证 URL 可达（不落库）。', params: [{ name: 'body', type: 'McpConnectivityProbeRequest', required: true, description: 'endpointUrl 等' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { ok: true, latencyMs: 120 } }, null, 2) },
+    { method: 'GET', path: '/resource-center/resources/{id}/skill-artifact', description: '下载已发布技能的制品包（文件流；权限与目录/Grant 策略一致，非网关 invoke）。', params: [{ name: 'id', type: 'number', required: true, description: '资源 ID' }], responseExample: '（application/octet-stream）' },
+  ]},
+  { id: 'user-activity', label: '个人用量与收藏', endpoints: [
+    { method: 'GET', path: '/user/usage-records', description: '分页查询个人用量记录（门户行为埋点，不等同于网关 call_log 全量）。', params: [{ name: 'page', type: 'number', required: false, description: '' }, { name: 'pageSize', type: 'number', required: false, description: '' }, { name: 'type', type: 'string', required: false, description: '筛选类型' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { records: [], total: 0, page: 1, pageSize: 20 } }, null, 2) },
+    { method: 'GET', path: '/user/favorites', description: '我的收藏列表。', params: [], responseExample: JSON.stringify({ code: 0, message: 'ok', data: [] }, null, 2) },
+    { method: 'GET', path: '/user/authorized-skills', description: '已授权给我使用的技能目录项（分页）。', params: [{ name: 'page', type: 'number', required: false, description: '' }, { name: 'pageSize', type: 'number', required: false, description: '' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { records: [], total: 0, page: 1, pageSize: 20 } }, null, 2) },
+    { method: 'GET', path: '/user/usage-stats', description: '个人用量汇总（工作台展示）。', params: [], responseExample: JSON.stringify({ code: 0, message: 'ok', data: {} }, null, 2) },
   ]},
   { id: 'owner-dashboard', label: 'Owner 资源成效', endpoints: [
     { method: 'GET', path: '/dashboard/owner-resource-stats', description: 'Owner 维度统计：**网关 invoke（call_log）**、**usage_record(action=invoke) 对照**、**技能包下载**等。**须 X-User-Id**；默认识别当前用户为 owner，管理角色可按后端策略传 ownerUserId。**调用量不等于门户内全部使用量**（见使用指南「调用数字的含义」）。', params: [{ name: 'periodDays', type: 'number', required: false, description: '统计天数，默认 7' }, { name: 'ownerUserId', type: 'number', required: false, description: '指定 owner 用户 ID（部门/平台管理员场景）' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { ownerUserId: 1001, periodDays: 7, periodStart: '', periodEnd: '', gatewayInvokeTotal: 0, gatewayInvokeSuccess: 0, usageRecordInvokeTotal: 0, skillPackDownloadTotal: 0, gatewayInvokesByResourceType: [] } }, null, 2) },
@@ -71,20 +93,28 @@ const API_CATEGORIES: ApiCategory[] = [
   { id: 'sandbox-sdk-grants', label: '沙箱/SDK/授权', endpoints: [
     { method: 'POST', path: '/sandbox/sessions', description: '创建沙箱会话（需 X-User-Id + X-Api-Key）', params: [{ name: 'ttlMinutes', type: 'number', required: false, description: '会话时长' }, { name: 'maxCalls', type: 'number', required: false, description: '最大调用次数' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { sessionToken: 'sbx_xxx', maxCalls: 100, usedCalls: 0, status: 'active' } }, null, 2) },
     { method: 'POST', path: '/sdk/v1/invoke', description: 'SDK 稳定调用入口（X-Api-Key 必填）', params: [{ name: 'resourceType', type: 'string', required: true, description: '资源类型' }, { name: 'resourceId', type: 'string', required: true, description: '资源 ID' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { requestId: 'sdk_req_1', traceId: 'sdk_tr_1', status: 'success' } }, null, 2) },
-    { method: 'POST', path: '/resource-grants', description: '按 Grant 模型授权第三方 API Key 调用资源。若资源 accessPolicy 已允许 open_org/open_platform 短路，则可能无需本条；仍以网关校验为准。', params: [{ name: 'resourceType', type: 'string', required: true, description: '资源类型' }, { name: 'resourceId', type: 'string', required: true, description: '资源 ID' }, { name: 'granteeApiKeyId', type: 'string', required: true, description: '被授权 API Key ID' }, { name: 'actions', type: 'string[]', required: true, description: 'catalog/resolve/invoke/*' }, { name: 'expiresAt', type: 'string', required: false, description: '过期时间（ISO）' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { id: 'grant_1001', resourceType: 'mcp', resourceId: '56', actions: ['catalog', 'resolve', 'invoke'] } }, null, 2) },
+    { method: 'POST', path: '/resource-grants', description: '按 Grant 模型授权第三方 API Key 调用资源。若资源 accessPolicy 已允许 open_org/open_platform 短路，则可能无需本条；仍以网关校验为准。', params: [{ name: 'resourceType', type: 'string', required: true, description: '资源类型' }, { name: 'resourceId', type: 'string', required: true, description: '资源 ID' }, { name: 'granteeApiKeyId', type: 'string', required: true, description: '被授权 API Key ID' }, { name: 'actions', type: 'string[]', required: true, description: 'catalog/resolve/invoke/*' }, { name: 'expiresAt', type: 'string', required: false, description: '过期时间（ISO）' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { grantId: 1001 } }, null, 2) },
+    { method: 'GET', path: '/resource-grants', description: '按 resourceType + resourceId 列出该资源上的授权记录（资源管理者视角）。', params: [{ name: 'resourceType', type: 'string', required: true, description: '' }, { name: 'resourceId', type: 'number', required: true, description: '' }, { name: 'keyword', type: 'string', required: false, description: '筛选' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: [] }, null, 2) },
+    { method: 'DELETE', path: '/resource-grants/{grantId}', description: '撤销一条 Grant。**须 X-User-Id**，且操作者须为资源 owner / 具备代管权限的角色。', params: [{ name: 'grantId', type: 'number', required: true, description: '授权主键' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: null }, null, 2) },
+    { method: 'GET', path: '/sdk/v1/resources', description: '与 GET /catalog/resources 等价查询参数，但**必须**携带 X-Api-Key（适合集成方只走 Key 场景）。', params: [{ name: 'page', type: 'number', required: false, description: '' }, { name: 'pageSize', type: 'number', required: false, description: '' }, { name: 'resourceType', type: 'string', required: false, description: '' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { records: [], total: 0, page: 1, pageSize: 20 } }, null, 2) },
   ]},
 ];
 
 const GUIDE_TOC: { id: string; label: string }[] = [
-  { id: 'doc-intro', label: '简介' },
-  { id: 'doc-roles', label: '账号与角色' },
-  { id: 'doc-discover', label: '发现资源' },
-  { id: 'doc-consume', label: '完成一次调用' },
-  { id: 'doc-access-policy', label: '消费策略与授权' },
-  { id: 'doc-publish', label: '发布资源' },
-  { id: 'doc-types', label: '资源类型' },
-  { id: 'doc-meta', label: '标签与版本' },
-  { id: 'doc-metrics', label: '调用数字的含义' },
+  { id: 'doc-intro', label: '平台概览' },
+  { id: 'doc-roles', label: '账号与组织' },
+  { id: 'doc-console', label: '控制台导航' },
+  { id: 'doc-onboarding', label: '开发者入驻' },
+  { id: 'doc-keys', label: 'API Key' },
+  { id: 'doc-discover', label: '发现与目录' },
+  { id: 'doc-consume', label: '解析与调用' },
+  { id: 'doc-access-policy', label: '授权与策略' },
+  { id: 'doc-publish', label: '登记与上架' },
+  { id: 'doc-types', label: '五类资源' },
+  { id: 'doc-skill-pack', label: '技能包与制品' },
+  { id: 'doc-activity', label: '用量与统计' },
+  { id: 'doc-meta', label: '标签与可观测' },
+  { id: 'doc-metrics', label: '数据口径' },
   { id: 'doc-faq', label: '常见问题' },
 ];
 
@@ -156,7 +186,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
       fontSize={fontSize}
       titleIcon={BookOpen}
       breadcrumbSegments={['开发者中心', '接入指南']}
-      description="从浏览资源到完成调用的使用指南 · 接口与示例见「接口参考」"
+      description="面向师生的开发者导读：从入驻、登记资源到目录发现与网关调用；详请见正文与「接口参考」"
       toolbar={docsToolbar}
       contentScroll="document"
     >
@@ -199,61 +229,162 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
                 </div>
 
                 <section id="doc-intro" className="space-y-4">
-                  {proseH2(theme, '这个平台能帮你做什么？')}
+                  {proseH2(theme, '平台是做什么的？')}
                   {prosePara(theme, (
                     <>
-                      产品与后端契约以门户<strong className={textPrimary(theme)}> 数字化资产与可调用能力 </strong>为一体：统一注册、目录发现、按权消费。Agent / MCP 等走统一网关 <span className="font-mono">resolve</span> / <span className="font-mono">invoke</span>；技能包以制品下载为主（不提供 <span className="font-mono">skill</span> 的网关 invoke）；应用与数据集以发现、解析与接入为主。详细边界见产品锚点说明与《前端对接后端标准说明书》（后端 <span className="font-mono">docs/</span> 目录）。
+                      本门户面向高校师生与信息化场景：把<strong className={textPrimary(theme)}>智能体、技能包、MCP 服务、应用与数据集</strong>统一登记进「资源中心」，经审核与发布后进入<strong className={textPrimary(theme)}>统一目录</strong>，供师生按权限浏览与调用。教师团队沉淀的能力可被其他学院在合规前提下复用；学生或课题组在授权范围内用 API Key 做实验、编排应用，而无需每人重复对接一套网关细节。
                     </>
                   ))}
                   {prosePara(theme, (
                     <>
-                      所有 HTTP 接口的前缀为上下文路径 <code className={`rounded px-1.5 py-0.5 font-mono text-sm ${isDark ? 'bg-white/10' : 'bg-slate-100'}`}>{API_CONTEXT_PREFIX}</code>
-                      （例如完整地址形如 <code className={`rounded px-1.5 py-0.5 font-mono text-sm ${isDark ? 'bg-white/10' : 'bg-slate-100'}`}>https://你的域名{API_CONTEXT_PREFIX}/catalog/resources</code>）。
+                      技术路径一句话：<strong className={textPrimary(theme)}>目录发现 → resolve 解析出可调用信息 → invoke / invoke-stream 走网关</strong>。应用类还可拿短期 <span className="font-mono">launchToken</span>，通过 <span className="font-mono">GET /catalog/apps/launch</span> 跳转真实地址。技能（<span className="font-mono">skill</span>）以<strong>制品下载</strong>为主，网关<strong className={textPrimary(theme)}>不接受</strong>对 skill 的远程 <span className="font-mono">invoke</span>；需要「可被远程调用的工具」请登记为 <span className="font-mono">mcp</span>。
+                    </>
+                  ))}
+                  {prosePara(theme, (
+                    <>
+                      所有开放 API 的 URL 前缀为部署上下文路径 <code className={`rounded px-1.5 py-0.5 font-mono text-sm ${isDark ? 'bg-white/10' : 'bg-slate-100'}`}>{API_CONTEXT_PREFIX}</code>
+                      （示例：<code className={`rounded px-1.5 py-0.5 font-mono text-sm ${isDark ? 'bg-white/10' : 'bg-slate-100'}`}>https://学校域名{API_CONTEXT_PREFIX}/catalog/resources</code>）。具体字段与校验以 <span className="font-mono">LantuConnect-Backend</span> 中 Controller、DTO 与 OpenAPI 为准。
                     </>
                   ))}
                   <div className={`rounded-xl border px-4 py-3 text-sm ${isDark ? 'border-amber-500/25 bg-amber-500/10 text-amber-100/90' : 'border-amber-200 bg-amber-50 text-amber-950'}`}>
                     <p className="flex items-start gap-2 font-medium">
                       <AlertCircle size={16} className="mt-0.5 shrink-0" />
                       <span>
-                        <strong className={textPrimary(theme)}>强统一：</strong>
-                        浏览目录可用登录态（JWT）；<span className="font-mono">POST /catalog/resolve</span>、<span className="font-mono">POST /invoke</span>、<span className="font-mono">POST /invoke-stream</span> 均须带有效的{' '}
-                        <span className="font-mono">X-Api-Key</span>（创建 Key 当次返回的完整 <span className="font-mono">secretPlain</span>），不能填列表掩码或记录 id。细则见「接口参考」。
+                        <strong className={textPrimary(theme)}>务必记住：</strong>
+                        浏览目录可以主要靠登录态（JWT）；但 <span className="font-mono">resolve</span>、<span className="font-mono">invoke</span>、<span className="font-mono">invoke-stream</span>、稳定 <span className="font-mono">/sdk/v1</span> 路径、沙箱创建等<strong className={textPrimary(theme)}>必须</strong>带有效 <span className="font-mono">X-Api-Key</span>，且值为创建时<strong>当次响应</strong>里的完整 <span className="font-mono">secretPlain</span>（不是掩码、前缀或行 id）。细则见「接口参考」顶部说明框。
                       </span>
                     </p>
                   </div>
                 </section>
 
                 <section id="doc-roles" className="mt-14 space-y-4">
-                  {proseH2(theme, '账号与角色')}
-                  {prosePara(theme, '登录后，你的能力取决于平台分配的角色：平台管理员负责全平台治理；部门管理员管理本部门的开发者与消费者；开发者负责五类资源的登记/维护及与自身资源相关的审核流；消费者使用已上架资源（目录浏览、Grant、个人 API Key 调用等），可申请开发者入驻，并进行个人资料与安全设置——不包含资源注册、发布与平台级审核。自助注册账号通常默认为消费者；若账号尚无开发者角色而需要登记资源，可先提交入驻申请，由管理员审批开通。')}
-                  {prosePara(theme, '前端路由里的 admin / user 只是视图壳层，不是后端角色名：管理后台与「我的」工作台是两套导航域，与 platform_admin / reviewer / developer / user 等后端角色不同，判权以 JWT + 后端接口为准（见对接手册 §2.8）。')}
-                  {prosePara(theme, '下文「完成一次调用」对个人开发者与师生用户同样适用：执行向（resolve / invoke / invoke-stream）都必须携带本人有效 API Key；仅浏览目录可主要靠登录态。调用他人名下资源时，在 Key 与 scope 之外还需要 Grant、或资源配置的访问策略允许短路（见「消费策略与授权」）。')}
+                  {proseH2(theme, '账号、组织与平台角色')}
+                  {prosePara(theme, (
+                    <>
+                      师生使用学校统一身份（学工号等）登录。学院/部门与组织树（后端组织节点，如 <span className="font-mono">t_menu</span>）关联，影响「同院系开放」类策略（<span className="font-mono">open_org</span>，见下文）。
+                    </>
+                  ))}
+                  {prosePara(theme, (
+                    <>
+                      平台在 JWT 中叠加<strong>平台角色</strong>，常见包括：<span className="font-mono">platform_admin</span>（超管）、<span className="font-mono">reviewer</span>（全平台审核员）、<span className="font-mono">developer</span>（可登记维护资源）、<span className="font-mono">user</span>（消费者：浏览、申请授权、自建 Key 调用已授权资源等）。自助注册多从消费者开始；需要登记资源请走「开发者入驻」由审核员开通。
+                    </>
+                  ))}
+                  {prosePara(theme, (
+                    <>
+                      网址里的 <span className="font-mono">/admin</span> 与 <span className="font-mono">/user</span> 只是<strong>控制台两套壳</strong>，不等于后端角色名；能否调用某接口以<strong>后端鉴权</strong>为准。
+                    </>
+                  ))}
+                </section>
+
+                <section id="doc-console" className="mt-14 space-y-4">
+                  {proseH2(theme, '控制台里开发者常去哪？')}
+                  <ul className={`list-disc space-y-2 pl-5 text-[15px] leading-7 ${textSecondary(theme)}`}>
+                    <li><strong className={textPrimary(theme)}>工作台 / 探索发现</strong>：逛已发布资源；对接 <span className="font-mono">/catalog/resources</span>、<span className="font-mono">/trending</span>、<span className="font-mono">/search-suggestions</span>。</li>
+                    <li><strong className={textPrimary(theme)}>我的发布 · 资源中心</strong>：草稿、提审、版本与技能包；接口前缀 <span className="font-mono">/resource-center/resources</span>。</li>
+                    <li><strong className={textPrimary(theme)}>开发者中心</strong>：本页、SDK、API 调试、开发者统计。</li>
+                    <li><strong className={textPrimary(theme)}>个人设置</strong>：个人 API Key、工作台偏好；<span className="font-mono">/user-settings</span>。</li>
+                    <li><strong className={textPrimary(theme)}>授权审批 / 我的授权申请</strong>：跨人调用前的工单；<span className="font-mono">/grant-applications</span>。</li>
+                    <li><strong className={textPrimary(theme)}>管理台</strong>（有权限时）：全平台目录、审核队列、用户与组织、监控配额等——与开发者相关的多为代管发布与审批。</li>
+                  </ul>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <button type="button" onClick={() => go('hub')} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${btnSecondary(theme)}`}>
+                      <Library size={16} /> 工作台
+                    </button>
+                    <button type="button" onClick={() => go('workspace')} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${btnSecondary(theme)}`}>
+                      <Library size={16} /> 应用工作台
+                    </button>
+                    <button type="button" onClick={() => go('developer-statistics')} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${btnSecondary(theme)}`}>
+                      <Library size={16} /> 开发者统计
+                    </button>
+                  </div>
+                </section>
+
+                <section id="doc-onboarding" className="mt-14 space-y-4">
+                  {proseH2(theme, '如何成为开发者？')}
+                  {prosePara(theme, (
+                    <>
+                      侧栏「开发者入驻」提交申请。接口：<span className="font-mono">POST /developer/applications</span>（须 <span className="font-mono">X-User-Id</span>）；<span className="font-mono">GET /developer/applications/me</span> 查本人记录。审核员在管理端 <span className="font-mono">GET /developer/applications</span> 处理；通过后具备登记资源等能力（以后台策略为准）。
+                    </>
+                  ))}
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <button type="button" onClick={() => go('developer-onboarding')} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${btnSecondary(theme)}`}>
+                      <Rocket size={16} /> 开发者入驻
+                    </button>
+                  </div>
+                </section>
+
+                <section id="doc-keys" className="mt-14 space-y-4">
+                  {proseH2(theme, 'API Key：调用的钥匙')}
+                  {prosePara(theme, (
+                    <>
+                      在「个人设置 → API Key」创建。响应中的 <span className="font-mono">secretPlain</span>（或等价字段）<strong className={textPrimary(theme)}>仅出现一次</strong>，请立即安全保存。列表只有掩码与前缀。撤销/删除后无法找回明文，只能重建 Key 并重配集成与 Grant（<span className="font-mono">granteeApiKeyId</span> 绑定的是 Key 主键）。
+                    </>
+                  ))}
+                  {prosePara(theme, (
+                    <>
+                      <strong className={textPrimary(theme)}>scope</strong>须覆盖当前动作（如 <span className="font-mono">catalog</span>、<span className="font-mono">resolve</span>、<span className="font-mono">invoke</span> 或用 <span className="font-mono">*</span>）。控制台新建 Key 通常默认全权限；历史空 scope 建议作废重建。管理端代建：<span className="font-mono">POST /user-mgmt/api-keys</span>，规则一致。
+                    </>
+                  ))}
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <button type="button" onClick={() => go('preferences')} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${btnSecondary(theme)}`}>
+                      <KeyRound size={16} /> 个人设置
+                    </button>
+                  </div>
                 </section>
 
                 <section id="doc-discover" className="mt-14 space-y-4">
-                  {proseH2(theme, '在平台里发现资源')}
-                  {prosePara(theme, '在侧栏进入「探索发现」或各资源市场，可按类型浏览已发布资源。需要程序化检索时，使用开放接口 GET /catalog/resources，支持类型、关键字、状态以及按标签名筛选（详见「接口参考 → 统一资源目录」）。')}
+                  {proseH2(theme, '发现资源：页面与接口')}
+                  {prosePara(theme, (
+                    <>
+                      侧栏「探索发现」与各类市场对应已发布资源。程序化对接用 <span className="font-mono">GET /catalog/resources</span>（类型、关键字、状态、<span className="font-mono">tags</span>、排序等，见「接口参考」）。另可：<span className="font-mono">GET /catalog/resources/trending</span>、<span className="font-mono">GET /catalog/resources/search-suggestions?q=</span>；单条 <span className="font-mono">GET /catalog/resources/{'{type}'}/{'{id}'}</span>，<span className="font-mono">include</span> 可取 <span className="font-mono">observability</span>、<span className="font-mono">quality</span>、<span className="font-mono">tags</span>。
+                    </>
+                  ))}
+                  {prosePara(theme, (
+                    <>
+                      浏览目录：登录态与有效 <span className="font-mono">X-Api-Key</span> 至少其一（可同时带），以后端网关策略为准。
+                    </>
+                  ))}
                   <div className="flex flex-wrap gap-2 pt-1">
                     <button type="button" onClick={() => go('hub')} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${btnSecondary(theme)}`}>
                       <Library size={16} /> 探索发现
                     </button>
-                    <button type="button" onClick={() => navigate(buildUserResourceMarketUrl('skill'))} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${btnSecondary(theme)}`}>
-                      <Library size={16} /> 技能市场
+                    <button type="button" onClick={() => navigate(buildUserResourceMarketUrl('agent'))} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${btnSecondary(theme)}`}>
+                      <Library size={16} /> 智能体市场
                     </button>
                   </div>
                 </section>
 
                 <section id="doc-consume" className="mt-14 space-y-4">
-                  {proseH2(theme, '完成一次调用（调用方必读）')}
-                  {proseH3(theme, '1. 准备 API Key')}
-                  {prosePara(theme, '在「个人设置」中创建 API Key，并保存创建成功时返回的完整密钥；同时确认 Key 的 scope 覆盖 catalog / resolve / invoke（或使用通配，控制台新建通常会默认带全权限）。')}
-                  {proseH3(theme, '2. 是否还需要授权？')}
-                  {prosePara(theme, '平台按「API Key + Scope + Resource Grant」三层校验：仅有 Key 不足以调用他人名下的已发布资源——还需要针对你的 Key 的授权记录（Grant），或通过「我的授权申请」等流程审批通过后由系统自动建立。Grant 里填写的是 Key 的记录 id，不是密钥明文。')}
-                  {proseH3(theme, '3. 解析与调用')}
-                  {prosePara(theme, '两次请求都须在请求头带 X-Api-Key：先 POST /catalog/resolve 拿到可调用信息，再 POST /invoke（或流式用 POST /invoke-stream）传入 resourceType、resourceId 与业务 payload。需要固定版本时可在解析/调用体中携带 version。控制台「API 调试」试用时也请手动填好 Key（或由本地存储注入）。')}
+                  {proseH2(theme, '解析与调用（集成必读）')}
+                  {proseH3(theme, '1. 标准两步')}
+                  {prosePara(theme, (
+                    <>
+                      ① <span className="font-mono">POST /catalog/resolve</span>：<span className="font-mono">resourceType</span>、<span className="font-mono">resourceId</span>（可选 <span className="font-mono">version</span>），返回 endpoint、invoke 方式、应用 launch 票据等；须完整 <span className="font-mono">X-Api-Key</span>。
+                    </>
+                  ))}
+                  {prosePara(theme, (
+                    <>
+                      ② <span className="font-mono">POST /invoke</span> 或 <span className="font-mono">POST /invoke-stream</span>（SSE，如 MCP）：统一请求体（含 <span className="font-mono">resourceType</span>、<span className="font-mono">resourceId</span>、<span className="font-mono">payload</span> 等），同样需要 Key 与 invoke 权限。
+                    </>
+                  ))}
+                  {proseH3(theme, '2. 应用如何打开')}
+                  {prosePara(theme, (
+                    <>
+                      <span className="font-mono">resolve</span> 可能返回短期 <span className="font-mono">launchToken</span>。浏览器访问 <span className="font-mono">GET /catalog/apps/launch?token=...</span>（可匿名），服务端校验 Token 对应 Key 仍有效且具备 resolve + Grant 后 302 到真实 <span className="font-mono">appUrl</span>。
+                    </>
+                  ))}
+                  {proseH3(theme, '3. SDK 与沙箱')}
+                  {prosePara(theme, (
+                    <>
+                      集成方可固定使用 <span className="font-mono">/sdk/v1/*</span>（须 Key），语义与同路径根接口一致。<span className="font-mono">POST /sandbox/sessions</span> 创建隔离会话（<span className="font-mono">X-User-Id</span> + <span className="font-mono">X-Api-Key</span>，角色含 developer/reviewer/admin 等）；<span className="font-mono">POST /sandbox/invoke</span> 带 <span className="font-mono">X-Sandbox-Token</span> 做限量试调，不等同生产配额。
+                    </>
+                  ))}
                   <div className="flex flex-wrap gap-2 pt-1">
-                    <button type="button" onClick={() => go('preferences')} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${btnSecondary(theme)}`}>
-                      <KeyRound size={16} /> 个人设置（API Key）
+                    <button type="button" onClick={() => go('api-playground')} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${btnSecondary(theme)}`}>
+                      <Terminal size={16} /> API 调试
+                    </button>
+                    <button type="button" onClick={() => go('sdk-download')} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${btnSecondary(theme)}`}>
+                      <Rocket size={16} /> SDK 下载
                     </button>
                     <button type="button" onClick={() => go('grant-applications')} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${btnSecondary(theme)}`}>
                       <FileText size={16} /> 授权审批待办
@@ -261,25 +392,40 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
                     <button type="button" onClick={() => go('my-grant-applications')} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${btnSecondary(theme)}`}>
                       <FileText size={16} /> 我的授权申请
                     </button>
-                    <button type="button" onClick={() => go('api-playground')} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${btnSecondary(theme)}`}>
-                      <Terminal size={16} /> API 调试
-                    </button>
-                    <button type="button" onClick={() => go('sdk-download')} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${btnSecondary(theme)}`}>
-                      <Rocket size={16} /> SDK 下载
-                    </button>
                   </div>
                 </section>
 
                 <section id="doc-access-policy" className="mt-14 space-y-4">
-                  {proseH2(theme, '资源消费策略与授权')}
-                  {prosePara(theme, '除 API Key scope 与 per-resource Grant 外，每条资源可有 accessPolicy（注册/更新时写入，默认 grant_required）：grant_required 须 Grant（及 Key scope）；open_org 在「Key 为用户 Key 且与资源 owner 同部门（menu_id）」时可免 Grant；open_platform 在租户内已认证 Key 且 scope 满足时可免 Grant。策略仅短路 Grant 校验，资源仍须 published，且不改变 skill 禁止 invoke、dataset 无统一 invoke 等产品边界（详见 PRODUCT_DEFINITION §4）。')}
-                  {prosePara(theme, 'Grant 工单：提交 POST /grant-applications 后，待办会出现在「授权审批待办」中——资源 owner、全平台 reviewer、platform_admin 均可审批。通过后与直接 POST /resource-grants 等效建立授权。')}
+                  {proseH2(theme, '授权与访问策略')}
+                  {prosePara(theme, (
+                    <>
+                      网关顺序：<strong className={textPrimary(theme)}>有效 Key</strong> → <strong className={textPrimary(theme)}>scope</strong>（catalog / resolve / invoke）→ <strong className={textPrimary(theme)}>Grant</strong> 或资源 <span className="font-mono">accessPolicy</span> 允许的豁免。
+                    </>
+                  ))}
+                  {prosePara(theme, (
+                    <>
+                      <span className="font-mono">accessPolicy</span>：<span className="font-mono">grant_required</span>（默认，须显式授权）；<span className="font-mono">open_org</span>（调用方用户与 owner 同组织时可免 Grant）；<span className="font-mono">open_platform</span>（校内已认证 Key 且 scope 满足时可免 Grant）。资源须 <span className="font-mono">published</span>；策略不改变「skill 不可 invoke」等边界。
+                    </>
+                  ))}
+                  {prosePara(theme, (
+                    <>
+                      <span className="font-mono">POST /resource-grants</span> 建立授权，<span className="font-mono">granteeApiKeyId</span> 为对方 Key 的<strong>数据库 id</strong>。<span className="font-mono">GET /resource-grants</span> 列表、<span className="font-mono">DELETE /resource-grants/{'{grantId}'}</span> 撤销。工单 <span className="font-mono">POST /grant-applications</span> 通过后等价 Grant；<span className="font-mono">POST /grant-applications/{'{id}'}/revoke-grant</span> 可撤销已通过工单建立的授权（owner / reviewer / 超管）。
+                    </>
+                  ))}
                 </section>
 
                 <section id="doc-publish" className="mt-14 space-y-4">
-                  {proseH2(theme, '发布资源（资源作者）')}
-                  {prosePara(theme, '在「我的发布 / 资源中心」创建资源后，状态从草稿开始：提交审核 → 审核通过后进入 testing → **须再执行「发布」**才变为 published 并在目录中对调用方可见。请牢记：审核通过不等于已经上架。发布动作可由 owner、全平台 reviewer 或 platform_admin/admin 执行（与 Grant 代管范围一致）。')}
-                  {prosePara(theme, '下架、版本管理与 accessPolicy 等也在同一工作流中维护；具体按钮以控制台当前菜单为准。')}
+                  {proseH2(theme, '登记、审核与上架')}
+                  {prosePara(theme, (
+                    <>
+                      <span className="font-mono">POST /resource-center/resources</span> 创建草稿；<span className="font-mono">POST /resource-center/resources/{'{id}'}/submit</span> 提交审核。审核队列在管理端 <span className="font-mono">/audit/*</span> 等。审核通过后常进入可测状态，一般还需<strong>发布</strong>才 <span className="font-mono">published</span> 进目录——以本校控制台状态为准。
+                    </>
+                  ))}
+                  {prosePara(theme, (
+                    <>
+                      <span className="font-mono">POST /resource-center/resources/mcp/connectivity-probe</span> 可在登记 MCP 前做短探测。技能支持包上传、分片与版本切换（见 OpenAPI）。下架、废弃、版本回滚等同族接口维护。
+                    </>
+                  ))}
                   <div className="flex flex-wrap gap-2 pt-1">
                     <button type="button" onClick={() => go('resource-center')} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${btnSecondary(theme)}`}>
                       <Rocket size={16} /> 我的发布 · 资源中心
@@ -288,43 +434,81 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
                 </section>
 
                 <section id="doc-types" className="mt-14 space-y-4">
-                  {proseH2(theme, '五类资源怎么用？')}
+                  {proseH2(theme, '五类资源（开发者选型）')}
                   <ul className={`list-disc space-y-2 pl-5 text-[15px] leading-7 ${textSecondary(theme)}`}>
-                    <li><strong className={textPrimary(theme)}>agent</strong>：<span className="font-mono">resolve</span> 后 <span className="font-mono">invoke</span> / <span className="font-mono">invoke-stream</span>（已 published）。</li>
-                    <li><strong className={textPrimary(theme)}>mcp</strong>：同上，流式场景用 <span className="font-mono">invoke-stream</span>。</li>
-                    <li><strong className={textPrimary(theme)}>skill</strong>：<span className="font-mono">resolve</span> + 技能制品下载；网关<strong className={textPrimary(theme)}> 不接受 </strong><span className="font-mono">resourceType=skill</span> 的 <span className="font-mono">invoke</span>。远程可执行工具请注册为 <strong className={textPrimary(theme)}>mcp</strong>。</li>
-                    <li><strong className={textPrimary(theme)}>app</strong>：以 <span className="font-mono">resolve</span> 获取 launch 信息为主；浏览器打开 launchUrl 可能不经过网关 invoke。若走 <span className="font-mono">invoke</span>，多为 redirect/票据语义。</li>
-                    <li><strong className={textPrimary(theme)}>dataset</strong>：<span className="font-mono">resolve</span> 读元数据；无通用远程 <span className="font-mono">invoke</span> 执行模型。</li>
+                    <li><strong className={textPrimary(theme)}>agent</strong>：智能体；<span className="font-mono">resolve</span> 后 <span className="font-mono">invoke</span> / <span className="font-mono">invoke-stream</span>。</li>
+                    <li><strong className={textPrimary(theme)}>mcp</strong>：可远程 JSON-RPC / SSE；流式用 <span className="font-mono">invoke-stream</span>。</li>
+                    <li><strong className={textPrimary(theme)}>skill</strong>：技能包；<span className="font-mono">resolve</span> + 制品下载，<strong className={textPrimary(theme)}>禁止</strong> <span className="font-mono">invoke</span>。</li>
+                    <li><strong className={textPrimary(theme)}>app</strong>：<span className="font-mono">resolve</span> + <span className="font-mono">launch</span> 跳转为主。</li>
+                    <li><strong className={textPrimary(theme)}>dataset</strong>：元数据与目录为主，无统一 invoke 模型。</li>
                   </ul>
                 </section>
 
+                <section id="doc-skill-pack" className="mt-14 space-y-4">
+                  {proseH2(theme, '技能包与制品下载')}
+                  {prosePara(theme, (
+                    <>
+                      实训场景常「下发技能包」：<span className="font-mono">resolve</span> 确认已发布且有权限后，<span className="font-mono">GET /resource-center/resources/{'{id}'}/skill-artifact</span> 拉取二进制流。下载量与网关 invoke 分开统计，并计入 Owner 看板技能包指标。
+                    </>
+                  ))}
+                  {prosePara(theme, (
+                    <>
+                      需要远程可调工具请登记 <span className="font-mono">mcp</span>，不要对 <span className="font-mono">skill</span> 走 <span className="font-mono">invoke</span>。
+                    </>
+                  ))}
+                </section>
+
+                <section id="doc-activity" className="mt-14 space-y-4">
+                  {proseH2(theme, '个人用量与开发者统计')}
+                  {prosePara(theme, (
+                    <>
+                      「我的用量 / 收藏 / 已授权技能」等对应 <span className="font-mono">/user/usage-records</span>、<span className="font-mono">/user/favorites</span>、<span className="font-mono">/user/authorized-skills</span>、<span className="font-mono">/user/usage-stats</span>。
+                    </>
+                  ))}
+                  {prosePara(theme, (
+                    <>
+                      <span className="font-mono">GET /developer/my-statistics</span> 为个人摘要；Owner 资源成效用 <span className="font-mono">GET /dashboard/owner-resource-stats</span>。二者<strong className={textPrimary(theme)}>口径不同</strong>，请勿混读。
+                    </>
+                  ))}
+                </section>
+
                 <section id="doc-meta" className="mt-14 space-y-4">
-                  {proseH2(theme, '标签与版本')}
-                  {prosePara(theme, '目录列表接口可以返回每条资源的标签名字段 tags，并支持用 query tags 按标签名过滤——与用户侧看到的「目录标签」一致。数据集表单里的「标签」文案可能与目录标签来源不同：只有与平台标签库精确匹配的名字才会同时参与目录关联。')}
-                  {prosePara(theme, '列表或详情中的 currentVersion 表示当前生效版本展示；若调用需要锁定某一版本，可在 resolve / invoke 请求中传入 version。')}
+                  {proseH2(theme, '标签、版本与可观测')}
+                  {prosePara(theme, (
+                    <>
+                      目录可带 <span className="font-mono">tags</span> 并按标签库名字筛选。数据集自由文本须与标签库<strong>精确匹配</strong>才进入目录标签。<span className="font-mono">version</span> 锁定制品；<span className="font-mono">include=observability</span> 等展示健康/熔断摘要。
+                    </>
+                  ))}
                   <div className="flex flex-wrap gap-2 pt-1">
                     <button type="button" onClick={() => setViewMode('reference')} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${isDark ? 'bg-emerald-500/20 text-emerald-300' : 'bg-emerald-100 text-emerald-800'}`}>
-                      <Tag size={16} /> 在「接口参考」中查看目录参数
+                      <Tag size={16} /> 打开接口参考
                     </button>
                   </div>
                 </section>
 
                 <section id="doc-metrics" className="mt-14 space-y-4">
-                  {proseH2(theme, '调用数字的含义')}
-                  {prosePara(theme, '监控与工作台常见的 call_log、usage_record（action=invoke）主要反映「统一网关远程调用」，不是门户内每一次「打开页面 / 下载技能包 / 仅 resolve」的全部使用量。技能包成功下载有单独埋点；控制台「资源成效统计」对接 GET /dashboard/owner-resource-stats，口径以后端聚合为准（详见 PRODUCT_DEFINITION §5）。')}
+                  {proseH2(theme, '数据口径')}
+                  {prosePara(theme, (
+                    <>
+                      <span className="font-mono">call_log</span> 反映<strong>网关远程调用</strong>；<span className="font-mono">usage_record</span> 反映门户行为。点开页面、仅 resolve、下载技能包等不都会记为 invoke。请以控制台与接口字段为准。
+                    </>
+                  ))}
                 </section>
 
                 <section id="doc-faq" className="mt-14 space-y-4">
                   {proseH2(theme, '常见问题')}
-                  {proseH3(theme, '调用返回 403？')}
+                  {proseH3(theme, '403 或「scope 不允许」？')}
                   <ol className={`list-decimal space-y-2 pl-5 text-[15px] leading-7 ${textSecondary(theme)}`}>
-                    <li>确认 X-Api-Key 是否为创建时的完整 secretPlain。</li>
-                    <li>检查 Key 的 scope 是否含 invoke（或通配）。</li>
-                    <li>若资源不属于你，确认 Grant 或授权申请已通过且绑定的是该 Key 的 id。</li>
-                    <li>确认资源已是 published。</li>
+                    <li><span className="font-mono">X-Api-Key</span> 是否为创建当次完整 <span className="font-mono">secretPlain</span>。</li>
+                    <li>scope 是否覆盖当前动作。</li>
+                    <li>资源是否 <span className="font-mono">published</span>。</li>
+                    <li>调他人资源是否有 Grant 或策略豁免。</li>
+                    <li>应用 launch：Token 绑定 Key 被吊销会失败。</li>
                   </ol>
-                  {proseH3(theme, '健康检查 503？')}
-                  {prosePara(theme, '若部署环境未启动消息队列等依赖，聚合健康检查可能整体不健康；可结合运维侧各子指示器排查，不一定表示业务接口全部不可用。')}
+                  {proseH3(theme, '健康检查飘红？')}
+                  {prosePara(theme, '聚合健康受 MQ 等依赖影响；可看子检查项或市场详情可观测信息。')}
+                  {proseH3(theme, '密钥丢了？')}
+                  {prosePara(theme, '无法找回明文；删旧建新，并更新集成与 Grant（新 Key 新 id）。')}
                 </section>
 
                 <footer className={`mt-16 border-t pt-8 ${isDark ? 'border-white/[0.08]' : 'border-slate-200'}`}>

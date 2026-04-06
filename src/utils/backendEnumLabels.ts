@@ -25,6 +25,8 @@ const HEALTH_LABEL: Record<string, string> = {
   offline: '离线',
   /** 与健康字段并存：探测可能仍为 UP，但网关/熔断/降级提示已不放行 invoke */
   gateway_blocked: '网关不放行',
+  /** Resilience4j HALF_OPEN：试探恢复，不宜展示为「健康」 */
+  circuit_half_open: '半开试探',
 };
 
 export function resourceHealthLabelZh(raw: string | null | undefined): string {
@@ -40,6 +42,11 @@ export function resourceHealthBadgeClass(theme: Theme, raw: string | null | unde
     return D(theme)
       ? 'bg-rose-500/15 text-rose-200 border border-rose-500/25'
       : 'bg-rose-50 text-rose-800 border border-rose-200/70';
+  }
+  if (k === 'circuit_half_open') {
+    return D(theme)
+      ? 'bg-amber-500/15 text-amber-200 border border-amber-500/25'
+      : 'bg-amber-50 text-amber-900 border border-amber-200/70';
   }
   if (ok) {
     return D(theme)

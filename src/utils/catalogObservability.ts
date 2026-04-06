@@ -52,12 +52,15 @@ export function catalogItemDegradationHint(item: Pick<ResourceCatalogItemVO, 'ob
  * 是否与网关侧 `ensureResourceHealthNotDown` + 熔断 open 一致：不可 invoke 时前端同步关闭入口。
  * `unknown`：未配置或未探测，仍允许进入工具测试（由网关最终拦截）。
  *
+ * `half_open`（Resilience4j 半开）：与健康同为 UP 时也不应展示为「运行健康」；广场侧视为暂不可可靠调用。
+ *
  * 注意：勿用 `degradationHint` 参与判定。后端可能按账号/租户/配额填入提示（与「资源全局故障」不等价），
  * 若据此禁用列表，会导致换账号后同一 MCP「忽而不可用、忽而可用」，与广场「运行状态」预期不符。
  */
 export function isCatalogMcpCallable(item: Pick<ResourceCatalogItemVO, 'observability'>): boolean {
   const h = norm(catalogItemHealthStatus(item));
   const c = norm(catalogItemCircuitState(item));
+  if (c === 'half_open') return false;
   if (c === 'open' || c === 'forced_open') return false;
   if (
     h === 'down'
@@ -72,9 +75,11 @@ export function isCatalogMcpCallable(item: Pick<ResourceCatalogItemVO, 'observab
 }
 
 /**
- * 列表/详情「运行 *」徽章用 key：一旦不可 invoke，统一展示网关拦截态，避免与健康探测字段不一致。
+ * 列表/详情「运行 *」徽章用 key：半开/熔断/健康 down 时勿仅用 healthStatus（否则仍显示「健康」）。
  */
 export function catalogRunBadgeHealthKeyForDisplay(item: Pick<ResourceCatalogItemVO, 'observability'>): string {
+  const c = norm(catalogItemCircuitState(item));
+  if (c === 'half_open') return 'circuit_half_open';
   if (!isCatalogMcpCallable(item)) return 'gateway_blocked';
   return catalogItemHealthStatus(item) ?? 'unknown';
 }
@@ -86,6 +91,9 @@ export function catalogInvokeSupplementHint(item: Pick<ResourceCatalogItemVO, 'o
 
 export function mcpInvokeBlockedReason(item: Pick<ResourceCatalogItemVO, 'observability'>): string {
   const c = norm(catalogItemCircuitState(item));
+  if (c === 'half_open') {
+    return '熔断处于半开（试探恢复），调用可能不稳定或受限，建议稍后再试。';
+  }
   if (c === 'open' || c === 'forced_open') {
     return '熔断已断开，网关暂不放行调用。可稍后在健康恢复后重试。';
   }

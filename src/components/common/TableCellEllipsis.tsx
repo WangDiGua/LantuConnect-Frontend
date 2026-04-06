@@ -29,9 +29,10 @@ export const TableCellEllipsis: React.FC<TableCellEllipsisProps> = ({
     <Tooltip
       content={raw}
       wrapContent
+      preferSingleLine={mono}
       focusableTrigger
       triggerClassName="flex w-full min-w-0 max-w-full"
-      preferredSide="top"
+      preferredSide="auto"
     >
       <span
         className={`block w-full min-w-0 cursor-default truncate ${mono ? 'font-mono text-[12px]' : ''} ${className}`.trim()}

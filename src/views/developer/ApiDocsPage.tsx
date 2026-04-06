@@ -162,14 +162,14 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
     >
       <div className="min-h-0 w-full flex flex-col px-4 sm:px-6 pb-8">
         {viewMode === 'guide' && (
-          <div className="flex-1 min-h-0 flex w-full min-w-0">
+          <div className="flex-1 min-h-0 flex w-full min-w-0 items-start">
             <aside
               aria-label="本页目录"
-              className={`hidden md:flex w-56 shrink-0 flex-col overflow-y-auto border-r ${
+              className={`hidden md:flex md:sticky md:top-6 md:z-10 w-56 shrink-0 flex-col border-r self-start ${
                 isDark ? 'border-white/[0.08] bg-transparent' : 'border-slate-200/70 bg-transparent'
               }`}
             >
-              <div className="sticky top-0 py-2 pl-0 pr-3">
+              <div className="max-h-[min(100vh-6rem,100dvh-6rem)] overflow-y-auto overscroll-y-contain py-2 pl-0 pr-3 custom-scrollbar">
                 <p className={`text-xs font-semibold uppercase tracking-wider ${textMuted(theme)}`}>本页目录</p>
                 <nav className="mt-3 space-y-0.5 border-l-2 pl-3" style={{ borderColor: isDark ? 'rgba(16,185,129,0.35)' : 'rgba(16,185,129,0.45)' }}>
                   {GUIDE_TOC.map((item) => (
@@ -188,7 +188,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
               </div>
             </aside>
 
-            <div className="flex-1 min-w-0 overflow-y-auto">
+            <div className="flex-1 min-w-0">
               <article className="mx-auto max-w-3xl px-4 py-6 sm:px-8 sm:py-10">
                 <div className="md:hidden mb-6 flex flex-wrap gap-2">
                   {GUIDE_TOC.map((item) => (

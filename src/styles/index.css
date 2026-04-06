@@ -22,12 +22,44 @@
 }
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-space: "Space Grotesk", sans-serif;
-  --font-serif: "Playfair Display", serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
-  --font-outfit: "Outfit", sans-serif;
-  --font-garamond: "Cormorant Garamond", serif;
+  /*
+   * 排版与 Tailwind：Display/H1 多用 text-4xl~text-3xl font-bold leading-tight（可选 tracking-display-tight）；
+   * Body 默认继承根字号（外观「默认/大/小」见 src/constants/theme.ts）+ text-base leading-normal；
+   * 说明/次要 text-sm leading-relaxed（可选 tracking-caption-read）；代码 font-mono；西文优先 Inter + 中文回退。
+   */
+  --font-sans:
+    "Inter",
+    "PingFang SC",
+    "Hiragino Sans GB",
+    "Microsoft YaHei",
+    "Noto Sans SC",
+    ui-sans-serif,
+    system-ui,
+    sans-serif;
+  --font-space:
+    "Space Grotesk",
+    "PingFang SC",
+    "Hiragino Sans GB",
+    "Microsoft YaHei",
+    "Noto Sans SC",
+    ui-sans-serif,
+    sans-serif;
+  --font-serif: "Playfair Display", "Songti SC", "STSong", serif;
+  --font-mono:
+    "JetBrains Mono",
+    "Fira Code",
+    ui-monospace,
+    SFMono-Regular,
+    monospace;
+  --font-outfit:
+    "Outfit",
+    "PingFang SC",
+    "Hiragino Sans GB",
+    "Microsoft YaHei",
+    "Noto Sans SC",
+    ui-sans-serif,
+    sans-serif;
+  --font-garamond: "Cormorant Garamond", "Songti SC", "STSong", serif;
   --font-anton: "Anton", sans-serif;
   /* 语义色见 @layer base :root，此处为 Tailwind 别名 */
   --color-lantu-canvas: var(--canvas-bg);
@@ -129,6 +161,15 @@
 
 /* Brand logo home：仅导航，不要点击/聚焦时的外框或阴影 */
 @layer utilities {
+  /** Display / H1：略收紧字距（可选用于大标题） */
+  .tracking-display-tight {
+    letter-spacing: -0.02em;
+  }
+  /** 说明 / Caption：微正字距，略提高小号可读性 */
+  .tracking-caption-read {
+    letter-spacing: 0.01em;
+  }
+
   /** 表格单元格内横向滚动：覆盖全局隐藏滚动条，窄列内标签横排 + 滑动手势仍可滚动 */
   .lantu-table-cell-scroll-x {
     overflow-x: auto;

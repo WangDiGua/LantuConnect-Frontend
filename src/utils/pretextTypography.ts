@@ -5,7 +5,7 @@ import { prepare, layout, type PreparedText } from '@chenglou/pretext';
  * 排布时用具体 family 兜底。
  */
 export const PRETEXT_FONT_SANS_400_14 =
-  '400 14px Inter, ui-sans-serif, sans-serif';
+  '400 14px Inter, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", ui-sans-serif, sans-serif';
 
 /** Tailwind `text-sm` + `leading-relaxed`（1.625） */
 export const PRETEXT_LINE_HEIGHT_SM_RELAXED = 14 * 1.625;
@@ -16,11 +16,13 @@ export function descriptionClampMinHeightPx(lines: 2 | 3): number {
 }
 
 /** Prism / 终端 compact：与 Tailwind `text-xs leading-snug`（12px × 1.375）对齐 */
-export const PRETEXT_FONT_MONO_11_SNUG = '400 12px "JetBrains Mono", ui-monospace, monospace';
+export const PRETEXT_FONT_MONO_11_SNUG =
+  '400 12px "JetBrains Mono", "Fira Code", ui-monospace, monospace';
 export const PRETEXT_LINE_HEIGHT_11_SNUG = 12 * 1.375;
 
 /** 终端非 compact：`text-sm leading-relaxed` + mono */
-export const PRETEXT_FONT_MONO_14_RELAXED = '400 14px "JetBrains Mono", ui-monospace, monospace';
+export const PRETEXT_FONT_MONO_14_RELAXED =
+  '400 14px "JetBrains Mono", "Fira Code", ui-monospace, monospace';
 export const PRETEXT_LINE_HEIGHT_14_RELAXED = PRETEXT_LINE_HEIGHT_SM_RELAXED;
 
 export type PretextWhiteSpace = 'normal' | 'pre-wrap';

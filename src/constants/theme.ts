@@ -3,6 +3,9 @@ import { FontSize, FontFamily, ThemeColor } from '../types';
 /**
  * 同步到 `document.documentElement.style.fontSize`，使全站 rem 字号随外观设置变化。
  * 档位对齐常见 Web 可读性基准：默认 16px（正文下限）；小 / 大 对称 ±2px，与 Tailwind text-sm / text-lg 在 16px 根下接近 14 / 18。
+ *
+ * 排版角色（与 `src/styles/index.css` @theme 注释一致）：Display/H1 用 TITLE_SIZE_CLASSES + leading-tight；
+ * 正文用 FONT_SIZE_CLASSES + leading-normal；说明/次要 text-sm leading-relaxed；等宽 font-mono。
  */
 export function getRootFontSizePx(fontSize: FontSize): string {
   switch (fontSize) {

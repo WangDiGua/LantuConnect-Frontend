@@ -602,6 +602,14 @@ export const ResourceRegisterPage: React.FC<Props> = ({
   });
   const [mcpImportPaste, setMcpImportPaste] = useState('');
   const [mcpProbeLoading, setMcpProbeLoading] = useState(false);
+  /** 已发布资源双轨编辑：用于提示线上版本 vs 草稿 */
+  const [loadedResourceMeta, setLoadedResourceMeta] = useState<{
+    status: string;
+    currentVersion?: string;
+    hasWorkingDraft?: boolean;
+    pendingPublishedUpdate?: boolean;
+    workingDraftAuditTier?: string;
+  } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -619,6 +627,12 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       cancelled = true;
     };
   }, [resourceType]);
+
+  useEffect(() => {
+    if (!resourceId) {
+      setLoadedResourceMeta(null);
+    }
+  }, [resourceId]);
 
   useEffect(() => {
     if (resourceType !== 'skill' || resourceId) return;
@@ -818,6 +832,13 @@ export const ResourceRegisterPage: React.FC<Props> = ({
             : {}),
           ...(resourceType === 'dataset' ? { datasetIsPublic: item.isPublic === true } : {}),
         }));
+        setLoadedResourceMeta({
+          status: item.status,
+          currentVersion: item.currentVersion,
+          hasWorkingDraft: item.hasWorkingDraft,
+          pendingPublishedUpdate: item.pendingPublishedUpdate,
+          workingDraftAuditTier: item.workingDraftAuditTier,
+        });
         if (resourceType === 'skill') {
           const root = String(item.skillRootPath || '').trim();
           if (root) setSkillRegisterTrack('mountable');
@@ -1237,20 +1258,35 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     }
     setLoading(true);
     try {
-      let id = resourceId;
       const payload = buildPayload();
-      if (resourceId) {
-        const updated = await resourceCenterService.update(resourceId, payload);
-        id = updated.id;
-      } else {
-        const created = await resourceCenterService.create(payload);
-        id = created.id;
-      }
+      let lastItem = resourceId
+        ? await resourceCenterService.update(resourceId, payload)
+        : await resourceCenterService.create(payload);
+      const id = lastItem.id;
       if (submitAfterSave && id) {
-        const submitted = await resourceCenterService.submit(id);
-        showMessage(submitted.statusHint || '保存并提审成功（状态 pending_review）', 'success');
+        lastItem = await resourceCenterService.submit(id);
+        setLoadedResourceMeta({
+          status: lastItem.status,
+          currentVersion: lastItem.currentVersion,
+          hasWorkingDraft: lastItem.hasWorkingDraft,
+          pendingPublishedUpdate: lastItem.pendingPublishedUpdate,
+          workingDraftAuditTier: lastItem.workingDraftAuditTier,
+        });
+        showMessage(lastItem.statusHint || (lastItem.status === 'published' ? '已处理提交（详见提示）' : '保存并提审成功'), 'success');
       } else {
-        showMessage('保存成功', 'success');
+        setLoadedResourceMeta({
+          status: lastItem.status,
+          currentVersion: lastItem.currentVersion,
+          hasWorkingDraft: lastItem.hasWorkingDraft,
+          pendingPublishedUpdate: lastItem.pendingPublishedUpdate,
+          workingDraftAuditTier: lastItem.workingDraftAuditTier,
+        });
+        showMessage(
+          resourceId && lastItem.status === 'published'
+            ? '草稿已保存：线上默认解析版本尚未合并，请稍后「保存并提审」。'
+            : '保存成功',
+          'success',
+        );
       }
       onBack();
     } catch (err) {
@@ -1299,6 +1335,29 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       contentScroll="document"
     >
       <div className="px-4 sm:px-6 pb-8">
+        {resourceId && loadedResourceMeta?.status === 'published' ? (
+          <div
+            className={`mb-4 rounded-xl border px-3 py-2.5 text-sm leading-relaxed ${
+              isDark ? 'border-sky-500/35 bg-sky-500/10 text-sky-100' : 'border-sky-200 bg-sky-50 text-sky-950'
+            }`}
+          >
+            <p>
+              <span className="font-medium">双轨编辑：</span>线上默认解析版本为{' '}
+              <span className="font-mono">{loadedResourceMeta.currentVersion ?? '—'}</span>。本页保存的是<strong>登记草稿</strong>
+              ，不会立即改变网关对外的解析配置；完成后请使用「保存并提审」，审核通过后合并上线。
+            </p>
+            {loadedResourceMeta.pendingPublishedUpdate ? (
+              <p className={`mt-1.5 ${isDark ? 'text-amber-100' : 'text-amber-900'}`}>
+                当前有一条已发布变更正在审核；可先到资源列表撤回后再继续改草稿。
+              </p>
+            ) : null}
+            {loadedResourceMeta.workingDraftAuditTier ? (
+              <p className={`mt-1 text-xs ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                后端估算风险分级：{loadedResourceMeta.workingDraftAuditTier}（低风险且具备部门/平台管理员权限时可能免审直合）
+              </p>
+            ) : null}
+          </div>
+        ) : null}
         <div className={`${bentoCard(theme)} overflow-hidden`}>
           <div className="grid grid-cols-1 gap-3 p-4 md:grid-cols-2">
             <Field label="资源编码 *" theme={theme} error={fieldErrors.resourceCode} fieldId={rrFieldId('resourceCode')}>

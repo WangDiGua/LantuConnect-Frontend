@@ -223,6 +223,7 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
             )}
             {item.status !== 'pending_review' &&
               item.status !== 'testing' &&
+              item.status !== 'merged_live' &&
               !(item.status === 'published' && canPlatformForceDeprecate) && (
               <span className={`text-xs ${textMuted(theme)}`}>无可执行动作</span>
             )}

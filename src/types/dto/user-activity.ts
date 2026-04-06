@@ -65,7 +65,7 @@ export interface MyPublishItem {
   displayName: string;
   description: string;
   icon: string | null;
-  status: 'draft' | 'pending_review' | 'testing' | 'published' | 'rejected' | 'deprecated';
+  status: 'draft' | 'pending_review' | 'testing' | 'published' | 'rejected' | 'deprecated' | 'merged_live';
   callCount: number;
   qualityScore: number;
   createTime: string;

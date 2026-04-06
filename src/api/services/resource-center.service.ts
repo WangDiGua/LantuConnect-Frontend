@@ -28,6 +28,7 @@ function normalizeStatus(raw: unknown): ResourceCenterItemVO['status'] {
   if (value === 'published') return 'published';
   if (value === 'rejected') return 'rejected';
   if (value === 'deprecated') return 'deprecated';
+  if (value === 'merged_live') return 'merged_live';
   return 'draft';
 }
 
@@ -223,6 +224,12 @@ function toResourceItem(raw: any): ResourceCenterItemVO {
     lastReviewTime: raw?.lastReviewTime != null ? String(raw.lastReviewTime) : undefined,
     allowedActions: Array.isArray(raw?.allowedActions) ? raw.allowedActions.map((a: unknown) => String(a)) : undefined,
     statusHint: raw?.statusHint != null ? String(raw.statusHint) : undefined,
+    hasWorkingDraft: raw?.hasWorkingDraft === true,
+    workingDraftUpdatedAt:
+      raw?.workingDraftUpdatedAt != null ? String(raw.workingDraftUpdatedAt) : undefined,
+    workingDraftAuditTier:
+      raw?.workingDraftAuditTier != null ? String(raw.workingDraftAuditTier) : undefined,
+    pendingPublishedUpdate: raw?.pendingPublishedUpdate === true,
     healthStatus: raw?.healthStatus != null ? String(raw.healthStatus) : undefined,
     circuitState: raw?.circuitState != null ? String(raw.circuitState) : undefined,
     degradationCode: raw?.degradationCode != null ? String(raw.degradationCode) : undefined,

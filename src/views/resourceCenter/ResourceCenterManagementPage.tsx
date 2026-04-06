@@ -70,11 +70,15 @@ function isActionAllowed(item: ResourceCenterItemVO, action: string): boolean {
   const s = item.status;
   switch (action) {
     case 'update':
-      return s === 'draft' || s === 'rejected' || s === 'deprecated';
+      return s === 'draft' || s === 'rejected' || s === 'deprecated' || s === 'published';
     case 'submit':
-      return s === 'draft' || s === 'rejected' || s === 'deprecated';
+      return s === 'draft' || s === 'rejected' || s === 'deprecated' || s === 'published';
     case 'withdraw':
-      return s === 'pending_review' || s === 'testing';
+      return (
+        s === 'pending_review' ||
+        s === 'testing' ||
+        (s === 'published' && Boolean(item.pendingPublishedUpdate))
+      );
     case 'deprecate':
       return s === 'testing' || s === 'published';
     case 'delete':
@@ -294,14 +298,16 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
 
   const canApplyVersionSnapshotToWorkingCopy = useMemo(() => {
     if (versionTarget == null) return false;
+    if (versionTarget.pendingPublishedUpdate) return false;
     const st = String(versionTarget.status ?? '').trim().toLowerCase();
-    return !['published', 'pending_review'].includes(st);
+    return st !== 'pending_review';
   }, [versionTarget]);
 
   const writeBackBlockedByMainStatus = useMemo(() => {
     if (versionTarget == null) return false;
+    if (versionTarget.pendingPublishedUpdate) return true;
     const st = String(versionTarget.status ?? '').trim().toLowerCase();
-    return ['published', 'pending_review'].includes(st);
+    return st === 'pending_review';
   }, [versionTarget]);
 
   const applyWriteBackDisabled =
@@ -321,8 +327,10 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
         await resourceCenterService.applyVersionToWorkingCopy(versionTarget.id, versionLabel);
         showMessage(
           openEditorAfter
-            ? `版本 ${versionLabel} 已写回主资源，正在打开登记页`
-            : `已将版本 ${versionLabel} 快照写回主资源，可在列表点「编辑」后继续提审/发布`,
+            ? `版本 ${versionLabel} 已写入登记草稿，正在打开登记页`
+            : versionTarget.status === 'published'
+              ? `版本 ${versionLabel} 已写入登记草稿（已发布资源在审核通过前不影响线上默认解析）`
+              : `已将版本 ${versionLabel} 快照写回主资源，可在列表点「编辑」后继续提审/发布`,
           'success',
         );
         await fetchData();
@@ -537,7 +545,9 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                           </span>
                           <AccessPolicyBadge theme={theme} value={item.accessPolicy} />
                           <span className={`text-xs ${textMuted(theme)}`}>
-                            {nullDisplay(item.resourceCode)} · {nullDisplay(item.currentVersion, 'v1')}
+                            {nullDisplay(item.resourceCode)} · 线上 {nullDisplay(item.currentVersion, '—')}
+                            {item.status === 'published' && item.hasWorkingDraft ? ' · 草稿已保存' : ''}
+                            {item.status === 'published' && item.pendingPublishedUpdate ? ' · 变更待审核' : ''}
                             {item.sourceType ? ` · ${item.sourceType}` : ''}
                             {item.ownerName ? ` · ${item.ownerName}` : ''}
                           </span>
@@ -675,7 +685,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                             onClick={() => setConfirmAction({ id: item.id, type: 'deprecate' })}
                             className={mgmtTableActionGhost(theme)}
                           >
-                            {runningActionKey === `deprecate-${item.id}` ? '下线中…' : '下线'}
+                            {runningActionKey === `deprecate-${item.id}` ? '处理中…' : '暂停对外'}
                           </button>
                         )}
                         {isActionAllowed(item, 'delete') && (
@@ -752,13 +762,13 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
             >
               <p className={textSecondary(theme)}>
                 <span className="font-medium text-slate-900 dark:text-slate-100">版本在做什么：</span>
-                新建版本会把<strong className="font-medium">当时主资源上的配置</strong>打成快照存入历史，便于<strong>回退默认版本</strong>；<strong>不会</strong>自动生成「可编辑副本」。
-                列表中每条 active 版本可使用<strong className="font-medium">写回登记</strong>，将快照合并到主资源后再编辑（已发布 / 待审核时需先下线或审结）。
+                新建版本会把<strong className="font-medium">当时线上默认解析用的配置</strong>打成快照存入历史，便于<strong>回退默认版本</strong>；<strong>不会</strong>自动生成「可编辑副本」。
+                列表中每条 active 版本可使用<strong className="font-medium">写回登记</strong>：对已发布资源写入<strong>登记草稿</strong>（不影响线上解析，需保存后提交审核合并）；待首次提审（pending_review）时请先审结或撤回。
               </p>
               {versionTarget.status === 'published' && (
                 <p className={`mt-2 ${isDark ? 'text-amber-200/95' : 'text-amber-900'}`}>
                   <span className="font-medium">若要改 URL、说明等再继续上架：</span>
-                  请先在列表对该资源点「下线」进入可编辑态 → 点「编辑」修改 → 再提交审核并发布。快照与「设为当前」仅影响<strong>默认解析版本</strong>，不能替代这一流程。
+                  若需将整个资源改为可任意编辑的 deprecated 态，可在列表点「暂停对外」。日常改版推荐：直接点「编辑」改<strong>草稿</strong>并「保存并提审」。快照与「设为当前」仅影响<strong>默认解析版本</strong>。
                 </p>
               )}
               {versionTarget.status === 'testing' && (
@@ -811,8 +821,9 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                 }`}
               >
                 <span className="font-medium">写回按钮当前不可点：</span>
-                主资源状态为「{statusLabel(versionTarget.status)}」（已发布或待审核）时，写回登记会与上架规则冲突。
-                请先在列表对该资源点「下线」或等待审核结束，再打开本窗口写回。
+                {versionTarget.pendingPublishedUpdate
+                  ? '已发布变更正在审核中，请先等待审结或撤回后再写回版本快照。'
+                  : `主资源为「${statusLabel(versionTarget.status)}」且处于待审流程时不可写回。请等待审结或撤回到可编辑态。`}
               </p>
             )}
             <div className="space-y-2">
@@ -886,8 +897,8 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                               type="button"
                               title={
                                 canApplyVersionSnapshotToWorkingCopy
-                                  ? '将该版本快照合并到主资源，随后在列表点「编辑」继续改'
-                                  : '已发布或待审核中的资源请先在列表「下线」或等待审核结束'
+                                  ? '将该版本快照写入登记草稿（已发布时保存后不影响线上）'
+                                  : '待审核中或已有待审的已发布变更时不可写回'
                               }
                               disabled={applyWriteBackDisabled}
                               onClick={() => void runApplyVersionToWorkingCopy(ver.version, false)}
@@ -899,8 +910,8 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                               type="button"
                               title={
                                 canApplyVersionSnapshotToWorkingCopy
-                                  ? '写回主资源并打开登记页'
-                                  : '已发布或待审核中的资源请先在列表「下线」或等待审核结束'
+                                  ? '写入草稿并打开登记页'
+                                  : '待审核中或已有待审的已发布变更时不可写回'
                               }
                               disabled={applyWriteBackDisabled}
                               onClick={() => void runApplyVersionToWorkingCopy(ver.version, true)}
@@ -1115,19 +1126,19 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
       )}
       <ConfirmDialog
         open={!!confirmAction}
-        title={confirmAction?.type === 'remove' ? '删除资源' : confirmAction?.type === 'deprecate' ? '下线资源' : '撤回审核'}
+        title={confirmAction?.type === 'remove' ? '删除资源' : confirmAction?.type === 'deprecate' ? '暂停对外开放' : '撤回审核'}
         message={
           confirmAction?.type === 'remove'
             ? '确认删除该草稿资源？删除后不可恢复。'
             : confirmAction?.type === 'deprecate'
-              ? '确认将该资源下线为 deprecated 状态？'
+              ? '确认将资源标记为 deprecated（暂停对外，历史版本数据保留）？'
               : '确认将该资源撤回到草稿状态？'
         }
         confirmText={
           confirmAction?.type === 'remove'
             ? '确认删除'
             : confirmAction?.type === 'deprecate'
-              ? '确认下线'
+              ? '确认暂停对外'
               : '确认撤回'
         }
         variant={confirmAction?.type === 'withdraw' ? 'warning' : 'danger'}
@@ -1145,7 +1156,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
             void runMutationAction(actionKey, () => resourceCenterService.deprecate(id), '已下线').finally(() => setConfirmAction(null));
             return;
           }
-          void runMutationAction(actionKey, () => resourceCenterService.withdraw(id), '已撤回到草稿').finally(() => setConfirmAction(null));
+          void runMutationAction(actionKey, () => resourceCenterService.withdraw(id), '已撤回').finally(() => setConfirmAction(null));
         }}
       />
       <Modal

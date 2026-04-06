@@ -231,16 +231,16 @@ export const mgmtTableActionDanger =
    Status Badges
    ═══════════════════════════════════════════ */
 
-export type DomainStatus = 'draft' | 'pending_review' | 'testing' | 'published' | 'rejected' | 'deprecated' | 'active' | 'inactive';
+export type DomainStatus = 'draft' | 'pending_review' | 'testing' | 'published' | 'rejected' | 'deprecated' | 'merged_live' | 'active' | 'inactive';
 
 const STATUS_LABEL: Record<DomainStatus, string> = {
   draft: '草稿', pending_review: '待审核', testing: '测试中', published: '已发布',
-  rejected: '已驳回', deprecated: '已废弃', active: '启用', inactive: '停用',
+  rejected: '已驳回', deprecated: '已废弃', merged_live: '已合并上线', active: '启用', inactive: '停用',
 };
 
 const STATUS_DOT: Record<DomainStatus, string> = {
   draft: 'bg-neutral-400', pending_review: 'bg-amber-400', testing: 'bg-blue-400', published: 'bg-emerald-400',
-  rejected: 'bg-red-400', deprecated: 'bg-orange-400', active: 'bg-emerald-400', inactive: 'bg-neutral-400',
+  rejected: 'bg-red-400', deprecated: 'bg-orange-400', merged_live: 'bg-teal-400', active: 'bg-emerald-400', inactive: 'bg-neutral-400',
 };
 
 const STATUS_COLOR: Record<DomainStatus, { light: string; dark: string }> = {
@@ -250,6 +250,7 @@ const STATUS_COLOR: Record<DomainStatus, { light: string; dark: string }> = {
   published:      { light: 'bg-emerald-50 text-emerald-700 border border-emerald-200/60', dark: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' },
   rejected:       { light: 'bg-red-50 text-red-700 border border-red-200/60',             dark: 'bg-red-500/10 text-red-400 border border-red-500/20' },
   deprecated:     { light: 'bg-orange-50 text-orange-700 border border-orange-200/60',     dark: 'bg-orange-500/10 text-orange-400 border border-orange-500/20' },
+  merged_live:    { light: 'bg-teal-50 text-teal-800 border border-teal-200/60',           dark: 'bg-teal-500/10 text-teal-300 border border-teal-500/25' },
   active:         { light: 'bg-emerald-50 text-emerald-700 border border-emerald-200/60', dark: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' },
   inactive:       { light: 'bg-neutral-100 text-neutral-700 border border-neutral-200/60', dark: 'bg-neutral-500/10 text-neutral-400 border border-neutral-500/20' },
 };

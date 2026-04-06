@@ -10,7 +10,9 @@ export type ResourceStatus =
   | 'testing'
   | 'published'
   | 'rejected'
-  | 'deprecated';
+  | 'deprecated'
+  /** 审核队列表：已发布资源变更已合并至线上 */
+  | 'merged_live';
 
 export interface ResourceCenterListQuery {
   page?: number;
@@ -212,6 +214,13 @@ export interface ResourceCenterItemVO {
   lastReviewTime?: string;
   allowedActions?: string[];
   statusHint?: string;
+  /** 已发布资源：是否存在未提审的工作副本（t_resource_draft） */
+  hasWorkingDraft?: boolean;
+  workingDraftUpdatedAt?: string;
+  /** low | medium | high */
+  workingDraftAuditTier?: string;
+  /** 已发布资源：是否有待审核的线上变更 */
+  pendingPublishedUpdate?: boolean;
   healthStatus?: string;
   circuitState?: string;
   degradationCode?: string;

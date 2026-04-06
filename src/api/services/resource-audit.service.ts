@@ -15,6 +15,7 @@ function normalizeStatus(raw: unknown): ResourceAuditItemVO['status'] {
   if (value === 'published') return 'published';
   if (value === 'rejected') return 'rejected';
   if (value === 'deprecated') return 'deprecated';
+  if (value === 'merged_live') return 'merged_live';
   return 'pending_review';
 }
 

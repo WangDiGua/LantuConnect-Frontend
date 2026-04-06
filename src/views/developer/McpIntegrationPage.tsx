@@ -28,6 +28,8 @@ import {
 } from '../../utils/uiClasses';
 import { buildPath, buildUserResourceMarketUrl } from '../../constants/consoleRoutes';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
+import { useAuthStore } from '../../stores/authStore';
+import { isCatalogMcpCallable } from '../../utils/catalogObservability';
 
 export interface McpIntegrationPageProps {
   theme: Theme;
@@ -45,12 +47,25 @@ function buildPublicApiBaseUrl(): string {
   return base;
 }
 
+function normAccessPolicy(policy?: string): string {
+  return (policy ?? '').toLowerCase().replace(/-/g, '_');
+}
+
 function accessPolicyLabel(policy?: string): string {
-  const p = (policy ?? '').toLowerCase().replace(/-/g, '_');
+  const p = normAccessPolicy(policy);
   if (p === 'open_platform') return '开放平台（通常可免 Grant）';
   if (p === 'open_org') return '组织内（同组织可短路）';
   if (p === 'grant_required' || !p) return '须显式授权（Grant）';
   return policy || '须显式授权（Grant）';
+}
+
+function isOpenPlatformPolicy(policy?: string): boolean {
+  return normAccessPolicy(policy) === 'open_platform';
+}
+
+function isResourceOwner(createdBy: number | null | undefined, userId: string | null | undefined): boolean {
+  if (userId == null || String(userId).trim() === '' || createdBy == null) return false;
+  return String(createdBy) === String(userId);
 }
 
 function CopyTextBtn({
@@ -87,13 +102,18 @@ function CopyTextBtn({
 }
 
 type McpRow = ResourceCatalogItemVO & {
-  /** 仅当 Grant 列表已成功拉取后可信；加载中或失败时勿用于断言授权 */
+  /** 导出用：开放平台 / 本人资源视为可按策略调用，不强制 Grant */
   hasGrantForKey: boolean;
+  /** Grant 列表返回中是否含该 resource（不含开放平台/本人兜底） */
+  rawHasGrantForKey: boolean;
+  isOwnerResource: boolean;
+  isOpenPlatformPolicy: boolean;
   policyLabel: string;
 };
 
 export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, fontSize }) => {
   const navigate = useNavigate();
+  const user = useAuthStore((s) => s.user);
   const isDark = theme === 'dark';
   const apiBaseUrl = useMemo(() => buildPublicApiBaseUrl(), []);
   const mcpMessagePathTemplate = useMemo(
@@ -110,6 +130,8 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
   const [grantsLoading, setGrantsLoading] = useState(false);
   const [grantsError, setGrantsError] = useState<string | null>(null);
   const [selectedExportIds, setSelectedExportIds] = useState<Set<string>>(new Set());
+  /** 与网关 `isCatalogMcpCallable` 一致：仅列出健康非熔断等可调用项 */
+  const [onlyShowCallable, setOnlyShowCallable] = useState(true);
   /** 递增以在选中 Key 不变时手动重试 Grant 请求 */
   const [grantFetchNonce, setGrantFetchNonce] = useState(0);
 
@@ -247,19 +269,39 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
     return s;
   }, [grants]);
 
+  const filteredMcpList = useMemo(() => {
+    if (!onlyShowCallable) return mcpList;
+    return mcpList.filter(isCatalogMcpCallable);
+  }, [mcpList, onlyShowCallable]);
+
   const tableRows: McpRow[] = useMemo(
     () =>
-      mcpList.map((m) => ({
-        ...m,
-        hasGrantForKey: grantsReliable ? grantResourceIdSet.has(m.resourceId) : false,
-        policyLabel: accessPolicyLabel(m.accessPolicy),
-      })),
-    [mcpList, grantResourceIdSet, grantsReliable],
+      filteredMcpList.map((m) => {
+        const isOpen = isOpenPlatformPolicy(m.accessPolicy);
+        const isOwner = isResourceOwner(m.createdBy, user?.id);
+        const rawHasGrantForKey = grantsReliable && grantResourceIdSet.has(m.resourceId);
+        const hasGrantForKey = isOpen || isOwner || rawHasGrantForKey;
+        return {
+          ...m,
+          hasGrantForKey,
+          rawHasGrantForKey,
+          isOwnerResource: isOwner,
+          isOpenPlatformPolicy: isOpen,
+          policyLabel: accessPolicyLabel(m.accessPolicy),
+        };
+      }),
+    [filteredMcpList, grantResourceIdSet, grantsReliable, user?.id],
   );
 
+  /** 仅当存在「须 Grant 且非本人资源」的目录项、且 Key 上无任何 Grant 时提示去申请 */
+  const showNoGrantFooter = useMemo(() => {
+    if (!grantsReliable || !selectedKeyId.trim() || tableRows.length === 0 || grants.length > 0) return false;
+    return tableRows.some((r) => !r.isOwnerResource && !r.isOpenPlatformPolicy);
+  }, [grantsReliable, selectedKeyId, tableRows, grants.length]);
+
   useEffect(() => {
-    setSelectedExportIds(new Set(mcpList.map((m) => m.resourceId)));
-  }, [mcpList]);
+    setSelectedExportIds(new Set(filteredMcpList.map((m) => m.resourceId)));
+  }, [filteredMcpList]);
 
   const toggleExportId = useCallback((id: string) => {
     setSelectedExportIds((prev) => {
@@ -399,7 +441,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
           </h2>
           <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
             AI 门户或集成服务应直接请求下列地址（与「刷新 MCP 目录」、Grant 列使用相同后端能力）。分页请按总条数递增 <span className="font-mono">page</span>
-            ；未列出更多页时默认只展示前 100 条，与当前控制台策略一致。
+            ；未列出更多页时默认只展示前 100 条，与当前控制台策略一致。拉取后请按目录项 <span className="font-mono">observability</span>（或与本页「仅显示健康可调用」相同的判定）过滤，避免集成故障或熔断中的服务。
           </p>
 
           <div className="space-y-3">
@@ -506,10 +548,23 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
                 <div>
                   <h3 className={`text-sm font-bold ${textPrimary(theme)}`}>已发布 MCP 与授权标签</h3>
                   <p className={`text-xs mt-0.5 ${textMuted(theme)}`}>
-                    「策略」来自目录 accessPolicy；「Grant」表示当前 Key 上存在生效的 invoke 授权。开放策略仍可能受 scope / 发布状态约束。
+                    「策略」来自目录 accessPolicy；「Grant」对须授权资源表示当前 Key 是否有 invoke Grant。目录创建者为当前登录用户时显示「自有资源」；开放平台策略不展示「未授权」，导出 JSON 中 hasGrantForKey 视为可按策略调用。
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center gap-3">
+                  <label
+                    className={`inline-flex items-center gap-2 text-xs cursor-pointer select-none ${
+                      isDark ? 'text-slate-300' : 'text-slate-600'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      className="rounded border-slate-300 h-3.5 w-3.5 shrink-0 cursor-pointer accent-neutral-900"
+                      checked={onlyShowCallable}
+                      onChange={(e) => setOnlyShowCallable(e.target.checked)}
+                    />
+                    仅显示健康可调用
+                  </label>
                   <button type="button" className={btnSecondary(theme)} onClick={selectAllExport}>
                     全选导出
                   </button>
@@ -540,7 +595,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
                 </div>
               ) : null}
 
-              {tableRows.length === 0 ? (
+              {mcpList.length === 0 ? (
                 <div className="px-4 py-8 space-y-2">
                   <p className={`text-sm ${textMuted(theme)}`}>目录中暂无已发布 MCP。</p>
                   <button
@@ -550,6 +605,19 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
                   >
                     <ExternalLink size={14} className="inline mr-1" aria-hidden />
                     去 MCP 中心逛逛
+                  </button>
+                </div>
+              ) : tableRows.length === 0 ? (
+                <div className="px-4 py-8 space-y-3">
+                  <p className={`text-sm ${textMuted(theme)}`}>
+                    当前勾选「仅显示健康可调用」时，暂无满足条件的已发布 MCP（例如健康探测故障或熔断未恢复）。
+                  </p>
+                  <button
+                    type="button"
+                    className={btnSecondary(theme)}
+                    onClick={() => setOnlyShowCallable(false)}
+                  >
+                    显示全部目录项
                   </button>
                 </div>
               ) : (
@@ -604,7 +672,23 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
                             <td className={`px-3 py-2 align-middle font-mono text-xs ${textPrimary(theme)}`}>{row.resourceId}</td>
                             <td className={`px-3 py-2 align-middle text-xs ${textSecondary(theme)} max-w-[200px]`}>{row.policyLabel}</td>
                             <td className="px-3 py-2 align-middle">
-                              {grantsLoading ? (
+                              {row.isOwnerResource ? (
+                                <span
+                                  className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                                    isDark ? 'bg-emerald-500/20 text-emerald-300' : 'bg-emerald-50 text-emerald-800'
+                                  }`}
+                                >
+                                  自有资源
+                                </span>
+                              ) : row.isOpenPlatformPolicy ? (
+                                <span
+                                  className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                                    isDark ? 'bg-sky-500/20 text-sky-200' : 'bg-sky-50 text-sky-900'
+                                  }`}
+                                >
+                                  开放平台（可免 Grant）
+                                </span>
+                              ) : grantsLoading ? (
                                 <span className={`text-xs ${textMuted(theme)}`} aria-busy>
                                   …
                                 </span>
@@ -613,7 +697,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
                               ) : (
                                 <span
                                   className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                                    row.hasGrantForKey
+                                    row.rawHasGrantForKey
                                       ? isDark
                                         ? 'bg-emerald-500/20 text-emerald-300'
                                         : 'bg-emerald-50 text-emerald-800'
@@ -622,7 +706,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
                                         : 'bg-slate-100 text-slate-700'
                                   }`}
                                 >
-                                  {row.hasGrantForKey ? '已授权' : '未授权'}
+                                  {row.rawHasGrantForKey ? '已授权' : '未授权'}
                                 </span>
                               )}
                             </td>
@@ -647,9 +731,9 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
               )}
             </div>
 
-            {grantsReliable && tableRows.length > 0 && grants.length === 0 && selectedKeyId ? (
+            {showNoGrantFooter ? (
               <p className={`text-xs ${textMuted(theme)}`}>
-                当前 Key 在 MCP 上尚无生效 Grant；若资源策略为 grant_required，请通过工单或资源拥有者授权。
+                当前 Key 在须授权的 MCP 上尚无生效 Grant；若资源策略为 grant_required，请通过工单或资源拥有者授权。
                 <button
                   type="button"
                   className={`ml-1 underline font-medium ${textPrimary(theme)}`}

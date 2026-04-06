@@ -55,7 +55,9 @@ export const KpiCard: React.FC<Props> = ({
       </div>
 
       <div className="flex items-end gap-3">
-        <span className={`text-3xl font-bold tracking-tight ${textPrimary(theme)}`}>
+        <span
+          className={`text-3xl font-bold tracking-tight tabular-nums min-h-[2.25rem] inline-block ${textPrimary(theme)}`}
+        >
           {typeof value === 'number' ? value.toLocaleString() : value}
         </span>
         {trend !== undefined && (

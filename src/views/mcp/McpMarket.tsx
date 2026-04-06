@@ -57,6 +57,13 @@ import {
   catalogViewCountValue,
   formatMarketMetric,
 } from '../../utils/marketMetrics';
+import {
+  catalogItemCircuitState,
+  catalogItemHealthStatus,
+  isCatalogMcpCallable,
+  mcpInvokeBlockedReason,
+} from '../../utils/catalogObservability';
+import { circuitBreakerLabelZh, resourceHealthBadgeClass, resourceHealthLabelZh } from '../../utils/backendEnumLabels';
 
 interface Props {
   theme: Theme;
@@ -106,6 +113,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
         page: 1,
         pageSize: 100,
         tags: tagFilter ? [tagFilter] : undefined,
+        include: 'observability',
       });
       setRows(data.list);
     } catch (err) {
@@ -128,7 +136,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
     setDetailPageLoading(true);
     setDetailPageError(null);
     try {
-      const row = await resourceCatalogService.getByTypeAndId('mcp', ridKey);
+      const row = await resourceCatalogService.getByTypeAndId('mcp', ridKey, 'observability');
       setDetail(row);
     } catch (e) {
       setDetail(null);
@@ -294,6 +302,10 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
         </div>
       );
     }
+    const mcpCallable = isCatalogMcpCallable(detail);
+    const mcpBlockReason = mcpInvokeBlockedReason(detail);
+    const detailHealthKey = catalogItemHealthStatus(detail) ?? 'unknown';
+    const detailCircuit = catalogItemCircuitState(detail);
     return (
       <>
         <ResourceMarketDetailShell
@@ -313,6 +325,17 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                     <span className={statusDot(detail.status ?? 'unknown')} />
                     {statusLabel(detail.status)}
                   </span>
+                  <span
+                    className={`inline-flex items-center rounded-lg border px-2 py-0.5 text-xs font-semibold ${resourceHealthBadgeClass(theme, detailHealthKey)}`}
+                    title="与健康检查配置及最近一次探测结果一致；故障时网关将拒绝 invoke"
+                  >
+                    运行 {resourceHealthLabelZh(detailHealthKey)}
+                  </span>
+                  {detailCircuit && detailCircuit !== 'unknown' && detailCircuit !== 'closed' ? (
+                    <span className="opacity-90" title="熔断器状态">
+                      · {circuitBreakerLabelZh(detailCircuit)}
+                    </span>
+                  ) : null}
                   <span className="inline-flex items-center gap-0.5 tabular-nums">
                     <Star size={12} className="text-amber-500" aria-hidden />
                     {detail.ratingAvg != null ? detail.ratingAvg.toFixed(1) : '—'}
@@ -342,6 +365,20 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
           onTabChange={(id) => setDetailTab(id as McpDetailTab)}
           mainColumn={(
             <div className="space-y-5">
+              {!mcpCallable ? (
+                <div
+                  role="alert"
+                  className={`rounded-2xl border px-4 py-3 text-sm leading-relaxed ${
+                    isDark ? 'border-rose-500/35 bg-rose-500/10 text-rose-100' : 'border-rose-200 bg-rose-50 text-rose-950'
+                  }`}
+                >
+                  <p className="font-semibold">当前 MCP 不可通过网关调用</p>
+                  <p className={`mt-1 text-xs ${isDark ? 'text-rose-100/85' : 'text-rose-900/85'}`}>{mcpBlockReason}</p>
+                  <p className={`mt-2 text-xs ${isDark ? 'text-rose-100/70' : 'text-rose-900/70'}`}>
+                    您仍可查看服务说明与评论；待运行恢复或熔断闭合后，「工具测试」将自动可用。
+                  </p>
+                </div>
+              ) : null}
               <p className={`text-xs ${textMuted(theme)}`}>
                 {detailTab === 'service'
                   ? '当前：服务详情（Markdown）'
@@ -369,6 +406,8 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                   loadMcpDetailByPath={loadMcpDetailByPath}
                   detailPageLoading={detailPageLoading}
                   showMessage={showMessage}
+                  invokeDisabled={!mcpCallable}
+                  invokeDisabledReason={mcpBlockReason}
                 />
               ) : detailTab === 'reviews' ? (
                 <div className={`rounded-2xl border p-4 ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-slate-50/60'}`}>
@@ -639,14 +678,19 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
               <div className={`py-16 text-center text-sm ${textMuted(theme)}`}>暂无可用 MCP 资源</div>
             ) : (
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {filtered.map((item) => (
+                {filtered.map((item) => {
+                  const mcpCallableRow = isCatalogMcpCallable(item);
+                  const mcpBlockReasonRow = mcpInvokeBlockedReason(item);
+                  const healthKeyRow = catalogItemHealthStatus(item) ?? 'unknown';
+                  const circuitRow = catalogItemCircuitState(item);
+                  return (
                   <BentoCard
                     key={item.resourceId}
                     theme={theme}
                     hover
                     glow="indigo"
                     padding="md"
-                    className="flex h-full flex-col"
+                    className={`flex h-full flex-col ${!mcpCallableRow ? (isDark ? 'opacity-[0.92]' : 'opacity-95') : ''}`}
                     onClick={() => navigate(buildPath('user', 'mcp-center', item.resourceId))}
                   >
                     <MarketplaceListingCard
@@ -665,6 +709,16 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                       )}
                       metaRow={(
                         <>
+                          <span
+                            className={`inline-flex max-w-[12rem] shrink-0 items-center truncate rounded-md border px-2 py-0.5 text-xs font-semibold ${resourceHealthBadgeClass(theme, healthKeyRow)}`}
+                            title={
+                              (circuitRow && circuitRow !== 'unknown' && circuitRow !== 'closed'
+                                ? `${circuitBreakerLabelZh(circuitRow)} · `
+                                : '') + '与健康探测一致；故障或熔断时网关拒绝调用'
+                            }
+                          >
+                            运行 {resourceHealthLabelZh(healthKeyRow)}
+                          </span>
                           {(item.tags ?? []).slice(0, 5).map((tg) => (
                             <span
                               key={tg}
@@ -715,18 +769,22 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                       primaryAction={(
                         <button
                           type="button"
-                          className={`${btnPrimary} !px-3 !py-1.5 !text-xs`}
+                          className={`${btnPrimary} !px-3 !py-1.5 !text-xs disabled:cursor-not-allowed disabled:opacity-45`}
+                          disabled={!mcpCallableRow}
+                          title={!mcpCallableRow ? mcpBlockReasonRow : '查看服务说明或发起工具测试'}
                           onClick={(e) => {
                             e.stopPropagation();
+                            if (!mcpCallableRow) return;
                             navigate(buildPath('user', 'mcp-center', item.resourceId));
                           }}
                         >
-                          查看与使用
+                          {mcpCallableRow ? '查看与使用' : '暂不可调用'}
                         </button>
                       )}
                     />
                   </BentoCard>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

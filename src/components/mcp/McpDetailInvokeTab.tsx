@@ -43,6 +43,9 @@ export type McpDetailInvokeTabProps = {
   loadMcpDetailByPath: () => Promise<void>;
   detailPageLoading: boolean;
   showMessage?: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void;
+  /** 与健康/熔断一致：为 true 时禁用一切网关调用 UI */
+  invokeDisabled?: boolean;
+  invokeDisabledReason?: string;
 };
 
 export const McpDetailInvokeTab: React.FC<McpDetailInvokeTabProps> = ({
@@ -52,6 +55,8 @@ export const McpDetailInvokeTab: React.FC<McpDetailInvokeTabProps> = ({
   loadMcpDetailByPath,
   detailPageLoading,
   showMessage,
+  invokeDisabled = false,
+  invokeDisabledReason,
 }) => {
   const isDark = theme === 'dark';
   const connectAnchorRef = useRef<HTMLButtonElement>(null);
@@ -269,6 +274,7 @@ export const McpDetailInvokeTab: React.FC<McpDetailInvokeTabProps> = ({
   );
 
   const handleProtocolInvoke = useCallback(async () => {
+    if (invokeDisabled) return;
     const built = buildMcpInvokePayload(mcpPayloadMode, invokePayload, mcpMethod, mcpParamsJson);
     if (built.ok === false) {
       showMessage?.(built.message, 'warning');
@@ -312,6 +318,7 @@ export const McpDetailInvokeTab: React.FC<McpDetailInvokeTabProps> = ({
     mcpPayloadMode,
     runInvoke,
     showMessage,
+    invokeDisabled,
   ]);
 
   const connectSteps = useMemo(() => {
@@ -326,6 +333,7 @@ export const McpDetailInvokeTab: React.FC<McpDetailInvokeTabProps> = ({
   }, [skipInitializedNotification]);
 
   const handleConnectAndLoadTools = useCallback(async () => {
+    if (invokeDisabled) return;
     if (invokeUseStream) {
       showMessage?.('请先关闭「流式调用」后再使用自动连接', 'warning');
       return;
@@ -426,6 +434,7 @@ export const McpDetailInvokeTab: React.FC<McpDetailInvokeTabProps> = ({
     invokeUseStream,
     runInvoke,
     showMessage,
+    invokeDisabled,
   ]);
 
   const parsedArgumentsObject = useMemo((): Record<string, unknown> => {
@@ -453,6 +462,7 @@ export const McpDetailInvokeTab: React.FC<McpDetailInvokeTabProps> = ({
   }, [toolArgumentsJson]);
 
   const handleQuickCallTool = useCallback(async () => {
+    if (invokeDisabled) return;
     if (!selectedToolName.trim()) {
       showMessage?.('请先选择工具', 'warning');
       return;
@@ -507,6 +517,7 @@ export const McpDetailInvokeTab: React.FC<McpDetailInvokeTabProps> = ({
     selectedToolName,
     showMessage,
     toolArgumentsJson,
+    invokeDisabled,
   ]);
 
   const filteredTools = useMemo(() => {
@@ -566,7 +577,21 @@ export const McpDetailInvokeTab: React.FC<McpDetailInvokeTabProps> = ({
         当前：快速试用（自动握手 + 工具列表）与协议调试。建议使用同一 TraceId 贯穿调试。
       </p>
 
-      <div className={`rounded-2xl border p-4 ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-slate-50/60'}`}>
+      {invokeDisabled ? (
+        <div
+          role="status"
+          className={`rounded-2xl border px-4 py-3 text-sm leading-relaxed ${
+            isDark ? 'border-white/15 bg-white/[0.04] text-slate-200' : 'border-slate-200 bg-slate-100/80 text-slate-800'
+          }`}
+        >
+          {invokeDisabledReason || '当前资源不可通过网关调用。'}
+        </div>
+      ) : null}
+
+      <div
+        className={`rounded-2xl border p-4 ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-slate-50/60'} ${invokeDisabled ? 'pointer-events-none select-none opacity-45' : ''}`}
+        aria-hidden={invokeDisabled || undefined}
+      >
         <h3 className={`text-sm font-bold ${textPrimary(theme)}`}>鉴权与超时</h3>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <div className="sm:col-span-2">

@@ -13,6 +13,8 @@ import { KpiCard } from '../../components/common/KpiCard';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { resourceTypeLabel } from '../../constants/resourceTypes';
+import { useMessage } from '../../components/common/Message';
+import { subscribeRealtimePush, isHealthConfigUpdated } from '../../lib/realtimePush';
 
 interface Props {
   theme: Theme;
@@ -53,16 +55,18 @@ function toDisplayItem(item: HealthConfigItem): DisplayItem {
     type: item.agentType,
     status: mapHealthStatus(item.healthStatus),
     lastCheck: item.lastCheckTime,
-    checkType: item.checkType.toUpperCase(),
+    checkType: String(item.checkType).toUpperCase(),
     intervalSec: item.intervalSec,
   };
 }
 
 export const HealthCheckOverview: React.FC<Props> = ({ theme }) => {
   const isDark = theme === 'dark';
+  const { showMessage } = useMessage();
   const [items, setItems] = useState<DisplayItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<Error | null>(null);
+  const [liveSyncHint, setLiveSyncHint] = useState('');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -77,7 +81,28 @@ export const HealthCheckOverview: React.FC<Props> = ({ theme }) => {
     }
   }, []);
 
+  const fetchDataQuiet = useCallback(async () => {
+    try {
+      const configs = await healthService.listHealthConfigs();
+      setItems(configs.map(toDisplayItem));
+      setLoadError(null);
+    } catch {
+      /* 保留旧列表 */
+    }
+  }, []);
+
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  useEffect(() => {
+    return subscribeRealtimePush((msg) => {
+      if (!isHealthConfigUpdated(msg)) return;
+      void fetchDataQuiet();
+      const hint = '健康检查数据已通过实时通道更新';
+      setLiveSyncHint(hint);
+      showMessage(hint, 'info', 3000);
+      window.setTimeout(() => setLiveSyncHint(''), 4000);
+    });
+  }, [fetchDataQuiet, showMessage]);
 
   const healthyCount = items.filter(i => i.status === 'healthy').length;
   const warningCount = items.filter(i => i.status === 'degraded').length;
@@ -94,6 +119,9 @@ export const HealthCheckOverview: React.FC<Props> = ({ theme }) => {
           <div>
             <h2 className={`text-lg font-bold ${textPrimary(theme)}`}>健康检查</h2>
             <p className={`text-xs ${textSecondary(theme)}`}>监控已配置的健康检查项（智能体 / 技能 / MCP / 应用 / 数据集 等统一资源）</p>
+            <p className="min-h-[1.125rem] text-xs text-emerald-600/90 dark:text-emerald-400/90" aria-live="polite">
+              {liveSyncHint}
+            </p>
           </div>
         </div>
         <button
@@ -176,7 +204,7 @@ export const HealthCheckOverview: React.FC<Props> = ({ theme }) => {
                               </span>
                             </td>
                             <td className={tableCell()}>
-                              <span className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap px-2.5 py-0.5 rounded-full text-xs font-semibold ${isDark ? cfg.darkBg : cfg.lightBg}`}>
+                              <span className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${isDark ? cfg.darkBg : cfg.lightBg}`}>
                                 <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot} ${item.status === 'healthy' ? 'animate-pulse' : ''}`} />
                                 {cfg.label}
                               </span>

@@ -17,7 +17,12 @@ import type { AdminOverview, HealthSummary } from '../../types/dto/dashboard';
 import { DashboardLayout } from '../../components/layout/PageLayouts';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { RESOURCE_TYPE_LABEL, RESOURCE_TYPE_ORDER } from '../../constants/resourceTypes';
-import { healthDistributionSummaryZh } from '../../utils/backendEnumLabels';
+import { useMessage } from '../../components/common/Message';
+import {
+  subscribeRealtimePush,
+  isHealthConfigUpdated,
+  isCircuitStateChanged,
+} from '../../lib/realtimePush';
 
 interface OverviewProps { theme: Theme; fontSize: FontSize; }
 
@@ -44,6 +49,7 @@ function formatNum(n: number): string {
 export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }) => {
   const isDark = theme === 'dark';
   const navigate = useNavigate();
+  const { showMessage } = useMessage();
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<Error | null>(null);
@@ -73,7 +79,29 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
     }
   }, []);
 
+  const refreshHealthAndRealtimeQuiet = useCallback(async () => {
+    try {
+      const [rt, hs] = await Promise.allSettled([
+        dashboardService.getAdminRealtime(),
+        dashboardService.getHealthSummary(),
+      ]);
+      if (rt.status === 'fulfilled') setRealtime(rt.value);
+      if (hs.status === 'fulfilled') setHealthSummary(hs.value);
+      showMessage('监控与健康数据已同步', 'info', 2800);
+    } catch {
+      /* 静默失败，保留当前展示 */
+    }
+  }, [showMessage]);
+
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  useEffect(() => {
+    return subscribeRealtimePush((msg) => {
+      if (isHealthConfigUpdated(msg) || isCircuitStateChanged(msg)) {
+        void refreshHealthAndRealtimeQuiet();
+      }
+    });
+  }, [refreshHealthAndRealtimeQuiet]);
 
   const cardStatic = bentoCard(theme);
   const cardClick = `${bentoCardHover(theme)} cursor-pointer`;
@@ -136,7 +164,9 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
                   </span>
                 )}
               </div>
-              <div className={`text-2xl font-black ${tp}`}>{typeof kpi.value === 'number' ? formatNum(kpi.value) : kpi.value}</div>
+              <div className={`text-2xl font-black tabular-nums min-h-[2rem] ${tp}`}>
+                {typeof kpi.value === 'number' ? formatNum(kpi.value) : kpi.value}
+              </div>
               <div className={`text-xs font-medium mt-1 ${tm}`}>{kpi.label}</div>
             </motion.div>
           ))}
@@ -156,7 +186,7 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
                   <div className={`text-lg font-bold tabular-nums ${tp}`}>
                     {rt?.publishedResourceCounts?.[t] ?? '—'}
                   </div>
-                  <div className={`text-xs ${tm}`}>已登记资源</div>
+                  <div className={`text-[10px] ${tm}`}>已登记资源</div>
                 </div>
               ))}
             </div>
@@ -221,11 +251,7 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
               <div className={`rounded-lg p-3 ${isDark ? 'bg-white/[0.03]' : 'bg-slate-50'}`}>
                 <div className={`text-xs ${tm}`}>状态分布</div>
                 <div className={`mt-1 text-sm ${tp}`}>
-                  {healthDistributionSummaryZh({
-                    healthy: healthSummary.statusDistribution?.healthy ?? healthSummary.healthy,
-                    degraded: healthSummary.statusDistribution?.degraded ?? healthSummary.degraded,
-                    down: healthSummary.statusDistribution?.down ?? healthSummary.down,
-                  })}
+                  healthy: {healthSummary.statusDistribution?.healthy ?? healthSummary.healthy} / degraded: {healthSummary.statusDistribution?.degraded ?? healthSummary.degraded} / down: {healthSummary.statusDistribution?.down ?? healthSummary.down}
                 </div>
               </div>
               <div className={`rounded-lg p-3 ${isDark ? 'bg-white/[0.03]' : 'bg-slate-50'}`}>
@@ -322,7 +348,7 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
                   <div className="text-right">
                     <span className={`text-sm font-bold tabular-nums ${tp}`}>{formatNum(item.calls)}</span>
                     {item.successRate != null && item.successRate > 0 ? (
-                      <div className={`text-xs tabular-nums ${tm}`}>成功率 {item.successRate}%</div>
+                      <div className={`text-[10px] tabular-nums ${tm}`}>成功率 {item.successRate}%</div>
                     ) : null}
                   </div>
                 </div>

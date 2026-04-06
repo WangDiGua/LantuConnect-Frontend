@@ -241,7 +241,6 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
   );
   const [showApiKey, setShowApiKey] = useState(false);
   const [invokeTraceId, setInvokeTraceId] = useState(() => newTraceId());
-  const [invokeVersion, setInvokeVersion] = useState('');
   const [invokeTimeoutSec, setInvokeTimeoutSec] = useState(60);
   const [invokeResponse, setInvokeResponse] = useState<InvokeResponse | null>(null);
   const [invokeResultMessage, setInvokeResultMessage] = useState<string | null>(null);
@@ -334,7 +333,6 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
     setInvokeUseStream(false);
     setInvokeStreamOutput('');
     setInvokeTraceId(newTraceId());
-    setInvokeVersion('');
     setInvokeTimeoutSec(60);
     setInvokeResponse(null);
     setInvokeResultMessage(null);
@@ -394,6 +392,9 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
     }
     return map;
   }, [tagStatsRows]);
+
+  /** 与目录详情一致：发布者在资源中心「设为当前」的默认解析版本；为空则调用链路与「不指定版本」相同。 */
+  const invokeCatalogVersion = useMemo(() => (detail?.version ?? '').trim(), [detail?.version]);
 
   const listCountLabel = tagStatsRows.length;
 
@@ -554,7 +555,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
         resolved = await resourceCatalogService.resolve({
           resourceType: 'mcp',
           resourceId: detail.resourceId,
-          version: invokeVersion.trim() || undefined,
+          version: invokeCatalogVersion || undefined,
         }, { headers: { 'X-Api-Key': invokeApiKey.trim() } });
       } catch (e) {
         setInvokeResultError(`${mapInvokeFlowError(e, 'resolve')}\n可保留当前参数后重试解析`);
@@ -579,7 +580,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
       const requestPayload: InvokeRequest = {
         resourceType: 'mcp',
         resourceId: detail.resourceId,
-        version: invokeVersion.trim() || undefined,
+        version: invokeCatalogVersion || undefined,
         timeoutSec: invokeTimeoutSec,
         payload: built.payload,
       };
@@ -655,7 +656,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
     invokeTimeoutSec,
     invokeTraceId,
     invokeUseStream,
-    invokeVersion,
+    invokeCatalogVersion,
     showMessage,
     validateInvokeRequest,
   ]);
@@ -918,15 +919,29 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                   <p className={`mt-1 text-[11px] ${textMuted(theme)}`}>与网关 SSE 解析及 JSON-RPC id 对齐时可固定使用本值</p>
                 </div>
                 <div>
-                  <label className={`mb-1.5 block text-xs font-semibold ${textSecondary(theme)}`}>版本（可选）</label>
-                  <input
-                    type="text"
-                    value={invokeVersion}
-                    onChange={(e) => setInvokeVersion(e.target.value)}
-                    placeholder="v1"
-                    className={`${nativeInputClass(theme)} font-mono text-xs`}
-                  />
-                  <p className={`mt-1 text-[11px] ${textMuted(theme)}`}>不填则走后端默认版本</p>
+                  <label className={`mb-1.5 block text-xs font-semibold ${textSecondary(theme)}`}>解析版本</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={invokeCatalogVersion || '（目录未返回版本，将走网关默认）'}
+                      title={invokeCatalogVersion || undefined}
+                      className={`${nativeInputClass(theme)} min-w-0 flex-1 cursor-default font-mono text-xs ${!invokeCatalogVersion ? (isDark ? 'text-slate-500' : 'text-slate-500') : ''}`}
+                      aria-label="当前资源默认解析版本（与发布者启用版本一致）"
+                    />
+                    <button
+                      type="button"
+                      className={`${btnSecondary(theme)} shrink-0 !px-2.5`}
+                      title="重新加载资源详情，同步发布者最新默认版本"
+                      disabled={detailPageLoading}
+                      onClick={() => void loadMcpDetailByPath()}
+                    >
+                      <RefreshCw size={14} className={detailPageLoading ? 'animate-spin' : ''} />
+                    </button>
+                  </div>
+                  <p className={`mt-1 text-[11px] ${textMuted(theme)}`}>
+                    自动使用本页目录详情中的默认版本（发布者「设为当前」）；若为空则与不指定版本行为一致。
+                  </p>
                 </div>
                 <div>
                   <label className={`mb-1.5 block text-xs font-semibold ${textSecondary(theme)}`}>超时（秒）</label>

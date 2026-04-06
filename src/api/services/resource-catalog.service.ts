@@ -82,9 +82,10 @@ export function normalizeCatalogItem(row: unknown): ResourceCatalogItemVO {
 function normalizeCatalogDetail(raw: unknown): CatalogResourceDetailVO {
   const base = normalizeCatalogItem(raw);
   const x = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const versionRaw = x.version ?? x.currentVersion ?? x.current_version;
   const merged: CatalogResourceDetailVO = {
     ...base,
-    version: x.version == null ? undefined : String(x.version),
+    version: versionRaw == null || versionRaw === '' ? undefined : String(versionRaw),
     invokeType: x.invokeType == null && x.invoke_type == null ? undefined : String(x.invokeType ?? x.invoke_type),
     endpoint: x.endpoint == null ? undefined : String(x.endpoint),
     launchToken: x.launchToken == null && x.launch_token == null ? undefined : String(x.launchToken ?? x.launch_token),

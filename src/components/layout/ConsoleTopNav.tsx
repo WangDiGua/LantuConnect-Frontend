@@ -79,14 +79,14 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
     if (!USER_TOP_NAV_SVG_SET.has(item.id)) return null;
     const Icon = item.icon;
     if (reduceMotion) {
-      return <Icon size={18} className="shrink-0 opacity-90" aria-hidden />;
+      return <Icon size={20} className="shrink-0 opacity-90" aria-hidden />;
     }
     return (
       <NexusTopNavPrimaryAnimatedIcon
         sidebarId={item.id}
         isDark={isDark}
         motionActive={navItemActive}
-        className="h-[18px] w-[18px] shrink-0"
+        className="h-5 w-5 shrink-0"
       />
     );
   };
@@ -176,7 +176,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
 
       <nav
         aria-label="主导航"
-        className={`mx-1 hidden min-h-0 min-w-0 flex-1 items-center gap-0.5 overflow-x-auto lg:flex ${mainScrollCompositorClass} [scrollbar-width:thin]`}
+        className={`mx-1 hidden min-h-0 min-w-0 flex-1 items-center gap-1 overflow-x-auto lg:flex ${mainScrollCompositorClass} [scrollbar-width:thin]`}
       >
         {navPieces.map((piece, i) => {
           if (piece.kind === 'divider') {
@@ -212,10 +212,10 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
                 type="button"
                 onClick={() => onSidebarClick(item.id, item.domain)}
                 aria-current={active ? 'page' : undefined}
-                className={`inline-flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-sm ${navWeightCls} transition-colors duration-200 motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${activeCls}`}
+                className={`inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg px-3 py-2 text-base ${navWeightCls} transition-colors duration-200 motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${activeCls}`}
               >
                 {renderTopNavLeadIcon(item, active)}
-                <span className="whitespace-nowrap leading-none">{item.label}</span>
+                <span className="whitespace-nowrap leading-snug">{item.label}</span>
               </button>
             );
           }
@@ -235,12 +235,12 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
                     setOpenDropdownKey(key);
                   }
                 }}
-                className={`inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm ${navWeightCls} transition-colors duration-200 motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${activeCls}`}
+                className={`inline-flex min-h-11 shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-base ${navWeightCls} transition-colors duration-200 motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${activeCls}`}
               >
                 {renderTopNavLeadIcon(item, active)}
-                <span className="whitespace-nowrap leading-none">{item.label}</span>
+                <span className="whitespace-nowrap leading-snug">{item.label}</span>
                 <ChevronDown
-                  size={14}
+                  size={16}
                   aria-hidden
                   className={`block shrink-0 opacity-80 transition-transform duration-200 motion-reduce:transition-none ${open ? 'rotate-180' : ''}`}
                 />
@@ -263,7 +263,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
                       closeDropdown();
                       onSubItemClick(subItem.id, item.id, item.domain);
                     }}
-                    className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-inset ${
+                    className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-[15px] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-inset ${
                       activeSubItem === subItem.id && activeSidebar === item.id && routeRole === item.domain
                         ? isDark
                           ? 'bg-white/10 font-semibold text-slate-100'
@@ -273,7 +273,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
                           : 'text-slate-700 hover:bg-slate-50'
                     }`}
                   >
-                    <subItem.icon size={16} className="shrink-0 opacity-90" aria-hidden />
+                    <subItem.icon size={17} className="shrink-0 opacity-90" aria-hidden />
                     <span className="min-w-0 flex-1">{subItem.label}</span>
                     {subItem.tag ? (
                       <span

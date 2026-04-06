@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MessageSquare,
@@ -10,14 +11,23 @@ import {
   Mail,
   AlertCircle,
   Info,
+  ExternalLink,
 } from 'lucide-react';
 import { Theme } from '../../types';
 import { notificationService } from '../../api/services/notification.service';
 import type { Notification } from '../../types/dto/notification';
 import { formatDateTime } from '../../utils/formatDateTime';
+import {
+  formatNotificationTimeValue,
+  humanizeNotificationType,
+  parseStructuredNotificationBody,
+} from '../../utils/notificationDetailFormat';
 import { LantuDateTimePicker } from '../common/LantuDateTimePicker';
 import { LantuSelect } from '../common/LantuSelect';
 import { mainScrollCompositorClass } from '../../utils/uiClasses';
+import { buildPath } from '../../constants/consoleRoutes';
+import { parseResourceType, resourceTypeLabel } from '../../constants/resourceTypes';
+import type { ResourceType } from '../../types/dto/catalog';
 
 export interface MessageItem {
   id: string;
@@ -27,6 +37,10 @@ export interface MessageItem {
   body: string;
   time: string;
   read: boolean;
+  sourceType?: string | null;
+  sourceId?: string | null;
+  /** 原始 createTime，用于详情内统一格式化（覆盖 body 内嵌的原始时间串） */
+  createTimeRaw?: string | null;
 }
 
 const typeConfig = {
@@ -54,6 +68,14 @@ function normalizeMessageType(raw: unknown): MessageKind {
   return 'system';
 }
 
+const USER_RESOURCE_DETAIL_PAGE: Record<ResourceType, string> = {
+  agent: 'agents-center',
+  skill: 'skills-center',
+  mcp: 'mcp-center',
+  app: 'apps-center',
+  dataset: 'dataset-center',
+};
+
 function mapNotification(n: Notification): MessageItem {
   return {
     id: String(n.id),
@@ -63,7 +85,73 @@ function mapNotification(n: Notification): MessageItem {
     body: n.body ?? '',
     time: formatDateTime(n.createTime),
     read: Boolean(n.isRead),
+    sourceType: n.sourceType,
+    sourceId: n.sourceId,
+    createTimeRaw: n.createTime,
   };
+}
+
+function resolveNotificationPrimaryAction(item: MessageItem): { label: string; path: string } | null {
+  const sid = item.sourceId?.trim();
+  if (!sid) return null;
+  const rt = parseResourceType(item.sourceType);
+  if (rt) {
+    const page = USER_RESOURCE_DETAIL_PAGE[rt];
+    return { label: `查看${resourceTypeLabel(rt)}`, path: buildPath('user', page, sid) };
+  }
+  return null;
+}
+
+/** 详情块：多行「键: 值」时拆成栅格，否则整段正文 */
+function DetailBlockContent({ value, isDark }: { value: string; isDark: boolean }) {
+  const lines = value.split('\n').map((l) => l.trim()).filter(Boolean);
+  const kvLines = lines.filter((l) => {
+    const i = l.indexOf(':');
+    return i > 0 && i < l.length - 1;
+  });
+  const isAllKv = lines.length > 0 && kvLines.length === lines.length;
+
+  if (isAllKv) {
+    return (
+      <div className="space-y-3">
+        {lines.map((line, idx) => {
+          const i = line.indexOf(':');
+          const k = line.slice(0, i).trim();
+          const v = line.slice(i + 1).trim();
+          return (
+            <div key={`${idx}-${k}`} className="grid grid-cols-1 min-[400px]:grid-cols-[5.5rem_1fr] gap-x-3 gap-y-0.5">
+              <span
+                className={`text-xs font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}
+              >
+                {k}
+              </span>
+              <span className={`text-sm leading-relaxed break-words ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                {k === '资源' ? formatResourceRefDisplay(v) : v}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  return (
+    <p
+      className={`text-sm leading-relaxed whitespace-pre-wrap break-words ${
+        isDark ? 'text-slate-200' : 'text-slate-800'
+      }`}
+    >
+      {value}
+    </p>
+  );
+}
+
+/** 将 type/id 与 body 内的 「mcp/57」 统一成更可读展示 */
+function formatResourceRefDisplay(raw: string): string {
+  const s = raw.trim();
+  const m = /^([a-z]+)\s*\/\s*(\d+)$/i.exec(s);
+  if (m) return `${resourceTypeLabel(m[1])} · ID ${m[2]}`;
+  return s;
 }
 
 export const INITIAL_MESSAGE_UNREAD_COUNT = 0;
@@ -87,6 +175,7 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
   anchor = 'bottom',
   anchorRef,
 }) => {
+  const navigate = useNavigate();
   const isDark = theme === 'dark';
   const [tab, setTab] = useState<TabId>('all');
   const [items, setItems] = useState<MessageItem[]>([]);
@@ -156,6 +245,15 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
   useEffect(() => {
     onUnreadChange?.(unreadCount);
   }, [unreadCount, onUnreadChange]);
+
+  useEffect(() => {
+    if (!detailMessage) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setDetailMessage(null);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [detailMessage]);
 
   const markAllRead = async () => {
     try { await notificationService.markAllRead(); } catch { /* ignore */ }
@@ -407,53 +505,162 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50"
+            className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-[2px]"
             onMouseDown={(e) => e.stopPropagation()}
             onClick={() => setDetailMessage(null)}
+            role="presentation"
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              initial={{ scale: 0.96, opacity: 0, y: 8 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.96, opacity: 0, y: 8 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
               onClick={(e) => e.stopPropagation()}
-              className={`rounded-[24px] border shadow-xl max-w-md w-full overflow-hidden ${
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="message-detail-title"
+              className={`rounded-2xl border shadow-2xl max-w-lg w-full max-h-[min(90vh,640px)] flex flex-col overflow-hidden ${
                 isDark ? 'bg-lantu-card border-white/10' : 'bg-white border-slate-200'
               }`}
             >
               {(() => {
                 const cfg = typeConfig[detailMessage.type] ?? typeConfig.system;
                 const Icon = cfg.icon;
+                const typeZh = humanizeNotificationType(detailMessage.rawType);
+                const metaType = typeZh || detailMessage.rawType;
+                const parsed = detailMessage.body ? parseStructuredNotificationBody(detailMessage.body) : null;
+                const primaryAction = resolveNotificationPrimaryAction(detailMessage);
+                const titleTrim = detailMessage.title.trim();
+
+                const headerRows =
+                  parsed?.headers.filter((row) => {
+                    if (row.key === '结果' && row.value.trim() === titleTrim) return false;
+                    return true;
+                  }) ?? [];
+
                 return (
                   <>
-                    <div className={`flex items-center justify-between gap-3 px-5 py-4 border-b ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ${isDark ? cfg.dark : cfg.light}`}>
-                          <Icon size={20} />
+                    <div className={`flex items-start justify-between gap-3 px-5 py-4 border-b shrink-0 ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
+                      <div className="flex items-start gap-3 min-w-0">
+                        <span
+                          className={`shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center ${isDark ? cfg.dark : cfg.light}`}
+                          aria-hidden
+                        >
+                          <Icon size={22} />
                         </span>
-                        <div className="min-w-0">
-                          <h3 className={`font-bold text-base truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                        <div className="min-w-0 pt-0.5">
+                          <h3
+                            id="message-detail-title"
+                            className={`font-bold text-[17px] leading-snug ${isDark ? 'text-white' : 'text-slate-900'}`}
+                          >
                             {detailMessage.title}
                           </h3>
-                          <p className={`text-[12px] mt-0.5 ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
-                            {cfg.label} · {detailMessage.time} · {detailMessage.rawType}
+                          <p className={`text-xs mt-1.5 leading-relaxed ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
+                            <span className="font-medium text-slate-600 dark:text-slate-300">{cfg.label}</span>
+                            <span className="mx-1.5 opacity-40" aria-hidden>
+                              ·
+                            </span>
+                            <time dateTime={detailMessage.createTimeRaw ?? undefined}>{detailMessage.time}</time>
+                            <span className="mx-1.5 opacity-40" aria-hidden>
+                              ·
+                            </span>
+                            <span className="font-mono text-[11px] opacity-90">{metaType}</span>
                           </p>
                         </div>
                       </div>
                       <button
                         type="button"
                         onClick={() => setDetailMessage(null)}
-                        className={`p-2 rounded-xl shrink-0 ${isDark ? 'text-slate-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'}`}
-                        aria-label="关闭"
+                        className={`p-2.5 rounded-xl shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center ${isDark ? 'text-slate-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'}`}
+                        aria-label="关闭详情"
                       >
                         <X size={18} />
                       </button>
                     </div>
-                    <div className={`px-5 py-4 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+
+                    <div className={`px-5 py-4 overflow-y-auto custom-scrollbar flex-1 min-h-0 ${mainScrollCompositorClass}`}>
                       {detailLoading ? (
                         <p className={`text-sm ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>正在加载详情…</p>
+                      ) : parsed ? (
+                        <div className="space-y-4">
+                          <dl className="divide-y divide-dashed rounded-xl border overflow-hidden bg-slate-50/80 dark:bg-white/[0.04] border-slate-200/80 dark:border-white/10">
+                            {headerRows.map((row, hIdx) => {
+                              const isTime = row.key === '时间';
+                              const display =
+                                isTime && detailMessage.createTimeRaw
+                                  ? formatDateTime(detailMessage.createTimeRaw)
+                                  : isTime
+                                    ? formatNotificationTimeValue(row.value)
+                                    : row.value;
+                              return (
+                                <div
+                                  key={`${hIdx}-${row.key}`}
+                                  className="grid grid-cols-1 sm:grid-cols-[4.5rem_1fr] gap-x-4 gap-y-1 px-4 py-3.5 bg-white/60 dark:bg-transparent"
+                                >
+                                  <dt
+                                    className={`text-xs font-semibold pt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}
+                                  >
+                                    {row.key}
+                                  </dt>
+                                  <dd className={`text-sm leading-relaxed min-w-0 break-words ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+                                    {display}
+                                  </dd>
+                                </div>
+                              );
+                            })}
+                          </dl>
+
+                          {parsed.detailContent ? (
+                            <div>
+                              <p className={`text-xs font-semibold mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                                详情
+                              </p>
+                              <div
+                                className={`rounded-xl border px-4 py-3.5 ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200 bg-white'}`}
+                              >
+                                <DetailBlockContent value={parsed.detailContent} isDark={isDark} />
+                              </div>
+                            </div>
+                          ) : null}
+
+                          {(parsed.suggestion || primaryAction) && (
+                            <div
+                              className={`rounded-xl border px-4 py-3.5 flex flex-col sm:flex-row sm:items-center gap-3 ${isDark ? 'border-blue-500/25 bg-blue-500/10' : 'border-blue-200 bg-blue-50/90'}`}
+                            >
+                              {parsed.suggestion ? (
+                                <p className={`text-sm leading-relaxed flex-1 min-w-0 ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                                  <span className={`font-semibold mr-1.5 ${isDark ? 'text-blue-200' : 'text-blue-900'}`}>建议</span>
+                                  {parsed.suggestion}
+                                </p>
+                              ) : (
+                                <span className="flex-1" />
+                              )}
+                              {primaryAction ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    navigate(primaryAction.path);
+                                    setDetailMessage(null);
+                                  }}
+                                  className={`shrink-0 inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold min-h-[44px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
+                                    isDark
+                                      ? 'bg-white text-slate-900 hover:bg-slate-100 ring-offset-lantu-card'
+                                      : 'bg-blue-600 text-white hover:bg-blue-700 ring-offset-white'
+                                  }`}
+                                >
+                                  {primaryAction.label}
+                                  <ExternalLink size={16} className="opacity-90" aria-hidden />
+                                </button>
+                              ) : null}
+                            </div>
+                          )}
+                        </div>
                       ) : (
-                        <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{detailMessage.body}</p>
+                        <p
+                          className={`text-sm leading-relaxed whitespace-pre-wrap break-words ${isDark ? 'text-slate-200' : 'text-slate-800'}`}
+                        >
+                          {detailMessage.body}
+                        </p>
                       )}
                     </div>
                   </>

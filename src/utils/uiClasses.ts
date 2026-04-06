@@ -250,7 +250,7 @@ const STATUS_LABEL: Record<DomainStatus, string> = {
   testing: '测试中',
   published: '已发布',
   rejected: '已驳回',
-  deprecated: '已废弃',
+  deprecated: '已暂停对外',
   merged_live: '已合并上线',
   active: '启用',
   inactive: '停用',

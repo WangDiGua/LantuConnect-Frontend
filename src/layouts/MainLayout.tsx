@@ -1035,7 +1035,7 @@ const MainLayoutContent: React.FC<{
       !hasPermission('resource-grant:manage')
     ) {
       navigate(defaultPath(), { replace: true });
-      showMessage('当前账号无授权审批权限', 'info');
+      showMessage('当前账号无权访问授权申请审批或资源授权管理', 'info');
       return;
     }
     if (

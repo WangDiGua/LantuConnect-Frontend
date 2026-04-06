@@ -88,7 +88,7 @@ export function circuitBreakerBadgeClass(theme: Theme, raw: string | null | unde
 /** 资源版本快照状态（非资源主状态） */
 const VERSION_SNAPSHOT_LABEL: Record<string, string> = {
   active: '生效中 · 可切换',
-  deprecated: '已废弃',
+  deprecated: '已暂停的快照',
   archived: '已归档',
   superseded: '已被替代',
   revoked: '已撤销',

@@ -11,7 +11,7 @@ const STEP_LABEL: Record<AgentStatus, string> = {
   testing: '测试中',
   published: '已发布',
   rejected: '已驳回',
-  deprecated: '已废弃',
+  deprecated: '已暂停对外',
 };
 
 interface Props {
@@ -42,7 +42,7 @@ export const PublishStatusStepper: React.FC<Props> = ({ theme, current, flow = D
           {STEP_LABEL[st]}
         </span>
         <span className={`text-xs ${textMuted(theme)}`}>
-          {isRej ? '未通过审核，可修改后重新提交' : '该资源已下线'}
+          {isRej ? '未通过审核，可修改后重新提交' : '该资源已暂停对外开放'}
         </span>
       </div>
     );

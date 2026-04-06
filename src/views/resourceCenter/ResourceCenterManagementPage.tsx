@@ -559,7 +559,8 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                     { value: 'testing', label: '测试中' },
                     { value: 'published', label: '已发布' },
                     { value: 'rejected', label: '已驳回' },
-                    { value: 'deprecated', label: '已下线' },
+                    { value: 'deprecated', label: '已暂停对外' },
+                    { value: 'merged_live', label: '已合并上线' },
                   ]}
                   theme={theme}
                 />
@@ -1233,7 +1234,9 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
             return;
           }
           if (type === 'deprecate') {
-            void runMutationAction(actionKey, () => resourceCenterService.deprecate(id), '已下线').finally(() => setConfirmAction(null));
+            void runMutationAction(actionKey, () => resourceCenterService.deprecate(id), '已暂停对外开放').finally(() =>
+              setConfirmAction(null),
+            );
             return;
           }
           void runMutationAction(actionKey, () => resourceCenterService.withdraw(id), '已撤回').finally(() => setConfirmAction(null));

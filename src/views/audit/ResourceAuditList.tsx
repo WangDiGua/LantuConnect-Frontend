@@ -268,6 +268,7 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
                   { value: 'testing', label: '测试中' },
                   { value: 'rejected', label: '已驳回' },
                   { value: 'published', label: '已发布' },
+                  { value: 'merged_live', label: '已合并上线' },
                 ]}
                 theme={theme}
                 className="w-36 shrink-0"

@@ -612,10 +612,12 @@ export const McpDetailInvokeTab: React.FC<McpDetailInvokeTabProps> = ({
                   setSelectedToolName('');
                 }}
                 placeholder="sk_xxx..."
+                disabled={invokeDisabled}
                 className={`${nativeInputClass(theme)} pr-10 font-mono text-xs`}
               />
               <button
                 type="button"
+                disabled={invokeDisabled}
                 onClick={() => setShowApiKey((v) => !v)}
                 className={`absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 ${
                   isDark ? 'text-slate-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'
@@ -637,6 +639,7 @@ export const McpDetailInvokeTab: React.FC<McpDetailInvokeTabProps> = ({
               max={invokeUseStream ? 600 : 120}
               value={invokeTimeoutSec}
               onChange={(e) => setInvokeTimeoutSec(Number(e.target.value) || 60)}
+              disabled={invokeDisabled}
               className={`${nativeInputClass(theme)} font-mono text-xs`}
             />
             <p className={`mt-1 text-xs ${textMuted(theme)}`}>
@@ -657,7 +660,7 @@ export const McpDetailInvokeTab: React.FC<McpDetailInvokeTabProps> = ({
             type="checkbox"
             className={`mt-0.5 ${lantuCheckboxPrimaryClass}`}
             checked={skipInitializedNotification}
-            disabled={invoking}
+            disabled={invoking || invokeDisabled}
             onChange={(e) => setSkipInitializedNotification(e.target.checked)}
           />
           <span>跳过「通知已就绪」（notifications/initialized），若握手后列表失败可尝试勾选</span>
@@ -670,7 +673,7 @@ export const McpDetailInvokeTab: React.FC<McpDetailInvokeTabProps> = ({
             ref={connectAnchorRef}
             type="button"
             className={`${btnPrimary} inline-flex min-h-11 items-center gap-2 disabled:opacity-50`}
-            disabled={invoking || invokeUseStream}
+            disabled={invokeDisabled || invoking || invokeUseStream}
             aria-busy={sessionPhase === 'connecting'}
             onClick={() => void handleConnectAndLoadTools()}
           >
@@ -689,7 +692,7 @@ export const McpDetailInvokeTab: React.FC<McpDetailInvokeTabProps> = ({
           <button
             type="button"
             className={`${btnSecondary(theme)} min-h-11`}
-            disabled={invoking}
+            disabled={invokeDisabled || invoking}
             onClick={() => {
               setSessionPhase('idle');
               setConnectError(null);
@@ -734,6 +737,7 @@ export const McpDetailInvokeTab: React.FC<McpDetailInvokeTabProps> = ({
                   value={toolFilter}
                   onChange={(e) => setToolFilter(e.target.value)}
                   placeholder="按名称或描述过滤…"
+                  disabled={invokeDisabled}
                   className={`${nativeInputClass(theme)} pl-9 text-xs`}
                   aria-label="筛选工具列表"
                 />
@@ -751,7 +755,7 @@ export const McpDetailInvokeTab: React.FC<McpDetailInvokeTabProps> = ({
                 options={toolSelectOptions.length ? toolSelectOptions : [{ value: '', label: listedTools.length ? '请从列表选择' : '请先连接' }]}
                 placeholder="请选择工具…"
                 triggerClassName="!text-xs"
-                disabled={!listedTools.length}
+                disabled={invokeDisabled || !listedTools.length}
               />
             </div>
 
@@ -760,7 +764,7 @@ export const McpDetailInvokeTab: React.FC<McpDetailInvokeTabProps> = ({
                 theme={theme}
                 inputSchema={selectedToolMeta.inputSchema}
                 value={parsedArgumentsObject}
-                disabled={invoking}
+                disabled={invokeDisabled || invoking}
                 onChange={(next) => setToolArgumentsJson(JSON.stringify(next, null, 2))}
               />
             ) : null}
@@ -772,6 +776,7 @@ export const McpDetailInvokeTab: React.FC<McpDetailInvokeTabProps> = ({
                 maxRows={18}
                 value={toolArgumentsJson}
                 onChange={(e) => setToolArgumentsJson(e.target.value)}
+                readOnly={invokeDisabled}
                 className={`${nativeInputClass(theme)} resize-none font-mono text-xs${argsJsonError ? ' ring-2 ring-rose-500/40' : ''}`}
                 placeholder="{}"
               />
@@ -781,7 +786,7 @@ export const McpDetailInvokeTab: React.FC<McpDetailInvokeTabProps> = ({
             <button
               type="button"
               className={`${btnPrimary} inline-flex min-h-11 items-center gap-2 disabled:opacity-50`}
-              disabled={invoking || !selectedToolName.trim()}
+              disabled={invokeDisabled || invoking || !selectedToolName.trim()}
               onClick={() => void handleQuickCallTool()}
             >
               {invoking ? (
@@ -853,6 +858,7 @@ export const McpDetailInvokeTab: React.FC<McpDetailInvokeTabProps> = ({
         onProtocolInvoke={() => void handleProtocolInvoke()}
         invoking={invoking}
         streamHintWhenQuick={invokeUseStream}
+        invokeDisabled={invokeDisabled}
       />
       </div>
     </div>

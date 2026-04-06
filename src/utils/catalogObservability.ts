@@ -31,8 +31,11 @@ export function catalogItemDegradationHint(item: Pick<ResourceCatalogItemVO, 'ob
 /**
  * 是否与网关侧 `ensureResourceHealthNotDown` + 熔断 open 一致：不可 invoke 时前端同步关闭入口。
  * `unknown`：未配置或未探测，仍允许进入工具测试（由网关最终拦截）。
+ * 存在非空 `degradationHint` 时视为网关侧已提示不可用，与顶部告警文案对齐并关闭试用入口。
  */
 export function isCatalogMcpCallable(item: Pick<ResourceCatalogItemVO, 'observability'>): boolean {
+  const hint = catalogItemDegradationHint(item)?.trim();
+  if (hint) return false;
   const h = norm(catalogItemHealthStatus(item));
   const c = norm(catalogItemCircuitState(item));
   if (c === 'open' || c === 'forced_open') return false;
@@ -46,6 +49,14 @@ export function isCatalogMcpCallable(item: Pick<ResourceCatalogItemVO, 'observab
     return false;
   }
   return true;
+}
+
+/**
+ * 列表/详情「运行 *」徽章用 key：一旦不可 invoke，统一展示网关拦截态，避免与健康探测字段不一致。
+ */
+export function catalogRunBadgeHealthKeyForDisplay(item: Pick<ResourceCatalogItemVO, 'observability'>): string {
+  if (!isCatalogMcpCallable(item)) return 'gateway_blocked';
+  return catalogItemHealthStatus(item) ?? 'unknown';
 }
 
 export function mcpInvokeBlockedReason(item: Pick<ResourceCatalogItemVO, 'observability'>): string {

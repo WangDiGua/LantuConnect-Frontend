@@ -60,6 +60,7 @@ import {
 import {
   catalogItemCircuitState,
   catalogItemHealthStatus,
+  catalogRunBadgeHealthKeyForDisplay,
   isCatalogMcpCallable,
   mcpInvokeBlockedReason,
 } from '../../utils/catalogObservability';
@@ -304,7 +305,8 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
     }
     const mcpCallable = isCatalogMcpCallable(detail);
     const mcpBlockReason = mcpInvokeBlockedReason(detail);
-    const detailHealthKey = catalogItemHealthStatus(detail) ?? 'unknown';
+    const detailHealthProbeKey = catalogItemHealthStatus(detail) ?? 'unknown';
+    const detailRunBadgeKey = catalogRunBadgeHealthKeyForDisplay(detail);
     const detailCircuit = catalogItemCircuitState(detail);
     return (
       <>
@@ -326,10 +328,16 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                     {statusLabel(detail.status)}
                   </span>
                   <span
-                    className={`inline-flex items-center rounded-lg border px-2 py-0.5 text-xs font-semibold ${resourceHealthBadgeClass(theme, detailHealthKey)}`}
-                    title="与健康检查配置及最近一次探测结果一致；故障时网关将拒绝 invoke"
+                    className={`inline-flex items-center rounded-lg border px-2 py-0.5 text-xs font-semibold ${resourceHealthBadgeClass(theme, detailRunBadgeKey)}`}
+                    title={
+                      `探测：${resourceHealthLabelZh(detailHealthProbeKey)}` +
+                      (detailCircuit && detailCircuit !== 'unknown' && detailCircuit !== 'closed'
+                        ? ` · 熔断：${circuitBreakerLabelZh(detailCircuit)}`
+                        : '') +
+                      (mcpCallable ? '' : ` · ${mcpBlockReason}`)
+                    }
                   >
-                    运行 {resourceHealthLabelZh(detailHealthKey)}
+                    运行 {resourceHealthLabelZh(detailRunBadgeKey)}
                   </span>
                   {detailCircuit && detailCircuit !== 'unknown' && detailCircuit !== 'closed' ? (
                     <span className="opacity-90" title="熔断器状态">
@@ -681,7 +689,8 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                 {filtered.map((item) => {
                   const mcpCallableRow = isCatalogMcpCallable(item);
                   const mcpBlockReasonRow = mcpInvokeBlockedReason(item);
-                  const healthKeyRow = catalogItemHealthStatus(item) ?? 'unknown';
+                  const healthProbeKeyRow = catalogItemHealthStatus(item) ?? 'unknown';
+                  const runBadgeKeyRow = catalogRunBadgeHealthKeyForDisplay(item);
                   const circuitRow = catalogItemCircuitState(item);
                   return (
                   <BentoCard
@@ -710,14 +719,16 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                       metaRow={(
                         <>
                           <span
-                            className={`inline-flex max-w-[12rem] shrink-0 items-center truncate rounded-md border px-2 py-0.5 text-xs font-semibold ${resourceHealthBadgeClass(theme, healthKeyRow)}`}
+                            className={`inline-flex max-w-[12rem] shrink-0 items-center truncate rounded-md border px-2 py-0.5 text-xs font-semibold ${resourceHealthBadgeClass(theme, runBadgeKeyRow)}`}
                             title={
+                              `探测：${resourceHealthLabelZh(healthProbeKeyRow)}` +
                               (circuitRow && circuitRow !== 'unknown' && circuitRow !== 'closed'
-                                ? `${circuitBreakerLabelZh(circuitRow)} · `
-                                : '') + '与健康探测一致；故障或熔断时网关拒绝调用'
+                                ? ` · ${circuitBreakerLabelZh(circuitRow)}`
+                                : '') +
+                              (mcpCallableRow ? '' : ` · ${mcpBlockReasonRow}`)
                             }
                           >
-                            运行 {resourceHealthLabelZh(healthKeyRow)}
+                            运行 {resourceHealthLabelZh(runBadgeKeyRow)}
                           </span>
                           {(item.tags ?? []).slice(0, 5).map((tg) => (
                             <span

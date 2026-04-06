@@ -23,6 +23,8 @@ const HEALTH_LABEL: Record<string, string> = {
   unhealthy: '不健康',
   out_of_service: '停止服务',
   offline: '离线',
+  /** 与健康字段并存：探测可能仍为 UP，但网关/熔断/降级提示已不放行 invoke */
+  gateway_blocked: '网关不放行',
 };
 
 export function resourceHealthLabelZh(raw: string | null | undefined): string {
@@ -34,6 +36,11 @@ export function resourceHealthBadgeClass(theme: Theme, raw: string | null | unde
   const k = norm(raw);
   const ok = k === 'healthy' || k === 'up';
   const degraded = k === 'degraded';
+  if (k === 'gateway_blocked') {
+    return D(theme)
+      ? 'bg-rose-500/15 text-rose-200 border border-rose-500/25'
+      : 'bg-rose-50 text-rose-800 border border-rose-200/70';
+  }
   if (ok) {
     return D(theme)
       ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/25'

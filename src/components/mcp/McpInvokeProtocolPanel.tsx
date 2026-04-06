@@ -40,6 +40,7 @@ export type McpInvokeProtocolPanelProps = {
   onProtocolInvoke: () => void;
   invoking: boolean;
   streamHintWhenQuick?: boolean;
+  invokeDisabled?: boolean;
 };
 
 export const McpInvokeProtocolPanel: React.FC<McpInvokeProtocolPanelProps> = ({
@@ -74,6 +75,7 @@ export const McpInvokeProtocolPanel: React.FC<McpInvokeProtocolPanelProps> = ({
   onProtocolInvoke,
   invoking,
   streamHintWhenQuick,
+  invokeDisabled = false,
 }) => {
   const isDark = theme === 'dark';
 
@@ -82,7 +84,7 @@ export const McpInvokeProtocolPanel: React.FC<McpInvokeProtocolPanelProps> = ({
       className={`group rounded-2xl border ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-slate-50/40'}`}
     >
       <summary
-        className={`cursor-pointer list-none px-4 py-3 text-sm font-semibold outline-none transition-colors marker:content-none focus-visible:ring-2 focus-visible:ring-violet-500/45 ${textPrimary(theme)} flex items-center justify-between gap-2`}
+        className={`list-none px-4 py-3 text-sm font-semibold outline-none transition-colors marker:content-none focus-visible:ring-2 focus-visible:ring-violet-500/45 ${textPrimary(theme)} flex items-center justify-between gap-2 ${invokeDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
       >
         <span>协议与网关调试（JSON-RPC / 通道 / 流式）</span>
         <span className={`text-xs font-normal ${textMuted(theme)}`}>默认折叠 · 与「快速试用」共用 API Key 与 Trace</span>
@@ -111,12 +113,14 @@ export const McpInvokeProtocolPanel: React.FC<McpInvokeProtocolPanelProps> = ({
                 },
               ]}
               triggerClassName="!text-xs"
+              disabled={invokeDisabled}
             />
             <label className={`mt-2 flex cursor-pointer items-start gap-2 text-xs ${textMuted(theme)}`}>
               <input
                 type="checkbox"
                 className={`mt-0.5 ${lantuCheckboxPrimaryClass}`}
                 checked={invokeUseStream}
+                disabled={invokeDisabled}
                 onChange={(e) => setInvokeUseStream(e.target.checked)}
               />
               <span>
@@ -137,6 +141,7 @@ export const McpInvokeProtocolPanel: React.FC<McpInvokeProtocolPanelProps> = ({
                 type="button"
                 className={`${btnSecondary(theme)} shrink-0 !px-2.5`}
                 title="重新生成 TraceId"
+                disabled={invokeDisabled}
                 onClick={onRegenerateTraceId}
               >
                 <RefreshCw size={14} />
@@ -159,7 +164,7 @@ export const McpInvokeProtocolPanel: React.FC<McpInvokeProtocolPanelProps> = ({
                 type="button"
                 className={`${btnSecondary(theme)} shrink-0 !px-2.5`}
                 title="重新加载资源详情，同步发布者最新默认版本"
-                disabled={detailPageLoading}
+                disabled={invokeDisabled || detailPageLoading}
                 onClick={onReloadDetail}
               >
                 <RefreshCw size={14} className={detailPageLoading ? 'animate-spin' : ''} />
@@ -182,6 +187,7 @@ export const McpInvokeProtocolPanel: React.FC<McpInvokeProtocolPanelProps> = ({
             >
               <button
                 type="button"
+                disabled={invokeDisabled}
                 onClick={() => onSwitchPayloadMode('simple')}
                 className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors ${
                   mcpPayloadMode === 'simple'
@@ -195,6 +201,7 @@ export const McpInvokeProtocolPanel: React.FC<McpInvokeProtocolPanelProps> = ({
               </button>
               <button
                 type="button"
+                disabled={invokeDisabled}
                 onClick={() => onSwitchPayloadMode('advanced')}
                 className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors ${
                   mcpPayloadMode === 'advanced'
@@ -218,6 +225,7 @@ export const McpInvokeProtocolPanel: React.FC<McpInvokeProtocolPanelProps> = ({
                   onChange={onMcpMethodChange}
                   options={mcpMethodOptions}
                   triggerClassName="!text-xs"
+                  disabled={invokeDisabled}
                 />
                 <p className={`mt-1 text-xs ${textMuted(theme)}`}>展示为中文提示，实际发送仍使用后端要求的 method 值</p>
               </div>
@@ -229,6 +237,7 @@ export const McpInvokeProtocolPanel: React.FC<McpInvokeProtocolPanelProps> = ({
                   onChange={onPresetChange}
                   options={methodPresetOptions}
                   triggerClassName="!text-xs"
+                  disabled={invokeDisabled}
                 />
                 <p className={`mt-1 text-xs ${textMuted(theme)}`}>
                   模板中的 `your_tool_name` / `arguments` 为占位，请按当前 MCP 实际工具名修改
@@ -241,6 +250,7 @@ export const McpInvokeProtocolPanel: React.FC<McpInvokeProtocolPanelProps> = ({
                   maxRows={22}
                   value={mcpParamsJson}
                   onChange={(e) => setMcpParamsJson(e.target.value)}
+                  readOnly={invokeDisabled}
                   className={`${nativeInputClass(theme)} resize-none font-mono text-xs`}
                   placeholder='例如 tools/call：{ "name": "...", "arguments": {} }'
                 />
@@ -260,6 +270,7 @@ export const McpInvokeProtocolPanel: React.FC<McpInvokeProtocolPanelProps> = ({
                 maxRows={28}
                 value={invokePayload}
                 onChange={(e) => setInvokePayload(e.target.value)}
+                readOnly={invokeDisabled}
                 className={`${nativeInputClass(theme)} resize-none font-mono text-xs`}
               />
             </div>
@@ -270,7 +281,7 @@ export const McpInvokeProtocolPanel: React.FC<McpInvokeProtocolPanelProps> = ({
           <button
             type="button"
             className={`${btnSecondary(theme)} inline-flex min-h-11 items-center gap-2 disabled:opacity-50`}
-            disabled={invoking}
+            disabled={invokeDisabled || invoking}
             onClick={() => void onProtocolInvoke()}
           >
             {invoking ? (

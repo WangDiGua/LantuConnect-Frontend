@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import {
   FileText, ExternalLink, Copy, Check, ChevronRight, BookOpen, Library,
-  KeyRound, Terminal, Rocket, Tag, AlertCircle,
+  KeyRound, Terminal, Rocket, Tag, AlertCircle, Puzzle,
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { Theme, FontSize } from '../../types';
@@ -40,7 +40,7 @@ const API_CATEGORIES: ApiCategory[] = [
   { id: 'user-api-keys', label: '用户设置 · API Key', endpoints: [
     { method: 'POST', path: '/user-settings/api-keys', description: '创建个人 API Key。成功时 data.secretPlain（或 plainKey）为完整可调用密钥，仅该次响应返回。须为 Key 配置 scope（catalog/resolve/invoke 或 *），否则网关提示 scope 不足；前端默认传 scopes:["*"]。调用他人资源还需 Resource Grant。列表中的 maskedKey、prefix、id 均不能作为 X-Api-Key。', params: [{ name: 'name', type: 'string', required: true, description: '密钥名称' }, { name: 'scopes', type: 'string[]', required: false, description: '权限范围；不传时前端默认 ["*"]' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { id: 'uuid', name: 'dev', prefix: 'sk_', scopes: ['*'], secretPlain: 'sk_' + 'a'.repeat(32) } }, null, 2) },
     { method: 'GET', path: '/user-settings/api-keys', description: '列出当前用户的 Key；仅掩码与前缀，不包含完整密钥。', params: [], responseExample: JSON.stringify({ code: 0, message: 'ok', data: [{ id: 'uuid', name: 'dev', maskedKey: 'sk_3****', prefix: 'sk_' }] }, null, 2) },
-    { method: 'GET', path: '/user-settings/api-keys/{apiKeyId}/resource-grants', description: '列出该 API Key 作为被授权方（grantee）时的生效 Grant；须为本人 Key。可选 query `resourceType`（如 mcp）缩小范围。', params: [{ name: 'resourceType', type: 'string', required: false, description: 'mcp 等' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: [{ id: 1, resourceType: 'mcp', resourceId: 42, granteeType: 'api_key', granteeId: 'key-uuid', actions: ['invoke'], status: 'active' }] }, null, 2) },
+    { method: 'GET', path: '/user-settings/api-keys/{apiKeyId}/resource-grants', description: '列出该 API Key 作为被授权方（grantee）时的生效 Grant；须为本人 Key。可选 query `resourceType`（缺省为 mcp，与 MCP 集成页一致）。', params: [{ name: 'resourceType', type: 'string', required: false, description: '默认 mcp；可传其它类型以扩大范围' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: [{ id: 1, resourceType: 'mcp', resourceId: 42, granteeType: 'api_key', granteeId: 'key-uuid', actions: ['invoke'], status: 'active' }] }, null, 2) },
     { method: 'POST', path: '/user-settings/api-keys/revoke/send-sms', description: '向当前用户已绑定手机发送「撤销 API Key」验证码（演示环境见后端日志）。须登录；受短信频控。', params: [], responseExample: JSON.stringify({ code: 0, message: 'ok', data: null }, null, 2) },
     { method: 'POST', path: '/user-settings/api-keys/{id}/revoke', description: '撤销 API Key（推荐）。用户存在本地密码时须 `password`；无密码账户须 `smsCode`（先调用 revoke/send-sms）。成功/失败均写入敏感操作审计。', params: [{ name: 'password', type: 'string', required: false, description: '登录密码' }, { name: 'smsCode', type: 'string', required: false, description: '短信验证码（无密码场景）' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: null }, null, 2) },
     { method: 'DELETE', path: '/user-settings/api-keys/{id}', description: '**已废弃**：HTTP 410 Gone；请改用 POST `/user-settings/api-keys/{id}/revoke`。', params: [], responseExample: JSON.stringify({ code: 4015, message: '请改用 POST .../revoke' }, null, 2) },
@@ -369,9 +369,14 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
                   ))}
                   {prosePara(theme, (
                     <>
-                      ② <span className="font-mono">POST /invoke</span> 或 <span className="font-mono">POST /invoke-stream</span>（SSE，如 MCP）：统一请求体（含 <span className="font-mono">resourceType</span>、<span className="font-mono">resourceId</span>、<span className="font-mono">payload</span> 等），同样需要 Key 与 invoke 权限。
+                      ② <span className="font-mono">POST /invoke</span> 或 <span className="font-mono">POST /invoke-stream</span>（SSE，如 MCP）：统一请求体（含 <span className="font-mono">resourceType</span>、<span className="font-mono">resourceId</span>、<span className="font-mono">payload</span> 等），同样需要 Key 与 invoke 权限。对外 MCP 清单、Key 维度的 Grant 合并与网关 JSON 导出见开发者中心「MCP 对外集成」页。
                     </>
                   ))}
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <button type="button" onClick={() => go('mcp-integration')} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${btnSecondary(theme)}`}>
+                      <Puzzle size={16} /> MCP 对外集成
+                    </button>
+                  </div>
                   {proseH3(theme, '2. 应用如何打开')}
                   {prosePara(theme, (
                     <>

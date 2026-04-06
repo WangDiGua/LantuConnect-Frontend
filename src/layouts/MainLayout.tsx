@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback, Suspense, useSyncExternalStore } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback, Suspense, lazy, useSyncExternalStore } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import {
@@ -10,12 +10,7 @@ import {
   LogOut,
 } from 'lucide-react';
 import { Theme, ThemeMode, ThemeColor, FontSize, FontFamily, AnimationStyle } from '../types';
-import {
-  FONT_FAMILY_CLASSES,
-  FONT_SIZE_ROOT_PX,
-  FONT_SIZE_SEGMENT_ROW2,
-  getRootFontSizePx,
-} from '../constants/theme';
+import { FONT_FAMILY_CLASSES, getRootFontSizePx } from '../constants/theme';
 import { LayoutChromeProvider } from '../context/LayoutChromeContext';
 import { UserRoleProvider, useUserRole, platformRoleToConsoleRole, canAccessAdminView, normalizeRole } from '../context/UserRoleContext';
 import { useAuthStore } from '../stores/authStore';
@@ -23,7 +18,6 @@ import { authService } from '../api/services/auth.service';
 import { notificationService } from '../api/services/notification.service';
 import { tokenStorage } from '../lib/security';
 import { env } from '../config/env';
-import { connectUserPushSocket, readAccessTokenForRealtime } from '../lib/realtimePush';
 import {
   ADMIN_SIDEBAR_ITEMS,
   USER_SIDEBAR_ITEMS,
@@ -40,54 +34,69 @@ import {
 import { AppearanceMenu } from '../components/business/AppearanceMenu';
 import { MessagePanel, INITIAL_MESSAGE_UNREAD_COUNT } from '../components/business/MessagePanel';
 import { ScrollToTopAffix } from '../components/common/ScrollToTopAffix';
-import {
-  AgentDetail,
-  AgentMarket,
-  AgentMarketDetailPage,
-  AgentMonitoringPage,
-  AgentTracePage,
-  ApiDocsPage,
-  ApiPlaygroundPage,
-  AppMarket,
-  AppMarketDetailPage,
-  AuthorizedSkillsPage,
-  DataReportsPage,
-  DatasetMarket,
-  DatasetMarketDetailPage,
-  DeveloperApplicationListPage,
-  DeveloperOnboardingPage,
-  DeveloperStatsPage,
-  ExploreHub,
-  GrantApplicationListPage,
-  HealthCheckOverview,
-  McpMarket,
-  MonitoringModule,
-  MyFavoritesPage,
-  MyGrantApplicationsPage,
-  MyPublishHubPage,
-  MyPublishListRoute,
-  Overview,
-  PlaceholderView,
-  ProviderManagementPage,
-  QuickAccess,
-  ResourceAuditList,
-  ResourceCenterManagementPage,
-  ResourceRegisterPage,
-  SdkDownloadPage,
-  SkillExternalMarketPage,
-  SkillMarket,
-  SkillMarketDetailPage,
-  SystemConfigModule,
-  UsageRecordsPage,
-  UsageStatsOverview,
-  UsageStatsPage,
-  UserManagementModule,
-  UserResourceMarketHub,
-  UserSettingsHubPage,
-  UserWorkspaceOverview,
-} from './mainLayoutLazyRoutes';
+
+const Overview = lazy(() => import('../views/dashboard/Overview').then(m => ({ default: m.Overview })));
+const ExploreHub = lazy(() => import('../views/dashboard/ExploreHub').then(m => ({ default: m.ExploreHub })));
+const UserWorkspaceOverview = lazy(() => import('../views/dashboard/UserWorkspaceOverview').then(m => ({ default: m.UserWorkspaceOverview })));
+const DeveloperOnboardingPage = lazy(() => import('../views/onboarding/DeveloperOnboardingPage').then(m => ({ default: m.DeveloperOnboardingPage })));
+const QuickAccess = lazy(() => import('../views/dashboard/QuickAccess').then(m => ({ default: m.QuickAccess })));
+const PlaceholderView = lazy(() => import('../views/common/PlaceholderView').then(m => ({ default: m.PlaceholderView })));
+const AgentDetail = lazy(() => import('../views/agent/AgentDetail').then(m => ({ default: m.AgentDetail })));
+const AgentMonitoringPage = lazy(() => import('../views/agent/AgentMonitoringPage').then(m => ({ default: m.AgentMonitoringPage })));
+const AgentTracePage = lazy(() => import('../views/agent/AgentTracePage').then(m => ({ default: m.AgentTracePage })));
+const ProviderManagementPage = lazy(() => import('../views/provider/ProviderManagementPage').then(m => ({ default: m.ProviderManagementPage })));
+const UserManagementModule = lazy(() => import('../views/userMgmt/UserManagementModule').then(m => ({ default: m.UserManagementModule })));
+const SystemConfigModule = lazy(() => import('../views/systemConfig/SystemConfigModule').then(m => ({ default: m.SystemConfigModule })));
+const MonitoringModule = lazy(() => import('../views/monitoring/MonitoringModule').then(m => ({ default: m.MonitoringModule })));
+const MyPublishHubPage = lazy(() => import('../views/publish/MyPublishHubPage').then(m => ({ default: m.MyPublishHubPage })));
+const MyPublishListRoute = lazy(() => import('../views/publish/MyPublishListRoute').then(m => ({ default: m.MyPublishListRoute })));
+const UserSettingsHubPage = lazy(() => import('../views/user/UserSettingsHubPage').then(m => ({ default: m.UserSettingsHubPage })));
+const UsageRecordsPage = lazy(() => import('../views/user/UsageRecordsPage').then(m => ({ default: m.UsageRecordsPage })));
+const MyFavoritesPage = lazy(() => import('../views/user/MyFavoritesPage').then(m => ({ default: m.MyFavoritesPage })));
+const UsageStatsPage = lazy(() => import('../views/user/UsageStatsPage').then(m => ({ default: m.UsageStatsPage })));
+const AuthorizedSkillsPage = lazy(() => import('../views/user/AuthorizedSkillsPage').then(m => ({ default: m.AuthorizedSkillsPage })));
+const MyGrantApplicationsPage = lazy(() => import('../views/user/MyGrantApplicationsPage').then(m => ({ default: m.MyGrantApplicationsPage })));
+const ResourceCenterManagementPage = lazy(() => import('../views/resourceCenter/ResourceCenterManagementPage').then(m => ({ default: m.ResourceCenterManagementPage })));
+const ResourceRegisterPage = lazy(() => import('../views/resourceCenter/ResourceRegisterPage').then(m => ({ default: m.ResourceRegisterPage })));
+const SkillExternalMarketPage = lazy(() => import('../views/resourceCenter/SkillExternalMarketPage').then(m => ({ default: m.SkillExternalMarketPage })));
+const ResourceAuditList = lazy(() => import('../views/audit/ResourceAuditList').then(m => ({ default: m.ResourceAuditList })));
+const GrantApplicationListPage = lazy(() => import('../views/userMgmt/GrantApplicationListPage').then(m => ({ default: m.GrantApplicationListPage })));
+const DeveloperApplicationListPage = lazy(() => import('../views/userMgmt/DeveloperApplicationListPage').then(m => ({ default: m.DeveloperApplicationListPage })));
+const ApiDocsPage = lazy(() => import('../views/developer/ApiDocsPage').then(m => ({ default: m.ApiDocsPage })));
+const SdkDownloadPage = lazy(() => import('../views/developer/SdkDownloadPage').then(m => ({ default: m.SdkDownloadPage })));
+const ApiPlaygroundPage = lazy(() => import('../views/developer/ApiPlaygroundPage').then(m => ({ default: m.ApiPlaygroundPage })));
+const DeveloperStatsPage = lazy(() => import('../views/developer/DeveloperStatsPage').then(m => ({ default: m.DeveloperStatsPage })));
+const DataReportsPage = lazy(() => import('../views/dashboard/DataReportsPage').then(m => ({ default: m.DataReportsPage })));
+const HealthCheckOverview = lazy(() => import('../views/dashboard/HealthCheckOverview').then(m => ({ default: m.HealthCheckOverview })));
+const UsageStatsOverview = lazy(() => import('../views/dashboard/UsageStatsOverview').then(m => ({ default: m.UsageStatsOverview })));
+const UserResourceMarketHub = lazy(() =>
+  import('../views/marketplace/UserResourceMarketHub').then((m) => ({ default: m.UserResourceMarketHub })),
+);
+const SkillMarket = lazy(() => import('../views/skill/SkillMarket').then((m) => ({ default: m.SkillMarket })));
+const McpMarket = lazy(() => import('../views/mcp/McpMarket').then((m) => ({ default: m.McpMarket })));
+const DatasetMarket = lazy(() => import('../views/dataset/DatasetMarket').then((m) => ({ default: m.DatasetMarket })));
+const AgentMarket = lazy(() => import('../views/agent/AgentMarket').then((m) => ({ default: m.AgentMarket })));
+const AgentMarketDetailPage = lazy(() =>
+  import('../views/agent/AgentMarketDetailPage').then((m) => ({ default: m.AgentMarketDetailPage })),
+);
+const AppMarket = lazy(() => import('../views/apps/AppMarket').then((m) => ({ default: m.AppMarket })));
+const AppMarketDetailPage = lazy(() =>
+  import('../views/apps/AppMarketDetailPage').then((m) => ({ default: m.AppMarketDetailPage })),
+);
+const SkillMarketDetailPage = lazy(() =>
+  import('../views/skill/SkillMarketDetailPage').then((m) => ({ default: m.SkillMarketDetailPage })),
+);
+const DatasetMarketDetailPage = lazy(() =>
+  import('../views/dataset/DatasetMarketDetailPage').then((m) => ({ default: m.DatasetMarketDetailPage })),
+);
 
 import { useMessage } from '../components/common/Message';
+import {
+  connectUserPushSocket,
+  subscribeRealtimePush,
+  isAlertFiring,
+  isAuditPendingChanged,
+} from '../lib/realtimePush';
 import { readPersistedNavState, writePersistedNavState } from '../utils/navigationState';
 import {
   APPEARANCE_DEFAULTS,
@@ -747,6 +756,7 @@ const MainLayoutContent: React.FC<{
   const [isFullscreen, setIsFullscreen] = useState(false);
   const storeLogout = useAuthStore((s) => s.logout);
   const authUser = useAuthStore((s) => s.user);
+  const authAccessToken = useAuthStore((s) => s.token);
   const [themeColor, setThemeColor] = useState<ThemeColor>(() => readAppearanceState().themeColor);
   const [fontSize, setFontSize] = useState<FontSize>(() => readAppearanceState().fontSize);
   const [fontFamily, setFontFamily] = useState<FontFamily>(() => readAppearanceState().fontFamily);
@@ -755,6 +765,8 @@ const MainLayoutContent: React.FC<{
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showMessagePanel, setShowMessagePanel] = useState(false);
   const [messageUnreadCount, setMessageUnreadCount] = useState(INITIAL_MESSAGE_UNREAD_COUNT);
+  /** 供屏幕阅读器播报的实时事件摘要（与顶层 toast 配套，不抢焦点） */
+  const [realtimeLiveText, setRealtimeLiveText] = useState('');
   const baseDocumentTitleRef = useRef<string>('');
 
   const refreshMessageUnreadCount = useCallback(async () => {
@@ -776,16 +788,30 @@ const MainLayoutContent: React.FC<{
 
   /** 站内通知：WebSocket 实时推送未读数，避免仅依赖窗口聚焦再拉取 */
   useEffect(() => {
-    if (!authUser?.id) return;
-    const token = readAccessTokenForRealtime();
-    if (!token) return;
-    const disconnect = connectUserPushSocket(token, {
+    if (!authUser?.id || !authAccessToken) return;
+    return connectUserPushSocket(() => useAuthStore.getState().token, {
       onServerPush: () => {
         void refreshMessageUnreadCount();
       },
     });
-    return disconnect;
-  }, [authUser?.id, refreshMessageUnreadCount]);
+  }, [authUser?.id, authAccessToken, refreshMessageUnreadCount]);
+
+  useEffect(() => {
+    if (!authUser?.id) return;
+    return subscribeRealtimePush((msg) => {
+      if (isAlertFiring(msg)) {
+        const name = String((msg.payload?.ruleName as string) || '告警规则');
+        const t = `告警已触发：${name}`;
+        showMessage(t, 'warning', 4000);
+        setRealtimeLiveText(t);
+      } else if (isAuditPendingChanged(msg)) {
+        const n = Number(msg.payload?.pendingCount ?? 0);
+        const t = `待审核队列已更新，当前 ${n} 条待审`;
+        showMessage(t, 'info', 3500);
+        setRealtimeLiveText(t);
+      }
+    });
+  }, [authUser?.id, showMessage]);
 
   useEffect(() => {
     const inner = routeContentScrollRef.current;
@@ -1045,7 +1071,7 @@ const MainLayoutContent: React.FC<{
       !hasPermission('resource-grant:manage')
     ) {
       navigate(defaultPath(), { replace: true });
-      showMessage('当前账号无权访问授权申请审批或资源授权管理', 'info');
+      showMessage('当前账号无授权审批权限', 'info');
       return;
     }
     if (
@@ -1351,11 +1377,7 @@ const MainLayoutContent: React.FC<{
   };
   const handleSetFontSize = (size: FontSize) => {
     setFontSize(size);
-    const tier = size === 'small' ? '小' : size === 'medium' ? '中' : '大';
-    showMessage(
-      `字号已调整为 ${tier}（${FONT_SIZE_SEGMENT_ROW2[size]} · ${FONT_SIZE_ROOT_PX[size]}px）`,
-      'success',
-    );
+    showMessage(`字号已调整为 ${size === 'small' ? '小' : size === 'medium' ? '中' : '大'}`, 'success');
   };
   const FONT_LABELS_MSG: Record<FontFamily, string> = {
     sans: '系统无衬线',
@@ -1528,6 +1550,9 @@ const MainLayoutContent: React.FC<{
           FONT_FAMILY_CLASSES[fontFamily]
         } bg-lantu-chrome`}
       >
+        <span className="sr-only" aria-live="polite" aria-atomic="true">
+          {realtimeLiveText}
+        </span>
         {mobileNavOpen && (
           <button
             type="button"
@@ -1643,7 +1668,7 @@ const MainLayoutContent: React.FC<{
                     <Bell size={18} strokeWidth={1.75} />
                     {messageUnreadCount > 0 && (
                       <span
-                        className={`absolute -right-1 -top-1 flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 px-1 text-xs font-bold leading-none text-white shadow-sm ${
+                        className={`absolute -right-1 -top-1 flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 px-1 text-[10px] font-bold leading-none text-white shadow-sm ${
                           isDark ? 'border-lantu-card bg-rose-500' : 'border-white bg-rose-500'
                         }`}
                       >
@@ -1704,7 +1729,7 @@ const MainLayoutContent: React.FC<{
                           storeLogout();
                           navigate('/login', { replace: true });
                         }}
-                        className="flex min-h-11 w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-red-500 transition-colors hover:bg-red-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/45 focus-visible:ring-inset"
+                        className="flex min-h-11 w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium text-red-500 transition-colors hover:bg-red-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/45 focus-visible:ring-inset"
                       >
                         <LogOut size={15} aria-hidden />
                         退出登录

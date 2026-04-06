@@ -20,7 +20,16 @@ export function mapInvokeFlowError(err: unknown, stage: InvokeStage): string {
     if (stage === 'invoke' && (err.status === 409 || err.code === 4001)) return '资源当前状态不允许调用，请刷新资源状态后重试';
     if (stage === 'invoke' && err.status === 429) return '调用过于频繁，请稍后重试';
     if (stage === 'invoke' && (err.status ?? 0) >= 500) return '服务异常，请稍后重试';
-    if (stage === 'resolve') return `资源解析失败：${err.message}`;
+    if (stage === 'resolve') {
+      const base = `资源解析失败：${err.message}`;
+      if (err.status === 403 || err.code === 1003) {
+        return [
+          base,
+          '请确认：① 工具测试里填的是该资源「已批准授权」对应的 API Key 完整 secret（与个人设置里存的全局 Key 可能不是同一把）；② 后端库中 t_resource_invoke_grant 对 resourceId+该 Key 的 id 存在 active 记录；③ 授权未过期（expires_at）。',
+        ].join('\n');
+      }
+      return base;
+    }
     return err.message;
   }
   return stage === 'resolve' ? '资源解析失败，请重试' : '调用失败，请稍后重试';

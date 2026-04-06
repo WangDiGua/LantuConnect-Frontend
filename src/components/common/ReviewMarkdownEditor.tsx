@@ -1,24 +1,7 @@
-import React from 'react';
-import { Editor } from '@bytemd/react';
-import gfm from '@bytemd/plugin-gfm';
+import React, { useEffect, useState } from 'react';
 import type { Theme } from '../../types';
-import { textMuted } from '../../utils/uiClasses';
-import 'bytemd/dist/index.css';
+import { VditorMarkdownEditor } from './VditorMarkdownEditor';
 import './review-markdown-editor.css';
-
-const PLUGINS = [gfm()];
-
-const LOCALE = {
-  write: '编辑',
-  preview: '预览',
-  source: '源码',
-  fullscreen: '全屏',
-  exitFullscreen: '退出全屏',
-  help: '帮助',
-  top: '回到顶部',
-  words: '字数',
-  lines: '行数',
-};
 
 export interface ReviewMarkdownEditorProps {
   theme: Theme;
@@ -29,8 +12,7 @@ export interface ReviewMarkdownEditorProps {
   variant?: 'default' | 'compact';
   className?: string;
   /**
-   * ByteMD：`tab` 时工具栏仅有「编辑/预览」切换，不含加粗/列表等按钮（见 bytemd toolbar.svelte 的 `{#if split}`）。
-   * `split` 与平台公告编辑一致，显示完整格式化工具栏。`auto` 在容器宽度 ≥800px 时等同 split。
+   * `split` / `auto`（宽屏）：分屏编辑+预览；`tab` / `auto`（窄屏）：即时渲染单栏。
    */
   editorMode?: 'tab' | 'split' | 'auto';
 }
@@ -45,6 +27,24 @@ export const ReviewMarkdownEditor: React.FC<ReviewMarkdownEditorProps> = ({
   editorMode = 'split',
 }) => {
   const isDark = theme === 'dark';
+  const minHeight = variant === 'compact' ? 160 : 240;
+
+  const [autoMode, setAutoMode] = useState<'sv' | 'ir'>(() =>
+    typeof window !== 'undefined' && window.matchMedia('(min-width: 800px)').matches ? 'sv' : 'ir',
+  );
+
+  useEffect(() => {
+    if (editorMode !== 'auto') return;
+    const mq = window.matchMedia('(min-width: 800px)');
+    const apply = () => setAutoMode(mq.matches ? 'sv' : 'ir');
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, [editorMode]);
+
+  const vdMode: 'sv' | 'ir' =
+    editorMode === 'tab' ? 'ir' : editorMode === 'split' ? 'sv' : autoMode;
+
   return (
     <div
       className={[
@@ -56,8 +56,15 @@ export const ReviewMarkdownEditor: React.FC<ReviewMarkdownEditorProps> = ({
         .filter(Boolean)
         .join(' ')}
     >
-      <Editor value={value} plugins={PLUGINS} locale={LOCALE} onChange={onChange} mode={editorMode} />
-      {placeholder ? <p className={`mt-1.5 text-xs ${textMuted(theme)}`}>{placeholder}</p> : null}
+      <VditorMarkdownEditor
+        key={vdMode}
+        isDark={isDark}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        minHeight={minHeight}
+        mode={vdMode}
+      />
     </div>
   );
 };

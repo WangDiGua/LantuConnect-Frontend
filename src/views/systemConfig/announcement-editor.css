@@ -1,19 +1,8 @@
-.announcement-md-wrapper .bytemd {
+/* 公告弹窗内 Vditor：外框由父级 Card/Modal 提供，编辑器自身去重边框 */
+.announcement-md-wrapper .vditor {
   border: 0;
 }
 
-/* 去掉 ByteMD 右侧原生入口（帮助/源码/GitHub 风格项） */
-.announcement-md-wrapper .bytemd-toolbar-right {
-  display: none !important;
-}
-
-/* 小宽度下也尽量显示常用工具 */
-.announcement-md-wrapper .bytemd-toolbar-left {
-  display: flex !important;
-  flex-wrap: wrap;
-  gap: 2px;
-}
-
-.announcement-md-wrapper .bytemd-toolbar {
-  min-height: 38px;
+.announcement-md-wrapper .vditor-toolbar {
+  border-radius: 0;
 }

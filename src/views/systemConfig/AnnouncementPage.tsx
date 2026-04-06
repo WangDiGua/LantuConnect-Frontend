@@ -1,8 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Loader2, Plus, Megaphone } from 'lucide-react';
-import { Editor } from '@bytemd/react';
-import gfm from '@bytemd/plugin-gfm';
-import 'bytemd/dist/index.css';
 import './announcement-editor.css';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
@@ -14,6 +11,7 @@ import { EmptyState } from '../../components/common/EmptyState';
 import { Modal } from '../../components/common/Modal';
 import { LantuSelect } from '../../components/common/LantuSelect';
 import { MarkdownView } from '../../components/common/MarkdownView';
+import { VditorMarkdownEditor } from '../../components/common/VditorMarkdownEditor';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import {
   btnPrimary,
@@ -55,19 +53,6 @@ const TYPE_BADGE: Record<string, string> = {
 };
 
 const INPUT_FOCUS = 'focus:ring-2 focus:ring-neutral-900/20 focus:border-neutral-900/35';
-const MD_PLUGINS = [gfm()];
-const MD_LOCALE = {
-  write: '编辑',
-  preview: '预览',
-  source: '源码',
-  fullscreen: '全屏',
-  exitFullscreen: '退出全屏',
-  help: '帮助',
-  top: '回到顶部',
-  words: '字数',
-  lines: '行数',
-};
-
 const PAGE_DESCRIPTION = '发布与维护面向师生的平台公告与通知；支持 Markdown。维护类公告可配合「监控中心」排障信息，形成统一运营入口。';
 
 export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage }) => {
@@ -416,11 +401,12 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
             <div
               className={`announcement-md-wrapper rounded-xl overflow-hidden border ${isDark ? 'border-white/10' : 'border-slate-200'}${announcementFieldErrors.content ? ` ${inputBaseError()}` : ''}`}
             >
-              <Editor
+              <VditorMarkdownEditor
+                key={editing?.id ?? (showCreate ? 'create' : 'closed')}
+                isDark={isDark}
                 value={draft.content ?? ''}
-                plugins={MD_PLUGINS}
-                mode="split"
-                locale={MD_LOCALE}
+                mode="sv"
+                minHeight={360}
                 placeholder="支持 Markdown 语法录入公告正文"
                 onChange={(value) => {
                   setDraft((d) => ({ ...d, content: value }));

@@ -1,4 +1,6 @@
 node_modules/
+# Vditor 静态资源由 postinstall 从 node_modules 复制
+public/vditor/
 build/
 dist/
 coverage/

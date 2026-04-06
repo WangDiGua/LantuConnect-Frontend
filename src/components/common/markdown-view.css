@@ -1,11 +1,6 @@
 /**
- * 阅读态 Markdown（ByteMD Viewer）：继承外层字号，补足标题/段落 rhythm、代码块与链接，
- * 避免早年写死的 12px 把 GitHub-style 比例全部压扁。
+ * 阅读态 Markdown（react-markdown + remark-gfm）：继承外层字号，补足标题/段落 rhythm。
  */
-.markdown-view .bytemd {
-  border: 0;
-}
-
 .markdown-view .markdown-body {
   background: transparent;
   color: inherit;

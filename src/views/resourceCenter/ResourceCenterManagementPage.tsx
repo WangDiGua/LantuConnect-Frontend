@@ -107,26 +107,94 @@ function isActionAllowed(item: ResourceCenterItemVO, action: string): boolean {
   }
 }
 
-/** 新建版本输入框的默认建议（后端校验以 @VersionText 为准） */
-function bumpVersionLabel(current: string): string {
-  const trimmed = current.trim();
-  const vm = trimmed.match(/^(v?)(\d+)$/i);
-  if (vm) {
-    const n = Number.parseInt(vm[2], 10);
-    if (Number.isFinite(n)) return `${vm[1]}${n + 1}`;
+function normalizeVersionKey(label: string): string {
+  return label.trim().toLowerCase();
+}
+
+/** 与 @VersionText 一致：v?数字(.数字)…，可选 -rc1 等后缀；比较大小时忽略后缀。 */
+function parseNumericVersionBase(label: string): { segments: number[]; hasV: boolean } | null {
+  const t = label.trim();
+  const m = t.match(/^(v?)(\d+(?:\.\d+)*)(?:-[a-z0-9.]+)?$/i);
+  if (!m) return null;
+  const hasV = m[1].toLowerCase() === 'v';
+  const segs = m[2].split('.').map((x) => Number.parseInt(x, 10));
+  if (segs.some((n) => !Number.isFinite(n))) return null;
+  return { segments: segs, hasV };
+}
+
+function compareSegmentLists(a: number[], b: number[]): number {
+  const len = Math.max(a.length, b.length);
+  for (let i = 0; i < len; i++) {
+    const da = a[i] ?? 0;
+    const db = b[i] ?? 0;
+    if (da !== db) return da < db ? -1 : 1;
   }
-  const hasV = /^v/i.test(trimmed);
-  const bare = trimmed.replace(/^v/i, '');
-  const seg = bare.split('.').filter((s) => s.length > 0);
-  if (seg.length > 0) {
-    const lastRaw = seg[seg.length - 1];
-    const tailNum = Number.parseInt(lastRaw, 10);
-    if (Number.isFinite(tailNum)) {
-      seg[seg.length - 1] = String(tailNum + 1);
-      return (hasV ? 'v' : '') + seg.join('.');
+  return 0;
+}
+
+function formatSemanticVersion(segments: number[], useVPrefix: boolean): string {
+  const body = segments.join('.');
+  return useVPrefix ? `v${body}` : body;
+}
+
+function bumpLastNumericSegment(segments: number[]): number[] {
+  const next = [...segments];
+  const last = next[next.length - 1];
+  if (last == null || !Number.isFinite(last)) return next;
+  next[next.length - 1] = last + 1;
+  return next;
+}
+
+/**
+ * 根据已有版本标签（含当前默认版本）生成下一版本号，避免与列表重复。
+ */
+function nextVersionLabelFromExisting(labels: string[]): string {
+  const seen = new Set<string>();
+  const unique: string[] = [];
+  for (const raw of labels) {
+    const t = (raw ?? '').trim();
+    if (!t) continue;
+    const k = normalizeVersionKey(t);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    unique.push(t);
+  }
+
+  if (unique.length === 0) return 'v1';
+
+  const parsed: { segments: number[]; hasV: boolean }[] = [];
+  for (const t of unique) {
+    const p = parseNumericVersionBase(t);
+    if (p) parsed.push(p);
+  }
+
+  if (parsed.length === 0) {
+    let n = 1;
+    let candidate = `v${n}`;
+    while (seen.has(normalizeVersionKey(candidate)) && n < 100_000) {
+      n += 1;
+      candidate = `v${n}`;
     }
+    return candidate;
   }
-  return `${trimmed}-2`;
+
+  let maxSeg = parsed[0]!.segments;
+  for (let i = 1; i < parsed.length; i++) {
+    const seg = parsed[i]!.segments;
+    if (compareSegmentLists(seg, maxSeg) > 0) maxSeg = seg;
+  }
+  const withVCount = parsed.filter((p) => p.hasV).length;
+  const useV = withVCount * 2 >= parsed.length;
+
+  let candidateSeg = bumpLastNumericSegment(maxSeg);
+  let candidate = formatSemanticVersion(candidateSeg, useV);
+  let guard = 0;
+  while (seen.has(normalizeVersionKey(candidate)) && guard < 10_000) {
+    candidateSeg = bumpLastNumericSegment(candidateSeg);
+    candidate = formatSemanticVersion(candidateSeg, useV);
+    guard += 1;
+  }
+  return candidate;
 }
 
 interface Props {
@@ -169,8 +237,6 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
   const [versionTarget, setVersionTarget] = useState<ResourceCenterItemVO | null>(null);
   const [versions, setVersions] = useState<ResourceVersionVO[]>([]);
   const [versionsLoading, setVersionsLoading] = useState(false);
-  const [newVersion, setNewVersion] = useState('v2');
-  const [newVersionError, setNewVersionError] = useState('');
   const [makeNewVersionCurrent, setMakeNewVersionCurrent] = useState(true);
   const [activeType, setActiveType] = useState<ResourceType>(resourceType ?? 'agent');
   const [runningActionKey, setRunningActionKey] = useState<string | null>(null);
@@ -229,6 +295,15 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
     return `${RESOURCE_TYPE_LABEL_ZH[activeType]}资源管理`;
   }, [allowTypeSwitch, activeType]);
 
+  /** 新建版本号：根据版本列表与当前默认版本自动递增，不可手填。 */
+  const autoNewVersion = useMemo(() => {
+    if (versionTarget == null) return 'v1';
+    const fromList = versions.map((v) => String(v.version ?? '').trim()).filter(Boolean);
+    const cur = versionTarget.currentVersion?.trim() ?? '';
+    const labels = cur ? [...fromList, cur] : [...fromList];
+    return nextVersionLabelFromExisting(labels);
+  }, [versionTarget, versions]);
+
   const closeVersionModal = () => {
     setVersionTarget(null);
     setVersions([]);
@@ -240,11 +315,6 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
     setVersions([]);
     setVersionsLoading(true);
     setMakeNewVersionCurrent(true);
-    const suggested =
-      item.currentVersion && item.currentVersion.trim()
-        ? bumpVersionLabel(item.currentVersion.trim())
-        : 'v1';
-    setNewVersion(suggested);
     try {
       const data = await resourceCenterService.listVersions(item.id);
       setVersions(data);
@@ -299,11 +369,6 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
         ]);
         setVersionTarget(fresh);
         setVersions(vers);
-        const nextLabel =
-          fresh.currentVersion && fresh.currentVersion.trim()
-            ? bumpVersionLabel(fresh.currentVersion.trim())
-            : 'v2';
-        setNewVersion(nextLabel);
       } catch (e) {
         showMessage(e instanceof Error ? e.message : '刷新版本信息失败', 'error');
       }
@@ -944,29 +1009,25 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
             </div>
             <div className={`mt-4 border-t pt-4 ${isDark ? 'border-white/[0.08]' : 'border-slate-100'}`}>
               <p className={`mb-2 text-xs ${textSecondary(theme)}`}>
-                新建版本：版本号须匹配 <span className="font-mono">v?数字[.数字]…</span>，可选后缀如{' '}
-                <span className="font-mono">-rc1</span>（与后端 <span className="font-mono">@VersionText</span> 一致）。
+                新建版本：下一版本号由系统根据已有版本自动递增；格式须符合{' '}
+                <span className="font-mono">v?数字[.数字]…</span>，可选后缀如 <span className="font-mono">-rc1</span>（与后端{' '}
+                <span className="font-mono">@VersionText</span> 一致）。
               </p>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                 <input
-                  value={newVersion}
-                  onChange={(e) => {
-                    setNewVersion(e.target.value);
-                    setNewVersionError('');
-                  }}
-                  className={`min-w-0 flex-1 rounded-xl border px-3 py-2 text-sm ${isDark ? 'border-white/10 bg-white/[0.04] text-slate-200' : 'border-slate-200 bg-white text-slate-700'}${newVersionError ? ` ${inputBaseError()}` : ''}`}
-                  placeholder="例如 v2、1.0.0、v1-rc1"
-                  aria-invalid={!!newVersionError}
+                  readOnly
+                  value={autoNewVersion}
+                  className={`min-w-0 flex-1 cursor-default rounded-xl border px-3 py-2 text-sm ${isDark ? 'border-white/10 bg-white/[0.04] text-slate-200' : 'border-slate-200 bg-slate-50 text-slate-700'}`}
+                  aria-label="将创建的版本号（自动递增）"
                 />
                 <button
                   type="button"
                   onClick={async () => {
-                    const vv = newVersion.trim();
+                    const vv = autoNewVersion.trim();
                     if (!vv) {
-                      setNewVersionError('请填写版本号');
+                      showMessage('无法生成版本号，请刷新后重试', 'error');
                       return;
                     }
-                    setNewVersionError('');
                     setRunningActionKey(`create-version-${versionTarget.id}`);
                     try {
                       await resourceCenterService.createVersion(versionTarget.id, {
@@ -991,11 +1052,6 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                   {runningActionKey === `create-version-${versionTarget.id}` ? '创建中…' : '新建版本'}
                 </button>
               </div>
-              {newVersionError ? (
-                <p className={`mt-2 ${fieldErrorText()} text-xs`} role="alert">
-                  {newVersionError}
-                </p>
-              ) : null}
               <label className={`mt-2 flex cursor-pointer items-center gap-2 text-sm ${textSecondary(theme)}`}>
                 <input
                   type="checkbox"

@@ -7,3 +7,5 @@ export { MarketplaceListingCard, MarketplaceStatItem } from './MarketplaceListin
 export type { MarketplaceListingCardProps, MarketplaceStatusTone } from './MarketplaceListingCard';
 export { ResourceMarketDetailShell } from './ResourceMarketDetailShell';
 export type { ResourceMarketDetailShellProps, ResourceMarketDetailTabItem } from './ResourceMarketDetailShell';
+export { MarketPlazaPageShell } from './MarketPlazaPageShell';
+export type { MarketPlazaFeature } from './MarketPlazaPageShell';

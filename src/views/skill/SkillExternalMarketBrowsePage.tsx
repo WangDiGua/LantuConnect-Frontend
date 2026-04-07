@@ -60,10 +60,11 @@ const SOURCE_FILTER_OPTIONS: { value: SourceFilter; label: string }[] = [
 ];
 
 function marketFieldInputClass(isDark: boolean): string {
-  return `min-h-12 w-full rounded-2xl border px-4 py-3 text-sm tabular-nums outline-none transition-shadow placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-violet-500/40 ${
+  /** 与 bento 列表卡片同壳内：无独立投影，仅靠底色与描边分层 */
+  return `min-h-12 w-full rounded-2xl border px-4 py-3 text-sm tabular-nums shadow-none outline-none transition-[box-shadow,colors] placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-violet-500/40 ${
     isDark
       ? 'border-white/[0.1] bg-white/[0.05] text-white placeholder:text-slate-500'
-      : 'border-slate-200/90 bg-white text-slate-900 shadow-sm'
+      : 'border-slate-200/80 bg-slate-50/70 text-slate-900'
   }`;
 }
 
@@ -207,11 +208,7 @@ export const SkillExternalMarketBrowsePage: React.FC<SkillExternalMarketBrowsePa
             setAppliedSource(draftSource);
           }}
         >
-          <div
-            className={`rounded-2xl border p-4 sm:p-5 ${
-              isDark ? 'border-white/[0.1] bg-white/[0.03]' : 'border-slate-200/90 bg-white shadow-sm'
-            }`}
-          >
+          <div className={`${bentoCard(theme)} p-4 sm:p-5`}>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-stretch sm:gap-3">
               <div className="relative min-w-0 flex-1">
                 <Search
@@ -245,8 +242,10 @@ export const SkillExternalMarketBrowsePage: React.FC<SkillExternalMarketBrowsePa
               </div>
               <button
                 type="submit"
-                className={`inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-2xl px-5 text-sm font-semibold shadow-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/45 sm:min-w-[7.5rem] ${
-                  isDark ? 'bg-violet-500 text-white hover:bg-violet-400' : 'bg-violet-600 text-white hover:bg-violet-500'
+                className={`inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-2xl px-5 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/45 sm:min-w-[7.5rem] ${
+                  isDark
+                    ? 'bg-violet-500 text-white shadow-[0_4px_14px_-2px_rgba(139,92,246,0.45)] hover:bg-violet-400'
+                    : 'bg-violet-600 text-white shadow-[0_4px_14px_-3px_rgba(91,33,182,0.28)] hover:bg-violet-500'
                 }`}
               >
                 <Search size={18} aria-hidden />
@@ -302,7 +301,9 @@ export const SkillExternalMarketBrowsePage: React.FC<SkillExternalMarketBrowsePa
                     options={SOURCE_FILTER_OPTIONS}
                     placeholder="全部来源"
                     ariaLabel="来源"
-                    triggerClassName={`!min-h-12 !rounded-2xl !px-4 !py-3 ${isDark ? '!shadow-none' : ''}`}
+                    triggerClassName={`!min-h-12 !rounded-2xl !px-4 !py-3 !shadow-none ${
+                      isDark ? '!bg-white/[0.05] !border-white/[0.1]' : '!bg-slate-50/70 !border-slate-200/80'
+                    }`}
                   />
                 </div>
                 <div className="flex flex-col justify-end sm:col-span-2 lg:col-span-4">

@@ -22,6 +22,8 @@ export interface LantuSelectProps {
   /** 透传给触发按钮的额外 class（如 `!w-36`、`!text-xs`） */
   triggerClassName?: string;
   chevronSize?: number;
+  /** 触发按钮可访问名称（无可见 label 时使用） */
+  ariaLabel?: string;
 }
 
 export const LantuSelect: React.FC<LantuSelectProps> = ({
@@ -35,6 +37,7 @@ export const LantuSelect: React.FC<LantuSelectProps> = ({
   align = 'left',
   triggerClassName = '',
   chevronSize = 16,
+  ariaLabel,
 }) => {
   const isDark = theme === 'dark';
   const [open, setOpen] = useState(false);
@@ -78,6 +81,7 @@ export const LantuSelect: React.FC<LantuSelectProps> = ({
         type="button"
         disabled={disabled}
         id={`${listboxId}-trigger`}
+        aria-label={ariaLabel}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={listboxId}

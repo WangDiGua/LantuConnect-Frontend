@@ -17,6 +17,13 @@ export interface ResourceMarketDetailShellProps {
   titleBlock: React.ReactNode;
   /** 顶栏右侧操作按钮组 */
   headerActions?: React.ReactNode;
+  /**
+   * true：顶栏标题与操作在同一整行内两端对齐（文档站 / 市场里常见的「基本信息 + 右上操作」）。
+   * false：沿用 8+4 分栏顶栏。
+   */
+  compactHeaderRow?: boolean;
+  /** 主内容 lg 列宽，默认 8；与 sidebarLgColSpan 之和须为 12 */
+  mainLgColSpan?: 7 | 8 | 9;
   tabs: ResourceMarketDetailTabItem[];
   activeTabId: string;
   onTabChange: (id: string) => void;
@@ -24,6 +31,17 @@ export interface ResourceMarketDetailShellProps {
   mainColumn: React.ReactNode;
   /** 桌面端右侧栏；移动端全宽置于主列下方 */
   sidebarColumn?: React.ReactNode;
+}
+
+function gridSpansForMain(mainLgColSpan: 7 | 8 | 9): { main: string; side: string } {
+  switch (mainLgColSpan) {
+    case 9:
+      return { main: 'lg:col-span-9', side: 'lg:col-span-3' };
+    case 7:
+      return { main: 'lg:col-span-7', side: 'lg:col-span-5' };
+    default:
+      return { main: 'lg:col-span-8', side: 'lg:col-span-4' };
+  }
 }
 
 /**
@@ -35,6 +53,8 @@ export function ResourceMarketDetailShell({
   backLabel = '返回市场',
   titleBlock,
   headerActions,
+  compactHeaderRow = false,
+  mainLgColSpan = 8,
   tabs,
   activeTabId,
   onTabChange,
@@ -42,6 +62,7 @@ export function ResourceMarketDetailShell({
   sidebarColumn,
 }: ResourceMarketDetailShellProps) {
   const isDark = theme === 'dark';
+  const grid = gridSpansForMain(mainLgColSpan);
   return (
     <div className={`w-full min-h-0 ${canvasBodyBg(theme)}`}>
       <div className={`${mainScrollPadX} ${mainScrollPadBottom} ${consoleContentTopPad} space-y-6`}>
@@ -57,14 +78,27 @@ export function ResourceMarketDetailShell({
           {backLabel}
         </button>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-start lg:gap-8">
-          <div className="min-w-0 lg:col-span-8 space-y-4">{titleBlock}</div>
-          {headerActions ? (
-            <div className="flex min-w-0 flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:justify-end lg:col-span-4">
-              {headerActions}
-            </div>
-          ) : null}
-        </div>
+        {compactHeaderRow ? (
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0 flex-1 space-y-4">{titleBlock}</div>
+            {headerActions ? (
+              <div className="flex min-w-0 shrink-0 flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap lg:justify-end">
+                {headerActions}
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-start lg:gap-8">
+            <div className={`min-w-0 space-y-4 ${grid.main}`}>{titleBlock}</div>
+            {headerActions ? (
+              <div
+                className={`flex min-w-0 flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:justify-end ${grid.side}`}
+              >
+                {headerActions}
+              </div>
+            ) : null}
+          </div>
+        )}
 
         {tabs.length > 0 ? (
           <div
@@ -102,7 +136,7 @@ export function ResourceMarketDetailShell({
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
           <div
-            className="min-w-0 lg:col-span-8"
+            className={`min-w-0 ${grid.main}`}
             role="tabpanel"
             id={`market-tabpanel-${activeTabId}`}
             aria-labelledby={`market-tab-${activeTabId}`}
@@ -110,7 +144,7 @@ export function ResourceMarketDetailShell({
             {mainColumn}
           </div>
           {sidebarColumn ? (
-            <aside className="min-w-0 lg:col-span-4 space-y-4" aria-label="配置与快捷操作">
+            <aside className={`min-w-0 space-y-4 ${grid.side}`} aria-label="配置与快捷操作">
               {sidebarColumn}
             </aside>
           ) : null}

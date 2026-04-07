@@ -16,6 +16,8 @@ import type {
   SkillExternalCatalogPage,
   SkillExternalCatalogProperties,
   SkillExternalCatalogSettingsResponse,
+  SkillExternalSkillMdResponse,
+  SkillExternalReviewVO,
   SkillPackValidationStatus,
   SkillPackChunkUploadProgress,
 } from '../../types/dto/resource-center';
@@ -270,6 +272,11 @@ function toSkillCatalogItem(row: unknown): SkillExternalCatalogItemVO {
   const item = row && typeof row === 'object' && !Array.isArray(row) ? (row as Record<string, unknown>) : {};
   const starsRaw = item.stars;
   const stars = starsRaw != null && starsRaw !== '' ? Number(starsRaw) : undefined;
+  const fav = item.favoriteCount != null && item.favoriteCount !== '' ? Number(item.favoriteCount) : undefined;
+  const dl = item.downloadCount != null && item.downloadCount !== '' ? Number(item.downloadCount) : undefined;
+  const vw = item.viewCount != null && item.viewCount !== '' ? Number(item.viewCount) : undefined;
+  const rc = item.reviewCount != null && item.reviewCount !== '' ? Number(item.reviewCount) : undefined;
+  const ra = item.ratingAvg != null && item.ratingAvg !== '' ? Number(item.ratingAvg) : undefined;
   return {
     id: String(item.id ?? ''),
     name: String(item.name ?? ''),
@@ -278,7 +285,81 @@ function toSkillCatalogItem(row: unknown): SkillExternalCatalogItemVO {
     licenseNote: item.licenseNote != null ? String(item.licenseNote) : undefined,
     sourceUrl: item.sourceUrl != null ? String(item.sourceUrl) : undefined,
     stars: Number.isFinite(stars) ? stars : undefined,
+    itemKey: item.itemKey != null && String(item.itemKey).trim() !== '' ? String(item.itemKey) : undefined,
+    favoriteCount: Number.isFinite(fav) ? fav : undefined,
+    downloadCount: Number.isFinite(dl) ? dl : undefined,
+    viewCount: Number.isFinite(vw) ? vw : undefined,
+    reviewCount: Number.isFinite(rc) ? rc : undefined,
+    ratingAvg: Number.isFinite(ra) ? ra : undefined,
+    favoritedByMe:
+      typeof item.favoritedByMe === 'boolean'
+        ? item.favoritedByMe
+        : item.favoritedByMe === 1 || item.favoritedByMe === '1'
+          ? true
+          : item.favoritedByMe === 0 || item.favoritedByMe === '0'
+            ? false
+            : undefined,
   };
+}
+
+function toSkillExternalSkillMd(row: unknown): SkillExternalSkillMdResponse {
+  const r = row && typeof row === 'object' && !Array.isArray(row) ? (row as Record<string, unknown>) : {};
+  return {
+    markdown: r.markdown != null && String(r.markdown).trim() !== '' ? String(r.markdown) : undefined,
+    resolvedRawUrl: r.resolvedRawUrl != null && String(r.resolvedRawUrl).trim() !== '' ? String(r.resolvedRawUrl) : undefined,
+    hint: r.hint != null && String(r.hint).trim() !== '' ? String(r.hint) : undefined,
+    truncated: typeof r.truncated === 'boolean' ? r.truncated : undefined,
+    fromCache: typeof r.fromCache === 'boolean' ? r.fromCache : undefined,
+  };
+}
+
+function toSkillExternalReview(row: unknown): SkillExternalReviewVO {
+  const r = row && typeof row === 'object' && !Array.isArray(row) ? (row as Record<string, unknown>) : {};
+  const id = Number(r.id ?? 0) || 0;
+  const ratingRaw = r.rating != null && r.rating !== '' ? Number(r.rating) : undefined;
+  let createTime: string | undefined;
+  if (r.createTime != null) {
+    if (typeof r.createTime === 'string') {
+      createTime = r.createTime;
+    } else if (Array.isArray(r.createTime)) {
+      const a = r.createTime.map((x: unknown) => Number(x));
+      if (a.length >= 3 && a.every((n) => Number.isFinite(n))) {
+        const [y, mo, d, h = 0, mi = 0, s = 0, nano = 0] = a;
+        const ms = Date.UTC(y, mo - 1, d, h, mi, s, Math.floor(nano / 1_000_000));
+        createTime = new Date(ms).toISOString();
+      }
+    }
+  }
+  return {
+    id,
+    itemKey: r.itemKey != null ? String(r.itemKey) : undefined,
+    userId: r.userId != null && r.userId !== '' ? Number(r.userId) : undefined,
+    userName: r.userName != null ? String(r.userName) : undefined,
+    avatar: r.avatar != null ? String(r.avatar) : undefined,
+    rating: Number.isFinite(ratingRaw) ? ratingRaw : undefined,
+    comment: r.comment != null ? String(r.comment) : undefined,
+    createTime,
+  };
+}
+
+function normalizeSkillExternalReviewsPage(raw: unknown): {
+  list: SkillExternalReviewVO[];
+  total: number;
+  page: number;
+  pageSize: number;
+} {
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    const o = raw as Record<string, unknown>;
+    const listRaw = o.list;
+    const list = Array.isArray(listRaw) ? listRaw.map(toSkillExternalReview) : [];
+    return {
+      list,
+      total: Number(o.total ?? list.length) || 0,
+      page: Number(o.page ?? 1) || 1,
+      pageSize: Number(o.pageSize ?? 20) || 20,
+    };
+  }
+  return { list: [], total: 0, page: 1, pageSize: 20 };
 }
 
 function normalizeSkillExternalCatalogPage(raw: unknown): SkillExternalCatalogPage {
@@ -511,23 +592,96 @@ function toVersionItem(row: unknown): ResourceVersionVO {
 
 export const resourceCenterService = {
   /**
-   * 平台管理员：技能在线市场分页列表（keyword 匹配名称/简介/链接等；不传参默认第 1 页 20 条）
+   * 技能在线市场分页列表（须 skill:read；keyword 匹配名称/简介/链接等）
    */
   listSkillExternalCatalog: async (query?: {
     keyword?: string;
     page?: number;
     pageSize?: number;
+    /** 与后端 GET 参数对齐：星标区间、来源过滤 */
+    minStars?: number;
+    maxStars?: number;
+    source?: 'skillhub' | 'skillsmp' | 'mirror';
   }): Promise<SkillExternalCatalogPage> => {
+    const params: Record<string, string | number> = {
+      page: query?.page ?? 1,
+      pageSize: query?.pageSize ?? 20,
+      _ts: Date.now(),
+    };
+    const kw = query?.keyword?.trim();
+    if (kw) params.keyword = kw;
+    if (query?.minStars != null && Number.isFinite(query.minStars)) {
+      params.minStars = query.minStars;
+    }
+    if (query?.maxStars != null && Number.isFinite(query.maxStars)) {
+      params.maxStars = query.maxStars;
+    }
+    if (query?.source) params.source = query.source;
     const raw = await http.get<unknown>('/resource-center/skill-external-catalog', {
-      params: {
-        ...(query?.keyword?.trim() ? { keyword: query.keyword.trim() } : {}),
-        page: query?.page ?? 1,
-        pageSize: query?.pageSize ?? 20,
-        _ts: Date.now(),
-      },
+      params,
       headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
     });
     return normalizeSkillExternalCatalogPage(raw);
+  },
+
+  /** 单条详情；key 为 itemKey/dedupe_key（建议 UTF-8 编码后作为 query 传递） */
+  getSkillExternalCatalogItem: async (key: string): Promise<SkillExternalCatalogItemVO> => {
+    const raw = await http.get<unknown>('/resource-center/skill-external-catalog/item', {
+      params: { key },
+      headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
+    });
+    return toSkillCatalogItem(raw);
+  },
+
+  /** GitHub 来源条目：服务端经 raw.githubusercontent.com 代拉 SKILL.md（超时/非 Git 时 markdown 可能为空） */
+  getSkillExternalCatalogItemSkillMd: async (key: string): Promise<SkillExternalSkillMdResponse> => {
+    const raw = await http.get<unknown>('/resource-center/skill-external-catalog/item/skill-md', {
+      params: { key },
+      headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
+    });
+    return toSkillExternalSkillMd(raw);
+  },
+
+  recordSkillExternalDownload: async (itemKey: string): Promise<void> => {
+    await http.post<void>('/resource-center/skill-external-catalog/engagement/downloads', { itemKey });
+  },
+
+  recordSkillExternalView: async (itemKey: string): Promise<void> => {
+    await http.post<void>('/resource-center/skill-external-catalog/engagement/views', { itemKey });
+  },
+
+  addSkillExternalFavorite: async (itemKey: string): Promise<void> => {
+    await http.post<void>('/resource-center/skill-external-catalog/engagement/favorites', { itemKey });
+  },
+
+  removeSkillExternalFavorite: async (itemKey: string): Promise<void> => {
+    await http.delete<void>('/resource-center/skill-external-catalog/engagement/favorites', {
+      params: { itemKey },
+    });
+  },
+
+  pageSkillExternalReviews: async (
+    itemKey: string,
+    page = 1,
+    pageSize = 20,
+  ): Promise<{ list: SkillExternalReviewVO[]; total: number; page: number; pageSize: number }> => {
+    const raw = await http.get<unknown>('/resource-center/skill-external-catalog/engagement/reviews', {
+      params: { itemKey, page, pageSize },
+    });
+    return normalizeSkillExternalReviewsPage(raw);
+  },
+
+  createSkillExternalReview: async (body: {
+    itemKey: string;
+    rating: number;
+    comment?: string;
+  }): Promise<SkillExternalReviewVO> => {
+    const raw = await http.post<unknown>('/resource-center/skill-external-catalog/engagement/reviews', body);
+    return toSkillExternalReview(raw);
+  },
+
+  deleteSkillExternalReview: async (id: number): Promise<void> => {
+    await http.delete<void>(`/resource-center/skill-external-catalog/engagement/reviews/${id}`);
   },
 
   /** 超管委会：读取市场运行时配置（SkillsMP apiKey 不下发明文） */

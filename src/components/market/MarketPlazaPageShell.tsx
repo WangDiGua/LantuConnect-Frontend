@@ -30,7 +30,7 @@ export interface MarketPlazaPageShellProps {
   title: React.ReactNode;
   description: string;
   actions?: React.ReactNode;
-  features: [MarketPlazaFeature, MarketPlazaFeature, MarketPlazaFeature];
+  features: readonly [MarketPlazaFeature, MarketPlazaFeature, MarketPlazaFeature];
   tip: React.ReactNode;
   /** 桌面端左侧筛选（移动端由调用方自行用 `lg:hidden` 等在 main 内补充） */
   sidebar: React.ReactNode;

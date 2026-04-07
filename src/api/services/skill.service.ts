@@ -7,7 +7,6 @@ import type {
   SkillListQuery,
   McpServer,
 } from '../../types/dto/skill';
-import { invokeService } from './invoke.service';
 import { resourceCatalogService } from './resource-catalog.service';
 import type { CatalogResourceDetailVO, ResourceCatalogItemVO } from '../../types/dto/catalog';
 
@@ -26,12 +25,22 @@ function toSkill(item: ResourceCatalogItemVO): Skill {
   const id = Number(item.resourceId) || 0;
   const createdBy =
     item.createdBy != null && Number.isFinite(Number(item.createdBy)) ? Number(item.createdBy) : undefined;
+  const rawSpec = detail.spec;
+  const spec =
+    rawSpec && typeof rawSpec === 'object' && !Array.isArray(rawSpec)
+      ? (rawSpec as Record<string, unknown>)
+      : {};
+  const paramsRaw = spec.parametersSchema;
+  const parametersSchema =
+    paramsRaw && typeof paramsRaw === 'object' && !Array.isArray(paramsRaw)
+      ? (paramsRaw as Record<string, unknown>)
+      : null;
   return {
     id,
     agentName: item.resourceCode || `skill-${item.resourceId}`,
     displayName: item.displayName || item.resourceCode || String(item.resourceId),
     description: item.description || '',
-    agentType: 'builtin',
+    agentType: 'skill_pack',
     mode: 'TOOL',
     parentId: null,
     sourceType: (item.sourceType as Skill['sourceType']) || 'internal',
@@ -41,8 +50,8 @@ function toSkill(item: ResourceCatalogItemVO): Skill {
     tags: item.tags,
     status: (item.status as Skill['status']) || 'draft',
     displayTemplate: null,
-    specJson: {},
-    parametersSchema: null,
+    specJson: spec,
+    parametersSchema,
     isPublic: true,
     icon: null,
     sortOrder: 0,
@@ -102,15 +111,12 @@ export const skillService = {
     }));
   },
 
-  invoke: async (id: number, params: Record<string, unknown>) => {
-    const response = await invokeService.invoke({
-      resourceType: 'skill',
-      resourceId: String(id),
-      payload: params,
-    });
-    return {
-      result: response.body ?? '',
-      latencyMs: response.latencyMs ?? 0,
-    };
-  },
+  invoke: async (_id: number, _params: Record<string, unknown>) =>
+    Promise.reject(
+      new ApiException({
+        code: 1004,
+        status: 400,
+        message: '技能包不支持网关 invoke，请使用目录 resolve 与 skill-artifact/获取技能包下载。',
+      }),
+    ),
 };

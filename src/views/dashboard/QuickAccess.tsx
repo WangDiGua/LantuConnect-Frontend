@@ -33,7 +33,7 @@ const QUICK_LINKS_KEY = 'lantu_quick_links_visible';
 
 const ALL_TOOLS = [
   { id: 'agent', name: '智能体管理', icon: Bot, desc: '注册、审核与发布', page: 'agent-list', glow: 'indigo' as const, perm: 'agent:view' },
-  { id: 'skill', name: '技能管理', icon: Zap, desc: 'MCP 工具与 API', page: 'skill-list', glow: 'emerald' as const, perm: 'skill:view' },
+  { id: 'skill', name: '技能包管理', icon: Zap, desc: '技能包登记与发布', page: 'skill-list', glow: 'emerald' as const, perm: 'skill:view' },
   { id: 'app', name: '智能应用', icon: Cpu, desc: '应用注册与上架', page: 'app-list', glow: 'amber' as const, perm: 'app:view' },
   { id: 'dataset', name: '数据集', icon: Database, desc: '数据集管理', page: 'dataset-list', glow: 'rose' as const, perm: 'dataset:view' },
   {

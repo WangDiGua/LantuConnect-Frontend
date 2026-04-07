@@ -58,7 +58,12 @@ const AuthorizedSkillsPage = lazy(() => import('../views/user/AuthorizedSkillsPa
 const MyGrantApplicationsPage = lazy(() => import('../views/user/MyGrantApplicationsPage').then(m => ({ default: m.MyGrantApplicationsPage })));
 const ResourceCenterManagementPage = lazy(() => import('../views/resourceCenter/ResourceCenterManagementPage').then(m => ({ default: m.ResourceCenterManagementPage })));
 const ResourceRegisterPage = lazy(() => import('../views/resourceCenter/ResourceRegisterPage').then(m => ({ default: m.ResourceRegisterPage })));
-const SkillExternalMarketPage = lazy(() => import('../views/resourceCenter/SkillExternalMarketPage').then(m => ({ default: m.SkillExternalMarketPage })));
+const SkillExternalMarketBrowsePage = lazy(() =>
+  import('../views/skill/SkillExternalMarketBrowsePage').then((m) => ({ default: m.SkillExternalMarketBrowsePage })),
+);
+const SkillExternalMarketDetailPage = lazy(() =>
+  import('../views/skill/SkillExternalMarketDetailPage').then((m) => ({ default: m.SkillExternalMarketDetailPage })),
+);
 const ResourceAuditList = lazy(() => import('../views/audit/ResourceAuditList').then(m => ({ default: m.ResourceAuditList })));
 const GrantApplicationListPage = lazy(() => import('../views/userMgmt/GrantApplicationListPage').then(m => ({ default: m.GrantApplicationListPage })));
 const DeveloperApplicationListPage = lazy(() => import('../views/userMgmt/DeveloperApplicationListPage').then(m => ({ default: m.DeveloperApplicationListPage })));
@@ -195,7 +200,7 @@ const SUB_ITEM_PERM_MAP: Record<string, string | string[]> = {
   'alert-rules': 'system:config',
   'health-config': 'system:config',
   'circuit-breaker': 'system:config',
-  'skill-external-market': 'system:config',
+  'skill-external-catalog-settings': 'system:config',
 };
 
 function subItemMeetsPermission(itemId: string, hasPermission: (perm: string) => boolean): boolean {
@@ -232,7 +237,7 @@ const MainContent = React.memo<{
   themeColor: ThemeColor;
   fontSize: FontSize;
   showMessage: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void;
-  navigateTo: (page: string, id?: string | number, extra?: { skillTrack?: 'hosted' | 'mountable' }) => void;
+  navigateTo: (page: string, id?: string | number) => void;
   setShowUserMenu: (show: boolean) => void;
   setShowAppearanceMenu: (show: boolean) => void;
   exploreHubRail?: ExploreHubRailConfig;
@@ -261,7 +266,7 @@ const MainContent = React.memo<{
       showMessage={msg}
       resourceType={type}
       allowTypeSwitch={false}
-      onNavigateRegister={(rt, id, opts) => nav(RESOURCE_TYPE_REGISTER_PAGE[rt], id, opts)}
+      onNavigateRegister={(rt, id) => nav(RESOURCE_TYPE_REGISTER_PAGE[rt], id)}
     />
   );
 
@@ -297,12 +302,9 @@ const MainContent = React.memo<{
               resourceType={typeQuery ?? 'agent'}
               allowTypeSwitch
               onTypeChange={(nextType) => nav('resource-catalog', nextType)}
-              onNavigateRegister={(type, id, opts) => nav(RESOURCE_TYPE_REGISTER_PAGE[type], id, opts)}
-              onOpenSkillExternalMarket={() => nav('skill-external-market')}
+              onNavigateRegister={(type, id) => nav(RESOURCE_TYPE_REGISTER_PAGE[type], id)}
             />
           );
-        case 'skill-external-market':
-          return <SkillExternalMarketPage theme={t} fontSize={fs} showMessage={msg} />;
         case 'agent-register':
           return renderResourceRegister('agent');
         case 'agent-detail':
@@ -369,6 +371,7 @@ const MainContent = React.memo<{
         case 'category-management':
         case 'tag-management':
         case 'system-params':
+        case 'skill-external-catalog-settings':
         case 'security-settings':
         case 'network-config':
         case 'quota-management':
@@ -407,7 +410,7 @@ const MainContent = React.memo<{
             resourceType={typeQuery ?? 'agent'}
             allowTypeSwitch
             onTypeChange={(nextType) => nav('resource-center', nextType)}
-            onNavigateRegister={(type, id, opts) => nav(RESOURCE_TYPE_REGISTER_PAGE[type], id, opts)}
+            onNavigateRegister={(type, id) => nav(RESOURCE_TYPE_REGISTER_PAGE[type], id)}
           />
         );
       case 'agent-list':
@@ -452,6 +455,20 @@ const MainContent = React.memo<{
           />
         ) : (
           <SkillMarket theme={t} fontSize={fs} themeColor={tc} showMessage={msg} />
+        );
+
+      case 'skill-external-market':
+        return rid ? (
+          <SkillExternalMarketDetailPage
+            itemKeyEncoded={rid}
+            theme={t}
+            fontSize={fs}
+            themeColor={tc}
+            showMessage={msg}
+            onBackToList={() => nav('skill-external-market')}
+          />
+        ) : (
+          <SkillExternalMarketBrowsePage theme={t} fontSize={fs} themeColor={tc} showMessage={msg} />
         );
 
       case 'mcp-center':
@@ -570,6 +587,7 @@ const MainContent = React.memo<{
       p.includes('market') ||
       p === 'quick-access' ||
       p === 'skills-center' ||
+      p === 'skill-external-market' ||
       p === 'mcp-center' ||
       p === 'dataset-center' ||
       p === 'agents-center' ||
@@ -1116,9 +1134,9 @@ const MainLayoutContent: React.FC<{
       showMessage('当前账号无入驻审批权限', 'info');
       return;
     }
-    if (routeRole === 'admin' && normalizedRoutePage === 'skill-external-market' && !hasPermission('system:config')) {
-      navigate(`${buildPath('admin', 'resource-catalog')}?type=skill`, { replace: true });
-      showMessage('当前账号无权访问技能在线市场', 'info');
+    if (routeRole === 'admin' && normalizedRoutePage === 'skill-external-catalog-settings' && !hasPermission('system:config')) {
+      navigate(buildPath('admin', 'system-params'), { replace: true });
+      showMessage('当前账号无权访问技能在线市场配置', 'info');
       return;
     }
     if (!routeValid) {
@@ -1475,7 +1493,7 @@ const MainLayoutContent: React.FC<{
   }, [animationStyle, page]);
 
   const navigateTo = useCallback(
-    (targetPage: string, id?: string | number, extra?: { skillTrack?: 'hosted' | 'mountable' }) => {
+    (targetPage: string, id?: string | number) => {
       if (targetPage === 'resource-center') {
         const type = typeof id === 'string' ? parseResourceType(id) : undefined;
         navigate(
@@ -1491,11 +1509,7 @@ const MainLayoutContent: React.FC<{
         return;
       }
       const path = buildPath(consoleRole, targetPage, id);
-      if (targetPage === 'skill-register' && extra?.skillTrack) {
-        navigate(`${path}?skillTrack=${extra.skillTrack}`);
-      } else {
-        navigate(path);
-      }
+      navigate(path);
     },
     [navigate, consoleRole],
   );
@@ -1506,6 +1520,7 @@ const MainLayoutContent: React.FC<{
     if (page === 'resource-audit') return `${page}?type=${resourceTypeQuery ?? 'all'}`;
     if (page === 'resource-market') return `resource-market?tab=${marketTabQuery ?? 'agent'}`;
     if (page === 'skills-center') return routeId ? `skills-center/${routeId}` : 'skills-center';
+    if (page === 'skill-external-market') return routeId ? `skill-external-market/${routeId}` : 'skill-external-market';
     if (page === 'mcp-center') return routeId ? `mcp-center/${routeId}` : 'mcp-center';
     if (page === 'dataset-center') return routeId ? `dataset-center/${routeId}` : 'dataset-center';
     if (page === 'agents-center') return routeId ? `agents-center/${routeId}` : 'agents-center';

@@ -108,10 +108,7 @@ export const ADMIN_OVERVIEW_GROUPS: NavSubGroup[] = [
 export const ADMIN_RESOURCE_MANAGEMENT_GROUPS: NavSubGroup[] = [
   {
     title: '资源目录',
-    items: [
-      { id: 'resource-catalog', icon: Boxes, label: '统一资源中心', tag: '审核' },
-      { id: 'skill-external-market', icon: Store, label: '技能在线市场', tag: '管理员' },
-    ],
+    items: [{ id: 'resource-catalog', icon: Boxes, label: '统一资源中心', tag: '审核' }],
   },
   {
     title: 'Agent 运维',
@@ -212,6 +209,7 @@ export const ADMIN_SYSTEM_CONFIG_GROUPS: NavSubGroup[] = [
     items: [
       { id: 'tag-management', icon: Tag, label: '标签管理' },
       { id: 'system-params', icon: Braces, label: '系统参数' },
+      { id: 'skill-external-catalog-settings', icon: Store, label: '技能在线市场配置', tag: '超管' },
       { id: 'security-settings', icon: Shield, label: '安全设置' },
       { id: 'network-config', icon: Globe2, label: '网络配置' },
     ],
@@ -337,12 +335,21 @@ export function getNavSubGroups(sidebarId: string, isAdminRole: boolean): NavSub
   }
   switch (sidebarId) {
     case 'hub':
-    case 'skills-center':
     case 'mcp-center':
     case 'dataset-center':
     case 'agents-center':
     case 'apps-center':
       return [];
+    case 'skills-center':
+      return [
+        {
+          title: 'Skills',
+          items: [
+            { id: 'skills-center', icon: Braces, label: '平台技能' },
+            { id: 'skill-external-market', icon: Store, label: '在线市场' },
+          ],
+        },
+      ];
     case 'developer-portal':
       return ADMIN_DEVELOPER_PORTAL_GROUPS;
     case 'workspace':

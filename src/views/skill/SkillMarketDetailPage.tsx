@@ -35,6 +35,7 @@ const TYPE_BADGE: Record<AgentType, { label: string; cls: string }> = {
   mcp: { label: 'MCP', cls: 'text-neutral-900 bg-neutral-900/10' },
   http_api: { label: 'HTTP API', cls: 'text-neutral-800 bg-neutral-800/10' },
   builtin: { label: '内置', cls: 'text-neutral-700 bg-neutral-700/10' },
+  skill_pack: { label: '技能包', cls: 'text-violet-900 bg-violet-500/15 dark:text-violet-200 dark:bg-violet-500/20' },
 };
 const SOURCE_BADGE: Record<SourceType, { label: string; cls: string }> = {
   internal: { label: '自研', cls: 'text-sky-600 bg-sky-500/10' },
@@ -302,23 +303,33 @@ export const SkillMarketDetailPage: React.FC<SkillMarketDetailPageProps> = ({
                     {' '}
                     条）
                   </span>
-                  <span className="flex items-center gap-1">
-                    <Activity size={13} />
-                    {formatCount(skill.callCount)}
+                  <span className="flex items-center gap-1 tabular-nums">
+                    <Download size={13} className="shrink-0" aria-hidden />
+                    {formatCount(skill.downloadCount ?? 0)}
                     {' '}
-                    热度
+                    包下载
                   </span>
-                  <span className="flex items-center gap-1">
-                    <Clock size={13} />
-                    {formatLatency(skill.avgLatencyMs)}
-                  </span>
-                  {skill.successRate > 0 && <span className="text-emerald-500">{skill.successRate}% 成功率</span>}
-                  {skill.qualityScore > 0 && (
-                    <span>
-                      评分:
-                      {skill.qualityScore}
-                    </span>
-                  )}
+                  {skill.agentType !== 'skill_pack' ? (
+                    <>
+                      <span className="flex items-center gap-1">
+                        <Activity size={13} />
+                        {formatCount(skill.callCount)}
+                        {' '}
+                        热度
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock size={13} />
+                        {formatLatency(skill.avgLatencyMs)}
+                      </span>
+                      {skill.successRate > 0 && <span className="text-emerald-500">{skill.successRate}% 成功率</span>}
+                      {skill.qualityScore > 0 && (
+                        <span>
+                          评分:
+                          {skill.qualityScore}
+                        </span>
+                      )}
+                    </>
+                  ) : null}
                   {skill.createTime && <span>创建: {formatDateTime(skill.createTime)}</span>}
                 </div>
                 {(skill.tags ?? []).length > 0 ? (
@@ -334,8 +345,68 @@ export const SkillMarketDetailPage: React.FC<SkillMarketDetailPageProps> = ({
             ) : tab === 'files' ? (
               <div className="space-y-4">
                 <p className={`text-sm leading-relaxed ${textSecondary(theme)}`}>
-                  使用目录 resolve 下载技能包制品。请先绑定有效 X-Api-Key；也可使用顶部「获取技能包」打开完整流程。
+                  以下为目录详情中的制品与清单字段（来自 GET /catalog/resources/skill/{'{id}'} 的 spec）。下载请绑定有效 X-Api-Key 后使用「获取技能包」完成 resolve。
                 </p>
+                <div
+                  className={`space-y-3 rounded-2xl border p-4 text-sm ${
+                    isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200 bg-slate-50/80'
+                  }`}
+                >
+                  <h4 className={`font-semibold ${textPrimary(theme)}`}>清单与校验</h4>
+                  <dl className="grid gap-2 sm:grid-cols-2">
+                    {[
+                      ['包格式', skill.specJson?.packFormat],
+                      ['入口文档', skill.specJson?.entryDoc],
+                      ['校验状态', skill.specJson?.packValidationStatus],
+                      ['skillRootPath', skill.specJson?.skillRootPath],
+                      ['artifactSha256', skill.specJson?.artifactSha256],
+                      ['artifactDownloadApi', skill.specJson?.artifactDownloadApi],
+                    ]
+                      .filter(([, v]) => v != null && String(v).trim() !== '')
+                      .map(([k, v]) => (
+                        <div key={String(k)} className="min-w-0">
+                          <dt className={`text-xs ${textMuted(theme)}`}>{String(k)}</dt>
+                          <dd className={`mt-0.5 break-all font-mono text-xs ${textPrimary(theme)}`}>{String(v)}</dd>
+                        </div>
+                      ))}
+                  </dl>
+                  {skill.specJson?.manifest != null && typeof skill.specJson.manifest === 'object' ? (
+                    <div>
+                      <p className={`mb-1 text-xs font-medium ${textMuted(theme)}`}>manifest</p>
+                      <pre
+                        className={`max-h-48 overflow-auto rounded-lg p-3 text-xs ${
+                          isDark ? 'bg-black/30 text-slate-200' : 'bg-white text-slate-800'
+                        }`}
+                      >
+                        {JSON.stringify(skill.specJson.manifest as Record<string, unknown>, null, 2)}
+                      </pre>
+                    </div>
+                  ) : null}
+                  {skill.parametersSchema && Object.keys(skill.parametersSchema).length > 0 ? (
+                    <div>
+                      <p className={`mb-1 text-xs font-medium ${textMuted(theme)}`}>parametersSchema</p>
+                      <pre
+                        className={`max-h-48 overflow-auto rounded-lg p-3 text-xs ${
+                          isDark ? 'bg-black/30 text-slate-200' : 'bg-white text-slate-800'
+                        }`}
+                      >
+                        {JSON.stringify(skill.parametersSchema, null, 2)}
+                      </pre>
+                    </div>
+                  ) : null}
+                  {skill.specJson?.extra != null && typeof skill.specJson.extra === 'object' && Object.keys(skill.specJson.extra as object).length > 0 ? (
+                    <div>
+                      <p className={`mb-1 text-xs font-medium ${textMuted(theme)}`}>spec 附加（extra）</p>
+                      <pre
+                        className={`max-h-48 overflow-auto rounded-lg p-3 text-xs ${
+                          isDark ? 'bg-black/30 text-slate-200' : 'bg-white text-slate-800'
+                        }`}
+                      >
+                        {JSON.stringify(skill.specJson.extra as Record<string, unknown>, null, 2)}
+                      </pre>
+                    </div>
+                  ) : null}
+                </div>
                 <GatewayApiKeyInput theme={theme} id="skill-detail-gateway-key-files" value={gatewayApiKeyDraft} onChange={setGatewayApiKeyDraft} />
                 <div className="flex flex-wrap gap-2">
                   <button

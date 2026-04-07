@@ -22,6 +22,7 @@ import {
   Smartphone,
   Puzzle,
   MoreHorizontal,
+  Store,
 } from 'lucide-react';
 import type { Theme, FontSize, ThemeColor } from '../../types';
 import type { Skill } from '../../types/dto/skill';
@@ -70,7 +71,12 @@ import {
 
 interface Props { theme: Theme; fontSize: FontSize; themeColor?: ThemeColor; showMessage?: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void; }
 
-const TYPE_BADGE: Record<AgentType, { label: string; cls: string }> = { mcp: { label: 'MCP', cls: 'text-neutral-900 bg-neutral-900/10' }, http_api: { label: 'HTTP API', cls: 'text-neutral-800 bg-neutral-800/10' }, builtin: { label: '内置', cls: 'text-neutral-700 bg-neutral-700/10' } };
+const TYPE_BADGE: Record<AgentType, { label: string; cls: string }> = {
+  mcp: { label: 'MCP', cls: 'text-neutral-900 bg-neutral-900/10' },
+  http_api: { label: 'HTTP API', cls: 'text-neutral-800 bg-neutral-800/10' },
+  builtin: { label: '内置', cls: 'text-neutral-700 bg-neutral-700/10' },
+  skill_pack: { label: '技能包', cls: 'text-violet-900 bg-violet-500/15 dark:text-violet-200 dark:bg-violet-500/20' },
+};
 const SOURCE_BADGE: Record<SourceType, { label: string; cls: string }> = { internal: { label: '自研', cls: 'text-sky-600 bg-sky-500/10' }, partner: { label: '合作方', cls: 'text-neutral-900 bg-neutral-900/10' }, cloud: { label: '云服务', cls: 'text-cyan-600 bg-cyan-500/10' } };
 const ICON_COLORS = ['bg-neutral-900', 'bg-neutral-800', 'bg-neutral-700', 'bg-stone-800', 'bg-zinc-800', 'bg-neutral-600', 'bg-slate-800', 'bg-neutral-950'];
 function pickColor(str: string): string { let h = 0; for (let i = 0; i < str.length; i++) h = str.charCodeAt(i) + ((h << 5) - h); return ICON_COLORS[Math.abs(h) % ICON_COLORS.length]; }
@@ -290,6 +296,16 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _the
             </div>
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+            <button
+              type="button"
+              onClick={() => navigate(buildPath('user', 'skill-external-market'))}
+              className={`inline-flex min-h-11 items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 ${
+                isDark ? 'border-amber-500/35 bg-amber-500/10 text-amber-100 hover:bg-amber-500/15' : 'border-amber-200/90 bg-amber-50 text-amber-900 shadow-sm hover:bg-amber-100/90'
+              }`}
+            >
+              <Store className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-300" aria-hidden />
+              在线市场
+            </button>
             <button
               type="button"
               onClick={() => navigate(buildPath('user', 'api-docs'))}

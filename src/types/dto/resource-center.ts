@@ -81,7 +81,6 @@ export interface ResourceSkillUpsertRequest extends ResourceBaseUpsertRequest {
   serviceDetailMd?: string;
   /** 技能包格式：anthropic_v1 / folder_v1（远程 HTTP 工具请注册 resourceType=mcp） */
   skillType?: string;
-  mode?: string;
   /** 草稿可空；上传 zip 后由后端写入 */
   artifactUri?: string;
   artifactSha256?: string;
@@ -91,11 +90,8 @@ export interface ResourceSkillUpsertRequest extends ResourceBaseUpsertRequest {
   skillRootPath?: string;
   spec?: Record<string, unknown>;
   parametersSchema?: Record<string, unknown>;
-  /** 挂载的父资源（如 MCP Server） */
-  parentResourceId?: number;
-  displayTemplate?: string;
+  /** 目录公开性；技能包不支持网关 invoke */
   isPublic?: boolean;
-  maxConcurrency?: number;
 }
 
 export interface ResourceAgentUpsertRequest extends ResourceBaseUpsertRequest {
@@ -327,6 +323,35 @@ export interface SkillExternalCatalogItemVO {
   sourceUrl?: string | null;
   /** SkillsMP 星标等 */
   stars?: number | null;
+  /** 与 t_skill_external_catalog_item.dedupe_key 一致；详情路由优先使用 */
+  itemKey?: string | null;
+  favoriteCount?: number | null;
+  downloadCount?: number | null;
+  viewCount?: number | null;
+  reviewCount?: number | null;
+  ratingAvg?: number | null;
+  favoritedByMe?: boolean | null;
+}
+
+/** GET /resource-center/skill-external-catalog/item/skill-md — 服务端代拉 GitHub raw SKILL.md */
+export interface SkillExternalSkillMdResponse {
+  markdown?: string | null;
+  resolvedRawUrl?: string | null;
+  hint?: string | null;
+  truncated?: boolean | null;
+  fromCache?: boolean | null;
+}
+
+/** 外部市场评论（t_skill_external_review） */
+export interface SkillExternalReviewVO {
+  id: number;
+  itemKey?: string;
+  userId?: number;
+  userName?: string | null;
+  avatar?: string | null;
+  rating?: number | null;
+  comment?: string | null;
+  createTime?: string | null;
 }
 
 /** 与后端 PageResult 一致（list / total / page / pageSize） */

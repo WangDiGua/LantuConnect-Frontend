@@ -64,8 +64,11 @@ export const ResourceCenterManagementPage = lazy(() =>
 export const ResourceRegisterPage = lazy(() =>
   import('../views/resourceCenter/ResourceRegisterPage').then((m) => ({ default: m.ResourceRegisterPage })),
 );
-export const SkillExternalMarketPage = lazy(() =>
-  import('../views/resourceCenter/SkillExternalMarketPage').then((m) => ({ default: m.SkillExternalMarketPage })),
+export const SkillExternalMarketBrowsePage = lazy(() =>
+  import('../views/skill/SkillExternalMarketBrowsePage').then((m) => ({ default: m.SkillExternalMarketBrowsePage })),
+);
+export const SkillExternalMarketDetailPage = lazy(() =>
+  import('../views/skill/SkillExternalMarketDetailPage').then((m) => ({ default: m.SkillExternalMarketDetailPage })),
 );
 export const ResourceAuditList = lazy(() =>
   import('../views/audit/ResourceAuditList').then((m) => ({ default: m.ResourceAuditList })),

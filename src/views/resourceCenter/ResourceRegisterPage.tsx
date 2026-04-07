@@ -37,13 +37,6 @@ interface Props {
   onBack: () => void;
 }
 
-/** 与后端「托管存档 vs skillRoot 子树语义」两条产品支线对应（同一 skill 资源类型）。 */
-type SkillRegisterTrack = 'hosted' | 'mountable';
-
-function skillTrackFromSearch(sp: URLSearchParams): SkillRegisterTrack {
-  return sp.get('skillTrack') === 'mountable' ? 'mountable' : 'hosted';
-}
-
 /** 上传/导入完成后通过 react-router state 传到带 id 的编辑页，避免 remount 瞬间表单尚未拉到制品字段时没有视觉上的一条「已上传」。 */
 type SkillPackPreviewState = { fileName: string; size: number } | { importUrl: string };
 
@@ -96,7 +89,7 @@ const DEFAULT_SKILL_PARAMS_SCHEMA_JSON = '{\n  "type": "object",\n  "properties"
 
 const TYPE_GUIDE_ONE_LINE: Record<ResourceType, string> = {
   agent: '填写基础信息与运行地址后即可保存。',
-  skill: '技能请先上传包（zip/tar.gz/单 Markdown 等）；远程 HTTP 工具请走 MCP。',
+  skill: '请先上传技能包（zip/tar.gz/单 Markdown 等）；清单与 SKILL.md 由平台校验。远程可调用工具请注册 MCP。',
   mcp: '填写接入地址与鉴权即可。',
   app: '填写可访问 URL 与打开方式。',
   dataset: '填写类型与格式等元数据。',
@@ -128,12 +121,6 @@ const AGENT_MODE_OPTIONS = [
   { value: 'ALL', label: 'ALL' },
   { value: 'TOOL', label: 'TOOL' },
 ];
-const SKILL_MODE_OPTIONS = [
-  { value: 'TOOL', label: 'TOOL' },
-  { value: 'CHAT', label: 'CHAT' },
-  { value: 'SUBAGENT', label: 'SUBAGENT' },
-];
-
 function isValidUrl(value: string): boolean {
   try {
     const url = new URL(value);
@@ -220,7 +207,6 @@ type ResourceRegisterFieldKey =
   | 'paramsSchemaJson'
   | 'manifestJson'
   | 'artifactUri'
-  | 'parentResourceId'
   | 'appUrl'
   | 'embedType'
   | 'appIcon'
@@ -250,7 +236,6 @@ const RR_FIELD_FOCUS_ORDER: ResourceRegisterFieldKey[] = [
   'paramsSchemaJson',
   'manifestJson',
   'artifactUri',
-  'parentResourceId',
   'appUrl',
   'embedType',
   'appIcon',
@@ -281,7 +266,6 @@ function computeResourceRegisterFieldErrors(
     paramsSchemaJson: string;
     manifestJson: string;
     artifactUri: string;
-    parentResourceId: string;
     appUrl: string;
     embedType: string;
     appIcon: string;
@@ -290,7 +274,6 @@ function computeResourceRegisterFieldErrors(
     recordCount: number;
     fileSize: number;
   },
-  skillRegisterTrack: SkillRegisterTrack,
 ): Partial<Record<ResourceRegisterFieldKey, string>> {
   const e: Partial<Record<ResourceRegisterFieldKey, string>> = {};
 
@@ -392,9 +375,6 @@ function computeResourceRegisterFieldErrors(
   }
 
   if (resourceType === 'skill') {
-    if (skillRegisterTrack === 'mountable' && !form.skillRootPath.trim()) {
-      e.skillRootPath = '可挂载支线：请填写技能根目录（zip 内相对路径）';
-    }
     if (!form.skillType.trim()) {
       e.skillType = '请选择技能包格式（skillType）';
     } else {
@@ -418,9 +398,6 @@ function computeResourceRegisterFieldErrors(
     const uri = form.artifactUri.trim();
     if (uri && !isValidUrl(uri) && !uri.startsWith('/uploads/')) {
       e.artifactUri = 'artifactUri 须为 http(s) URL 或由上传生成的 /uploads/... 路径';
-    }
-    if (form.parentResourceId.trim() && !/^\d+$/.test(form.parentResourceId.trim())) {
-      e.parentResourceId = '父资源 ID（parentResourceId）须为正整数或留空';
     }
   }
 
@@ -541,9 +518,6 @@ export const ResourceRegisterPage: React.FC<Props> = ({
   const [skillPackChunkHint, setSkillPackChunkHint] = useState<string | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [skillTechOpen, setSkillTechOpen] = useState(false);
-  const [skillRegisterTrack, setSkillRegisterTrack] = useState<SkillRegisterTrack>(() =>
-    resourceType === 'skill' ? skillTrackFromSearch(searchParams) : 'hosted',
-  );
   const [skillPackUrl, setSkillPackUrl] = useState('');
   const [skillPackUrlError, setSkillPackUrlError] = useState('');
   const [skillSubmitArtifactError, setSkillSubmitArtifactError] = useState<string | null>(null);
@@ -587,8 +561,6 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     agentTemperature: '',
     specJson: resourceType === 'agent' ? DEFAULT_AGENT_SPEC_JSON : resourceType === 'skill' ? DEFAULT_SKILL_SPEC_JSON : '{}',
     paramsSchemaJson: DEFAULT_SKILL_PARAMS_SCHEMA_JSON,
-    parentResourceId: '',
-    displayTemplate: '',
     relatedResourceIds: '',
     artifactUri: '',
     entryDoc: 'SKILL.md',
@@ -676,11 +648,6 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- 市场深链一次性导入；闭包内使用当期 applySkillPackVoToForm / navigate
   }, [resourceType, resourceId, searchParams]);
 
-  useEffect(() => {
-    if (resourceType !== 'skill' || resourceId) return;
-    setSkillRegisterTrack(skillTrackFromSearch(searchParams));
-  }, [resourceType, resourceId, searchParams]);
-
   useLayoutEffect(() => {
     if (resourceType !== 'skill') return;
     const raw = location.state as { skillPackPreview?: SkillPackPreviewState } | null | undefined;
@@ -713,9 +680,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
         }
         if (
           resourceType === 'skill' &&
-          ((item.parentResourceId != null && Number(item.parentResourceId) > 0) ||
-            (item.displayTemplate != null && String(item.displayTemplate).trim() !== '') ||
-            (item.spec != null && typeof item.spec === 'object' && Object.keys(item.spec).length > 0) ||
+          ((item.spec != null && typeof item.spec === 'object' && Object.keys(item.spec).length > 0) ||
             (item.parametersSchema != null &&
               typeof item.parametersSchema === 'object' &&
               Object.keys(item.parametersSchema).length > 0))
@@ -817,8 +782,6 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                 packValidationMessage: item.packValidationMessage || '',
                 artifactSha256: item.artifactSha256 || '',
                 skillRootPath: item.skillRootPath || '',
-                mode: item.mode || prev.mode,
-                maxConcurrency: item.maxConcurrency ?? prev.maxConcurrency,
                 specJson:
                   item.spec && typeof item.spec === 'object'
                     ? JSON.stringify(item.spec, null, 2)
@@ -827,8 +790,6 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                   item.parametersSchema && typeof item.parametersSchema === 'object'
                     ? JSON.stringify(item.parametersSchema, null, 2)
                     : prev.paramsSchemaJson,
-                parentResourceId: item.parentResourceId != null ? String(item.parentResourceId) : '',
-                displayTemplate: item.displayTemplate ?? '',
               }
             : {}),
           ...(resourceType === 'dataset' ? { datasetIsPublic: item.isPublic === true } : {}),
@@ -840,14 +801,6 @@ export const ResourceRegisterPage: React.FC<Props> = ({
           pendingPublishedUpdate: item.pendingPublishedUpdate,
           workingDraftAuditTier: item.workingDraftAuditTier,
         });
-        if (resourceType === 'skill') {
-          const root = String(item.skillRootPath || '').trim();
-          if (root) setSkillRegisterTrack('mountable');
-          else {
-            const q = searchParams.get('skillTrack');
-            setSkillRegisterTrack(q === 'mountable' ? 'mountable' : 'hosted');
-          }
-        }
       })
       .catch(() => {
         showMessage('加载资源详情失败，已进入空白表单', 'warning');
@@ -858,23 +811,14 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     return () => {
       cancelled = true;
     };
-  }, [resourceId, resourceType, searchParams, showMessage]);
+  }, [resourceId, resourceType, showMessage]);
 
-  const setSkillTrackInUrl = (t: SkillRegisterTrack) => {
-    setSkillRegisterTrack(t);
-    const next = new URLSearchParams(searchParams);
-    next.set('skillTrack', t);
-    navigate({ pathname: location.pathname, search: next.toString() }, { replace: true });
-  };
-
-  const skillRegisterGuideLine = useMemo(
+  const registerGuideLine = useMemo(
     () =>
       resourceType === 'skill'
-        ? skillRegisterTrack === 'hosted'
-          ? '托管分发：安全扫描后原样存档，可下载制品；技能根目录通常留空（整包）。'
-          : '可挂载智能体：先填写 zip 内技能根子目录再上传；语义校验与 resolve 的 skillRootPath 仅针对该子树。'
+        ? '技能包：上传 zip 或 URL 导入后做安全与清单校验；制品与文档为中心，远程可调用工具请单独注册 MCP。可选填写包内子目录作为校验与 resolve 的 skillRootPath。'
         : TYPE_GUIDE_ONE_LINE[resourceType],
-    [resourceType, skillRegisterTrack],
+    [resourceType],
   );
 
   const skillHasArtifact = useMemo(
@@ -888,12 +832,11 @@ export const ResourceRegisterPage: React.FC<Props> = ({
   );
 
   const fieldErrors = useMemo((): Partial<Record<ResourceRegisterFieldKey, string>> =>
-    computeResourceRegisterFieldErrors(resourceType, form, skillRegisterTrack),
+    computeResourceRegisterFieldErrors(resourceType, form),
     [
       form.agentType,
       form.agentMaxSteps,
       form.agentTemperature,
-      form.parentResourceId,
       form.appIcon,
       form.appUrl,
       form.authConfigJson,
@@ -913,7 +856,6 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       form.resourceCode,
       form.skillRootPath,
       form.skillType,
-      skillRegisterTrack,
       form.specJson,
       form.manifestJson,
       form.artifactUri,
@@ -1039,14 +981,11 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       }
       const specObj = parsedSpec.data || {};
       const manifestObj = parsedManifest.data || {};
-      const prTrim = form.parentResourceId.trim();
-      const parentResourceIdNum = prTrim ? Number(prTrim) : NaN;
       return {
         ...baseFields,
         resourceType: 'skill',
         serviceDetailMd: form.serviceDetailMd.trim(),
         skillType: form.skillType.trim(),
-        mode: form.mode,
         artifactUri: form.artifactUri.trim() || undefined,
         artifactSha256: form.artifactSha256.trim() || undefined,
         manifest: Object.keys(manifestObj).length > 0 ? manifestObj : undefined,
@@ -1054,10 +993,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
         skillRootPath: form.skillRootPath.trim(),
         spec: Object.keys(specObj).length > 0 ? specObj : {},
         parametersSchema: parsedSchema.data || {},
-        ...(Number.isFinite(parentResourceIdNum) && parentResourceIdNum > 0 ? { parentResourceId: parentResourceIdNum } : {}),
-        ...(form.displayTemplate.trim() ? { displayTemplate: form.displayTemplate.trim() } : {}),
         isPublic: form.skillIsPublic,
-        maxConcurrency: Number(form.maxConcurrency) || 10,
       };
     }
     if (resourceType === 'agent') {
@@ -1137,15 +1073,14 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       skillRootPath: vo.skillRootPath || '',
       skillIsPublic: vo.isPublic === true,
       sourceType: vo.sourceType || prev.sourceType,
-      mode: vo.mode || prev.mode,
-      maxConcurrency: vo.maxConcurrency ?? prev.maxConcurrency,
     }));
     if (!resourceId && vo.id) {
       const nextSearch = new URLSearchParams(searchParams);
-      nextSearch.set('skillTrack', skillRegisterTrack);
+      nextSearch.delete('skillTrack');
       const base = location.pathname.replace(/\/+$/, '');
+      const q = nextSearch.toString();
       navigate(
-        { pathname: `${base}/${vo.id}`, search: nextSearch.toString() },
+        { pathname: `${base}/${vo.id}`, search: q ? `?${q}` : '' },
         { replace: true, state: preview ? { skillPackPreview: preview } : undefined },
       );
     } else if (preview) {
@@ -1305,7 +1240,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       fontSize={fontSize}
       titleIcon={FileCheck}
       breadcrumbSegments={['统一资源中心', registerPageTitle]}
-      description={skillRegisterGuideLine}
+      description={registerGuideLine}
       toolbar={
         <div className="flex flex-wrap items-center justify-between gap-3 w-full">
           <button
@@ -1835,44 +1770,6 @@ export const ResourceRegisterPage: React.FC<Props> = ({
             {resourceType === 'skill' && (
               <>
                 <div
-                  className={`md:col-span-2 rounded-xl border px-4 py-3 ${
-                    isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-slate-50/80'
-                  }`}
-                >
-                  <p className={`text-xs font-semibold ${textPrimary(theme)}`}>技能注册支线</p>
-                  <p className={`mt-1 text-xs leading-relaxed ${textMuted(theme)}`}>
-                    后端仍是同一「技能」资源类型；此处按使用场景拆分说明。托管侧重存档与审核，可挂载侧重智能体侧单技能语义（skillRoot 子树）。
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setSkillTrackInUrl('hosted')}
-                      className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                        skillRegisterTrack === 'hosted'
-                          ? 'bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900'
-                          : isDark
-                            ? 'bg-white/[0.06] text-slate-300 hover:bg-white/[0.1]'
-                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200/80'
-                      }`}
-                    >
-                      托管分发（制品存档）
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSkillTrackInUrl('mountable')}
-                      className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                        skillRegisterTrack === 'mountable'
-                          ? 'bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900'
-                          : isDark
-                            ? 'bg-white/[0.06] text-slate-300 hover:bg-white/[0.1]'
-                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200/80'
-                      }`}
-                    >
-                      可挂载智能体（skillRoot）
-                    </button>
-                  </div>
-                </div>
-                <div
                   className={`md:col-span-2 rounded-xl border px-4 py-3 text-sm ${
                     skillHasArtifact
                       ? isDark
@@ -1883,9 +1780,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                 >
                   <div className={`mb-2 flex flex-wrap items-center justify-between gap-2 ${textPrimary(theme)}`}>
                     <span className="font-medium">
-                      {skillRegisterTrack === 'hosted'
-                        ? '技能包（zip / tar.gz …）· 原样入库；状态徽章表示在「整包或所选子树」上的 Anthropic 语义自检结果'
-                        : '技能包 · 请先填写下方技能根目录，再上传 / URL 导入；「valid」表示该子树满足单技能挂载语义'}
+                      技能包（zip / tar.gz 等）· 平台托管制品与清单；徽章为 Anthropic/目录约定下的包内语义自检结果
                     </span>
                     <span
                       className={`rounded-full px-2 py-0.5 text-xs ${
@@ -1993,7 +1888,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                   ) : null}
                   <div className={`mb-3 ${textMuted(theme)}`}>
                     <label htmlFor={rrFieldId('skillRootPath')} className="mb-1 block text-xs font-medium text-current">
-                      {skillRegisterTrack === 'mountable' ? '技能根目录（zip 内相对路径）*' : '技能根目录（可选）'}
+                      技能根目录（可选，zip 内相对路径）
                     </label>
                     <input
                       id={rrFieldId('skillRootPath')}
@@ -2001,11 +1896,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                       value={form.skillRootPath}
                       onChange={(e) => setForm((p) => ({ ...p, skillRootPath: e.target.value }))}
                       disabled={loading}
-                      placeholder={
-                        skillRegisterTrack === 'mountable'
-                          ? '如 my-package/sub-skill — 须与包内目录一致'
-                          : '一般留空（整包）；monorepo 多技能时可填子目录'
-                      }
+                      placeholder="留空＝整包校验；多技能并列时填写子目录，如 my-package/sub-skill"
                       className={`w-full rounded-lg border px-3 py-2 text-sm ${
                         isDark ? 'border-white/10 bg-white/[0.04] text-slate-200 placeholder:text-slate-500' : 'border-slate-200 bg-white text-slate-900 placeholder:text-slate-400'
                       } ${fieldErrors.skillRootPath ? inputBaseError() : ''}`}
@@ -2020,9 +1911,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                       </p>
                     ) : null}
                     <p className={`mt-1 text-xs leading-relaxed ${textMuted(theme)}`}>
-                      {skillRegisterTrack === 'mountable'
-                        ? '本支线以该子树为技能根：SKILL.md 校验、resolve 的 skillRootPath、网关挂载范围均针对此路径。上传前请填好。'
-                        : '留空时按整包做安全扫描与可选语义校验；仅当包内含多个并列技能、需指定其一作为制品语义边界时再填写。'}
+                      与上传/URL 导入时传入的 skillRoot 一致；resolve 与校验范围仅针对该子树。一般在填好后再上传或导入。
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
@@ -2112,14 +2001,6 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     ]}
                   />
                 </Field>
-                <Field label="运行模式" theme={theme}>
-                  <ThemedSelect
-                    isDark={isDark}
-                    value={form.mode}
-                    onChange={(value) => setForm((p) => ({ ...p, mode: value }))}
-                    options={SKILL_MODE_OPTIONS}
-                  />
-                </Field>
                 <Field label="对外公开" theme={theme}>
                   <label className="flex cursor-pointer items-center gap-2 text-sm">
                     <input
@@ -2158,35 +2039,6 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                       </Field>
                       <Field label="SHA-256（只读）" theme={theme}>
                         <input value={form.artifactSha256} readOnly className={`${inputClass(isDark)} opacity-80`} placeholder="—" />
-                      </Field>
-                      <Field label="最大并发" theme={theme}>
-                        <input
-                          type="number"
-                          value={form.maxConcurrency}
-                          onChange={(e) => setForm((p) => ({ ...p, maxConcurrency: Number(e.target.value) || 10 }))}
-                          className={inputClass(isDark)}
-                          placeholder="默认 10"
-                        />
-                      </Field>
-                      <Field label="父资源 ID（parentResourceId）" theme={theme} error={fieldErrors.parentResourceId} fieldId={rrFieldId('parentResourceId')}>
-                        <input
-                          id={rrFieldId('parentResourceId')}
-                          value={form.parentResourceId}
-                          onChange={(e) => setForm((p) => ({ ...p, parentResourceId: e.target.value }))}
-                          className={inputClass(isDark, !!fieldErrors.parentResourceId)}
-                          aria-invalid={!!fieldErrors.parentResourceId}
-                          aria-describedby={fieldErrors.parentResourceId ? `${rrFieldId('parentResourceId')}-err` : undefined}
-                          placeholder="选填：挂载的 MCP 等资源 id"
-                          inputMode="numeric"
-                        />
-                      </Field>
-                      <Field label="展示模板（displayTemplate）" theme={theme}>
-                        <input
-                          value={form.displayTemplate}
-                          onChange={(e) => setForm((p) => ({ ...p, displayTemplate: e.target.value }))}
-                          className={inputClass(isDark)}
-                          placeholder="选填：file / image / answer …"
-                        />
                       </Field>
                       <Field label="入口文档" theme={theme}>
                         <input

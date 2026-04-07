@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Boxes, Download, Pencil, Plus, RefreshCw, Store } from 'lucide-react';
+import { Boxes, Download, Pencil, Plus, RefreshCw } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { ResourceType } from '../../types/dto/catalog';
 import type {
@@ -214,9 +214,7 @@ interface Props {
   resourceType?: ResourceType;
   allowTypeSwitch?: boolean;
   onTypeChange?: (type: ResourceType) => void;
-  onNavigateRegister: (resourceType: ResourceType, id?: number, opts?: { skillTrack?: 'hosted' | 'mountable' }) => void;
-  /** 平台管理员在「技能」页打开在线市场 */
-  onOpenSkillExternalMarket?: () => void;
+  onNavigateRegister: (resourceType: ResourceType, id?: number) => void;
 }
 
 export const ResourceCenterManagementPage: React.FC<Props> = ({
@@ -227,7 +225,6 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
   allowTypeSwitch = false,
   onTypeChange,
   onNavigateRegister,
-  onOpenSkillExternalMarket,
 }) => {
   const isDark = theme === 'dark';
   const authUser = useAuthStore((s) => s.user);
@@ -473,31 +470,11 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
         <RefreshCw size={15} aria-hidden />
         刷新
       </button>
-      {allowTypeSwitch && activeType === 'skill' && isPlatformAdmin && onOpenSkillExternalMarket ? (
-        <button type="button" onClick={onOpenSkillExternalMarket} className={btnGhost(theme)} aria-label="打开技能在线市场">
-          <Store size={15} aria-hidden />
-          在线市场
-        </button>
-      ) : null}
       {activeType === 'skill' ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => onNavigateRegister('skill', undefined, { skillTrack: 'hosted' })}
-            className={btnPrimary}
-          >
-            <Plus size={15} aria-hidden />
-            注册技能（托管分发）
-          </button>
-          <button
-            type="button"
-            onClick={() => onNavigateRegister('skill', undefined, { skillTrack: 'mountable' })}
-            className={btnSecondary(theme)}
-          >
-            <Plus size={15} aria-hidden />
-            注册技能（可挂载）
-          </button>
-        </div>
+        <button type="button" onClick={() => onNavigateRegister('skill')} className={btnPrimary}>
+          <Plus size={15} aria-hidden />
+          注册技能包
+        </button>
       ) : (
         <button type="button" onClick={() => onNavigateRegister(activeType)} className={btnPrimary}>
           <Plus size={15} aria-hidden />
@@ -592,24 +569,10 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                 description="当前筛选条件下没有资源，试试调整筛选或注册新资源。"
                 action={
                   activeType === 'skill' ? (
-                    <div className="flex flex-wrap items-center justify-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => onNavigateRegister('skill', undefined, { skillTrack: 'hosted' })}
-                        className={btnPrimary}
-                      >
-                        <Plus size={15} />
-                        注册技能（托管分发）
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onNavigateRegister('skill', undefined, { skillTrack: 'mountable' })}
-                        className={btnSecondary(theme)}
-                      >
-                        <Plus size={15} />
-                        注册技能（可挂载）
-                      </button>
-                    </div>
+                    <button type="button" onClick={() => onNavigateRegister('skill')} className={btnPrimary}>
+                      <Plus size={15} />
+                      注册技能包
+                    </button>
                   ) : (
                     <button type="button" onClick={() => onNavigateRegister(activeType)} className={btnPrimary}>
                       <Plus size={15} />

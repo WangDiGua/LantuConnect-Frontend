@@ -128,7 +128,6 @@ const ADMIN_SIDEBAR_PAGES: Record<string, string[]> = {
   'overview': ['dashboard', 'health-check', 'usage-statistics', 'data-reports'],
   'admin-resource-ops': [
     'resource-catalog',
-    'skill-external-market',
     'agent-register', 'agent-monitoring', 'agent-trace', 'agent-detail',
     'skill-register', 'mcp-register', 'app-register', 'dataset-register',
     'agent-list', 'skill-list', 'mcp-server-list', 'app-list', 'dataset-list',
@@ -138,13 +137,25 @@ const ADMIN_SIDEBAR_PAGES: Record<string, string[]> = {
   ],
   'user-management': ['user-list', 'role-management', 'organization', 'api-key-management', 'token-management', 'resource-grant-management', 'grant-applications', 'developer-applications'],
   'monitoring': ['monitoring-overview', 'call-logs', 'performance-analysis', 'alert-management', 'alert-rules', 'health-config', 'circuit-breaker'],
-  'system-config': ['tag-management', 'system-params', 'security-settings', 'network-config', 'quota-management', 'rate-limit-policy', 'access-control', 'audit-log', 'sensitive-words', 'announcements'],
+  'system-config': [
+    'tag-management',
+    'system-params',
+    'skill-external-catalog-settings',
+    'security-settings',
+    'network-config',
+    'quota-management',
+    'rate-limit-policy',
+    'access-control',
+    'audit-log',
+    'sensitive-words',
+    'announcements',
+  ],
 };
 
 const USER_SIDEBAR_PAGES: Record<string, string[]> = {
   'hub': ['hub'],
   'workspace': ['workspace', 'developer-onboarding', 'authorized-skills', 'my-favorites', 'quick-access'],
-  'skills-center': ['skills-center'],
+  'skills-center': ['skills-center', 'skill-external-market'],
   'mcp-center': ['mcp-center', 'mcp-market'],
   'dataset-center': ['dataset-center', 'dataset-market'],
   'agents-center': ['agents-center', 'agent-market'],
@@ -190,6 +201,7 @@ export function getDefaultPage(role: ConsoleRole, sidebarId: string): string {
 export function subItemToPage(sidebarId: string, subItemId: string, isAdmin: boolean): string {
   if (isAdmin && sidebarId === 'overview' && subItemId === 'overview') return 'dashboard';
   if (!isAdmin && sidebarId === 'workspace' && subItemId === 'overview') return 'workspace';
+  if (!isAdmin && sidebarId === 'skills-center' && subItemId === 'skill-external-market') return 'skill-external-market';
   if (!isAdmin && sidebarId === 'skills-center' && subItemId === 'skills-center') return 'skills-center';
   if (!isAdmin && sidebarId === 'mcp-center' && subItemId === 'mcp-center') return 'mcp-center';
   if (!isAdmin && sidebarId === 'dataset-center' && subItemId === 'dataset-center') return 'dataset-center';
@@ -202,8 +214,8 @@ export function subItemToPage(sidebarId: string, subItemId: string, isAdmin: boo
 export function pageToSubItem(page: string, sidebarId: string | null, isAdmin: boolean): string {
   if (isAdmin && page === 'dashboard' && sidebarId === 'overview') return 'overview';
   if (!isAdmin && page === 'workspace' && sidebarId === 'workspace') return 'overview';
-  if (isAdmin && sidebarId === 'admin-resource-ops' && page === 'skill-external-market') {
-    return 'skill-external-market';
+  if (isAdmin && sidebarId === 'system-config' && page === 'skill-external-catalog-settings') {
+    return 'skill-external-catalog-settings';
   }
   if (isAdmin && sidebarId === 'admin-resource-ops' && ADMIN_RESOURCE_CATALOG_PAGES.has(page)) {
     return 'resource-catalog';
@@ -211,7 +223,14 @@ export function pageToSubItem(page: string, sidebarId: string | null, isAdmin: b
   if (isAdmin && sidebarId === 'admin-resource-ops' && ADMIN_RESOURCE_AUDIT_PAGES.has(page)) {
     return 'resource-audit';
   }
-  if (!isAdmin && sidebarId === 'skills-center' && (page === 'skills-center' || page === 'resource-market')) {
+  if (!isAdmin && sidebarId === 'skills-center' && page === 'skill-external-market') {
+    return 'skill-external-market';
+  }
+  if (
+    !isAdmin &&
+    sidebarId === 'skills-center' &&
+    (page === 'skills-center' || page === 'resource-market')
+  ) {
     return 'skills-center';
   }
   if (!isAdmin && sidebarId === 'mcp-center' && (page === 'mcp-center' || page === 'resource-market')) {

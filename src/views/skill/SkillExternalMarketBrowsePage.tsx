@@ -59,13 +59,22 @@ const SOURCE_FILTER_OPTIONS: { value: SourceFilter; label: string }[] = [
   { value: 'mirror', label: '镜像 / 其他' },
 ];
 
-function marketFieldInputClass(isDark: boolean): string {
-  /** 与 bento 列表卡片同壳内：无独立投影，仅靠底色与描边分层 */
-  return `min-h-12 w-full rounded-2xl border px-4 py-3 text-sm tabular-nums shadow-none outline-none transition-[box-shadow,colors] placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-violet-500/40 ${
+/** 与 bento 列表卡片同壳内：无独立投影；水平 padding 由调用方区分（搜索需为左侧图标留 pl-12） */
+function marketFieldShell(isDark: boolean): string {
+  return `min-h-12 w-full rounded-2xl border py-3 text-sm shadow-none outline-none transition-[box-shadow,colors] placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-violet-500/40 ${
     isDark
       ? 'border-white/[0.1] bg-white/[0.05] text-white placeholder:text-slate-500'
       : 'border-slate-200/80 bg-slate-50/70 text-slate-900'
   }`;
+}
+
+function marketFieldInputClass(isDark: boolean): string {
+  return `${marketFieldShell(isDark)} px-4 tabular-nums`;
+}
+
+/** 左侧放大镜 absolute left-4 + h-5 w-5 → 需 pl-12；右侧清除按钮需 pr-11 */
+function marketSearchInputClass(isDark: boolean): string {
+  return `${marketFieldShell(isDark)} pl-12 pr-11`;
 }
 
 export const SkillExternalMarketBrowsePage: React.FC<SkillExternalMarketBrowsePageProps> = ({
@@ -225,7 +234,7 @@ export const SkillExternalMarketBrowsePage: React.FC<SkillExternalMarketBrowsePa
                   onChange={(ev) => setDraftKeyword(ev.target.value)}
                   placeholder="搜索名称、简介或链接…"
                   aria-label="搜索在线市场"
-                  className={`pr-11 ${marketFieldInputClass(isDark)}`}
+                  className={marketSearchInputClass(isDark)}
                 />
                 {draftKeyword.length > 0 ? (
                   <button

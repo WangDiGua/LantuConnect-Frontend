@@ -23,6 +23,7 @@
     "echarts": "^6.0.0",
     "framer-motion": "^12.38.0",
     "lucide-react": "^0.546.0",
+    "marked": "^17.0.6",
     "prism-react-renderer": "^2.4.1",
     "react": "^19.0.0",
     "react-datepicker": "^9.1.0",

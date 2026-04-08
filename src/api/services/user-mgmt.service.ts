@@ -64,6 +64,31 @@ function normalizeApiKeyStatus(raw: unknown): ApiKeyRecord['status'] {
   return 'active';
 }
 
+/** 解析接口返回的日期时间为可展示字符串；兼容 snake_case、数字时间戳、Jackson 数组形态 */
+function coerceOptionalApiDateTime(v: unknown): string | undefined {
+  if (v == null) return undefined;
+  if (typeof v === 'string') {
+    const t = v.trim();
+    return t || undefined;
+  }
+  if (typeof v === 'number' && Number.isFinite(v)) {
+    return new Date(v).toISOString();
+  }
+  if (Array.isArray(v) && v.length >= 3) {
+    const y = Number(v[0]);
+    const mo = Number(v[1] ?? 1);
+    const d = Number(v[2] ?? 1);
+    const h = Number(v[3] ?? 0);
+    const mi = Number(v[4] ?? 0);
+    const s = Number(v[5] ?? 0);
+    if (!Number.isFinite(y)) return undefined;
+    const dt = new Date(y, mo - 1, d, h, mi, s);
+    if (Number.isNaN(dt.getTime())) return undefined;
+    return `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')} ${String(h).padStart(2, '0')}:${String(mi).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+  return undefined;
+}
+
 function normalizeTokenStatus(raw: unknown): TokenRecord['status'] {
   const s = String(raw ?? '').toLowerCase();
   if (s === 'expired' || s === 'revoked' || s === 'active') return s;
@@ -103,6 +128,18 @@ function mapApiKeyRecord(raw: unknown): ApiKeyRecord {
     : typeof scopesRaw === 'string' && scopesRaw.trim()
       ? scopesRaw.split(/[\s,]+/).filter(Boolean)
       : [];
+  const expiresAt =
+    coerceOptionalApiDateTime(o.expiresAt) ??
+    coerceOptionalApiDateTime(o.expires_at) ??
+    coerceOptionalApiDateTime(o.expireAt);
+  const lastUsedAt =
+    coerceOptionalApiDateTime(o.lastUsedAt) ?? coerceOptionalApiDateTime(o.last_used_at);
+  const createdAt =
+    coerceOptionalApiDateTime(o.createdAt) ??
+    coerceOptionalApiDateTime(o.createTime) ??
+    coerceOptionalApiDateTime(o.created_at) ??
+    coerceOptionalApiDateTime(o.create_time) ??
+    strTrim(o.createdAt ?? o.createTime ?? '');
   return {
     id: String(o.id ?? o.apiKeyId ?? o.keyId ?? ''),
     name: String(o.name ?? o.keyName ?? '未命名'),
@@ -110,12 +147,12 @@ function mapApiKeyRecord(raw: unknown): ApiKeyRecord {
     maskedKey: String(o.maskedKey ?? o.masked ?? ''),
     scopes,
     status: normalizeApiKeyStatus(o.status),
-    expiresAt: o.expiresAt ? String(o.expiresAt) : undefined,
-    lastUsedAt: o.lastUsedAt ? String(o.lastUsedAt) : undefined,
+    ...(expiresAt ? { expiresAt } : {}),
+    ...(lastUsedAt ? { lastUsedAt } : {}),
     callCount: numPg(o.callCount ?? o.invokeCount),
     createdBy: String(o.createdBy ?? o.creator ?? ''),
     createdByName: o.createdByName ? String(o.createdByName) : undefined,
-    createdAt: String(o.createdAt ?? o.createTime ?? ''),
+    createdAt,
   };
 }
 

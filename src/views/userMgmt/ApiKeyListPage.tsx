@@ -46,6 +46,8 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize,
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [batchBusy, setBatchBusy] = useState(false);
   const [newNameError, setNewNameError] = useState('');
+  /** datetime-local，空表示不设置过期（与后端 expires_at NULL 一致） */
+  const [expiresAtDraft, setExpiresAtDraft] = useState('');
 
   const clearSelection = useCallback(() => setSelectedKeys(new Set()), []);
 
@@ -92,6 +94,7 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize,
   const closeReveal = useCallback(() => {
     setRevealedOnce(null);
     setNewName('');
+    setExpiresAtDraft('');
     setNewNameError('');
     setCopied(false);
     setCreateOpen(false);
@@ -103,9 +106,27 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize,
       return;
     }
     setNewNameError('');
-    try { const r = await userMgmtService.createApiKey({ name: newName.trim(), scopes: ['*'] }); setRevealedOnce({ full: r.plainKey, prefix: r.prefix }); setCopied(false); showMessage('密钥已生成', 'success'); await fetchKeys(); }
-    catch { showMessage('创建失败', 'error'); }
-  }, [newName, showMessage, fetchKeys]);
+    try {
+      const rawExpiry = expiresAtDraft.trim();
+      const expiresAt =
+        rawExpiry.length === 16
+          ? `${rawExpiry}:00`
+          : rawExpiry.length
+            ? rawExpiry
+            : undefined;
+      const r = await userMgmtService.createApiKey({
+        name: newName.trim(),
+        scopes: ['*'],
+        ...(expiresAt ? { expiresAt } : {}),
+      });
+      setRevealedOnce({ full: r.plainKey, prefix: r.prefix });
+      setCopied(false);
+      showMessage('密钥已生成', 'success');
+      await fetchKeys();
+    } catch {
+      showMessage('创建失败', 'error');
+    }
+  }, [newName, expiresAtDraft, showMessage, fetchKeys]);
 
   const copyFull = useCallback(async () => { if (!revealedOnce) return; try { await navigator.clipboard.writeText(revealedOnce.full); setCopied(true); showMessage('已复制到剪贴板', 'success'); } catch { showMessage('复制失败', 'error'); } }, [revealedOnce, showMessage]);
 
@@ -205,7 +226,14 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize,
       {
         id: 'expires',
         header: '过期时间',
-        cell: (k) => <span className={`whitespace-nowrap ${textSecondary(theme)}`}>{formatDateTime(k.expiresAt)}</span>,
+        cell: (k) =>
+          k.expiresAt ? (
+            <span className={`whitespace-nowrap ${textSecondary(theme)}`}>{formatDateTime(k.expiresAt)}</span>
+          ) : (
+            <span className={`whitespace-nowrap ${textMuted(theme)}`} title="未设置过期时间，长期有效">
+              永不过期
+            </span>
+          ),
       },
       {
         id: 'lastUsed',
@@ -252,6 +280,7 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize,
               onClick={() => {
               setCreateOpen(true);
               setNewName('');
+              setExpiresAtDraft('');
               setNewNameError('');
               setRevealedOnce(null);
               setCopied(false);
@@ -347,6 +376,15 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize,
                 {newNameError}
               </p>
             ) : null}
+            <label className={`text-xs font-semibold block mt-3 mb-1 ${textSecondary(theme)}`}>过期时间（可选）</label>
+            <input
+              type="datetime-local"
+              className={nativeInputClass(theme)}
+              value={expiresAtDraft}
+              onChange={(e) => setExpiresAtDraft(e.target.value)}
+              aria-label="API Key 过期时间"
+            />
+            <p className={`mt-1 text-[11px] ${textMuted(theme)}`}>留空则永不过期；设置后将写入数据库并在列表中显示。</p>
           </>
         )}
       </Modal>

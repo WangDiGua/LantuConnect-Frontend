@@ -1958,7 +1958,7 @@ const MainLayoutContent: React.FC<{
                       data-lantu-main-scroll
                       className={`flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain custom-scrollbar ${mainScrollCompositorClass} ${consoleScrollSafeBottomPad}`}
                     >
-                      <div className={`w-full min-w-0 ${chromeGpuLayerClass}`}>
+                      <div className="w-full min-w-0">
                         <AnimatePresence mode="wait">
                           <RouteContentMotion key={contentKey} animationVariants={animationVariants}>
                             <div className={`w-full min-w-0 ${consoleContentTopPad}`}>
@@ -1999,10 +1999,14 @@ const MainLayoutContent: React.FC<{
               data-lantu-main-scroll
               className={`min-h-0 min-w-0 flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${consoleScrollSafeBottomPad}`}
             >
-              <div className={`w-full ${chromeGpuLayerClass}`}>
+              <div className="w-full min-w-0">
                 <AnimatePresence mode="wait">
                   <RouteContentMotion key={contentKey} animationVariants={animationVariants}>
-                    <div className={`w-full min-w-0 ${contentPaddingX} ${consoleContentTopPad}`}>
+                    <div
+                      className={`w-full min-w-0 ${contentPaddingX} ${
+                        page === 'hub' && exploreHubRailForContent ? '' : consoleContentTopPad
+                      }`}
+                    >
                       <MainContent
                         page={page}
                         routeId={routeId}

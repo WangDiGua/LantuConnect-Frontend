@@ -14,6 +14,7 @@ import {
   CONSOLE_CARD_RADIUS,
   CONSOLE_CARD_SHADOW_DARK,
   CONSOLE_CARD_SHADOW_LIGHT,
+  consoleContentTopPad,
   mainScrollCompositorClass,
   mainScrollPadBottom,
 } from '../../utils/uiClasses';
@@ -801,7 +802,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
   return (
     <>
       {/*
-        顶栏下主内容顶距由 MainLayout 对 MainContent 外包一层 consoleContentTopPad 统一处理；hub 内勿再叠 pt，以免与侧栏不同步。
+        有左轨时：MainLayout 不在整页外包 consoleContentTopPad，顶距只加在右侧主内容列，避免滚动时侧栏随顶距一起上移。
       */}
       <div className={`w-full min-w-0 ${mainScrollPadBottom} ${canvasBodyBg(theme)}`}>
         {!hubRail ? <div className={pageContainer}>{hubHeroBanner}</div> : null}
@@ -830,7 +831,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
               </div>
             ) : null}
             <div
-              className={`space-y-8 order-1 ${hubRail ? 'lg:order-2 lg:col-span-7' : 'lg:col-span-8'}`}
+              className={`space-y-8 order-1 ${hubRail ? `lg:order-2 lg:col-span-7 ${consoleContentTopPad}` : 'lg:col-span-8'}`}
             >
               {hubRail ? (
                 <div className="space-y-6">

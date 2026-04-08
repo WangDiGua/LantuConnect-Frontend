@@ -13,7 +13,6 @@ import {
   FileSearch,
   MessageSquare,
   Star,
-  ShieldCheck,
   Eye,
   Download,
   Sparkles,
@@ -55,23 +54,6 @@ interface Props {
   themeColor?: ThemeColor;
   showMessage?: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void;
 }
-
-const SOURCE_TABS: { value: DatasetSourceType | ''; label: string }[] = [
-  { value: '', label: '全部' },
-  { value: 'department', label: '部门数据' },
-  { value: 'knowledge', label: '知识库' },
-  { value: 'third_party', label: '第三方' },
-];
-
-const DATA_SHAPE_TABS: { value: DatasetDataType | ''; label: string }[] = [
-  { value: '', label: '全部' },
-  { value: 'document', label: '文档' },
-  { value: 'structured', label: '结构化' },
-  { value: 'image', label: '图像' },
-  { value: 'audio', label: '音频' },
-  { value: 'video', label: '视频' },
-  { value: 'mixed', label: '混合' },
-];
 
 const SOURCE_BADGE: Record<DatasetSourceType, { label: string; cls: string }> = {
   department: { label: '部门数据', cls: 'text-blue-600 bg-blue-500/10' },
@@ -152,8 +134,6 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _t
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [catalogTags, setCatalogTags] = useState<TagItem[]>([]);
   const [tagStatsRows, setTagStatsRows] = useState<ResourceCatalogItemVO[]>([]);
-  const [sourceFilter, setSourceFilter] = useState<DatasetSourceType | ''>('');
-  const [dataTypeFilter, setDataTypeFilter] = useState<DatasetDataType | ''>('');
   const [sortPreset, setSortPreset] = useState<SortPreset>('default');
 
   useEffect(() => {
@@ -185,8 +165,6 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _t
         pageSize: 100,
         keyword: keyword.trim() || undefined,
         tags: tagFilter ? [tagFilter] : undefined,
-        ...(sourceFilter ? { sourceType: sourceFilter } : {}),
-        ...(dataTypeFilter ? { dataType: dataTypeFilter } : {}),
         ...(sortBy ? { sortBy, sortOrder } : {}),
       })
       .then((res) => {
@@ -208,24 +186,12 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _t
     return () => {
       cancelled = true;
     };
-  }, [showMessage, keyword, tagFilter, sourceFilter, dataTypeFilter, sortPreset]);
+  }, [showMessage, keyword, tagFilter, sortPreset]);
 
   useEffect(() => {
     const cleanup = loadDatasets();
     return cleanup;
   }, [loadDatasets]);
-
-  /** 服务端筛选后，再按已返回行的来源/形态做一次客户端兜底（目录字段缺失时不展示误匹配项） */
-  const displayed = useMemo(() => {
-    let list = datasets;
-    if (dataTypeFilter) {
-      list = list.filter((d) => d.dataType === dataTypeFilter);
-    }
-    if (sourceFilter) {
-      list = list.filter((d) => d.sourceType === sourceFilter);
-    }
-    return list;
-  }, [datasets, dataTypeFilter, sourceFilter]);
 
   const tagCounts = useMemo(() => {
     const map = new Map<string, number>();
@@ -311,7 +277,7 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _t
 
   const searchPlaceholder =
     listTotal != null && listCountLabel > 0
-      ? `搜索数据集（本页已加载 ${displayed.length} 条）…`
+      ? `搜索数据集（本页已加载 ${datasets.length} 条）…`
       : listTotal != null
         ? `搜索数据集…（共 ${formatLabel(listTotal)} 条）`
         : '搜索数据集名称、编码或标签…';
@@ -326,10 +292,10 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _t
     },
     {
       variant: 'cyan' as const,
-      pill: '授权',
-      pillIcon: ShieldCheck,
-      title: '资源授权与访问策略',
-      description: '详情内可申请使用，审批后与目录 accessPolicy 一致。',
+      pill: '目录',
+      pillIcon: HardDrive,
+      title: '标签与元数据',
+      description: '筛选用标签库与登记一致；卡片仍展示数据形态、来源等结构化字段。',
     },
     {
       variant: 'fuchsia' as const,
@@ -342,58 +308,12 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _t
 
   const desktopSidebar = (
     <aside className="hidden w-full shrink-0 space-y-6 lg:block lg:w-52 xl:w-56">
-      <FilterSection title="数据形态">
-        <div className="flex flex-col gap-1">
-          {DATA_SHAPE_TABS.map((tab) => (
-            <button
-              key={tab.value || 'all-shape'}
-              type="button"
-              aria-pressed={dataTypeFilter === tab.value}
-              onClick={() => setDataTypeFilter(tab.value)}
-              className={`min-h-10 w-full rounded-xl px-3 py-2 text-left text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/45 ${
-                dataTypeFilter === tab.value
-                  ? isDark
-                    ? 'bg-violet-500/20 text-white'
-                    : 'bg-violet-100 text-violet-950'
-                  : `${textSecondary(theme)} ${isDark ? 'hover:bg-white/[0.06]' : 'hover:bg-slate-100'}`
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+      <FilterSection title="标签">
+        <p className={`mb-2 text-xs leading-snug ${textMuted(theme)}`}>
+          与标签管理一致（含「通用」桶）；计数来自已上架列表快照（单页最多 100 条）。
+        </p>
+        <TagNav />
       </FilterSection>
-
-      <FilterSection title="来源">
-        <div className="flex flex-col gap-1">
-          {SOURCE_TABS.map((tab) => (
-            <button
-              key={tab.value || 'all-src'}
-              type="button"
-              aria-pressed={sourceFilter === tab.value}
-              onClick={() => setSourceFilter(tab.value)}
-              className={`min-h-10 w-full rounded-xl px-3 py-2 text-left text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/45 ${
-                sourceFilter === tab.value
-                  ? isDark
-                    ? 'bg-violet-500/20 text-white'
-                    : 'bg-violet-100 text-violet-950'
-                  : `${textSecondary(theme)} ${isDark ? 'hover:bg-white/[0.06]' : 'hover:bg-slate-100'}`
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </FilterSection>
-
-      {catalogTags.length > 0 && (
-        <FilterSection title="标签">
-          <p className={`mb-2 text-xs leading-snug ${textMuted(theme)}`}>
-            计数来自已上架列表快照（单页最多 100 条）；切换标签会重新请求目录。
-          </p>
-          <TagNav />
-        </FilterSection>
-      )}
     </aside>
   );
 
@@ -408,7 +328,7 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _t
           {chromePageTitle || '数据集'}
         </span>
       )}
-      description="浏览已发布数据集；以目录 resolve 与元数据为主，不提供统一网关 invoke。来源与形态以后台字段为准。"
+      description="浏览已发布数据集；以目录 resolve 与元数据为主，不提供统一网关 invoke。侧栏筛选与标签管理一致，形态与来源在卡片上展示。"
       actions={(
         <>
           <button
@@ -435,7 +355,7 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _t
       tip={(
         <p>
           <strong className="font-semibold">{chromePageTitle || '数据集'}</strong>
-          ：侧栏标签计数基于最近一次「全部」列表快照（单页最多 100 条）；形态与来源筛选与目录字段联动。
+          ：侧栏「标签」计数基于最近一次已上架目录快照（单页最多 100 条）；切换标签会重新请求列表。
         </p>
       )}
       sidebar={desktopSidebar}
@@ -443,123 +363,57 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _t
         <>
           <div className="space-y-3 lg:hidden">
             <div>
-              <p className={`mb-2 text-xs font-semibold ${textMuted(theme)}`}>数据形态</p>
+              <p className={`mb-2 text-xs font-semibold ${textMuted(theme)}`}>标签</p>
               <div
                 className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                 role="tablist"
-                aria-label="数据形态"
+                aria-label="数据集标签"
               >
-                {DATA_SHAPE_TABS.map((tab) => {
-                  const active = dataTypeFilter === tab.value;
-                  return (
-                    <button
-                      key={tab.value || 'all-shape-m'}
-                      type="button"
-                      role="tab"
-                      aria-selected={active}
-                      onClick={() => setDataTypeFilter(tab.value)}
-                      className={`shrink-0 rounded-full px-3.5 py-2 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/45 ${
-                        active
-                          ? isDark
-                            ? 'bg-violet-500/25 text-white'
-                            : 'bg-violet-600 text-white'
-                          : isDark
-                            ? 'bg-white/[0.06] text-slate-300'
-                            : 'bg-slate-100 text-slate-700'
-                      }`}
-                    >
-                      {tab.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            <div>
-              <p className={`mb-2 text-xs font-semibold ${textMuted(theme)}`}>来源</p>
-              <div
-                className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-                role="tablist"
-                aria-label="数据集来源"
-              >
-                {SOURCE_TABS.map((tab) => {
-                  const active = sourceFilter === tab.value;
-                  return (
-                    <button
-                      key={tab.value || 'all-src-m'}
-                      type="button"
-                      role="tab"
-                      aria-selected={active}
-                      onClick={() => setSourceFilter(tab.value)}
-                      className={`shrink-0 rounded-full px-3.5 py-2 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/45 ${
-                        active
-                          ? isDark
-                            ? 'bg-violet-500/25 text-white'
-                            : 'bg-violet-600 text-white'
-                          : isDark
-                            ? 'bg-white/[0.06] text-slate-300'
-                            : 'bg-slate-100 text-slate-700'
-                      }`}
-                    >
-                      {tab.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            {catalogTags.length > 0 ? (
-              <div>
-                <p className={`mb-2 text-xs font-semibold ${textMuted(theme)}`}>标签</p>
-                <div
-                  className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-                  role="tablist"
-                  aria-label="数据集标签"
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={tagFilter === null}
+                  onClick={() => setTagFilter(null)}
+                  className={`shrink-0 rounded-full px-3.5 py-2 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/45 ${
+                    tagFilter === null
+                      ? isDark
+                        ? 'bg-violet-500/25 text-white'
+                        : 'bg-violet-600 text-white'
+                      : isDark
+                        ? 'bg-white/[0.06] text-slate-300'
+                        : 'bg-slate-100 text-slate-700'
+                  }`}
                 >
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={tagFilter === null}
-                    onClick={() => setTagFilter(null)}
-                    className={`shrink-0 rounded-full px-3.5 py-2 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/45 ${
-                      tagFilter === null
-                        ? isDark
-                          ? 'bg-violet-500/25 text-white'
-                          : 'bg-violet-600 text-white'
-                        : isDark
-                          ? 'bg-white/[0.06] text-slate-300'
-                          : 'bg-slate-100 text-slate-700'
-                    }`}
-                  >
-                    全部
-                    <span className="ml-1 tabular-nums opacity-80">({listCountLabel})</span>
-                  </button>
-                  {catalogTags.map((t) => {
-                    const n = tagCounts.get(t.name) ?? 0;
-                    const active = tagFilter === t.name;
-                    return (
-                      <button
-                        key={t.id}
-                        type="button"
-                        role="tab"
-                        aria-selected={active}
-                        onClick={() => setTagFilter((p) => (p === t.name ? null : t.name))}
-                        className={`max-w-[10rem] shrink-0 truncate rounded-full px-3.5 py-2 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/45 ${
-                          active
-                            ? isDark
-                              ? 'bg-violet-500/25 text-white'
-                              : 'bg-violet-600 text-white'
-                            : isDark
-                              ? 'bg-white/[0.06] text-slate-300'
-                              : 'bg-slate-100 text-slate-700'
-                        }`}
-                      >
-                        {t.name}
-                        <span className="ml-1 tabular-nums opacity-80">({n})</span>
-                      </button>
-                    );
-                  })}
-                </div>
+                  全部
+                  <span className="ml-1 tabular-nums opacity-80">({listCountLabel})</span>
+                </button>
+                {catalogTags.map((t) => {
+                  const n = tagCounts.get(t.name) ?? 0;
+                  const active = tagFilter === t.name;
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={active}
+                      onClick={() => setTagFilter((p) => (p === t.name ? null : t.name))}
+                      className={`max-w-[10rem] shrink-0 truncate rounded-full px-3.5 py-2 text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/45 ${
+                        active
+                          ? isDark
+                            ? 'bg-violet-500/25 text-white'
+                            : 'bg-violet-600 text-white'
+                          : isDark
+                            ? 'bg-white/[0.06] text-slate-300'
+                            : 'bg-slate-100 text-slate-700'
+                      }`}
+                    >
+                      {t.name}
+                      <span className="ml-1 tabular-nums opacity-80">({n})</span>
+                    </button>
+                  );
+                })}
               </div>
-            ) : null}
+            </div>
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
@@ -606,14 +460,14 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _t
             <PageSkeleton type="cards" />
           ) : loadError ? (
             <PageError error={loadError} onRetry={() => { loadDatasets(); }} retryLabel="重试加载数据集" />
-          ) : displayed.length === 0 ? (
+          ) : datasets.length === 0 ? (
             <div className={`py-16 text-center text-sm ${textMuted(theme)}`}>
               <p className={`text-lg font-medium ${textMuted(theme)}`}>暂无匹配的数据集</p>
               <p className={`mt-1 text-sm ${textMuted(theme)}`}>尝试调整搜索、筛选或排序</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {displayed.map((ds) => {
+              {datasets.map((ds) => {
                 const title = ds.displayName ?? ds.name;
                 const sourceType = ds.sourceType ?? 'knowledge';
                 const dataType = ds.dataType ?? 'mixed';

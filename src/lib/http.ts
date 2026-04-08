@@ -172,7 +172,7 @@ function mapErrorMessage(status: number, code?: number, fallback?: string): stri
     return fallback || '请绑定有效的 X-Api-Key（创建 Key 时的完整 secretPlain）';
   }
   if (status === 403 || code === 1003) {
-    return fallback || '无权限执行当前操作（请检查 RBAC、API Key scope 与资源授权）';
+    return fallback || '无权限执行当前操作（请检查登录态、RBAC 与 API Key scope）';
   }
   if (status === 404 || code === 1004) {
     return fallback || '资源不存在或已删除，请返回列表后重试';
@@ -207,9 +207,9 @@ function mapErrorMessage(status: number, code?: number, fallback?: string): stri
   if (code === 4007) return fallback || '该资源已收藏';
   if (code === 4008) return fallback || '不能评价自己发布的资源';
   if (code === 4009) return fallback || '系统内置角色不允许删除';
-  if (code === 4010) return fallback || '已有待审批的授权申请';
-  if (code === 4011) return fallback || '授权申请不存在';
-  if (code === 4012) return fallback || '授权申请不在待审批状态';
+  if (code === 4010) return fallback || '当前业务对象已有待处理的申请';
+  if (code === 4011) return fallback || '申请记录不存在';
+  if (code === 4012) return fallback || '申请状态已变更，请刷新后重试';
   if (code === 5002) return fallback || '下游服务异常，请稍后重试';
   if (code === 5003) return fallback || '请求超时，请稍后重试';
   if (code === 5004) return fallback || '文件存储失败，请稍后重试';
@@ -236,7 +236,7 @@ function sanitizeUserMessage(message: string): string {
 
 function withPathHint(path: string, message: string): string {
   if ((path === '/invoke' || path.startsWith('/sdk/v1/')) && message.includes('无权限')) {
-    return `${message}。调用链路需同时满足：RBAC + API Key scope + 资源授权。`;
+    return `${message}。调用链路需同时满足：RBAC + API Key scope + 资源发布与网关策略。`;
   }
   if (path === '/catalog/resolve' && message.includes('无权限')) {
     return `${message}。POST /catalog/resolve 须提供有效的 X-Api-Key。`;
@@ -265,7 +265,7 @@ instance.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   if (!config.headers['X-Api-Key']) {
     const path = normalizeRequestPath(config.url);
     const method = (config.method ?? 'get').toLowerCase();
-    /** 市场目录 GET 应以登录态 RBAC 为准；自动附带个人 Key 会与后端「Key + 资源授权」裁剪叠加，导致非资源所有者看到空列表 */
+    /** 市场目录 GET 应以登录态 RBAC 为准；自动附带个人 Key 可能与目录裁剪逻辑叠加，导致列表与 solely 登录态不一致 */
     const skipAutoApiKeyForCatalogGet =
       method === 'get' &&
       (path === '/catalog/resources' ||

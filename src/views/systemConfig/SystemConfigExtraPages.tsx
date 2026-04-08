@@ -428,7 +428,7 @@ export const SecuritySettingsPage: React.FC<PageProps> = ({ theme, fontSize, sho
     if (data) setDraft(data.map((s) => ({ ...s })));
   }, [data]);
 
-  const securityDesc = '会话、验证码、登录失败锁定等与统一资源网关安全策略；资源级授权与路径规则在「访问控制」。管理端访问 IP（CIDR）请在「网络配置」中维护，写入 admin_network_allowlist。';
+  const securityDesc = '会话、验证码、登录失败锁定等与统一资源网关安全策略；访问控制与路径规则在「访问控制」。管理端访问 IP（CIDR）请在「网络配置」中维护，写入 admin_network_allowlist。';
 
   if (isLoading) {
     return (

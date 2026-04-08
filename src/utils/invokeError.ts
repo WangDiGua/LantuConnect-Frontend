@@ -12,9 +12,9 @@ export function mapInvokeFlowError(err: unknown, stage: InvokeStage): string {
     }
     if (stage === 'invoke' && err.status === 403) {
       return [
-        '403：网关需同时满足 API Key scope 与资源授权。',
-        '若提示 scope 相关：请确认 Key 含 catalog/resolve/invoke 或 *（偏好设置里「新建」已默认写入；旧 Key 若 scope 为空请撤销后重建）。',
-        '若仍拒绝：对他人资源请在详情页「申请授权」，或请资源方在授权中心完成授权。',
+        '403：请确认 API Key 有效且 scope 覆盖当前操作（catalog / resolve / invoke）。',
+        '若提示 scope：偏好设置里新建 Key 已默认写入；旧 Key 若 scope 异常请撤销后重建。',
+        '若仍拒绝：请核对资源已发布、Key 所属账号具备网关策略允许的调用条件，或联系资源维护者。',
       ].join(' ');
     }
     if (stage === 'invoke' && (err.status === 409 || err.code === 4001)) return '资源当前状态不允许调用，请刷新资源状态后重试';
@@ -25,7 +25,7 @@ export function mapInvokeFlowError(err: unknown, stage: InvokeStage): string {
       if (err.status === 403 || err.code === 1003) {
         return [
           base,
-          '请确认：① 工具测试里填的是该资源「已批准授权」对应的 API Key 完整 secret（与个人设置里存的全局 Key 可能不是同一把）；② 该资源与当前 Key 之间已有生效中的授权；③ 授权未过期。',
+          '请确认：① 使用与该资源、当前环境一致的完整 API Key secret；② 资源状态为已发布且目录 resolve 对该 Key 返回允许；③ Key 未过期且具备所需 scope。',
         ].join('\n');
       }
       return base;

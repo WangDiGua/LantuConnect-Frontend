@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { LogIn, ShieldAlert } from 'lucide-react';
 
 /**
- * 401 会话失效 / 未授权页：与站点首页卡片风格一致的左右分栏 + 终端动效
+ * 401 会话失效 / 需重新登录页：与站点首页卡片风格一致的左右分栏 + 终端动效
  */
 export const UnauthorizedPage: React.FC = () => {
   const navigate = useNavigate();

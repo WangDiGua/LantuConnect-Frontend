@@ -34,7 +34,7 @@ export interface ResourceBaseUpsertRequest {
   providerId?: string | number;
   /** 目录标签 id（t_tag → t_resource_tag_rel；可多选时传数组） */
   tagIds?: number[];
-  /** 消费策略（选填；创建默认 grant_required；更新省略则后端保留原值——前端保存时仍传当前表单值） */
+  /** 后端 access_policy 字段（选填；创建默认由后端决定；产品界面不再解释该枚举） */
   accessPolicy?: ResourceAccessPolicy;
 }
 

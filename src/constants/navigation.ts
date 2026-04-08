@@ -253,7 +253,7 @@ export const USER_MY_PUBLISH_GROUPS: NavSubGroup[] = [
   },
 ];
 
-/** 用户端合并项：我的发布 → 使用与授权（浏览入口已迁至顶栏各资源中心） */
+/** 用户端合并项：我的发布与用量（浏览入口已迁至顶栏各资源中心） */
 export const USER_RESOURCE_ASSETS_GROUPS: NavSubGroup[] = [
   ...USER_MY_PUBLISH_GROUPS,
   ...USER_MY_SPACE_GROUPS,

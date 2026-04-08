@@ -33,7 +33,6 @@ import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { nullDisplay } from '../../utils/errorHandler';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
-import { AccessPolicyBadge } from '../../components/business/AccessPolicyBadge';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedContentToTop';
 import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
@@ -227,12 +226,6 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
         cell: (item) => <span className={`block truncate ${textPrimary(theme)}`} title={item.displayName}>{item.displayName}</span>,
       },
       { id: 'type', header: '类型', cell: (item) => <span className={textSecondary(theme)}>{item.resourceType}</span> },
-      {
-        id: 'policy',
-        header: '消费策略',
-        cellClassName: 'align-middle',
-        cell: (item) => <AccessPolicyBadge theme={theme} value={item.accessPolicy} whenMissing="hide" />,
-      },
       {
         id: 'status',
         header: '状态',

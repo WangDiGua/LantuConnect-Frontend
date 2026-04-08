@@ -49,20 +49,8 @@ function buildPublicApiBaseUrl(): string {
   return base;
 }
 
-function normAccessPolicy(policy?: string): string {
-  return (policy ?? '').toLowerCase().replace(/-/g, '_');
-}
-
-function accessPolicyLabel(policy?: string): string {
-  const p = normAccessPolicy(policy);
-  if (p === 'open_platform') return '开放平台（已发布即可调用）';
-  if (p === 'open_org') return '组织内开放';
-  if (p === 'grant_required' || !p) return '已发布开放（兼容旧目录字段）';
-  return policy || '已发布开放（兼容旧目录字段）';
-}
-
 function isOpenPlatformPolicy(policy?: string): boolean {
-  return normAccessPolicy(policy) === 'open_platform';
+  return (policy ?? '').toLowerCase().replace(/-/g, '_') === 'open_platform';
 }
 
 function isResourceOwner(createdBy: number | null | undefined, userId: string | null | undefined): boolean {
@@ -204,7 +192,6 @@ type McpRow = ResourceCatalogItemVO & {
   invokeEligible: boolean;
   isOwnerResource: boolean;
   isOpenPlatformPolicy: boolean;
-  policyLabel: string;
 };
 
 export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, fontSize }) => {
@@ -497,7 +484,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
       .catch((e) => {
         if (!cancelled) {
           const msg =
-            e instanceof Error ? e.message : typeof e === 'string' ? e : 'invoke 授权预判加载失败';
+            e instanceof Error ? e.message : typeof e === 'string' ? e : 'invoke 可调用预判加载失败';
           setEligibilityError(msg);
           setInvokeEligibility({});
         }
@@ -523,7 +510,6 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
           invokeEligible,
           isOwnerResource: isOwner,
           isOpenPlatformPolicy: isOpen,
-          policyLabel: accessPolicyLabel(m.accessPolicy),
         };
       }),
     [mcpList, invokeEligibility, eligibilityReliable, user?.id],
@@ -557,14 +543,13 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
       .map((r) => ({
         resourceId: r.resourceId,
         displayName: r.displayName,
-        accessPolicy: r.accessPolicy ?? null,
-        hasGrantForKey: r.invokeEligible,
+        invokeEligibleWithSelectedKey: r.invokeEligible,
       }));
     return {
       schemaVersion: 1,
       apiBaseUrl,
-      granteeApiKeyId: selectedKeyId || null,
-      granteeApiKeyName: keyMeta?.name ?? null,
+      selectedApiKeyId: selectedKeyId || null,
+      selectedApiKeyName: keyMeta?.name ?? null,
       exportedAt: new Date().toISOString(),
       mcps,
     };
@@ -625,7 +610,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
       fontSize={fontSize}
       titleIcon={Puzzle}
       breadcrumbSegments={['开发者中心', 'MCP 对外集成']}
-      description="以「选择 API Key」为主线：可调用预判列与导出 hasGrantForKey 来自后端 invoke-eligibility，与 POST /invoke 一致。目录 callableOnly 与网关 isResourcePhysicallyCallable 一致（健康仅拦截 down/disabled；熔断仅 OPEN/FORCED_OPEN；HALF_OPEN 仍可出现）。导出 JSON 仅为快照；调用须完整 X-Api-Key。"
+      description="以「选择 API Key」为主线：可调用预判列与导出 invokeEligibleWithSelectedKey 来自后端 invoke-eligibility，与 POST /invoke 一致。目录 callableOnly 与网关 isResourcePhysicallyCallable 一致（健康仅拦截 down/disabled；熔断仅 OPEN/FORCED_OPEN；HALF_OPEN 仍可出现）。导出 JSON 仅为快照；调用须完整 X-Api-Key。"
       toolbar={toolbar}
       contentScroll="document"
     >
@@ -836,7 +821,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
                 3. 当前 Key 的 invoke 可调用预判（POST，须本人 Key + 登录态）
               </div>
               <p className={`text-[11px] mb-1 ${textMuted(theme)}`}>
-                与网关 invoke 权限判定一致（已发布资源、资源归属、Key scope、运行健康与熔断等）；表格「可调用」列与导出 JSON 的 hasGrantForKey 以该接口为准。
+                与网关 invoke 判定一致（已发布资源、资源归属、Key scope、运行健康与熔断等）；表格「可调用」列与导出 JSON 的 invokeEligibleWithSelectedKey 以该接口为准。
               </p>
               <div className="flex flex-wrap gap-2 mt-2">
                 <CopyCurlPlatformBtn triple={eligibilityCurlTriple} isDark={isDark} label="复制 curl 示例" />
@@ -893,7 +878,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
               className={`rounded-2xl border p-4 space-y-4 ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-white'}`}
             >
               <div>
-                <div className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>被授权方 API Key</div>
+                <div className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>用于预判的 API Key</div>
                 {keyOptions.length === 0 ? (
                   <p className={`text-sm ${textMuted(theme)}`}>
                     暂无可用 Key。请前往
@@ -925,7 +910,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
                 <div>
                   <h3 className={`text-sm font-bold ${textPrimary(theme)}`}>已发布 MCP 与可调用预判</h3>
                   <p className={`text-xs mt-0.5 ${textMuted(theme)}`}>
-                    「策略」来自目录 accessPolicy；「可调用」列与导出 hasGrantForKey 来自{' '}
+                    「可调用」列与导出字段 <span className="font-mono text-[11px]">invokeEligibleWithSelectedKey</span> 来自{' '}
                     <span className="font-mono text-[11px]">POST …/invoke-eligibility</span>，与网关 invoke 一致。
                   </p>
                 </div>
@@ -1010,9 +995,6 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
                           resourceId
                         </th>
                         <th scope="col" className={thClass}>
-                          策略（目录）
-                        </th>
-                        <th scope="col" className={thClass}>
                           可调用（当前 Key）
                         </th>
                         <th scope="col" className={thClass}>
@@ -1045,7 +1027,6 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
                               <div className={`text-xs font-mono ${textMuted(theme)}`}>{row.resourceCode}</div>
                             </td>
                             <td className={`px-3 py-2 align-middle font-mono text-xs ${textPrimary(theme)}`}>{row.resourceId}</td>
-                            <td className={`px-3 py-2 align-middle text-xs ${textSecondary(theme)} max-w-[200px]`}>{row.policyLabel}</td>
                             <td className="px-3 py-2 align-middle">
                               {eligibilityLoading ? (
                                 <span className={`text-xs ${textMuted(theme)}`} aria-busy>
@@ -1115,8 +1096,8 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
                 <div>
                   <h3 className={`text-sm font-bold ${textPrimary(theme)}`}>导出 JSON</h3>
                   <p className={`text-xs mt-0.5 ${textMuted(theme)}`}>
-                    含 schemaVersion、apiBaseUrl、granteeApiKeyId、granteeApiKeyName、exportedAt 与所选 mcps；不包含 secretPlain。
-                    {eligibilityLoading ? ' 可调用预判加载完成后再导出，以确保 hasGrantForKey 与网关一致。' : ''}
+                    含 schemaVersion、apiBaseUrl、selectedApiKeyId、selectedApiKeyName、exportedAt 与所选 mcps；不包含 secretPlain。
+                    {eligibilityLoading ? ' 可调用预判加载完成后再导出，以确保 invokeEligibleWithSelectedKey 与网关一致。' : ''}
                     {eligibilityError ? ' 预判加载失败时已禁用导出，请先在上文点击「重试」。' : ''}
                   </p>
                 </div>
@@ -1138,10 +1119,10 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
                 </div>
               </div>
               {eligibilityLoading ? (
-                <p className={`text-xs ${textMuted(theme)}`}>授权预判加载中，请稍候再复制或下载。</p>
+                <p className={`text-xs ${textMuted(theme)}`}>可调用预判加载中，请稍候再复制或下载。</p>
               ) : eligibilityError ? (
                 <p className={`text-xs text-rose-600 dark:text-rose-400`}>
-                  无法生成含准确 hasGrantForKey 的导出，请先修复上文「重试」。
+                  无法生成含准确 invoke 预判结果的导出，请先修复上文「重试」。
                 </p>
               ) : selectedExportIds.size === 0 ? (
                 <p className={`text-xs ${textMuted(theme)}`}>请至少选择一行 MCP 后再导出。</p>

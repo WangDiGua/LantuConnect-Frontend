@@ -40,7 +40,7 @@ const METHOD_COLORS: Record<string, { light: string; dark: string }> = {
 
 const API_CATEGORIES: ApiCategory[] = [
   { id: 'user-api-keys', label: '用户设置 · API Key', endpoints: [
-    { method: 'POST', path: '/user-settings/api-keys', description: '创建个人 API Key。成功时 data.secretPlain（或 plainKey）为完整可调用密钥，仅该次响应返回。须为 Key 配置 scope（catalog/resolve/invoke 或 *），否则网关提示 scope 不足；前端默认传 scopes:["*"]。已发布资源在具备 scope 的前提下可被任意调用方使用（无需资源级 Grant）。列表中的 maskedKey、prefix、id 均不能作为 X-Api-Key。', params: [{ name: 'name', type: 'string', required: true, description: '密钥名称' }, { name: 'scopes', type: 'string[]', required: false, description: '权限范围；不传时前端默认 ["*"]' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { id: 'uuid', name: 'dev', prefix: 'sk_', scopes: ['*'], secretPlain: 'sk_' + 'a'.repeat(32) } }, null, 2) },
+    { method: 'POST', path: '/user-settings/api-keys', description: '创建个人 API Key。成功时 data.secretPlain（或 plainKey）为完整可调用密钥，仅该次响应返回。须为 Key 配置 scope（catalog/resolve/invoke 或 *），否则网关提示 scope 不足；前端默认传 scopes:["*"]。已发布资源在具备 scope 的前提下可被任意调用方按网关规则使用。列表中的 maskedKey、prefix、id 均不能作为 X-Api-Key。', params: [{ name: 'name', type: 'string', required: true, description: '密钥名称' }, { name: 'scopes', type: 'string[]', required: false, description: '权限范围；不传时前端默认 ["*"]' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { id: 'uuid', name: 'dev', prefix: 'sk_', scopes: ['*'], secretPlain: 'sk_' + 'a'.repeat(32) } }, null, 2) },
     { method: 'GET', path: '/user-settings/api-keys', description: '列出当前用户的 Key；仅掩码与前缀，不包含完整密钥。', params: [], responseExample: JSON.stringify({ code: 0, message: 'ok', data: [{ id: 'uuid', name: 'dev', maskedKey: 'sk_3****', prefix: 'sk_' }] }, null, 2) },
     { method: 'POST', path: '/user-settings/api-keys/{id}/revoke', description: '撤销 API Key。须 `password`（登录密码）；账户未设置密码时须先在个人设置修改密码。成功/失败均写入敏感操作审计。', params: [{ name: 'password', type: 'string', required: false, description: '登录密码' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: null }, null, 2) },
     { method: 'POST', path: '/user-settings/api-keys/{id}/rotate', description: '轮换 API Key 明文（库内仅存摘要，无法「找回」原串）。须校验登录密码；成功后返回新 `secretPlain`，旧明文立即失效。', params: [{ name: 'password', type: 'string', required: false, description: '登录密码' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { id: 'uuid', name: 'dev', scopes: ['*'], secretPlain: 'sk_' + 'a'.repeat(32), expiresAt: null, revoked: false } }, null, 2) },
@@ -394,10 +394,10 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
                 </section>
 
                 <section id="doc-access-policy" className="mt-14 space-y-4">
-                  {proseH2(theme, '访问策略')}
+                  {proseH2(theme, '目录与调用条件')}
                   {prosePara(theme, (
                     <>
-                      网关在校验<strong className={textPrimary(theme)}>有效 Key</strong>与<strong className={textPrimary(theme)}>scope</strong>（catalog / resolve / invoke）后，对已<strong className={textPrimary(theme)}>发布（published）</strong>的资源允许跨调用方使用（不再要求资源级 Grant 或工单授权）。目录中的 <span className="font-mono">accessPolicy</span> 可能仍保留历史取值，以网关实际判定为准；资源类型边界不变（例如 skill 仍不走去统一 <span className="font-mono">invoke</span>）。
+                      网关在校验<strong className={textPrimary(theme)}>有效 Key</strong>与<strong className={textPrimary(theme)}>scope</strong>（catalog / resolve / invoke）后，对已<strong className={textPrimary(theme)}>发布（published）</strong>的资源按统一规则开放调用；以当前环境网关实现为准。库表或 JSON 中可能仍出现 <span className="font-mono">accessPolicy</span> 等历史字段，仅供兼容，不作为产品侧配置入口。资源类型边界不变（例如 skill 仍不走去统一 <span className="font-mono">invoke</span>）。
                     </>
                   ))}
                 </section>

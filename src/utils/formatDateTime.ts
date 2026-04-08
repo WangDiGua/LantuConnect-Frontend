@@ -30,7 +30,7 @@ function parseToDate(input: string | number | Date): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-/** 相对当前时间判断授权过期时间：`none` = 未设置或无法解析 */
+/** 相对当前时间判断到期时间：`none` = 未设置或无法解析 */
 export function expiryRelativeToNow(expiresAt: string | null | undefined): 'none' | 'expired' | 'active' {
   if (expiresAt == null || !String(expiresAt).trim()) return 'none';
   const d = parseToDate(expiresAt);

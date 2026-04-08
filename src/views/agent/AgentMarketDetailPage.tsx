@@ -235,7 +235,7 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
                         <span className="mt-2 block whitespace-pre-wrap">{agent.systemPrompt}</span>
                       </>
                     )
-                    : '该智能体未公开系统提示；接入与调用说明见「申请授权」或 API 文档。'}
+                    : '该智能体未公开系统提示；接入与调用说明见 API 文档或资源详情。'}
                 </p>
               </div>
             ) : (
@@ -251,7 +251,7 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
           >
             <h3 className={`text-sm font-bold ${textPrimary(theme)}`}>快捷操作</h3>
             <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
-              试用须具备有效 X-Api-Key 与 invoke 等 scope；资源上架后平台内均可按策略调用。
+              试用须具备有效 X-Api-Key 与 invoke 等 scope；资源上架后满足网关条件即可按目录调用。
             </p>
             <button
               type="button"

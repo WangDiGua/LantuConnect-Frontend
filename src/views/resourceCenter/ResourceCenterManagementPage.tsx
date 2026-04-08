@@ -15,7 +15,6 @@ import { resourceAuditService } from '../../api/services/resource-audit.service'
 import { useUserRole } from '../../context/UserRoleContext';
 import { useAuthStore } from '../../stores/authStore';
 import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedContentToTop';
-import { AccessPolicyBadge } from '../../components/business/AccessPolicyBadge';
 import { RESOURCE_TYPES, RESOURCE_TYPE_LABEL_ZH } from '../../constants/resourceTypes';
 import { Modal } from '../../components/common/Modal';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
@@ -664,7 +663,6 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                             <span className={statusDot(item.status)} />
                             {statusLabel(item.status)}
                           </span>
-                          <AccessPolicyBadge theme={theme} value={item.accessPolicy} />
                           <span className={`text-xs ${textMuted(theme)}`}>
                             {nullDisplay(item.resourceCode)} · 线上 {nullDisplay(item.currentVersion, '—')}
                             {item.status === 'published' && item.hasWorkingDraft ? ' · 草稿已保存' : ''}

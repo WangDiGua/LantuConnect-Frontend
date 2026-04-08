@@ -280,7 +280,7 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
       pill: '调用',
       pillIcon: Gauge,
       title: 'invoke 与观测',
-      description: '支持网关 invoke；跨 owner 时需授权或放行策略匹配。',
+      description: '支持网关 invoke；须有效 Key、scope 与资源已发布等网关条件。',
     },
     {
       variant: 'fuchsia' as const,

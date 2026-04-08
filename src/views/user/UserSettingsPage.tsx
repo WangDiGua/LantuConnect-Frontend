@@ -351,7 +351,7 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
             <div className="space-y-4">
               {[
                 { icon: Mail, label: '邮件通知', desc: '配额、账单与安全类邮件', on: emailNotif, toggle: () => { setEmailNotif((v) => { void saveNotificationPrefs({ email: !v }); return !v; }); } },
-                { icon: Bell, label: '浏览器通知', desc: '需授权后生效', on: browserNotif, toggle: () => { setBrowserNotif((v) => { void saveNotificationPrefs({ browser: !v }); return !v; }); } },
+                { icon: Bell, label: '浏览器通知', desc: '开启系统通知后生效', on: browserNotif, toggle: () => { setBrowserNotif((v) => { void saveNotificationPrefs({ browser: !v }); return !v; }); } },
                 { icon: Bell, label: '运维告警推送', desc: '与监控中心告警策略联动', on: alertNotif, toggle: () => { setAlertNotif((v) => { void saveNotificationPrefs({ agentErrors: !v }); return !v; }); } },
               ].map((item) => (
                 <div key={item.label} className="flex items-center justify-between gap-3">

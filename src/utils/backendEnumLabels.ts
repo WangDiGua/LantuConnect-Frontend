@@ -184,15 +184,15 @@ export function workingDraftAuditTierLabelZh(raw: string | null | undefined): st
 }
 
 const SKILL_HUB_AUTH_LABEL: Record<string, string> = {
-  authorized: '已授权',
+  authorized: '可用',
   revoked: '已撤销',
   expired: '已过期',
-  pending: '待授权',
+  pending: '待开通',
 };
 
 export function authorizedSkillRowStatusLabelZh(raw: string | null | undefined): string {
   const k = norm(raw);
-  if (!k || k === 'authorized') return '已授权';
+  if (!k || k === 'authorized') return '可用';
   return SKILL_HUB_AUTH_LABEL[k] ?? `状态：${String(raw).trim()}`;
 }
 

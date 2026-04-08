@@ -177,7 +177,7 @@ export const SkillExternalMarketBrowsePage: React.FC<SkillExternalMarketBrowsePa
                 </span>
               </h1>
               <p className={`mt-1 max-w-2xl text-xs leading-snug sm:text-sm ${textSecondary(theme)}`}>
-                聚合 SkillHub / SkillsMP 等外部目录；直链下载技能包，不参与平台内 resolve / 授权流程。
+                聚合 SkillHub / SkillsMP 等外部目录；直链下载技能包，不参与平台内 resolve / 目录发放流程。
               </p>
             </div>
           </div>

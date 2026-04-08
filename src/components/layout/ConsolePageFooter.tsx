@@ -41,7 +41,7 @@ export const ConsolePageFooter: React.FC<ConsolePageFooterProps> = ({ theme, cla
           </span>
           <span className={`text-xs leading-snug ${muted}`}>
             {' '}
-            © {year} {PRODUCT_NAME}。保留所有权利。校园数字化能力与资产门户 · 授权访问与合规使用
+            © {year} {PRODUCT_NAME}。保留所有权利。校园数字化能力与资产门户 · 合规使用
           </span>
         </div>
 

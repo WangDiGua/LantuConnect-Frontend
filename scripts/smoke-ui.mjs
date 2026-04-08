@@ -5,12 +5,8 @@ const root = process.cwd();
 
 const checks = [
   {
-    file: 'src/views/userMgmt/ResourceGrantManagementPage.tsx',
-    patterns: ['revoking', 'loading={revoking}', '新建授权'],
-  },
-  {
     file: 'src/views/agent/AgentMarket.tsx',
-    patterns: ['resourceCatalogService.resolve', 'invokeService.invoke', '申请授权', '调用中…'],
+    patterns: ['resourceCatalogService.resolve', 'invokeService.invoke', '查看与使用', '调用中…'],
   },
   {
     file: 'src/views/dataset/DatasetMarket.tsx',
@@ -68,10 +64,6 @@ const checks = [
   {
     file: 'src/views/audit/ResourceAuditList.tsx',
     patterns: ["useState<'all' | ResourceAuditItemVO['status']>('pending_review')", 'status: statusFilter === \'all\' ? undefined : statusFilter', "sortBy: 'submitTime'", 'setSearch(value);', 'setPage(1);', 'PageError', 'EmptyState'],
-  },
-  {
-    file: 'src/views/userMgmt/ResourceGrantManagementPage.tsx',
-    patterns: ["sortBy: 'expiresAt'", 'granteeApiKeyId', 'Pagination page={page} pageSize={PAGE_SIZE} total={total}'],
   },
   {
     file: 'src/utils/invokeError.ts',

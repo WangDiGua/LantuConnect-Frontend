@@ -13,7 +13,7 @@ function toAbsoluteUrl(pathOrUrl: string): string {
   return `${apiBase()}${path}`;
 }
 
-/** 公开技能：直链；私有技能：受控下载 API（须 X-Api-Key 等，与 resolve 授权一致）。 */
+/** 公开技能：直链；私有技能：受控下载 API（须 X-Api-Key 等，与目录 resolve 条件一致）。 */
 export function resolveSkillArtifactTarget(
   resolved: ResourceResolveVO,
 ): { mode: 'open_tab'; url: string } | { mode: 'fetch_blob'; url: string } | null {

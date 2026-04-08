@@ -138,7 +138,7 @@ export function useMcpGatewayInvoke({
             e.status === 401
               ? 'API Key 无效或已失效，请检查密钥状态'
               : e.status === 403
-                ? '当前 Key 无该资源调用权限，请申请授权'
+                ? '当前 Key 不满足该资源调用条件，请检查 scope、资源是否已发布或更换 Key'
                 : e.status === 400
                   ? '请求参数格式错误，请检查 method/params/resourceId'
                   : e.status >= 500

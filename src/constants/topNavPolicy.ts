@@ -32,7 +32,6 @@ export const HUB_PERSONAL_RAIL_PARENT_IDS = [
   'hub',
   'workspace',
   'developer-portal',
-  'user-settings',
 ] as const;
 
 /**

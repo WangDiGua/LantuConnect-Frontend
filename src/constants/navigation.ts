@@ -4,7 +4,6 @@ import {
   Users,
   Activity,
   Settings,
-  User,
   Wrench,
   Bot,
   Zap,
@@ -35,7 +34,6 @@ import {
   Puzzle,
   Globe2,
   Rocket,
-  UserCircle,
   TrendingUp,
   Clock,
   AppWindow,
@@ -81,7 +79,6 @@ export const USER_SIDEBAR_ITEMS = [
   { id: 'apps-center', icon: AppWindow, label: '应用集' },
   { id: 'workspace', icon: LayoutGrid, label: '我的' },
   { id: 'developer-portal', icon: Code2, label: '开发者中心' },
-  { id: 'user-settings', icon: UserCircle, label: '个人设置' },
 ];
 
 export const SIDEBAR_ITEMS = ADMIN_SIDEBAR_ITEMS;
@@ -261,16 +258,6 @@ export const USER_MY_CONSOLE_GROUPS: NavSubGroup[] = [
   },
 ];
 
-export const USER_SETTINGS_GROUPS: NavSubGroup[] = [
-  {
-    title: '账户',
-    items: [
-      { id: 'profile', icon: User, label: '个人资料' },
-      { id: 'preferences', icon: Sliders, label: '偏好设置' },
-    ],
-  },
-];
-
 // ==================== 子菜单分组路由 ====================
 
 export function getNavSubGroups(sidebarId: string, isAdminRole: boolean): NavSubGroup[] {
@@ -311,8 +298,6 @@ export function getNavSubGroups(sidebarId: string, isAdminRole: boolean): NavSub
       return ADMIN_DEVELOPER_PORTAL_GROUPS;
     case 'workspace':
       return USER_MY_CONSOLE_GROUPS;
-    case 'user-settings':
-      return USER_SETTINGS_GROUPS;
     default:
       return [];
   }

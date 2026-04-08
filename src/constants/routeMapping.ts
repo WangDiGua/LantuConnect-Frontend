@@ -57,7 +57,7 @@ export const USER_ROUTE_MAPPING: Record<string, string> = {
   '发布与连接': 'publish-connect',
   '我的数据': 'my-data',
   '用量账单': 'usage-billing',
-  '个人设置': 'user-settings',
+  '个人设置': 'profile',
   '文档教程': 'docs-tutorial',
   
   // Sub-routes

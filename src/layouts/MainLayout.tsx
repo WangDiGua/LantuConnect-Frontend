@@ -8,6 +8,8 @@ import {
   Minimize2,
   MoreVertical,
   LogOut,
+  Sliders,
+  User,
 } from 'lucide-react';
 import { Theme, ThemeMode, ThemeColor, FontSize, FontFamily, AnimationStyle } from '../types';
 import { FONT_FAMILY_CLASSES, getRootFontSizePx } from '../constants/theme';
@@ -1762,6 +1764,39 @@ const MainLayoutContent: React.FC<{
                       <button
                         type="button"
                         role="menuitem"
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          navigate(buildPath('user', 'profile'));
+                          if (layoutIsAdmin) setRole('user');
+                          setMobileNavOpen(false);
+                        }}
+                        className={`flex min-h-11 w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-inset ${
+                          isDark ? 'text-slate-200 hover:bg-white/[0.08]' : 'text-slate-800 hover:bg-slate-100'
+                        }`}
+                      >
+                        <User size={15} className="shrink-0 opacity-90" aria-hidden />
+                        个人资料
+                      </button>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          navigate(buildPath('user', 'preferences'));
+                          if (layoutIsAdmin) setRole('user');
+                          setMobileNavOpen(false);
+                        }}
+                        className={`flex min-h-11 w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-inset ${
+                          isDark ? 'text-slate-200 hover:bg-white/[0.08]' : 'text-slate-800 hover:bg-slate-100'
+                        }`}
+                      >
+                        <Sliders size={15} className="shrink-0 opacity-90" aria-hidden />
+                        偏好设置
+                      </button>
+                      <div className={`mx-2 my-1 h-px ${isDark ? 'bg-white/[0.08]' : 'bg-slate-200/80'}`} aria-hidden />
+                      <button
+                        type="button"
+                        role="menuitem"
                         onClick={async () => {
                           setShowUserMenu(false);
                           showMessage('已退出登录', 'info');
@@ -1795,7 +1830,7 @@ const MainLayoutContent: React.FC<{
                         ? 'border-white/10 bg-white/[0.06] hover:bg-white/[0.1] focus-visible:ring-offset-lantu-card'
                         : 'border-slate-200/80 bg-white hover:bg-slate-50 focus-visible:ring-offset-white'
                     }`}
-                    aria-label={`账户，${displayUserName}，退出登录`}
+                    aria-label={`账户菜单：${displayUserName}；含个人资料、偏好设置、退出登录`}
                     aria-expanded={showUserMenu}
                   >
                     <AvatarGradientFrame

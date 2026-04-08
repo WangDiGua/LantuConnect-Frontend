@@ -4,7 +4,7 @@
 
 - **发现**：顶栏 / 各资源中心（Skills、MCP、数据集、Agent、应用）+ `hub`。
 - **我的**：侧栏单项「我的」聚合原「工作台 + 资源与资产」；子分组见 `USER_MY_CONSOLE_GROUPS`（`src/constants/navigation.ts`）。
-- **开发者中心**、**个人设置**：独立侧栏项。
+- **开发者中心**：独立侧栏项；**个人资料 / 偏好设置** 由顶栏右侧头像菜单进入（无侧栏「个人设置」一级）。
 
 个人首页数据：`dashboardService.getMyConsole()`（优先 `GET /dashboard/my-console`，失败回退 `GET /dashboard/user-workspace`）。
 

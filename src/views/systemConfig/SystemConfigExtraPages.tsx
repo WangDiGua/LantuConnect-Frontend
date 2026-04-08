@@ -503,7 +503,7 @@ export const SecuritySettingsPage: React.FC<PageProps> = ({ theme, fontSize, sho
   );
 };
 
-export const NetworkConfigPage: React.FC<PageProps> = ({ theme, fontSize: _fontSize, showMessage }) => {
+export const NetworkConfigPage: React.FC<PageProps> = ({ theme, fontSize, showMessage }) => {
   const inputCls = `${nativeInputClass(theme)} ${INPUT_FOCUS}`;
   const labelCls = `text-sm font-medium ${textSecondary(theme)}`;
   const [rows, setRows] = useState<NetworkAllowlistRow[]>([{ id: newAllowlistRowId(), value: '' }]);

@@ -39,6 +39,8 @@ export interface ConsoleTopNavProps {
   filteredSubGroupsForSidebarId: (id: string, domain: ConsoleRole) => SubGroup[];
   onLogoClick: () => void;
   onOpenMobileNav: () => void;
+  /** 为 false 时（自左轨/抽屉进入）顶栏主项视觉上固定高亮第一项；为 true 时按路由与 activeSidebar 高亮 */
+  topNavHighlightFollowsRoute: boolean;
   /** 右侧：外观、消息、全屏、用户等（由 MainLayout 注入，含 headerMenusRef） */
   toolbarRight: React.ReactNode;
 }
@@ -55,6 +57,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
   filteredSubGroupsForSidebarId,
   onLogoClick,
   onOpenMobileNav,
+  topNavHighlightFollowsRoute,
   toolbarRight,
 }) => {
   const searchRows = sidebarSearchRows ?? sidebarRows;
@@ -140,7 +143,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
     return out;
   }, [navItems, sidebarRows, navItemStateByKey]);
 
-  /** 侧栏切换不改变顶栏「选中」态：横向第一项（探索发现）始终高亮 */
+  /** 自左轨进入时：顶栏横向首项（探索发现）保持高亮 */
   const firstTopNavItemKey = useMemo(() => {
     for (const p of navPieces) {
       if (p.kind === 'item') return `${p.block.item.domain}-${p.block.item.id}`;
@@ -212,7 +215,13 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
           }
           const { item, hasChildren, visibleChildren } = piece.block;
           const key = `${item.domain}-${item.id}`;
-          const active = firstTopNavItemKey !== null && key === firstTopNavItemKey;
+          const isChildActive =
+            topNavHighlightFollowsRoute && hasChildren && activeSidebar === item.id && routeRole === item.domain;
+          const isSelfActive =
+            topNavHighlightFollowsRoute && !hasChildren && activeSidebar === item.id && routeRole === item.domain;
+          const active = topNavHighlightFollowsRoute
+            ? isSelfActive || isChildActive
+            : firstTopNavItemKey !== null && key === firstTopNavItemKey;
           const pillBtn = active
             ? isDark
               ? 'text-blue-400'

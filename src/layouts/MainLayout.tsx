@@ -807,6 +807,8 @@ const MainLayoutContent: React.FC<{
    */
   const [personalRailOpen, setPersonalRailOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  /** 顶栏高亮是否跟随当前路由；左轨/抽屉跳转时置为 false，仅首项视觉高亮 */
+  const [topNavHighlightFollowsRoute, setTopNavHighlightFollowsRoute] = useState(true);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const storeLogout = useAuthStore((s) => s.logout);
@@ -1385,8 +1387,9 @@ const MainLayoutContent: React.FC<{
     setPersonalRailOpen(true);
   }, [unifiedRailSections.length, page, activeSidebar]);
 
-  const handleSidebarClick = (id: string, domain: ConsoleRole) => {
+  const handleTopNavSidebarClick = (id: string, domain: ConsoleRole) => {
     setMobileNavOpen(false);
+    setTopNavHighlightFollowsRoute(true);
     navigate(buildPath(domain, getDefaultPage(domain, id)));
   };
 
@@ -1412,8 +1415,19 @@ const MainLayoutContent: React.FC<{
     [navigate],
   );
 
-  const handleChromeSubItemClick = useCallback(
+  const handleTopNavSubItemClick = useCallback(
     (subItemId: string, parentSidebarId: string, domain: ConsoleRole) => {
+      setMobileNavOpen(false);
+      setTopNavHighlightFollowsRoute(true);
+      navigateSubItem(subItemId, parentSidebarId, domain);
+    },
+    [navigateSubItem],
+  );
+
+  const handleRailSubItemClick = useCallback(
+    (subItemId: string, parentSidebarId: string, domain: ConsoleRole) => {
+      setMobileNavOpen(false);
+      setTopNavHighlightFollowsRoute(false);
       navigateSubItem(subItemId, parentSidebarId, domain);
     },
     [navigateSubItem],
@@ -1580,7 +1594,7 @@ const MainLayoutContent: React.FC<{
       activeSidebar,
       activeSubItem,
       routeRole: consoleRole,
-      onSubItemClick: handleChromeSubItemClick,
+      onSubItemClick: handleRailSubItemClick,
     };
   }, [
     unifiedRailSections,
@@ -1590,7 +1604,7 @@ const MainLayoutContent: React.FC<{
     activeSidebar,
     activeSubItem,
     consoleRole,
-    handleChromeSubItemClick,
+    handleRailSubItemClick,
   ]);
 
   const exploreHubRailForContent = page === 'hub' && shellPersonalRail ? shellPersonalRail : undefined;
@@ -1631,10 +1645,12 @@ const MainLayoutContent: React.FC<{
           sidebarRows={topNavSidebarRows}
           sidebarSearchRows={fullSidebarRows}
           platformRole={platformRole}
-          onSidebarClick={handleSidebarClick}
-          onSubItemClick={handleChromeSubItemClick}
+          onSidebarClick={handleTopNavSidebarClick}
+          onSubItemClick={handleTopNavSubItemClick}
+          topNavHighlightFollowsRoute={topNavHighlightFollowsRoute}
           filteredSubGroupsForSidebarId={filteredSubGroupsForSidebarId}
           onLogoClick={() => {
+            setTopNavHighlightFollowsRoute(true);
             navigate(defaultPath());
             setMobileNavOpen(false);
           }}
@@ -1901,7 +1917,7 @@ const MainLayoutContent: React.FC<{
               activeSidebar={activeSidebar}
               activeSubItem={activeSubItem}
               routeRole={consoleRole}
-              onSubItemClick={handleChromeSubItemClick}
+              onSubItemClick={handleRailSubItemClick}
               suppressGlobalMenuSearchHotkey={mobileNavOpen}
               ariaLabel="控制台导航"
             />

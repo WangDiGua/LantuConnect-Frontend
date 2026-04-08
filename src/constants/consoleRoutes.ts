@@ -2,6 +2,7 @@ import type { ResourceType } from '../types/dto/catalog';
 import type { PlatformRoleCode } from '../types/dto/auth';
 import { canAccessAdminView } from '../context/UserRoleContext';
 import { parseResourceType } from './resourceTypes';
+import { USER_WORKBENCH_SATELLITE_PAGES } from './navigation';
 
 export type ConsoleRole = 'admin' | 'user';
 
@@ -272,6 +273,9 @@ export function pageToSubItem(page: string, sidebarId: string | null, isAdmin: b
     return 'overview';
   }
   if (!isAdmin && page === 'workspace' && sidebarId === 'workspace') return 'overview';
+  if (!isAdmin && sidebarId === 'workspace' && USER_WORKBENCH_SATELLITE_PAGES.has(page)) {
+    return 'overview';
+  }
   if (isAdmin && sidebarId === 'system-config' && page === 'skill-external-catalog-settings') {
     return 'skill-external-catalog-settings';
   }

@@ -58,6 +58,49 @@ export interface NavSubGroup {
   items: Array<{ id: string; icon: LucideIcon; label: string; tag?: string }>;
 }
 
+/**
+ * 工作台总览页内入口（原侧栏「我的」下已移除，与探索 Hub 左轨同源收窄）。
+ * `page` 为控制台 page slug；`marketTab` 有值时跳转资源市场深链。
+ */
+export interface UserWorkbenchNavItem {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  page?: string;
+  /** 与 buildUserResourceMarketUrl 一致 */
+  marketTab?: string;
+  perm?: string;
+  anyPerm?: readonly string[];
+}
+
+/** 图二核心六项：发布总览 / 使用记录 / 用量统计 / 快速入口 / 最近使用 / 我的收藏 */
+export const USER_WORKBENCH_CORE_NAV: UserWorkbenchNavItem[] = [
+  {
+    id: 'my-agents-pub',
+    label: '发布总览',
+    icon: Rocket,
+    page: 'my-agents-pub',
+    anyPerm: ['agent:create', 'skill:create', 'mcp:create', 'app:create', 'dataset:create'],
+  },
+  { id: 'usage-records', label: '使用记录', icon: History, page: 'usage-records' },
+  { id: 'usage-stats', label: '用量统计', icon: BarChart3, page: 'usage-stats' },
+  { id: 'quick-access', label: '快速入口', icon: Zap, page: 'quick-access' },
+  { id: 'recent-use', label: '最近使用', icon: Clock, page: 'recent-use' },
+  { id: 'my-favorites', label: '我的收藏', icon: Heart, page: 'my-favorites' },
+];
+
+/** 工作台页「发现与成效」补充入口（非侧栏收束范围） */
+export const USER_WORKBENCH_EXPLORE_NAV: UserWorkbenchNavItem[] = [
+  { id: 'explore-agent', label: '智能体市场', icon: Bot, page: 'resource-market', marketTab: 'agent' },
+  { id: 'explore-skill', label: '技能市场', icon: Zap, page: 'resource-market', marketTab: 'skill' },
+  { id: 'dev-stats', label: '资源成效统计', icon: TrendingUp, page: 'developer-statistics', perm: 'developer:portal' },
+];
+
+/** 自侧栏移除、仍用独立路由的工作台卫星页；用于 `pageToSubItem` 高亮「工作台总览」 */
+export const USER_WORKBENCH_SATELLITE_PAGES = new Set<string>(
+  USER_WORKBENCH_CORE_NAV.map((x) => x.page).filter((p): p is string => Boolean(p)),
+);
+
 // ==================== 管理员菜单（接入平台管理视角）====================
 
 export const ADMIN_SIDEBAR_ITEMS = [
@@ -222,7 +265,7 @@ export const USER_RESOURCE_ASSETS_GROUPS: NavSubGroup[] = [
   ...USER_MY_SPACE_GROUPS,
 ];
 
-/** 侧栏「我的」：原工作台 + 资源与资产，按任务路径排序 */
+/** 侧栏「我的」：概览 / 发布登记 / 能力与工单（使用记录等已收束到工作台页内） */
 export const USER_MY_CONSOLE_GROUPS: NavSubGroup[] = [
   {
     title: '概览',
@@ -231,22 +274,14 @@ export const USER_MY_CONSOLE_GROUPS: NavSubGroup[] = [
       { id: 'developer-onboarding', icon: Rocket, label: '开发者入驻' },
     ],
   },
-  ...USER_MY_PUBLISH_GROUPS,
   {
-    title: '使用',
-    items: [
-      { id: 'usage-records', icon: History, label: '使用记录' },
-      { id: 'usage-stats', icon: BarChart3, label: '用量统计' },
-      { id: 'quick-access', icon: Zap, label: '快速入口' },
-      { id: 'recent-use', icon: Clock, label: '最近使用' },
-    ],
+    title: '我的发布',
+    requiresPublish: true,
+    items: [{ id: 'resource-center', icon: Boxes, label: '统一资源中心' }],
   },
   {
     title: '收藏与能力',
-    items: [
-      { id: 'my-favorites', icon: Heart, label: '我的收藏' },
-      { id: 'authorized-skills', icon: Key, label: '已授权技能' },
-    ],
+    items: [{ id: 'authorized-skills', icon: Key, label: '已授权技能' }],
   },
   {
     title: '工单与审批',

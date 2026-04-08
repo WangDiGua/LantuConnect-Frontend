@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Theme, FontSize } from '../../types';
-import { buildPath } from '../../constants/consoleRoutes';
+import { buildPath, defaultPath } from '../../constants/consoleRoutes';
+import { useUserRole } from '../../context/UserRoleContext';
 import { Overview } from '../dashboard/Overview';
 import { HealthCheckOverview } from '../dashboard/HealthCheckOverview';
 import { UsageStatsOverview } from '../dashboard/UsageStatsOverview';
@@ -10,11 +11,13 @@ import { btnSecondary, textMuted, textPrimary } from '../../utils/uiClasses';
 
 export type AdminOverviewTab = 'dashboard' | 'health-check' | 'usage-statistics' | 'data-reports';
 
-const TABS: { id: AdminOverviewTab; label: string }[] = [
-  { id: 'dashboard', label: '数据概览' },
-  { id: 'health-check', label: '健康状态' },
-  { id: 'usage-statistics', label: '使用统计' },
-  { id: 'data-reports', label: '数据报表' },
+const OVERVIEW_TAB_PERM = 'monitor:view';
+
+const ALL_TABS: { id: AdminOverviewTab; label: string; perm: string }[] = [
+  { id: 'dashboard', label: '数据概览', perm: OVERVIEW_TAB_PERM },
+  { id: 'health-check', label: '健康状态', perm: OVERVIEW_TAB_PERM },
+  { id: 'usage-statistics', label: '使用统计', perm: OVERVIEW_TAB_PERM },
+  { id: 'data-reports', label: '数据报表', perm: OVERVIEW_TAB_PERM },
 ];
 
 export interface AdminOverviewModuleProps {
@@ -25,9 +28,31 @@ export interface AdminOverviewModuleProps {
 
 export const AdminOverviewModule: React.FC<AdminOverviewModuleProps> = ({ activePage, theme, fontSize }) => {
   const navigate = useNavigate();
+  const { hasPermission } = useUserRole();
   const isDark = theme === 'dark';
-  const tab =
-    TABS.some((x) => x.id === activePage) ? (activePage as AdminOverviewTab) : 'dashboard';
+
+  const visibleTabs = useMemo(
+    () => ALL_TABS.filter((t) => hasPermission(t.perm)),
+    [hasPermission],
+  );
+
+  useEffect(() => {
+    if (visibleTabs.length === 0) {
+      navigate(defaultPath(), { replace: true });
+      return;
+    }
+    const allowedIds = new Set(visibleTabs.map((t) => t.id));
+    const pageIsOverviewTab = ALL_TABS.some((x) => x.id === activePage);
+    if (pageIsOverviewTab && !allowedIds.has(activePage as AdminOverviewTab)) {
+      navigate(buildPath('admin', visibleTabs[0].id), { replace: true });
+    }
+  }, [activePage, navigate, visibleTabs]);
+
+  const tab: AdminOverviewTab = (() => {
+    if (visibleTabs.some((x) => x.id === activePage)) return activePage as AdminOverviewTab;
+    if (visibleTabs.length > 0) return visibleTabs[0].id;
+    return 'dashboard';
+  })();
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
@@ -36,7 +61,7 @@ export const AdminOverviewModule: React.FC<AdminOverviewModuleProps> = ({ active
         role="tablist"
         aria-label="运营总览"
       >
-        {TABS.map((t) => {
+        {visibleTabs.map((t) => {
           const on = tab === t.id;
           return (
             <button

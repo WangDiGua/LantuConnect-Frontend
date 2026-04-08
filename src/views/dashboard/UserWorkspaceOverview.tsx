@@ -13,8 +13,6 @@ import {
   Heart,
   BarChart3,
   Bell,
-  TrendingUp,
-  LayoutGrid,
   Puzzle,
   AppWindow,
   Database,
@@ -34,6 +32,11 @@ import { BentoCard } from '../../components/common/BentoCard';
 import { KpiCard } from '../../components/common/KpiCard';
 import { AnimatedList } from '../../components/common/AnimatedList';
 import { buildPath, buildUserResourceMarketUrl } from '../../constants/consoleRoutes';
+import {
+  USER_WORKBENCH_CORE_NAV,
+  USER_WORKBENCH_EXPLORE_NAV,
+  type UserWorkbenchNavItem,
+} from '../../constants/navigation';
 import { unifiedResourceCenterPath } from '../../utils/unifiedResourceCenterPath';
 import type { ResourceType } from '../../types/dto/catalog';
 import { DashboardLayout } from '../../components/layout/PageLayouts';
@@ -75,35 +78,34 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
   const isDark = theme === 'dark';
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
-  const { hasPermission } = useUserRole();
+  const { hasPermission, platformRole } = useUserRole();
 
-  const quickActions = useMemo(() => {
-    const items: Array<{
-      label: string;
-      icon: typeof Bot;
-      page: string;
-      marketTab?: ResourceType;
-      perm?: string;
-      anyPerm?: readonly string[];
-    }> = [
-      { label: '智能体市场', icon: Bot, page: 'resource-market', marketTab: 'agent' },
-      { label: '技能市场', icon: Zap, page: 'resource-market', marketTab: 'skill' },
-      {
-        label: '我的发布',
-        icon: Rocket,
-        page: 'my-agents-pub',
-        anyPerm: ['agent:create', 'skill:create', 'mcp:create', 'app:create', 'dataset:create'],
-      },
-      { label: '使用统计', icon: BarChart3, page: 'usage-stats' },
-      { label: '资源成效统计', icon: TrendingUp, page: 'developer-statistics', perm: 'developer:portal' },
-      { label: '快捷入口', icon: LayoutGrid, page: 'quick-access' },
-    ];
-    return items.filter((a) => {
-      if (a.perm && !hasPermission(a.perm)) return false;
-      if (a.anyPerm && !a.anyPerm.some((p) => hasPermission(p))) return false;
-      return true;
-    });
-  }, [hasPermission]);
+  function workbenchNavVisible(item: UserWorkbenchNavItem): boolean {
+    if (item.perm && !hasPermission(item.perm)) return false;
+    if (item.anyPerm && !item.anyPerm.some((p) => hasPermission(p))) return false;
+    return true;
+  }
+
+  const workbenchCoreNav = useMemo(
+    () => USER_WORKBENCH_CORE_NAV.filter(workbenchNavVisible),
+    [hasPermission],
+  );
+
+  const workbenchExploreNav = useMemo(
+    () => USER_WORKBENCH_EXPLORE_NAV.filter(workbenchNavVisible),
+    [hasPermission],
+  );
+
+  const navigateWorkbenchItem = useCallback(
+    (item: UserWorkbenchNavItem) => {
+      if (item.marketTab) {
+        navigate(buildUserResourceMarketUrl(item.marketTab as ResourceType));
+        return;
+      }
+      if (item.page) navigate(buildPath('user', item.page));
+    },
+    [navigate],
+  );
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<Error | null>(null);
@@ -195,6 +197,35 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
             </p>
           </BentoCard>
         </motion.div>
+
+        {/* 工作台核心入口（原侧栏「我的」下六项，收束到本页） */}
+        {workbenchCoreNav.length > 0 ? (
+          <motion.section
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ ...spring, delay: 0.06 }}
+            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3"
+            aria-label="工作台快捷功能"
+          >
+            {workbenchCoreNav.map((item, i) => (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ ...spring, delay: 0.08 + i * 0.03 }}
+              >
+                <button
+                  type="button"
+                  onClick={() => navigateWorkbenchItem(item)}
+                  className={`w-full p-4 flex items-center gap-3 text-left ${bentoCardHover(theme)}`}
+                >
+                  <item.icon size={18} className={ts} aria-hidden />
+                  <span className={`text-sm font-bold ${tp}`}>{item.label}</span>
+                </button>
+              </motion.div>
+            ))}
+          </motion.section>
+        ) : null}
 
         {/* 最近使用条数：与 usage_record 中各类 invoke 一致（同一批最多 8 条内计数） */}
         <div className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 ${kpiGridGap}`}>
@@ -406,19 +437,28 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
           </BentoCard>
         </motion.div>
 
-        {/* Quick Actions */}
-        <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          {quickActions.map((action, i) => (
-            <motion.div key={action.label} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ ...spring, delay: 0.25 + i * 0.03 }}>
-              <button type="button" onClick={() => navigate(action.marketTab ? buildUserResourceMarketUrl(action.marketTab) : buildPath('user', action.page))}
-                className={`w-full p-4 flex items-center gap-3 text-left ${bentoCardHover(theme)}`}>
-                <action.icon size={18} className={ts} />
-                <span className={`text-sm font-bold ${tp}`}>{action.label}</span>
-              </button>
-            </motion.div>
-          ))}
-        </section>
+        {/* 发现与市场 / 开发者成效（与工作台核心入口数据源分离） */}
+        {workbenchExploreNav.length > 0 ? (
+          <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3" aria-label="探索与成效">
+            {workbenchExploreNav.map((item, i) => (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ ...spring, delay: 0.25 + i * 0.03 }}
+              >
+                <button
+                  type="button"
+                  onClick={() => navigateWorkbenchItem(item)}
+                  className={`w-full p-4 flex items-center gap-3 text-left ${bentoCardHover(theme)}`}
+                >
+                  <item.icon size={18} className={ts} aria-hidden />
+                  <span className={`text-sm font-bold ${tp}`}>{item.label}</span>
+                </button>
+              </motion.div>
+            ))}
+          </section>
+        ) : null}
 
       </DashboardLayout>
     </div>

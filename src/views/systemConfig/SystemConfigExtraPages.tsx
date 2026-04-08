@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
-import { Sliders, Shield, Network, HardDrive, Lock, Loader2, Braces } from 'lucide-react';
+import { Sliders, Shield, Network, HardDrive, Lock, Loader2, Braces, Plus, Trash2 } from 'lucide-react';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
 import { useSysParams, useUpdateSysParams, useSysSecurity, useUpdateSysSecurity } from '../../hooks/queries/useSystemConfig';
@@ -24,6 +24,30 @@ interface PageProps {
 }
 
 const INPUT_FOCUS = 'focus:ring-2 focus:ring-neutral-900/20 focus:border-neutral-900/35';
+
+function newAllowlistRowId(): string {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+interface NetworkAllowlistRow {
+  id: string;
+  value: string;
+}
+
+/** IPv4 单地址或 IPv4 CIDR（前缀 0–32）；无后缀时表示单个主机 */
+function validateAllowlistCidrRule(raw: string): string | null {
+  const s = raw.trim();
+  if (!s) return '协议与网段不能为空';
+  const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})(\/([0-9]|[12][0-9]|3[0-2]))?$/.exec(s);
+  if (!m) return '请使用 IPv4 或 IPv4 CIDR，例如 10.0.0.0/8 或 192.168.1.10';
+  const oct = [m[1], m[2], m[3], m[4]].map((x) => Number(x));
+  if (oct.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) return '每段数字须在 0–255';
+  if (m[5] !== undefined && m[6] !== undefined) {
+    const p = Number(m[6]);
+    if (p < 0 || p > 32) return '前缀长度须为 0–32';
+  }
+  return null;
+}
 
 /** 与 `application.yml` 注释一致：库内 JSON 合并覆盖 YAML，保存后数秒内生效 */
 const RUNTIME_APP_CONFIG_KEY = 'runtime_app_config';
@@ -479,10 +503,11 @@ export const SecuritySettingsPage: React.FC<PageProps> = ({ theme, fontSize, sho
   );
 };
 
-export const NetworkConfigPage: React.FC<PageProps> = ({ theme, fontSize, showMessage }) => {
+export const NetworkConfigPage: React.FC<PageProps> = ({ theme, fontSize: _fontSize, showMessage }) => {
   const inputCls = `${nativeInputClass(theme)} ${INPUT_FOCUS}`;
   const labelCls = `text-sm font-medium ${textSecondary(theme)}`;
-  const [allowlist, setAllowlist] = useState('');
+  const [rows, setRows] = useState<NetworkAllowlistRow[]>([{ id: newAllowlistRowId(), value: '' }]);
+  const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [loadingList, setLoadingList] = useState(true);
 
@@ -492,8 +517,13 @@ export const NetworkConfigPage: React.FC<PageProps> = ({ theme, fontSize, showMe
       setLoadingList(true);
       try {
         const rules = await systemConfigService.getNetworkAllowlist();
-        if (!cancelled && rules.length > 0) {
-          setAllowlist(rules.join('\n'));
+        if (!cancelled) {
+          setRows(
+            rules.length > 0
+              ? rules.map((v) => ({ id: newAllowlistRowId(), value: v }))
+              : [{ id: newAllowlistRowId(), value: '' }],
+          );
+          setRowErrors({});
         }
       } catch {
         if (!cancelled) showMessage('加载已保存白名单失败，可手动填写后应用', 'info');
@@ -501,11 +531,53 @@ export const NetworkConfigPage: React.FC<PageProps> = ({ theme, fontSize, showMe
         if (!cancelled) setLoadingList(false);
       }
     })();
-    return () => { cancelled = true; };
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [showMessage]);
+
+  const updateRowValue = (id: string, value: string) => {
+    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, value } : r)));
+    setRowErrors((prev) => {
+      if (!prev[id]) return prev;
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+  };
+
+  const addRow = () => {
+    setRows((prev) => [...prev, { id: newAllowlistRowId(), value: '' }]);
+  };
+
+  const removeRow = (id: string) => {
+    setRows((prev) => {
+      const next = prev.filter((r) => r.id !== id);
+      return next.length === 0 ? [{ id: newAllowlistRowId(), value: '' }] : next;
+    });
+    setRowErrors((prev) => {
+      if (!prev[id]) return prev;
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+  };
 
   const handleApply = async () => {
-    const rules = allowlist.split('\n').map((l) => l.trim()).filter(Boolean);
+    const nextErrors: Record<string, string> = {};
+    for (const r of rows) {
+      const v = r.value.trim();
+      if (!v) continue;
+      const err = validateAllowlistCidrRule(v);
+      if (err) nextErrors[r.id] = err;
+    }
+    setRowErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      showMessage('请修正标红行的 IPv4 / CIDR 格式后再应用', 'error');
+      return;
+    }
+
+    const rules = rows.map((r) => r.value.trim()).filter(Boolean);
     setSaving(true);
     try {
       await systemConfigService.applyNetworkWhitelist(rules);
@@ -526,18 +598,82 @@ export const NetworkConfigPage: React.FC<PageProps> = ({ theme, fontSize, showMe
       description="管理端访问白名单：内容持久化到系统参数，刷新页面会回显已保存条目。五类统一资源的公网暴露策略在网关与本平台其它模块分别配置。"
     >
       <div className="px-4 sm:px-6 pb-6">
-        <BentoCard theme={theme} padding="lg" className="max-w-xl">
+        <BentoCard theme={theme} padding="lg" className="max-w-2xl">
           <div className="space-y-4">
             {loadingList ? (
               <p className={`text-sm ${textMuted(theme)}`}>正在加载已保存白名单…</p>
             ) : null}
             <div>
-              <label className={`${labelCls} mb-1.5 block`}>管理端 IP 白名单（每行一个 CIDR）</label>
-              <AutoHeightTextarea className={`${inputCls} font-mono text-xs resize-none`} minRows={8} maxRows={30} value={allowlist} onChange={(e) => setAllowlist(e.target.value)} aria-label="IP 白名单 CIDR 列表" disabled={loadingList} />
-              <p className={`text-xs mt-1.5 leading-relaxed ${textMuted(theme)}`}>每行一条，例如 10.0.0.0/8；点击应用后即持久保存，并在关闭集成 mock 后可由真实网关接管下发。</p>
+              <div className="flex flex-wrap items-end justify-between gap-2 mb-2">
+                <span className={`${labelCls} block`} id="network-allowlist-heading">
+                  管理端 IP 白名单
+                </span>
+                <button
+                  type="button"
+                  className={`${btnSecondary(theme)} inline-flex items-center gap-1 text-xs py-1.5`}
+                  onClick={addRow}
+                  disabled={loadingList}
+                  aria-label="新增一条网段"
+                >
+                  <Plus size={14} aria-hidden /> 添加网段
+                </button>
+              </div>
+              <p className={`text-xs mb-3 leading-relaxed ${textMuted(theme)}`} id="network-allowlist-hint">
+                每条填写 IPv4 地址或 CIDR（前缀 0–32），例如 <span className="font-mono">10.0.0.0/8</span>、
+                <span className="font-mono"> 172.16.0.0/12</span>；单主机可写 <span className="font-mono">192.168.1.10</span>。留空的行在保存时会被忽略。
+              </p>
+              <ul className="space-y-2.5 list-none p-0 m-0" aria-labelledby="network-allowlist-heading" aria-describedby="network-allowlist-hint">
+                {rows.map((r, i) => (
+                  <li key={r.id} className="flex flex-wrap items-start gap-2 sm:flex-nowrap">
+                    <div className="min-w-0 flex-1">
+                      <label htmlFor={`allowlist-row-${r.id}`} className="sr-only">
+                        白名单条目 {i + 1}
+                      </label>
+                      <input
+                        id={`allowlist-row-${r.id}`}
+                        type="text"
+                        inputMode="text"
+                        autoComplete="off"
+                        spellCheck={false}
+                        placeholder="例如 10.0.0.0/8"
+                        className={`${inputCls} w-full font-mono text-xs ${rowErrors[r.id] ? inputBaseError(theme) : ''}`}
+                        value={r.value}
+                        onChange={(e) => updateRowValue(r.id, e.target.value)}
+                        disabled={loadingList}
+                        aria-invalid={Boolean(rowErrors[r.id])}
+                        aria-describedby={rowErrors[r.id] ? `allowlist-err-${r.id}` : undefined}
+                      />
+                      {rowErrors[r.id] ? (
+                        <p id={`allowlist-err-${r.id}`} className={`text-xs mt-1 ${fieldErrorText}`} role="alert">
+                          {rowErrors[r.id]}
+                        </p>
+                      ) : null}
+                    </div>
+                    <button
+                      type="button"
+                      className={`${btnSecondary(theme)} shrink-0 inline-flex items-center justify-center gap-1 px-2.5 py-2`}
+                      onClick={() => removeRow(r.id)}
+                      disabled={loadingList}
+                      aria-label={`删除第 ${i + 1} 条`}
+                      title="删除此条"
+                    >
+                      <Trash2 size={15} aria-hidden />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <p className={`text-xs mt-3 leading-relaxed ${textMuted(theme)}`}>
+                点击「应用」后写入系统参数；关闭集成 mock 后可由真实网关接管下发。
+              </p>
             </div>
             <button type="button" className={`${btnPrimary} disabled:opacity-50`} disabled={saving || loadingList} onClick={handleApply}>
-              {saving ? <><Loader2 size={14} className="animate-spin" /> 应用中…</> : '应用'}
+              {saving ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" /> 应用中…
+                </>
+              ) : (
+                '应用'
+              )}
             </button>
           </div>
         </BentoCard>

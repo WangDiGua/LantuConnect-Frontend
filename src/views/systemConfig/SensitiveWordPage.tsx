@@ -305,10 +305,12 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
     }
   }, [selectedWords, fetchList, showMessage, clearSelection]);
 
+  /** 与后端 Boolean 可空一致：仅明确为 false 时视为停用 */
   const handleToggle = useCallback(async (item: SensitiveWord) => {
+    const currentlyOn = item.enabled !== false;
     try {
-      await sensitiveWordService.update(item.id, { enabled: !item.enabled });
-      showMessage(item.enabled ? '已禁用' : '已启用', 'success');
+      await sensitiveWordService.update(item.id, { enabled: !currentlyOn });
+      showMessage(currentlyOn ? '已禁用' : '已启用', 'success');
       void fetchList();
     } catch (e) {
       showMessage(e instanceof Error ? e.message : '操作失败', 'error');
@@ -319,7 +321,7 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
     setEditingItem(item);
     setEditCategory(item.category ?? '');
     setEditSeverity(Math.max(1, item.severity ?? 1));
-    setEditEnabled(item.enabled);
+    setEditEnabled(item.enabled !== false);
   }, []);
 
   const closeEditModal = () => {
@@ -364,15 +366,17 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
         id: 'enabled',
         header: '状态',
         cellClassName: 'align-middle',
-        cell: (item) => (
-          <button
-            type="button"
-            onClick={() => void handleToggle(item)}
-            className={`${item.enabled ? mgmtTableActionPositive(theme) : mgmtTableActionGhost(theme)} cursor-pointer`}
-          >
-            {item.enabled ? '启用' : '禁用'}
-          </button>
-        ),
+        cell: (item) => {
+          const on = item.enabled !== false;
+          return (
+            <span
+              className={`${on ? mgmtTableActionPositive(theme) : mgmtTableActionGhost(theme)} cursor-default select-none`}
+              title="在右侧操作列使用「启用 / 禁用」"
+            >
+              {on ? '启用' : '禁用'}
+            </span>
+          );
+        },
       },
       {
         id: 'creator',
@@ -390,16 +394,28 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
         headerClassName: 'text-right',
         cellClassName: 'text-right align-middle',
         cellNowrap: true,
-        cell: (item) => (
-          <div className={`${mgmtTableRowActions} min-h-8`}>
-            <button type="button" className={mgmtTableActionGhost(theme)} onClick={() => openEditModal(item)}>
-              编辑
-            </button>
-            <button type="button" className={mgmtTableActionDanger} onClick={() => setDeleteTarget(item)}>
-              删除
-            </button>
-          </div>
-        ),
+        cell: (item) => {
+          const on = item.enabled !== false;
+          return (
+            <div className={`${mgmtTableRowActions} min-h-8`}>
+              <button type="button" className={mgmtTableActionGhost(theme)} onClick={() => openEditModal(item)}>
+                编辑
+              </button>
+              {on ? (
+                <button type="button" className={mgmtTableActionGhost(theme)} onClick={() => void handleToggle(item)}>
+                  禁用
+                </button>
+              ) : (
+                <button type="button" className={mgmtTableActionPositive(theme)} onClick={() => void handleToggle(item)}>
+                  启用
+                </button>
+              )}
+              <button type="button" className={mgmtTableActionDanger} onClick={() => setDeleteTarget(item)}>
+                删除
+              </button>
+            </div>
+          );
+        },
       },
     ],
     [theme, handleToggle, openEditModal],
@@ -524,7 +540,7 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
               columns={sensitiveColumns}
               rows={list}
               getRowKey={(item) => String(item.id)}
-              minWidth="40rem"
+              minWidth="52rem"
               surface="plain"
               selection={{
                 selectedKeys,

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import type { Theme, FontSize } from '../../types';
 import {
-  canvasBodyBg, consoleContentTopPad, kpiGridGap, mainScrollCompositorClass, pageBlockStack,
+  canvasBodyBg, kpiGridGap, mainScrollCompositorClass, pageBlockStack,
   textPrimary, textSecondary, textMuted, tableHeadCell, tableBodyRow, tableCell,
 } from '../../utils/uiClasses';
 import { BarChart3, Zap, Users, TrendingUp } from 'lucide-react';
@@ -64,7 +64,7 @@ export const UsageStatsOverview: React.FC<Props> = ({ theme }) => {
         </div>
       </div>
 
-      <div className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4 sm:px-6 ${consoleContentTopPad} pb-6 sm:pb-7 ${pageBlockStack} ${mainScrollCompositorClass}`}>
+      <div className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4 sm:px-6 pb-6 sm:pb-7 ${pageBlockStack} ${mainScrollCompositorClass}`}>
         {loading && !data ? (
           <PageSkeleton type="chart" />
         ) : loadError ? (

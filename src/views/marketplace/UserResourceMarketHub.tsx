@@ -6,7 +6,6 @@ import { RESOURCE_TYPES, RESOURCE_TYPE_LABEL_ZH, parseResourceType } from '../..
 import { buildPath } from '../../constants/consoleRoutes';
 import { SkillMarket } from '../skill/SkillMarket';
 import {
-  consoleContentTopPad,
   mainScrollPadBottom,
   mainScrollPadX,
   textMuted,
@@ -77,7 +76,7 @@ export const UserResourceMarketHub: React.FC<Props> = ({ theme, fontSize, themeC
 
   return (
     <div
-      className={`flex min-h-0 flex-1 flex-col gap-5 sm:gap-6 ${mainScrollPadX} ${mainScrollPadBottom} ${consoleContentTopPad}`}
+      className={`flex min-h-0 flex-1 flex-col gap-5 sm:gap-6 ${mainScrollPadX} ${mainScrollPadBottom}`}
     >
       <div
         className={`shrink-0 rounded-2xl border px-5 py-5 sm:px-7 sm:py-6 ${

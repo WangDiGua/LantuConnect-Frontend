@@ -13,7 +13,7 @@ import { MultiAvatar } from '../../components/common/MultiAvatar';
 import type { SessionItem } from '../../types/dto/explore';
 import {
   canvasBodyBg, textPrimary, textSecondary, textMuted,
-  consoleContentTopPad, mainScrollPadBottom, mainScrollPadX,
+  mainScrollPadBottom, mainScrollPadX,
   mgmtTableActionDanger,
 } from '../../utils/uiClasses';
 import { formatDateTime } from '../../utils/formatDateTime';
@@ -146,7 +146,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ theme }) => {
 
   return (
     <div className={`flex-1 overflow-y-auto transition-colors duration-300 ${canvasBodyBg(theme)}`}>
-      <div className={`w-full min-h-0 ${mainScrollPadX} ${consoleContentTopPad} ${mainScrollPadBottom}`}>
+      <div className={`w-full min-h-0 ${mainScrollPadX} ${mainScrollPadBottom}`}>
 
         {/* Top: avatar card + account info side-by-side */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-4">

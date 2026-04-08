@@ -14,7 +14,6 @@ import {
   CONSOLE_CARD_RADIUS,
   CONSOLE_CARD_SHADOW_DARK,
   CONSOLE_CARD_SHADOW_LIGHT,
-  consoleContentTopPad,
   mainScrollPadBottom,
   mainScrollPadX,
 } from '../../utils/uiClasses';
@@ -801,9 +800,9 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
   return (
     <>
       {/*
-        hubRail：仅用外层一份 consoleContentTopPad 与主滚动区顶对齐其它页；勿再在 main 上叠 mt，否则侧栏相对顶栏会明显高于其它控制台页。
+        顶栏下主内容顶距由 MainLayout 对 MainContent 外包一层 consoleContentTopPad 统一处理；hub 内勿再叠 pt，以免与侧栏不同步。
       */}
-      <div className={`w-full ${mainScrollPadBottom} ${canvasBodyBg(theme)} ${consoleContentTopPad} pb-16 sm:pb-20`}>
+      <div className={`w-full ${mainScrollPadBottom} ${canvasBodyBg(theme)} pb-16 sm:pb-20`}>
         {!hubRail ? <div className={pageContainer}>{hubHeroBanner}</div> : null}
 
         <main className={`${pageContainer} ${hubRail ? 'mt-0' : 'mt-6 sm:mt-7'} space-y-8`}>

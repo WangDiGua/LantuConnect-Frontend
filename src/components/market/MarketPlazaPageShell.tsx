@@ -4,7 +4,6 @@ import { Zap } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import {
   canvasBodyBg,
-  consoleContentTopPad,
   mainScrollPadBottom,
   mainScrollPadX,
   textMuted,
@@ -91,7 +90,7 @@ export const MarketPlazaPageShell: React.FC<MarketPlazaPageShellProps> = ({
 
   return (
     <div className={`w-full ${canvasBodyBg(theme)}`}>
-      <div className={`${mainScrollPadX} ${mainScrollPadBottom} space-y-5 ${consoleContentTopPad}`}>
+      <div className={`${mainScrollPadX} ${mainScrollPadBottom} space-y-5`}>
         <header className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between lg:gap-6">
           <div className="flex min-w-0 items-start gap-3 sm:gap-3.5">
             <div

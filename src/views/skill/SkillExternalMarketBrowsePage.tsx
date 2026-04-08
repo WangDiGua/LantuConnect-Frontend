@@ -10,7 +10,6 @@ import {
   bentoCardHover,
   btnPrimary,
   canvasBodyBg,
-  consoleContentTopPad,
   iconMuted,
   mainScrollPadBottom,
   mainScrollPadX,
@@ -158,7 +157,7 @@ export const SkillExternalMarketBrowsePage: React.FC<SkillExternalMarketBrowsePa
 
   return (
     <div className={`w-full min-h-0 ${canvasBodyBg(theme)}`}>
-      <div className={`${mainScrollPadX} ${mainScrollPadBottom} ${consoleContentTopPad} space-y-6`}>
+      <div className={`${mainScrollPadX} ${mainScrollPadBottom} space-y-6`}>
         <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex min-w-0 items-start gap-3">
             <div

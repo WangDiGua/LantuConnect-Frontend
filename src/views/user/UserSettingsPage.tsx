@@ -18,7 +18,7 @@ import { isServerErrorGloballyNotified } from '../../types/api';
 import {
   canvasBodyBg, btnPrimary, btnSecondary, fieldErrorText, inputBaseError,
   textPrimary, textSecondary, textMuted,
-  consoleContentTopPad, mainScrollPadBottom, mainScrollPadX,
+  mainScrollPadBottom, mainScrollPadX,
 } from '../../utils/uiClasses';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
@@ -307,7 +307,7 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
 
   return (
     <div className={`flex-1 overflow-y-auto ${canvasBodyBg(theme)}`}>
-      <div className={`w-full min-h-0 ${mainScrollPadX} ${consoleContentTopPad} ${mainScrollPadBottom}`}>
+      <div className={`w-full min-h-0 ${mainScrollPadX} ${mainScrollPadBottom}`}>
         <div className="flex min-w-0 items-center gap-3 mb-4">
           <div className={`shrink-0 rounded-xl p-2 ${isDark ? 'bg-white/10' : 'bg-slate-100'}`}>
             <Settings size={22} className={textSecondary(theme)} />

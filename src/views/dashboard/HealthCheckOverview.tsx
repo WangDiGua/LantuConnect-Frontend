@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import type { Theme, FontSize } from '../../types';
 import {
-  canvasBodyBg, consoleContentTopPad, mainScrollCompositorClass,
+  canvasBodyBg, mainScrollCompositorClass,
   textPrimary, textSecondary, textMuted, tableHeadCell, tableBodyRow, tableCell, btnSecondary,
 } from '../../utils/uiClasses';
 import { Activity, CheckCircle, AlertTriangle, WifiOff, RefreshCw } from 'lucide-react';
@@ -134,7 +134,7 @@ export const HealthCheckOverview: React.FC<Props> = ({ theme }) => {
         </button>
       </div>
 
-      <div className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4 sm:px-6 ${consoleContentTopPad} pb-5 space-y-5 ${mainScrollCompositorClass}`}>
+      <div className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4 sm:px-6 pb-5 space-y-5 ${mainScrollCompositorClass}`}>
         {loading && items.length === 0 ? (
           <PageSkeleton type="chart" />
         ) : loadError ? (

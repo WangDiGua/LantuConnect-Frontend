@@ -1,7 +1,7 @@
 import React from 'react';
 import { ArrowLeft } from 'lucide-react';
 import type { Theme } from '../../types';
-import { canvasBodyBg, consoleContentTopPad, mainScrollPadBottom, mainScrollPadX, textMuted, textPrimary, textSecondary } from '../../utils/uiClasses';
+import { canvasBodyBg, mainScrollPadBottom, mainScrollPadX, textMuted, textPrimary, textSecondary } from '../../utils/uiClasses';
 
 export type ResourceMarketDetailTabItem = {
   id: string;
@@ -65,7 +65,7 @@ export function ResourceMarketDetailShell({
   const grid = gridSpansForMain(mainLgColSpan);
   return (
     <div className={`w-full min-h-0 ${canvasBodyBg(theme)}`}>
-      <div className={`${mainScrollPadX} ${mainScrollPadBottom} ${consoleContentTopPad} space-y-6`}>
+      <div className={`${mainScrollPadX} ${mainScrollPadBottom} space-y-6`}>
         <button
           type="button"
           onClick={onBack}

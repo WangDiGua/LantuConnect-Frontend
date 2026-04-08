@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  consoleContentTopPad,
   contentMaxWidth,
   contentPaddingX,
   sectionGap,
@@ -21,7 +20,7 @@ function shellClasses(base: string, className?: string): string {
 export const DashboardLayout: React.FC<BaseLayoutProps> = ({ children, className }) => (
   <div
     className={shellClasses(
-      `mx-auto w-full ${contentMaxWidth} ${contentPaddingX} ${consoleContentTopPad} pb-6 sm:pb-7 ${sectionGap}`,
+      `mx-auto w-full ${contentMaxWidth} ${contentPaddingX} pb-6 sm:pb-7 ${sectionGap}`,
       className,
     )}
   >
@@ -33,7 +32,7 @@ export const DashboardLayout: React.FC<BaseLayoutProps> = ({ children, className
 export const MarketLayout: React.FC<BaseLayoutProps> = ({ children, className }) => (
   <div
     className={shellClasses(
-      `mx-auto w-full ${contentMaxWidth} ${contentPaddingX} ${consoleContentTopPad} pb-5 sm:pb-6 ${sectionGap}`,
+      `mx-auto w-full ${contentMaxWidth} ${contentPaddingX} pb-5 sm:pb-6 ${sectionGap}`,
       className,
     )}
   >
@@ -45,7 +44,7 @@ export const MarketLayout: React.FC<BaseLayoutProps> = ({ children, className })
 export const DetailLayout: React.FC<BaseLayoutProps> = ({ children, className }) => (
   <div
     className={shellClasses(
-      `mx-auto w-full ${contentMaxWidth} ${contentPaddingX} ${consoleContentTopPad} pb-5 sm:pb-6 grid grid-cols-1 ${detailRailWidth} ${cardGap} content-start`,
+      `mx-auto w-full ${contentMaxWidth} ${contentPaddingX} pb-5 sm:pb-6 grid grid-cols-1 ${detailRailWidth} ${cardGap} content-start`,
       className,
     )}
   >

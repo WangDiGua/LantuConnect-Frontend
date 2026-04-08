@@ -623,8 +623,8 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
             集成说明
           </h2>
           <p className={`text-sm leading-relaxed ${textSecondary(theme)}`}>
-            实际执行多是<strong className={textPrimary(theme)}>「解析 → 三选一调用」</strong>：先 <span className="font-mono text-xs">POST /catalog/resolve</span>，再按返回的 <span className="font-mono text-xs">invokeType</span> 选用{' '}
-            <span className="font-mono text-xs">/invoke</span>、<span className="font-mono text-xs">/invoke-stream</span> 或 <span className="font-mono text-xs break-all">…/message</span>（JSON-RPC）。下文<strong className={textPrimary(theme)}> 常用三种方式 </strong>
+            实际执行多是<strong className={textPrimary(theme)}>「解析 → 三选一调用」</strong>：先 <span className="font-mono text-xs">POST /catalog/resolve</span>（请求体可带 <span className="font-mono text-xs">include</span>，如 <span className="font-mono text-xs">closure</span> / <span className="font-mono text-xs">bindings</span>，展开 Agent↔MCP、MCP↔Skill 绑定；单条详情亦可用 GET 的 query <span className="font-mono text-xs">include</span>），再按返回的 <span className="font-mono text-xs">invokeType</span> 选用{' '}
+            <span className="font-mono text-xs">/invoke</span>、<span className="font-mono text-xs">/invoke-stream</span> 或 <span className="font-mono text-xs break-all">…/message</span>（JSON-RPC）。<span className="font-mono text-xs">skill</span> 仅在<strong className={textPrimary(theme)}>托管（hosted）</strong>形态下才可能出现在可 <span className="font-mono text-xs">invoke</span> 的路径上；<strong className={textPrimary(theme)}>技能包（pack）</strong>仍走制品下载。下文<strong className={textPrimary(theme)}> 常用三种方式 </strong>
             已展开；拉目录、可调用预判及 SDK 等价路径请用<strong className={textPrimary(theme)}> 展开更多 </strong>。须带完整 <span className="font-mono text-xs">X-Api-Key</span>；浏览器场景建议经 BFF。
           </p>
           <div className="flex flex-wrap gap-2">

@@ -189,6 +189,23 @@ function parseRelatedIds(value: string): { ids: number[]; invalidTokens: string[
   return { ids, invalidTokens };
 }
 
+function relationIdsFingerprint(raw: string): string {
+  const { ids } = parseRelatedIds(raw);
+  return [...ids].sort((a, b) => a - b).join(',');
+}
+
+/** 创建：仅有值时带回；更新：与加载快照一致则省略（后端 null=不修改），否则带回列表（含 [] 表示清空） */
+function mergeRelationIdsForUpsert(isUpdate: boolean, formValue: string, snapshot: string): number[] | undefined {
+  const ids = parseRelatedIds(formValue).ids;
+  if (!isUpdate) {
+    return ids.length > 0 ? ids : undefined;
+  }
+  if (relationIdsFingerprint(formValue) === relationIdsFingerprint(snapshot)) {
+    return undefined;
+  }
+  return ids;
+}
+
 type ResourceRegisterFieldKey =
   | 'resourceCode'
   | 'displayName'
@@ -199,6 +216,8 @@ type ResourceRegisterFieldKey =
   | 'specJson'
   | 'maxConcurrency'
   | 'relatedResourceIds'
+  | 'relatedMcpResourceIds'
+  | 'relatedPreSkillResourceIds'
   | 'agentMaxSteps'
   | 'agentTemperature'
   | 'skillRootPath'
@@ -206,6 +225,9 @@ type ResourceRegisterFieldKey =
   | 'paramsSchemaJson'
   | 'manifestJson'
   | 'artifactUri'
+  | 'hostedSystemPrompt'
+  | 'hostedOutputSchemaJson'
+  | 'hostedTemperature'
   | 'appUrl'
   | 'embedType'
   | 'appIcon'
@@ -228,6 +250,8 @@ const RR_FIELD_FOCUS_ORDER: ResourceRegisterFieldKey[] = [
   'specJson',
   'maxConcurrency',
   'relatedResourceIds',
+  'relatedMcpResourceIds',
+  'relatedPreSkillResourceIds',
   'agentMaxSteps',
   'agentTemperature',
   'skillRootPath',
@@ -235,6 +259,9 @@ const RR_FIELD_FOCUS_ORDER: ResourceRegisterFieldKey[] = [
   'paramsSchemaJson',
   'manifestJson',
   'artifactUri',
+  'hostedSystemPrompt',
+  'hostedOutputSchemaJson',
+  'hostedTemperature',
   'appUrl',
   'embedType',
   'appIcon',
@@ -258,6 +285,14 @@ function computeResourceRegisterFieldErrors(
     specJson: string;
     maxConcurrency: number;
     relatedResourceIds: string;
+    relatedMcpResourceIds: string;
+    relatedPreSkillResourceIds: string;
+    skillExecutionMode: 'pack' | 'hosted';
+    hostedSystemPrompt: string;
+    hostedUserTemplate: string;
+    hostedDefaultModel: string;
+    hostedOutputSchemaJson: string;
+    hostedTemperature: string;
     agentMaxSteps: string;
     agentTemperature: string;
     skillRootPath: string;
@@ -335,6 +370,10 @@ function computeResourceRegisterFieldErrors(
         if (!password && !passwordRef) e.authConfigJson = e.authConfigJson ?? 'Basic 须填写 password 或 passwordSecretRef';
       }
     }
+    const preSkillRel = parseRelatedIds(form.relatedPreSkillResourceIds);
+    if (preSkillRel.invalidTokens.length > 0) {
+      e.relatedPreSkillResourceIds = `前置 Skill ID 仅支持正整数（逗号分隔），非法值：${preSkillRel.invalidTokens.join(', ')}`;
+    }
   }
 
   if (resourceType === 'agent') {
@@ -354,7 +393,11 @@ function computeResourceRegisterFieldErrors(
     }
     const related = parseRelatedIds(form.relatedResourceIds);
     if (related.invalidTokens.length > 0) {
-      e.relatedResourceIds = `关联资源 ID 仅支持正整数（逗号分隔），非法值：${related.invalidTokens.join(', ')}`;
+      e.relatedResourceIds = `关联 Skill 等资源 ID 仅支持正整数（逗号分隔），非法值：${related.invalidTokens.join(', ')}`;
+    }
+    const mcpRel = parseRelatedIds(form.relatedMcpResourceIds);
+    if (mcpRel.invalidTokens.length > 0) {
+      e.relatedMcpResourceIds = `绑定的 MCP ID 仅支持正整数（逗号分隔），非法值：${mcpRel.invalidTokens.join(', ')}`;
     }
     if (!Number.isFinite(Number(form.maxConcurrency)) || Number(form.maxConcurrency) < 1 || Number(form.maxConcurrency) > 1000) {
       e.maxConcurrency = '最大并发须在 1~1000 之间';
@@ -374,29 +417,53 @@ function computeResourceRegisterFieldErrors(
   }
 
   if (resourceType === 'skill') {
-    if (!form.skillType.trim()) {
-      e.skillType = '请选择技能包格式';
-    } else {
-      const st = form.skillType.trim().toLowerCase();
-      if (!['anthropic_v1', 'folder_v1'].includes(st)) {
-        e.skillType = '技能包格式须为 anthropic_v1 或 folder_v1；可远程调用的 HTTP 工具请注册为 MCP 资源';
+    if (form.skillExecutionMode === 'hosted') {
+      if (!form.hostedSystemPrompt.trim()) {
+        e.hostedSystemPrompt = '托管技能须填写系统提示词';
       }
-    }
-    const specParsed = parseJsonObject(form.specJson, '附加元数据 JSON（可为空对象）');
-    if (!specParsed.ok) {
-      e.specJson = specParsed.message;
-    }
-    const schemaParsed = parseJsonObject(form.paramsSchemaJson, '参数结构 JSON');
-    if (!schemaParsed.ok) {
-      e.paramsSchemaJson = schemaParsed.message;
-    }
-    const manifestParsed = parseJsonObject(form.manifestJson, '清单 JSON');
-    if (!manifestParsed.ok) {
-      e.manifestJson = manifestParsed.message;
-    }
-    const uri = form.artifactUri.trim();
-    if (uri && !isValidUrl(uri) && !uri.startsWith('/uploads/')) {
-      e.artifactUri = '制品地址须为 http(s) URL 或由上传生成的 /uploads/... 路径';
+      const st = form.skillType.trim().toLowerCase();
+      if (st && st !== 'hosted_v1') {
+        e.skillType = '托管技能请将「包格式」设为 hosted_v1';
+      }
+      const outParsed = parseJsonObject(form.hostedOutputSchemaJson, '输出 Schema JSON');
+      if (form.hostedOutputSchemaJson.trim() && !outParsed.ok) {
+        e.hostedOutputSchemaJson = outParsed.message;
+      }
+      if (form.hostedTemperature.trim()) {
+        const ht = Number(form.hostedTemperature.trim());
+        if (!Number.isFinite(ht) || ht < 0 || ht > 2) {
+          e.hostedTemperature = '温度须在 0～2 之间或留空';
+        }
+      }
+      const schemaParsed = parseJsonObject(form.paramsSchemaJson, '参数结构 JSON');
+      if (!schemaParsed.ok) {
+        e.paramsSchemaJson = schemaParsed.message;
+      }
+    } else {
+      if (!form.skillType.trim()) {
+        e.skillType = '请选择技能包格式';
+      } else {
+        const st = form.skillType.trim().toLowerCase();
+        if (!['anthropic_v1', 'folder_v1'].includes(st)) {
+          e.skillType = '技能包格式须为 anthropic_v1 或 folder_v1；可远程调用的 HTTP 工具请注册为 MCP 资源';
+        }
+      }
+      const specParsed = parseJsonObject(form.specJson, '附加元数据 JSON（可为空对象）');
+      if (!specParsed.ok) {
+        e.specJson = specParsed.message;
+      }
+      const schemaParsed = parseJsonObject(form.paramsSchemaJson, '参数结构 JSON');
+      if (!schemaParsed.ok) {
+        e.paramsSchemaJson = schemaParsed.message;
+      }
+      const manifestParsed = parseJsonObject(form.manifestJson, '清单 JSON');
+      if (!manifestParsed.ok) {
+        e.manifestJson = manifestParsed.message;
+      }
+      const uri = form.artifactUri.trim();
+      if (uri && !isValidUrl(uri) && !uri.startsWith('/uploads/')) {
+        e.artifactUri = '制品地址须为 http(s) URL 或由上传生成的 /uploads/... 路径';
+      }
     }
   }
 
@@ -570,7 +637,16 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     artifactSha256: '',
     skillRootPath: '',
     serviceDetailMd: '',
+    relatedMcpResourceIds: '',
+    relatedPreSkillResourceIds: '',
+    skillExecutionMode: 'pack' as 'pack' | 'hosted',
+    hostedSystemPrompt: '',
+    hostedUserTemplate: '',
+    hostedDefaultModel: '',
+    hostedOutputSchemaJson: '',
+    hostedTemperature: '',
   });
+  const bindingSnapshotRef = useRef({ relatedMcpResourceIds: '', relatedPreSkillResourceIds: '' });
   const [mcpImportPaste, setMcpImportPaste] = useState('');
   const [mcpProbeLoading, setMcpProbeLoading] = useState(false);
   /** 已发布资源双轨编辑：用于提示线上版本 vs 草稿 */
@@ -602,6 +678,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
   useEffect(() => {
     if (!resourceId) {
       setLoadedResourceMeta(null);
+      bindingSnapshotRef.current = { relatedMcpResourceIds: '', relatedPreSkillResourceIds: '' };
     }
   }, [resourceId]);
 
@@ -676,15 +753,31 @@ export const ResourceRegisterPage: React.FC<Props> = ({
         ) {
           setAgentAdvancedOpen(true);
         }
+        const isHostedSkill = resourceType === 'skill' && String(item.executionMode ?? '').toLowerCase() === 'hosted';
         if (
           resourceType === 'skill' &&
-          ((item.spec != null && typeof item.spec === 'object' && Object.keys(item.spec).length > 0) ||
+          (isHostedSkill ||
+            (item.spec != null && typeof item.spec === 'object' && Object.keys(item.spec).length > 0) ||
             (item.parametersSchema != null &&
               typeof item.parametersSchema === 'object' &&
               Object.keys(item.parametersSchema).length > 0))
         ) {
           setSkillTechOpen(true);
         }
+        bindingSnapshotRef.current = {
+          relatedMcpResourceIds:
+            resourceType === 'agent'
+              ? Array.isArray(item.relatedMcpResourceIds)
+                ? item.relatedMcpResourceIds.join(', ')
+                : ''
+              : '',
+          relatedPreSkillResourceIds:
+            resourceType === 'mcp'
+              ? Array.isArray(item.relatedPreSkillResourceIds)
+                ? item.relatedPreSkillResourceIds.join(', ')
+                : ''
+              : '',
+        };
         setForm((prev) => ({
           ...prev,
           resourceCode: item.resourceCode || '',
@@ -766,11 +859,22 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                 agentHidden: item.hidden === true,
                 agentMaxSteps: item.maxSteps != null ? String(item.maxSteps) : '',
                 agentTemperature: item.temperature != null ? String(item.temperature) : '',
+                relatedMcpResourceIds: Array.isArray(item.relatedMcpResourceIds)
+                  ? item.relatedMcpResourceIds.join(', ')
+                  : '',
+              }
+            : {}),
+          ...(resourceType === 'mcp'
+            ? {
+                relatedPreSkillResourceIds: Array.isArray(item.relatedPreSkillResourceIds)
+                  ? item.relatedPreSkillResourceIds.join(', ')
+                  : '',
               }
             : {}),
           ...(resourceType === 'skill'
             ? {
-                skillType: item.skillType || 'anthropic_v1',
+                skillExecutionMode: isHostedSkill ? 'hosted' : 'pack',
+                skillType: item.skillType || (isHostedSkill ? 'hosted_v1' : 'anthropic_v1'),
                 artifactUri: item.artifactUri || '',
                 entryDoc: item.entryDoc || 'SKILL.md',
                 manifestJson: item.manifest ? JSON.stringify(item.manifest, null, 2) : '{}',
@@ -779,6 +883,17 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                 packValidationMessage: item.packValidationMessage || '',
                 artifactSha256: item.artifactSha256 || '',
                 skillRootPath: item.skillRootPath || '',
+                hostedSystemPrompt: item.hostedSystemPrompt ?? '',
+                hostedUserTemplate: item.hostedUserTemplate ?? '',
+                hostedDefaultModel: item.hostedDefaultModel ?? '',
+                hostedOutputSchemaJson:
+                  item.hostedOutputSchema != null && typeof item.hostedOutputSchema === 'object'
+                    ? JSON.stringify(item.hostedOutputSchema, null, 2)
+                    : '',
+                hostedTemperature:
+                  item.hostedTemperature != null && Number.isFinite(Number(item.hostedTemperature))
+                    ? String(item.hostedTemperature)
+                    : '',
                 specJson:
                   item.spec && typeof item.spec === 'object'
                     ? JSON.stringify(item.spec, null, 2)
@@ -819,13 +934,17 @@ export const ResourceRegisterPage: React.FC<Props> = ({
   );
 
   const skillHasArtifact = useMemo(
-    () => resourceType === 'skill' && Boolean(form.artifactUri?.trim()),
-    [resourceType, form.artifactUri],
+    () => resourceType === 'skill' && form.skillExecutionMode === 'pack' && Boolean(form.artifactUri?.trim()),
+    [resourceType, form.skillExecutionMode, form.artifactUri],
   );
 
   const skillEchoVisible = useMemo(
-    () => resourceType === 'skill' && skillPackEcho != null && !form.artifactUri?.trim(),
-    [resourceType, skillPackEcho, form.artifactUri],
+    () =>
+      resourceType === 'skill' &&
+      form.skillExecutionMode === 'pack' &&
+      skillPackEcho != null &&
+      !form.artifactUri?.trim(),
+    [resourceType, form.skillExecutionMode, skillPackEcho, form.artifactUri],
   );
 
   const fieldErrors = useMemo((): Partial<Record<ResourceRegisterFieldKey, string>> =>
@@ -856,6 +975,14 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       form.specJson,
       form.manifestJson,
       form.artifactUri,
+      form.relatedMcpResourceIds,
+      form.relatedPreSkillResourceIds,
+      form.skillExecutionMode,
+      form.hostedSystemPrompt,
+      form.hostedUserTemplate,
+      form.hostedDefaultModel,
+      form.hostedOutputSchemaJson,
+      form.hostedTemperature,
       resourceType,
     ],
   );
@@ -958,6 +1085,11 @@ export const ResourceRegisterPage: React.FC<Props> = ({
         authConfig = parsed.data || {};
       }
       authConfig = { ...authConfig, transport: modeToTransport(form.mcpRegisterMode) };
+      const preSkillIds = mergeRelationIdsForUpsert(
+        Boolean(resourceId),
+        form.relatedPreSkillResourceIds,
+        bindingSnapshotRef.current.relatedPreSkillResourceIds,
+      );
       return {
         ...baseFields,
         resourceType: 'mcp',
@@ -966,9 +1098,41 @@ export const ResourceRegisterPage: React.FC<Props> = ({
         authType: form.authType || 'none',
         authConfig,
         serviceDetailMd: form.serviceDetailMd.trim(),
+        ...(preSkillIds !== undefined ? { relatedPreSkillResourceIds: preSkillIds } : {}),
       };
     }
     if (resourceType === 'skill') {
+      if (form.skillExecutionMode === 'hosted') {
+        const parsedSpec = parseJsonObject(form.specJson, '附加元数据（spec JSON）');
+        const parsedSchema = parseJsonObject(form.paramsSchemaJson, '参数结构（parametersSchema JSON）');
+        if (!parsedSpec.ok || !parsedSchema.ok) {
+          throw new Error(!parsedSpec.ok ? parsedSpec.message : parsedSchema.message);
+        }
+        const outParsed = parseJsonObject(form.hostedOutputSchemaJson, '输出 Schema JSON');
+        if (form.hostedOutputSchemaJson.trim() && !outParsed.ok) {
+          throw new Error(outParsed.message);
+        }
+        const tempTrim = form.hostedTemperature.trim();
+        const tempParsed = tempTrim ? Number(tempTrim) : NaN;
+        const specObj = parsedSpec.data || {};
+        const outObj = outParsed.data || {};
+        return {
+          ...baseFields,
+          resourceType: 'skill',
+          executionMode: 'hosted',
+          serviceDetailMd: form.serviceDetailMd.trim(),
+          skillType: form.skillType.trim().toLowerCase() === 'hosted_v1' ? form.skillType.trim() : 'hosted_v1',
+          hostedSystemPrompt: form.hostedSystemPrompt.trim(),
+          hostedUserTemplate: form.hostedUserTemplate.trim() || undefined,
+          hostedDefaultModel: form.hostedDefaultModel.trim() || undefined,
+          ...(Object.keys(outObj).length > 0 ? { hostedOutputSchema: outObj } : {}),
+          ...(Number.isFinite(tempParsed) ? { hostedTemperature: tempParsed } : {}),
+          skillRootPath: form.skillRootPath.trim() || undefined,
+          spec: Object.keys(specObj).length > 0 ? specObj : {},
+          parametersSchema: parsedSchema.data || {},
+          isPublic: form.skillIsPublic,
+        };
+      }
       const parsedSpec = parseJsonObject(form.specJson, '附加元数据（spec JSON）');
       const parsedSchema = parseJsonObject(form.paramsSchemaJson, '参数结构（parametersSchema JSON）');
       const parsedManifest = parseJsonObject(form.manifestJson, '清单 JSON');
@@ -980,6 +1144,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       return {
         ...baseFields,
         resourceType: 'skill',
+        executionMode: 'pack',
         serviceDetailMd: form.serviceDetailMd.trim(),
         skillType: form.skillType.trim(),
         artifactUri: form.artifactUri.trim() || undefined,
@@ -1000,6 +1165,11 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       const maxStepsParsed = msTrim ? Number(msTrim) : NaN;
       const tempTrim = form.agentTemperature.trim();
       const tempParsed = tempTrim ? Number(tempTrim) : NaN;
+      const mcpBind = mergeRelationIdsForUpsert(
+        Boolean(resourceId),
+        form.relatedMcpResourceIds,
+        bindingSnapshotRef.current.relatedMcpResourceIds,
+      );
       return {
         ...baseFields,
         resourceType: 'agent',
@@ -1014,6 +1184,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
         ...(Number.isFinite(maxStepsParsed) && maxStepsParsed > 0 ? { maxSteps: maxStepsParsed } : {}),
         ...(Number.isFinite(tempParsed) ? { temperature: tempParsed } : {}),
         relatedResourceIds: agentRelated.length > 0 ? agentRelated : undefined,
+        ...(mcpBind !== undefined ? { relatedMcpResourceIds: mcpBind } : {}),
       };
     }
     if (resourceType === 'app') {
@@ -1059,6 +1230,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       resourceCode: vo.resourceCode || prev.resourceCode,
       displayName: vo.displayName || prev.displayName,
       description: vo.description ?? prev.description,
+      skillExecutionMode: 'pack',
       skillType: vo.skillType || prev.skillType,
       artifactUri: vo.artifactUri || '',
       artifactSha256: vo.artifactSha256 || '',
@@ -1181,7 +1353,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       });
       return;
     }
-    if (submitAfterSave && resourceType === 'skill') {
+    if (submitAfterSave && resourceType === 'skill' && form.skillExecutionMode === 'pack') {
       if (!form.artifactUri.trim()) {
         setSkillSubmitArtifactError('提交审核前须已上传技能包（具备 artifactUri）。');
         requestAnimationFrame(() => document.getElementById(rrFieldId('artifactUri'))?.focus());
@@ -1587,6 +1759,29 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     placeholder={DEFAULT_MCP_AUTH_CONFIG_JSON}
                   />
                 </Field>
+                <Field
+                  label="前置 Skill ID（选填）"
+                  full
+                  theme={theme}
+                  error={fieldErrors.relatedPreSkillResourceIds}
+                  fieldId={rrFieldId('relatedPreSkillResourceIds')}
+                >
+                  <p className={`mb-1 text-xs ${textMuted(theme)}`}>
+                    invoke(MCP) 之前按顺序执行的托管技能资源 ID（逗号分隔）；留空表示不设前置链。更新草稿时若不改此栏则不提交修改（与后端「null=不变更」一致）。
+                  </p>
+                  <input
+                    id={rrFieldId('relatedPreSkillResourceIds')}
+                    value={form.relatedPreSkillResourceIds}
+                    onChange={(e) => setForm((p) => ({ ...p, relatedPreSkillResourceIds: e.target.value }))}
+                    className={inputClass(isDark, !!fieldErrors.relatedPreSkillResourceIds)}
+                    aria-invalid={!!fieldErrors.relatedPreSkillResourceIds}
+                    aria-describedby={
+                      fieldErrors.relatedPreSkillResourceIds ? `${rrFieldId('relatedPreSkillResourceIds')}-err` : undefined
+                    }
+                    placeholder="如 12, 34"
+                    title="逗号分隔的正整数"
+                  />
+                </Field>
                 <div className="md:col-span-2 flex flex-wrap items-center gap-2">
                   <button
                     type="button"
@@ -1679,6 +1874,28 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     title="逗号分隔的正整数"
                   />
                 </Field>
+                <Field
+                  label="绑定的 MCP ID（选填）"
+                  theme={theme}
+                  error={fieldErrors.relatedMcpResourceIds}
+                  fieldId={rrFieldId('relatedMcpResourceIds')}
+                >
+                  <p className={`mb-1 text-xs ${textMuted(theme)}`}>
+                    agent_depends_mcp：逗号分隔的正整数。更新时若内容与加载时一致则不提交该字段。
+                  </p>
+                  <input
+                    id={rrFieldId('relatedMcpResourceIds')}
+                    value={form.relatedMcpResourceIds}
+                    onChange={(e) => setForm((p) => ({ ...p, relatedMcpResourceIds: e.target.value }))}
+                    className={inputClass(isDark, !!fieldErrors.relatedMcpResourceIds)}
+                    aria-invalid={!!fieldErrors.relatedMcpResourceIds}
+                    aria-describedby={
+                      fieldErrors.relatedMcpResourceIds ? `${rrFieldId('relatedMcpResourceIds')}-err` : undefined
+                    }
+                    placeholder="如 12, 34"
+                    title="逗号分隔的正整数"
+                  />
+                </Field>
                 <div className="md:col-span-2">
                   <button
                     type="button"
@@ -1746,9 +1963,149 @@ export const ResourceRegisterPage: React.FC<Props> = ({
 
             {resourceType === 'skill' && (
               <>
+                <Field label="运行方式" full theme={theme}>
+                  <ThemedSelect
+                    isDark={isDark}
+                    value={form.skillExecutionMode}
+                    onChange={(value) => {
+                      const mode = value as 'pack' | 'hosted';
+                      setForm((p) => ({
+                        ...p,
+                        skillExecutionMode: mode,
+                        skillType:
+                          mode === 'hosted'
+                            ? 'hosted_v1'
+                            : p.skillType === 'hosted_v1'
+                              ? 'anthropic_v1'
+                              : p.skillType,
+                      }));
+                    }}
+                    options={[
+                      { value: 'pack', label: '技能包（平台托管 zip 制品）' },
+                      { value: 'hosted', label: '托管技能（平台内 LLM，无 zip）' },
+                    ]}
+                  />
+                  <p className={`mt-1 text-xs ${textMuted(theme)}`}>
+                    托管技能用于 MCP 前置链 JSON 归一化等场景；须配置系统提示词与参数 Schema，不需要上传技能包。
+                  </p>
+                </Field>
+                {form.skillExecutionMode === 'hosted' ? (
+                  <div className="md:col-span-2 space-y-3 rounded-xl border p-4 text-sm border-violet-500/25 bg-violet-500/[0.04]">
+                    <Field label="系统提示词 *" full theme={theme} error={fieldErrors.hostedSystemPrompt} fieldId={rrFieldId('hostedSystemPrompt')}>
+                      <AutoHeightTextarea
+                        id={rrFieldId('hostedSystemPrompt')}
+                        value={form.hostedSystemPrompt}
+                        onChange={(e) => setForm((p) => ({ ...p, hostedSystemPrompt: e.target.value }))}
+                        minRows={4}
+                        maxRows={24}
+                        className={`${inputClass(isDark, !!fieldErrors.hostedSystemPrompt)} resize-none`}
+                        aria-invalid={!!fieldErrors.hostedSystemPrompt}
+                        aria-describedby={
+                          fieldErrors.hostedSystemPrompt ? `${rrFieldId('hostedSystemPrompt')}-err` : undefined
+                        }
+                        placeholder="角色、输出约束与工具前处理说明等"
+                      />
+                    </Field>
+                    <Field label="用户消息模板（选填）" full theme={theme}>
+                      <AutoHeightTextarea
+                        value={form.hostedUserTemplate}
+                        onChange={(e) => setForm((p) => ({ ...p, hostedUserTemplate: e.target.value }))}
+                        minRows={2}
+                        maxRows={16}
+                        className={`${inputClass(isDark)} resize-none`}
+                        placeholder="可使用 {{input}} 占位输入 JSON"
+                      />
+                    </Field>
+                    <Field label="默认模型（选填）" theme={theme}>
+                      <input
+                        value={form.hostedDefaultModel}
+                        onChange={(e) => setForm((p) => ({ ...p, hostedDefaultModel: e.target.value }))}
+                        className={inputClass(isDark)}
+                        placeholder="留空则走网关默认路由"
+                      />
+                    </Field>
+                    <Field
+                      label="输出 Schema JSON（选填）"
+                      full
+                      theme={theme}
+                      error={fieldErrors.hostedOutputSchemaJson}
+                      fieldId={rrFieldId('hostedOutputSchemaJson')}
+                    >
+                      <AutoHeightTextarea
+                        id={rrFieldId('hostedOutputSchemaJson')}
+                        value={form.hostedOutputSchemaJson}
+                        onChange={(e) => setForm((p) => ({ ...p, hostedOutputSchemaJson: e.target.value }))}
+                        minRows={3}
+                        maxRows={20}
+                        className={`${inputClass(isDark, !!fieldErrors.hostedOutputSchemaJson)} font-mono text-xs resize-none`}
+                        aria-invalid={!!fieldErrors.hostedOutputSchemaJson}
+                        aria-describedby={
+                          fieldErrors.hostedOutputSchemaJson
+                            ? `${rrFieldId('hostedOutputSchemaJson')}-err`
+                            : undefined
+                        }
+                        placeholder="JSON Schema 对象，约束模型输出"
+                      />
+                    </Field>
+                    <Field label="温度（选填）" theme={theme} error={fieldErrors.hostedTemperature} fieldId={rrFieldId('hostedTemperature')}>
+                      <input
+                        id={rrFieldId('hostedTemperature')}
+                        value={form.hostedTemperature}
+                        onChange={(e) => setForm((p) => ({ ...p, hostedTemperature: e.target.value }))}
+                        className={inputClass(isDark, !!fieldErrors.hostedTemperature)}
+                        inputMode="decimal"
+                        placeholder="0～2，留空则默认"
+                        aria-invalid={!!fieldErrors.hostedTemperature}
+                        aria-describedby={
+                          fieldErrors.hostedTemperature ? `${rrFieldId('hostedTemperature')}-err` : undefined
+                        }
+                      />
+                    </Field>
+                    <Field label="规格 JSON（选填）" full theme={theme} error={fieldErrors.specJson} fieldId={rrFieldId('specJson')}>
+                      <div className="mb-2 flex flex-wrap gap-2">
+                        <button type="button" className={btnSecondary(theme)} onClick={() => setForm((p) => ({ ...p, specJson: DEFAULT_SKILL_SPEC_JSON }))}>
+                          置为 {'{}'}
+                        </button>
+                      </div>
+                      <AutoHeightTextarea
+                        id={rrFieldId('specJson')}
+                        value={form.specJson}
+                        onChange={(e) => setForm((p) => ({ ...p, specJson: e.target.value }))}
+                        minRows={3}
+                        maxRows={28}
+                        className={`${inputClass(isDark, !!fieldErrors.specJson)} font-mono text-xs resize-none`}
+                        aria-invalid={!!fieldErrors.specJson}
+                        aria-describedby={fieldErrors.specJson ? `${rrFieldId('specJson')}-err` : undefined}
+                      />
+                    </Field>
+                    <Field label="参数 Schema JSON *" full theme={theme} error={fieldErrors.paramsSchemaJson} fieldId={rrFieldId('paramsSchemaJson')}>
+                      <div className="mb-2 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          className={btnSecondary(theme)}
+                          onClick={() => setForm((p) => ({ ...p, paramsSchemaJson: DEFAULT_SKILL_PARAMS_SCHEMA_JSON }))}
+                        >
+                          示例模板
+                        </button>
+                      </div>
+                      <AutoHeightTextarea
+                        id={rrFieldId('paramsSchemaJson')}
+                        value={form.paramsSchemaJson}
+                        onChange={(e) => setForm((p) => ({ ...p, paramsSchemaJson: e.target.value }))}
+                        minRows={4}
+                        maxRows={30}
+                        className={`${inputClass(isDark, !!fieldErrors.paramsSchemaJson)} font-mono text-xs resize-none`}
+                        aria-invalid={!!fieldErrors.paramsSchemaJson}
+                        aria-describedby={fieldErrors.paramsSchemaJson ? `${rrFieldId('paramsSchemaJson')}-err` : undefined}
+                      />
+                    </Field>
+                  </div>
+                ) : null}
                 <div
                   className={`md:col-span-2 rounded-xl border px-4 py-3 text-sm ${
-                    skillHasArtifact
+                    form.skillExecutionMode !== 'pack'
+                      ? 'hidden'
+                      : skillHasArtifact
                       ? isDark
                         ? 'border-solid border-emerald-500/35 bg-emerald-500/[0.08]'
                         : 'border-solid border-emerald-300 bg-emerald-50/80'
@@ -1967,17 +2324,19 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     )}
                   </div>
                 </div>
-                <Field label="包格式" theme={theme} error={fieldErrors.skillType}>
-                  <ThemedSelect
-                    isDark={isDark}
-                    value={form.skillType}
-                    onChange={(value) => setForm((p) => ({ ...p, skillType: value }))}
-                    options={[
-                      { value: 'anthropic_v1', label: 'anthropic_v1' },
-                      { value: 'folder_v1', label: 'folder_v1' },
-                    ]}
-                  />
-                </Field>
+                {form.skillExecutionMode === 'pack' ? (
+                  <Field label="包格式" theme={theme} error={fieldErrors.skillType}>
+                    <ThemedSelect
+                      isDark={isDark}
+                      value={form.skillType}
+                      onChange={(value) => setForm((p) => ({ ...p, skillType: value }))}
+                      options={[
+                        { value: 'anthropic_v1', label: 'anthropic_v1' },
+                        { value: 'folder_v1', label: 'folder_v1' },
+                      ]}
+                    />
+                  </Field>
+                ) : null}
                 <Field label="对外公开" theme={theme}>
                   <label className="flex cursor-pointer items-center gap-2 text-sm">
                     <input
@@ -1990,6 +2349,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                   </label>
                 </Field>
 
+                {form.skillExecutionMode === 'pack' ? (
                 <div className="md:col-span-2">
                   <button
                     type="button"
@@ -2078,6 +2438,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     </div>
                   ) : null}
                 </div>
+                ) : null}
               </>
             )}
 

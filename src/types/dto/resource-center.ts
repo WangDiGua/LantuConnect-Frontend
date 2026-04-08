@@ -46,6 +46,8 @@ export interface ResourceMcpUpsertRequest extends ResourceBaseUpsertRequest {
   authConfig?: Record<string, unknown>;
   /** 市场详情「服务详情」Tab，Markdown，选填 */
   serviceDetailMd?: string;
+  /** 前置 Hosted Skill id，顺序与 invoke 链一致；空数组清空 */
+  relatedPreSkillResourceIds?: number[];
 }
 
 /** POST /resource-center/resources/mcp/connectivity-probe */
@@ -79,7 +81,14 @@ export interface ResourceSkillUpsertRequest extends ResourceBaseUpsertRequest {
   resourceType: 'skill';
   /** 市场详情「技能介绍」Tab，Markdown，选填 */
   serviceDetailMd?: string;
-  /** 技能包格式：anthropic_v1 / folder_v1（远程 HTTP 工具请注册 resourceType=mcp） */
+  /** pack（默认）或 hosted */
+  executionMode?: 'pack' | 'hosted';
+  hostedSystemPrompt?: string;
+  hostedUserTemplate?: string;
+  hostedDefaultModel?: string;
+  hostedOutputSchema?: Record<string, unknown>;
+  hostedTemperature?: number;
+  /** 技能包格式：anthropic_v1 / folder_v1；hosted 建议 hosted_v1 */
   skillType?: string;
   /** 草稿可空；上传 zip 后由后端写入 */
   artifactUri?: string;
@@ -108,6 +117,8 @@ export interface ResourceAgentUpsertRequest extends ResourceBaseUpsertRequest {
   maxSteps?: number;
   temperature?: number;
   relatedResourceIds?: number[];
+  /** agent_depends_mcp */
+  relatedMcpResourceIds?: number[];
 }
 
 export interface ResourceAppUpsertRequest extends ResourceBaseUpsertRequest {
@@ -173,6 +184,14 @@ export interface ResourceCenterItemVO {
   accessPolicy?: string;
   /** agent/app 关联资源 id（与后端 ResourceManageVO 一致） */
   relatedResourceIds?: number[];
+  relatedMcpResourceIds?: number[];
+  relatedPreSkillResourceIds?: number[];
+  executionMode?: string;
+  hostedSystemPrompt?: string;
+  hostedUserTemplate?: string;
+  hostedDefaultModel?: string;
+  hostedOutputSchema?: Record<string, unknown>;
+  hostedTemperature?: number | null;
   dataType?: string;
   format?: string;
   recordCount?: number;

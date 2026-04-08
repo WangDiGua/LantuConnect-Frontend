@@ -10,6 +10,19 @@ import type {
 import { resourceCatalogService } from './resource-catalog.service';
 import type { CatalogResourceDetailVO, ResourceCatalogItemVO } from '../../types/dto/catalog';
 
+function inferSkillExecutionMode(
+  item: ResourceCatalogItemVO,
+  spec: Record<string, unknown>,
+  invokeType?: string,
+): 'pack' | 'hosted' {
+  const fromItem = item.executionMode && String(item.executionMode).trim().toLowerCase();
+  if (fromItem === 'hosted') return 'hosted';
+  const fromSpec = spec && typeof spec.executionMode === 'string' ? spec.executionMode.trim().toLowerCase() : '';
+  if (fromSpec === 'hosted') return 'hosted';
+  if (invokeType && String(invokeType).toLowerCase() === 'hosted_llm') return 'hosted';
+  return 'pack';
+}
+
 function deprecatedWriteError<T>(): Promise<T> {
   return Promise.reject(
     new ApiException({
@@ -30,17 +43,19 @@ function toSkill(item: ResourceCatalogItemVO): Skill {
     rawSpec && typeof rawSpec === 'object' && !Array.isArray(rawSpec)
       ? (rawSpec as Record<string, unknown>)
       : {};
-  const paramsRaw = spec.parametersSchema;
+  const paramsRaw = spec.parametersSchema ?? spec.parameters_schema;
   const parametersSchema =
     paramsRaw && typeof paramsRaw === 'object' && !Array.isArray(paramsRaw)
       ? (paramsRaw as Record<string, unknown>)
       : null;
+  const executionMode = inferSkillExecutionMode(item, spec, detail.invokeType);
   return {
     id,
     agentName: item.resourceCode || `skill-${item.resourceId}`,
     displayName: item.displayName || item.resourceCode || String(item.resourceId),
     description: item.description || '',
     agentType: 'skill_pack',
+    executionMode,
     mode: 'TOOL',
     parentId: null,
     sourceType: (item.sourceType as Skill['sourceType']) || 'internal',

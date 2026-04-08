@@ -683,24 +683,43 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                             </span>
                           )}
                           {item.endpoint && <span className="font-mono">端点: {item.endpoint}</span>}
-                          {item.resourceType === 'skill' && item.packValidationStatus && (
+                          {item.resourceType === 'skill' && (
                             <span>
-                              技能包:{' '}
-                              <span
-                                className={
-                                  String(item.packValidationStatus).toLowerCase() === 'valid'
-                                    ? isDark
-                                      ? 'text-emerald-300'
-                                      : 'text-emerald-700'
-                                    : String(item.packValidationStatus).toLowerCase() === 'invalid'
-                                      ? isDark
-                                        ? 'text-rose-300'
-                                        : 'text-rose-700'
-                                      : textMuted(theme)
-                                }
-                              >
-                                {skillPackValidationLabelZh(item.packValidationStatus)}
+                              技能形态:{' '}
+                              <span className={textSecondary(theme)}>
+                                {String(item.executionMode ?? 'pack').toLowerCase() === 'hosted' ? '托管（invoke）' : '技能包（制品）'}
                               </span>
+                              {item.packValidationStatus ? (
+                                <>
+                                  {' '}
+                                  · 校验{' '}
+                                  <span
+                                    className={
+                                      String(item.packValidationStatus).toLowerCase() === 'valid'
+                                        ? isDark
+                                          ? 'text-emerald-300'
+                                          : 'text-emerald-700'
+                                        : String(item.packValidationStatus).toLowerCase() === 'invalid'
+                                          ? isDark
+                                            ? 'text-rose-300'
+                                            : 'text-rose-700'
+                                          : textMuted(theme)
+                                    }
+                                  >
+                                    {skillPackValidationLabelZh(item.packValidationStatus)}
+                                  </span>
+                                </>
+                              ) : null}
+                            </span>
+                          )}
+                          {item.resourceType === 'agent' && item.relatedMcpResourceIds && item.relatedMcpResourceIds.length > 0 && (
+                            <span className="font-mono" title="agent_depends_mcp">
+                              绑定 MCP: {item.relatedMcpResourceIds.join(', ')}
+                            </span>
+                          )}
+                          {item.resourceType === 'mcp' && item.relatedPreSkillResourceIds && item.relatedPreSkillResourceIds.length > 0 && (
+                            <span className="font-mono" title="mcp_depends_skill">
+                              前置 Skill: {item.relatedPreSkillResourceIds.join(', ')}
                             </span>
                           )}
                         </div>

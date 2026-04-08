@@ -56,9 +56,20 @@ export interface ResourceCatalogItemVO {
   quality?: Record<string, unknown>;
   /** 仅当请求携带 X-Api-Key 时后端可能返回：与 invoke 可调用预判一致 */
   hasGrantForKey?: boolean | null;
+  /** skill：后端目录列表批量填充 execution_mode（pack | hosted） */
+  executionMode?: string;
 }
 
 export type ResourceCatalogPage = PaginatedData<ResourceCatalogItemVO>;
+
+/** 与后端 ResourceSummaryVO 一致（绑定闭包条目） */
+export interface ResourceBindingSummaryVO {
+  resourceId: string;
+  resourceType: string;
+  resourceCode?: string;
+  displayName?: string;
+  status?: string;
+}
 
 export interface ResourceResolveRequest {
   resourceType: ResourceType;
@@ -86,6 +97,8 @@ export interface ResourceResolveVO {
   spec?: Record<string, unknown>;
   /** MCP 扩展：服务详情 Markdown */
   serviceDetailMd?: string;
+  /** include=closure|bindings：绑定无向闭包 */
+  bindingClosure?: ResourceBindingSummaryVO[];
 }
 
 /** GET /catalog/resources/{type}/{id} 返回体：目录项字段 + 解析/规格字段（与后端 ResourceResolveVO 等对齐） */

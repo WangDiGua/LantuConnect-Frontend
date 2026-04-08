@@ -10,6 +10,8 @@ import { Theme, FontSize } from '../../types';
 import { useAgent, useDeleteAgent } from '../../hooks/queries/useAgent';
 import { useMessage } from '../../components/common/Message';
 import { resourceCatalogService } from '../../api/services/resource-catalog.service';
+import type { ResourceBindingSummaryVO } from '../../types/dto/catalog';
+import { BindingClosureSection } from '../../components/business/BindingClosureSection';
 import { invokeService } from '../../api/services/invoke.service';
 import { buildPath } from '../../constants/consoleRoutes';
 import type { ResourceStatsVO } from '../../types/dto/explore';
@@ -44,10 +46,26 @@ export const AgentDetail: React.FC<AgentDetailProps> = ({ agentId, theme, fontSi
   const [stats, setStats] = useState<ResourceStatsVO | null>(null);
   const [testResult, setTestResult] = useState<string | null>(null);
   const [testing, setTesting] = useState(false);
+  const [bindingClosure, setBindingClosure] = useState<ResourceBindingSummaryVO[] | undefined>(undefined);
 
   useEffect(() => {
     resourceCatalogService.getResourceStats('agent', agentId)
       .then(setStats).catch(() => {});
+  }, [agentId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    resourceCatalogService
+      .getByTypeAndId('agent', agentId, 'closure')
+      .then((d) => {
+        if (!cancelled) setBindingClosure(d.bindingClosure);
+      })
+      .catch(() => {
+        if (!cancelled) setBindingClosure(undefined);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [agentId]);
 
   const handleTest = async () => {
@@ -200,6 +218,7 @@ export const AgentDetail: React.FC<AgentDetailProps> = ({ agentId, theme, fontSi
               <div className="flex justify-between text-xs"><span className={textMuted(theme)}>最后更新</span><span className={`font-mono ${textSecondary(theme)}`}>{formatDateTime(agent.updateTime)}</span></div>
             </div>
           </motion.div>
+          <BindingClosureSection theme={theme} currentResourceId={agentId} items={bindingClosure} className="mt-4" />
           </div>
         </DetailLayout>
 

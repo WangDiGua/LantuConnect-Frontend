@@ -6,6 +6,7 @@ import {
   Heart,
   Loader2,
   MessageSquare,
+  Sparkles,
   Star,
 } from 'lucide-react';
 import type { Theme, FontSize, ThemeColor } from '../../types';
@@ -14,7 +15,11 @@ import type { AgentType, SourceType } from '../../types/dto/agent';
 import { skillService } from '../../api/services/skill.service';
 import { userActivityService } from '../../api/services/user-activity.service';
 import { resourceCatalogService } from '../../api/services/resource-catalog.service';
+import type { ResourceBindingSummaryVO } from '../../types/dto/catalog';
+import { BindingClosureSection } from '../../components/business/BindingClosureSection';
+import { invokeService } from '../../api/services/invoke.service';
 import { mapInvokeFlowError } from '../../utils/invokeError';
+import { isHostedSkill } from '../../utils/skillExecutionMode';
 import { fetchSkillPackBlobDownload, resolveSkillArtifactTarget } from '../../utils/skillArtifactDownload';
 import { safeOpenHttpUrl } from '../../lib/windowNavigate';
 import { btnPrimary, btnSecondary, textPrimary, textSecondary, textMuted, techBadge } from '../../utils/uiClasses';
@@ -29,6 +34,7 @@ import { usePersistedGatewayApiKey } from '../../hooks/usePersistedGatewayApiKey
 import { ApiException } from '../../types/api';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
 import { MarkdownView } from '../../components/common/MarkdownView';
+import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 
 const TYPE_BADGE: Record<AgentType, { label: string; cls: string }> = {
   mcp: { label: 'MCP', cls: 'text-neutral-900 bg-neutral-900/10' },
@@ -75,6 +81,7 @@ export const SkillMarketDetailPage: React.FC<SkillMarketDetailPageProps> = ({
 }) => {
   const isDark = theme === 'dark';
   const [skill, setSkill] = useState<Skill | null>(null);
+  const [bindingClosure, setBindingClosure] = useState<ResourceBindingSummaryVO[] | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [tab, setTab] = useState<'intro' | 'files' | 'reviews'>('intro');
@@ -82,6 +89,7 @@ export const SkillMarketDetailPage: React.FC<SkillMarketDetailPageProps> = ({
   const [useOpen, setUseOpen] = useState(false);
   const [useLoading, setUseLoading] = useState(false);
   const [useResult, setUseResult] = useState<string | null>(null);
+  const [hostedInvokePayload, setHostedInvokePayload] = useState('{}');
   const [gatewayApiKeyDraft, setGatewayApiKeyDraft] = usePersistedGatewayApiKey();
 
   const load = useCallback(async () => {
@@ -94,10 +102,15 @@ export const SkillMarketDetailPage: React.FC<SkillMarketDetailPageProps> = ({
     setLoading(true);
     setError(null);
     try {
-      const data = await skillService.getById(id);
+      const [data, detail] = await Promise.all([
+        skillService.getById(id),
+        resourceCatalogService.getByTypeAndId('skill', String(id), 'closure').catch(() => null),
+      ]);
       setSkill(data);
+      setBindingClosure(detail?.bindingClosure);
     } catch (e) {
       setSkill(null);
+      setBindingClosure(undefined);
       setError(e instanceof Error ? e : new Error('加载失败'));
     } finally {
       setLoading(false);
@@ -137,6 +150,29 @@ export const SkillMarketDetailPage: React.FC<SkillMarketDetailPageProps> = ({
       return;
     }
     try {
+      if (isHostedSkill(skill)) {
+        let payload: Record<string, unknown> = {};
+        try {
+          payload = hostedInvokePayload.trim() ? (JSON.parse(hostedInvokePayload) as Record<string, unknown>) : {};
+          if (payload === null || typeof payload !== 'object' || Array.isArray(payload)) {
+            setUseResult('请求体须为 JSON 对象');
+            return;
+          }
+        } catch {
+          setUseResult('请求体须为合法 JSON');
+          return;
+        }
+        try {
+          const result = await invokeService.invoke(
+            { resourceType: 'skill', resourceId: String(skill.id), payload },
+            apiKey,
+          );
+          setUseResult(result.body ?? JSON.stringify(result, null, 2));
+        } catch (err) {
+          setUseResult(mapInvokeFlowError(err, 'invoke'));
+        }
+        return;
+      }
       let resolved;
       try {
         resolved = await resourceCatalogService.resolve(
@@ -192,13 +228,13 @@ export const SkillMarketDetailPage: React.FC<SkillMarketDetailPageProps> = ({
         }
         return;
       }
-      setUseResult(`解析返回类型：${resolved.invokeType ?? '未知'}。技能市场仅支持制品下载与目录信息，不提供统一 invoke。`);
+      setUseResult(`解析返回类型：${resolved.invokeType ?? '未知'}。技能包请使用制品下载；托管技能请使用 invoke。`);
     } catch (e) {
       setUseResult(`操作失败: ${e instanceof Error ? e.message : '未知错误'}`);
     } finally {
       setUseLoading(false);
     }
-  }, [skill, gatewayApiKeyDraft]);
+  }, [skill, gatewayApiKeyDraft, hostedInvokePayload]);
 
   if (loading) return <PageSkeleton type="detail" />;
   if (error || !skill) {
@@ -227,8 +263,14 @@ export const SkillMarketDetailPage: React.FC<SkillMarketDetailPageProps> = ({
               <h1 className={`text-2xl font-bold tracking-tight sm:text-3xl ${textPrimary(theme)}`}>{skill.displayName}</h1>
               <div className="flex flex-wrap items-center gap-2 text-xs">
                 <span className={`font-mono ${textMuted(theme)}`}>{skill.agentName}</span>
-                <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${TYPE_BADGE[skill.agentType].cls}`}>
-                  {TYPE_BADGE[skill.agentType].label}
+                <span
+                  className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${
+                    isHostedSkill(skill)
+                      ? 'text-fuchsia-900 bg-fuchsia-500/15 dark:text-fuchsia-200 dark:bg-fuchsia-500/20'
+                      : TYPE_BADGE[skill.agentType].cls
+                  }`}
+                >
+                  {isHostedSkill(skill) ? '托管技能' : TYPE_BADGE[skill.agentType].label}
                 </span>
                 <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${SOURCE_BADGE[skill.sourceType].cls}`}>
                   {SOURCE_BADGE[skill.sourceType].label}
@@ -257,15 +299,27 @@ export const SkillMarketDetailPage: React.FC<SkillMarketDetailPageProps> = ({
                 </>
               )}
             </button>
-            <button type="button" className={`${btnPrimary} min-h-11`} onClick={() => { setUseOpen(true); setUseResult(null); }}>
-              <Download size={16} className="shrink-0" aria-hidden />
-              获取技能包
+            <button
+              type="button"
+              className={`${btnPrimary} min-h-11`}
+              onClick={() => {
+                setUseOpen(true);
+                setUseResult(null);
+                setHostedInvokePayload('{}');
+              }}
+            >
+              {isHostedSkill(skill) ? (
+                <Sparkles size={16} className="shrink-0" aria-hidden />
+              ) : (
+                <Download size={16} className="shrink-0" aria-hidden />
+              )}
+              {isHostedSkill(skill) ? '试用 invoke' : '获取技能包'}
             </button>
           </>
         )}
         tabs={[
           { id: 'intro', label: '技能介绍' },
-          { id: 'files', label: '技能文件' },
+          { id: 'files', label: isHostedSkill(skill) ? '参数与 Schema' : '技能文件' },
           { id: 'reviews', label: '评分评论', badge: Number(skill.reviewCount ?? 0) },
         ]}
         activeTabId={tab}
@@ -301,13 +355,15 @@ export const SkillMarketDetailPage: React.FC<SkillMarketDetailPageProps> = ({
                     {' '}
                     条）
                   </span>
+                  {!isHostedSkill(skill) ? (
                   <span className="flex items-center gap-1 tabular-nums">
                     <Download size={13} className="shrink-0" aria-hidden />
                     {formatCount(skill.downloadCount ?? 0)}
                     {' '}
                     包下载
                   </span>
-                  {skill.agentType !== 'skill_pack' ? (
+                  ) : null}
+                  {isHostedSkill(skill) || skill.agentType !== 'skill_pack' ? (
                     <>
                       <span className="flex items-center gap-1">
                         <Activity size={13} />
@@ -328,6 +384,9 @@ export const SkillMarketDetailPage: React.FC<SkillMarketDetailPageProps> = ({
                       )}
                     </>
                   ) : null}
+                  {isHostedSkill(skill) ? (
+                    <span className="text-fuchsia-600 dark:text-fuchsia-300">平台托管 LLM · 可走 POST /invoke</span>
+                  ) : null}
                   {skill.createTime && <span>创建: {formatDateTime(skill.createTime)}</span>}
                 </div>
                 {(skill.tags ?? []).length > 0 ? (
@@ -342,6 +401,30 @@ export const SkillMarketDetailPage: React.FC<SkillMarketDetailPageProps> = ({
               </div>
             ) : tab === 'files' ? (
               <div className="space-y-4">
+                {isHostedSkill(skill) ? (
+                  <>
+                    <p className={`text-sm leading-relaxed ${textSecondary(theme)}`}>
+                      托管技能无 zip 制品；目录 resolve 的 spec 中含 <span className="font-mono text-xs">executionMode</span>、
+                      <span className="font-mono text-xs">parametersSchema</span>、
+                      <span className="font-mono text-xs">outputSchema</span>（若有）等。调用请使用顶部「试用 invoke」或 API <span className="font-mono text-xs">POST /invoke</span>。
+                    </p>
+                    <div
+                      className={`space-y-3 rounded-2xl border p-4 text-sm ${
+                        isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200 bg-slate-50/80'
+                      }`}
+                    >
+                      <h4 className={`font-semibold ${textPrimary(theme)}`}>目录 spec 摘录</h4>
+                      <pre
+                        className={`max-h-64 overflow-auto rounded-lg p-3 text-xs ${
+                          isDark ? 'bg-black/30 text-slate-200' : 'bg-white text-slate-800'
+                        }`}
+                      >
+                        {JSON.stringify(skill.specJson ?? {}, null, 2)}
+                      </pre>
+                    </div>
+                  </>
+                ) : (
+                  <>
                 <p className={`text-sm leading-relaxed ${textSecondary(theme)}`}>
                   以下为目录详情中的制品与清单字段（来自 GET /catalog/resources/skill/{'{id}'} 的 spec）。下载请绑定有效 X-Api-Key 后使用「获取技能包」完成 resolve。
                 </p>
@@ -413,12 +496,15 @@ export const SkillMarketDetailPage: React.FC<SkillMarketDetailPageProps> = ({
                     onClick={() => {
                       setUseOpen(true);
                       setUseResult(null);
+                      setHostedInvokePayload('{}');
                     }}
                   >
                     <Download size={16} className="shrink-0" aria-hidden />
                     获取技能包
                   </button>
                 </div>
+                  </>
+                )}
               </div>
             ) : (
               <div className="space-y-2">
@@ -437,13 +523,24 @@ export const SkillMarketDetailPage: React.FC<SkillMarketDetailPageProps> = ({
               isDark ? 'border-white/10 bg-lantu-elevated' : 'border-transparent bg-white'
             }`}
           >
-            <h3 className={`text-sm font-bold ${textPrimary(theme)}`}>获取技能包</h3>
+            <h3 className={`text-sm font-bold ${textPrimary(theme)}`}>{isHostedSkill(skill) ? '试用托管 invoke' : '获取技能包'}</h3>
             <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
-              使用目录 resolve 下载制品；须绑定有效 X-Api-Key。也可点击顶部「获取技能包」打开完整对话框。
+              {isHostedSkill(skill)
+                ? '托管技能走 POST /invoke；须 X-Api-Key 含 invoke scope。也可点击顶部按钮打开对话框。'
+                : '使用目录 resolve 下载制品；须绑定有效 X-Api-Key。也可点击顶部「获取技能包」打开完整对话框。'}
             </p>
-            <button type="button" className={`${btnPrimary} w-full min-h-11 justify-center`} onClick={() => { setUseOpen(true); setUseResult(null); }}>
+            <button
+              type="button"
+              className={`${btnPrimary} w-full min-h-11 justify-center`}
+              onClick={() => {
+                setUseOpen(true);
+                setUseResult(null);
+                setHostedInvokePayload('{}');
+              }}
+            >
               打开获取流程
             </button>
+            <BindingClosureSection theme={theme} currentResourceId={String(skill.id)} items={bindingClosure} />
           </div>
         )}
       />
@@ -451,7 +548,7 @@ export const SkillMarketDetailPage: React.FC<SkillMarketDetailPageProps> = ({
       <Modal
         open={useOpen}
         onClose={() => setUseOpen(false)}
-        title={`获取技能包 — ${skill.displayName}`}
+        title={`${isHostedSkill(skill) ? '托管 invoke' : '获取技能包'} — ${skill.displayName}`}
         theme={theme}
         size="md"
         footer={(
@@ -465,6 +562,8 @@ export const SkillMarketDetailPage: React.FC<SkillMarketDetailPageProps> = ({
                   <Loader2 size={14} className="animate-spin" />
                   处理中…
                 </>
+              ) : isHostedSkill(skill) ? (
+                <>POST /invoke</>
               ) : (
                 <>
                   <Download size={14} />
@@ -477,9 +576,25 @@ export const SkillMarketDetailPage: React.FC<SkillMarketDetailPageProps> = ({
       >
         <div className="space-y-4">
           <GatewayApiKeyInput theme={theme} id="skill-detail-gateway-key" value={gatewayApiKeyDraft} onChange={setGatewayApiKeyDraft} />
+          {isHostedSkill(skill) ? (
+            <>
+              <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
+                填写 JSON 请求体（通常与 parametersSchema 一致），将调用统一网关 invoke。
+              </p>
+              <AutoHeightTextarea
+                id="skill-detail-hosted-payload"
+                value={hostedInvokePayload}
+                onChange={(e) => setHostedInvokePayload(e.target.value)}
+                minRows={5}
+                maxRows={20}
+                className={`font-mono text-xs ${isDark ? 'border-white/10 bg-white/[0.04] text-slate-200' : 'border-slate-200 bg-white text-slate-900'} w-full rounded-xl border px-3 py-2`}
+              />
+            </>
+          ) : (
           <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
             技能包通过目录解析后下载制品；不在此走统一网关 invoke。
           </p>
+          )}
           <p className={`text-xs ${textMuted(theme)}`}>{skill.description || '暂无描述'}</p>
           {useResult ? (
             <div

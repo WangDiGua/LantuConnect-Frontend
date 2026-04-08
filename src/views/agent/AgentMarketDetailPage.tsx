@@ -6,7 +6,10 @@ import { ResourceMarketDetailShell } from '../../components/market';
 import { AgentReviews } from './AgentReviews';
 import { buildPath } from '../../constants/consoleRoutes';
 import { agentService } from '../../api/services/agent.service';
+import { resourceCatalogService } from '../../api/services/resource-catalog.service';
 import type { Agent } from '../../types/dto/agent';
+import type { ResourceBindingSummaryVO } from '../../types/dto/catalog';
+import { BindingClosureSection } from '../../components/business/BindingClosureSection';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { btnPrimary, btnSecondary, textPrimary, textSecondary, textMuted, techBadge } from '../../utils/uiClasses';
@@ -51,6 +54,7 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
   const navigate = useNavigate();
   const isDark = theme === 'dark';
   const [agent, setAgent] = useState<Agent | null>(null);
+  const [bindingClosure, setBindingClosure] = useState<ResourceBindingSummaryVO[] | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [tab, setTab] = useState<'intro' | 'capability' | 'reviews'>('intro');
@@ -79,10 +83,15 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
     setLoading(true);
     setError(null);
     try {
-      const data = await agentService.getById(id);
+      const [data, detail] = await Promise.all([
+        agentService.getById(id),
+        resourceCatalogService.getByTypeAndId('agent', String(id), 'closure').catch(() => null),
+      ]);
       setAgent(data);
+      setBindingClosure(detail?.bindingClosure);
     } catch (e) {
       setAgent(null);
+      setBindingClosure(undefined);
       setError(e instanceof Error ? e : new Error('加载失败'));
     } finally {
       setLoading(false);
@@ -268,6 +277,7 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
             >
               打开 API 文档
             </button>
+            <BindingClosureSection theme={theme} currentResourceId={idStr} items={bindingClosure} />
           </div>
         )}
       />

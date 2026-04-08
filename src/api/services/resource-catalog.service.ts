@@ -4,10 +4,10 @@ import { extractArray, normalizePaginated } from '../../utils/normalizeApiPayloa
 import { normalizeExploreResourceItem } from './dashboard.service';
 import type {
   CatalogResourceDetailVO,
+  ResourceBindingSummaryVO,
   ResourceCatalogItemVO,
   ResourceCatalogQueryRequest,
   ResourceResolveRequest,
-  ResourceResolveVO,
   ResourceType,
 } from '../../types/dto/catalog';
 import type { ResourceStatsVO, SearchSuggestion, ExploreResourceItem } from '../../types/dto/explore';
@@ -109,7 +109,31 @@ export function normalizeCatalogItem(row: unknown): ResourceCatalogItemVO {
     quality: x.quality && typeof x.quality === 'object' ? (x.quality as Record<string, unknown>) : undefined,
     hasGrantForKey:
       x.hasGrantForKey == null && x.has_grant_for_key == null ? undefined : Boolean(x.hasGrantForKey ?? x.has_grant_for_key),
+    executionMode: (() => {
+      const raw = x.executionMode ?? x.execution_mode;
+      if (raw == null || raw === '') return undefined;
+      const s = String(raw).trim().toLowerCase();
+      return s || undefined;
+    })(),
   };
+}
+
+function normalizeBindingClosure(raw: unknown): ResourceBindingSummaryVO[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const out: ResourceBindingSummaryVO[] = [];
+  for (const row of raw) {
+    const o = row && typeof row === 'object' ? (row as Record<string, unknown>) : {};
+    const id = o.resourceId ?? o.resource_id;
+    if (id == null || id === '') continue;
+    out.push({
+      resourceId: String(id),
+      resourceType: String(o.resourceType ?? o.resource_type ?? '').toLowerCase(),
+      resourceCode: o.resourceCode != null ? String(o.resourceCode) : o.resource_code != null ? String(o.resource_code) : undefined,
+      displayName: o.displayName != null ? String(o.displayName) : o.display_name != null ? String(o.display_name) : undefined,
+      status: o.status != null ? String(o.status) : undefined,
+    });
+  }
+  return out.length ? out : undefined;
 }
 
 function normalizeCatalogDetail(raw: unknown): CatalogResourceDetailVO {
@@ -136,6 +160,20 @@ function normalizeCatalogDetail(raw: unknown): CatalogResourceDetailVO {
   merged.observability = normalizeCatalogObservability(x);
   if (x.quality && typeof x.quality === 'object') {
     merged.quality = x.quality as Record<string, unknown>;
+  }
+  const bc = normalizeBindingClosure(x.bindingClosure ?? x.binding_closure);
+  if (bc) merged.bindingClosure = bc;
+  if (merged.resourceType === 'skill') {
+    if (!merged.executionMode && merged.spec && typeof merged.spec === 'object') {
+      const em = String((merged.spec as Record<string, unknown>).executionMode ?? '').trim().toLowerCase();
+      if (em === 'hosted') merged.executionMode = 'hosted';
+    }
+    if (!merged.executionMode && merged.invokeType && String(merged.invokeType).toLowerCase() === 'hosted_llm') {
+      merged.executionMode = 'hosted';
+    }
+    if (!merged.executionMode) {
+      merged.executionMode = 'pack';
+    }
   }
   return merged;
 }
@@ -186,8 +224,10 @@ export const resourceCatalogService = {
     return normalizeCatalogDetail(raw);
   },
 
-  resolve: (payload: ResourceResolveRequest, config?: AxiosRequestConfig) =>
-    http.post<ResourceResolveVO>('/catalog/resolve', payload, config),
+  resolve: async (payload: ResourceResolveRequest, config?: AxiosRequestConfig): Promise<CatalogResourceDetailVO> => {
+    const raw = await http.post<unknown>('/catalog/resolve', payload, config);
+    return normalizeCatalogDetail(raw);
+  },
 
   getResourceStats: async (resourceType: ResourceType, resourceId: string | number) => {
     const raw = await http.get<unknown>(`/catalog/resources/${resourceType}/${resourceId}/stats`);

@@ -11,6 +11,8 @@ export interface Skill {
   displayName: string;
   description: string;
   agentType: AgentType;
+  /** 与后端 t_resource_skill_ext.execution_mode 一致；缺省视为 pack */
+  executionMode?: 'pack' | 'hosted';
   mode: 'TOOL';
   parentId: number | null;
   parentName?: string;

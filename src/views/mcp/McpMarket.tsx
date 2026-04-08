@@ -43,6 +43,7 @@ import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { MarkdownView } from '../../components/common/MarkdownView';
+import { BindingClosureSection } from '../../components/business/BindingClosureSection';
 import { buildPath } from '../../constants/consoleRoutes';
 import { MARKET_HERO_TITLE_CLASSES } from '../../constants/theme';
 import {
@@ -132,7 +133,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
     setDetailPageLoading(true);
     setDetailPageError(null);
     try {
-      const row = await resourceCatalogService.getByTypeAndId('mcp', ridKey, 'observability');
+      const row = await resourceCatalogService.getByTypeAndId('mcp', ridKey, 'observability,closure');
       setDetail(row);
     } catch (e) {
       setDetail(null);
@@ -456,6 +457,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                 </p>
                 <p className={`mt-2 text-sm leading-relaxed ${textSecondary(theme)}`}>{detail.description || '暂无描述'}</p>
               </div>
+              <BindingClosureSection theme={theme} currentResourceId={detail.resourceId} items={detail.bindingClosure} />
               <div className={`rounded-xl border p-3 text-xs leading-relaxed ${isDark ? 'border-amber-500/25 bg-amber-500/[0.07] text-amber-100/90' : 'border-amber-200 bg-amber-50 text-amber-950/85'}`}>
                 <p className="font-semibold">统一网关 MCP 试用说明</p>
                 <p className={`mt-1.5 ${isDark ? 'text-amber-100/75' : 'text-amber-950/70'}`}>

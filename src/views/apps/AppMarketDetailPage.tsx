@@ -19,6 +19,8 @@ import { safeOpenHttpUrl } from '../../lib/windowNavigate';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
 import type { MarketplaceStatusTone } from '../../components/market';
 import { MarkdownView } from '../../components/common/MarkdownView';
+import type { ResourceBindingSummaryVO } from '../../types/dto/catalog';
+import { BindingClosureSection } from '../../components/business/BindingClosureSection';
 
 export interface AppMarketDetailPageProps {
   resourceId: string;
@@ -74,6 +76,7 @@ export const AppMarketDetailPage: React.FC<AppMarketDetailPageProps> = ({
 }) => {
   const isDark = theme === 'dark';
   const [app, setApp] = useState<SmartApp | null>(null);
+  const [bindingClosure, setBindingClosure] = useState<ResourceBindingSummaryVO[] | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [tab, setTab] = useState<'intro' | 'use' | 'reviews'>('intro');
@@ -93,10 +96,15 @@ export const AppMarketDetailPage: React.FC<AppMarketDetailPageProps> = ({
     setLoading(true);
     setError(null);
     try {
-      const data = await smartAppService.getById(id);
+      const [data, detail] = await Promise.all([
+        smartAppService.getById(id),
+        resourceCatalogService.getByTypeAndId('app', String(id), 'closure').catch(() => null),
+      ]);
       setApp(data);
+      setBindingClosure(detail?.bindingClosure);
     } catch (e) {
       setApp(null);
+      setBindingClosure(undefined);
       setError(e instanceof Error ? e : new Error('加载失败'));
     } finally {
       setLoading(false);
@@ -404,6 +412,7 @@ export const AppMarketDetailPage: React.FC<AppMarketDetailPageProps> = ({
                 <p className={`text-sm ${textPrimary(theme)}`}>{app.categoryName}</p>
               </div>
             ) : null}
+            <BindingClosureSection theme={theme} currentResourceId={String(app.id)} items={bindingClosure} />
           </div>
         )}
       />

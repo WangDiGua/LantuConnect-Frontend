@@ -16,6 +16,8 @@ import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { usePersistedGatewayApiKey } from '../../hooks/usePersistedGatewayApiKey';
 import { ApiException } from '../../types/api';
 import { MarkdownView } from '../../components/common/MarkdownView';
+import type { ResourceBindingSummaryVO } from '../../types/dto/catalog';
+import { BindingClosureSection } from '../../components/business/BindingClosureSection';
 
 export interface DatasetMarketDetailPageProps {
   resourceId: string;
@@ -83,6 +85,7 @@ export const DatasetMarketDetailPage: React.FC<DatasetMarketDetailPageProps> = (
 }) => {
   const isDark = theme === 'dark';
   const [ds, setDs] = useState<Dataset | null>(null);
+  const [bindingClosure, setBindingClosure] = useState<ResourceBindingSummaryVO[] | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [tab, setTab] = useState<'intro' | 'files' | 'reviews'>('intro');
@@ -101,10 +104,15 @@ export const DatasetMarketDetailPage: React.FC<DatasetMarketDetailPageProps> = (
     setLoading(true);
     setError(null);
     try {
-      const data = await datasetService.getById(id);
+      const [data, detail] = await Promise.all([
+        datasetService.getById(id),
+        resourceCatalogService.getByTypeAndId('dataset', String(id), 'closure').catch(() => null),
+      ]);
       setDs(data);
+      setBindingClosure(detail?.bindingClosure);
     } catch (e) {
       setDs(null);
+      setBindingClosure(undefined);
       setError(e instanceof Error ? e : new Error('加载失败'));
     } finally {
       setLoading(false);
@@ -352,13 +360,16 @@ export const DatasetMarketDetailPage: React.FC<DatasetMarketDetailPageProps> = (
           </div>
         )}
         sidebarColumn={(
-          <div
-            className={`rounded-2xl border p-4 text-sm ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200/80 bg-slate-50/80'}`}
-          >
-            <p className={`text-xs font-semibold ${textSecondary(theme)}`}>目录说明</p>
-            <p className={`mt-2 text-xs leading-relaxed ${textMuted(theme)}`}>
-              数据集详情独立加载，无需依赖列表分页；直链刷新亦可浏览元数据、解析与评论。
-            </p>
+          <div className="space-y-3">
+            <div
+              className={`rounded-2xl border p-4 text-sm ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200/80 bg-slate-50/80'}`}
+            >
+              <p className={`text-xs font-semibold ${textSecondary(theme)}`}>目录说明</p>
+              <p className={`mt-2 text-xs leading-relaxed ${textMuted(theme)}`}>
+                数据集详情独立加载，无需依赖列表分页；直链刷新亦可浏览元数据、解析与评论。
+              </p>
+            </div>
+            <BindingClosureSection theme={theme} currentResourceId={String(ds.id)} items={bindingClosure} />
           </div>
         )}
       />

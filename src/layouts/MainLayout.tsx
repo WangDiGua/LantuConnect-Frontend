@@ -2003,11 +2003,7 @@ const MainLayoutContent: React.FC<{
               <div className="w-full min-w-0">
                 <AnimatePresence mode="wait">
                   <RouteContentMotion key={contentKey} animationVariants={animationVariants}>
-                    <div
-                      className={`w-full min-w-0 ${contentPaddingX} ${
-                        page === 'hub' && exploreHubRailForContent ? '' : consoleContentTopPad
-                      }`}
-                    >
+                    <div className={`w-full min-w-0 ${contentPaddingX} ${consoleContentTopPad}`}>
                       <MainContent
                         page={page}
                         routeId={routeId}

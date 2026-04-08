@@ -511,7 +511,7 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
               <button
                 type="button"
                 disabled={batchBusy || selectedKeys.size === 0}
-                className={mgmtTableActionDanger(theme)}
+                className={mgmtTableActionDanger}
                 onClick={() => setBatchDeleteConfirm(true)}
               >
                 批量删除

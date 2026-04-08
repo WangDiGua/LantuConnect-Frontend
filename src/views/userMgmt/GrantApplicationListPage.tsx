@@ -441,7 +441,7 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, fontSize, sho
                 </button>
                 <button
                   type="button"
-                  className={mgmtTableActionDanger(theme)}
+                  className={mgmtTableActionDanger}
                   disabled={batchRunning || !!runningActionId || selectedKeys.size === 0}
                   onClick={() => void runBatchRevokeGrants()}
                 >

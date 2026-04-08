@@ -463,7 +463,7 @@ export const RateLimitPage: React.FC<RateLimitPageProps> = ({
                     <button
                       type="button"
                       disabled={batchBusy || selectedKeys.size === 0}
-                      className={mgmtTableActionDanger(theme)}
+                      className={mgmtTableActionDanger}
                       onClick={() => setBatchDeleteOpen(true)}
                     >
                       批量删除

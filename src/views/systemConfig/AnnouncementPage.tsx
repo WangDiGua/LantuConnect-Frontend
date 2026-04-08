@@ -469,7 +469,7 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
               <button
                 type="button"
                 disabled={batchBusy || selectedKeys.size === 0}
-                className={mgmtTableActionDanger(theme)}
+                className={mgmtTableActionDanger}
                 onClick={() => setBatchDeleteConfirm(true)}
               >
                 批量删除

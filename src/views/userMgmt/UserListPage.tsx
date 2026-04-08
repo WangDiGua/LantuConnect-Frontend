@@ -15,6 +15,7 @@ import type { UserRecord, RoleRecord } from '../../types/dto/user-mgmt';
 import {
   btnPrimary, btnSecondary,
   mgmtTableActionDanger, mgmtTableActionGhost, mgmtTableActionPositive, mgmtTableRowActions,
+  tableCellActionChipsRow,
   textPrimary, textSecondary, textMuted,
 } from '../../utils/uiClasses';
 import { PageError } from '../../components/common/PageError';
@@ -120,6 +121,20 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
     [paginated, selectedKeys],
   );
 
+  const patchUserStatus = useCallback(
+    async (u: UserRecord, status: 'active' | 'disabled') => {
+      if (u.status === 'locked') return;
+      try {
+        await userMgmtService.updateUser(u.id, { status });
+        showMessage(status === 'active' ? '已启用' : '已停用', 'success');
+        await fetchUsers();
+      } catch (err) {
+        showMessage(err instanceof Error ? err.message : '更新状态失败', 'error');
+      }
+    },
+    [fetchUsers, showMessage],
+  );
+
   const runBatchSetStatus = useCallback(
     async (status: 'active' | 'disabled') => {
       const targets = selectedUsers.filter((u) => u.status !== 'locked');
@@ -164,11 +179,38 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
         ),
       },
       {
-        id: 'role',
-        header: '角色',
+        id: 'platformRoles',
+        header: '平台角色',
+        cellClassName: 'max-w-[16rem] align-middle',
+        cell: (u) => {
+          const prs = u.platformRoles ?? [];
+          if (prs.length === 0) {
+            return <span className={textMuted(theme)}>未绑定</span>;
+          }
+          return (
+            <div className={tableCellActionChipsRow()}>
+              {prs.map((pr) => (
+                <span
+                  key={pr.id || pr.roleCode}
+                  title={pr.roleCode || undefined}
+                  className={`inline-flex max-w-[10rem] truncate rounded-full px-2 py-0.5 text-xs font-medium ${
+                    isDark ? 'bg-violet-500/15 text-violet-200' : 'bg-violet-50 text-violet-800'
+                  }`}
+                >
+                  {pr.roleName || pr.roleCode || '—'}
+                </span>
+              ))}
+            </div>
+          );
+        },
+      },
+      {
+        id: 'schoolRole',
+        header: '同步身份',
+        cellClassName: 'align-middle whitespace-nowrap',
         cell: (u) => (
-          <span className={`inline-flex shrink-0 items-center whitespace-nowrap text-xs px-2 py-0.5 rounded ${isDark ? 'bg-neutral-900/10 text-neutral-300' : 'bg-neutral-100 text-neutral-900'}`}>
-            {safeText(u.role) || '—'}
+          <span className={`text-xs tabular-nums ${textMuted(theme)}`} title="用户主数据 school 侧同步的角色码（非平台绑定）">
+            {u.schoolRole != null ? u.schoolRole : '—'}
           </span>
         ),
       },
@@ -241,6 +283,27 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
             <button type="button" onClick={() => openEdit(u)} className={mgmtTableActionGhost(theme)} aria-label={`编辑用户 ${u.username}`}>
               编辑
             </button>
+            {u.status !== 'locked' ? (
+              u.status === 'active' ? (
+                <button
+                  type="button"
+                  className={mgmtTableActionGhost(theme)}
+                  onClick={() => void patchUserStatus(u, 'disabled')}
+                  aria-label={`停用用户 ${u.username}`}
+                >
+                  停用
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className={mgmtTableActionPositive(theme)}
+                  onClick={() => void patchUserStatus(u, 'active')}
+                  aria-label={`启用用户 ${u.username}`}
+                >
+                  启用
+                </button>
+              )
+            ) : null}
             <button type="button" onClick={() => setDeleteTarget(u.id)} className={mgmtTableActionDanger} aria-label={`删除用户 ${u.username}`}>
               删除
             </button>
@@ -248,7 +311,7 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
         ),
       },
     ];
-  }, [theme, isDark, canMutateUsers, openEdit]);
+  }, [theme, isDark, canMutateUsers, openEdit, patchUserStatus]);
 
   const saveUser = async () => {
     if (!form.username.trim() || !form.email.trim()) return;
@@ -322,13 +385,13 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
               <div><label className={labelCls}>用户名</label><input className={nativeInputClass(theme)} value={form.username} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} placeholder="登录名" /></div>
               <div><label className={labelCls}>邮箱</label><input type="email" className={nativeInputClass(theme)} value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="user@school.edu.cn" /></div>
               <div>
-                <label className={labelCls}>角色</label>
+                <label className={labelCls}>平台角色</label>
                 <LantuSelect
                   theme={theme}
                   value={form.role}
                   onChange={(v) => setForm((f) => ({ ...f, role: v }))}
                   options={roles.map((r) => ({ value: r.code, label: r.name }))}
-                  placeholder="选择角色"
+                  placeholder="选择平台绑定角色"
                 />
               </div>
               <div>
@@ -386,7 +449,13 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
           ) : (
             <>
               {canMutateUsers ? (
-                <MgmtBatchToolbar theme={theme} count={selectedKeys.size} onClear={clearSelection}>
+                <MgmtBatchToolbar
+                  theme={theme}
+                  count={selectedKeys.size}
+                  onClear={clearSelection}
+                  visibility="always"
+                  idleHint="勾选左侧行后可批量启用或停用。"
+                >
                   <button
                     type="button"
                     disabled={batchBusy || selectedKeys.size === 0}
@@ -408,7 +477,7 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
               <MgmtDataTable<UserRecord>
                 theme={theme}
                 surface="plain"
-                minWidth="1100px"
+                minWidth="1220px"
                 columns={userColumns}
                 rows={paginated}
                 getRowKey={(u) => String(u.id)}

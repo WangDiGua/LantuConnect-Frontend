@@ -11,6 +11,7 @@ import type {
   OrgNode,
   RoleRecord,
   TokenRecord,
+  UserPlatformRoleRef,
   UserRecord,
 } from '../../types/dto/user-mgmt';
 
@@ -196,11 +197,28 @@ export function mapUserRecord(raw: unknown): UserRecord {
   const phone = optStr(o.mobile ?? o.phone);
   const id = strTrim(o.userId ?? o.id) || '0';
 
+  const schoolRaw = o.role;
+  const schoolNum = typeof schoolRaw === 'number' ? schoolRaw : Number(schoolRaw);
+  const schoolRole = Number.isFinite(schoolNum) ? schoolNum : undefined;
+
+  const platformRolesRaw = o.platformRoles;
+  const platformRoles: UserPlatformRoleRef[] = Array.isArray(platformRolesRaw)
+    ? (platformRolesRaw as Record<string, unknown>[]).map((pr) => ({
+        id: String(pr.id ?? ''),
+        roleCode: String(pr.roleCode ?? ''),
+        roleName: String(pr.roleName ?? ''),
+      }))
+    : [];
+
+  const primaryPlatformRoleCode = platformRoles[0]?.roleCode ?? '';
+
   const rec: UserRecord = {
     id,
     username: strTrim(o.username),
     email: email || '',
-    role: String(o.role ?? ''),
+    role: primaryPlatformRoleCode,
+    ...(schoolRole !== undefined ? { schoolRole } : {}),
+    ...(platformRoles.length > 0 ? { platformRoles } : {}),
     status: normalizeUserStatus(o.status),
     createdAt: strTrim(o.createTime ?? o.createdAt),
     updatedAt: strTrim(o.updateTime ?? o.updatedAt),
@@ -224,7 +242,7 @@ export const userMgmtService = {
     return mapUserRecord(row);
   },
 
-  updateUser: async (id: string, data: Partial<CreateUserPayload>) => {
+  updateUser: async (id: string, data: Partial<CreateUserPayload & { status?: UserRecord['status'] }>) => {
     const row = await http.put<unknown>(`/user-mgmt/users/${id}`, data);
     return mapUserRecord(row);
   },

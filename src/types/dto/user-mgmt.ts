@@ -1,10 +1,22 @@
+/** 平台绑定角色（t_user_role_rel → t_platform_role） */
+export interface UserPlatformRoleRef {
+  id: string;
+  roleCode: string;
+  roleName: string;
+}
+
 export interface UserRecord {
   id: string;
   username: string;
   email: string;
   phone?: string;
   avatar?: string;
+  /** 编辑表单用：当前选中的平台角色 code（通常取首个绑定角色） */
   role: string;
+  /** t_user.role：学校侧同步身份码，与平台 Casbin 角色无关 */
+  schoolRole?: number;
+  /** 平台角色绑定列表（列表页展示） */
+  platformRoles?: UserPlatformRoleRef[];
   status: 'active' | 'disabled' | 'locked';
   department?: string;
   lastLoginAt?: string;

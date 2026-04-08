@@ -636,7 +636,7 @@ export const NetworkConfigPage: React.FC<PageProps> = ({ theme, fontSize, showMe
                         autoComplete="off"
                         spellCheck={false}
                         placeholder="例如 10.0.0.0/8"
-                        className={`${inputCls} w-full font-mono text-xs ${rowErrors[r.id] ? inputBaseError(theme) : ''}`}
+                        className={`${inputCls} w-full font-mono text-xs ${rowErrors[r.id] ? inputBaseError() : ''}`}
                         value={r.value}
                         onChange={(e) => updateRowValue(r.id, e.target.value)}
                         disabled={loadingList}

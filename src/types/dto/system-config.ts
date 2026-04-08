@@ -25,6 +25,8 @@ export interface CreateRateLimitDTO {
   maxTokens?: number;
   burstLimit?: number;
   action: RateLimitRule['action'];
+  /** 创建可选；批量 patch / 启停时传入 */
+  enabled?: boolean;
   priority?: number;
   resourceScope?: string | null;
 }

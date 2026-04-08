@@ -22,6 +22,7 @@ import {
   mainScrollCompositorClass, bentoCard, btnGhost, btnDanger,
   textPrimary, textSecondary, textMuted,
   statusBadgeClass, statusDot, statusLabel,
+  contentMaxWidth, contentPaddingX,
 } from '../../utils/uiClasses';
 import type { DomainStatus } from '../../utils/uiClasses';
 import { formatDateTime } from '../../utils/formatDateTime';

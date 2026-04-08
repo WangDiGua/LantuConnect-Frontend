@@ -3,14 +3,21 @@ import path from 'node:path';
 
 const root = process.cwd();
 
+/** 轻量静态断言：关键文件仍包含约定子串（避免大改版后静默漂移）。 */
 const checks = [
   {
     file: 'src/views/agent/AgentMarket.tsx',
-    patterns: ['resourceCatalogService.resolve', 'invokeService.invoke', '查看与使用', '调用中…'],
+    patterns: ['agentService', 'resourceCatalogService', '查看与使用', '加载 Agent 市场失败'],
   },
   {
     file: 'src/views/dataset/DatasetMarket.tsx',
-    patterns: ['resourceCatalogService.resolve', 'invokeService.invoke', '申请使用', '调用中…', 'ResourceReviewsSection', 'targetType="dataset"'],
+    patterns: [
+      'datasetService',
+      'resourceCatalogService',
+      'filterTagsForResourceType',
+      'MarketPlazaPageShell',
+      '不提供统一网关 invoke',
+    ],
   },
   {
     file: 'src/components/business/ResourceReviewsSection.tsx',
@@ -18,11 +25,11 @@ const checks = [
   },
   {
     file: 'src/views/skill/SkillMarket.tsx',
-    patterns: ['ResourceReviewsSection', 'invokeService.invoke'],
+    patterns: ['resourceCatalogService.resolve', 'mapInvokeFlowError', 'GatewayApiKeyInput', 'skillService'],
   },
   {
     file: 'src/views/apps/AppMarket.tsx',
-    patterns: ['ResourceReviewsSection', 'resourceCatalogService.resolve', "resolved.invokeType === 'redirect'", 'mapInvokeFlowError', 'showMessage?.(`该应用为跳转类型'],
+    patterns: ['smartAppService', 'resourceCatalogService', 'embedType', '查看与使用'],
   },
   {
     file: 'src/views/mcp/McpMarket.tsx',
@@ -30,7 +37,14 @@ const checks = [
   },
   {
     file: 'src/views/resourceCenter/ResourceCenterManagementPage.tsx',
-    patterns: ['ConfirmDialog', 'PageError', 'EmptyState', 'SearchInput', 'setPage(1)', 'Pagination page={page} pageSize={PAGE_SIZE} total={total}'],
+    patterns: [
+      'ConfirmDialog',
+      'PageError',
+      'EmptyState',
+      'SearchInput',
+      'setPage(1)',
+      'page={page} pageSize={PAGE_SIZE} total={total}',
+    ],
   },
   {
     file: 'src/views/user/UserProfile.tsx',
@@ -38,7 +52,12 @@ const checks = [
   },
   {
     file: 'src/views/user/UserSettingsPage.tsx',
-    patterns: ['userSettingsService.listApiKeys', 'userSettingsService.createApiKey', 'userSettingsService.deleteApiKey', 'API Key 管理'],
+    patterns: [
+      'userSettingsService.listApiKeys',
+      'userSettingsService.createApiKey',
+      'userSettingsService.revokeApiKey',
+      'API Key',
+    ],
   },
   {
     file: 'src/views/dashboard/QuickAccess.tsx',
@@ -63,15 +82,19 @@ const checks = [
   },
   {
     file: 'src/views/audit/ResourceAuditList.tsx',
-    patterns: ["useState<'all' | ResourceAuditItemVO['status']>('pending_review')", 'status: statusFilter === \'all\' ? undefined : statusFilter', "sortBy: 'submitTime'", 'setSearch(value);', 'setPage(1);', 'PageError', 'EmptyState'],
+    patterns: [
+      "useState<'all' | ResourceAuditItemVO['status']>('pending_review')",
+      "status: statusFilter === 'all' ? undefined : statusFilter",
+      "sortBy: 'submitTime'",
+      'setSearch(value);',
+      'setPage(1);',
+      'PageError',
+      'EmptyState',
+    ],
   },
   {
     file: 'src/utils/invokeError.ts',
     patterns: ['err.status === 409 || err.code === 4001', '资源当前状态不允许调用'],
-  },
-  {
-    file: 'src/views/agent/AgentMarket.tsx',
-    patterns: ['Failed to load agents', 'showMessage(err instanceof Error ? err.message : \'加载智能体列表失败\''],
   },
 ];
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { sectionGap, cardGap, detailRailWidth } from '../../utils/uiClasses';
+import { sectionGap, cardGap, detailRailWidth, contentMaxWidth, contentPaddingX } from '../../utils/uiClasses';
 
 interface BaseLayoutProps {
   children: React.ReactNode;

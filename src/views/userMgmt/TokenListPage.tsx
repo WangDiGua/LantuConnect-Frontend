@@ -49,6 +49,30 @@ export const TokenListPage: React.FC<TokenListPageProps> = ({ theme, fontSize, s
     clearSelection();
   }, [page, debouncedSearch, statusFilter, clearSelection]);
 
+  const fetchTokens = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await userMgmtService.listTokens({
+        page,
+        pageSize: PAGE_SIZE,
+        ...(debouncedSearch ? { keyword: debouncedSearch } : {}),
+        ...(statusFilter !== 'all' ? { status: statusFilter } : {}),
+      });
+      setTokens(res.list);
+      setTotal(Number.isFinite(res.total) ? res.total : 0);
+    } catch (err) {
+      showMessage(err instanceof Error ? err.message : '加载 Token 列表失败', 'error');
+      setTokens([]);
+      setTotal(0);
+    } finally {
+      setLoading(false);
+    }
+  }, [page, debouncedSearch, statusFilter, showMessage]);
+
+  useEffect(() => {
+    void fetchTokens();
+  }, [fetchTokens]);
+
   const selectedActiveTokenIds = useMemo(
     () =>
       tokens.filter((t) => selectedIds.has(t.id) && t.status === 'active').map((t) => t.id),
@@ -90,30 +114,6 @@ export const TokenListPage: React.FC<TokenListPageProps> = ({ theme, fontSize, s
   useEffect(() => {
     setPage(1);
   }, [debouncedSearch, statusFilter]);
-
-  const fetchTokens = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await userMgmtService.listTokens({
-        page,
-        pageSize: PAGE_SIZE,
-        ...(debouncedSearch ? { keyword: debouncedSearch } : {}),
-        ...(statusFilter !== 'all' ? { status: statusFilter } : {}),
-      });
-      setTokens(res.list);
-      setTotal(Number.isFinite(res.total) ? res.total : 0);
-    } catch (err) {
-      showMessage(err instanceof Error ? err.message : '加载 Token 列表失败', 'error');
-      setTokens([]);
-      setTotal(0);
-    } finally {
-      setLoading(false);
-    }
-  }, [page, debouncedSearch, statusFilter, showMessage]);
-
-  useEffect(() => {
-    void fetchTokens();
-  }, [fetchTokens]);
 
   const handleRevoke = async () => {
     if (!revokeTarget) return;

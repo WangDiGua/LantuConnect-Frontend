@@ -20,6 +20,7 @@ import {
   inputBaseError,
   mgmtTableActionDanger,
   mgmtTableActionGhost,
+  mgmtTableActionPositive,
   textPrimary,
   textSecondary,
   textMuted,
@@ -71,7 +72,13 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
   const [showCreate, setShowCreate] = useState(false);
   const [editing, setEditing] = useState<AnnouncementItem | null>(null);
   const [detailAnnouncement, setDetailAnnouncement] = useState<AnnouncementItem | null>(null);
-  const [draft, setDraft] = useState<AnnouncementCreateRequest>({ title: '', summary: '', content: '', type: 'notice' });
+  const [draft, setDraft] = useState<AnnouncementCreateRequest>({
+    title: '',
+    summary: '',
+    content: '',
+    type: 'notice',
+    enabled: true,
+  });
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<AnnouncementItem | null>(null);
   const [announcementFieldErrors, setAnnouncementFieldErrors] = useState<{ title?: string; summary?: string; content?: string }>({});
@@ -113,7 +120,7 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
   const openCreateModal = () => {
     setEditing(null);
     setAnnouncementFieldErrors({});
-    setDraft({ title: '', summary: '', content: '', type: 'notice' });
+    setDraft({ title: '', summary: '', content: '', type: 'notice', enabled: true });
     setShowCreate(true);
   };
 
@@ -126,6 +133,7 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
       content: item.content?.trim() ? item.content : (item.summary ?? ''),
       type: item.type ?? 'notice',
       pinned: item.pinned,
+      enabled: item.enabled !== false,
     });
     setShowCreate(true);
   };
@@ -154,7 +162,7 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
       }
       setShowCreate(false);
       setEditing(null);
-      setDraft({ title: '', summary: '', content: '', type: 'notice' });
+      setDraft({ title: '', summary: '', content: '', type: 'notice', enabled: true });
       fetchList();
     } catch (e) { showMessage(e instanceof Error ? e.message : (editing ? '更新失败' : '发布失败'), 'error'); }
     finally { setSaving(false); }
@@ -169,6 +177,19 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
       fetchList();
     } catch (e) { showMessage(e instanceof Error ? e.message : '删除失败', 'error'); }
   };
+
+  const patchAnnouncementEnabled = useCallback(
+    async (row: AnnouncementItem, enabled: boolean) => {
+      try {
+        await systemConfigService.updateAnnouncement(String(row.id), { enabled });
+        showMessage(enabled ? '已启用' : '已禁用', 'success');
+        void fetchList();
+      } catch (e) {
+        showMessage(e instanceof Error ? e.message : '操作失败', 'error');
+      }
+    },
+    [fetchList, showMessage],
+  );
 
   const announcementColumns = useMemo(
     () => [
@@ -251,22 +272,42 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
         header: '操作',
         headerClassName: 'text-right',
         cellClassName: 'text-right align-middle',
-        cell: (a: AnnouncementItem) => (
-          <div className="inline-flex flex-nowrap items-center justify-end gap-2">
-            <button type="button" onClick={() => setDetailAnnouncement(a)} className={mgmtTableActionGhost(theme)}>
-              查看
-            </button>
-            <button type="button" onClick={() => openEditModal(a)} className={mgmtTableActionGhost(theme)}>
-              编辑
-            </button>
-            <button type="button" onClick={() => setDeleteTarget(a)} className={mgmtTableActionDanger}>
-              删除
-            </button>
-          </div>
-        ),
+        cell: (a: AnnouncementItem) => {
+          const pubOn = a.enabled !== false;
+          return (
+            <div className="inline-flex max-w-[20rem] flex-wrap items-center justify-end gap-2">
+              <button type="button" onClick={() => setDetailAnnouncement(a)} className={mgmtTableActionGhost(theme)}>
+                查看
+              </button>
+              <button type="button" onClick={() => openEditModal(a)} className={mgmtTableActionGhost(theme)}>
+                编辑
+              </button>
+              {!pubOn ? (
+                <button
+                  type="button"
+                  onClick={() => void patchAnnouncementEnabled(a, true)}
+                  className={mgmtTableActionPositive(theme)}
+                >
+                  启用
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => void patchAnnouncementEnabled(a, false)}
+                  className={mgmtTableActionGhost(theme)}
+                >
+                  禁用
+                </button>
+              )}
+              <button type="button" onClick={() => setDeleteTarget(a)} className={mgmtTableActionDanger}>
+                删除
+              </button>
+            </div>
+          );
+        },
       },
     ],
-    [theme],
+    [theme, patchAnnouncementEnabled],
   );
 
   if (loading) {
@@ -447,6 +488,15 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
             <label className={`text-sm font-medium ${textSecondary(theme)} mb-1 block`}>类型</label>
             <LantuSelect theme={theme} value={draft.type} onChange={(v) => setDraft(d => ({ ...d, type: v as any }))} options={TYPE_OPTIONS} />
           </div>
+          <label className={`flex items-center gap-2 text-sm ${textSecondary(theme)} cursor-pointer select-none`}>
+            <input
+              type="checkbox"
+              className="rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900/20"
+              checked={draft.enabled !== false}
+              onChange={(e) => setDraft((d) => ({ ...d, enabled: e.target.checked }))}
+            />
+            对用户端展示（探索页等公共列表）
+          </label>
         </div>
       </Modal>
 

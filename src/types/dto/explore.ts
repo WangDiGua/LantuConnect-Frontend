@@ -137,6 +137,8 @@ export interface AnnouncementCreateRequest {
   content?: string;
   type: 'feature' | 'maintenance' | 'update' | 'notice';
   pinned?: boolean;
+  /** 是否对用户端（探索页等）展示；默认 true */
+  enabled?: boolean;
 }
 
 export interface DeveloperStatistics {

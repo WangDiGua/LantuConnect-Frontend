@@ -70,7 +70,6 @@ export type ExploreHubRailConfig = {
   activeSubItem: string;
   routeRole: ConsoleRole;
   onSubItemClick: (subItemId: string, parentSidebarId: string, domain: ConsoleRole) => void;
-  onProfileClick: () => void;
 };
 
 /**

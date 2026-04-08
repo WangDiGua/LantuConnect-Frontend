@@ -1370,18 +1370,6 @@ const MainLayoutContent: React.FC<{
     navigate(buildPath(domain, getDefaultPage(domain, id)));
   };
 
-  const handleRailLogout = useCallback(async () => {
-    showMessage('已退出登录', 'info');
-    const accessToken = tokenStorage.get(env.VITE_TOKEN_KEY) ?? useAuthStore.getState().token;
-    try {
-      if (accessToken) await authService.logout(accessToken);
-    } catch {
-      /* still clear local session */
-    }
-    storeLogout();
-    navigate('/login', { replace: true });
-  }, [navigate, showMessage, storeLogout]);
-
   const navigateSubItem = useCallback(
     (subItemId: string, parentSidebarId: string, domain: ConsoleRole) => {
       setMobileNavOpen(false);
@@ -1577,10 +1565,6 @@ const MainLayoutContent: React.FC<{
       activeSubItem,
       routeRole: consoleRole,
       onSubItemClick: handleChromeSubItemClick,
-      onProfileClick: () => {
-        navigate(buildPath('user', 'profile'));
-        if (layoutIsAdmin) setRole('user');
-      },
     };
   }, [
     unifiedRailSections,
@@ -1591,9 +1575,6 @@ const MainLayoutContent: React.FC<{
     activeSubItem,
     consoleRole,
     handleChromeSubItemClick,
-    navigate,
-    layoutIsAdmin,
-    setRole,
   ]);
 
   const exploreHubRailForContent = page === 'hub' && shellPersonalRail ? shellPersonalRail : undefined;
@@ -1871,13 +1852,8 @@ const MainLayoutContent: React.FC<{
               activeSidebar={activeSidebar}
               activeSubItem={activeSubItem}
               routeRole={consoleRole}
-              onProfileClick={() => {
-                navigate(buildPath('user', 'profile'));
-                if (layoutIsAdmin) setRole('user');
-              }}
               onSubItemClick={handleChromeSubItemClick}
               suppressGlobalMenuSearchHotkey={mobileNavOpen}
-              onLogout={handleRailLogout}
               ariaLabel="控制台导航"
             />
           </div>
@@ -1904,7 +1880,6 @@ const MainLayoutContent: React.FC<{
                       activeSidebar={shellPersonalRail.activeSidebar}
                       activeSubItem={shellPersonalRail.activeSubItem}
                       routeRole={shellPersonalRail.routeRole}
-                      onProfileClick={shellPersonalRail.onProfileClick}
                       onSubItemClick={shellPersonalRail.onSubItemClick}
                       suppressGlobalMenuSearchHotkey={mobileNavOpen}
                     />

@@ -822,7 +822,6 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
                   activeSidebar={hubRail.activeSidebar}
                   activeSubItem={hubRail.activeSubItem}
                   routeRole={hubRail.routeRole}
-                  onProfileClick={hubRail.onProfileClick}
                   onSubItemClick={hubRail.onSubItemClick}
                   suppressGlobalMenuSearchHotkey={mobileNavDrawerOpen}
                 />

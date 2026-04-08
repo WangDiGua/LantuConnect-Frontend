@@ -37,12 +37,6 @@ interface Props {
   showMessage: (msg: string, type?: 'success' | 'error' | 'info') => void;
 }
 
-const CHANNEL_OPTIONS = [
-  { id: 'ding', label: '钉钉' },
-  { id: 'email', label: '邮件' },
-  { id: 'webhook', label: 'Webhook' },
-] as const;
-
 const METRIC_OPTIONS = [
   { value: 'http_5xx_rate', label: '5xx 比例' },
   { value: 'latency_p99', label: 'P99 延迟' },
@@ -88,11 +82,10 @@ function opSymbol(operator: string): string {
 
 function ruleSummary(r: AlertRule) {
   const op = opSymbol(r.operator);
-  const ch = (r.notifyChannels ?? []).join('、') || '—';
-  return `${r.metric} ${op} ${r.threshold} → ${ch}`;
+  return `${r.metric} ${op} ${r.threshold} · 站内通知`;
 }
 
-const PAGE_DESC = '配置告警阈值与通知渠道。记录入库时建议在 labels 中写入 resource_type（五类统一资源），以便「告警管理」按类型筛选。';
+const PAGE_DESC = '配置告警阈值。触发后仅通过站内消息通知；记录入库时建议在 labels 中写入 resource_type（五类统一资源），以便「告警管理」按类型筛选。';
 const BREADCRUMB = ['监控中心', '告警规则'] as const;
 
 export const AlertRulesPage: React.FC<Props> = ({ theme, fontSize, showMessage }) => {
@@ -113,7 +106,7 @@ export const AlertRulesPage: React.FC<Props> = ({ theme, fontSize, showMessage }
     resolver: zodResolver(createAlertRuleSchema),
     defaultValues: {
       name: '', metric: 'http_5xx_rate', operator: 'gte',
-      threshold: 1, severity: 'warning', notifyChannels: [],
+      threshold: 1, severity: 'warning',
     },
   });
 
@@ -121,7 +114,7 @@ export const AlertRulesPage: React.FC<Props> = ({ theme, fontSize, showMessage }
     resolver: zodResolver(createAlertRuleSchema),
     defaultValues: {
       name: '', metric: 'http_5xx_rate', operator: 'gte',
-      threshold: 1, severity: 'warning', notifyChannels: [],
+      threshold: 1, severity: 'warning',
     },
   });
 
@@ -153,7 +146,7 @@ export const AlertRulesPage: React.FC<Props> = ({ theme, fontSize, showMessage }
       {
         name: values.name.trim(), metric: values.metric,
         operator: values.operator, threshold: values.threshold,
-        severity: values.severity, duration: '5m', notifyChannels: [...values.notifyChannels],
+        severity: values.severity, duration: '5m', notifyChannels: [], channels: [],
       },
       {
         onSuccess: () => {
@@ -173,14 +166,12 @@ export const AlertRulesPage: React.FC<Props> = ({ theme, fontSize, showMessage }
       setEditingRule(r);
       const op = r.operator;
       const safeOp: CreateAlertRuleFormValues['operator'] = op === 'gt' || op === 'lt' || op === 'eq' ? op : 'gt';
-      const ch = r.notifyChannels?.length ? r.notifyChannels : r.channels ?? [];
       editForm.reset({
         name: r.name,
         metric: r.metric || 'http_5xx_rate',
         operator: safeOp,
         threshold: r.threshold,
         severity: r.severity,
-        notifyChannels: [...ch],
       });
     },
     [editForm],
@@ -198,7 +189,8 @@ export const AlertRulesPage: React.FC<Props> = ({ theme, fontSize, showMessage }
           threshold: values.threshold,
           severity: values.severity,
           duration: '5m',
-          notifyChannels: [...values.notifyChannels],
+          notifyChannels: [],
+          channels: [],
         },
       },
       {
@@ -254,7 +246,7 @@ export const AlertRulesPage: React.FC<Props> = ({ theme, fontSize, showMessage }
 
   const listBlock = rules.length === 0 ? (
     <BentoCard theme={theme}>
-      <EmptyState title="暂无告警规则" description="创建规则后，将按阈值与渠道进行通知。" />
+      <EmptyState title="暂无告警规则" description="创建规则后，将按阈值评估并通过站内消息通知。" />
     </BentoCard>
   ) : filteredRules.length === 0 ? (
     <BentoCard theme={theme}>
@@ -415,36 +407,9 @@ export const AlertRulesPage: React.FC<Props> = ({ theme, fontSize, showMessage }
               ) : null}
             </div>
           </div>
-          <div>
-            <label className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>通知渠道</label>
-            <Controller
-              name="notifyChannels"
-              control={form.control}
-              render={({ field }) => (
-                <div className="flex flex-wrap gap-3">
-                  {CHANNEL_OPTIONS.map((c) => {
-                    const checked = field.value.includes(c.id);
-                    return (
-                      <label key={c.id} className="inline-flex items-center gap-1.5 text-sm cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => field.onChange(checked ? field.value.filter((x) => x !== c.id) : [...field.value, c.id])}
-                          className="toggle toggle-primary toggle-sm"
-                        />
-                        <span className={textSecondary(theme)}>{c.label}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-              )}
-            />
-            {form.formState.errors.notifyChannels?.message ? (
-              <p className={`mt-1 ${fieldErrorText()}`} role="alert">
-                {String(form.formState.errors.notifyChannels.message)}
-              </p>
-            ) : null}
-          </div>
+          <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
+            通知方式：当前平台仅支持站内消息（消息中心），无需额外配置外部渠道。
+          </p>
         </form>
       </Modal>
 
@@ -542,36 +507,9 @@ export const AlertRulesPage: React.FC<Props> = ({ theme, fontSize, showMessage }
               ) : null}
             </div>
           </div>
-          <div>
-            <label className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>通知渠道</label>
-            <Controller
-              name="notifyChannels"
-              control={editForm.control}
-              render={({ field }) => (
-                <div className="flex flex-wrap gap-3">
-                  {CHANNEL_OPTIONS.map((c) => {
-                    const checked = field.value.includes(c.id);
-                    return (
-                      <label key={c.id} className="inline-flex items-center gap-1.5 text-sm cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => field.onChange(checked ? field.value.filter((x) => x !== c.id) : [...field.value, c.id])}
-                          className="toggle toggle-primary toggle-sm"
-                        />
-                        <span className={textSecondary(theme)}>{c.label}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-              )}
-            />
-            {editForm.formState.errors.notifyChannels?.message ? (
-              <p className={`mt-1 ${fieldErrorText()}`} role="alert">
-                {String(editForm.formState.errors.notifyChannels.message)}
-              </p>
-            ) : null}
-          </div>
+          <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
+            通知方式：当前平台仅支持站内消息（消息中心），无需额外配置外部渠道。
+          </p>
         </form>
       </Modal>
 

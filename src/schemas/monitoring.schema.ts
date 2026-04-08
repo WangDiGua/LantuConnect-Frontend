@@ -6,7 +6,6 @@ export const createAlertRuleSchema = z.object({
   operator: z.enum(['gt', 'gte', 'lt', 'lte', 'eq'], { message: '请选择比较运算符' }),
   threshold: z.number({ message: '请输入有效数值' }),
   severity: z.enum(['critical', 'warning', 'info'], { message: '请选择严重级别' }),
-  notifyChannels: z.array(z.string()),
 });
 
 export type CreateAlertRuleFormValues = z.infer<typeof createAlertRuleSchema>;

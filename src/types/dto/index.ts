@@ -6,7 +6,7 @@ export * from './dataset';
 export * from './provider';
 export * from './category';
 export * from './user';
-export type { UserRecord, RoleRecord, ApiKeyRecord, TokenRecord, CreateUserPayload, CreateApiKeyPayload } from './user-mgmt';
+export type { UserRecord, RoleRecord, ApiKeyRecord, CreateUserPayload, CreateApiKeyPayload } from './user-mgmt';
 export * from './monitoring';
 export * from './system-config';
 export * from './review';

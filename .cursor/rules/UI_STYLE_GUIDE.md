@@ -168,7 +168,7 @@
 5. 表格/列表是否具备 **横向滚动或省略+title**，列是否有 **min-width**？  
 6. 主内容区外边距是否 **收紧**（§5），避免背景色留白过大？  
 7. 是否与 DaisyUI 主题变量冲突？若冲突以本文 + `index.css` 为准。  
-8. **用户管理**（侧栏）：子项「用户管理 / 角色管理 / API Key 管理 / Token 管理」由 `UserManagementModule` 分发至 `src/views/userMgmt/*`，布局沿用 §5 主区灰底 + 内层 `rounded-2xl` 大卡片与表格斑马行（非 `table-zebra`）；演示数据见 `src/constants/userMgmt.ts`。  
+8. **用户管理**（侧栏）：子项「用户管理 / 角色管理 / API Key 管理」等由 `UserManagementModule` 分发至 `src/views/userMgmt/*`，布局沿用 §5 主区灰底 + 内层 `rounded-2xl` 大卡片与表格斑马行（非 `table-zebra`）；演示数据见 `src/constants/userMgmt.ts`。  
 9. 新增统计类页面时，是否已复用 **`EChartCard` + `echartsTheme`**？路由变更是否 **`buildConsolePath` + `navigate`**？
 
 ---

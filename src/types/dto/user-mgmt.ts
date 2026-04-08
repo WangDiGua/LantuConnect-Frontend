@@ -51,19 +51,6 @@ export interface ApiKeyRecord {
   createdAt: string;
 }
 
-export interface TokenRecord {
-  id: string;
-  name: string;
-  type: 'access' | 'service' | 'temporary';
-  maskedToken: string;
-  status: 'active' | 'expired' | 'revoked';
-  scopes: string[];
-  expiresAt: string;
-  lastUsedAt?: string;
-  createdBy: string;
-  createdAt: string;
-}
-
 export interface OrgNode {
   id: string;
   name: string;

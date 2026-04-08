@@ -137,7 +137,7 @@ const ADMIN_SIDEBAR_PAGES: Record<string, string[]> = {
     'agent-audit', 'skill-audit', 'mcp-audit', 'app-audit', 'dataset-audit',
     'provider-list', 'provider-create',
   ],
-  'user-management': ['user-list', 'role-management', 'organization', 'api-key-management', 'token-management', 'resource-grant-management', 'grant-applications', 'developer-applications'],
+  'user-management': ['user-list', 'role-management', 'organization', 'api-key-management', 'resource-grant-management', 'grant-applications', 'developer-applications'],
   'monitoring': ['monitoring-overview', 'call-logs', 'performance-analysis', 'alert-management', 'alert-rules', 'health-config', 'circuit-breaker'],
   'system-config': [
     'tag-management',

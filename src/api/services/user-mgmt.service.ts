@@ -1,7 +1,6 @@
 import { http } from '../../lib/http';
 import { tryBatchPost } from '../../utils/batchApi';
 import { runWithConcurrency } from '../../utils/runWithConcurrency';
-import { ApiException } from '../../types/api';
 import type { PaginatedData, PaginationParams } from '../../types/api';
 import { extractArray, normalizePaginated } from '../../utils/normalizeApiPayload';
 import type {
@@ -10,7 +9,6 @@ import type {
   CreateUserPayload,
   OrgNode,
   RoleRecord,
-  TokenRecord,
   UserPlatformRoleRef,
   UserRecord,
 } from '../../types/dto/user-mgmt';
@@ -87,37 +85,6 @@ function coerceOptionalApiDateTime(v: unknown): string | undefined {
     return `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')} ${String(h).padStart(2, '0')}:${String(mi).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   }
   return undefined;
-}
-
-function normalizeTokenStatus(raw: unknown): TokenRecord['status'] {
-  const s = String(raw ?? '').toLowerCase();
-  if (s === 'expired' || s === 'revoked' || s === 'active') return s;
-  return 'active';
-}
-
-function mapTokenRecord(raw: unknown): TokenRecord {
-  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
-  const typeRaw = String(o.type ?? 'access').toLowerCase();
-  const type: TokenRecord['type'] =
-    typeRaw === 'service' || typeRaw === 'temporary' ? typeRaw : 'access';
-  const scopesRaw = o.scopes;
-  const scopes = Array.isArray(scopesRaw)
-    ? scopesRaw.map((x) => String(x))
-    : typeof scopesRaw === 'string' && scopesRaw.trim()
-      ? scopesRaw.split(/[\s,]+/).filter(Boolean)
-      : [];
-  return {
-    id: String(o.id ?? ''),
-    name: String(o.name ?? '未命名'),
-    type,
-    maskedToken: String(o.maskedToken ?? o.masked ?? ''),
-    status: normalizeTokenStatus(o.status),
-    scopes,
-    expiresAt: String(o.expiresAt ?? ''),
-    lastUsedAt: o.lastUsedAt ? String(o.lastUsedAt) : undefined,
-    createdBy: String(o.createdBy ?? ''),
-    createdAt: String(o.createdAt ?? ''),
-  };
 }
 
 function mapApiKeyRecord(raw: unknown): ApiKeyRecord {
@@ -392,36 +359,6 @@ export const userMgmtService = {
       async () => {
         const r = await runWithConcurrency(ids, 4, async (id) => {
           await http.patch<void>(`/user-mgmt/api-keys/${id}/revoke`);
-        });
-        if (r.errors.length) throw r.errors[0]!.error;
-      },
-    );
-  },
-
-  listTokens: async (params?: PaginationParams & { keyword?: string; status?: string }) => {
-    const raw = await http.get<unknown>('/user-mgmt/tokens', { params });
-    return normalizePaginated<TokenRecord>(raw, mapTokenRecord);
-  },
-
-  createToken: (_data: { name: string; type: TokenRecord['type']; scopes: string[]; expiresAt?: string }) =>
-    Promise.reject(
-      new ApiException({
-        code: 1004,
-        status: 410,
-        message: '接口已下线，请迁移到统一网关接口',
-      }),
-    ) as Promise<TokenRecord & { plainToken: string }>,
-
-  revokeToken: (id: string) => http.patch<void>(`/user-mgmt/tokens/${id}/revoke`),
-
-  batchRevokeTokens: async (ids: string[]): Promise<void> => {
-    if (!ids.length) return;
-    await tryBatchPost(
-      '/user-mgmt/tokens/batch-revoke',
-      { ids },
-      async () => {
-        const r = await runWithConcurrency(ids, 4, async (id) => {
-          await http.patch<void>(`/user-mgmt/tokens/${id}/revoke`);
         });
         if (r.errors.length) throw r.errors[0]!.error;
       },

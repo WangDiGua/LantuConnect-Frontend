@@ -32,7 +32,6 @@ export const ADMIN_ROUTE_MAPPING: Record<string, string> = {
   '角色管理': 'role-management',
   '组织架构': 'org-structure',
   'API Key 管理': 'api-key-management',
-  'Token 管理': 'token-management',
   '模型接入': 'model-integration',
   '模型测试': 'model-test',
   '推理路由': 'inference-routing',

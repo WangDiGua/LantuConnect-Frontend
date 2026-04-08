@@ -216,7 +216,6 @@ const SUB_ITEM_PERM_MAP: Record<string, string | string[]> = {
   'role-management': 'role:manage',
   'organization': 'org:manage',
   'api-key-management': 'api-key:manage',
-  'token-management': ['api-key:manage', 'apikey:read'],
   'network-config': 'system:config',
   'resource-grant-management': 'resource-grant:manage',
   /** 资源 owner / 审核员 / 超管可审；与后端 Grant 工单一致 */
@@ -366,7 +365,6 @@ const MainContent = React.memo<{
         case 'role-management':
         case 'organization':
         case 'api-key-management':
-        case 'token-management':
         case 'resource-grant-management':
         case 'grant-applications':
         case 'developer-applications':
@@ -1135,6 +1133,10 @@ const MainLayoutContent: React.FC<{
     }
     if (layoutIsAdmin && normalizedRoutePage === 'resource-catalog' && !queryType) {
       navigate(`${buildPath('user', 'resource-catalog')}?type=agent`, { replace: true });
+      return;
+    }
+    if (layoutIsAdmin && normalizedRoutePage === 'token-management') {
+      navigate(buildPath('user', 'api-key-management'), { replace: true });
       return;
     }
     if (layoutIsAdmin && normalizedRoutePage) {

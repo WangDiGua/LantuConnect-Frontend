@@ -12,7 +12,6 @@ const TABS: { id: string; label: string }[] = [
   { id: 'role-management', label: '角色' },
   { id: 'organization', label: '组织' },
   { id: 'api-key-management', label: 'API Key' },
-  { id: 'token-management', label: 'Token' },
   { id: 'resource-grant-management', label: '资源授权' },
   { id: 'grant-applications', label: '授权审批' },
   { id: 'developer-applications', label: '入驻审批' },

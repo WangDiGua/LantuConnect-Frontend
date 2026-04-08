@@ -4,7 +4,6 @@ import { PlaceholderView } from '../common/PlaceholderView';
 import { UserListPage } from './UserListPage';
 import { RoleListPage } from './RoleListPage';
 import { ApiKeyListPage } from './ApiKeyListPage';
-import { TokenListPage } from './TokenListPage';
 import { OrgStructurePage } from './OrgStructurePage';
 import { ResourceGrantManagementPage } from './ResourceGrantManagementPage';
 
@@ -35,15 +34,6 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({
           fontSize={fontSize}
           showMessage={showMessage}
           breadcrumbSegments={['用户管理', 'API Key 管理']}
-        />
-      );
-    case 'token-management':
-      return (
-        <TokenListPage
-          theme={theme}
-          fontSize={fontSize}
-          showMessage={showMessage}
-          breadcrumbSegments={['用户管理', 'Token 管理']}
         />
       );
     case 'organization':

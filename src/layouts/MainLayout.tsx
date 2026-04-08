@@ -1371,7 +1371,7 @@ const MainLayoutContent: React.FC<{
   );
 
   /**
-   * 独立左轨开关与 URL 同步；hub 左轨改由下方「分栏壳」承托（与同壳其它页一致），故此处仍关闭 standalone 标志。
+   * 独立左轨开关与 URL 同步；hub 由内嵌轨提供故关闭 standalone。
    * 顶栏五类「广场/中心」仅主内容不叠左轨。应用壳与管理壳共用逻辑。
    */
   useEffect(() => {
@@ -1610,15 +1610,14 @@ const MainLayoutContent: React.FC<{
     handleRailSubItemClick,
   ]);
 
-  /** hub 有左轨数据时分栏（左轨固定、仅右侧滚动），与同壳「个人轨」页一致，避免 ExploreHub 内 sticky 随主滚上移 */
-  const useShellSplitRailLayout = Boolean(shellPersonalRail) && (
-    page === 'hub' ||
-    (personalRailOpen && page !== 'hub')
-  );
+  const exploreHubRailForContent = page === 'hub' && shellPersonalRail ? shellPersonalRail : undefined;
+
+  const showStandalonePersonalRail =
+    personalRailOpen && Boolean(shellPersonalRail) && page !== 'hub';
 
   /** 与滚回顶部的 useEffect 一致：双栏时滚右侧列，否则滚主列 */
   const activeMainContentScrollRef =
-    useShellSplitRailLayout ? routeContentScrollRef : mainScrollRef;
+    showStandalonePersonalRail && shellPersonalRail ? routeContentScrollRef : mainScrollRef;
   const scrollAffixRouteKey = `${location.pathname}${location.search}`;
 
   return (
@@ -1932,7 +1931,7 @@ const MainLayoutContent: React.FC<{
         <main
           className={`${chromeGpuLayerClass} relative z-0 flex min-h-0 flex-1 flex-col overflow-hidden bg-lantu-canvas`}
         >
-          {useShellSplitRailLayout ? (
+          {showStandalonePersonalRail && shellPersonalRail ? (
             <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
               <div
                 className={`flex min-h-0 min-w-0 w-full flex-1 flex-col ${contentPaddingX}`}
@@ -2024,7 +2023,7 @@ const MainLayoutContent: React.FC<{
                         navigateTo={navigateTo}
                         setShowUserMenu={setShowUserMenu}
                         setShowAppearanceMenu={setShowAppearanceMenu}
-                        exploreHubRail={undefined}
+                        exploreHubRail={exploreHubRailForContent}
                         mobileNavOpen={mobileNavOpen}
                       />
                     </div>

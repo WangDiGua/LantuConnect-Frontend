@@ -19,7 +19,6 @@ import {
 import type { Theme, FontSize, ThemeColor } from '../../types';
 import type { CatalogResourceDetailVO, ResourceCatalogItemVO } from '../../types/dto/catalog';
 import { resourceCatalogService } from '../../api/services/resource-catalog.service';
-import { AccessPolicyBadge } from '../../components/business/AccessPolicyBadge';
 import { userActivityService } from '../../api/services/user-activity.service';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
 import { BentoCard } from '../../components/common/BentoCard';
@@ -451,10 +450,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
             <div className="space-y-4">
               <div className={`rounded-2xl border p-4 ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200 bg-slate-50/70'}`}>
                 <p className={`text-xs ${textMuted(theme)}`}>资源编码：{detail.resourceCode || detail.resourceId}</p>
-                <div className="mt-2">
-                  <AccessPolicyBadge theme={theme} value={detail.accessPolicy} showHint={true} />
-                </div>
-                <p className={`mt-1 text-xs ${textMuted(theme)}`}>
+                <p className={`mt-2 text-xs ${textMuted(theme)}`}>
                   调用目标：mcp{' / '}
                   <span className="font-mono">{detail.resourceId}</span>
                 </p>
@@ -743,7 +739,6 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                               {tg}
                             </span>
                           ))}
-                          <AccessPolicyBadge className="contents" theme={theme} value={item.accessPolicy} whenMissing="hide" />
                         </>
                       )}
                       description={item.description || '暂无描述'}

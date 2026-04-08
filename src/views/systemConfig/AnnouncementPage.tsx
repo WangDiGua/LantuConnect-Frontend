@@ -361,7 +361,7 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
         }}
         title={editing ? '编辑平台公告' : '发布平台公告'}
         theme={theme}
-        size="md"
+        size="2xl"
         footer={<div className="flex justify-end gap-2">
           <button
             type="button"

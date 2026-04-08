@@ -11,7 +11,7 @@ export interface ModalProps {
   onClose: () => void;
   title?: string;
   theme: Theme;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
   /** 覆盖内容区样式（如嵌入整页详情时用 p-0 + min-h-0） */
   contentClassName?: string;
   children: React.ReactNode;
@@ -19,7 +19,13 @@ export interface ModalProps {
   closeOnBackdrop?: boolean;
 }
 
-const SIZE_MAP = { sm: 'max-w-sm', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl' };
+const SIZE_MAP = {
+  sm: 'max-w-sm',
+  md: 'max-w-lg',
+  lg: 'max-w-2xl',
+  xl: 'max-w-4xl',
+  '2xl': 'max-w-6xl',
+};
 
 export const Modal: React.FC<ModalProps> = ({
   open, onClose, title, theme, size = 'md', contentClassName, children, footer, closeOnBackdrop = true,

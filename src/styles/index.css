@@ -241,6 +241,14 @@
     overflow-anchor: none;
   }
 
+  /**
+   * 探索页：主列异步块（图表等）高度变化时，父级滚动条的 scroll anchoring 会微调 scrollTop，
+   * sticky 侧栏会像相对视口「上跳」。在控制台 hub 路由的主滚动根上关闭锚定（utilities 层覆盖 compositor）。
+   */
+  .lantu-hub-main-scroll {
+    overflow-anchor: none;
+  }
+
   .btn:focus-visible {
     outline-width: 1px !important;
     outline-style: solid !important;

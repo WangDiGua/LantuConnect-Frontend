@@ -2004,7 +2004,9 @@ const MainLayoutContent: React.FC<{
             <div
               ref={mainScrollRef}
               data-lantu-main-scroll
-              className={`min-h-0 min-w-0 flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${consoleScrollSafeBottomPad}`}
+              className={`min-h-0 min-w-0 flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${consoleScrollSafeBottomPad}${
+                page === 'hub' ? ' lantu-hub-main-scroll' : ''
+              }`}
             >
               <div className="w-full min-w-0">
                 <AnimatePresence mode="wait">

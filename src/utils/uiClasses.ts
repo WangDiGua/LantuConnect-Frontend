@@ -13,8 +13,15 @@ export function pageBg(_theme: Theme) {
 export const mainScrollPadX = 'px-5 sm:px-6 lg:px-8';
 export const mainScrollPadBottom = 'pb-6 sm:pb-8';
 /**
- * 主滚动区内：路由根容器顶边距（与 MainLayout 固定顶栏的 pt-[calc(4rem+safe-area)] 无关；顶栏占位只在那层处理）。
- * 全站壳层（管理台 / 仪表盘 / 市场 / 个人页等）应优先复用此 token，避免各页自拟 pt/py 导致「距顶」不一致。
+ * MainLayout 最外层主壳：固定顶栏（ConsoleTopNav 内层行高 h-16=4rem）+ safe-area +
+ * 顶栏底边与下方滚动内容之间的统一呼吸间距（1rem，8pt 步进约 2 格）。
+ * ConsoleTopNav 行高若变更，需同步调整式中 4rem 段。
+ */
+export const consoleShellBelowHeaderPt =
+  'pt-[calc(4rem+1rem+env(safe-area-inset-top,0px))]';
+/**
+ * 主滚动区内：路由根容器顶边距（与 {@link consoleShellBelowHeaderPt} 叠加使用；页内大块之间节奏仍靠此 token）。
+ * 全站壳层（管理台 / 仪表盘 / 市场 / 个人页等）应优先复用，避免各页自拟 pt/py 导致「距顶」不一致。
  */
 export const consoleContentTopPad = 'pt-5 sm:pt-6';
 /** 管理台白卡片外圈：仅保留下边缝，顶距由 consoleContentTopPad 承担，避免 py-* 叠双份 */

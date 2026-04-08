@@ -160,6 +160,7 @@ import { Tooltip } from '../components/common/Tooltip';
 import {
   chromeGpuLayerClass,
   consoleContentTopPad,
+  consoleShellBelowHeaderPt,
   contentMaxWidth,
   iconChrome,
   mainScrollCompositorClass,
@@ -1886,7 +1887,9 @@ const MainLayoutContent: React.FC<{
           }
         />
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col px-3 pb-3 pt-[calc(4rem+env(safe-area-inset-top,0px))] md:px-4 md:pb-4">
+        <div
+          className={`flex min-h-0 min-w-0 flex-1 flex-col px-3 pb-3 md:px-4 md:pb-4 ${consoleShellBelowHeaderPt}`}
+        >
         <aside
           className={`${chromeGpuLayerClass} fixed inset-y-0 left-0 z-50 flex h-full w-[240px] shrink-0 flex-col overflow-hidden px-0 py-2 transition-transform duration-200 ease-out motion-reduce:transition-none lg:hidden ${
             mobileNavOpen ? 'translate-x-0' : '-translate-x-full'
@@ -1934,7 +1937,7 @@ const MainLayoutContent: React.FC<{
               >
                 <div className="grid min-h-0 flex-1 grid-cols-1 gap-8 lg:grid-cols-12 lg:grid-rows-1 lg:gap-10 lg:[grid-template-rows:minmax(0,1fr)]">
                   <div
-                    className={`order-2 flex min-h-0 flex-col max-h-[min(70vh,32rem)] lg:order-1 lg:col-span-2 lg:max-h-[calc(100dvh-5rem-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px))] lg:overflow-y-auto lg:overscroll-y-contain custom-scrollbar lg:pr-6 ${consoleContentTopPad} ${chromeGpuLayerClass}`}
+                    className={`order-2 flex min-h-0 flex-col max-h-[min(70vh,32rem)] lg:order-1 lg:col-span-2 lg:max-h-[calc(100dvh-6rem-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px))] lg:overflow-y-auto lg:overscroll-y-contain custom-scrollbar lg:pr-6 ${consoleContentTopPad} ${chromeGpuLayerClass}`}
                   >
                     <HubPersonalRail
                       theme={theme}

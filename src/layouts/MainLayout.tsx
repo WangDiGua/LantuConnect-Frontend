@@ -850,7 +850,13 @@ const MainLayoutContent: React.FC<{
   useEffect(() => {
     if (!authUser?.id || !authAccessToken) return;
     return connectUserPushSocket(() => useAuthStore.getState().token, {
-      onServerPush: () => {
+      onServerPush: (msg) => {
+        const raw = msg.unreadCount;
+        if (typeof raw === 'number' && Number.isFinite(raw)) {
+          const n = raw > 0 ? Math.min(9999, Math.floor(raw)) : 0;
+          setMessageUnreadCount(n);
+          return;
+        }
         void refreshMessageUnreadCount();
       },
     });

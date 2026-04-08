@@ -90,8 +90,11 @@ export function readAccessTokenForRealtime(): string | null {
 }
 
 export interface UserPushConnectionOptions {
-  /** 收到站内通知类推送时触发（type=notification） */
-  onServerPush?: () => void;
+  /**
+   * 收到站内通知类推送时触发（type=notification）。
+   * 传入解析后的消息（通常含 unreadCount）；用它可直接更新角标，避免再请求 HTTP。
+   */
+  onServerPush?: (msg: RealtimeServerMessage) => void;
   /** 连接异常关闭后的重连间隔 ms，默认 4000；设为 0 不重连 */
   reconnectDelayMs?: number;
 }
@@ -131,7 +134,7 @@ export function connectUserPushSocket(
     }
     dispatchRealtime(parsed);
     if (isNotificationMessage(parsed)) {
-      opts.onServerPush?.();
+      opts.onServerPush?.(parsed);
     }
   };
 

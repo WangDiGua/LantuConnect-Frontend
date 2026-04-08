@@ -29,6 +29,33 @@ const PAGE_SIZE = 20;
 
 const API_KEY_DESC = '完整密钥仅在创建时显示一次';
 
+type ApiKeyExpiryPreset = 'never' | '1d' | '7d' | '30d';
+
+/** 新建弹窗默认有效期：避免全部落库为「永不过期」 */
+const DEFAULT_API_KEY_EXPIRY_PRESET: ApiKeyExpiryPreset = '30d';
+
+const API_KEY_EXPIRY_OPTIONS: { preset: ApiKeyExpiryPreset; label: string }[] = [
+  { preset: '1d', label: '1 天' },
+  { preset: '7d', label: '7 天' },
+  { preset: '30d', label: '30 天' },
+  { preset: 'never', label: '永不过期' },
+];
+
+/** 与后端 LocalDateTime 兼容（本地日历日 + 当前时刻） */
+function computeExpiresAtForPreset(preset: ApiKeyExpiryPreset): string | undefined {
+  if (preset === 'never') return undefined;
+  const addDays = preset === '1d' ? 1 : preset === '7d' ? 7 : 30;
+  const d = new Date();
+  d.setDate(d.getDate() + addDays);
+  const y = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const h = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  const s = String(d.getSeconds()).padStart(2, '0');
+  return `${y}-${mo}-${day}T${h}:${min}:${s}`;
+}
+
 export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize, showMessage, breadcrumbSegments }) => {
   const isDark = theme === 'dark';
   const [keys, setKeys] = useState<ApiKeyRecord[]>([]);
@@ -46,8 +73,7 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize,
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [batchBusy, setBatchBusy] = useState(false);
   const [newNameError, setNewNameError] = useState('');
-  /** datetime-local，空表示不设置过期（与后端 expires_at NULL 一致） */
-  const [expiresAtDraft, setExpiresAtDraft] = useState('');
+  const [expiryPreset, setExpiryPreset] = useState<ApiKeyExpiryPreset>(DEFAULT_API_KEY_EXPIRY_PRESET);
 
   const clearSelection = useCallback(() => setSelectedKeys(new Set()), []);
 
@@ -94,7 +120,7 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize,
   const closeReveal = useCallback(() => {
     setRevealedOnce(null);
     setNewName('');
-    setExpiresAtDraft('');
+    setExpiryPreset(DEFAULT_API_KEY_EXPIRY_PRESET);
     setNewNameError('');
     setCopied(false);
     setCreateOpen(false);
@@ -107,13 +133,7 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize,
     }
     setNewNameError('');
     try {
-      const rawExpiry = expiresAtDraft.trim();
-      const expiresAt =
-        rawExpiry.length === 16
-          ? `${rawExpiry}:00`
-          : rawExpiry.length
-            ? rawExpiry
-            : undefined;
+      const expiresAt = computeExpiresAtForPreset(expiryPreset);
       const r = await userMgmtService.createApiKey({
         name: newName.trim(),
         scopes: ['*'],
@@ -126,7 +146,7 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize,
     } catch {
       showMessage('创建失败', 'error');
     }
-  }, [newName, expiresAtDraft, showMessage, fetchKeys]);
+  }, [newName, expiryPreset, showMessage, fetchKeys]);
 
   const copyFull = useCallback(async () => { if (!revealedOnce) return; try { await navigator.clipboard.writeText(revealedOnce.full); setCopied(true); showMessage('已复制到剪贴板', 'success'); } catch { showMessage('复制失败', 'error'); } }, [revealedOnce, showMessage]);
 
@@ -280,7 +300,7 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize,
               onClick={() => {
               setCreateOpen(true);
               setNewName('');
-              setExpiresAtDraft('');
+              setExpiryPreset(DEFAULT_API_KEY_EXPIRY_PRESET);
               setNewNameError('');
               setRevealedOnce(null);
               setCopied(false);
@@ -376,15 +396,33 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize,
                 {newNameError}
               </p>
             ) : null}
-            <label className={`text-xs font-semibold block mt-3 mb-1 ${textSecondary(theme)}`}>过期时间（可选）</label>
-            <input
-              type="datetime-local"
-              className={nativeInputClass(theme)}
-              value={expiresAtDraft}
-              onChange={(e) => setExpiresAtDraft(e.target.value)}
-              aria-label="API Key 过期时间"
-            />
-            <p className={`mt-1 text-[11px] ${textMuted(theme)}`}>留空则永不过期；设置后将写入数据库并在列表中显示。</p>
+            <span className={`text-xs font-semibold block mt-3 mb-1.5 ${textSecondary(theme)}`}>有效期</span>
+            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="API Key 有效期">
+              {API_KEY_EXPIRY_OPTIONS.map(({ preset, label }) => {
+                const on = expiryPreset === preset;
+                return (
+                  <button
+                    key={preset}
+                    type="button"
+                    role="radio"
+                    aria-checked={on}
+                    className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      on
+                        ? isDark
+                          ? 'bg-violet-500/20 text-violet-200 ring-1 ring-violet-400/45'
+                          : 'bg-violet-100 text-violet-900 ring-1 ring-violet-300/80'
+                        : `${btnSecondary(theme)} !shadow-none`
+                    }`}
+                    onClick={() => setExpiryPreset(preset)}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            <p className={`mt-2 text-[11px] leading-relaxed ${textMuted(theme)}`}>
+              自创建时刻起按日历日递增（例如选 7 天即第 7 天的当前时刻）；选「永不过期」不写 expires_at，列表显示「永不过期」。
+            </p>
           </>
         )}
       </Modal>

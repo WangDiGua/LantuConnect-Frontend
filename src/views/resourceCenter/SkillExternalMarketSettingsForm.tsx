@@ -33,7 +33,7 @@ const TAB_DEF: { id: SettingsTab; label: string }[] = [
   { id: 'static', label: '静态条目' },
 ];
 
-/** 与后端 {@code SkillsMpCatalogClient} 默认 sortBy 及 stars→recent 重试一致 */
+/** 与后端 SkillsMpCatalogClient 默认 sortBy 及 stars→recent 重试一致 */
 const SKILLSMP_SORT_BY_OPTIONS: { value: string; label: string }[] = [
   { value: 'stars', label: 'stars（按 Star，默认）' },
   { value: 'recent', label: 'recent（最近，备选请求）' },

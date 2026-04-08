@@ -178,7 +178,7 @@ function mapErrorMessage(status: number, code?: number, fallback?: string): stri
     return fallback || '请绑定有效的 X-Api-Key（创建 Key 时的完整 secretPlain）';
   }
   if (status === 403 || code === 1003) {
-    return fallback || '无权限执行当前操作（请检查 RBAC、API Key scope 与资源 Grant）';
+    return fallback || '无权限执行当前操作（请检查 RBAC、API Key scope 与资源授权）';
   }
   if (status === 404 || code === 1004) {
     return fallback || '资源不存在或已删除，请返回列表后重试';
@@ -245,7 +245,7 @@ function sanitizeUserMessage(message: string): string {
 
 function withPathHint(path: string, message: string): string {
   if ((path === '/invoke' || path.startsWith('/sdk/v1/')) && message.includes('无权限')) {
-    return `${message}。调用链路需同时满足：RBAC + API Key scope + Resource Grant。`;
+    return `${message}。调用链路需同时满足：RBAC + API Key scope + 资源授权。`;
   }
   if (path === '/catalog/resolve' && message.includes('无权限')) {
     return `${message}。POST /catalog/resolve 须提供有效的 X-Api-Key。`;
@@ -274,7 +274,7 @@ instance.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   if (!config.headers['X-Api-Key']) {
     const path = normalizeRequestPath(config.url);
     const method = (config.method ?? 'get').toLowerCase();
-    /** 市场目录 GET 应以登录态 RBAC 为准；自动附带个人 Key 会与后端「Key+Grant」裁剪叠加，导致非资源所有者看到空列表 */
+    /** 市场目录 GET 应以登录态 RBAC 为准；自动附带个人 Key 会与后端「Key + 资源授权」裁剪叠加，导致非资源所有者看到空列表 */
     const skipAutoApiKeyForCatalogGet =
       method === 'get' &&
       (path === '/catalog/resources' ||

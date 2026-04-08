@@ -55,10 +55,10 @@ function normAccessPolicy(policy?: string): string {
 
 function accessPolicyLabel(policy?: string): string {
   const p = normAccessPolicy(policy);
-  if (p === 'open_platform') return '开放平台（通常可免 Grant）';
-  if (p === 'open_org') return '组织内（同组织可短路）';
-  if (p === 'grant_required' || !p) return '须显式授权（Grant）';
-  return policy || '须显式授权（Grant）';
+  if (p === 'open_platform') return '开放平台（同租户内通常可免资源授权）';
+  if (p === 'open_org') return '组织内（同部门可短路）';
+  if (p === 'grant_required' || !p) return '需资源授权';
+  return policy || '需资源授权';
 }
 
 function isOpenPlatformPolicy(policy?: string): boolean {
@@ -547,7 +547,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
     [mcpList, invokeEligibility, eligibilityReliable, user?.id],
   );
 
-  /** 存在须显式 Grant 策略且当前 Key 网关判定仍不可 invoke 时提示 */
+  /** 存在需资源授权策略且当前 Key 网关判定仍不可 invoke 时提示 */
   const showNoGrantFooter = useMemo(() => {
     if (!eligibilityReliable || !selectedKeyId.trim() || tableRows.length === 0) return false;
     return tableRows.some((r) => {
@@ -1064,7 +1064,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
                           策略（目录）
                         </th>
                         <th scope="col" className={thClass}>
-                          Grant（当前 Key）
+                          资源授权（当前 Key）
                         </th>
                         <th scope="col" className={thClass}>
                           链接
@@ -1118,7 +1118,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
                                     isDark ? 'bg-sky-500/20 text-sky-200' : 'bg-sky-50 text-sky-900'
                                   }`}
                                 >
-                                  开放平台（可免 Grant）
+                                  开放平台（可免资源授权）
                                 </span>
                               ) : row.invokeEligible ? (
                                 <span

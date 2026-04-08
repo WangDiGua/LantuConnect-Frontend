@@ -37,15 +37,15 @@ export const AccessPolicyBadge: React.FC<Props> = ({
     <div className={className}>
       <span
         className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${accessPolicyBadgeClass(p, theme)}`}
-        title="资源消费策略：控制网关侧是否要求按资源的 Grant 授权（详见接入文档）"
+        title="资源消费策略：控制网关侧是否要求资源级授权（详见接入文档）"
       >
         消费策略 · {label}
       </span>
       {showHint ? (
         <p className={`mt-1 text-xs leading-snug ${textMuted(theme)}`}>
-          {p === 'grant_required' && '须显式授权（Grant）后方可按 Key 消费。'}
-          {p === 'open_org' && '同部门用户 Key 在策略允许下可免 Grant。'}
-          {p === 'open_platform' && '租户内有效 Key 在 scope 满足下可免 Grant；不等于对公网匿名开放。'}
+          {p === 'grant_required' && '需先取得资源级授权后，方可按 API Key 消费。'}
+          {p === 'open_org' && '同部门用户在策略允许下可免资源级授权。'}
+          {p === 'open_platform' && '租户内有效 Key 在 scope 满足下可免资源级授权；不等于对公网匿名开放。'}
         </p>
       ) : null}
     </div>

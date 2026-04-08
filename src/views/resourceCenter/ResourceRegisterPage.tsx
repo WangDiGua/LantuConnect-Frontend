@@ -4,7 +4,7 @@ import { ArrowLeft, BookOpen, ChevronDown, Download, FileCheck, Link2, Loader2, 
 import type { Theme, FontSize } from '../../types';
 import type { ResourceType } from '../../types/dto/catalog';
 import type { ResourceAccessPolicy, ResourceUpsertRequest } from '../../types/dto/resource-center';
-import { accessPolicyHelpLines, normalizeAccessPolicy } from '../../utils/accessPolicy';
+import { accessPolicyFormSelectOptions, accessPolicyHelpLines, normalizeAccessPolicy } from '../../utils/accessPolicy';
 import { resourceCenterService } from '../../api/services/resource-center.service';
 import { tagService } from '../../api/services/tag.service';
 import { useAuthStore } from '../../stores/authStore';
@@ -1374,19 +1374,15 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                 placeholder="不选"
               />
             </Field>
-            <Field label="消费策略（API Key + Grant）" full theme={theme}>
+            <Field label="消费策略（API Key + 资源授权）" full theme={theme}>
               <LantuSelect
                 theme={theme}
                 value={form.accessPolicy}
                 onChange={(v) =>
                   setForm((p) => ({ ...p, accessPolicy: (normalizeAccessPolicy(v) ?? 'grant_required') as ResourceAccessPolicy }))
                 }
-                options={[
-                  { value: 'grant_required', label: '须 Grant（默认，严格）' },
-                  { value: 'open_org', label: '同部门免 Grant' },
-                  { value: 'open_platform', label: '租户内免 Grant（谨慎）' },
-                ]}
-                placeholder="grant_required"
+                options={accessPolicyFormSelectOptions()}
+                placeholder="请选择"
               />
               <p className={`mt-1.5 text-xs leading-relaxed ${textMuted(theme)}`}>
                 {accessPolicyHelpLines()[form.accessPolicy] ?? accessPolicyHelpLines().grant_required}

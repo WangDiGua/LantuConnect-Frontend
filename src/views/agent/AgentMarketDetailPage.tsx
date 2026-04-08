@@ -256,7 +256,7 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
           >
             <h3 className={`text-sm font-bold ${textPrimary(theme)}`}>快捷操作</h3>
             <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
-              试用智能体须具备有效 X-Api-Key 与正确授权范围；跨 owner 时尚需 Grant 或符合 accessPolicy。
+              试用智能体须具备有效 X-Api-Key 与正确授权范围；跨 owner 时尚需资源授权或符合 accessPolicy。
             </p>
             <button
               type="button"

@@ -155,7 +155,7 @@ export const GrantApplicationModal: React.FC<Props> = ({
             }}
             className={`ml-1 underline font-medium ${isDark ? 'text-neutral-200' : 'text-neutral-900'}`}
           >
-            X-Api-Key、scope 与 Grant 见 API 文档
+            X-Api-Key、scope 与资源授权见 API 文档
           </button>
         </p>
 

@@ -13,23 +13,32 @@ export function normalizeAccessPolicy(raw: unknown): ResourceAccessPolicyWire | 
 export function accessPolicyShortLabel(p: ResourceAccessPolicyWire | undefined): string {
   switch (p) {
     case 'open_org':
-      return '同部门免 Grant';
+      return '同部门免授权';
     case 'open_platform':
-      return '租户免 Grant';
+      return '租户内免授权';
     case 'grant_required':
     default:
-      return '须 Grant';
+      return '需授权';
   }
+}
+
+/** 资源注册等表单下拉的选项文案（较完整） */
+export function accessPolicyFormSelectOptions(): { value: ResourceAccessPolicyWire; label: string }[] {
+  return [
+    { value: 'grant_required', label: '需授权（默认，严格）' },
+    { value: 'open_org', label: '同部门免授权' },
+    { value: 'open_platform', label: '租户内免授权（谨慎）' },
+  ];
 }
 
 /** 注册表单 / 详情说明 */
 export function accessPolicyHelpLines(): Record<ResourceAccessPolicyWire, string> {
   return {
-    grant_required: '默认：调用方须具备有效的 per-resource Grant（及 Key scope）；适合严格管控场景。',
+    grant_required: '默认：调用方需具备有效的资源级授权（及 API Key 权限范围）；适合严格管控场景。',
     open_org:
-      '同部门便利：API Key 为用户归属 Key，且 Key 所属用户与资源 owner 部门一致时，可免 Grant（仍校验 Key 与 scope）。',
+      '同部门便利：API Key 为用户归属密钥，且密钥所属用户与资源 owner 部门一致时，可免资源级授权（仍会校验 Key 与 scope）。',
     open_platform:
-      '租户内开放：租户内已认证 API Key 在满足 scope 时可免 per-resource Grant；请评估数据与外泄风险。',
+      '租户内开放：租户内已认证 API Key 在 scope 满足时可免资源级授权；请评估数据与外泄风险。',
   };
 }
 

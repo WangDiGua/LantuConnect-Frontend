@@ -578,7 +578,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
             </div>
             <p className={`text-sm font-semibold ${textPrimary(theme)}`}>统一网关 resolve</p>
             <p className={`mt-1 text-xs leading-relaxed ${textSecondary(theme)}`}>
-              解析接入端点、传输方式与元数据，与目录 accessPolicy / Grant 规则一致。
+              解析接入端点、传输方式与元数据，与目录消费策略及资源授权规则一致。
             </p>
           </div>
           <div

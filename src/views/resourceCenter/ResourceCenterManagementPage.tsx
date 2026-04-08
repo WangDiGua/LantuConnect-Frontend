@@ -53,6 +53,7 @@ import {
 } from '../../utils/backendEnumLabels';
 import { nullDisplay } from '../../utils/errorHandler';
 import { formatDateTime } from '../../utils/formatDateTime';
+import { lifecycleTimelineEventTitleZh } from '../../utils/lifecycleTimelineLabels';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 
@@ -1305,7 +1306,9 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                           ) : null}
                         </div>
                         <div className={`min-w-0 flex-1 ${isLast ? '' : 'pb-5'}`}>
-                          <div className={`text-sm font-medium ${textPrimary(theme)}`}>{ev.title || ev.eventType}</div>
+                          <div className={`text-sm font-medium ${textPrimary(theme)}`}>
+                            {lifecycleTimelineEventTitleZh(ev.title, ev.eventType)}
+                          </div>
                           <div className={`mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs ${textMuted(theme)}`}>
                             <span className={statusBadgeClass(coerceToDomainStatus(ev.status), theme)}>
                               <span className={statusDot(coerceToDomainStatus(ev.status))} />

@@ -12,9 +12,9 @@ export function mapInvokeFlowError(err: unknown, stage: InvokeStage): string {
     }
     if (stage === 'invoke' && err.status === 403) {
       return [
-        '403：网关需同时满足 API Key scope 与资源 Grant。',
+        '403：网关需同时满足 API Key scope 与资源授权。',
         '若提示 scope 相关：请确认 Key 含 catalog/resolve/invoke 或 *（偏好设置里「新建」已默认写入；旧 Key 若 scope 为空请撤销后重建）。',
-        '若仍拒绝：对他人资源请在详情页「申请授权」或请资源方在授权中心授予 Grant。',
+        '若仍拒绝：对他人资源请在详情页「申请授权」，或请资源方在授权中心完成授权。',
       ].join(' ');
     }
     if (stage === 'invoke' && (err.status === 409 || err.code === 4001)) return '资源当前状态不允许调用，请刷新资源状态后重试';

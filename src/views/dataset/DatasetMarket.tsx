@@ -328,7 +328,7 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _t
       variant: 'cyan' as const,
       pill: '授权',
       pillIcon: ShieldCheck,
-      title: 'Grant 与访问策略',
+      title: '资源授权与访问策略',
       description: '详情内可申请使用，审批后与目录 accessPolicy 一致。',
     },
     {

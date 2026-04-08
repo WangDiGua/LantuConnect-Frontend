@@ -712,7 +712,7 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
 
       <Modal open={showRLModal} onClose={() => setShowRLModal(false)} title="新增资源级限流" theme={theme} size="md" footer={<><button type="button" onClick={() => setShowRLModal(false)} className={btnSecondary(theme)}>取消</button><button type="button" onClick={addRateLimit} className={btnPrimary}>添加</button></>}>
         <div className="space-y-4">
-          <p className={`text-xs ${textMuted(theme)}`}>绑定到统一资源表中的实例（resourceType + t_resource.id），网关调用时自动匹配。HTTP 路径限流请在「限流策略」页配置。</p>
+          <p className={`text-xs ${textMuted(theme)}`}>绑定到统一资源目录中的具体实例（资源类型 + 资源 ID），网关调用时自动匹配。HTTP 路径限流请在「限流策略」页配置。</p>
           <div>
             <label className={`${labelCls} mb-1.5 block`}>规则名称</label>
             <input className={inputCls} placeholder="如：智能问答 Agent" value={rlDraft.name} onChange={(e) => setRlDraft((p) => ({ ...p, name: e.target.value }))} />

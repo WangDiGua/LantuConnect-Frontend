@@ -411,7 +411,7 @@ export const NetworkConfigPage: React.FC<PageProps> = ({ theme, fontSize, showMe
     setSaving(true);
     try {
       await systemConfigService.applyNetworkWhitelist(rules);
-      showMessage('白名单已保存到系统参数并触发下发流程（集成 mock 时仅落库）', 'success');
+      showMessage('白名单已保存到系统参数并触发下发流程（集成 mock 时仅本地保存、不下发网关）', 'success');
     } catch (e) {
       showMessage(e instanceof Error ? e.message : '下发失败', 'error');
     } finally {
@@ -425,7 +425,7 @@ export const NetworkConfigPage: React.FC<PageProps> = ({ theme, fontSize, showMe
       fontSize={fontSize}
       titleIcon={Network}
       breadcrumbSegments={['系统配置', '网络配置']}
-      description="管理端访问白名单：内容持久化到 admin_network_allowlist 系统参数，刷新页面会回显已保存条目。五类统一资源的公网暴露策略在网关与本平台其它模块分别配置。"
+      description="管理端访问白名单：内容持久化到系统参数，刷新页面会回显已保存条目。五类统一资源的公网暴露策略在网关与本平台其它模块分别配置。"
     >
       <div className="px-4 sm:px-6 pb-6">
         <BentoCard theme={theme} padding="lg" className="max-w-xl">
@@ -436,7 +436,7 @@ export const NetworkConfigPage: React.FC<PageProps> = ({ theme, fontSize, showMe
             <div>
               <label className={`${labelCls} mb-1.5 block`}>管理端 IP 白名单（每行一个 CIDR）</label>
               <AutoHeightTextarea className={`${inputCls} font-mono text-xs resize-none`} minRows={8} maxRows={30} value={allowlist} onChange={(e) => setAllowlist(e.target.value)} aria-label="IP 白名单 CIDR 列表" disabled={loadingList} />
-              <p className={`text-xs mt-1.5 leading-relaxed ${textMuted(theme)}`}>每行一条，例如 10.0.0.0/8；点击应用后写入数据库并于关闭集成 mock 时可接真实网关下发。</p>
+              <p className={`text-xs mt-1.5 leading-relaxed ${textMuted(theme)}`}>每行一条，例如 10.0.0.0/8；点击应用后即持久保存，并在关闭集成 mock 后可由真实网关接管下发。</p>
             </div>
             <button type="button" className={`${btnPrimary} disabled:opacity-50`} disabled={saving || loadingList} onClick={handleApply}>
               {saving ? <><Loader2 size={14} className="animate-spin" /> 应用中…</> : '应用'}
@@ -562,7 +562,7 @@ export const AccessControlPage: React.FC<PageProps> = ({ theme, fontSize, showMe
       fontSize={fontSize}
       titleIcon={Lock}
       breadcrumbSegments={['系统配置', '访问控制']}
-      description="路径模式 + 角色列表（逗号分隔）；GET /system-config/acl 返回的 rules 来自 api_path_acl_rules 落库数据，roleCatalog 为平台角色速查。发布后规则持久化，全站生效依赖网关/Casbin 加载任务。"
+      description="路径模式 + 允许访问的平台角色列表（逗号分隔）。保存并发布后规则持久化；可通过「访问控制」接口拉取当前规则与角色清单。全站生效依赖网关与安全策略加载。"
     >
       <div className="px-4 sm:px-6 pb-6">
         {loadingRules ? (
@@ -586,7 +586,7 @@ export const AccessControlPage: React.FC<PageProps> = ({ theme, fontSize, showMe
         </button>
         <BentoCard theme={theme} padding="sm">
           {!loadingRules && rules.length === 0 ? (
-            <div className={`px-4 py-8 text-center text-sm ${textMuted(theme)}`}>暂无规则，请新增或检查 GET /system-config/acl</div>
+            <div className={`px-4 py-8 text-center text-sm ${textMuted(theme)}`}>暂无规则，请新增一条或稍后重试加载。</div>
           ) : null}
           {rules.map((r) => (
             <div key={r.id} className={`px-4 py-3.5 flex flex-wrap items-center justify-between gap-2 border-b last:border-0 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>

@@ -85,7 +85,7 @@ function ruleSummary(r: AlertRule) {
   return `${r.metric} ${op} ${r.threshold} · 站内通知`;
 }
 
-const PAGE_DESC = '配置告警阈值。触发后仅通过站内消息通知；记录入库时建议在 labels 中写入 resource_type（五类统一资源），以便「告警管理」按类型筛选。';
+const PAGE_DESC = '配置告警阈值。触发后仅通过站内消息通知；建议在告警标签中注明资源类型（五类统一资源），以便「告警管理」按类型筛选。';
 const BREADCRUMB = ['监控中心', '告警规则'] as const;
 
 export const AlertRulesPage: React.FC<Props> = ({ theme, fontSize, showMessage }) => {

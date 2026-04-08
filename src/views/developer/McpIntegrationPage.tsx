@@ -887,7 +887,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
                 4. 当前 Key 的 invoke 授权预判（POST，须本人 Key + 登录态）
               </div>
               <p className={`text-[11px] mb-1 ${textMuted(theme)}`}>
-                与网关 <span className="font-mono">ResourceInvokeGrantService</span> 一致（open_platform、owner Key、Grant 行等）；控制台 Grant 列与导出 JSON 依赖此接口而非仅 Grant 表。
+                与网关 <span className="font-mono">ResourceInvokeGrantService</span> 判定逻辑一致（含 open_platform、资源方 Key、授权记录等）；控制台授权列与导出 JSON 以该接口为准，而非仅看本地缓存或手工配置。
               </p>
               <div className="flex flex-wrap gap-2 mt-2">
                 <CopyCurlPlatformBtn triple={eligibilityCurlTriple} isDark={isDark} label="复制 curl 示例" />

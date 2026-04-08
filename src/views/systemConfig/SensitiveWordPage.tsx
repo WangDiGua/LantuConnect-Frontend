@@ -422,7 +422,7 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
         {latestImportResult && (
           <BentoCard theme={theme} padding="sm" className="mb-4">
             <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
-              <div className={`rounded-lg px-3 py-2 ${isDark ? 'bg-white/[0.04]' : 'bg-slate-50'}`}>新增入库：<span className={textPrimary(theme)}>{latestImportResult.added}</span></div>
+              <div className={`rounded-lg px-3 py-2 ${isDark ? 'bg-white/[0.04]' : 'bg-slate-50'}`}>本次新增：<span className={textPrimary(theme)}>{latestImportResult.added}</span></div>
               <div className={`rounded-lg px-3 py-2 ${isDark ? 'bg-white/[0.04]' : 'bg-slate-50'}`}>有效候选：<span className={textPrimary(theme)}>{latestImportResult.candidates}</span></div>
               <div className={`rounded-lg px-3 py-2 ${isDark ? 'bg-white/[0.04]' : 'bg-slate-50'}`}>跳过空行/注释：<span className={textPrimary(theme)}>{latestImportResult.skippedBlankOrComment}</span></div>
               <div className={`rounded-lg px-3 py-2 ${isDark ? 'bg-white/[0.04]' : 'bg-slate-50'}`}>跳过超长：<span className={textPrimary(theme)}>{latestImportResult.skippedTooLong}</span></div>

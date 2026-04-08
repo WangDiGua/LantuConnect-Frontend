@@ -14,7 +14,7 @@ import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTa
 import type { PerformanceMetric } from '../../types/dto/monitoring';
 import { RESOURCE_TYPE_LABEL } from '../../constants/resourceTypes';
 
-const PAGE_DESC = '按统一资源类型查看近 24 小时网关调用延迟与吞吐（数据来自 t_call_log 按小时聚合）';
+const PAGE_DESC = '按统一资源类型查看近 24 小时网关调用延迟与吞吐（数据来自调用日志按小时聚合）';
 
 interface Props {
   theme: Theme;

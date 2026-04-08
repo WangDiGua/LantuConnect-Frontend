@@ -58,7 +58,7 @@ const REMOTE_CATALOG_MODES: { value: string; label: string; hint: string }[] = [
 ];
 
 const PROVIDERS = [
-  { value: 'skillsmp', label: 'skillsmp（远程目录 + 可落库）' },
+  { value: 'skillsmp', label: 'skillsmp（远程目录 + 可同步到本地）' },
   { value: 'static', label: 'static（仅下方静态条目，无远程拉取）' },
   { value: 'merge', label: 'merge（静态条目 ∪ 远程目录）' },
 ];
@@ -281,7 +281,7 @@ export const SkillExternalMarketSettingsForm: React.FC<Props> = ({ theme, fontSi
           </div>
 
           <div className={`rounded-xl border p-4 ${isDark ? 'border-white/[0.08]' : 'border-slate-200'}`}>
-            <h4 className={`mb-3 text-sm font-semibold ${textPrimary(theme)}`}>provider（与落库逻辑）</h4>
+            <h4 className={`mb-3 text-sm font-semibold ${textPrimary(theme)}`}>provider（与同步策略）</h4>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <label className={`${labelCls} mb-1.5 block`}>provider</label>
@@ -309,7 +309,7 @@ export const SkillExternalMarketSettingsForm: React.FC<Props> = ({ theme, fontSi
                   checked={draft.persistenceEnabled !== false}
                   onChange={(e) => updateDraft({ persistenceEnabled: e.target.checked })}
                 />
-                远程结果落库镜像
+                将远程结果同步为本地镜像
               </label>
             </div>
           </div>
@@ -523,8 +523,7 @@ export const SkillExternalMarketSettingsForm: React.FC<Props> = ({ theme, fontSi
                 </p>
               ) : (
                 <p className={`mt-1.5 text-xs leading-relaxed ${textMuted(theme)}`}>
-                  首次保存或更换 Key 时请在此粘贴完整 SkillsMP API Key；保存时写入数据库{' '}
-                  <code className="font-mono">t_system_param.skill_external_catalog</code>。
+                  首次保存或更换 Key 时请在此粘贴完整 SkillsMP API Key；保存后由服务端安全存储，刷新或下次打开本页即可继续沿用。
                 </p>
               )}
             </div>

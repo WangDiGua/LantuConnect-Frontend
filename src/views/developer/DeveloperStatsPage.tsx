@@ -244,7 +244,7 @@ export const DeveloperStatsPage: React.FC<Props> = ({ theme, fontSize }) => {
             <div className="space-y-1">
               <p className="font-medium">个人调用概览（GET /developer/my-statistics）</p>
               <p className={`text-xs ${isDark ? 'text-sky-200/85' : 'text-sky-900/80'}`}>
-                按当前登录用户在 <span className="font-mono">t_call_log.user_id</span> 聚合，含今日调用、错误率、近 7 日趋势、Top 资源与活跃 API Key；与下方 Owner 成效（资源归属、可选周期）指标<strong>不可逐项相加对比</strong>。
+                按当前登录用户的调用记录聚合，含今日调用、错误率、近 7 日趋势、Top 资源与活跃 API Key；与下方 Owner 成效（资源归属、可选周期）指标<strong>不可逐项相加对比</strong>。
               </p>
             </div>
           </div>

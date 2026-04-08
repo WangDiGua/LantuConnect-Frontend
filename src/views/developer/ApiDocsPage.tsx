@@ -85,7 +85,7 @@ const API_CATEGORIES: ApiCategory[] = [
     { method: 'POST', path: '/resource-center/resources', description: '登记五类资源之一（草稿）。**须 X-User-Id**。请求体为 ResourceUpsertRequest，详见 OpenAPI / 注册表单。', params: [{ name: 'body', type: 'ResourceUpsertRequest', required: true, description: 'resourceType、displayName、spec 等' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { id: 101, resourceType: 'mcp', status: 'draft' } }, null, 2) },
     { method: 'GET', path: '/resource-center/resources/mine', description: '分页查询本人登记的资源（草稿/审核中/已发布等）。', params: [{ name: 'page', type: 'number', required: false, description: '默认 1' }, { name: 'pageSize', type: 'number', required: false, description: '默认 20' }, { name: 'resourceType', type: 'string', required: false, description: '' }, { name: 'status', type: 'string', required: false, description: '' }, { name: 'keyword', type: 'string', required: false, description: '' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { records: [], total: 0, page: 1, pageSize: 20 } }, null, 2) },
     { method: 'POST', path: '/resource-center/resources/{id}/submit', description: '提交审核（进入审核队列）；后续由 reviewer 等在 /audit/* 或统一审核列表处理。', params: [{ name: 'id', type: 'number', required: true, description: '资源主键' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { id: 101, status: 'pending_review' } }, null, 2) },
-    { method: 'POST', path: '/resource-center/resources/mcp/connectivity-probe', description: '登记 MCP 前可选：JSON-RPC initialize 短探测，验证 URL 可达（不落库）。', params: [{ name: 'body', type: 'McpConnectivityProbeRequest', required: true, description: 'endpointUrl 等' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { ok: true, latencyMs: 120 } }, null, 2) },
+    { method: 'POST', path: '/resource-center/resources/mcp/connectivity-probe', description: '登记 MCP 前可选：JSON-RPC initialize 短探测，验证 URL 可达（不写登记记录）。', params: [{ name: 'body', type: 'McpConnectivityProbeRequest', required: true, description: 'endpointUrl 等' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { ok: true, latencyMs: 120 } }, null, 2) },
     { method: 'GET', path: '/resource-center/resources/{id}/skill-artifact', description: '下载已发布技能的制品包（文件流；权限与目录/Grant 策略一致，非网关 invoke）。', params: [{ name: 'id', type: 'number', required: true, description: '资源 ID' }], responseExample: '（application/octet-stream）' },
   ]},
   { id: 'user-activity', label: '个人用量与收藏', endpoints: [
@@ -274,7 +274,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
                   {proseH2(theme, '账号、组织与平台角色')}
                   {prosePara(theme, (
                     <>
-                      师生使用学校统一身份（学工号等）登录。学院/部门与组织树（后端组织节点，如 <span className="font-mono">t_menu</span>）关联，影响「同院系开放」类策略（<span className="font-mono">open_org</span>，见下文）。
+                      师生使用学校统一身份（学工号等）登录。学院/部门与全校组织架构树中的节点关联，影响「同院系开放」类策略（<span className="font-mono">open_org</span>，见下文）。
                     </>
                   ))}
                   {prosePara(theme, (

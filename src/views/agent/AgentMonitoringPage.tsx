@@ -223,7 +223,7 @@ export const AgentMonitoringPage: React.FC<AgentMonitoringPageProps> = ({ theme,
                 <h3 className={`text-sm font-bold ${textPrimary(theme)}`}>按小时桶的延迟均值（示意 P99）</h3>
               </div>
               <p className={`mb-3 text-xs ${textMuted(theme)}`}>
-                数据来自当前筛选条件下的 <span className="font-mono">t_call_log</span> 聚合；每条为整点小时桶。
+                数据来自当前筛选条件下的调用日志聚合；每条为整点小时桶。
               </p>
               <div className="space-y-3">
                 {filtered.slice(0, 5).map((r) => (

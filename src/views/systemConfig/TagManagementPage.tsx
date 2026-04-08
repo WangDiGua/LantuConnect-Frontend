@@ -69,7 +69,7 @@ function normalizeTagCategory(raw: string | undefined | null): TagCategory {
   }
 }
 
-/** 与后端 t_tag.category 一致：agent / skill / mcp / app / dataset / general */
+/** 分类与统一资源目录侧一致：agent / skill / mcp / app / dataset / general */
 function tagCategoryToApi(cat: TagCategory): string {
   switch (cat) {
     case 'Agent': return 'agent';
@@ -90,7 +90,7 @@ function toLocalTag(dto: TagDTO): LocalTag {
   };
 }
 
-const PAGE_DESC = '按 Agent、Skill、MCP、应用、数据集与通用维度维护标签，供统一资源目录筛选与推荐；保存后与 t_tag.category 同步。';
+const PAGE_DESC = '按 Agent、Skill、MCP、应用、数据集与通用维度维护标签，供统一资源目录筛选与推荐；保存后立即在目录与筛选中生效。';
 
 export const TagManagementPage: React.FC<Props> = ({ theme, fontSize, showMessage }) => {
   const isDark = theme === 'dark';

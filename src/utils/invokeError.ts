@@ -25,7 +25,7 @@ export function mapInvokeFlowError(err: unknown, stage: InvokeStage): string {
       if (err.status === 403 || err.code === 1003) {
         return [
           base,
-          '请确认：① 工具测试里填的是该资源「已批准授权」对应的 API Key 完整 secret（与个人设置里存的全局 Key 可能不是同一把）；② 后端库中 t_resource_invoke_grant 对 resourceId+该 Key 的 id 存在 active 记录；③ 授权未过期（expires_at）。',
+          '请确认：① 工具测试里填的是该资源「已批准授权」对应的 API Key 完整 secret（与个人设置里存的全局 Key 可能不是同一把）；② 该资源与当前 Key 之间已有生效中的授权；③ 授权未过期。',
         ].join('\n');
       }
       return base;

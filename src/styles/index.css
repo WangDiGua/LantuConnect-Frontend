@@ -210,6 +210,23 @@
     outline: none !important;
     box-shadow: none !important;
   }
+
+  /**
+   * 纵向/横向 overflow 滚动：iOS 惯性、滚动锚定；与 JSX 里 overflow-y-auto / overflow-x-auto 同用。
+   * 视觉滚动条仍由下方 base 层 * { scrollbar-width:none } 隐藏。
+   */
+  .custom-scrollbar {
+    -webkit-overflow-scrolling: touch;
+    overflow-anchor: auto;
+  }
+
+  /**
+   * 与 MainLayout / uiClasses `mainScrollCompositorClass` 搭配：不参与滚动条命名，仅滚动表现优化（勿与 transform-gpu 同节点叠 overflow 主滚动）。
+   */
+  .lantu-scroll-compositor {
+    -webkit-overflow-scrolling: touch;
+    overflow-anchor: auto;
+  }
 }
 
 /* Focus — subtle ring, never thick DaisyUI outline */

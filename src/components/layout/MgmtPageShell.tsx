@@ -2,7 +2,7 @@ import React from 'react';
 import { ChevronRight, type LucideIcon } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
-import { bentoCard, consoleMgmtShellOuterBottomPad } from '../../utils/uiClasses';
+import { bentoCard, consoleMgmtShellOuterBottomPad, mainScrollCompositorClass } from '../../utils/uiClasses';
 
 export interface MgmtPageShellProps {
   theme: Theme;
@@ -50,7 +50,7 @@ export const MgmtPageShell: React.FC<MgmtPageShellProps> = ({
   const bodyTopPad = 'pt-5 sm:pt-6';
   const bodyScrollClass = docScroll
     ? `min-w-0 shrink-0 overflow-visible flex flex-col ${bodyTopPad}`
-    : `flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden flex flex-col ${bodyTopPad}`;
+    : `flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden flex flex-col custom-scrollbar ${mainScrollCompositorClass} ${bodyTopPad}`;
 
   return (
     <div className={`flex-1 flex flex-col min-h-0 min-w-0 ${shellOverflow} bg-transparent`}>

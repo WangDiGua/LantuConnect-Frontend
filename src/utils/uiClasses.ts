@@ -25,8 +25,8 @@ export const consoleShellBelowHeaderPt =
 export const consoleContentTopPad = 'pt-5 sm:pt-6';
 /** 管理台白卡片外圈：保留下边缝与水平 padding；顶距由 MainLayout 统一承担 */
 export const consoleMgmtShellOuterBottomPad = 'pb-2 sm:pb-3';
-/** flex 滚动区需要 min-h-0；勿在业务页根再套 overscroll-y-contain（会阻断滚轮到 MainLayout 主滚动） */
-export const mainScrollCompositorClass = 'min-h-0';
+/** flex 滚动区：min-h-0 + 触控惯性/锚定（见 index.css `.lantu-scroll-compositor`）；勿在业务页根再套 overscroll-y-contain（会阻断滚轮到 MainLayout 主滚动） */
+export const mainScrollCompositorClass = 'min-h-0 lantu-scroll-compositor';
 /** 主内容纵向滚动区常用组合（与 MainLayout 主滚动子树一致；含统一顶距） */
 export const pageScrollShell = `${mainScrollCompositorClass} ${mainScrollPadX} ${mainScrollPadBottom}`;
 /** 布局壳层 GPU 合成；勿与同一节点的 overflow-y-auto 主滚动根混用 */

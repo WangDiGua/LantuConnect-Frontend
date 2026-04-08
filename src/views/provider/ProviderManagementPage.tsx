@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Plus, RefreshCw, Server } from 'lucide-react';
 import { buildPath } from '../../constants/consoleRoutes';
@@ -17,6 +17,7 @@ import {
   btnSecondary,
   fieldErrorText,
   inputBaseError,
+  mgmtTableActionGhost,
   textMuted,
   textPrimary,
   textSecondary,
@@ -26,6 +27,9 @@ import { formatDateTime } from '../../utils/formatDateTime';
 import { providerStatusLabelZh, providerTypeLabelZh } from '../../utils/backendEnumLabels';
 import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedContentToTop';
+import { MgmtBatchToolbar } from '../../components/management/MgmtBatchToolbar';
+import { ConfirmDialog } from '../../components/common/ConfirmDialog';
+import { lantuCheckboxPrimaryClass } from '../../utils/formFieldClasses';
 
 interface Props {
   theme: Theme;
@@ -70,6 +74,9 @@ export const ProviderManagementPage: React.FC<Props> = ({
   useScrollPaginatedContentToTop(page);
   const [total, setTotal] = useState(0);
   const pageSize = 20;
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [batchStatusTarget, setBatchStatusTarget] = useState<null | 'active' | 'inactive'>(null);
+  const [batchBusy, setBatchBusy] = useState(false);
 
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({
@@ -116,6 +123,36 @@ export const ProviderManagementPage: React.FC<Props> = ({
   useEffect(() => {
     void loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [page, keyword, providerType]);
+
+  const selectedNumericIds = useMemo(
+    () => Array.from(selectedIds, (id) => Number(id)).filter((id) => id > 0 && rows.some((r) => r.id === id)),
+    [rows, selectedIds],
+  );
+
+  const runBatchStatus = async (status: 'active' | 'inactive') => {
+    const ids = selectedNumericIds;
+    if (!ids.length) return;
+    setBatchBusy(true);
+    try {
+      await providerService.batchPatch(ids, { status });
+      showMessage(`已批量${status === 'active' ? '启用' : '停用'} ${ids.length} 个 Provider`, 'success');
+      setSelectedIds(new Set());
+      setBatchStatusTarget(null);
+      await loadData();
+    } catch (err) {
+      showMessage(err instanceof Error ? err.message : '批量更新失败', 'error');
+    } finally {
+      setBatchBusy(false);
+    }
+  };
+
+  const selectAllOnPage = () => {
+    setSelectedIds(new Set(rows.map((r) => String(r.id))));
+  };
 
   const createProvider = async () => {
     const next: { providerCode?: string; providerName?: string } = {};
@@ -290,17 +327,65 @@ export const ProviderManagementPage: React.FC<Props> = ({
             ) : rows.length === 0 ? (
               <EmptyState title="暂无 Provider" description="当前条件下没有可展示的 Provider 元数据。" />
             ) : (
-              <div className="space-y-2">
-                {rows.map((row) => (
-                  <div key={row.id} className={`rounded-xl border px-3 py-2 ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-white'}`}>
-                    <p className={`text-sm font-semibold ${textPrimary(theme)}`}>{row.providerName}</p>
-                    <p className={`text-xs ${textSecondary(theme)}`}>
-                      编码 {row.providerCode} · 类型 {providerTypeLabelZh(row.providerType)} · 状态 {providerStatusLabelZh(row.status)} · 更新{' '}
-                      {row.updateTime === '-' ? '—' : formatDateTime(row.updateTime)}
-                    </p>
-                  </div>
-                ))}
-              </div>
+              <>
+                <MgmtBatchToolbar theme={theme} count={selectedIds.size} onClear={() => setSelectedIds(new Set())}>
+                  <button
+                    type="button"
+                    className={mgmtTableActionGhost(theme)}
+                    disabled={batchBusy || rows.length === 0}
+                    onClick={selectAllOnPage}
+                  >
+                    本页全选
+                  </button>
+                  <button
+                    type="button"
+                    className={mgmtTableActionGhost(theme)}
+                    disabled={batchBusy || selectedNumericIds.length === 0}
+                    onClick={() => setBatchStatusTarget('active')}
+                  >
+                    批量启用
+                  </button>
+                  <button
+                    type="button"
+                    className={mgmtTableActionGhost(theme)}
+                    disabled={batchBusy || selectedNumericIds.length === 0}
+                    onClick={() => setBatchStatusTarget('inactive')}
+                  >
+                    批量停用
+                  </button>
+                </MgmtBatchToolbar>
+                <div className="space-y-2">
+                  {rows.map((row) => (
+                    <div
+                      key={row.id}
+                      className={`flex gap-3 rounded-xl border px-3 py-2 ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-white'}`}
+                    >
+                      <input
+                        type="checkbox"
+                        className={`${lantuCheckboxPrimaryClass} mt-1 shrink-0`}
+                        checked={selectedIds.has(String(row.id))}
+                        onChange={() => {
+                          setSelectedIds((prev) => {
+                            const next = new Set(prev);
+                            const k = String(row.id);
+                            if (next.has(k)) next.delete(k);
+                            else next.add(k);
+                            return next;
+                          });
+                        }}
+                        aria-label={`多选：${row.providerName}`}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className={`text-sm font-semibold ${textPrimary(theme)}`}>{row.providerName}</p>
+                        <p className={`text-xs ${textSecondary(theme)}`}>
+                          编码 {row.providerCode} · 类型 {providerTypeLabelZh(row.providerType)} · 状态 {providerStatusLabelZh(row.status)} · 更新{' '}
+                          {row.updateTime === '-' ? '—' : formatDateTime(row.updateTime)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </div>
           <div className={`border-t px-4 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
@@ -308,6 +393,22 @@ export const ProviderManagementPage: React.FC<Props> = ({
           </div>
         </div>
       </div>
+      <ConfirmDialog
+        open={batchStatusTarget !== null}
+        title={batchStatusTarget === 'inactive' ? '批量停用 Provider' : '批量启用 Provider'}
+        message={
+          batchStatusTarget === 'inactive'
+            ? `确定将已选 ${selectedNumericIds.length} 个 Provider 设为停用？关联资源调用可能受影响。`
+            : `确定将已选 ${selectedNumericIds.length} 个 Provider 设为启用？`
+        }
+        confirmText={batchStatusTarget === 'inactive' ? '批量停用' : '批量启用'}
+        variant={batchStatusTarget === 'inactive' ? 'warning' : 'info'}
+        loading={batchBusy}
+        onCancel={() => !batchBusy && setBatchStatusTarget(null)}
+        onConfirm={() => {
+          if (batchStatusTarget) void runBatchStatus(batchStatusTarget);
+        }}
+      />
     </MgmtPageShell>
   );
 };

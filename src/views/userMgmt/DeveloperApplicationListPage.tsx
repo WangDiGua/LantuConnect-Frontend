@@ -14,10 +14,13 @@ import { Pagination } from '../../components/common/Pagination';
 import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedContentToTop';
 import { MgmtDataTable } from '../../components/management/MgmtDataTable';
 import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
+import { MgmtBatchToolbar } from '../../components/management/MgmtBatchToolbar';
 import { TOOLBAR_ROW_LIST } from '../../utils/toolbarFieldClasses';
 import {
+  bentoCard,
   btnPrimary,
   btnSecondary,
+  btnGhost,
   fieldErrorText,
   inputBaseError,
   mgmtTableActionDanger,
@@ -67,6 +70,17 @@ export const DeveloperApplicationListPage: React.FC<Props> = ({ theme, fontSize,
   const [rejectComment, setRejectComment] = useState('');
   const [rejectCommentError, setRejectCommentError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  const [batchRunning, setBatchRunning] = useState(false);
+  const [batchRejectIds, setBatchRejectIds] = useState<number[] | null>(null);
+  const [batchRejectComment, setBatchRejectComment] = useState('');
+  const [batchRejectCommentError, setBatchRejectCommentError] = useState('');
+
+  const clearSelection = useCallback(() => setSelectedKeys(new Set()), []);
+
+  useEffect(() => {
+    clearSelection();
+  }, [page, debouncedSearch, clearSelection]);
 
   useEffect(() => {
     const id = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
@@ -129,6 +143,67 @@ export const DeveloperApplicationListPage: React.FC<Props> = ({ theme, fontSize,
 
   const list = data?.list ?? [];
   const filteredList = list;
+
+  const selectedApps = useMemo(
+    () => list.filter((a) => selectedKeys.has(String(a.id))),
+    [list, selectedKeys],
+  );
+  const pendingSelected = useMemo(
+    () => selectedApps.filter((a) => a.status === 'pending'),
+    [selectedApps],
+  );
+
+  const runBatchApprove = useCallback(async () => {
+    const ids = pendingSelected.map((a) => a.id);
+    if (!ids.length) {
+      showMessage('请至少选择一条「待审核」申请', 'info');
+      return;
+    }
+    setBatchRunning(true);
+    try {
+      await developerApplicationService.batchApprove(ids, {});
+      showMessage(`已批量通过 ${ids.length} 条`, 'success');
+      clearSelection();
+      void fetchList(page);
+    } catch (e) {
+      showMessage(e instanceof Error ? e.message : '批量通过失败', 'error');
+    } finally {
+      setBatchRunning(false);
+    }
+  }, [pendingSelected, fetchList, page, showMessage, clearSelection]);
+
+  const openBatchReject = useCallback(() => {
+    const ids = pendingSelected.map((a) => a.id);
+    if (!ids.length) {
+      showMessage('请至少选择一条「待审核」申请', 'info');
+      return;
+    }
+    setBatchRejectIds(ids);
+    setBatchRejectComment('');
+    setBatchRejectCommentError('');
+  }, [pendingSelected, showMessage]);
+
+  const submitBatchReject = useCallback(async () => {
+    if (!batchRejectIds?.length) return;
+    if (!batchRejectComment.trim()) {
+      setBatchRejectCommentError('请填写驳回原因');
+      return;
+    }
+    setBatchRejectCommentError('');
+    setBatchRunning(true);
+    try {
+      await developerApplicationService.batchReject(batchRejectIds, { reviewComment: batchRejectComment.trim() });
+      showMessage('批量驳回完成', 'success');
+      setBatchRejectIds(null);
+      setBatchRejectComment('');
+      clearSelection();
+      void fetchList(page);
+    } catch (e) {
+      showMessage(e instanceof Error ? e.message : '批量驳回失败', 'error');
+    } finally {
+      setBatchRunning(false);
+    }
+  }, [batchRejectIds, batchRejectComment, fetchList, page, showMessage, clearSelection]);
 
   const columns = useMemo<MgmtDataTableColumn<DeveloperApplicationVO>[]>(
     () => [
@@ -260,17 +335,88 @@ export const DeveloperApplicationListPage: React.FC<Props> = ({ theme, fontSize,
         ) : filteredList.length === 0 ? (
           <EmptyState title="无匹配申请" description="请调整搜索关键词或切换页码" />
         ) : (
-          <MgmtDataTable
-            theme={theme}
-            columns={columns}
-            rows={filteredList}
-            getRowKey={(app) => app.id}
-            minWidth="72rem"
-            surface="plain"
-          />
+          <>
+            <MgmtBatchToolbar theme={theme} count={selectedKeys.size} onClear={clearSelection}>
+              <button
+                type="button"
+                className={mgmtTableActionPositive(theme)}
+                disabled={batchRunning || selectedKeys.size === 0}
+                onClick={() => void runBatchApprove()}
+              >
+                {batchRunning ? '处理中…' : '批量通过'}
+              </button>
+              <button
+                type="button"
+                className={btnSecondary(theme)}
+                disabled={batchRunning || selectedKeys.size === 0}
+                onClick={openBatchReject}
+              >
+                批量驳回
+              </button>
+            </MgmtBatchToolbar>
+            <MgmtDataTable
+              theme={theme}
+              columns={columns}
+              rows={filteredList}
+              getRowKey={(app) => String(app.id)}
+              minWidth="72rem"
+              surface="plain"
+              selection={{
+                selectedKeys,
+                onSelectionChange: setSelectedKeys,
+              }}
+            />
+          </>
         )}
         <Pagination theme={theme} page={page} pageSize={PAGE_SIZE} total={data?.total ?? 0} onChange={setPage} />
       </div>
+
+      {batchRejectIds && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
+          onClick={() => { if (!batchRunning) { setBatchRejectIds(null); setBatchRejectCommentError(''); } }}
+        >
+          <div className={`${bentoCard(theme)} w-full max-w-lg p-4`} onClick={(e) => e.stopPropagation()}>
+            <h3 className={`text-base font-semibold ${textPrimary(theme)}`}>批量驳回 · {batchRejectIds.length} 条待审核</h3>
+            <label htmlFor="dev-batch-reject-comment" className={`mt-3 block text-xs font-medium ${textSecondary(theme)}`}>
+              驳回原因
+            </label>
+            <AutoHeightTextarea
+              id="dev-batch-reject-comment"
+              minRows={4}
+              maxRows={14}
+              value={batchRejectComment}
+              onChange={(e) => {
+                setBatchRejectComment(e.target.value);
+                setBatchRejectCommentError('');
+              }}
+              className={`mt-1.5 w-full rounded-xl border px-3 py-2 text-sm resize-none ${
+                isDark ? 'border-white/10 bg-white/[0.04] text-slate-200' : 'border-slate-200 bg-white text-slate-700'
+              }${batchRejectCommentError ? ` ${inputBaseError()}` : ''}`}
+              placeholder="请输入驳回原因"
+              aria-invalid={!!batchRejectCommentError}
+            />
+            {batchRejectCommentError ? (
+              <p className={`mt-1.5 ${fieldErrorText()} text-xs`} role="alert">
+                {batchRejectCommentError}
+              </p>
+            ) : null}
+            <div className="mt-3 flex justify-end gap-2">
+              <button
+                type="button"
+                className={btnGhost(theme)}
+                disabled={batchRunning}
+                onClick={() => { setBatchRejectIds(null); setBatchRejectCommentError(''); }}
+              >
+                取消
+              </button>
+              <button type="button" className={`${btnPrimary} disabled:opacity-50`} disabled={batchRunning} onClick={() => void submitBatchReject()}>
+                {batchRunning ? '提交中…' : '确认驳回'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ConfirmDialog
         open={actionTarget?.action === 'approve'}

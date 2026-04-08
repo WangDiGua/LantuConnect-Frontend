@@ -9,6 +9,7 @@ import {
   bentoCard,
   btnGhost,
   btnPrimary,
+  btnSecondary,
   mgmtTableActionDanger,
   mgmtTableActionPositive,
   statusBadgeClass,
@@ -24,6 +25,7 @@ import { TOOLBAR_ROW_LIST } from '../../utils/toolbarFieldClasses';
 import { FilterSelect, Pagination, SearchInput } from '../../components/common';
 import { MgmtDataTable } from '../../components/management/MgmtDataTable';
 import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
+import { MgmtBatchToolbar } from '../../components/management/MgmtBatchToolbar';
 import { EmptyState } from '../../components/common/EmptyState';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
@@ -70,7 +72,31 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
   const [forceDeprecateReason, setForceDeprecateReason] = useState('');
   const [loadError, setLoadError] = useState<Error | null>(null);
   const [runningActionId, setRunningActionId] = useState<string | null>(null);
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  const [batchRunning, setBatchRunning] = useState(false);
+  const [batchRejectIds, setBatchRejectIds] = useState<number[] | null>(null);
+  const [batchRejectReason, setBatchRejectReason] = useState('');
+  const [batchRejectReasonError, setBatchRejectReasonError] = useState('');
   const PAGE_SIZE = 20;
+
+  const clearSelection = useCallback(() => setSelectedKeys(new Set()), []);
+
+  useEffect(() => {
+    clearSelection();
+  }, [page, resourceType, statusFilter, search, clearSelection]);
+
+  const selectedItems = useMemo(
+    () => items.filter((i) => selectedKeys.has(String(i.id))),
+    [items, selectedKeys],
+  );
+  const pendingSelected = useMemo(
+    () => selectedItems.filter((i) => i.status === 'pending_review'),
+    [selectedItems],
+  );
+  const testingSelected = useMemo(
+    () => selectedItems.filter((i) => i.status === 'testing'),
+    [selectedItems],
+  );
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -119,6 +145,77 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
     },
     [fetchData, showMessage],
   );
+
+  const runBatchApprove = useCallback(async () => {
+    const ids = pendingSelected.map((i) => i.id);
+    if (!ids.length) {
+      showMessage('请至少选择一条「待审核」记录', 'info');
+      return;
+    }
+    setBatchRunning(true);
+    try {
+      await resourceAuditService.batchApprove(ids);
+      showMessage(`已通过 ${ids.length} 条，资源已进入测试中`, 'success');
+      clearSelection();
+      await fetchData();
+    } catch (err) {
+      showMessage(err instanceof Error ? err.message : '批量通过失败', 'error');
+    } finally {
+      setBatchRunning(false);
+    }
+  }, [pendingSelected, fetchData, showMessage, clearSelection]);
+
+  const runBatchPublish = useCallback(async () => {
+    const ids = testingSelected.map((i) => i.id);
+    if (!ids.length) {
+      showMessage('请至少选择一条「测试中」记录', 'info');
+      return;
+    }
+    setBatchRunning(true);
+    try {
+      await resourceAuditService.batchPublish(ids);
+      showMessage(`已发布 ${ids.length} 条`, 'success');
+      clearSelection();
+      await fetchData();
+    } catch (err) {
+      showMessage(err instanceof Error ? err.message : '批量发布失败', 'error');
+    } finally {
+      setBatchRunning(false);
+    }
+  }, [testingSelected, fetchData, showMessage, clearSelection]);
+
+  const openBatchReject = useCallback(() => {
+    const ids = pendingSelected.map((i) => i.id);
+    if (!ids.length) {
+      showMessage('请至少选择一条「待审核」记录', 'info');
+      return;
+    }
+    setBatchRejectIds(ids);
+    setBatchRejectReason('');
+    setBatchRejectReasonError('');
+  }, [pendingSelected, showMessage]);
+
+  const submitBatchReject = useCallback(async () => {
+    if (!batchRejectIds?.length) return;
+    if (!batchRejectReason.trim()) {
+      setBatchRejectReasonError('驳回原因不能为空');
+      return;
+    }
+    setBatchRejectReasonError('');
+    setBatchRunning(true);
+    try {
+      await resourceAuditService.batchReject(batchRejectIds, { reason: batchRejectReason.trim() });
+      showMessage('批量驳回完成', 'success');
+      setBatchRejectIds(null);
+      setBatchRejectReason('');
+      clearSelection();
+      await fetchData();
+    } catch (err) {
+      showMessage(err instanceof Error ? err.message : '批量驳回失败', 'error');
+    } finally {
+      setBatchRunning(false);
+    }
+  }, [batchRejectIds, batchRejectReason, fetchData, showMessage, clearSelection]);
 
   const auditColumns = useMemo<MgmtDataTableColumn<ResourceAuditItemVO>[]>(
     () => [
@@ -303,18 +400,102 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
                 <EmptyState title="暂无审核项" description="当前筛选条件下没有待处理项，可切换筛选后重试。" />
               </div>
             ) : (
-              <MgmtDataTable<ResourceAuditItemVO>
-                theme={theme}
-                surface="plain"
-                minWidth="1200px"
-                columns={auditColumns}
-                rows={rows}
-                getRowKey={(item) => item.id}
-              />
+              <>
+                <MgmtBatchToolbar theme={theme} count={selectedKeys.size} onClear={clearSelection}>
+                  <button
+                    type="button"
+                    className={mgmtTableActionPositive(theme)}
+                    disabled={batchRunning || !!runningActionId || selectedKeys.size === 0}
+                    onClick={() => void runBatchApprove()}
+                  >
+                    {batchRunning ? '处理中…' : '批量通过'}
+                  </button>
+                  <button
+                    type="button"
+                    className={btnSecondary(theme)}
+                    disabled={batchRunning || !!runningActionId || selectedKeys.size === 0}
+                    onClick={openBatchReject}
+                  >
+                    批量驳回
+                  </button>
+                  <button
+                    type="button"
+                    className={btnPrimary}
+                    disabled={
+                      batchRunning || !!runningActionId || selectedKeys.size === 0 || !canPublishResource
+                    }
+                    onClick={() => void runBatchPublish()}
+                  >
+                    {batchRunning ? '处理中…' : '批量发布'}
+                  </button>
+                </MgmtBatchToolbar>
+                <MgmtDataTable<ResourceAuditItemVO>
+                  theme={theme}
+                  surface="plain"
+                  minWidth="1200px"
+                  columns={auditColumns}
+                  rows={rows}
+                  getRowKey={(item) => String(item.id)}
+                  selection={{
+                    selectedKeys,
+                    onSelectionChange: setSelectedKeys,
+                  }}
+                />
+              </>
             )}
           <Pagination theme={theme} page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} />
         </div>
       </MgmtPageShell>
+
+      {batchRejectIds && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
+          onClick={() => { if (!batchRunning) { setBatchRejectIds(null); setBatchRejectReasonError(''); } }}
+        >
+          <div className={`${bentoCard(theme)} w-full max-w-lg p-4`} onClick={(e) => e.stopPropagation()}>
+            <h3 className={`text-base font-semibold ${textPrimary(theme)}`}>
+              批量驳回 · {batchRejectIds.length} 条待审核
+            </h3>
+            <label htmlFor="resource-audit-batch-reject-reason" className={`mt-3 block text-xs font-medium ${textSecondary(theme)}`}>
+              驳回原因（将应用于所选待审核项）
+            </label>
+            <AutoHeightTextarea
+              id="resource-audit-batch-reject-reason"
+              minRows={4}
+              maxRows={14}
+              value={batchRejectReason}
+              onChange={(e) => {
+                setBatchRejectReason(e.target.value);
+                setBatchRejectReasonError('');
+              }}
+              className={`mt-1.5 w-full rounded-xl border px-3 py-2 text-sm resize-none ${
+                isDark ? 'border-white/10 bg-white/[0.04] text-slate-200' : 'border-slate-200 bg-white text-slate-700'
+              }${batchRejectReasonError ? ` ${inputBaseError()}` : ''}`}
+              placeholder="请输入驳回原因"
+              aria-invalid={!!batchRejectReasonError}
+              aria-describedby={batchRejectReasonError ? 'resource-audit-batch-reject-err' : undefined}
+            />
+            {batchRejectReasonError ? (
+              <p id="resource-audit-batch-reject-err" className={`mt-1.5 ${fieldErrorText()} text-xs`} role="alert">
+                {batchRejectReasonError}
+              </p>
+            ) : null}
+            <div className="mt-3 flex justify-end gap-2">
+              <button
+                type="button"
+                className={btnGhost(theme)}
+                disabled={batchRunning}
+                onClick={() => { setBatchRejectIds(null); setBatchRejectReasonError(''); }}
+              >
+                取消
+              </button>
+              <button type="button" className={btnPrimary} disabled={batchRunning} onClick={() => void submitBatchReject()}>
+                {batchRunning ? '提交中…' : '确认驳回'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {rejectTarget && (
         <div

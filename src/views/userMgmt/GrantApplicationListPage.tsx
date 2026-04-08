@@ -7,6 +7,7 @@ import {
   bentoCard,
   btnGhost,
   btnPrimary,
+  btnSecondary,
   statusBadgeClass,
   statusDot,
   textMuted,
@@ -23,6 +24,7 @@ import { FilterSelect, Pagination, SearchInput, TableCellEllipsis } from '../../
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { MgmtDataTable } from '../../components/management/MgmtDataTable';
 import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
+import { MgmtBatchToolbar } from '../../components/management/MgmtBatchToolbar';
 import { EmptyState } from '../../components/common/EmptyState';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
@@ -58,7 +60,31 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, fontSize, sho
   const [loadError, setLoadError] = useState<Error | null>(null);
   const [runningActionId, setRunningActionId] = useState<string | null>(null);
   const [revokeTarget, setRevokeTarget] = useState<GrantApplicationVO | null>(null);
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  const [batchRunning, setBatchRunning] = useState(false);
+  const [batchRejectIds, setBatchRejectIds] = useState<number[] | null>(null);
+  const [batchRejectReason, setBatchRejectReason] = useState('');
+  const [batchRejectReasonError, setBatchRejectReasonError] = useState('');
   const PAGE_SIZE = 20;
+
+  const clearSelection = useCallback(() => setSelectedKeys(new Set()), []);
+
+  useEffect(() => {
+    clearSelection();
+  }, [page, debouncedSearch, statusFilter, clearSelection]);
+
+  const selectedItems = useMemo(
+    () => items.filter((i) => selectedKeys.has(String(i.id))),
+    [items, selectedKeys],
+  );
+  const pendingSelected = useMemo(
+    () => selectedItems.filter((i) => i.status === 'pending'),
+    [selectedItems],
+  );
+  const approvedSelected = useMemo(
+    () => selectedItems.filter((i) => i.status === 'approved'),
+    [selectedItems],
+  );
 
   useEffect(() => {
     const id = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
@@ -110,6 +136,77 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, fontSize, sho
       setRunningActionId(null);
     }
   };
+
+  const runBatchApprove = useCallback(async () => {
+    const ids = pendingSelected.map((i) => i.id);
+    if (!ids.length) {
+      showMessage('请至少选择一条「待审批」申请', 'info');
+      return;
+    }
+    setBatchRunning(true);
+    try {
+      await grantApplicationService.batchApprove(ids);
+      showMessage(`已批量通过 ${ids.length} 条`, 'success');
+      clearSelection();
+      await fetchData();
+    } catch (err) {
+      showMessage(err instanceof Error ? err.message : '批量通过失败', 'error');
+    } finally {
+      setBatchRunning(false);
+    }
+  }, [pendingSelected, fetchData, showMessage, clearSelection]);
+
+  const runBatchRevokeGrants = useCallback(async () => {
+    const ids = approvedSelected.map((i) => i.id);
+    if (!ids.length) {
+      showMessage('请至少选择一条「已通过」申请以撤回授权', 'info');
+      return;
+    }
+    setBatchRunning(true);
+    try {
+      await grantApplicationService.batchRevokeEffectiveGrant(ids);
+      showMessage(`已批量撤回 ${ids.length} 条授权`, 'success');
+      clearSelection();
+      await fetchData();
+    } catch (err) {
+      showMessage(err instanceof Error ? err.message : '批量撤回失败', 'error');
+    } finally {
+      setBatchRunning(false);
+    }
+  }, [approvedSelected, fetchData, showMessage, clearSelection]);
+
+  const openBatchReject = useCallback(() => {
+    const ids = pendingSelected.map((i) => i.id);
+    if (!ids.length) {
+      showMessage('请至少选择一条「待审批」申请', 'info');
+      return;
+    }
+    setBatchRejectIds(ids);
+    setBatchRejectReason('');
+    setBatchRejectReasonError('');
+  }, [pendingSelected, showMessage]);
+
+  const submitBatchReject = useCallback(async () => {
+    if (!batchRejectIds?.length) return;
+    if (!batchRejectReason.trim()) {
+      setBatchRejectReasonError('驳回原因不能为空');
+      return;
+    }
+    setBatchRejectReasonError('');
+    setBatchRunning(true);
+    try {
+      await grantApplicationService.batchReject(batchRejectIds, { reason: batchRejectReason.trim() });
+      showMessage('批量驳回完成', 'success');
+      setBatchRejectIds(null);
+      setBatchRejectReason('');
+      clearSelection();
+      await fetchData();
+    } catch (err) {
+      showMessage(err instanceof Error ? err.message : '批量驳回失败', 'error');
+    } finally {
+      setBatchRunning(false);
+    }
+  }, [batchRejectIds, batchRejectReason, fetchData, showMessage, clearSelection]);
 
   const columns = useMemo<MgmtDataTableColumn<GrantApplicationVO>[]>(
     () => [
@@ -324,18 +421,97 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, fontSize, sho
               />
             </div>
           ) : (
-            <MgmtDataTable<GrantApplicationVO>
-              theme={theme}
-              columns={columns}
-              rows={rows}
-              getRowKey={(item) => item.id}
-              minWidth="1200px"
-              surface="plain"
-            />
+            <>
+              <MgmtBatchToolbar theme={theme} count={selectedKeys.size} onClear={clearSelection}>
+                <button
+                  type="button"
+                  className={mgmtTableActionPositive(theme)}
+                  disabled={batchRunning || !!runningActionId || selectedKeys.size === 0}
+                  onClick={() => void runBatchApprove()}
+                >
+                  {batchRunning ? '处理中…' : '批量通过'}
+                </button>
+                <button
+                  type="button"
+                  className={btnSecondary(theme)}
+                  disabled={batchRunning || !!runningActionId || selectedKeys.size === 0}
+                  onClick={openBatchReject}
+                >
+                  批量驳回
+                </button>
+                <button
+                  type="button"
+                  className={mgmtTableActionDanger(theme)}
+                  disabled={batchRunning || !!runningActionId || selectedKeys.size === 0}
+                  onClick={() => void runBatchRevokeGrants()}
+                >
+                  批量撤回授权
+                </button>
+              </MgmtBatchToolbar>
+              <MgmtDataTable<GrantApplicationVO>
+                theme={theme}
+                columns={columns}
+                rows={rows}
+                getRowKey={(item) => String(item.id)}
+                minWidth="1200px"
+                surface="plain"
+                selection={{
+                  selectedKeys,
+                  onSelectionChange: setSelectedKeys,
+                }}
+              />
+            </>
           )}
           <Pagination theme={theme} page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} />
         </div>
       </MgmtPageShell>
+
+      {batchRejectIds && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
+          onClick={() => { if (!batchRunning) { setBatchRejectIds(null); setBatchRejectReasonError(''); } }}
+        >
+          <div className={`${bentoCard(theme)} w-full max-w-lg p-4`} onClick={(e) => e.stopPropagation()}>
+            <h3 className={`text-base font-semibold ${textPrimary(theme)}`}>批量驳回 · {batchRejectIds.length} 条待审批</h3>
+            <label htmlFor="grant-batch-reject-reason" className={`mt-3 block text-xs font-medium ${textSecondary(theme)}`}>
+              驳回原因
+            </label>
+            <AutoHeightTextarea
+              id="grant-batch-reject-reason"
+              minRows={4}
+              maxRows={14}
+              value={batchRejectReason}
+              onChange={(e) => {
+                setBatchRejectReason(e.target.value);
+                setBatchRejectReasonError('');
+              }}
+              className={`mt-1.5 w-full rounded-xl border px-3 py-2 text-sm resize-none ${
+                isDark ? 'border-white/10 bg-white/[0.04] text-slate-200' : 'border-slate-200 bg-white text-slate-700'
+              }${batchRejectReasonError ? ` ${inputBaseError()}` : ''}`}
+              placeholder="请输入驳回原因"
+              aria-invalid={!!batchRejectReasonError}
+            />
+            {batchRejectReasonError ? (
+              <p className={`mt-1.5 ${fieldErrorText()} text-xs`} role="alert">
+                {batchRejectReasonError}
+              </p>
+            ) : null}
+            <div className="mt-3 flex justify-end gap-2">
+              <button
+                type="button"
+                className={btnGhost(theme)}
+                disabled={batchRunning}
+                onClick={() => { setBatchRejectIds(null); setBatchRejectReasonError(''); }}
+              >
+                取消
+              </button>
+              <button type="button" className={btnPrimary} disabled={batchRunning} onClick={() => void submitBatchReject()}>
+                {batchRunning ? '提交中…' : '确认驳回'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {rejectTarget && (
         <div

@@ -10,6 +10,7 @@ import { LantuSelect } from '../../components/common/LantuSelect';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { MgmtDataTable } from '../../components/management/MgmtDataTable';
 import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
+import { MgmtBatchToolbar } from '../../components/management/MgmtBatchToolbar';
 import { EmptyState } from '../../components/common/EmptyState';
 import { Pagination } from '../../components/common/Pagination';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
@@ -72,6 +73,9 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
   useScrollPaginatedContentToTop(page);
   const [data, setData] = useState<PaginatedData<SensitiveWord> | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<SensitiveWord | null>(null);
+  const [batchDeleteConfirm, setBatchDeleteConfirm] = useState(false);
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  const [batchBusy, setBatchBusy] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   const [showAdd, setShowAdd] = useState(false);
@@ -117,6 +121,12 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
   useEffect(() => {
     setPage(1);
   }, [debouncedKeyword, filterCategory, filterEnabled]);
+
+  const clearSelection = useCallback(() => setSelectedKeys(new Set()), []);
+
+  useEffect(() => {
+    clearSelection();
+  }, [page, debouncedKeyword, filterCategory, filterEnabled, clearSelection]);
 
   const categoryFilterSelectOptions = useMemo(
     () => [
@@ -250,6 +260,49 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
       setDeleting(false);
     }
   };
+
+  const listForBatch = useMemo(() => data?.list ?? [], [data?.list]);
+
+  const selectedWords = useMemo(
+    () => listForBatch.filter((w) => selectedKeys.has(String(w.id))),
+    [listForBatch, selectedKeys],
+  );
+
+  const runBatchSetEnabled = useCallback(
+    async (enabled: boolean) => {
+      const ids = selectedWords.map((w) => w.id);
+      if (!ids.length) return;
+      setBatchBusy(true);
+      try {
+        await sensitiveWordService.batchSetEnabled(ids, enabled);
+        showMessage(enabled ? '已批量启用' : '已批量禁用', 'success');
+        clearSelection();
+        void fetchList();
+      } catch (e) {
+        showMessage(e instanceof Error ? e.message : '批量操作失败', 'error');
+      } finally {
+        setBatchBusy(false);
+      }
+    },
+    [selectedWords, fetchList, showMessage, clearSelection],
+  );
+
+  const runBatchRemove = useCallback(async () => {
+    const ids = selectedWords.map((w) => w.id);
+    if (!ids.length) return;
+    setBatchBusy(true);
+    try {
+      await sensitiveWordService.batchRemove(ids);
+      showMessage('已批量删除', 'success');
+      setBatchDeleteConfirm(false);
+      clearSelection();
+      void fetchList();
+    } catch (e) {
+      showMessage(e instanceof Error ? e.message : '批量删除失败', 'error');
+    } finally {
+      setBatchBusy(false);
+    }
+  }, [selectedWords, fetchList, showMessage, clearSelection]);
 
   const handleToggle = useCallback(async (item: SensitiveWord) => {
     try {
@@ -437,14 +490,46 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
             <EmptyState title="暂无敏感词" description="点击「单条新增」或批量导入添加敏感词规则" />
           )
         ) : (
-          <MgmtDataTable
-            theme={theme}
-            columns={sensitiveColumns}
-            rows={list}
-            getRowKey={(item) => item.id}
-            minWidth="40rem"
-            surface="plain"
-          />
+          <>
+            <MgmtBatchToolbar theme={theme} count={selectedKeys.size} onClear={clearSelection}>
+              <button
+                type="button"
+                disabled={batchBusy || selectedKeys.size === 0}
+                className={mgmtTableActionPositive(theme)}
+                onClick={() => void runBatchSetEnabled(true)}
+              >
+                批量启用
+              </button>
+              <button
+                type="button"
+                disabled={batchBusy || selectedKeys.size === 0}
+                className={btnSecondary(theme)}
+                onClick={() => void runBatchSetEnabled(false)}
+              >
+                批量禁用
+              </button>
+              <button
+                type="button"
+                disabled={batchBusy || selectedKeys.size === 0}
+                className={mgmtTableActionDanger(theme)}
+                onClick={() => setBatchDeleteConfirm(true)}
+              >
+                批量删除
+              </button>
+            </MgmtBatchToolbar>
+            <MgmtDataTable
+              theme={theme}
+              columns={sensitiveColumns}
+              rows={list}
+              getRowKey={(item) => String(item.id)}
+              minWidth="40rem"
+              surface="plain"
+              selection={{
+                selectedKeys,
+                onSelectionChange: setSelectedKeys,
+              }}
+            />
+          </>
         )}
 
         <Pagination theme={theme} page={page} pageSize={SENSITIVE_PAGE_SIZE} total={data?.total ?? 0} onChange={setPage} />
@@ -679,6 +764,16 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
         loading={deleting}
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
+      />
+      <ConfirmDialog
+        open={batchDeleteConfirm}
+        title="批量删除敏感词"
+        message={`确认删除已选的 ${selectedKeys.size} 条敏感词？此操作不可恢复。`}
+        variant="warning"
+        confirmText="删除"
+        loading={batchBusy}
+        onConfirm={() => void runBatchRemove()}
+        onCancel={() => setBatchDeleteConfirm(false)}
       />
     </MgmtPageShell>
   );

@@ -1,4 +1,6 @@
 import { http } from '../../lib/http';
+import { tryBatchPost } from '../../utils/batchApi';
+import { runWithConcurrency } from '../../utils/runWithConcurrency';
 import { normalizePaginated } from '../../utils/normalizeApiPayload';
 import type { ResourceGrantCreateRequest, ResourceGrantListQuery, ResourceGrantVO } from '../../types/dto/catalog';
 
@@ -30,4 +32,19 @@ export const resourceGrantService = {
 
   remove: (grantId: string | number) =>
     http.delete<void>(`/resource-grants/${grantId}`),
+
+  batchRemove: async (ids: Array<string | number>): Promise<void> => {
+    const norm = ids.map((x) => String(x));
+    if (!norm.length) return;
+    await tryBatchPost(
+      '/resource-grants/batch-delete',
+      { ids: norm },
+      async () => {
+        const r = await runWithConcurrency(norm, 4, async (id) => {
+          await http.delete<void>(`/resource-grants/${id}`);
+        });
+        if (r.errors.length) throw r.errors[0]!.error;
+      },
+    );
+  },
 };

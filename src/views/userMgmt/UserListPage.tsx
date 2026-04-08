@@ -9,6 +9,7 @@ import { MultiAvatar } from '../../components/common/MultiAvatar';
 import { SearchInput, FilterSelect, Pagination } from '../../components/common';
 import { MgmtDataTable } from '../../components/management/MgmtDataTable';
 import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
+import { MgmtBatchToolbar } from '../../components/management/MgmtBatchToolbar';
 import { userMgmtService } from '../../api/services/user-mgmt.service';
 import type { UserRecord, RoleRecord } from '../../types/dto/user-mgmt';
 import {
@@ -61,6 +62,15 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
   const [page, setPage] = useState(1);
   useScrollPaginatedContentToTop(page);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  const [batchBusy, setBatchBusy] = useState(false);
+  const [batchDisableConfirm, setBatchDisableConfirm] = useState(false);
+
+  const clearSelection = useCallback(() => setSelectedKeys(new Set()), []);
+
+  useEffect(() => {
+    clearSelection();
+  }, [page, search, statusFilter, clearSelection]);
 
   const listSegments = useMemo(() => [...breadcrumbBase, '用户列表'] as const, [breadcrumbBase]);
   const formSegments = useMemo(
@@ -104,6 +114,35 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
   useEffect(() => {
     setPage(1);
   }, [search, statusFilter]);
+
+  const selectedUsers = useMemo(
+    () => paginated.filter((u) => selectedKeys.has(String(u.id))),
+    [paginated, selectedKeys],
+  );
+
+  const runBatchSetStatus = useCallback(
+    async (status: 'active' | 'disabled') => {
+      const targets = selectedUsers.filter((u) => u.status !== 'locked');
+      const ids = targets.map((u) => u.id);
+      if (!ids.length) {
+        showMessage('所选账号中没有可变更状态的记录（已锁定账号需单独处理）', 'info');
+        return;
+      }
+      setBatchBusy(true);
+      try {
+        await userMgmtService.batchPatchUsers(ids, { status });
+        showMessage(status === 'active' ? '已批量启用' : '已批量停用', 'success');
+        clearSelection();
+        setBatchDisableConfirm(false);
+        await fetchUsers();
+      } catch (err) {
+        showMessage(err instanceof Error ? err.message : '批量操作失败', 'error');
+      } finally {
+        setBatchBusy(false);
+      }
+    },
+    [selectedUsers, fetchUsers, showMessage, clearSelection],
+  );
 
   const openCreate = useCallback(() => { setForm(emptyForm()); setEditingId(null); setMode('create'); }, []);
   const openEdit = useCallback((u: UserRecord) => {
@@ -344,19 +383,60 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
           ) : paginated.length === 0 ? (
             <div className={`text-center py-12 text-sm ${textMuted(theme)}`}>暂无匹配用户</div>
           ) : (
-            <MgmtDataTable<UserRecord>
-              theme={theme}
-              surface="plain"
-              minWidth="1100px"
-              columns={userColumns}
-              rows={paginated}
-              getRowKey={(u) => u.id}
-            />
+            <>
+              {canMutateUsers ? (
+                <MgmtBatchToolbar theme={theme} count={selectedKeys.size} onClear={clearSelection}>
+                  <button
+                    type="button"
+                    disabled={batchBusy || selectedKeys.size === 0}
+                    className={mgmtTableActionPositive(theme)}
+                    onClick={() => void runBatchSetStatus('active')}
+                  >
+                    批量启用
+                  </button>
+                  <button
+                    type="button"
+                    disabled={batchBusy || selectedKeys.size === 0}
+                    className={btnSecondary(theme)}
+                    onClick={() => setBatchDisableConfirm(true)}
+                  >
+                    批量停用
+                  </button>
+                </MgmtBatchToolbar>
+              ) : null}
+              <MgmtDataTable<UserRecord>
+                theme={theme}
+                surface="plain"
+                minWidth="1100px"
+                columns={userColumns}
+                rows={paginated}
+                getRowKey={(u) => String(u.id)}
+                selection={
+                  canMutateUsers
+                    ? {
+                        selectedKeys,
+                        onSelectionChange: setSelectedKeys,
+                        getSelectable: (u) => u.status !== 'locked',
+                      }
+                    : undefined
+                }
+              />
+            </>
           )}
           <Pagination theme={theme} page={page} pageSize={PAGE_SIZE} total={totalUsers} onChange={setPage} />
         </div>
       </MgmtPageShell>
       <ConfirmDialog open={!!deleteTarget} title="删除用户" message="确定删除该用户？" confirmText="删除" variant="danger" onConfirm={handleDelete} onCancel={() => setDeleteTarget(null)} />
+      <ConfirmDialog
+        open={batchDisableConfirm}
+        title="批量停用用户"
+        message={`将停用已选中的 ${selectedKeys.size} 个账号（已锁定项已自动排除）。确认继续？`}
+        variant="warning"
+        confirmText="停用"
+        loading={batchBusy}
+        onConfirm={() => void runBatchSetStatus('disabled')}
+        onCancel={() => setBatchDisableConfirm(false)}
+      />
     </>
   );
 };

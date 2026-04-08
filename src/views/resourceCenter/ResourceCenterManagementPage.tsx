@@ -23,6 +23,7 @@ import { EmptyState } from '../../components/common/EmptyState';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { FilterSelect, Pagination, SearchInput } from '../../components/common';
+import { MgmtBatchToolbar } from '../../components/management/MgmtBatchToolbar';
 import { lantuCheckboxPrimaryClass } from '../../utils/formFieldClasses';
 import {
   bentoCard,
@@ -264,6 +265,9 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
   const [timelineLoading, setTimelineLoading] = useState(false);
   const [timelineData, setTimelineData] = useState<LifecycleTimelineVO | null>(null);
   const [observabilityData, setObservabilityData] = useState<ObservabilitySummaryVO | null>(null);
+  const [selectedRcIds, setSelectedRcIds] = useState<Set<string>>(new Set());
+  const [batchWithdrawOpen, setBatchWithdrawOpen] = useState(false);
+  const [batchRcBusy, setBatchRcBusy] = useState(false);
   const PAGE_SIZE = 20;
 
   useEffect(() => {
@@ -298,6 +302,36 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
   useEffect(() => {
     void fetchData();
   }, [fetchData]);
+
+  const clearRcSelection = useCallback(() => setSelectedRcIds(new Set()), []);
+
+  useEffect(() => {
+    clearRcSelection();
+  }, [page, keyword, statusFilter, activeType, clearRcSelection]);
+
+  const runBatchWithdraw = useCallback(async () => {
+    const ids = items
+      .filter(
+        (i) =>
+          selectedRcIds.has(String(i.id)) &&
+          isActionAllowed(i, 'withdraw') &&
+          isCatalogItemOwner(i, myUserId),
+      )
+      .map((i) => i.id);
+    if (!ids.length) return;
+    setBatchRcBusy(true);
+    try {
+      await resourceCenterService.batchWithdraw(ids);
+      showMessage(`已批量撤回 ${ids.length} 条资源`, 'success');
+      setBatchWithdrawOpen(false);
+      clearRcSelection();
+      await fetchData();
+    } catch (e) {
+      showMessage(e instanceof Error ? e.message : '批量撤回失败', 'error');
+    } finally {
+      setBatchRcBusy(false);
+    }
+  }, [items, selectedRcIds, myUserId, showMessage, fetchData, clearRcSelection]);
 
   const title = useMemo(() => {
     if (allowTypeSwitch) return '统一资源管理';
@@ -583,9 +617,40 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                 }
               />
             ) : (
+              <>
+              <div className="px-1">
+                <MgmtBatchToolbar theme={theme} count={selectedRcIds.size} onClear={clearRcSelection}>
+                  <button
+                    type="button"
+                    className={mgmtTableActionGhost(theme)}
+                    disabled={batchRcBusy || selectedRcIds.size === 0}
+                    onClick={() => setBatchWithdrawOpen(true)}
+                  >
+                    批量撤回（需为资源负责人且可撤回）
+                  </button>
+                </MgmtBatchToolbar>
+              </div>
               <div className="space-y-2">
                 {items.map((item) => (
                   <div key={`${item.resourceType}-${item.id}`} className={`${bentoCardHover(theme)} p-4`}>
+                    <div className="flex gap-3 items-start">
+                    <input
+                      type="checkbox"
+                      className={`${lantuCheckboxPrimaryClass} mt-1 shrink-0`}
+                      checked={selectedRcIds.has(String(item.id))}
+                      disabled={!isActionAllowed(item, 'withdraw') || !isCatalogItemOwner(item, myUserId)}
+                      onChange={() => {
+                        setSelectedRcIds((prev) => {
+                          const next = new Set(prev);
+                          const k = String(item.id);
+                          if (next.has(k)) next.delete(k);
+                          else next.add(k);
+                          return next;
+                        });
+                      }}
+                      aria-label={`多选撤回：${item.displayName}`}
+                    />
+                    <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div className="min-w-0">
                         <p className={`truncate font-semibold ${textPrimary(theme)}`}>
@@ -810,9 +875,12 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                         {item.degradationHint ? <div>降级提示: {item.degradationHint}</div> : null}
                       </div>
                     )}
+                    </div>
+                    </div>
                   </div>
                 ))}
               </div>
+              </>
             )}
           </div>
           <div className={`px-4 border-t ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
@@ -1191,6 +1259,16 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
           </div>
         </div>
       )}
+      <ConfirmDialog
+        open={batchWithdrawOpen}
+        title="批量撤回资源"
+        message={`将撤回已选且符合条件的资源（与单条「撤回审核」相同接口）。确认撤回 ${items.filter((i) => selectedRcIds.has(String(i.id)) && isActionAllowed(i, 'withdraw') && isCatalogItemOwner(i, myUserId)).length} 条？`}
+        variant="warning"
+        confirmText="确认撤回"
+        loading={batchRcBusy}
+        onConfirm={() => void runBatchWithdraw()}
+        onCancel={() => setBatchWithdrawOpen(false)}
+      />
       <ConfirmDialog
         open={!!confirmAction}
         title={confirmAction?.type === 'remove' ? '删除资源' : confirmAction?.type === 'deprecate' ? '暂停对外开放' : '撤回审核'}

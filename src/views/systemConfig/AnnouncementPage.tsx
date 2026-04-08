@@ -7,6 +7,7 @@ import { systemConfigService } from '../../api/services/system-config.service';
 import type { AnnouncementItem, AnnouncementCreateRequest } from '../../types/dto/explore';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { MgmtDataTable } from '../../components/management/MgmtDataTable';
+import { MgmtBatchToolbar } from '../../components/management/MgmtBatchToolbar';
 import { EmptyState } from '../../components/common/EmptyState';
 import { Modal } from '../../components/common/Modal';
 import { LantuSelect } from '../../components/common/LantuSelect';
@@ -81,7 +82,21 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
   });
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<AnnouncementItem | null>(null);
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  const [batchBusy, setBatchBusy] = useState(false);
+  const [batchDeleteConfirm, setBatchDeleteConfirm] = useState(false);
   const [announcementFieldErrors, setAnnouncementFieldErrors] = useState<{ title?: string; summary?: string; content?: string }>({});
+
+  const clearSelection = useCallback(() => setSelectedKeys(new Set()), []);
+
+  useEffect(() => {
+    clearSelection();
+  }, [page, debouncedKeyword, filterType, clearSelection]);
+
+  const selectedRows = useMemo(
+    () => list.filter((a) => selectedKeys.has(String(a.id))),
+    [list, selectedKeys],
+  );
 
   useEffect(() => {
     const id = window.setTimeout(() => setDebouncedKeyword(filterKeyword.trim()), 300);
@@ -190,6 +205,42 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
     },
     [fetchList, showMessage],
   );
+
+  const runBatchPatch = useCallback(
+    async (patch: Partial<AnnouncementCreateRequest>, okMsg: string) => {
+      const ids = selectedRows.map((a) => String(a.id)).filter(Boolean);
+      if (!ids.length) return;
+      setBatchBusy(true);
+      try {
+        await systemConfigService.batchPatchAnnouncements(ids, patch);
+        showMessage(okMsg, 'success');
+        clearSelection();
+        await fetchList();
+      } catch (e) {
+        showMessage(e instanceof Error ? e.message : '批量操作失败', 'error');
+      } finally {
+        setBatchBusy(false);
+      }
+    },
+    [selectedRows, fetchList, showMessage, clearSelection],
+  );
+
+  const runBatchDelete = useCallback(async () => {
+    const ids = selectedRows.map((a) => String(a.id)).filter(Boolean);
+    if (!ids.length) return;
+    setBatchBusy(true);
+    try {
+      await systemConfigService.batchDeleteAnnouncements(ids);
+      showMessage('已批量删除', 'success');
+      setBatchDeleteConfirm(false);
+      clearSelection();
+      await fetchList();
+    } catch (e) {
+      showMessage(e instanceof Error ? e.message : '批量删除失败', 'error');
+    } finally {
+      setBatchBusy(false);
+    }
+  }, [selectedRows, fetchList, showMessage, clearSelection]);
 
   const announcementColumns = useMemo(
     () => [
@@ -381,14 +432,62 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
             <EmptyState title="无匹配公告" description="请调整关键词或类型筛选条件。" />
           )
         ) : (
-          <MgmtDataTable
-            theme={theme}
-            columns={announcementColumns}
-            rows={list}
-            getRowKey={(a) => String(a.id)}
-            minWidth="96rem"
-            surface="plain"
-          />
+          <>
+            <MgmtBatchToolbar theme={theme} count={selectedKeys.size} onClear={clearSelection}>
+              <button
+                type="button"
+                disabled={batchBusy || selectedKeys.size === 0}
+                className={btnSecondary(theme)}
+                onClick={() => void runBatchPatch({ enabled: true }, '已批量启用')}
+              >
+                批量启用
+              </button>
+              <button
+                type="button"
+                disabled={batchBusy || selectedKeys.size === 0}
+                className={btnSecondary(theme)}
+                onClick={() => void runBatchPatch({ enabled: false }, '已批量禁用')}
+              >
+                批量禁用
+              </button>
+              <button
+                type="button"
+                disabled={batchBusy || selectedKeys.size === 0}
+                className={btnSecondary(theme)}
+                onClick={() => void runBatchPatch({ pinned: true }, '已批量置顶')}
+              >
+                批量置顶
+              </button>
+              <button
+                type="button"
+                disabled={batchBusy || selectedKeys.size === 0}
+                className={btnSecondary(theme)}
+                onClick={() => void runBatchPatch({ pinned: false }, '已取消置顶')}
+              >
+                批量取消置顶
+              </button>
+              <button
+                type="button"
+                disabled={batchBusy || selectedKeys.size === 0}
+                className={mgmtTableActionDanger(theme)}
+                onClick={() => setBatchDeleteConfirm(true)}
+              >
+                批量删除
+              </button>
+            </MgmtBatchToolbar>
+            <MgmtDataTable
+              theme={theme}
+              columns={announcementColumns}
+              rows={list}
+              getRowKey={(a) => String(a.id)}
+              minWidth="96rem"
+              surface="plain"
+              selection={{
+                selectedKeys,
+                onSelectionChange: setSelectedKeys,
+              }}
+            />
+          </>
         )}
         <Pagination theme={theme} page={page} pageSize={ANNOUNCEMENT_PAGE_SIZE} total={total} onChange={setPage} />
       </div>
@@ -520,6 +619,16 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
       </Modal>
 
       <ConfirmDialog open={!!deleteTarget} title="删除公告" message={`确认删除「${deleteTarget?.title ?? ''}」？`} variant="warning" confirmText="删除" onConfirm={handleDelete} onCancel={() => setDeleteTarget(null)} />
+      <ConfirmDialog
+        open={batchDeleteConfirm}
+        title="批量删除公告"
+        message={`确认删除已选的 ${selectedKeys.size} 条公告？此操作不可恢复。`}
+        variant="warning"
+        confirmText="删除"
+        loading={batchBusy}
+        onConfirm={() => void runBatchDelete()}
+        onCancel={() => setBatchDeleteConfirm(false)}
+      />
     </MgmtPageShell>
   );
 };

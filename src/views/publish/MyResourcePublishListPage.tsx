@@ -14,6 +14,7 @@ import {
   textPrimary,
   textSecondary,
   textMuted,
+  mgmtTableActionGhost,
 } from '../../utils/uiClasses';
 import type { DomainStatus } from '../../utils/uiClasses';
 import { useMessage } from '../../components/common/Message';
@@ -30,6 +31,8 @@ import { unifiedResourceCenterPath } from '../../utils/unifiedResourceCenterPath
 import { RESOURCE_TYPE_LABEL_ZH, RESOURCE_TYPE_REGISTER_PAGE } from '../../constants/resourceTypes';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { useUserRole } from '../../context/UserRoleContext';
+import { MgmtBatchToolbar } from '../../components/management/MgmtBatchToolbar';
+import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 
 export interface MyResourcePublishListConfig {
   titleIcon: LucideIcon;
@@ -65,6 +68,9 @@ export const MyResourcePublishListPage: React.FC<Props> = ({ theme, fontSize, re
   const [withdrawTarget, setWithdrawTarget] = useState<MyPublishItem | null>(null);
   const [withdrawSubmitting, setWithdrawSubmitting] = useState(false);
   const [viewTarget, setViewTarget] = useState<MyPublishItem | null>(null);
+  const [selectedWithdrawIds, setSelectedWithdrawIds] = useState<Set<number>>(() => new Set());
+  const [batchWithdrawOpen, setBatchWithdrawOpen] = useState(false);
+  const [batchWithdrawBusy, setBatchWithdrawBusy] = useState(false);
 
   const fetchData = useCallback(() => {
     setLoading(true);
@@ -93,6 +99,31 @@ export const MyResourcePublishListPage: React.FC<Props> = ({ theme, fontSize, re
     fetchData();
   }, [fetchData]);
 
+  const showBatchWithdrawSelect = useMemo(
+    () => items.some((i) => i.status === 'pending_review'),
+    [items],
+  );
+
+  useEffect(() => {
+    setSelectedWithdrawIds((prev) => {
+      const pending = new Set(items.filter((i) => i.status === 'pending_review').map((i) => i.id));
+      const next = new Set<number>();
+      prev.forEach((id) => {
+        if (pending.has(id)) next.add(id);
+      });
+      return next;
+    });
+  }, [items]);
+
+  const toggleWithdrawSelect = useCallback((id: number) => {
+    setSelectedWithdrawIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
   const confirmWithdraw = async (row: MyPublishItem) => {
     setWithdrawSubmitting(true);
     try {
@@ -104,6 +135,23 @@ export const MyResourcePublishListPage: React.FC<Props> = ({ theme, fontSize, re
       showMessage(err instanceof Error ? err.message : '撤回失败', 'error');
     } finally {
       setWithdrawSubmitting(false);
+    }
+  };
+
+  const runBatchWithdraw = async () => {
+    const ids = Array.from(selectedWithdrawIds);
+    if (!ids.length) return;
+    setBatchWithdrawBusy(true);
+    try {
+      await resourceCenterService.batchWithdraw(ids);
+      showMessage(`已批量撤回 ${ids.length} 个资源的审核申请`, 'success');
+      setBatchWithdrawOpen(false);
+      setSelectedWithdrawIds(new Set());
+      fetchData();
+    } catch (err) {
+      showMessage(err instanceof Error ? err.message : '批量撤回失败', 'error');
+    } finally {
+      setBatchWithdrawBusy(false);
     }
   };
 
@@ -142,19 +190,40 @@ export const MyResourcePublishListPage: React.FC<Props> = ({ theme, fontSize, re
               }
             />
           ) : (
-            <AnimatedList className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              {items.map((row) => (
-                <PublishResourceCard
-                  key={row.id}
+            <>
+              {showBatchWithdrawSelect && (
+                <MgmtBatchToolbar
                   theme={theme}
-                  item={row}
-                  callCountLabel={config.callCountLabel}
-                  onView={() => setViewTarget(row)}
-                  onWithdraw={row.status === 'pending_review' ? () => setWithdrawTarget(row) : undefined}
-                  {...publishCardAuditProps}
-                />
-              ))}
-            </AnimatedList>
+                  count={selectedWithdrawIds.size}
+                  onClear={() => setSelectedWithdrawIds(new Set())}
+                >
+                  <button
+                    type="button"
+                    className={mgmtTableActionGhost(theme)}
+                    disabled={batchWithdrawBusy || selectedWithdrawIds.size === 0}
+                    onClick={() => setBatchWithdrawOpen(true)}
+                  >
+                    批量撤回审核
+                  </button>
+                </MgmtBatchToolbar>
+              )}
+              <AnimatedList className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                {items.map((row) => (
+                  <PublishResourceCard
+                    key={row.id}
+                    theme={theme}
+                    item={row}
+                    callCountLabel={config.callCountLabel}
+                    onView={() => setViewTarget(row)}
+                    onWithdraw={row.status === 'pending_review' ? () => setWithdrawTarget(row) : undefined}
+                    batchSelectMode={showBatchWithdrawSelect}
+                    selected={selectedWithdrawIds.has(row.id)}
+                    onToggleSelected={() => toggleWithdrawSelect(row.id)}
+                    {...publishCardAuditProps}
+                  />
+                ))}
+              </AnimatedList>
+            </>
           )}
         </div>
       </MgmtPageShell>
@@ -206,6 +275,17 @@ export const MyResourcePublishListPage: React.FC<Props> = ({ theme, fontSize, re
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ConfirmDialog
+        open={batchWithdrawOpen}
+        title="批量撤回审核"
+        message={`确定撤回已选 ${selectedWithdrawIds.size} 个待审核资源的审核申请吗？撤回后状态将恢复为草稿。`}
+        confirmText="确认撤回"
+        variant="warning"
+        loading={batchWithdrawBusy}
+        onCancel={() => !batchWithdrawBusy && setBatchWithdrawOpen(false)}
+        onConfirm={() => void runBatchWithdraw()}
+      />
 
       <Modal open={!!viewTarget} onClose={() => setViewTarget(null)} title={config.detailModalTitle} theme={theme} size="lg">
         {viewTarget && (

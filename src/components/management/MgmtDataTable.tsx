@@ -1,7 +1,8 @@
-import React, { type ReactElement } from 'react';
+import React, { type ReactElement, useEffect, useMemo, useRef } from 'react';
 import type { Theme } from '../../types';
 import { BentoCard } from '../common/BentoCard';
 import { tableBodyRow, tableCell, tableHeadCell } from '../../utils/uiClasses';
+import { lantuCheckboxPrimaryClass } from '../../utils/formFieldClasses';
 
 export interface MgmtDataTableColumn<T> {
   id: string;
@@ -9,6 +10,14 @@ export interface MgmtDataTableColumn<T> {
   headerClassName?: string;
   cell: (row: T) => React.ReactNode;
   cellClassName?: string;
+}
+
+export interface MgmtDataTableSelectionConfig<T> {
+  /** 与 `getRowKey` 字符串化结果一致 */
+  selectedKeys: ReadonlySet<string>;
+  onSelectionChange: (next: Set<string>) => void;
+  /** 返回 false 时该行不可勾选（不纳入全选当前页） */
+  getSelectable?: (row: T, index: number) => boolean;
 }
 
 export interface MgmtDataTableProps<T> {
@@ -26,6 +35,12 @@ export interface MgmtDataTableProps<T> {
    * `card`：外层 BentoCard，用于未包壳的独立列表块。
    */
   surface?: 'plain' | 'card';
+  /** 多选；首列追加 checkbox，表头支持「当前页全选」 */
+  selection?: MgmtDataTableSelectionConfig<T>;
+}
+
+function keyStr(getRowKey: (row: unknown, index: number) => string | number, row: unknown, index: number): string {
+  return String(getRowKey(row, index));
 }
 
 /**
@@ -39,18 +54,80 @@ export function MgmtDataTable<T>({
   empty,
   minWidth = '56rem',
   surface = 'plain',
+  selection,
 }: MgmtDataTableProps<T>): ReactElement | null {
   const isDark = theme === 'dark';
+  const headerSelectRef = useRef<HTMLInputElement>(null);
+
+  const selectableMeta = useMemo(() => {
+    const entries = rows.map((row, idx) => {
+      const k = keyStr(getRowKey, row, idx);
+      const selectable = selection?.getSelectable ? selection.getSelectable(row, idx) !== false : true;
+      return { row, idx, key: k, selectable };
+    });
+    const selectableKeys = entries.filter((e) => e.selectable).map((e) => e.key);
+    return { entries, selectableKeys };
+  }, [rows, getRowKey, selection]);
+
+  const allPageSelectableSelected =
+    selection != null &&
+    selectableMeta.selectableKeys.length > 0 &&
+    selectableMeta.selectableKeys.every((k) => selection.selectedKeys.has(k));
+  const somePageSelectableSelected =
+    selection != null &&
+    selectableMeta.selectableKeys.some((k) => selection.selectedKeys.has(k)) &&
+    !allPageSelectableSelected;
+
+  useEffect(() => {
+    const el = headerSelectRef.current;
+    if (!el) return;
+    el.indeterminate = Boolean(somePageSelectableSelected);
+  }, [somePageSelectableSelected, selection, rows.length]);
 
   if (rows.length === 0) {
     return empty ? <>{empty}</> : null;
   }
+
+  const togglePageAll = () => {
+    if (!selection) return;
+    const next = new Set(selection.selectedKeys);
+    if (allPageSelectableSelected) {
+      selectableMeta.selectableKeys.forEach((k) => next.delete(k));
+    } else {
+      selectableMeta.selectableKeys.forEach((k) => next.add(k));
+    }
+    selection.onSelectionChange(next);
+  };
+
+  const toggleRow = (key: string, selectable: boolean) => {
+    if (!selection || !selectable) return;
+    const next = new Set(selection.selectedKeys);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    selection.onSelectionChange(next);
+  };
 
   const tableBlock = (
     <div className="overflow-x-auto">
       <table className="w-full text-sm" style={{ minWidth }}>
         <thead className={`border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
           <tr>
+            {selection ? (
+              <th
+                scope="col"
+                className={[tableHeadCell(theme), 'w-10 align-middle'].filter(Boolean).join(' ')}
+              >
+                <input
+                  ref={headerSelectRef}
+                  type="checkbox"
+                  className={lantuCheckboxPrimaryClass}
+                  checked={allPageSelectableSelected}
+                  onChange={togglePageAll}
+                  aria-label="全选当前页"
+                  disabled={selectableMeta.selectableKeys.length === 0}
+                />
+              </th>
+            ) : null}
             {columns.map((col) => (
               <th
                 key={col.id}
@@ -63,8 +140,20 @@ export function MgmtDataTable<T>({
           </tr>
         </thead>
         <tbody>
-          {rows.map((row, idx) => (
-            <tr key={getRowKey(row, idx)} className={tableBodyRow(theme, idx)}>
+          {selectableMeta.entries.map(({ row, idx, key, selectable }) => (
+            <tr key={key} className={tableBodyRow(theme, idx)}>
+              {selection ? (
+                <td className={[tableCell(), 'w-10 align-middle'].join(' ')}>
+                  <input
+                    type="checkbox"
+                    className={lantuCheckboxPrimaryClass}
+                    checked={selection.selectedKeys.has(key)}
+                    disabled={!selectable}
+                    onChange={() => toggleRow(key, selectable)}
+                    aria-label={selectable ? '选择此行' : '此行不可选'}
+                  />
+                </td>
+              ) : null}
               {columns.map((col) => (
                 <td
                   key={col.id}

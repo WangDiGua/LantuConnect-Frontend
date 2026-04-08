@@ -4,10 +4,19 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Theme, FontSize } from '../../types';
-import { nativeInputClass } from '../../utils/formFieldClasses';
+import { lantuCheckboxPrimaryClass, nativeInputClass } from '../../utils/formFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
 import {
-  btnPrimary, btnSecondary, iconMuted, pageBlockStack, textPrimary, textSecondary, textMuted, fieldErrorText, inputBaseError,
+  btnPrimary,
+  btnSecondary,
+  iconMuted,
+  pageBlockStack,
+  textPrimary,
+  textSecondary,
+  textMuted,
+  fieldErrorText,
+  inputBaseError,
+  mgmtTableActionGhost,
 } from '../../utils/uiClasses';
 import { Modal } from '../../components/common/Modal';
 import { BentoCard } from '../../components/common/BentoCard';
@@ -17,6 +26,8 @@ import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { EmptyState } from '../../components/common/EmptyState';
 import { tagService } from '../../api/services/tag.service';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
+import { MgmtBatchToolbar } from '../../components/management/MgmtBatchToolbar';
+import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 import type { TagItem as TagDTO } from '../../types/dto/tag';
 
@@ -113,6 +124,9 @@ export const TagManagementPage: React.FC<Props> = ({ theme, fontSize, showMessag
   const [batchCategory, setBatchCategory] = useState<TagCategory>('通用');
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [newTagNameError, setNewTagNameError] = useState('');
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(() => new Set());
+  const [batchRemoveOpen, setBatchRemoveOpen] = useState(false);
+  const [batchRemoveBusy, setBatchRemoveBusy] = useState(false);
 
   const fetchTags = useCallback(async () => {
     setLoadError(null);
@@ -138,6 +152,26 @@ export const TagManagementPage: React.FC<Props> = ({ theme, fontSize, showMessag
     }
     return list;
   }, [tags, filterCategory, searchQuery]);
+
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      const visible = new Set(filteredTags.map((t) => t.id));
+      const next = new Set<number>();
+      prev.forEach((id) => {
+        if (visible.has(id)) next.add(id);
+      });
+      return next;
+    });
+  }, [filteredTags]);
+
+  const batchDeletableIds = useMemo(
+    () =>
+      Array.from(selectedIds).filter((id) => {
+        const tag = filteredTags.find((t) => t.id === id);
+        return tag != null && tag.usageCount === 0;
+      }),
+    [filteredTags, selectedIds],
+  );
 
   const handleAddTag = async () => {
     const name = newTagName.trim();
@@ -189,6 +223,24 @@ export const TagManagementPage: React.FC<Props> = ({ theme, fontSize, showMessag
     } catch (err) {
       console.error(err);
       showMessage('删除失败', 'error');
+    }
+  };
+
+  const runBatchRemove = async () => {
+    const ids = batchDeletableIds;
+    if (!ids.length) return;
+    setBatchRemoveBusy(true);
+    try {
+      await tagService.batchRemove(ids);
+      setBatchRemoveOpen(false);
+      setSelectedIds(new Set());
+      showMessage(`已删除 ${ids.length} 个未使用标签`, 'success');
+      await fetchTags();
+    } catch (err) {
+      console.error(err);
+      showMessage(err instanceof Error ? err.message : '批量删除失败', 'error');
+    } finally {
+      setBatchRemoveBusy(false);
     }
   };
 
@@ -320,13 +372,41 @@ export const TagManagementPage: React.FC<Props> = ({ theme, fontSize, showMessag
               description={tags.length === 0 ? '新增或批量导入后，可在五类资源市场上用于筛选与运营位展示。' : '调整搜索词或分类筛选后再试。'}
             />
           ) : (
-            <div className="flex flex-wrap gap-2">
+            <>
+              <MgmtBatchToolbar theme={theme} count={selectedIds.size} onClear={() => setSelectedIds(new Set())}>
+                <button
+                  type="button"
+                  className={mgmtTableActionGhost(theme)}
+                  disabled={batchDeletableIds.length === 0 || batchRemoveBusy}
+                  onClick={() => setBatchRemoveOpen(true)}
+                >
+                  批量删除未使用标签
+                </button>
+              </MgmtBatchToolbar>
+              <div className="flex flex-wrap gap-2">
               {filteredTags.map((tag) => {
                 const cc = CATEGORY_COLORS[tag.category];
                 const isExpanded = expandedTagId === tag.id;
                 const isConfirming = confirmDeleteId === tag.id;
+                const canBulkSelect = tag.usageCount === 0;
                 return (
-                  <div key={tag.id}>
+                  <div key={tag.id} className="inline-flex items-center gap-1.5">
+                    <input
+                      type="checkbox"
+                      className={`${lantuCheckboxPrimaryClass} shrink-0`}
+                      checked={selectedIds.has(tag.id)}
+                      disabled={!canBulkSelect}
+                      title={canBulkSelect ? '可选中后批量删除' : '标签仍被引用，请先在资源侧取消引用后再删'}
+                      onChange={() => {
+                        setSelectedIds((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(tag.id)) next.delete(tag.id);
+                          else if (canBulkSelect) next.add(tag.id);
+                          return next;
+                        });
+                      }}
+                      aria-label={`多选：${tag.name}`}
+                    />
                     <button
                       type="button"
                       ref={(el) => { if (el) tagTriggerRefs.current.set(tag.id, el); }}
@@ -377,7 +457,8 @@ export const TagManagementPage: React.FC<Props> = ({ theme, fontSize, showMessag
                   </div>
                 );
               })}
-            </div>
+              </div>
+            </>
           )}
         </BentoCard>
         </div>
@@ -409,6 +490,17 @@ export const TagManagementPage: React.FC<Props> = ({ theme, fontSize, showMessag
           </div>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={batchRemoveOpen}
+        title="批量删除未使用标签"
+        message={`将永久删除已选中的 ${batchDeletableIds.length} 个标签（引用数为 0）。此操作不可恢复。`}
+        confirmText="删除"
+        variant="danger"
+        loading={batchRemoveBusy}
+        onCancel={() => !batchRemoveBusy && setBatchRemoveOpen(false)}
+        onConfirm={() => void runBatchRemove()}
+      />
     </>
   );
 };

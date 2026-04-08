@@ -1,4 +1,6 @@
 import { http } from '../../lib/http';
+import { tryBatchPost, tryBatchPut } from '../../utils/batchApi';
+import { runWithConcurrency } from '../../utils/runWithConcurrency';
 import { extractArray, normalizePaginated } from '../../utils/normalizeApiPayload';
 import type {
   SensitiveWord,
@@ -45,6 +47,36 @@ export const sensitiveWordService = {
 
   remove: (id: number) =>
     http.delete<void>(`/sensitive-words/${id}`),
+
+  /** 批量删除；优先 POST `/sensitive-words/batch-delete`，否则逐条 DELETE */
+  batchRemove: async (ids: number[]): Promise<void> => {
+    if (!ids.length) return;
+    await tryBatchPost(
+      '/sensitive-words/batch-delete',
+      { ids },
+      async () => {
+        const r = await runWithConcurrency(ids, 4, async (id) => {
+          await http.delete<void>(`/sensitive-words/${id}`);
+        });
+        if (r.errors.length) throw r.errors[0]!.error;
+      },
+    );
+  },
+
+  /** 批量启用/禁用；优先 PUT `/sensitive-words/batch`，否则逐条 PUT */
+  batchSetEnabled: async (ids: number[], enabled: boolean): Promise<void> => {
+    if (!ids.length) return;
+    await tryBatchPut(
+      '/sensitive-words/batch',
+      { ids, enabled },
+      async () => {
+        const r = await runWithConcurrency(ids, 4, async (id) => {
+          await http.put<void>(`/sensitive-words/${id}`, { enabled } as SensitiveWordUpdateRequest);
+        });
+        if (r.errors.length) throw r.errors[0]!.error;
+      },
+    );
+  },
 
   check: (payload: SensitiveWordCheckRequest) =>
     http.post<any>('/sensitive-words/check', payload).then((raw) => ({

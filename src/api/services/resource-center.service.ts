@@ -1,4 +1,6 @@
 import { http } from '../../lib/http';
+import { tryBatchPost } from '../../utils/batchApi';
+import { runWithConcurrency } from '../../utils/runWithConcurrency';
 import { normalizeAccessPolicy } from '../../utils/accessPolicy';
 import type {
   LifecycleTimelineVO,
@@ -738,6 +740,20 @@ export const resourceCenterService = {
   withdraw: async (id: number): Promise<ResourceCenterItemVO> => {
     const raw = await http.post<unknown>(`/resource-center/resources/${id}/withdraw`);
     return toResourceItem(raw);
+  },
+
+  batchWithdraw: async (ids: number[]): Promise<void> => {
+    if (!ids.length) return;
+    await tryBatchPost(
+      '/resource-center/resources/batch-withdraw',
+      { ids },
+      async () => {
+        const r = await runWithConcurrency(ids, 4, async (id) => {
+          await http.post<unknown>(`/resource-center/resources/${id}/withdraw`);
+        });
+        if (r.errors.length) throw r.errors[0]!.error;
+      },
+    );
   },
 
   createVersion: async (id: number, payload: ResourceVersionCreateRequest): Promise<ResourceVersionVO> => {

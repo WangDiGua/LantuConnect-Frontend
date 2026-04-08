@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { nativeInputClass } from '../../utils/formFieldClasses';
@@ -13,6 +13,8 @@ import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { BentoCard } from '../../components/common/BentoCard';
 import { MgmtDataTable } from '../../components/management/MgmtDataTable';
 import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
+import { MgmtBatchToolbar } from '../../components/management/MgmtBatchToolbar';
+import { systemConfigService } from '../../api/services/system-config.service';
 import {
   btnPrimary,
   btnSecondary,
@@ -90,7 +92,14 @@ export const RateLimitPage: React.FC<RateLimitPageProps> = ({
   const [draft, setDraft] = useState(emptyDraft);
   const [creating, setCreating] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<RateLimitRule | null>(null);
+  const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  const [batchBusy, setBatchBusy] = useState(false);
   const [rateLimitFieldErrors, setRateLimitFieldErrors] = useState<{ name?: string; maxRequests?: string }>({});
+
+  useEffect(() => {
+    setSelectedKeys(new Set());
+  }, [search]);
 
   const rules: RateLimitRule[] = Array.isArray(data) ? data : [];
 
@@ -132,6 +141,48 @@ export const RateLimitPage: React.FC<RateLimitPageProps> = ({
     setEditingId(null);
     setRateLimitFieldErrors({});
   };
+
+  const selectedRuleIds = useMemo(
+    () => filtered.filter((r) => selectedKeys.has(String(r.id))).map((r) => r.id),
+    [filtered, selectedKeys],
+  );
+
+  const clearRuleSelection = useCallback(() => setSelectedKeys(new Set()), []);
+
+  const runBatchEnabled = useCallback(
+    async (enabled: boolean) => {
+      if (!selectedRuleIds.length) return;
+      setBatchBusy(true);
+      try {
+        await systemConfigService.batchPatchRateLimits(selectedRuleIds, { enabled });
+        showMessage(enabled ? '已批量启用' : '已批量停用', 'success');
+        clearRuleSelection();
+        await refetch();
+      } catch (e) {
+        showMessage(e instanceof Error ? e.message : '批量操作失败', 'error');
+      } finally {
+        setBatchBusy(false);
+      }
+    },
+    [selectedRuleIds, showMessage, refetch, clearRuleSelection],
+  );
+
+  const runBatchDelete = useCallback(async () => {
+    if (!selectedRuleIds.length) return;
+    setBatchBusy(true);
+    try {
+      await systemConfigService.batchDeleteRateLimits(selectedRuleIds);
+      showMessage('已批量删除', 'info');
+      setBatchDeleteOpen(false);
+      if (editingId && selectedRuleIds.includes(editingId)) cancelForm();
+      clearRuleSelection();
+      await refetch();
+    } catch (e) {
+      showMessage(e instanceof Error ? e.message : '批量删除失败', 'error');
+    } finally {
+      setBatchBusy(false);
+    }
+  }, [selectedRuleIds, editingId, showMessage, refetch, clearRuleSelection]);
 
   const saveForm = () => {
     const next: { name?: string; maxRequests?: string } = {};
@@ -391,14 +442,46 @@ export const RateLimitPage: React.FC<RateLimitPageProps> = ({
                 },
               ];
               return (
-                <MgmtDataTable
-                  theme={theme}
-                  columns={rateColumns}
-                  rows={filtered}
-                  getRowKey={(r) => r.id}
-                  minWidth="50rem"
-                  surface="plain"
-                />
+                <>
+                  <MgmtBatchToolbar theme={theme} count={selectedKeys.size} onClear={clearRuleSelection}>
+                    <button
+                      type="button"
+                      disabled={batchBusy || selectedKeys.size === 0}
+                      className={btnSecondary(theme)}
+                      onClick={() => void runBatchEnabled(true)}
+                    >
+                      批量启用
+                    </button>
+                    <button
+                      type="button"
+                      disabled={batchBusy || selectedKeys.size === 0}
+                      className={btnSecondary(theme)}
+                      onClick={() => void runBatchEnabled(false)}
+                    >
+                      批量停用
+                    </button>
+                    <button
+                      type="button"
+                      disabled={batchBusy || selectedKeys.size === 0}
+                      className={mgmtTableActionDanger(theme)}
+                      onClick={() => setBatchDeleteOpen(true)}
+                    >
+                      批量删除
+                    </button>
+                  </MgmtBatchToolbar>
+                  <MgmtDataTable
+                    theme={theme}
+                    columns={rateColumns}
+                    rows={filtered}
+                    getRowKey={(r) => String(r.id)}
+                    minWidth="50rem"
+                    surface="plain"
+                    selection={{
+                      selectedKeys,
+                      onSelectionChange: setSelectedKeys,
+                    }}
+                  />
+                </>
               );
             })()
           )}
@@ -414,6 +497,16 @@ export const RateLimitPage: React.FC<RateLimitPageProps> = ({
         loading={deleteMut.isPending}
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
+      />
+      <ConfirmDialog
+        open={batchDeleteOpen}
+        title="批量删除限流策略"
+        message={`确定删除已选的 ${selectedKeys.size} 条策略？`}
+        confirmText="删除"
+        variant="danger"
+        loading={batchBusy}
+        onConfirm={() => void runBatchDelete()}
+        onCancel={() => setBatchDeleteOpen(false)}
       />
     </MgmtPageShell>
   );

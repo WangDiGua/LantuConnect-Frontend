@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { KeyRound, Plus, RefreshCw, Search, ShieldCheck } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from './MgmtPageShell';
-import { nativeInputClass } from '../../utils/formFieldClasses';
+import { nativeInputClass, lantuCheckboxPrimaryClass } from '../../utils/formFieldClasses';
+import { MgmtBatchToolbar } from '../../components/management/MgmtBatchToolbar';
 import { TOOLBAR_ROW_LIST, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
 import {
@@ -68,6 +69,9 @@ export const ResourceGrantManagementPage: React.FC<Props> = ({ theme, fontSize, 
   useScrollPaginatedContentToTop(page);
   const [total, setTotal] = useState(0);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [batchRevokeConfirm, setBatchRevokeConfirm] = useState(false);
+  const [selectedGrantKeys, setSelectedGrantKeys] = useState<Set<string>>(new Set());
+  const [batchRevoking, setBatchRevoking] = useState(false);
   const [loadError, setLoadError] = useState<Error | null>(null);
   const [granteeKeyword, setGranteeKeyword] = useState('');
   const [grantFieldErrors, setGrantFieldErrors] = useState<{
@@ -88,6 +92,12 @@ export const ResourceGrantManagementPage: React.FC<Props> = ({ theme, fontSize, 
       return id.includes(q) || pre.includes(q);
     });
   }, [rows, granteeKeyword]);
+
+  const clearGrantSelection = useCallback(() => setSelectedGrantKeys(new Set()), []);
+
+  useEffect(() => {
+    clearGrantSelection();
+  }, [resourceType, resourceId, page, clearGrantSelection]);
 
   const fetchRows = useCallback(async () => {
     if (!resourceId.trim()) return;
@@ -175,6 +185,24 @@ export const ResourceGrantManagementPage: React.FC<Props> = ({ theme, fontSize, 
       setRevoking(false);
     }
   }, [deleteId, fetchRows, showMessage]);
+
+  const runBatchRevoke = useCallback(async () => {
+    const ids = displayRows.filter((r) => selectedGrantKeys.has(String(r.id))).map((r) => r.id);
+    if (!ids.length) return;
+    setBatchRevoking(true);
+    try {
+      await resourceGrantService.batchRemove(ids);
+      showMessage(`已批量撤销 ${ids.length} 条授权`, 'success');
+      setBatchRevokeConfirm(false);
+      clearGrantSelection();
+      setPage(1);
+      await fetchRows();
+    } catch (err) {
+      showMessage(err instanceof Error ? err.message : '批量撤销失败', 'error');
+    } finally {
+      setBatchRevoking(false);
+    }
+  }, [displayRows, selectedGrantKeys, fetchRows, showMessage, clearGrantSelection]);
 
   useEffect(() => {
     if (!canQuery) {
@@ -335,8 +363,36 @@ export const ResourceGrantManagementPage: React.FC<Props> = ({ theme, fontSize, 
             ) : displayRows.length === 0 ? (
               <div className={`px-4 py-8 text-sm text-center ${textMuted(theme)}`}>当前页无匹配的 Key ID 或前缀</div>
             ) : (
-              displayRows.map((row) => (
+              <>
+                <div className="px-4 pt-3">
+                  <MgmtBatchToolbar theme={theme} count={selectedGrantKeys.size} onClear={clearGrantSelection}>
+                    <button
+                      type="button"
+                      className={mgmtTableActionDanger}
+                      disabled={batchRevoking || selectedGrantKeys.size === 0}
+                      onClick={() => setBatchRevokeConfirm(true)}
+                    >
+                      批量撤销
+                    </button>
+                  </MgmtBatchToolbar>
+                </div>
+                {displayRows.map((row) => (
                 <div key={row.id} className="px-4 py-3 flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    className={lantuCheckboxPrimaryClass}
+                    checked={selectedGrantKeys.has(String(row.id))}
+                    onChange={() => {
+                      setSelectedGrantKeys((prev) => {
+                        const next = new Set(prev);
+                        const k = String(row.id);
+                        if (next.has(k)) next.delete(k);
+                        else next.add(k);
+                        return next;
+                      });
+                    }}
+                    aria-label={`选择授权 ${row.granteeApiKeyPrefix ?? row.id}`}
+                  />
                   <div className="flex-1 min-w-0">
                     <p className={`text-sm font-medium truncate ${textPrimary(theme)}`}>{row.granteeApiKeyPrefix || '未返回 Key 前缀'}</p>
                     <p className={`text-xs truncate ${textSecondary(theme)}`}>
@@ -350,7 +406,8 @@ export const ResourceGrantManagementPage: React.FC<Props> = ({ theme, fontSize, 
                     撤销
                   </button>
                 </div>
-              ))
+                ))}
+              </>
             )}
           </div>
           <div className={`px-4 border-t ${isDark ? 'border-white/10' : 'border-slate-100'}`}>
@@ -368,6 +425,16 @@ export const ResourceGrantManagementPage: React.FC<Props> = ({ theme, fontSize, 
         loading={revoking}
         onCancel={() => setDeleteId(null)}
         onConfirm={() => void revoke()}
+      />
+      <ConfirmDialog
+        open={batchRevokeConfirm}
+        title="批量撤销授权"
+        message={`确定撤销已选的 ${selectedGrantKeys.size} 条资源授权吗？`}
+        confirmText="撤销"
+        variant="danger"
+        loading={batchRevoking}
+        onCancel={() => setBatchRevokeConfirm(false)}
+        onConfirm={() => void runBatchRevoke()}
       />
     </MgmtPageShell>
   );

@@ -1,5 +1,7 @@
 import type { PaginatedData } from '../../types/api';
 import { http } from '../../lib/http';
+import { tryBatchPut } from '../../utils/batchApi';
+import { runWithConcurrency } from '../../utils/runWithConcurrency';
 import { normalizePaginated } from '../../utils/normalizeApiPayload';
 import type {
   Provider,
@@ -89,6 +91,21 @@ export const providerService = {
   update: async (id: number, data: ProviderUpdatePayload): Promise<Provider> => {
     const raw = await http.put<unknown>(`/providers/${id}`, data);
     return mapDatasetProvider(raw);
+  },
+
+  /** 批量更新状态等字段；优先 PUT `/providers/batch` */
+  batchPatch: async (ids: number[], data: ProviderUpdatePayload): Promise<void> => {
+    if (!ids.length) return;
+    await tryBatchPut(
+      '/providers/batch',
+      { ids, ...data },
+      async () => {
+        const r = await runWithConcurrency(ids, 4, async (id) => {
+          await http.put<unknown>(`/providers/${id}`, data);
+        });
+        if (r.errors.length) throw r.errors[0]!.error;
+      },
+    );
   },
 
   remove: async (id: number): Promise<void> => {

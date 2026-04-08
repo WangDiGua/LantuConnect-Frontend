@@ -21,6 +21,7 @@ import type { DomainStatus } from '../../utils/uiClasses';
 import { PublishStatusStepper } from './PublishStatusStepper';
 import { AutoHeightTextarea } from '../common/AutoHeightTextarea';
 import { descriptionClampMinHeightPx } from '../../utils/pretextTypography';
+import { lantuCheckboxPrimaryClass } from '../../utils/formFieldClasses';
 
 const ICON_BG = ['bg-violet-500', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500', 'bg-cyan-500'] as const;
 function pickColor(str: string): string {
@@ -43,6 +44,10 @@ interface Props {
   showMessage?: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void;
   /** 审核或发布后回调（例如刷新列表） */
   onLifecycleMutated?: () => void;
+  /** 列表页批量撤回：在待审核行左侧展示复选框 */
+  batchSelectMode?: boolean;
+  selected?: boolean;
+  onToggleSelected?: () => void;
 }
 
 export const PublishResourceCard: React.FC<Props> = ({
@@ -55,6 +60,9 @@ export const PublishResourceCard: React.FC<Props> = ({
   canPublishFromTesting = false,
   showMessage,
   onLifecycleMutated,
+  batchSelectMode = false,
+  selected = false,
+  onToggleSelected,
 }) => {
   const isDark = theme === 'dark';
   const label = item.displayName || '—';
@@ -79,6 +87,8 @@ export const PublishResourceCard: React.FC<Props> = ({
     }
   };
 
+  const showBatchCheckbox = batchSelectMode && item.status === 'pending_review';
+
   return (
     <>
     <div
@@ -86,6 +96,16 @@ export const PublishResourceCard: React.FC<Props> = ({
         isDark ? 'hover:bg-violet-500/[0.03]' : 'hover:bg-violet-50/40'
       }`}
     >
+      {showBatchCheckbox && (
+        <input
+          type="checkbox"
+          className={`${lantuCheckboxPrimaryClass} mt-1 shrink-0 self-start sm:mt-2`}
+          checked={selected}
+          onClick={(e) => e.stopPropagation()}
+          onChange={() => onToggleSelected?.()}
+          aria-label={`多选撤回审核：${item.displayName}`}
+        />
+      )}
       <div className="flex shrink-0 items-start gap-3 sm:flex-col sm:items-center">
         <div
           className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-lg font-bold text-white ${pickColor(item.displayName)}`}

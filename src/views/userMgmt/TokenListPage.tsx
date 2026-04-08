@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Ban, Shield } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
@@ -11,6 +11,8 @@ import {
   bentoCardHover, btnGhost,
   textPrimary, textSecondary, textMuted,
 } from '../../utils/uiClasses';
+import { lantuCheckboxPrimaryClass } from '../../utils/formFieldClasses';
+import { MgmtBatchToolbar } from '../../components/management/MgmtBatchToolbar';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { MgmtPageShell } from './MgmtPageShell';
@@ -37,6 +39,48 @@ export const TokenListPage: React.FC<TokenListPageProps> = ({ theme, fontSize, s
   const [page, setPage] = useState(1);
   useScrollPaginatedContentToTop(page);
   const [revokeTarget, setRevokeTarget] = useState<string | null>(null);
+  const [batchRevokeConfirm, setBatchRevokeConfirm] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [batchBusy, setBatchBusy] = useState(false);
+
+  const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
+
+  useEffect(() => {
+    clearSelection();
+  }, [page, debouncedSearch, statusFilter, clearSelection]);
+
+  const selectedActiveTokenIds = useMemo(
+    () =>
+      tokens.filter((t) => selectedIds.has(t.id) && t.status === 'active').map((t) => t.id),
+    [tokens, selectedIds],
+  );
+
+  const toggleTokenSelected = useCallback((id: string, active: boolean) => {
+    if (!active) return;
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const runBatchRevoke = useCallback(async () => {
+    if (!selectedActiveTokenIds.length) return;
+    setBatchBusy(true);
+    try {
+      await userMgmtService.batchRevokeTokens(selectedActiveTokenIds);
+      showMessage(`已批量撤销 ${selectedActiveTokenIds.length} 个 Token`, 'info');
+      setBatchRevokeConfirm(false);
+      clearSelection();
+      setPage(1);
+      await fetchTokens();
+    } catch {
+      showMessage('批量撤销失败', 'error');
+    } finally {
+      setBatchBusy(false);
+    }
+  }, [selectedActiveTokenIds, showMessage, fetchTokens, clearSelection]);
 
   useEffect(() => {
     const id = window.setTimeout(() => setDebouncedSearch(search.trim()), 300);
@@ -115,11 +159,30 @@ export const TokenListPage: React.FC<TokenListPageProps> = ({ theme, fontSize, s
               {debouncedSearch || statusFilter !== 'all' ? '无匹配 Token' : '暂无 Token'}
             </div>
           ) : (
-            <AnimatedList className="space-y-2">
+            <>
+              <MgmtBatchToolbar theme={theme} count={selectedIds.size} onClear={clearSelection}>
+                <button
+                  type="button"
+                  disabled={batchBusy || selectedActiveTokenIds.length === 0}
+                  className={`${btnGhost(theme)} text-amber-600 dark:text-amber-400`}
+                  onClick={() => setBatchRevokeConfirm(true)}
+                >
+                  批量撤销（仅有效）
+                </button>
+              </MgmtBatchToolbar>
+              <AnimatedList className="space-y-2">
               {tokens.map((t) => {
                 const ss = STATUS_STYLE[t.status] ?? STATUS_STYLE.expired;
                 return (
                   <motion.div key={t.id} className={`${bentoCardHover(theme)} p-4 flex items-center gap-4`}>
+                    <input
+                      type="checkbox"
+                      className={lantuCheckboxPrimaryClass}
+                      checked={selectedIds.has(t.id)}
+                      disabled={t.status !== 'active'}
+                      onChange={() => toggleTokenSelected(t.id, t.status === 'active')}
+                      aria-label={t.status === 'active' ? `选择 ${t.name}` : '仅有效 Token 可多选撤销'}
+                    />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className={`font-semibold truncate min-w-0 ${textPrimary(theme)}`} title={t.name}>{t.name}</span>
@@ -150,7 +213,8 @@ export const TokenListPage: React.FC<TokenListPageProps> = ({ theme, fontSize, s
                   </motion.div>
                 );
               })}
-            </AnimatedList>
+              </AnimatedList>
+            </>
           )}
           {total > 0 ? (
             <Pagination theme={theme} page={page} pageSize={PAGE_SIZE} total={total} onChange={setPage} />
@@ -158,6 +222,16 @@ export const TokenListPage: React.FC<TokenListPageProps> = ({ theme, fontSize, s
         </div>
       </MgmtPageShell>
       <ConfirmDialog open={!!revokeTarget} title="撤销 Token" message="确定撤销该 Token？客户端需重新登录。" confirmText="撤销" variant="warning" onConfirm={handleRevoke} onCancel={() => setRevokeTarget(null)} />
+      <ConfirmDialog
+        open={batchRevokeConfirm}
+        title="批量撤销 Token"
+        message={`将撤销当前页选中范围内有效的 ${selectedActiveTokenIds.length} 个 Token，客户端需重新登录。确定继续？`}
+        variant="warning"
+        confirmText="撤销"
+        loading={batchBusy}
+        onConfirm={() => void runBatchRevoke()}
+        onCancel={() => setBatchRevokeConfirm(false)}
+      />
     </>
   );
 };

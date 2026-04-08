@@ -1,4 +1,6 @@
 import { http } from '../../lib/http';
+import { tryBatchPost } from '../../utils/batchApi';
+import { runWithConcurrency } from '../../utils/runWithConcurrency';
 import type { PaginationParams } from '../../types/api';
 
 /** 审计日志列表 query（与网关约定：未支持时由后端忽略） */
@@ -250,6 +252,34 @@ export const systemConfigService = {
   deleteRateLimit: (id: string) =>
     http.delete(`/system-config/rate-limits/${id}`),
 
+  batchDeleteRateLimits: async (ids: string[]): Promise<void> => {
+    if (!ids.length) return;
+    await tryBatchPost(
+      '/system-config/rate-limits/batch-delete',
+      { ids },
+      async () => {
+        const r = await runWithConcurrency(ids, 4, async (id) => {
+          await http.delete(`/system-config/rate-limits/${id}`);
+        });
+        if (r.errors.length) throw r.errors[0]!.error;
+      },
+    );
+  },
+
+  batchPatchRateLimits: async (ids: string[], data: Partial<CreateRateLimitDTO>): Promise<void> => {
+    if (!ids.length) return;
+    await tryBatchPost(
+      '/system-config/rate-limits/batch',
+      { ids, ...data },
+      async () => {
+        const r = await runWithConcurrency(ids, 4, async (id) => {
+          await http.put<RateLimitRule>(`/system-config/rate-limits/${id}`, data);
+        });
+        if (r.errors.length) throw r.errors[0]!.error;
+      },
+    );
+  },
+
   getRateLimitById: (id: string) =>
     http.get<RateLimitRule>(`/system-config/rate-limits/${id}`),
 
@@ -340,4 +370,40 @@ export const systemConfigService = {
 
   deleteAnnouncement: (id: string) =>
     http.delete<void>(`/system-config/announcements/${id}`),
+
+  /**
+   * 批量更新公告。优先 POST `/system-config/announcements/batch`（body: ids + patch 字段）；
+   * 若网关 404/405 则限并发逐条 PUT。
+   */
+  batchPatchAnnouncements: async (
+    ids: string[],
+    patch: Partial<import('../../types/dto/explore').AnnouncementCreateRequest>,
+  ): Promise<void> => {
+    if (!ids.length) return;
+    await tryBatchPost(
+      '/system-config/announcements/batch',
+      { ids, ...patch },
+      async () => {
+        const r = await runWithConcurrency(ids, 4, async (id) => {
+          await http.put<void>(`/system-config/announcements/${id}`, patch);
+        });
+        if (r.errors.length) throw r.errors[0]!.error;
+      },
+    );
+  },
+
+  /** 批量删除；优先 POST `/system-config/announcements/batch-delete` */
+  batchDeleteAnnouncements: async (ids: string[]): Promise<void> => {
+    if (!ids.length) return;
+    await tryBatchPost(
+      '/system-config/announcements/batch-delete',
+      { ids },
+      async () => {
+        const r = await runWithConcurrency(ids, 4, async (id) => {
+          await http.delete<void>(`/system-config/announcements/${id}`);
+        });
+        if (r.errors.length) throw r.errors[0]!.error;
+      },
+    );
+  },
 };

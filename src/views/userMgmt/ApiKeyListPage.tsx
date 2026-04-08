@@ -7,6 +7,7 @@ import { Modal } from '../../components/common/Modal';
 import { SearchInput, Pagination, TableCellEllipsis } from '../../components/common';
 import { MgmtDataTable } from '../../components/management/MgmtDataTable';
 import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
+import { MgmtBatchToolbar } from '../../components/management/MgmtBatchToolbar';
 import { userMgmtService } from '../../api/services/user-mgmt.service';
 import type { ApiKeyRecord } from '../../types/dto/user-mgmt';
 import {
@@ -41,7 +42,25 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize,
   const [page, setPage] = useState(1);
   useScrollPaginatedContentToTop(page);
   const [revokeTarget, setRevokeTarget] = useState<string | null>(null);
+  const [batchRevokeConfirm, setBatchRevokeConfirm] = useState(false);
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  const [batchBusy, setBatchBusy] = useState(false);
   const [newNameError, setNewNameError] = useState('');
+
+  const clearSelection = useCallback(() => setSelectedKeys(new Set()), []);
+
+  useEffect(() => {
+    clearSelection();
+  }, [page, search, clearSelection]);
+
+  const selectedActiveKeyIds = useMemo(
+    () =>
+      [...selectedKeys].filter((id) => {
+        const row = filtered.find((k) => k.id === id);
+        return row?.status === 'active';
+      }),
+    [filtered, selectedKeys],
+  );
 
   const fetchKeys = useCallback(async () => {
     setLoading(true);
@@ -91,6 +110,23 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize,
   const copyFull = useCallback(async () => { if (!revealedOnce) return; try { await navigator.clipboard.writeText(revealedOnce.full); setCopied(true); showMessage('已复制到剪贴板', 'success'); } catch { showMessage('复制失败', 'error'); } }, [revealedOnce, showMessage]);
 
   const handleRevoke = useCallback(async () => { if (!revokeTarget) return; try { await userMgmtService.revokeApiKey(revokeTarget); showMessage('API Key 已撤销', 'info'); setRevokeTarget(null); setPage(1); await fetchKeys(); } catch { showMessage('撤销失败', 'error'); } }, [revokeTarget, showMessage, fetchKeys]);
+
+  const runBatchRevoke = useCallback(async () => {
+    if (!selectedActiveKeyIds.length) return;
+    setBatchBusy(true);
+    try {
+      await userMgmtService.batchRevokeApiKeys(selectedActiveKeyIds);
+      showMessage(`已批量撤销 ${selectedActiveKeyIds.length} 个密钥`, 'info');
+      setBatchRevokeConfirm(false);
+      clearSelection();
+      setPage(1);
+      await fetchKeys();
+    } catch (e) {
+      showMessage(e instanceof Error ? e.message : '批量撤销失败', 'error');
+    } finally {
+      setBatchBusy(false);
+    }
+  }, [selectedActiveKeyIds, showMessage, fetchKeys, clearSelection]);
 
   const apiKeyColumns = useMemo<MgmtDataTableColumn<ApiKeyRecord>[]>(
     () => [
@@ -246,14 +282,31 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize,
             ) : paginated.length === 0 ? (
               <div className={`text-center py-12 text-sm ${textMuted(theme)}`}>暂无 API Key</div>
             ) : (
-              <MgmtDataTable<ApiKeyRecord>
-                theme={theme}
-                surface="plain"
-                minWidth="1100px"
-                columns={apiKeyColumns}
-                rows={paginated}
-                getRowKey={(k) => k.id}
-              />
+              <>
+                <MgmtBatchToolbar theme={theme} count={selectedKeys.size} onClear={clearSelection}>
+                  <button
+                    type="button"
+                    disabled={batchBusy || selectedActiveKeyIds.length === 0}
+                    className={`${btnGhost(theme)} text-amber-600 dark:text-amber-400`}
+                    onClick={() => setBatchRevokeConfirm(true)}
+                  >
+                    批量撤销（仅有效）
+                  </button>
+                </MgmtBatchToolbar>
+                <MgmtDataTable<ApiKeyRecord>
+                  theme={theme}
+                  surface="plain"
+                  minWidth="1100px"
+                  columns={apiKeyColumns}
+                  rows={paginated}
+                  getRowKey={(k) => k.id}
+                  selection={{
+                    selectedKeys,
+                    onSelectionChange: setSelectedKeys,
+                    getSelectable: (k) => k.status === 'active',
+                  }}
+                />
+              </>
             )}
           </div>
           <Pagination theme={theme} page={page} pageSize={PAGE_SIZE} total={filtered.length} onChange={setPage} />
@@ -298,6 +351,16 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize,
       </Modal>
 
       <ConfirmDialog open={!!revokeTarget} title="撤销 API Key" message="撤销后该 Key 将不可用，确定继续？" confirmText="撤销" variant="warning" onConfirm={handleRevoke} onCancel={() => setRevokeTarget(null)} />
+      <ConfirmDialog
+        open={batchRevokeConfirm}
+        title="批量撤销 API Key"
+        message={`将撤销当前选中范围内有效的 ${selectedActiveKeyIds.length} 个密钥，确定继续？`}
+        variant="warning"
+        confirmText="撤销"
+        loading={batchBusy}
+        onConfirm={() => void runBatchRevoke()}
+        onCancel={() => setBatchRevokeConfirm(false)}
+      />
     </>
   );
 };

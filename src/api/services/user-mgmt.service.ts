@@ -1,4 +1,6 @@
 import { http } from '../../lib/http';
+import { tryBatchPost } from '../../utils/batchApi';
+import { runWithConcurrency } from '../../utils/runWithConcurrency';
 import { ApiException } from '../../types/api';
 import type { PaginatedData, PaginationParams } from '../../types/api';
 import { extractArray, normalizePaginated } from '../../utils/normalizeApiPayload';
@@ -229,6 +231,24 @@ export const userMgmtService = {
 
   deleteUser: (id: string) => http.delete(`/user-mgmt/users/${id}`),
 
+  /** 批量更新用户；优先 POST `/user-mgmt/users/batch` */
+  batchPatchUsers: async (
+    ids: string[],
+    data: Partial<CreateUserPayload> & { status?: UserRecord['status'] },
+  ): Promise<void> => {
+    if (!ids.length) return;
+    await tryBatchPost(
+      '/user-mgmt/users/batch',
+      { ids, ...data },
+      async () => {
+        const r = await runWithConcurrency(ids, 4, async (id) => {
+          await http.put<unknown>(`/user-mgmt/users/${id}`, data);
+        });
+        if (r.errors.length) throw r.errors[0]!.error;
+      },
+    );
+  },
+
   getUserById: async (id: string) => {
     const row = await http.get<unknown>(`/user-mgmt/users/${id}`);
     return mapUserRecord(row);
@@ -287,6 +307,20 @@ export const userMgmtService = {
   revokeApiKey: (id: string) =>
     http.patch<void>(`/user-mgmt/api-keys/${id}/revoke`),
 
+  batchRevokeApiKeys: async (ids: string[]): Promise<void> => {
+    if (!ids.length) return;
+    await tryBatchPost(
+      '/user-mgmt/api-keys/batch-revoke',
+      { ids },
+      async () => {
+        const r = await runWithConcurrency(ids, 4, async (id) => {
+          await http.patch<void>(`/user-mgmt/api-keys/${id}/revoke`);
+        });
+        if (r.errors.length) throw r.errors[0]!.error;
+      },
+    );
+  },
+
   listTokens: async (params?: PaginationParams & { keyword?: string; status?: string }) => {
     const raw = await http.get<unknown>('/user-mgmt/tokens', { params });
     return normalizePaginated<TokenRecord>(raw, mapTokenRecord);
@@ -302,6 +336,20 @@ export const userMgmtService = {
     ) as Promise<TokenRecord & { plainToken: string }>,
 
   revokeToken: (id: string) => http.patch<void>(`/user-mgmt/tokens/${id}/revoke`),
+
+  batchRevokeTokens: async (ids: string[]): Promise<void> => {
+    if (!ids.length) return;
+    await tryBatchPost(
+      '/user-mgmt/tokens/batch-revoke',
+      { ids },
+      async () => {
+        const r = await runWithConcurrency(ids, 4, async (id) => {
+          await http.patch<void>(`/user-mgmt/tokens/${id}/revoke`);
+        });
+        if (r.errors.length) throw r.errors[0]!.error;
+      },
+    );
+  },
 
   getOrgTree: async () => {
     const raw = await http.get<unknown>('/user-mgmt/org-tree');

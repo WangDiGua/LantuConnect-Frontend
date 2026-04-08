@@ -1,4 +1,6 @@
 import { http } from '../../lib/http';
+import { tryBatchPost } from '../../utils/batchApi';
+import { runWithConcurrency } from '../../utils/runWithConcurrency';
 import type { PaginatedData } from '../../types/api';
 import { normalizePaginated } from '../../utils/normalizeApiPayload';
 import type { GrantApplicationRequest, GrantApplicationVO } from '../../types/dto/grant-application';
@@ -50,7 +52,49 @@ export const grantApplicationService = {
   reject: (id: number, payload: ResourceRejectRequest): Promise<void> =>
     http.post<void>(`/grant-applications/${id}/reject`, payload),
 
+  batchApprove: async (ids: number[]): Promise<void> => {
+    if (!ids.length) return;
+    await tryBatchPost(
+      '/grant-applications/batch-approve',
+      { ids },
+      async () => {
+        const r = await runWithConcurrency(ids, 4, async (id) => {
+          await http.post<void>(`/grant-applications/${id}/approve`);
+        });
+        if (r.errors.length) throw r.errors[0]!.error;
+      },
+    );
+  },
+
+  batchReject: async (ids: number[], payload: ResourceRejectRequest): Promise<void> => {
+    if (!ids.length) return;
+    await tryBatchPost(
+      '/grant-applications/batch-reject',
+      { ids, reason: payload.reason },
+      async () => {
+        const r = await runWithConcurrency(ids, 4, async (id) => {
+          await http.post<void>(`/grant-applications/${id}/reject`, payload);
+        });
+        if (r.errors.length) throw r.errors[0]!.error;
+      },
+    );
+  },
+
   /** 撤销已通过申请对应的生效资源授权（需与审批相同权限） */
   revokeEffectiveGrant: (id: number): Promise<void> =>
     http.post<void>(`/grant-applications/${id}/revoke-grant`),
+
+  batchRevokeEffectiveGrant: async (ids: number[]): Promise<void> => {
+    if (!ids.length) return;
+    await tryBatchPost(
+      '/grant-applications/batch-revoke-grant',
+      { ids },
+      async () => {
+        const r = await runWithConcurrency(ids, 4, async (id) => {
+          await http.post<void>(`/grant-applications/${id}/revoke-grant`);
+        });
+        if (r.errors.length) throw r.errors[0]!.error;
+      },
+    );
+  },
 };

@@ -1,4 +1,6 @@
 import { http } from '../../lib/http';
+import { tryBatchPost } from '../../utils/batchApi';
+import { runWithConcurrency } from '../../utils/runWithConcurrency';
 import { normalizePaginated } from '../../utils/normalizeApiPayload';
 import type {
   DeveloperApplicationCreateRequest,
@@ -70,4 +72,32 @@ export const developerApplicationService = {
 
   reject: (id: number, payload: DeveloperApplicationReviewRequest) =>
     http.post<void>(`/developer/applications/${id}/reject`, payload),
+
+  batchApprove: async (ids: number[], payload?: DeveloperApplicationReviewRequest): Promise<void> => {
+    if (!ids.length) return;
+    await tryBatchPost(
+      '/developer/applications/batch-approve',
+      { ids, ...payload },
+      async () => {
+        const r = await runWithConcurrency(ids, 4, async (id) => {
+          await http.post<void>(`/developer/applications/${id}/approve`, payload ?? {});
+        });
+        if (r.errors.length) throw r.errors[0]!.error;
+      },
+    );
+  },
+
+  batchReject: async (ids: number[], payload: DeveloperApplicationReviewRequest): Promise<void> => {
+    if (!ids.length) return;
+    await tryBatchPost(
+      '/developer/applications/batch-reject',
+      { ids, ...payload },
+      async () => {
+        const r = await runWithConcurrency(ids, 4, async (id) => {
+          await http.post<void>(`/developer/applications/${id}/reject`, payload);
+        });
+        if (r.errors.length) throw r.errors[0]!.error;
+      },
+    );
+  },
 };

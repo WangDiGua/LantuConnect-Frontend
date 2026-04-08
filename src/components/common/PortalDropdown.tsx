@@ -1,6 +1,21 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useLayoutEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Z } from '../../constants/zIndex';
+
+/** 含 Modal / 抽屉内 overflow-y-auto 等，scroll 不会冒泡到 window，必须逐个监听 */
+function getScrollableAncestors(el: HTMLElement | null): HTMLElement[] {
+  const out: HTMLElement[] = [];
+  if (!el) return out;
+  let cur: HTMLElement | null = el.parentElement;
+  while (cur) {
+    const st = window.getComputedStyle(cur);
+    const ox = st.overflowX;
+    const oy = st.overflowY;
+    if (/(auto|scroll|overlay)/.test(`${ox}${oy}`)) out.push(cur);
+    cur = cur.parentElement;
+  }
+  return out;
+}
 
 interface PortalDropdownProps {
   open: boolean;
@@ -55,16 +70,47 @@ export const PortalDropdown: React.FC<PortalDropdownProps> = ({
     });
   }, [anchorEl, matchAnchorWidth]);
 
-  useEffect(() => {
-    if (!open || !anchorEl) { setPos(null); return; }
-    reposition();
-    const raf = window.requestAnimationFrame(reposition);
-    window.addEventListener('scroll', reposition, true);
-    window.addEventListener('resize', reposition);
+  useLayoutEffect(() => {
+    if (!open || !anchorEl) {
+      setPos(null);
+      return;
+    }
+
+    const run = () => reposition();
+
+    run();
+    let rafNested = 0;
+    const raf1 = requestAnimationFrame(() => {
+      run();
+      rafNested = requestAnimationFrame(run);
+    });
+
+    const scrollables = getScrollableAncestors(anchorEl);
+    const scrollOpts: AddEventListenerOptions = { capture: true, passive: true };
+    scrollables.forEach((el) => el.addEventListener('scroll', run, scrollOpts));
+    window.addEventListener('scroll', run, true);
+    window.addEventListener('resize', run);
+
+    const vv = window.visualViewport;
+    if (vv) {
+      vv.addEventListener('resize', run);
+      vv.addEventListener('scroll', run);
+    }
+
+    const ro = new ResizeObserver(run);
+    ro.observe(anchorEl);
+
     return () => {
-      window.cancelAnimationFrame(raf);
-      window.removeEventListener('scroll', reposition, true);
-      window.removeEventListener('resize', reposition);
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(rafNested);
+      scrollables.forEach((el) => el.removeEventListener('scroll', run, true));
+      window.removeEventListener('scroll', run, true);
+      window.removeEventListener('resize', run);
+      if (vv) {
+        vv.removeEventListener('resize', run);
+        vv.removeEventListener('scroll', run);
+      }
+      ro.disconnect();
     };
   }, [open, anchorEl, reposition]);
 

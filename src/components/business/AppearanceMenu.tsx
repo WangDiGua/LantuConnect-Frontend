@@ -2,8 +2,6 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Sun, Moon, Monitor, RotateCcw } from 'lucide-react';
 import { Theme, ThemeMode, FontSize, FontFamily, AnimationStyle } from '../../types';
-import { FONT_SIZE_ROOT_PX, FONT_SIZE_SEGMENT_ROW2 } from '../../constants/theme';
-
 const FONT_LABELS: Record<FontFamily, string> = {
   sans: '系统无衬线',
   space: '宽屏无衬线',
@@ -146,13 +144,15 @@ export const AppearanceMenu: React.FC<AppearanceMenuProps> = ({
             字号大小
           </span>
           <div className={`flex p-1 rounded-xl ${theme === 'light' ? 'bg-slate-100' : 'bg-white/10'}`}>
-            {(['small', 'medium', 'large'] as FontSize[]).map((size) => (
+            {(['small', 'medium', 'large'] as FontSize[]).map((size) => {
+              const label = size === 'small' ? '小' : size === 'medium' ? '中' : '大';
+              return (
               <button
                 type="button"
                 key={size}
                 onClick={() => setFontSize(size)}
-                title={`${FONT_SIZE_SEGMENT_ROW2[size]} · 根字号 ${FONT_SIZE_ROOT_PX[size]}px（1rem 基准）`}
-                className={`flex flex-1 min-w-0 items-stretch rounded-lg px-1.5 py-2 transition-all ${
+                title={label}
+                className={`flex flex-1 min-w-0 items-center justify-center rounded-lg px-2 py-2.5 text-sm font-semibold transition-all ${
                   fontSize === size
                     ? theme === 'light'
                       ? 'bg-white shadow-sm text-neutral-900'
@@ -162,25 +162,10 @@ export const AppearanceMenu: React.FC<AppearanceMenuProps> = ({
                       : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <span className="flex w-full min-w-0 flex-col items-center justify-center gap-1 text-center">
-                  <span className="flex items-center justify-center gap-1 whitespace-nowrap text-sm font-semibold leading-none">
-                    {size === 'small' ? '小' : size === 'medium' ? '中' : '大'}
-                    {size === 'medium' && (
-                      <span
-                        className={`rounded px-1 py-px text-[10px] font-medium leading-none ${
-                          theme === 'light' ? 'bg-slate-200/90 text-slate-600' : 'bg-white/15 text-slate-300'
-                        }`}
-                      >
-                        默认
-                      </span>
-                    )}
-                  </span>
-                  <span className="whitespace-nowrap font-mono text-[10px] font-medium leading-none opacity-80 tabular-nums sm:text-[11px]">
-                    {FONT_SIZE_SEGMENT_ROW2[size]} · {FONT_SIZE_ROOT_PX[size]}px
-                  </span>
-                </span>
+                {label}
               </button>
-            ))}
+            );
+            })}
           </div>
         </div>
 

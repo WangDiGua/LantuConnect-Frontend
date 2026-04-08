@@ -66,7 +66,6 @@ const UserSettingsHubPage = lazy(() => import('../views/user/UserSettingsHubPage
 const UsageRecordsPage = lazy(() => import('../views/user/UsageRecordsPage').then(m => ({ default: m.UsageRecordsPage })));
 const MyFavoritesPage = lazy(() => import('../views/user/MyFavoritesPage').then(m => ({ default: m.MyFavoritesPage })));
 const UsageStatsPage = lazy(() => import('../views/user/UsageStatsPage').then(m => ({ default: m.UsageStatsPage })));
-const AuthorizedSkillsPage = lazy(() => import('../views/user/AuthorizedSkillsPage').then(m => ({ default: m.AuthorizedSkillsPage })));
 const ResourceCenterManagementPage = lazy(() => import('../views/resourceCenter/ResourceCenterManagementPage').then(m => ({ default: m.ResourceCenterManagementPage })));
 const ResourceRegisterPage = lazy(() => import('../views/resourceCenter/ResourceRegisterPage').then(m => ({ default: m.ResourceRegisterPage })));
 const SkillExternalMarketBrowsePage = lazy(() =>
@@ -448,8 +447,6 @@ const MainContent = React.memo<{
         return renderResourceRegister('app');
       case 'dataset-register':
         return renderResourceRegister('dataset');
-      case 'authorized-skills':
-        return <AuthorizedSkillsPage theme={t} fontSize={fs} showMessage={msg} />;
       case 'quick-access':
         return <QuickAccess theme={t} fontSize={fs} />;
       case 'recent-use':
@@ -1131,6 +1128,10 @@ const MainLayoutContent: React.FC<{
     }
     if (!layoutIsAdmin && normalizedRoutePage === 'my-grant-applications') {
       navigate(buildPath('user', 'hub'), { replace: true });
+      return;
+    }
+    if (normalizedRoutePage === 'authorized-skills') {
+      navigate(buildPath('user', 'skills-center'), { replace: true });
       return;
     }
     if (layoutIsAdmin && normalizedRoutePage) {

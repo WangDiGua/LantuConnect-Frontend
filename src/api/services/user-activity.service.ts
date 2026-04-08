@@ -5,7 +5,6 @@ import type {
   UsageRecord,
   FavoriteItem,
   UserUsageStats,
-  AuthorizedSkillItem,
   RecentUseItem,
   MyPublishItem,
 } from '../../types/dto/user-activity';
@@ -16,39 +15,6 @@ type ActivityType = (typeof ACTIVITY_TYPES)[number];
 function normalizeActivityType(raw: unknown): ActivityType {
   const value = String(raw ?? '').toLowerCase();
   return (ACTIVITY_TYPES as readonly string[]).includes(value) ? (value as ActivityType) : 'agent';
-}
-
-function toAuthorizedSkill(raw: unknown): AuthorizedSkillItem {
-  const r = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
-  const id = Number(r.id ?? r.skillId ?? 0) || 0;
-  const pack =
-    r.packFormat ?? r.pack_format ?? r.agentType ?? r.agent_type ?? undefined;
-  return {
-    id,
-    skillId: Number(r.skillId ?? id) || id,
-    displayName: String(r.displayName ?? r.display_name ?? r.skillName ?? r.name ?? `Skill-${id}`),
-    description: String(r.description ?? ''),
-    status: r.status != null ? String(r.status) : undefined,
-    agentName:
-      r.agentName != null
-        ? String(r.agentName)
-        : r.resourceCode != null
-          ? String(r.resourceCode)
-          : undefined,
-    source: r.source != null ? String(r.source) : undefined,
-    packFormat: pack != null ? String(pack) : undefined,
-    updateTime: r.updateTime != null ? String(r.updateTime) : r.update_time != null ? String(r.update_time) : undefined,
-    lastUsedTime:
-      r.lastUsedTime != null
-        ? String(r.lastUsedTime)
-        : r.last_used_time != null
-          ? String(r.last_used_time)
-          : undefined,
-  };
-}
-
-function normalizeAuthorizedSkills(raw: unknown): PaginatedData<AuthorizedSkillItem> {
-  return normalizePaginated<AuthorizedSkillItem>(raw, toAuthorizedSkill);
 }
 
 function toRecentUse(raw: unknown): RecentUseItem {
@@ -244,11 +210,6 @@ export const userActivityService = {
   getUsageStats: async (): Promise<UserUsageStats> => {
     const raw = await http.get<unknown>('/user/usage-stats');
     return normalizeUserUsageStats(raw);
-  },
-
-  getAuthorizedSkills: async (query?: { page?: number; pageSize?: number }) => {
-    const raw = await http.get<unknown>('/user/authorized-skills', { params: query });
-    return normalizeAuthorizedSkills(raw);
   },
 
   getRecentUse: async (query?: { limit?: number; type?: string }) => {

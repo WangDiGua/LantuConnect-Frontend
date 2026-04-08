@@ -20,7 +20,6 @@ import {
   Server,
   AlertTriangle,
   BarChart3,
-  Key,
   Building2,
   Bell,
   Lock,
@@ -225,7 +224,6 @@ export const USER_WORKSPACE_GROUPS: NavSubGroup[] = [
       { id: 'overview', icon: LayoutGrid, label: '工作台总览' },
       { id: 'developer-onboarding', icon: Rocket, label: '开发者入驻' },
       { id: 'my-favorites', icon: Heart, label: '我的收藏' },
-      { id: 'authorized-skills', icon: Key, label: '已授权技能' },
     ],
   },
 ];
@@ -274,10 +272,6 @@ export const USER_MY_CONSOLE_GROUPS: NavSubGroup[] = [
     title: '我的发布',
     requiresPublish: true,
     items: [{ id: 'resource-center', icon: Boxes, label: '统一资源中心' }],
-  },
-  {
-    title: '收藏与能力',
-    items: [{ id: 'authorized-skills', icon: Key, label: '已授权技能' }],
   },
   {
     title: '工单与审批',

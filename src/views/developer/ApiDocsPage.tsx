@@ -82,7 +82,6 @@ const API_CATEGORIES: ApiCategory[] = [
   { id: 'user-activity', label: '个人用量与收藏', endpoints: [
     { method: 'GET', path: '/user/usage-records', description: '分页查询个人用量记录（门户行为埋点，不等同于网关 call_log 全量）。', params: [{ name: 'page', type: 'number', required: false, description: '' }, { name: 'pageSize', type: 'number', required: false, description: '' }, { name: 'type', type: 'string', required: false, description: '筛选类型' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { records: [], total: 0, page: 1, pageSize: 20 } }, null, 2) },
     { method: 'GET', path: '/user/favorites', description: '我的收藏列表。', params: [], responseExample: JSON.stringify({ code: 0, message: 'ok', data: [] }, null, 2) },
-    { method: 'GET', path: '/user/authorized-skills', description: '已授权给我使用的技能目录项（分页）。', params: [{ name: 'page', type: 'number', required: false, description: '' }, { name: 'pageSize', type: 'number', required: false, description: '' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { records: [], total: 0, page: 1, pageSize: 20 } }, null, 2) },
     { method: 'GET', path: '/user/usage-stats', description: '个人用量汇总（工作台展示）。', params: [], responseExample: JSON.stringify({ code: 0, message: 'ok', data: {} }, null, 2) },
   ]},
   { id: 'owner-dashboard', label: 'Owner 资源成效', endpoints: [
@@ -451,7 +450,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
                   {proseH2(theme, '个人用量与开发者统计')}
                   {prosePara(theme, (
                     <>
-                      「我的用量 / 收藏 / 已授权技能」等对应 <span className="font-mono">/user/usage-records</span>、<span className="font-mono">/user/favorites</span>、<span className="font-mono">/user/authorized-skills</span>、<span className="font-mono">/user/usage-stats</span>。
+                      「我的用量 / 收藏」等对应 <span className="font-mono">/user/usage-records</span>、<span className="font-mono">/user/favorites</span>、<span className="font-mono">/user/usage-stats</span>。
                     </>
                   ))}
                   {prosePara(theme, (

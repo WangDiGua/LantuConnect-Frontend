@@ -30,21 +30,6 @@ export interface UserUsageStats {
   recentDays: { date: string; calls: number }[];
 }
 
-export interface AuthorizedSkillItem {
-  id: number;
-  skillId?: number;
-  displayName: string;
-  description: string;
-  status?: string;
-  /** 技能资源编码（后端 AuthorizedSkillVO.agentName） */
-  agentName?: string;
-  /** own | public */
-  source?: string;
-  packFormat?: string;
-  updateTime?: string;
-  lastUsedTime?: string;
-}
-
 export interface RecentUseItem {
   id: number;
   targetType: 'agent' | 'skill' | 'app' | 'dataset' | 'mcp';

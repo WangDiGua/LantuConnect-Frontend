@@ -52,9 +52,6 @@ export const MyFavoritesPage = lazy(() =>
 export const UsageStatsPage = lazy(() =>
   import('../views/user/UsageStatsPage').then((m) => ({ default: m.UsageStatsPage })),
 );
-export const AuthorizedSkillsPage = lazy(() =>
-  import('../views/user/AuthorizedSkillsPage').then((m) => ({ default: m.AuthorizedSkillsPage })),
-);
 export const ResourceCenterManagementPage = lazy(() =>
   import('../views/resourceCenter/ResourceCenterManagementPage').then((m) => ({ default: m.ResourceCenterManagementPage })),
 );

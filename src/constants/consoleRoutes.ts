@@ -1,7 +1,14 @@
 import type { ResourceType } from '../types/dto/catalog';
+import type { PlatformRoleCode } from '../types/dto/auth';
+import { canAccessAdminView } from '../context/UserRoleContext';
 import { parseResourceType } from './resourceTypes';
 
 export type ConsoleRole = 'admin' | 'user';
+
+/** 控制台 Hash 路径统一前缀：`#/c/:page`（不再使用 `/user` `/admin` 双轨） */
+export const CONSOLE_PATH_PREFIX = 'c';
+
+export type ParsedConsoleRoute = { page: string; id?: string };
 
 /** 用户端旧版资源市场 slug → `resource-market?tab=`；`skill-market` / `mcp-market` 在 MainLayout 中直达独立页 */
 export const USER_LEGACY_MARKET_PAGE_TO_TAB: Record<string, ResourceType> = {
@@ -55,12 +62,15 @@ const ADMIN_RESOURCE_AUDIT_PAGES = new Set([
   'dataset-audit',
 ]);
 
-export function buildPath(role: ConsoleRole, page: string, id?: string | number): string {
-  const base = `/${role}/${page}`;
+/**
+ * 构造控制台路径。`role` 参数保留以兼容调用方，**不参与 URL**；壳层由 {@link inferConsoleRole} 决定。
+ */
+export function buildPath(_role: ConsoleRole, page: string, id?: string | number): string {
+  const base = `/${CONSOLE_PATH_PREFIX}/${page}`;
   return id !== undefined ? `${base}/${id}` : base;
 }
 
-/** 用户统一资源市场 URL（`/user/resource-market?tab=`，可选 deep link `resourceId`） */
+/** 用户统一资源市场 URL（`/c/resource-market?tab=`，可选 deep link `resourceId`） */
 export function buildUserResourceMarketUrl(
   tabInput: string | null | undefined,
   extra?: { resourceId?: string | number | null },
@@ -104,24 +114,15 @@ export function buildUserResourceMarketUrl(
 }
 
 /**
- * 登录后与无有效恢复路径时的默认落地：**统一应用工作台**（与后端统一控制台/统一 RBAC 对齐）。
- * 平台治理类页面仍使用 `/admin/:page` 直达；`ConsoleRole` 仅表示 URL 分区，不表示两套产品身份。
+ * 登录后与无有效恢复路径时的默认落地：探索 Hub。
  */
 export function defaultPath(_role?: ConsoleRole): string {
-  return '/user/hub';
+  return `/${CONSOLE_PATH_PREFIX}/hub`;
 }
 
-/** 管理概览页（原「管理路由」首页），供侧栏/书签直达 */
+/** 管理概览页，供侧栏/书签直达 */
 export function adminOverviewPath(): string {
-  return '/admin/dashboard';
-}
-
-export function parseRoute(pathname: string): { role: ConsoleRole; page: string; id?: string } | null {
-  const parts = pathname.split('/').filter(Boolean);
-  if (parts.length < 2) return null;
-  const role = parts[0] as ConsoleRole;
-  if (role !== 'admin' && role !== 'user') return null;
-  return { role, page: parts[1], id: parts[2] };
+  return `/${CONSOLE_PATH_PREFIX}/dashboard`;
 }
 
 const ADMIN_SIDEBAR_PAGES: Record<string, string[]> = {
@@ -194,6 +195,39 @@ const USER_SIDEBAR_PAGES: Record<string, string[]> = {
   'developer-portal': ['api-docs', 'sdk-download', 'api-playground', 'mcp-integration', 'developer-statistics'],
   'user-settings': ['profile', 'preferences'],
 };
+
+function flatPageSet(map: Record<string, string[]>): Set<string> {
+  const s = new Set<string>();
+  for (const pages of Object.values(map)) {
+    for (const p of pages) s.add(p);
+  }
+  return s;
+}
+
+const ADMIN_PAGE_SET = flatPageSet(ADMIN_SIDEBAR_PAGES);
+const USER_PAGE_SET = flatPageSet(USER_SIDEBAR_PAGES);
+
+/**
+ * 根据当前 `page` slug 推断使用「管理壳」还是「工作台壳」。
+ * 仅出现在一侧映射中的页面直接定界；两侧皆有时：可进管理端的账号默认走管理壳（与旧 `/admin/*` 行为一致）。
+ */
+export function inferConsoleRole(page: string, platformRole?: PlatformRoleCode | null): ConsoleRole {
+  const a = ADMIN_PAGE_SET.has(page);
+  const u = USER_PAGE_SET.has(page);
+  const pr = platformRole ?? 'user';
+  if (a && !u) return 'admin';
+  if (!a && u) return 'user';
+  if (a && u) {
+    return canAccessAdminView(pr) ? 'admin' : 'user';
+  }
+  return 'user';
+}
+
+export function parseRoute(pathname: string): ParsedConsoleRoute | null {
+  const parts = pathname.split('/').filter(Boolean);
+  if (parts.length < 2 || parts[0] !== CONSOLE_PATH_PREFIX) return null;
+  return parts.length >= 3 ? { page: parts[1], id: parts[2] } : { page: parts[1] };
+}
 
 export function findSidebarForPage(role: ConsoleRole, page: string): string | null {
   if (role === 'user' && page === 'resource-center') {

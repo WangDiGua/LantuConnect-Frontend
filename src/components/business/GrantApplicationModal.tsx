@@ -9,7 +9,8 @@ import { btnPrimary, btnSecondary, textMuted, textPrimary, textSecondary } from 
 import { grantApplicationService } from '../../api/services';
 import { userSettingsService } from '../../api/services/user-settings.service';
 import type { UserApiKey } from '../../types/dto/user-settings';
-import { buildPath } from '../../constants/consoleRoutes';
+import { buildPath, inferConsoleRole, parseRoute } from '../../constants/consoleRoutes';
+import { useUserRole } from '../../context/UserRoleContext';
 import { apiKeyScopesAllowGatewayFlow } from '../../utils/apiKeyScopes';
 import { LantuDateTimePicker } from '../common/LantuDateTimePicker';
 import { PageSkeleton } from '../common/PageSkeleton';
@@ -44,7 +45,9 @@ export const GrantApplicationModal: React.FC<Props> = ({
   const isDark = theme === 'dark';
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const consoleRole = pathname.startsWith('/admin') ? 'admin' : 'user';
+  const { platformRole } = useUserRole();
+  const routePage = parseRoute(pathname)?.page ?? '';
+  const consoleRole = inferConsoleRole(routePage, platformRole);
   const [apiKeyId, setApiKeyId] = useState('');
   const [actions, setActions] = useState<string[]>(['catalog', 'resolve', 'invoke']);
   const [useCase, setUseCase] = useState('');

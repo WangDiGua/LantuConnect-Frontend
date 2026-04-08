@@ -140,6 +140,7 @@ import {
   ADMIN_LEGACY_AUDIT_PAGE_DEFAULT_TYPE,
   USER_LEGACY_MARKET_PAGE_TO_TAB,
   type ConsoleRole,
+  inferConsoleRole,
 } from '../constants/consoleRoutes';
 import type { ResourceType } from '../types/dto/catalog';
 import {
@@ -664,6 +665,16 @@ const RouteContentMotion: React.FC<{
   );
 };
 
+/** 兼容旧书签 `#/user/*`、`#/admin/*` → `#/c/*` */
+const LegacyConsoleRedirect: React.FC<{ prefix: 'user' | 'admin' }> = ({ prefix }) => {
+  const { pathname, search } = useLocation();
+  const sliceLen = prefix === 'user' ? 5 : 6;
+  const suffix = pathname.slice(sliceLen) || '/';
+  const rest = suffix.startsWith('/') ? suffix : `/${suffix}`;
+  const to = `/c${rest === '/' ? '' : rest}${search}`;
+  return <Navigate to={to} replace />;
+};
+
 export const MainLayout: React.FC = () => {
   const [themePreference, setThemePreference] = useState<ThemeMode>(() => readAppearanceState().themePreference);
   const systemDark = useSyncExternalStore(
@@ -703,18 +714,12 @@ export const MainLayout: React.FC = () => {
     >
       <Routes>
         <Route path="/" element={<ConsoleHomeRedirect />} />
+        <Route path="/user" element={<Navigate to="/c/hub" replace />} />
+        <Route path="/admin" element={<Navigate to="/c/dashboard" replace />} />
+        <Route path="/user/*" element={<LegacyConsoleRedirect prefix="user" />} />
+        <Route path="/admin/*" element={<LegacyConsoleRedirect prefix="admin" />} />
         <Route
-          path="/:role/:page/*"
-          element={
-            <MainLayoutContent
-              theme={theme}
-              themePreference={themePreference}
-              setThemePreference={setThemePreference}
-            />
-          }
-        />
-        <Route
-          path="/:role/:page"
+          path="/c/:page/:pageId?"
           element={
             <MainLayoutContent
               theme={theme}
@@ -741,16 +746,21 @@ const MainLayoutContent: React.FC<{
   const isDark = theme === 'dark';
 
   const route = parseRoute(location.pathname);
-  const routeRole = route?.role;
   const routePage = route?.page;
   const routeId = route?.id;
   const normalizedRoutePage = routePage ? normalizeDeprecatedPage(routePage) : undefined;
+  const inferredRoleForPage =
+    normalizedRoutePage != null ? inferConsoleRole(normalizedRoutePage, platformRole) : undefined;
   const queryType = parseResourceType(new URLSearchParams(location.search).get('type'));
   const marketTabQuery = parseResourceType(new URLSearchParams(location.search).get('tab'));
-  const isStandaloneUserSettingsPage = routeRole === 'user' && ['profile', 'preferences'].includes(normalizedRoutePage ?? '');
-  const routeValid = !!(routeRole && normalizedRoutePage && (findSidebarForPage(routeRole, normalizedRoutePage) || isStandaloneUserSettingsPage));
+  const isStandaloneUserSettingsPage = ['profile', 'preferences'].includes(normalizedRoutePage ?? '');
+  const routeValid = !!(
+    normalizedRoutePage &&
+    inferredRoleForPage &&
+    (findSidebarForPage(inferredRoleForPage, normalizedRoutePage) || isStandaloneUserSettingsPage)
+  );
 
-  const consoleRole: ConsoleRole = routeRole ?? (ctxAdmin ? 'admin' : 'user');
+  const consoleRole: ConsoleRole = inferredRoleForPage ?? (ctxAdmin ? 'admin' : 'user');
   const layoutIsAdmin = consoleRole === 'admin';
   const basePage = normalizedRoutePage ?? (consoleRole === 'admin' ? 'dashboard' : 'workspace');
   let page = basePage;
@@ -959,22 +969,18 @@ const MainLayoutContent: React.FC<{
 
   // Route validation & redirect (allow admin users to access user views for mode switcher)
   useEffect(() => {
-    if (routeRole && routePage && normalizedRoutePage && routePage !== normalizedRoutePage) {
-      navigate(buildPath(routeRole, normalizedRoutePage, routeId), { replace: true });
-      return;
-    }
-    if (routeRole === 'admin' && normalizedRoutePage && DEVELOPER_PORTAL_PAGES.has(normalizedRoutePage)) {
+    if (routePage && normalizedRoutePage && routePage !== normalizedRoutePage) {
       navigate(buildPath('user', normalizedRoutePage, routeId), { replace: true });
       return;
     }
-    if (routeRole === 'user' && normalizedRoutePage && LEGACY_USER_RESOURCE_PAGES.has(normalizedRoutePage)) {
+    if (!layoutIsAdmin && normalizedRoutePage && LEGACY_USER_RESOURCE_PAGES.has(normalizedRoutePage)) {
       const type = LEGACY_PAGE_TO_TYPE[normalizedRoutePage];
       if (type) {
         navigate(unifiedResourceCenterPath(platformRole, type), { replace: true });
         return;
       }
     }
-    if (routeRole === 'user' && normalizedRoutePage === 'skill-market') {
+    if (!layoutIsAdmin && normalizedRoutePage === 'skill-market') {
       const sp = new URLSearchParams(location.search);
       const q = new URLSearchParams();
       const rid = sp.get('resourceId');
@@ -985,7 +991,7 @@ const MainLayoutContent: React.FC<{
       }
       return;
     }
-    if (routeRole === 'user' && normalizedRoutePage && USER_LEGACY_MARKET_PAGE_TO_TAB[normalizedRoutePage]) {
+    if (!layoutIsAdmin && normalizedRoutePage && USER_LEGACY_MARKET_PAGE_TO_TAB[normalizedRoutePage]) {
       const tab = USER_LEGACY_MARKET_PAGE_TO_TAB[normalizedRoutePage];
       const sp = new URLSearchParams(location.search);
       const rid = sp.get('resourceId');
@@ -1034,7 +1040,7 @@ const MainLayoutContent: React.FC<{
       }
       return;
     }
-    if (routeRole === 'user' && normalizedRoutePage === 'resource-market') {
+    if (!layoutIsAdmin && normalizedRoutePage === 'resource-market') {
       const sp = new URLSearchParams(location.search);
       const tabRaw = sp.get('tab');
       const tabOk = parseResourceType(tabRaw);
@@ -1099,26 +1105,26 @@ const MainLayoutContent: React.FC<{
         return;
       }
     }
-    if (routeRole === 'user' && normalizedRoutePage === 'resource-center' && canAccessAdminView(platformRole)) {
+    if (normalizedRoutePage === 'resource-center' && canAccessAdminView(platformRole)) {
       const t = queryType ?? 'agent';
-      const next = `${buildPath('admin', 'resource-catalog')}?type=${t}`;
+      const next = `${buildPath('user', 'resource-catalog')}?type=${t}`;
       if (`${location.pathname}${location.search}` !== next) {
         navigate(next, { replace: true });
       }
       return;
     }
-    if (routeRole === 'user' && normalizedRoutePage === 'resource-center' && !queryType) {
+    if (normalizedRoutePage === 'resource-center' && !queryType) {
       navigate(`${buildPath('user', 'resource-center')}?type=agent`, { replace: true });
       return;
     }
-    if (routeRole === 'admin' && normalizedRoutePage === 'resource-catalog' && !queryType) {
-      navigate(`${buildPath('admin', 'resource-catalog')}?type=agent`, { replace: true });
+    if (layoutIsAdmin && normalizedRoutePage === 'resource-catalog' && !queryType) {
+      navigate(`${buildPath('user', 'resource-catalog')}?type=agent`, { replace: true });
       return;
     }
-    if (routeRole === 'admin' && normalizedRoutePage) {
+    if (layoutIsAdmin && normalizedRoutePage) {
       if (ADMIN_LEGACY_RESOURCE_LIST_PAGES.has(normalizedRoutePage)) {
         const t = LEGACY_PAGE_TO_TYPE[normalizedRoutePage];
-        const next = `${buildPath('admin', 'resource-catalog')}?type=${t}`;
+        const next = `${buildPath('user', 'resource-catalog')}?type=${t}`;
         if (`${location.pathname}${location.search}` !== next) {
           navigate(next, { replace: true });
         }
@@ -1127,14 +1133,14 @@ const MainLayoutContent: React.FC<{
       const auditDef = ADMIN_LEGACY_AUDIT_PAGE_DEFAULT_TYPE[normalizedRoutePage];
       if (auditDef) {
         const t = queryType ?? auditDef;
-        const next = `${buildPath('admin', 'resource-audit')}?type=${t}`;
+        const next = `${buildPath('user', 'resource-audit')}?type=${t}`;
         if (`${location.pathname}${location.search}` !== next) {
           navigate(next, { replace: true });
         }
       }
     }
     if (
-      routeRole === 'user' &&
+      !layoutIsAdmin &&
       normalizedRoutePage &&
       DEVELOPER_PORTAL_PAGES.has(normalizedRoutePage) &&
       !hasPermission('developer:portal')
@@ -1143,7 +1149,7 @@ const MainLayoutContent: React.FC<{
       return;
     }
     if (
-      routeRole === 'user' &&
+      !layoutIsAdmin &&
       normalizedRoutePage === 'grant-applications' &&
       !hasPermission('grant-application:review') &&
       !hasPermission('resource-grant:manage')
@@ -1153,7 +1159,7 @@ const MainLayoutContent: React.FC<{
       return;
     }
     if (
-      routeRole === 'user' &&
+      !layoutIsAdmin &&
       normalizedRoutePage === 'developer-applications' &&
       !hasPermission('developer-application:review')
     ) {
@@ -1161,24 +1167,19 @@ const MainLayoutContent: React.FC<{
       showMessage('当前账号无入驻审批权限', 'info');
       return;
     }
-    if (routeRole === 'admin' && normalizedRoutePage === 'skill-external-catalog-settings' && !hasPermission('system:config')) {
-      navigate(buildPath('admin', 'system-params'), { replace: true });
+    if (layoutIsAdmin && normalizedRoutePage === 'skill-external-catalog-settings' && !hasPermission('system:config')) {
+      navigate(buildPath('user', 'system-params'), { replace: true });
       showMessage('当前账号无权访问技能在线市场配置', 'info');
       return;
     }
     if (!routeValid) {
-      if (routeRole === 'admin' || routeRole === 'user') {
-        navigate(defaultPath(), { replace: true });
-      } else {
-        navigate('/404', { replace: true });
-      }
+      navigate(defaultPath(), { replace: true });
       return;
     }
-    if (routeRole === 'admin' && !canAccessAdminView(platformRole)) {
+    if (layoutIsAdmin && !canAccessAdminView(platformRole)) {
       navigate(defaultPath(), { replace: true });
     }
     if (
-      routeRole === 'user' &&
       !layoutIsAdmin &&
       [
         'resource-center',
@@ -1203,7 +1204,7 @@ const MainLayoutContent: React.FC<{
       navigate(buildPath('user', 'hub'), { replace: true });
       showMessage('当前账号暂无统一资源发布权限', 'info');
     }
-  }, [routeValid, routeRole, routePage, normalizedRoutePage, routeId, queryType, consoleRole, platformRole, navigate, layoutIsAdmin, page, canAccessUserPublishingShell, showMessage, hasPermission, location.pathname, location.search]);
+  }, [routeValid, routePage, normalizedRoutePage, routeId, queryType, consoleRole, platformRole, navigate, layoutIsAdmin, page, canAccessUserPublishingShell, showMessage, hasPermission, location.pathname, location.search]);
 
   useEffect(() => {
     const wantRole = consoleRole === 'admin' ? 'admin' : 'user';
@@ -1524,7 +1525,7 @@ const MainLayoutContent: React.FC<{
       }
       if (targetPage === 'resource-catalog') {
         const type = typeof id === 'string' ? parseResourceType(id) : undefined;
-        navigate(`${buildPath('admin', 'resource-catalog')}?type=${type ?? 'agent'}`);
+        navigate(`${buildPath('user', 'resource-catalog')}?type=${type ?? 'agent'}`);
         return;
       }
       const path = buildPath(consoleRole, targetPage, id);

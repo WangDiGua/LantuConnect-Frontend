@@ -26,7 +26,14 @@ import {
 import type { DomainStatus } from '../../utils/uiClasses';
 import { nullDisplay } from '../../utils/errorHandler';
 import { expiryRelativeToNow, formatDateTime } from '../../utils/formatDateTime';
-import { buildPath, buildUserResourceMarketUrl, type ConsoleRole } from '../../constants/consoleRoutes';
+import {
+  buildPath,
+  buildUserResourceMarketUrl,
+  inferConsoleRole,
+  parseRoute,
+  type ConsoleRole,
+} from '../../constants/consoleRoutes';
+import { useUserRole } from '../../context/UserRoleContext';
 import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedContentToTop';
 
 interface Props {
@@ -57,7 +64,9 @@ const EXPIRY_BADGE_STATUS: Record<'expired' | 'active', DomainStatus> = {
 export const MyGrantApplicationsPage: React.FC<Props> = ({ theme, fontSize }) => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const consoleRole: ConsoleRole = pathname.startsWith('/admin') ? 'admin' : 'user';
+  const { platformRole } = useUserRole();
+  const routePage = parseRoute(pathname)?.page ?? '';
+  const consoleRole: ConsoleRole = inferConsoleRole(routePage, platformRole);
   const isDark = theme === 'dark';
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<Error | null>(null);

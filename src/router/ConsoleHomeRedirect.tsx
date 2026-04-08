@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { canAccessAdminView, normalizeRole } from '../context/UserRoleContext';
 import { useAuthStore } from '../stores/authStore';
 import { readPersistedNavState } from '../utils/navigationState';
-import { defaultPath, parseRoute, findSidebarForPage } from '../constants/consoleRoutes';
+import { defaultPath, parseRoute, findSidebarForPage, inferConsoleRole } from '../constants/consoleRoutes';
 
 export const ConsoleHomeRedirect: React.FC = () => {
   const user = useAuthStore((s) => s.user);
@@ -11,10 +11,11 @@ export const ConsoleHomeRedirect: React.FC = () => {
   const normalizedRole = normalizeRole(user?.role);
   const parsed = parseRoute(lastPath);
   if (parsed) {
-    if (parsed.role === 'admin' && !canAccessAdminView(normalizedRole)) {
+    const inferred = inferConsoleRole(parsed.page, normalizedRole);
+    if (inferred === 'admin' && !canAccessAdminView(normalizedRole)) {
       return <Navigate to={defaultPath()} replace />;
     }
-    if (findSidebarForPage(parsed.role, parsed.page)) {
+    if (findSidebarForPage(inferred, parsed.page)) {
       return <Navigate to={lastPath} replace />;
     }
   }

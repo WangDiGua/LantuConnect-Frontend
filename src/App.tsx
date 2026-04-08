@@ -160,7 +160,7 @@ const App: React.FC = () => {
                   path="/onboarding/developer"
                   element={
                     <AuthGuard>
-                      <Navigate to="/user/developer-onboarding" replace />
+                      <Navigate to="/c/developer-onboarding" replace />
                     </AuthGuard>
                   }
                 />

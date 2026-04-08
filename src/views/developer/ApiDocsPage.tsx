@@ -6,7 +6,7 @@ import {
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { Theme, FontSize } from '../../types';
 import type { ConsoleRole } from '../../constants/consoleRoutes';
-import { buildPath, buildUserResourceMarketUrl } from '../../constants/consoleRoutes';
+import { buildPath, buildUserResourceMarketUrl, inferConsoleRole, parseRoute } from '../../constants/consoleRoutes';
 import { useUserRole } from '../../context/UserRoleContext';
 import { unifiedResourceCenterPath } from '../../utils/unifiedResourceCenterPath';
 import { BentoCard } from '../../components/common/BentoCard';
@@ -151,7 +151,9 @@ export interface ApiDocsPageProps { theme: Theme; fontSize: FontSize; }
 export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const consoleRole: ConsoleRole = pathname.startsWith('/admin') ? 'admin' : 'user';
+  const { platformRole } = useUserRole();
+  const routePage = parseRoute(pathname)?.page ?? '';
+  const consoleRole: ConsoleRole = inferConsoleRole(routePage, platformRole);
   const isDark = theme === 'dark';
   const [viewMode, setViewMode] = useState<'guide' | 'reference'>('guide');
   const [activeCat, setActiveCat] = useState(API_CATEGORIES[0].id);

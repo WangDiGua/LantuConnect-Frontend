@@ -37,7 +37,7 @@ export function normalizeRole(raw?: string | null): PlatformRoleCode {
 
 /**
  * 控制台壳层**初始**路由域：统一为应用侧 `user`。
- * 超管/审核员等是否可打开 `/admin/*` 由 {@link canAccessAdminView} 与权限点决定，不再按角色默认进「管理首页」。
+ * 超管/审核员等是否可打开管理壳层页面由 {@link canAccessAdminView} 与权限点决定（URL 统一为 `#/c/*`，壳层由 `consoleRoutes.inferConsoleRole` 按当前页 slug 推断）。
  */
 export function platformRoleToConsoleRole(_platformRole?: PlatformRoleCode | null): UserRole {
   return 'user';

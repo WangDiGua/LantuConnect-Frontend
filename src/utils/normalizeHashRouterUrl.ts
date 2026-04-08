@@ -1,6 +1,6 @@
 /**
- * Hash 路由下，真正生效的是 `#` 后面的路径（如 `#/user/workspace`）。
- * 用户若在地址栏写成 `http://host/login#/user/workspace`，pathname 里的 `/login` 不参与 React Router 匹配，
+ * Hash 路由下，真正生效的是 `#` 后面的路径（如 `#/c/workspace`；旧书签可能仍为 `#/user/...`）。
+ * 用户若在地址栏写成 `http://host/login#/c/workspace`，pathname 里的 `/login` 不参与 React Router 匹配，
  * 但会造成「看起来像登录页地址却进了工作台」的错觉。
  *
  * 子路径部署（Vite `base` 非 `/`）时：把地址栏 pathname 收束到与 `BASE_URL` 一致（便于分享链接、避免多余 path），

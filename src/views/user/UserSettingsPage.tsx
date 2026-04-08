@@ -24,7 +24,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
-import { buildPath } from '../../constants/consoleRoutes';
+import { buildPath, inferConsoleRole, parseRoute } from '../../constants/consoleRoutes';
+import { useUserRole } from '../../context/UserRoleContext';
 import { apiKeyScopesAllowGatewayFlow } from '../../utils/apiKeyScopes';
 import { MAX_STORED_API_KEY_LENGTH } from '../../lib/safeStorage';
 
@@ -82,7 +83,9 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
 }) => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const consoleRole = pathname.startsWith('/admin') ? 'admin' : 'user';
+  const { platformRole } = useUserRole();
+  const routePage = parseRoute(pathname)?.page ?? '';
+  const consoleRole = inferConsoleRole(routePage, platformRole);
   const { chromePageTitle } = useLayoutChrome();
   const isDark = theme === 'dark';
   const tc = THEME_COLOR_CLASSES[themeColor];

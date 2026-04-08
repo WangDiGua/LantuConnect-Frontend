@@ -92,7 +92,7 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
   outerScrollOnly = false,
 }) => {
   const isDark = theme === 'dark';
-  /** 与探索页画布平接，不用独立浮卡；列级分隔由 ExploreHub 父级 border-r 承担 */
+  /** 与探索页画布平接，不用独立浮卡 */
   const shell = 'rounded-none border-0 bg-transparent shadow-none';
 
   const parentBlocks = useMemo(() => buildParentBlocks(sections), [sections]);

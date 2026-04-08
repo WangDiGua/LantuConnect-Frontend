@@ -2013,9 +2013,7 @@ const MainLayoutContent: React.FC<{
               className={`flex min-h-0 min-w-0 flex-1 flex-col gap-8 lg:flex-row lg:gap-10 ${contentPaddingX}`}
             >
               <aside
-                className={`hidden min-h-0 shrink-0 flex-col border-r lg:flex lg:w-52 lg:max-h-none xl:w-56 ${
-                  isDark ? 'border-white/[0.08]' : 'border-slate-200/80'
-                } ${consoleContentTopPad} ${chromeGpuLayerClass} pr-6`}
+                className={`hidden min-h-0 shrink-0 flex-col lg:flex lg:w-52 lg:max-h-none xl:w-56 ${consoleContentTopPad} ${chromeGpuLayerClass} pr-6`}
               >
                 <div
                   className={`flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-y-contain custom-scrollbar lantu-hub-sticky-rail-scroll ${mainScrollCompositorClass}`}

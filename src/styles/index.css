@@ -114,19 +114,19 @@
     --glass-border: rgba(163, 163, 163, 0.18);
     --glass-blur: 24px;
 
-    /* 阴影：极低对比漫射，仅略提示层次（卡片 / 表单 / 下拉 / 弹层） */
-    --shadow-control: 0 1px 2px rgba(0, 0, 0, 0.028), 0 2px 8px rgba(0, 0, 0, 0.035);
-    --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.03), 0 4px 14px rgba(0, 0, 0, 0.038);
-    --shadow-card-hover: 0 3px 8px rgba(0, 0, 0, 0.035), 0 6px 18px rgba(0, 0, 0, 0.045);
-    --shadow-dropdown: 0 3px 10px rgba(0, 0, 0, 0.032), 0 6px 20px rgba(0, 0, 0, 0.042);
-    --shadow-modal: 0 4px 12px rgba(0, 0, 0, 0.04), 0 10px 28px rgba(0, 0, 0, 0.05);
-    --shadow-glass-panel: inset 0 1px 0 0 rgba(255, 255, 255, 0.85), 0 2px 6px rgba(0, 0, 0, 0.028), 0 4px 14px rgba(0, 0, 0, 0.038);
-    --shadow-glow-indigo: 0 4px 14px rgba(99, 102, 241, 0.07);
-    --shadow-glow-emerald: 0 4px 14px rgba(16, 185, 129, 0.07);
-    --shadow-glow-amber: 0 4px 14px rgba(245, 158, 11, 0.07);
-    --shadow-glow-rose: 0 4px 14px rgba(244, 63, 94, 0.07);
-    --shadow-glow-cyan: 0 4px 14px rgba(6, 182, 212, 0.08);
-    --shadow-glow-violet: 0 4px 14px rgba(139, 92, 246, 0.07);
+    /* 阴影：近乎「贴底」的极弱层次（亮色画布上仅勉强可辨） */
+    --shadow-control: 0 1px 1px rgba(0, 0, 0, 0.015), 0 1px 4px rgba(0, 0, 0, 0.02);
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.018), 0 2px 7px rgba(0, 0, 0, 0.022);
+    --shadow-card-hover: 0 1px 3px rgba(0, 0, 0, 0.02), 0 3px 10px rgba(0, 0, 0, 0.027);
+    --shadow-dropdown: 0 1px 3px rgba(0, 0, 0, 0.02), 0 3px 12px rgba(0, 0, 0, 0.028);
+    --shadow-modal: 0 2px 6px rgba(0, 0, 0, 0.024), 0 5px 16px rgba(0, 0, 0, 0.03);
+    --shadow-glass-panel: inset 0 1px 0 0 rgba(255, 255, 255, 0.85), 0 1px 2px rgba(0, 0, 0, 0.018), 0 2px 7px rgba(0, 0, 0, 0.022);
+    --shadow-glow-indigo: 0 2px 8px rgba(99, 102, 241, 0.035);
+    --shadow-glow-emerald: 0 2px 8px rgba(16, 185, 129, 0.035);
+    --shadow-glow-amber: 0 2px 8px rgba(245, 158, 11, 0.035);
+    --shadow-glow-rose: 0 2px 8px rgba(244, 63, 94, 0.035);
+    --shadow-glow-cyan: 0 2px 8px rgba(6, 182, 212, 0.04);
+    --shadow-glow-violet: 0 2px 8px rgba(139, 92, 246, 0.035);
 
     /* Text */
     --text-primary: #171717;
@@ -157,18 +157,18 @@
     --glass-nav-fallback: rgba(26, 31, 46, 0.94);
     --glass-border: rgba(255, 255, 255, 0.06);
 
-    --shadow-control: 0 1px 2px rgba(0, 0, 0, 0.22), 0 2px 10px rgba(0, 0, 0, 0.18);
-    --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.2), 0 4px 18px rgba(0, 0, 0, 0.22);
-    --shadow-card-hover: 0 3px 12px rgba(0, 0, 0, 0.24), 0 6px 22px rgba(0, 0, 0, 0.26);
-    --shadow-dropdown: 0 3px 12px rgba(0, 0, 0, 0.22), 0 6px 22px rgba(0, 0, 0, 0.24);
-    --shadow-modal: 0 4px 14px rgba(0, 0, 0, 0.26), 0 10px 32px rgba(0, 0, 0, 0.32);
-    --shadow-glass-panel: inset 0 1px 0 0 rgba(255, 255, 255, 0.04), 0 2px 8px rgba(0, 0, 0, 0.2), 0 4px 18px rgba(0, 0, 0, 0.22);
-    --shadow-glow-indigo: 0 4px 18px rgba(129, 140, 248, 0.1);
-    --shadow-glow-emerald: 0 4px 18px rgba(16, 185, 129, 0.1);
-    --shadow-glow-amber: 0 4px 18px rgba(245, 158, 11, 0.1);
-    --shadow-glow-rose: 0 4px 18px rgba(244, 63, 94, 0.1);
-    --shadow-glow-cyan: 0 4px 18px rgba(6, 182, 212, 0.11);
-    --shadow-glow-violet: 0 4px 18px rgba(167, 139, 250, 0.1);
+    --shadow-control: 0 1px 2px rgba(0, 0, 0, 0.09), 0 1px 6px rgba(0, 0, 0, 0.08);
+    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.1), 0 2px 12px rgba(0, 0, 0, 0.11);
+    --shadow-card-hover: 0 2px 6px rgba(0, 0, 0, 0.11), 0 4px 16px rgba(0, 0, 0, 0.13);
+    --shadow-dropdown: 0 2px 6px rgba(0, 0, 0, 0.1), 0 4px 16px rgba(0, 0, 0, 0.12);
+    --shadow-modal: 0 2px 8px rgba(0, 0, 0, 0.12), 0 6px 22px rgba(0, 0, 0, 0.16);
+    --shadow-glass-panel: inset 0 1px 0 0 rgba(255, 255, 255, 0.04), 0 1px 3px rgba(0, 0, 0, 0.1), 0 2px 12px rgba(0, 0, 0, 0.11);
+    --shadow-glow-indigo: 0 2px 12px rgba(129, 140, 248, 0.05);
+    --shadow-glow-emerald: 0 2px 12px rgba(16, 185, 129, 0.05);
+    --shadow-glow-amber: 0 2px 12px rgba(245, 158, 11, 0.05);
+    --shadow-glow-rose: 0 2px 12px rgba(244, 63, 94, 0.05);
+    --shadow-glow-cyan: 0 2px 12px rgba(6, 182, 212, 0.055);
+    --shadow-glow-violet: 0 2px 12px rgba(167, 139, 250, 0.05);
 
     --text-primary: #f1f5f9;
     --text-secondary: #94a3b8;
@@ -293,9 +293,9 @@
 }
 
 @keyframes glow {
-  0% { box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06); }
-  50% { box-shadow: 0 14px 38px rgba(0, 0, 0, 0.1); }
-  100% { box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06); }
+  0% { box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02), 0 2px 10px rgba(0, 0, 0, 0.025); }
+  50% { box-shadow: 0 2px 6px rgba(0, 0, 0, 0.025), 0 3px 14px rgba(0, 0, 0, 0.032); }
+  100% { box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02), 0 2px 10px rgba(0, 0, 0, 0.025); }
 }
 .animate-glow { animation: glow 2s ease-in-out infinite; }
 

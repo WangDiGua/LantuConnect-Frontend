@@ -33,6 +33,12 @@ const TAB_DEF: { id: SettingsTab; label: string }[] = [
   { id: 'static', label: '静态条目' },
 ];
 
+/** 与后端 {@code SkillsMpCatalogClient} 默认 sortBy 及 stars→recent 重试一致 */
+const SKILLSMP_SORT_BY_OPTIONS: { value: string; label: string }[] = [
+  { value: 'stars', label: 'stars（按 Star，默认）' },
+  { value: 'recent', label: 'recent（最近，备选请求）' },
+];
+
 const REMOTE_CATALOG_MODES: { value: string; label: string; hint: string }[] = [
   {
     value: 'MERGED',
@@ -539,17 +545,27 @@ export const SkillExternalMarketSettingsForm: React.FC<Props> = ({ theme, fontSi
                 }
               />
             </div>
-            <div>
-              <label className={`${labelCls} mb-1.5 block`}>sortBy</label>
-              <input
-                className={inputCls}
-                value={sm.sortBy ?? 'stars'}
-                onChange={(e) =>
-                  setDraft((prev) =>
-                    prev ? { ...prev, skillsmp: { ...prev.skillsmp, sortBy: e.target.value } } : prev,
-                  )
+            <div className="sm:col-span-2">
+              <label className={`${labelCls} mb-1.5 block`}>排序（sortBy）</label>
+              <LantuSelect
+                theme={theme}
+                triggerClassName={INPUT_FOCUS}
+                value={(sm.sortBy ?? 'stars').trim() || 'stars'}
+                onChange={(v) =>
+                  setDraft((prev) => (prev ? { ...prev, skillsmp: { ...prev.skillsmp, sortBy: v } } : prev))
                 }
+                options={(() => {
+                  const cur = (sm.sortBy ?? 'stars').trim() || 'stars';
+                  const preset = [...SKILLSMP_SORT_BY_OPTIONS];
+                  if (cur && !preset.some((o) => o.value === cur)) {
+                    return [{ value: cur, label: `${cur}（当前配置，自定义）` }, ...preset];
+                  }
+                  return preset;
+                })()}
               />
+              <p className={`mt-1.5 text-xs ${textMuted(theme)}`}>
+                与网关 SkillsMP 客户端约定一致；其它值会原样作为查询参数发送（仅当库里已是自定义值时会出现首项）。
+              </p>
             </div>
             <div>
               <label className={`${labelCls} mb-1.5 block`}>默认分支</label>

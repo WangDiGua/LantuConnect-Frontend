@@ -1888,9 +1888,8 @@ const MainLayoutContent: React.FC<{
           }
         />
 
-        <div
-          className={`flex min-h-0 min-w-0 flex-1 flex-col px-3 md:px-4 ${consoleShellBelowHeaderPt}`}
-        >
+        {/* 勿在此加 horizontal padding：会与 fixed 全宽顶栏错位，并在画布两侧露出 body/壳层背景 */}
+        <div className={`flex min-h-0 min-w-0 flex-1 flex-col ${consoleShellBelowHeaderPt}`}>
         <aside
           className={`${chromeGpuLayerClass} fixed inset-y-0 left-0 z-50 flex h-full w-[240px] shrink-0 flex-col overflow-hidden px-0 py-2 transition-transform duration-200 ease-out motion-reduce:transition-none lg:hidden ${
             mobileNavOpen ? 'translate-x-0' : '-translate-x-full'

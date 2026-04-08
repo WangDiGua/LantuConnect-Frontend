@@ -49,7 +49,6 @@ import {
 import { BentoCard } from '../../components/common/BentoCard';
 import { Modal } from '../../components/common/Modal';
 import { MarketplaceListingCard, MarketplaceStatItem } from '../../components/market';
-import { GrantApplicationModal } from '../../components/business/GrantApplicationModal';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
@@ -112,7 +111,6 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _the
   const [catalogTags, setCatalogTags] = useState<TagItem[]>([]);
   const [useSkill, setUseSkill] = useState<Skill | null>(null);
   const [useLoading, setUseLoading] = useState(false);
-  const [grantModalOpen, setGrantModalOpen] = useState(false);
   const [useResult, setUseResult] = useState<string | null>(null);
   const [gatewayApiKeyDraft, setGatewayApiKeyDraft] = usePersistedGatewayApiKey();
   const [listTotal, setListTotal] = useState<number | null>(null);
@@ -141,11 +139,11 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _the
         } else if (err instanceof ApiException && (err.status === 401 || err.code === 1002)) {
           setUseResult('请先选择有效 API Key');
         } else if (err instanceof ApiException && (err.status === 403 || err.code === 1003)) {
-          setUseResult('你暂无该资源使用权限，请先申请授权');
+          setUseResult('调用被拒绝：请确认资源已发布，且当前 API Key 具备 resolve 等所需 scope。');
         } else if (err instanceof Error && (err.message.includes('X-Api-Key') || err.message.includes('API Key'))) {
           setUseResult('请先填写并绑定 API Key');
         } else {
-          setUseResult(`${mapInvokeFlowError(err, 'resolve')}\n请确认 Key 与 resolve 授权后重试`);
+          setUseResult(`${mapInvokeFlowError(err, 'resolve')}\n请确认 Key 有效且 scope 覆盖 resolve 后重试`);
         }
         return;
       }
@@ -191,11 +189,6 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _the
       setUseLoading(false);
     }
   }, [useSkill, gatewayApiKeyDraft]);
-  const handleApplyAuthorization = useCallback(() => {
-    if (!useSkill) return;
-    setGrantModalOpen(true);
-  }, [useSkill]);
-
   useEffect(() => {
     tagService.list()
       .then((list) => setCatalogTags(filterTagsForResourceType(list, 'skill')))
@@ -586,11 +579,8 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _the
       </div>
 
       {/* Use panel */}
-      <Modal open={!!useSkill} onClose={() => { setUseSkill(null); setGrantModalOpen(false); }} title={useSkill ? `获取技能包 — ${useSkill.displayName}` : ''} theme={theme} size="md" footer={
+      <Modal open={!!useSkill} onClose={() => setUseSkill(null)} title={useSkill ? `获取技能包 — ${useSkill.displayName}` : ''} theme={theme} size="md" footer={
         <><button type="button" className={btnSecondary(theme)} onClick={() => setUseSkill(null)}>关闭</button>
-        <button type="button" className={btnSecondary(theme)} onClick={handleApplyAuthorization}>
-          申请 resolve 授权
-        </button>
         <button type="button" className={`${btnPrimary} disabled:opacity-50`} disabled={useLoading} onClick={handleExecute}>
           {useLoading ? <><Loader2 size={14} className="animate-spin" /> 处理中…</> : <><Download size={14} /> 解析并下载</>}
         </button></>
@@ -611,15 +601,6 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _the
           </div>
         )}
       </Modal>
-      <GrantApplicationModal
-        open={grantModalOpen}
-        onClose={() => setGrantModalOpen(false)}
-        theme={theme}
-        resourceType="skill"
-        resourceId={useSkill?.id ?? ''}
-        resourceName={useSkill?.displayName}
-        showMessage={showMessage}
-      />
     </div>
   );
 };

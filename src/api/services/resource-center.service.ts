@@ -75,7 +75,11 @@ function toResourceItem(raw: unknown): ResourceCenterItemVO {
     description: r?.description ? String(r.description) : '',
     sourceType: r?.sourceType ? String(r.sourceType) : undefined,
     providerId: r?.providerId != null && r?.providerId !== '' ? String(r.providerId) : undefined,
-    categoryId: r?.categoryId != null && r?.categoryId !== '' ? String(r.categoryId) : undefined,
+    tagIds: Array.isArray(r?.tagIds)
+      ? (r.tagIds as unknown[])
+          .map((x) => Number(x))
+          .filter((n) => Number.isFinite(n) && n > 0)
+      : undefined,
     authType: r?.authType ? String(r.authType) : undefined,
     authConfig:
       r?.authConfig && typeof r.authConfig === 'object' && !Array.isArray(r.authConfig)

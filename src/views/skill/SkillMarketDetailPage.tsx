@@ -20,7 +20,6 @@ import { safeOpenHttpUrl } from '../../lib/windowNavigate';
 import { btnPrimary, btnSecondary, textPrimary, textSecondary, textMuted, techBadge } from '../../utils/uiClasses';
 import { ResourceMarketDetailShell } from '../../components/market';
 import { ResourceReviewsSection } from '../../components/business/ResourceReviewsSection';
-import { GrantApplicationModal } from '../../components/business/GrantApplicationModal';
 import { Modal } from '../../components/common/Modal';
 import { GatewayApiKeyInput } from '../../components/common/GatewayApiKeyInput';
 import { PageError } from '../../components/common/PageError';
@@ -83,7 +82,6 @@ export const SkillMarketDetailPage: React.FC<SkillMarketDetailPageProps> = ({
   const [useOpen, setUseOpen] = useState(false);
   const [useLoading, setUseLoading] = useState(false);
   const [useResult, setUseResult] = useState<string | null>(null);
-  const [grantOpen, setGrantOpen] = useState(false);
   const [gatewayApiKeyDraft, setGatewayApiKeyDraft] = usePersistedGatewayApiKey();
 
   const load = useCallback(async () => {
@@ -151,11 +149,11 @@ export const SkillMarketDetailPage: React.FC<SkillMarketDetailPageProps> = ({
         } else if (err instanceof ApiException && (err.status === 401 || err.code === 1002)) {
           setUseResult('请先选择有效 API Key');
         } else if (err instanceof ApiException && (err.status === 403 || err.code === 1003)) {
-          setUseResult('你暂无该资源使用权限，请先申请授权');
+          setUseResult('调用被拒绝：请确认资源已发布，且当前 API Key 具备 resolve 等所需 scope。');
         } else if (err instanceof Error && (err.message.includes('X-Api-Key') || err.message.includes('API Key'))) {
           setUseResult('请先填写并绑定 API Key');
         } else {
-          setUseResult(`${mapInvokeFlowError(err, 'resolve')}\n请确认 Key 与 resolve 授权后重试`);
+          setUseResult(`${mapInvokeFlowError(err, 'resolve')}\n请确认 Key 有效且 scope 覆盖 resolve 后重试`);
         }
         return;
       }
@@ -420,9 +418,6 @@ export const SkillMarketDetailPage: React.FC<SkillMarketDetailPageProps> = ({
                     <Download size={16} className="shrink-0" aria-hidden />
                     获取技能包
                   </button>
-                  <button type="button" className={`${btnSecondary(theme)} min-h-11`} onClick={() => setGrantOpen(true)}>
-                    申请 resolve 授权
-                  </button>
                 </div>
               </div>
             ) : (
@@ -449,16 +444,13 @@ export const SkillMarketDetailPage: React.FC<SkillMarketDetailPageProps> = ({
             <button type="button" className={`${btnPrimary} w-full min-h-11 justify-center`} onClick={() => { setUseOpen(true); setUseResult(null); }}>
               打开获取流程
             </button>
-            <button type="button" className={`${btnSecondary(theme)} w-full min-h-11 justify-center`} onClick={() => setGrantOpen(true)}>
-              申请 resolve 授权
-            </button>
           </div>
         )}
       />
 
       <Modal
         open={useOpen}
-        onClose={() => { setUseOpen(false); setGrantOpen(false); }}
+        onClose={() => setUseOpen(false)}
         title={`获取技能包 — ${skill.displayName}`}
         theme={theme}
         size="md"
@@ -466,9 +458,6 @@ export const SkillMarketDetailPage: React.FC<SkillMarketDetailPageProps> = ({
           <>
             <button type="button" className={btnSecondary(theme)} onClick={() => setUseOpen(false)}>
               关闭
-            </button>
-            <button type="button" className={btnSecondary(theme)} onClick={() => setGrantOpen(true)}>
-              申请 resolve 授权
             </button>
             <button type="button" className={`${btnPrimary} disabled:opacity-50`} disabled={useLoading} onClick={() => void handleExecute()}>
               {useLoading ? (
@@ -503,16 +492,6 @@ export const SkillMarketDetailPage: React.FC<SkillMarketDetailPageProps> = ({
           ) : null}
         </div>
       </Modal>
-
-      <GrantApplicationModal
-        open={grantOpen}
-        onClose={() => setGrantOpen(false)}
-        theme={theme}
-        resourceType="skill"
-        resourceId={String(skill.id)}
-        resourceName={skill.displayName}
-        showMessage={showMessage}
-      />
     </>
   );
 };

@@ -19,8 +19,6 @@ export { resourceCatalogService } from './resource-catalog.service';
 export { invokeService } from './invoke.service';
 export { sandboxService } from './sandbox.service';
 export { sdkService } from './sdk.service';
-export { resourceGrantService } from './resource-grant.service';
-export { grantApplicationService } from './grant-application.service';
 export { resourceCenterService } from './resource-center.service';
 export { resourceAuditService } from './resource-audit.service';
 export { developerApplicationService } from './developer-application.service';

@@ -10,7 +10,6 @@ import {
   MessageSquare,
   Puzzle,
   Search,
-  Send,
   Sparkles,
   Star,
   Zap,
@@ -27,7 +26,6 @@ import { BentoCard } from '../../components/common/BentoCard';
 import { MarketplaceListingCard, MarketplaceStatItem } from '../../components/market';
 import { ResourceReviewsSection } from '../../components/business/ResourceReviewsSection';
 import { ResourceMarketDetailShell } from '../../components/market';
-import { GrantApplicationModal } from '../../components/business/GrantApplicationModal';
 import { McpDetailInvokeTab } from '../../components/mcp/McpDetailInvokeTab';
 import {
   btnPrimary,
@@ -87,7 +85,6 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
   const [loadError, setLoadError] = useState<Error | null>(null);
   const [rows, setRows] = useState<ResourceCatalogItemVO[]>([]);
   const [detail, setDetail] = useState<CatalogResourceDetailVO | null>(null);
-  const [grantModalOpen, setGrantModalOpen] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
   const [detailTab, setDetailTab] = useState<McpDetailTab>('service');
@@ -274,11 +271,6 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
     </nav>
   );
 
-  const handleApply = useCallback(() => {
-    if (!detail) return;
-    setGrantModalOpen(true);
-  }, [detail]);
-
   const handleFavorite = useCallback(async () => {
     if (!detail || favoriteLoading || isFavorited) return;
     setFavoriteLoading(true);
@@ -324,7 +316,6 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
     const detailRunBadgeKey = catalogRunBadgeHealthKeyForDisplay(detail);
     const detailCircuit = catalogItemCircuitState(detail);
     return (
-      <>
         <ResourceMarketDetailShell
           theme={theme}
           onBack={() => navigate(buildPath('user', 'mcp-center'))}
@@ -372,10 +363,6 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
             <>
               <button type="button" className={`${btnSecondary(theme)} min-h-11 disabled:opacity-50`} disabled={favoriteLoading || isFavorited} onClick={() => void handleFavorite()}>
                 {favoriteLoading ? <><Loader2 size={14} className="animate-spin" /> 收藏中…</> : <><Heart size={14} className={isFavorited ? 'fill-current' : ''} /> {isFavorited ? '已收藏' : '收藏'}</>}
-              </button>
-              <button type="button" className={`${btnSecondary(theme)} inline-flex min-h-11 items-center gap-2`} onClick={handleApply}>
-                <Send size={14} />
-                获取授权指引
               </button>
             </>
           )}
@@ -497,16 +484,6 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
             </div>
           )}
         />
-        <GrantApplicationModal
-          open={grantModalOpen}
-          onClose={() => setGrantModalOpen(false)}
-          theme={theme}
-          resourceType="mcp"
-          resourceId={detail.resourceId}
-          resourceName={detail.displayName}
-          showMessage={showMessage}
-        />
-      </>
     );
   }
 
@@ -538,7 +515,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                 </span>
               </h1>
               <p className={`mt-1 max-w-2xl text-xs leading-snug sm:text-sm ${textSecondary(theme)}`}>
-                浏览已发布 MCP 服务；统一网关 resolve、invoke 与 invoke-stream（须有效 Key 与授权 scope）。
+                浏览已发布 MCP 服务；统一网关 resolve、invoke 与 invoke-stream（须有效 Key 与所需 scope）。
               </p>
             </div>
           </div>
@@ -576,7 +553,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
             </div>
             <p className={`text-sm font-semibold ${textPrimary(theme)}`}>统一网关 resolve</p>
             <p className={`mt-1 text-xs leading-relaxed ${textSecondary(theme)}`}>
-              解析接入端点、传输方式与元数据，与目录消费策略及资源授权规则一致。
+              解析接入端点、传输方式与元数据，与目录中已发布资源的访问规则一致。
             </p>
           </div>
           <div
@@ -602,7 +579,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
             </div>
             <p className={`text-sm font-semibold ${textPrimary(theme)}`}>收藏与评价</p>
             <p className={`mt-1 text-xs leading-relaxed ${textSecondary(theme)}`}>
-              目录评分、评论与授权申请与资源目录打通。
+              目录评分、评论与资源目录打通。
             </p>
           </div>
         </div>

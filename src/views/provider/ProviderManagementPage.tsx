@@ -36,7 +36,6 @@ interface Props {
   fontSize: FontSize;
   mode: 'list' | 'create';
   showMessage: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void;
-  onOpenGrantManagement: () => void;
 }
 
 const TYPE_OPTIONS: Array<{ value: '' | ProviderType; label: string }> = [
@@ -46,15 +45,14 @@ const TYPE_OPTIONS: Array<{ value: '' | ProviderType; label: string }> = [
   { value: 'cloud', label: '云服务' },
 ];
 
-const LIST_DESC = '仅维护 Provider 元数据，授权关系请走资源授权管理。';
-const CREATE_DESC = 'Provider 页面只维护元数据；资源授权请在「资源授权管理」中执行。';
+const LIST_DESC = '维护 Provider 元数据（名称、类型、鉴权方式等）。';
+const CREATE_DESC = '填写 Provider 元数据后保存；与具体资源的绑定在资源注册流程中完成。';
 
 export const ProviderManagementPage: React.FC<Props> = ({
   theme,
   fontSize,
   mode,
   showMessage,
-  onOpenGrantManagement,
 }) => {
   const navigate = useNavigate();
   const isDark = theme === 'dark';
@@ -249,10 +247,6 @@ export const ProviderManagementPage: React.FC<Props> = ({
                 <Plus size={14} aria-hidden />
                 {creating ? '创建中...' : '创建 Provider'}
               </button>
-              <button type="button" className={btnSecondary(theme)} onClick={onOpenGrantManagement} aria-label="打开资源授权管理">
-                去资源授权管理
-                <ArrowRight size={14} aria-hidden />
-              </button>
             </div>
           </div>
         </div>
@@ -274,9 +268,6 @@ export const ProviderManagementPage: React.FC<Props> = ({
       <button type="button" className={btnGhost(theme)} onClick={() => void loadData()} aria-label="刷新 Provider 列表">
         <RefreshCw size={14} aria-hidden />
         刷新
-      </button>
-      <button type="button" className={btnSecondary(theme)} onClick={onOpenGrantManagement} aria-label="打开资源授权管理">
-        去授权管理
       </button>
     </div>
   );

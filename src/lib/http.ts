@@ -122,17 +122,11 @@ function ensureRequiredHeaders(config: InternalAxiosRequestConfig): void {
   if (path === '/sandbox/sessions' && (!hasApiKey || !hasUserId)) {
     throw new ApiException({ code: 1001, status: 400, message: '调用 /sandbox/sessions 必须提供 X-User-Id 与 X-Api-Key' });
   }
-  if (path.startsWith('/resource-grants') && !hasUserId) {
-    throw new ApiException({ code: 1001, status: 400, message: '调用 /resource-grants* 必须提供 X-User-Id' });
-  }
   if (path.startsWith('/resource-center/resources') && !hasUserId) {
     throw new ApiException({ code: 1001, status: 400, message: '调用 /resource-center/resources* 必须提供 X-User-Id' });
   }
   if (path.startsWith('/audit/') && !hasUserId) {
     throw new ApiException({ code: 1001, status: 400, message: '调用 /audit/* 必须提供 X-User-Id' });
-  }
-  if (path.startsWith('/grant-applications') && !hasUserId) {
-    throw new ApiException({ code: 1001, status: 400, message: '调用 /grant-applications* 必须提供 X-User-Id' });
   }
   if ((path === '/system-config/params' || path === '/system-config/security') && config.method?.toLowerCase() === 'put' && !hasUserId) {
     throw new ApiException({ code: 1001, status: 400, message: '调用 PUT /system-config/params|security 必须提供 X-User-Id' });

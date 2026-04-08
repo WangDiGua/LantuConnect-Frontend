@@ -137,7 +137,7 @@ const ADMIN_SIDEBAR_PAGES: Record<string, string[]> = {
     'agent-audit', 'skill-audit', 'mcp-audit', 'app-audit', 'dataset-audit',
     'provider-list', 'provider-create',
   ],
-  'user-management': ['user-list', 'role-management', 'organization', 'api-key-management', 'resource-grant-management', 'grant-applications', 'developer-applications'],
+  'user-management': ['user-list', 'role-management', 'organization', 'api-key-management', 'developer-applications'],
   'monitoring': ['monitoring-overview', 'call-logs', 'performance-analysis', 'alert-management', 'alert-rules', 'health-config', 'circuit-breaker'],
   'system-config': [
     'tag-management',
@@ -183,9 +183,7 @@ const USER_SIDEBAR_PAGES: Record<string, string[]> = {
     'usage-records',
     'recent-use',
     'usage-stats',
-    'grant-applications',
     'developer-applications',
-    'my-grant-applications',
   ],
   'skills-center': ['skills-center', 'skill-external-market'],
   'mcp-center': ['mcp-center', 'mcp-market'],

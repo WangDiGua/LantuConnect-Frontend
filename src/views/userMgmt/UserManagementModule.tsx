@@ -5,7 +5,6 @@ import { UserListPage } from './UserListPage';
 import { RoleListPage } from './RoleListPage';
 import { ApiKeyListPage } from './ApiKeyListPage';
 import { OrgStructurePage } from './OrgStructurePage';
-import { ResourceGrantManagementPage } from './ResourceGrantManagementPage';
 
 export interface UserManagementModuleProps {
   activeSubItem: string;
@@ -39,8 +38,6 @@ export const UserManagementModule: React.FC<UserManagementModuleProps> = ({
     case 'organization':
     case 'org-structure':
       return <OrgStructurePage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
-    case 'resource-grant-management':
-      return <ResourceGrantManagementPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
     default:
       return <PlaceholderView title={activeSubItem} theme={theme} fontSize={fontSize} />;
   }

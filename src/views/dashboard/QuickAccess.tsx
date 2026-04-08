@@ -8,12 +8,10 @@ import {
   Layers,
   Activity,
   Database,
-  Server,
   ExternalLink,
   Plus,
   X,
   Check,
-  ClipboardCheck,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Theme, FontSize } from '../../types';
@@ -36,24 +34,6 @@ const ALL_TOOLS = [
   { id: 'skill', name: '技能包管理', icon: Zap, desc: '技能包登记与发布', page: 'skill-list', glow: 'emerald' as const, perm: 'skill:view' },
   { id: 'app', name: '智能应用', icon: Cpu, desc: '应用注册与上架', page: 'app-list', glow: 'amber' as const, perm: 'app:view' },
   { id: 'dataset', name: '数据集', icon: Database, desc: '数据集管理', page: 'dataset-list', glow: 'rose' as const, perm: 'dataset:view' },
-  {
-    id: 'grant-inbox',
-    name: '授权审批待办',
-    icon: ClipboardCheck,
-    desc: '待我审批的授权申请',
-    page: 'grant-applications',
-    glow: 'cyan' as const,
-    perm: 'grant-application:review',
-  },
-  {
-    id: 'admin-grants',
-    name: '资源授权管理',
-    icon: Server,
-    desc: '管理后台 · 全局 Grant',
-    page: 'resource-grant-management',
-    glow: 'indigo' as const,
-    perm: 'resource-grant:manage',
-  },
   { id: 'monitoring', name: '监控中心', icon: Activity, desc: '调用日志与告警', page: 'monitoring-overview', glow: 'emerald' as const, perm: 'monitor:view' },
 ] as const;
 
@@ -64,8 +44,6 @@ const ICON_BG: Record<string, { light: string; dark: string }> = {
   skill:      { light: 'bg-neutral-100 text-neutral-900',  dark: 'bg-neutral-900/10 text-neutral-300' },
   app:        { light: 'bg-emerald-50 text-emerald-600', dark: 'bg-emerald-500/15 text-emerald-400' },
   dataset:    { light: 'bg-orange-50 text-orange-600',  dark: 'bg-orange-500/15 text-orange-400' },
-  'grant-inbox': { light: 'bg-cyan-50 text-cyan-600', dark: 'bg-cyan-500/15 text-cyan-400' },
-  'admin-grants': { light: 'bg-indigo-50 text-indigo-600', dark: 'bg-indigo-500/15 text-indigo-400' },
   monitoring: { light: 'bg-rose-50 text-rose-600', dark: 'bg-rose-500/15 text-rose-400' },
 };
 

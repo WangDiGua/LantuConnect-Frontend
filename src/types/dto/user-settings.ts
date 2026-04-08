@@ -41,7 +41,7 @@ export interface CreateUserApiKeyPayload {
   expiresAt?: string;
 }
 
-/** GET /user-settings/api-keys/{id}/resource-grants 单行（与后端 ResourceGrantVO 对齐） */
+/** 历史兼容：资源级 Grant 已下线，列表接口恒为空。 */
 export interface UserApiKeyResourceGrant {
   id: number;
   resourceType: string;

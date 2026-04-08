@@ -54,7 +54,7 @@ export interface ResourceCatalogItemVO {
   fileSize?: number;
   observability?: Record<string, unknown>;
   quality?: Record<string, unknown>;
-  /** 仅当请求携带 X-Api-Key 时后端可能返回：与 invoke Grant/策略判定一致 */
+  /** 仅当请求携带 X-Api-Key 时后端可能返回：与 invoke 可调用预判一致 */
   hasGrantForKey?: boolean | null;
 }
 
@@ -108,34 +108,6 @@ export interface InvokeResponse {
   status: string;
   latencyMs: number;
   body: string;
-}
-
-export interface ResourceGrantCreateRequest {
-  resourceType: ResourceType;
-  resourceId: string;
-  granteeApiKeyId: string;
-  actions: Array<'catalog' | 'resolve' | 'invoke' | '*'>;
-  expiresAt?: string;
-}
-
-export interface ResourceGrantVO {
-  id: string | number;
-  resourceType: ResourceType;
-  resourceId: string;
-  granteeApiKeyId?: string;
-  granteeApiKeyPrefix?: string;
-  grantedBy?: string | number;
-  grantedByName?: string;
-  actions?: Array<'catalog' | 'resolve' | 'invoke' | '*'>;
-  createdAt?: string;
-  expiresAt?: string;
-}
-
-export interface ResourceGrantListQuery {
-  page?: number;
-  pageSize?: number;
-  sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
 }
 
 export interface SandboxSessionCreateRequest {

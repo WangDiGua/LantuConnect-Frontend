@@ -55,9 +55,6 @@ export const UsageStatsPage = lazy(() =>
 export const AuthorizedSkillsPage = lazy(() =>
   import('../views/user/AuthorizedSkillsPage').then((m) => ({ default: m.AuthorizedSkillsPage })),
 );
-export const MyGrantApplicationsPage = lazy(() =>
-  import('../views/user/MyGrantApplicationsPage').then((m) => ({ default: m.MyGrantApplicationsPage })),
-);
 export const ResourceCenterManagementPage = lazy(() =>
   import('../views/resourceCenter/ResourceCenterManagementPage').then((m) => ({ default: m.ResourceCenterManagementPage })),
 );
@@ -72,9 +69,6 @@ export const SkillExternalMarketDetailPage = lazy(() =>
 );
 export const ResourceAuditList = lazy(() =>
   import('../views/audit/ResourceAuditList').then((m) => ({ default: m.ResourceAuditList })),
-);
-export const GrantApplicationListPage = lazy(() =>
-  import('../views/userMgmt/GrantApplicationListPage').then((m) => ({ default: m.GrantApplicationListPage })),
 );
 export const DeveloperApplicationListPage = lazy(() =>
   import('../views/userMgmt/DeveloperApplicationListPage').then((m) => ({ default: m.DeveloperApplicationListPage })),

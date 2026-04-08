@@ -47,26 +47,6 @@ function mapUserApiKeyRecord(raw: unknown): UserApiKey {
   };
 }
 
-function mapResourceGrantRow(raw: unknown): UserApiKeyResourceGrant {
-  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
-  const actionsRaw = o.actions;
-  const actions = Array.isArray(actionsRaw) ? actionsRaw.map((x) => String(x)) : [];
-  return {
-    id: numPg(o.id, 0),
-    resourceType: String(o.resourceType ?? ''),
-    resourceId: numPg(o.resourceId, 0),
-    granteeType: String(o.granteeType ?? ''),
-    granteeId: String(o.granteeId ?? ''),
-    actions,
-    status: String(o.status ?? ''),
-    grantedByUserId: o.grantedByUserId != null ? numPg(o.grantedByUserId, 0) : undefined,
-    grantedByName: o.grantedByName == null ? undefined : String(o.grantedByName),
-    expiresAt: o.expiresAt == null ? undefined : String(o.expiresAt),
-    createTime: o.createTime == null ? undefined : String(o.createTime),
-    updateTime: o.updateTime == null ? undefined : String(o.updateTime),
-  };
-}
-
 export const userSettingsService = {
   getWorkspace: () =>
     http.get<UserWorkspace>('/user-settings/workspace'),
@@ -97,14 +77,10 @@ export const userSettingsService = {
   deleteApiKey: (id: string) =>
     http.delete(`/user-settings/api-keys/${id}`),
 
-  listResourceGrantsForApiKey: async (apiKeyId: string, resourceType?: string) => {
-    const raw = await http.get<unknown>(`/user-settings/api-keys/${encodeURIComponent(apiKeyId)}/resource-grants`, {
-      params: resourceType?.trim() ? { resourceType: resourceType.trim() } : undefined,
-    });
-    return extractArray<unknown>(raw).map(mapResourceGrantRow);
-  },
+  /** 资源级 Grant 已下线；保留签名供旧调用方类型兼容，始终返回空列表。 */
+  listResourceGrantsForApiKey: async (_apiKeyId: string, _resourceType?: string): Promise<UserApiKeyResourceGrant[]> => [],
 
-  /** 与网关 invoke Grant/策略一致；无需完整 secret，服务端按 Key id + 登录态校验 */
+  /** 与网关 invoke 可调用预判一致；无需完整 secret，服务端按 Key id + 登录态校验 */
   postInvokeEligibility: (apiKeyId: string, body: InvokeEligibilityRequest) =>
     http.post<InvokeEligibilityResponse>(
       `/user-settings/api-keys/${encodeURIComponent(apiKeyId)}/invoke-eligibility`,

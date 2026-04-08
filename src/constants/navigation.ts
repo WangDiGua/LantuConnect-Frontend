@@ -239,12 +239,8 @@ export const USER_MY_SPACE_GROUPS: NavSubGroup[] = [
     ],
   },
   {
-    title: '授权与入驻',
-    items: [
-      { id: 'grant-applications', icon: ClipboardCheck, label: '授权审批待办' },
-      { id: 'my-grant-applications', icon: ClipboardCheck, label: '我的授权申请' },
-      { id: 'developer-applications', icon: Rocket, label: '入驻审批' },
-    ],
+    title: '入驻',
+    items: [{ id: 'developer-applications', icon: Rocket, label: '入驻审批' }],
   },
 ];
 
@@ -285,11 +281,7 @@ export const USER_MY_CONSOLE_GROUPS: NavSubGroup[] = [
   },
   {
     title: '工单与审批',
-    items: [
-      { id: 'grant-applications', icon: ClipboardCheck, label: '授权审批待办' },
-      { id: 'my-grant-applications', icon: ClipboardCheck, label: '我的授权申请' },
-      { id: 'developer-applications', icon: Rocket, label: '入驻审批' },
-    ],
+    items: [{ id: 'developer-applications', icon: Rocket, label: '入驻审批' }],
   },
 ];
 

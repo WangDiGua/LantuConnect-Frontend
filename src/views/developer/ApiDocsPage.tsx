@@ -40,9 +40,8 @@ const METHOD_COLORS: Record<string, { light: string; dark: string }> = {
 
 const API_CATEGORIES: ApiCategory[] = [
   { id: 'user-api-keys', label: '用户设置 · API Key', endpoints: [
-    { method: 'POST', path: '/user-settings/api-keys', description: '创建个人 API Key。成功时 data.secretPlain（或 plainKey）为完整可调用密钥，仅该次响应返回。须为 Key 配置 scope（catalog/resolve/invoke 或 *），否则网关提示 scope 不足；前端默认传 scopes:["*"]。调用他人资源还需 Resource Grant。列表中的 maskedKey、prefix、id 均不能作为 X-Api-Key。', params: [{ name: 'name', type: 'string', required: true, description: '密钥名称' }, { name: 'scopes', type: 'string[]', required: false, description: '权限范围；不传时前端默认 ["*"]' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { id: 'uuid', name: 'dev', prefix: 'sk_', scopes: ['*'], secretPlain: 'sk_' + 'a'.repeat(32) } }, null, 2) },
+    { method: 'POST', path: '/user-settings/api-keys', description: '创建个人 API Key。成功时 data.secretPlain（或 plainKey）为完整可调用密钥，仅该次响应返回。须为 Key 配置 scope（catalog/resolve/invoke 或 *），否则网关提示 scope 不足；前端默认传 scopes:["*"]。已发布资源在具备 scope 的前提下可被任意调用方使用（无需资源级 Grant）。列表中的 maskedKey、prefix、id 均不能作为 X-Api-Key。', params: [{ name: 'name', type: 'string', required: true, description: '密钥名称' }, { name: 'scopes', type: 'string[]', required: false, description: '权限范围；不传时前端默认 ["*"]' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { id: 'uuid', name: 'dev', prefix: 'sk_', scopes: ['*'], secretPlain: 'sk_' + 'a'.repeat(32) } }, null, 2) },
     { method: 'GET', path: '/user-settings/api-keys', description: '列出当前用户的 Key；仅掩码与前缀，不包含完整密钥。', params: [], responseExample: JSON.stringify({ code: 0, message: 'ok', data: [{ id: 'uuid', name: 'dev', maskedKey: 'sk_3****', prefix: 'sk_' }] }, null, 2) },
-    { method: 'GET', path: '/user-settings/api-keys/{apiKeyId}/resource-grants', description: '列出该 API Key 作为被授权方时的生效 Grant；须为本人 Key。可选 query `resourceType`（缺省为 mcp，与 MCP 集成页一致）。', params: [{ name: 'resourceType', type: 'string', required: false, description: '默认 mcp；可传其它类型以扩大范围' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: [{ id: 1, resourceType: 'mcp', resourceId: 42, granteeType: 'api_key', granteeId: 'key-uuid', actions: ['invoke'], status: 'active' }] }, null, 2) },
     { method: 'POST', path: '/user-settings/api-keys/{id}/revoke', description: '撤销 API Key。须 `password`（登录密码）；账户未设置密码时须先在个人设置修改密码。成功/失败均写入敏感操作审计。', params: [{ name: 'password', type: 'string', required: false, description: '登录密码' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: null }, null, 2) },
     { method: 'POST', path: '/user-settings/api-keys/{id}/rotate', description: '轮换 API Key 明文（库内仅存摘要，无法「找回」原串）。须校验登录密码；成功后返回新 `secretPlain`，旧明文立即失效。', params: [{ name: 'password', type: 'string', required: false, description: '登录密码' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { id: 'uuid', name: 'dev', scopes: ['*'], secretPlain: 'sk_' + 'a'.repeat(32), expiresAt: null, revoked: false } }, null, 2) },
     { method: 'DELETE', path: '/user-settings/api-keys/{id}', description: '**已废弃**：HTTP 410 Gone；请改用 POST `/user-settings/api-keys/{id}/revoke`。', params: [], responseExample: JSON.stringify({ code: 4015, message: '请改用 POST .../revoke' }, null, 2) },
@@ -57,24 +56,16 @@ const API_CATEGORIES: ApiCategory[] = [
     { method: 'GET', path: '/catalog/resources/{type}/{id}/stats', description: '资源使用与口碑摘要（调用量、成功率、评分、收藏、趋势、相关推荐）。无评论时 rating 为 null；callTrend 为按日的 cnt 列表。头要求同 GET /catalog/resources。', params: [{ name: 'type', type: 'string', required: true, description: '资源类型' }, { name: 'id', type: 'string', required: true, description: '资源 ID' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { callCount: 1200, successRate: 98.5, rating: 4.2, favoriteCount: 15, callTrend: [{ day: '2026-04-01', cnt: 40 }], relatedResources: [] } }, null, 2) },
     { method: 'GET', path: '/catalog/resources/trending', description: '热门/趋势资源（工作台「探索发现」等可用）；可按 resourceType 筛选。', params: [{ name: 'resourceType', type: 'string', required: false, description: 'agent/skill/mcp/...' }, { name: 'limit', type: 'number', required: false, description: '默认 10' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: [{ resourceType: 'agent', resourceId: '1', displayName: '示例' }] }, null, 2) },
     { method: 'GET', path: '/catalog/resources/search-suggestions', description: '目录搜索补全建议，参数 q 为前缀。', params: [{ name: 'q', type: 'string', required: true, description: '搜索前缀' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: [{ text: '选课', type: 'agent' }] }, null, 2) },
-    { method: 'GET', path: '/catalog/apps/launch', description: '应用启动：匿名可访问，消费 resolve 下发的短期 launchToken 后 302 跳转真实 app_url；服务端校验 token 绑定的 Key 仍有效且具备 resolve + Grant。', params: [{ name: 'token', type: 'string', required: true, description: 'launchToken' }], responseExample: 'HTTP 302 → appUrl' },
+    { method: 'GET', path: '/catalog/apps/launch', description: '应用启动：匿名可访问，消费 resolve 下发的短期 launchToken 后 302 跳转真实 app_url；服务端校验 token 绑定的 Key 仍有效且具备 resolve 等所需 scope。', params: [{ name: 'token', type: 'string', required: true, description: 'launchToken' }], responseExample: 'HTTP 302 → appUrl' },
   ]},
   { id: 'reviews', label: '资源评论', endpoints: [
     { method: 'GET', path: '/reviews/page', description: '分页查询某资源的评论（替代全量 GET /reviews）。须至少有 X-User-Id（登录）或 X-Api-Key 之一，策略与 GET /catalog/resources 一致。', params: [{ name: 'targetType', type: 'string', required: true, description: 'agent/skill/mcp/app/dataset' }, { name: 'targetId', type: 'string | number', required: true, description: '资源 ID' }, { name: 'page', type: 'number', required: false, description: '页码' }, { name: 'pageSize', type: 'number', required: false, description: '每页条数' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { list: [{ id: 1, targetType: 'mcp', targetId: 56, userId: 1002, userName: 'bob', rating: 5, content: '稳定可用', createTime: '2026-04-01T10:00:00' }], total: 3, page: 1, pageSize: 20 } }, null, 2) },
   ]},
   { id: 'resolve-invoke', label: '解析与调用', endpoints: [
-    { method: 'POST', path: '/catalog/resolve', description: '执行向解析：将资源解析为可调用 endpoint/spec。**X-Api-Key 必填**（完整 secretPlain）；可与 Bearer 同传。另须 Key scope 含 resolve（或 *）；跨 owner 时尚需 Grant **或**资源 `accessPolicy` 为 `open_org` / `open_platform` 且满足网关短路条件（仍须 published；不改变 skill/dataset 的 invoke 边界）。', params: [{ name: 'resourceType', type: 'string', required: true, description: '资源类型' }, { name: 'resourceId', type: 'string', required: true, description: '资源 ID' }, { name: 'version', type: 'string', required: false, description: '版本号' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { resourceType: 'agent', resourceId: '1', endpoint: 'https://gateway/invoke/agent/1', invokeType: 'http', version: 'v1' } }, null, 2) },
-    { method: 'POST', path: '/invoke', description: '统一调用入口。**X-Api-Key 必填**。还须 Key scope 含 invoke（或 *）；跨 owner 时需资源授权或符合 `accessPolicy` 短路。resourceType=**skill** 时网关**不接受**远程 invoke（技能走制品下载；可调用工具请注册为 MCP）。', params: [{ name: 'resourceType', type: 'string', required: true, description: '资源类型' }, { name: 'resourceId', type: 'string', required: true, description: '资源 ID' }, { name: 'payload', type: 'object', required: false, description: '业务输入' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { requestId: 'req_1', traceId: 'tr_1', resourceType: 'agent', resourceId: '1', statusCode: 200, status: 'success', latencyMs: 124, body: '{\"answer\":\"ok\"}' } }, null, 2) },
+    { method: 'POST', path: '/catalog/resolve', description: '执行向解析：将资源解析为可调用 endpoint/spec。**X-Api-Key 必填**（完整 secretPlain）；可与 Bearer 同传。另须 Key scope 含 resolve（或 *）；**已发布**资源在网关侧对调用方开放（仍受 scope 与资源类型边界约束，如 skill 无统一 invoke）。', params: [{ name: 'resourceType', type: 'string', required: true, description: '资源类型' }, { name: 'resourceId', type: 'string', required: true, description: '资源 ID' }, { name: 'version', type: 'string', required: false, description: '版本号' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { resourceType: 'agent', resourceId: '1', endpoint: 'https://gateway/invoke/agent/1', invokeType: 'http', version: 'v1' } }, null, 2) },
+    { method: 'POST', path: '/invoke', description: '统一调用入口。**X-Api-Key 必填**。还须 Key scope 含 invoke（或 *）；**已发布**资源可被具备 scope 的调用方使用。resourceType=**skill** 时网关**不接受**远程 invoke（技能走制品下载；可调用工具请注册为 MCP）。', params: [{ name: 'resourceType', type: 'string', required: true, description: '资源类型' }, { name: 'resourceId', type: 'string', required: true, description: '资源 ID' }, { name: 'payload', type: 'object', required: false, description: '业务输入' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { requestId: 'req_1', traceId: 'tr_1', resourceType: 'agent', resourceId: '1', statusCode: 200, status: 'success', latencyMs: 124, body: '{\"answer\":\"ok\"}' } }, null, 2) },
     { method: 'POST', path: '/invoke-stream', description: '流式调用（SSE 等）。**X-Api-Key 必填**；权限模型与 /invoke 一致。', params: [{ name: 'resourceType', type: 'string', required: true, description: '资源类型' }, { name: 'resourceId', type: 'string', required: true, description: '资源 ID' }, { name: 'payload', type: 'object', required: false, description: '业务输入' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: {} }, null, 2) },
     { method: 'POST', path: '/mcp/v1/resources/{resourceType}/{resourceId}/message', description: 'MCP JSON-RPC 兼容路径：请求体为单对象（method / params 等），与网关 invoke 的 payload 构造一致；**X-Api-Key 必填**。`Accept: text/event-stream` 或 query `stream=true` 时走 invoke-stream（仅上游为 MCP HTTP/SSE）。resourceType 多为 mcp；skill 仍不可远程 invoke。', params: [{ name: 'resourceType', type: 'string', required: true, description: '路径参数' }, { name: 'resourceId', type: 'string', required: true, description: '路径参数' }, { name: 'body', type: 'JSON-RPC object', required: true, description: '如 initialize、tools/list、tools/call' }], responseExample: JSON.stringify({ jsonrpc: '2.0', id: 1, result: {} }, null, 2) },
-  ]},
-  { id: 'grant-applications', label: '授权申请工单', endpoints: [
-    { method: 'POST', path: '/grant-applications', description: '提交 Grant 申请工单。**须 X-User-Id**。通过后建立授权；提交会通知资源 owner 与平台管理员（与后端通知策略一致）。', params: [{ name: 'body', type: 'GrantApplicationRequest', required: true, description: '含 resourceType、resourceId、granteeApiKeyId、actions 等' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { applicationId: 10001 } }, null, 2) },
-    { method: 'GET', path: '/grant-applications/mine', description: '分页查询**我发起的**申请。**须 X-User-Id**。', params: [{ name: 'status', type: 'string', required: false, description: '状态筛选' }, { name: 'keyword / q', type: 'string', required: false, description: '关键字，二选一' }, { name: 'page', type: 'number', required: false, description: '页码' }, { name: 'pageSize', type: 'number', required: false, description: '每页条数' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { list: [], total: 0, page: 1, pageSize: 20 } }, null, 2) },
-    { method: 'GET', path: '/grant-applications/pending', description: '**待我审批**的申请列表。**须 X-User-Id**。可见范围由后端按操作者角色过滤：平台管理员全量；部门管理员仅 owner 属本部门的待办；开发者仅本人名下资源上的待办。**并非**仅平台管理员可见。', params: [{ name: 'status', type: 'string', required: false, description: '状态筛选' }, { name: 'keyword / q', type: 'string', required: false, description: '关键字' }, { name: 'page', type: 'number', required: false, description: '页码' }, { name: 'pageSize', type: 'number', required: false, description: '每页条数' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { list: [], total: 0, page: 1, pageSize: 20 } }, null, 2) },
-    { method: 'POST', path: '/grant-applications/{id}/approve', description: '审批通过。调用者须通过服务层校验（资源 owner / 全平台 reviewer / platform_admin 等与直接 Grant 管理能力一致）。', params: [{ name: 'id', type: 'number', required: true, description: '申请 ID（路径参数）' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: null }, null, 2) },
-    { method: 'POST', path: '/grant-applications/{id}/reject', description: '驳回申请；body 含驳回原因。**权限同 approve**。', params: [{ name: 'id', type: 'number', required: true, description: '申请 ID' }, { name: 'reason', type: 'string', required: false, description: 'ResourceRejectRequest.reason' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: null }, null, 2) },
-    { method: 'POST', path: '/grant-applications/{id}/revoke-grant', description: '撤销**已通过**工单所建立的生效 Grant（与审批人范围一致：资源 owner / reviewer / platform_admin）。', params: [{ name: 'id', type: 'number', required: true, description: '工单 ID' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: null }, null, 2) },
   ]},
   { id: 'developer', label: '开发者入驻与个人统计', endpoints: [
     { method: 'POST', path: '/developer/applications', description: '提交开发者入驻申请。**须 X-User-Id**。任意已登录用户可提交；通过后由 platform_admin / reviewer 审批并开通 developer 等平台能力（以后台策略为准）。', params: [{ name: 'body', type: 'DeveloperApplicationCreateRequest', required: true, description: '申请说明等字段' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { id: 1, userId: 1001, status: 'pending' } }, null, 2) },
@@ -86,7 +77,7 @@ const API_CATEGORIES: ApiCategory[] = [
     { method: 'GET', path: '/resource-center/resources/mine', description: '分页查询本人登记的资源（草稿/审核中/已发布等）。', params: [{ name: 'page', type: 'number', required: false, description: '默认 1' }, { name: 'pageSize', type: 'number', required: false, description: '默认 20' }, { name: 'resourceType', type: 'string', required: false, description: '' }, { name: 'status', type: 'string', required: false, description: '' }, { name: 'keyword', type: 'string', required: false, description: '' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { records: [], total: 0, page: 1, pageSize: 20 } }, null, 2) },
     { method: 'POST', path: '/resource-center/resources/{id}/submit', description: '提交审核（进入审核队列）；后续由 reviewer 等在 /audit/* 或统一审核列表处理。', params: [{ name: 'id', type: 'number', required: true, description: '资源主键' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { id: 101, status: 'pending_review' } }, null, 2) },
     { method: 'POST', path: '/resource-center/resources/mcp/connectivity-probe', description: '登记 MCP 前可选：JSON-RPC initialize 短探测，验证 URL 可达（不写登记记录）。', params: [{ name: 'body', type: 'McpConnectivityProbeRequest', required: true, description: 'endpointUrl 等' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { ok: true, latencyMs: 120 } }, null, 2) },
-    { method: 'GET', path: '/resource-center/resources/{id}/skill-artifact', description: '下载已发布技能的制品包（文件流；权限与目录/Grant 策略一致，非网关 invoke）。', params: [{ name: 'id', type: 'number', required: true, description: '资源 ID' }], responseExample: '（application/octet-stream）' },
+    { method: 'GET', path: '/resource-center/resources/{id}/skill-artifact', description: '下载已发布技能的制品包（文件流；须具备对应目录/下载权限，非网关 invoke）。', params: [{ name: 'id', type: 'number', required: true, description: '资源 ID' }], responseExample: '（application/octet-stream）' },
   ]},
   { id: 'user-activity', label: '个人用量与收藏', endpoints: [
     { method: 'GET', path: '/user/usage-records', description: '分页查询个人用量记录（门户行为埋点，不等同于网关 call_log 全量）。', params: [{ name: 'page', type: 'number', required: false, description: '' }, { name: 'pageSize', type: 'number', required: false, description: '' }, { name: 'type', type: 'string', required: false, description: '筛选类型' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { records: [], total: 0, page: 1, pageSize: 20 } }, null, 2) },
@@ -97,12 +88,9 @@ const API_CATEGORIES: ApiCategory[] = [
   { id: 'owner-dashboard', label: 'Owner 资源成效', endpoints: [
     { method: 'GET', path: '/dashboard/owner-resource-stats', description: 'Owner 维度统计：**网关 invoke（call_log）**、**usage_record(action=invoke) 对照**、**技能包下载**等。**须 X-User-Id**；默认识别当前用户为 owner，管理角色可按后端策略传 ownerUserId。**调用量不等于门户内全部使用量**（见使用指南「调用数字的含义」）。', params: [{ name: 'periodDays', type: 'number', required: false, description: '统计天数，默认 7' }, { name: 'ownerUserId', type: 'number', required: false, description: '指定 owner 用户 ID（部门/平台管理员场景）' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { ownerUserId: 1001, periodDays: 7, periodStart: '', periodEnd: '', gatewayInvokeTotal: 0, gatewayInvokeSuccess: 0, usageRecordInvokeTotal: 0, skillPackDownloadTotal: 0, gatewayInvokesByResourceType: [] } }, null, 2) },
   ]},
-  { id: 'sandbox-sdk-grants', label: '沙箱/SDK/授权', endpoints: [
+  { id: 'sandbox-sdk-grants', label: '沙箱/SDK', endpoints: [
     { method: 'POST', path: '/sandbox/sessions', description: '创建沙箱会话（需 X-User-Id + X-Api-Key）', params: [{ name: 'ttlMinutes', type: 'number', required: false, description: '会话时长' }, { name: 'maxCalls', type: 'number', required: false, description: '最大调用次数' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { sessionToken: 'sbx_xxx', maxCalls: 100, usedCalls: 0, status: 'active' } }, null, 2) },
     { method: 'POST', path: '/sdk/v1/invoke', description: 'SDK 稳定调用入口（X-Api-Key 必填）', params: [{ name: 'resourceType', type: 'string', required: true, description: '资源类型' }, { name: 'resourceId', type: 'string', required: true, description: '资源 ID' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { requestId: 'sdk_req_1', traceId: 'sdk_tr_1', status: 'success' } }, null, 2) },
-    { method: 'POST', path: '/resource-grants', description: '按 Grant 模型授权第三方 API Key 调用资源。若资源 accessPolicy 已允许 open_org/open_platform 短路，则可能无需本条；仍以网关校验为准。', params: [{ name: 'resourceType', type: 'string', required: true, description: '资源类型' }, { name: 'resourceId', type: 'string', required: true, description: '资源 ID' }, { name: 'granteeApiKeyId', type: 'string', required: true, description: '被授权 API Key ID' }, { name: 'actions', type: 'string[]', required: true, description: 'catalog/resolve/invoke/*' }, { name: 'expiresAt', type: 'string', required: false, description: '过期时间（ISO）' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { grantId: 1001 } }, null, 2) },
-    { method: 'GET', path: '/resource-grants', description: '按 resourceType + resourceId 列出该资源上的授权记录（资源管理者视角）。', params: [{ name: 'resourceType', type: 'string', required: true, description: '' }, { name: 'resourceId', type: 'number', required: true, description: '' }, { name: 'keyword', type: 'string', required: false, description: '筛选' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: [] }, null, 2) },
-    { method: 'DELETE', path: '/resource-grants/{grantId}', description: '撤销一条 Grant。**须 X-User-Id**，且操作者须为资源 owner / 具备代管权限的角色。', params: [{ name: 'grantId', type: 'number', required: true, description: '授权主键' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: null }, null, 2) },
     { method: 'GET', path: '/sdk/v1/resources', description: '与 GET /catalog/resources 等价查询参数，但**必须**携带 X-Api-Key（适合集成方只走 Key 场景）。', params: [{ name: 'page', type: 'number', required: false, description: '' }, { name: 'pageSize', type: 'number', required: false, description: '' }, { name: 'resourceType', type: 'string', required: false, description: '' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { records: [], total: 0, page: 1, pageSize: 20 } }, null, 2) },
   ]},
 ];
@@ -115,7 +103,7 @@ const GUIDE_TOC: { id: string; label: string }[] = [
   { id: 'doc-keys', label: 'API Key' },
   { id: 'doc-discover', label: '发现与目录' },
   { id: 'doc-consume', label: '解析与调用' },
-  { id: 'doc-access-policy', label: '授权与策略' },
+  { id: 'doc-access-policy', label: '访问策略' },
   { id: 'doc-publish', label: '登记与上架' },
   { id: 'doc-types', label: '五类资源' },
   { id: 'doc-skill-pack', label: '技能包与制品' },
@@ -245,7 +233,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
                   {proseH2(theme, '平台是做什么的？')}
                   {prosePara(theme, (
                     <>
-                      本门户面向高校师生与信息化场景：把<strong className={textPrimary(theme)}>智能体、技能包、MCP 服务、应用与数据集</strong>统一登记进「资源中心」，经审核与发布后进入<strong className={textPrimary(theme)}>统一目录</strong>，供师生按权限浏览与调用。教师团队沉淀的能力可被其他学院在合规前提下复用；学生或课题组在授权范围内用 API Key 做实验、编排应用，而无需每人重复对接一套网关细节。
+                      本门户面向高校师生与信息化场景：把<strong className={textPrimary(theme)}>智能体、技能包、MCP 服务、应用与数据集</strong>统一登记进「资源中心」，经审核与发布后进入<strong className={textPrimary(theme)}>统一目录</strong>，供师生浏览与调用。教师团队沉淀的能力可被其他学院在合规前提下复用；学生或课题组用 API Key（具备对应 scope）即可调用已发布资源并做实验、编排应用，而无需每人重复对接一套网关细节。
                     </>
                   ))}
                   {prosePara(theme, (
@@ -279,7 +267,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
                   ))}
                   {prosePara(theme, (
                     <>
-                      平台在 JWT 中叠加<strong>平台角色</strong>，常见包括：<span className="font-mono">platform_admin</span>（超管）、<span className="font-mono">reviewer</span>（全平台审核员）、<span className="font-mono">developer</span>（可登记维护资源）、<span className="font-mono">user</span>（消费者：浏览、申请授权、自建 Key 调用已授权资源等）。自助注册多从消费者开始；需要登记资源请走「开发者入驻」由审核员开通。
+                      平台在 JWT 中叠加<strong>平台角色</strong>，常见包括：<span className="font-mono">platform_admin</span>（超管）、<span className="font-mono">reviewer</span>（全平台审核员）、<span className="font-mono">developer</span>（可登记维护资源）、<span className="font-mono">user</span>（消费者：浏览市场、自建 Key 调用已发布资源等）。自助注册多从消费者开始；需要登记资源请走「开发者入驻」由审核员开通。
                     </>
                   ))}
                   {prosePara(theme, (
@@ -296,7 +284,6 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
                     <li><strong className={textPrimary(theme)}>我的发布 · 资源中心</strong>：草稿、提审、版本与技能包；接口前缀 <span className="font-mono">/resource-center/resources</span>。</li>
                     <li><strong className={textPrimary(theme)}>开发者中心</strong>：本页、SDK、API 调试、开发者统计。</li>
                     <li><strong className={textPrimary(theme)}>个人设置</strong>：个人 API Key、工作台偏好；<span className="font-mono">/user-settings</span>。</li>
-                    <li><strong className={textPrimary(theme)}>授权审批 / 我的授权申请</strong>：跨人调用前的工单；<span className="font-mono">/grant-applications</span>。</li>
                     <li><strong className={textPrimary(theme)}>管理台</strong>（有权限时）：全平台目录、审核队列、用户与组织、监控配额等——与开发者相关的多为代管发布与审批。</li>
                   </ul>
                   <div className="flex flex-wrap gap-2 pt-1">
@@ -330,7 +317,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
                   {proseH2(theme, 'API Key：调用的钥匙')}
                   {prosePara(theme, (
                     <>
-                      在「个人设置 → API Key」创建。响应中的 <span className="font-mono">secretPlain</span>（或等价字段）<strong className={textPrimary(theme)}>仅出现一次</strong>，请立即安全保存。列表只有掩码与前缀。撤销/删除后无法找回明文，只能重建 Key 并重配集成与 Grant（<span className="font-mono">granteeApiKeyId</span> 绑定的是 Key 主键）。
+                      在「个人设置 → API Key」创建。响应中的 <span className="font-mono">secretPlain</span>（或等价字段）<strong className={textPrimary(theme)}>仅出现一次</strong>，请立即安全保存。列表只有掩码与前缀。撤销/删除后无法找回明文，只能重建 Key 并重配集成环境变量与调用方配置。
                     </>
                   ))}
                   {prosePara(theme, (
@@ -377,7 +364,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
                   ))}
                   {prosePara(theme, (
                     <>
-                      ② <span className="font-mono">POST /invoke</span> 或 <span className="font-mono">POST /invoke-stream</span>（SSE，如 MCP）：统一请求体（含 <span className="font-mono">resourceType</span>、<span className="font-mono">resourceId</span>、<span className="font-mono">payload</span> 等），同样需要 Key 与 invoke 权限。对外 MCP 清单、Key 维度的 Grant 合并与网关 JSON 导出见开发者中心「MCP 对外集成」页。
+                      ② <span className="font-mono">POST /invoke</span> 或 <span className="font-mono">POST /invoke-stream</span>（SSE，如 MCP）：统一请求体（含 <span className="font-mono">resourceType</span>、<span className="font-mono">resourceId</span>、<span className="font-mono">payload</span> 等），同样需要 Key 与 invoke scope。对外 MCP 清单与网关 JSON 导出见开发者中心「MCP 对外集成」页。
                     </>
                   ))}
                   <div className="flex flex-wrap gap-2 pt-1">
@@ -388,7 +375,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
                   {proseH3(theme, '2. 应用如何打开')}
                   {prosePara(theme, (
                     <>
-                      <span className="font-mono">resolve</span> 可能返回短期 <span className="font-mono">launchToken</span>。浏览器访问 <span className="font-mono">GET /catalog/apps/launch?token=...</span>（可匿名），服务端校验 Token 对应 Key 仍有效且具备 resolve + Grant 后 302 到真实 <span className="font-mono">appUrl</span>。
+                      <span className="font-mono">resolve</span> 可能返回短期 <span className="font-mono">launchToken</span>。浏览器访问 <span className="font-mono">GET /catalog/apps/launch?token=...</span>（可匿名），服务端校验 Token 对应 Key 仍有效且具备 resolve 等所需 scope 后 302 到真实 <span className="font-mono">appUrl</span>。
                     </>
                   ))}
                   {proseH3(theme, '3. SDK 与沙箱')}
@@ -404,30 +391,14 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
                     <button type="button" onClick={() => go('sdk-download')} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${btnSecondary(theme)}`}>
                       <Rocket size={16} /> SDK 下载
                     </button>
-                    <button type="button" onClick={() => go('grant-applications')} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${btnSecondary(theme)}`}>
-                      <FileText size={16} /> 授权审批待办
-                    </button>
-                    <button type="button" onClick={() => go('my-grant-applications')} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${btnSecondary(theme)}`}>
-                      <FileText size={16} /> 我的授权申请
-                    </button>
                   </div>
                 </section>
 
                 <section id="doc-access-policy" className="mt-14 space-y-4">
-                  {proseH2(theme, '授权与访问策略')}
+                  {proseH2(theme, '访问策略')}
                   {prosePara(theme, (
                     <>
-                      网关顺序：<strong className={textPrimary(theme)}>有效 Key</strong> → <strong className={textPrimary(theme)}>scope</strong>（catalog / resolve / invoke）→ <strong className={textPrimary(theme)}>Grant</strong> 或资源 <span className="font-mono">accessPolicy</span> 允许的豁免。
-                    </>
-                  ))}
-                  {prosePara(theme, (
-                    <>
-                      <span className="font-mono">accessPolicy</span>：<span className="font-mono">grant_required</span>（默认，需显式资源授权）；<span className="font-mono">open_org</span>（调用方用户与 owner 同组织时可免资源级授权）；<span className="font-mono">open_platform</span>（校内已认证 Key 且 scope 满足时可免资源级授权）。资源须 <span className="font-mono">published</span>；策略不改变「skill 不可 invoke」等边界。
-                    </>
-                  ))}
-                  {prosePara(theme, (
-                    <>
-                      <span className="font-mono">POST /resource-grants</span> 建立授权，<span className="font-mono">granteeApiKeyId</span> 为对方 Key 的<strong>数据库 id</strong>。<span className="font-mono">GET /resource-grants</span> 列表、<span className="font-mono">DELETE /resource-grants/{'{grantId}'}</span> 撤销。工单 <span className="font-mono">POST /grant-applications</span> 通过后等价 Grant；<span className="font-mono">POST /grant-applications/{'{id}'}/revoke-grant</span> 可撤销已通过工单建立的授权（owner / reviewer / 超管）。
+                      网关在校验<strong className={textPrimary(theme)}>有效 Key</strong>与<strong className={textPrimary(theme)}>scope</strong>（catalog / resolve / invoke）后，对已<strong className={textPrimary(theme)}>发布（published）</strong>的资源允许跨调用方使用（不再要求资源级 Grant 或工单授权）。目录中的 <span className="font-mono">accessPolicy</span> 可能仍保留历史取值，以网关实际判定为准；资源类型边界不变（例如 skill 仍不走去统一 <span className="font-mono">invoke</span>）。
                     </>
                   ))}
                 </section>
@@ -520,13 +491,13 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
                     <li><span className="font-mono">X-Api-Key</span> 是否为创建当次完整 <span className="font-mono">secretPlain</span>。</li>
                     <li>scope 是否覆盖当前动作。</li>
                     <li>资源是否 <span className="font-mono">published</span>。</li>
-                    <li>调他人资源是否有 Grant 或策略豁免。</li>
+                    <li>跨账号调用时，资源是否已发布且 Key scope 覆盖当前动作。</li>
                     <li>应用 launch：Token 绑定 Key 被吊销会失败。</li>
                   </ol>
                   {proseH3(theme, '健康检查飘红？')}
                   {prosePara(theme, '聚合健康受 MQ 等依赖影响；可看子检查项或市场详情可观测信息。')}
                   {proseH3(theme, '密钥丢了？')}
-                  {prosePara(theme, '无法找回明文；删旧建新，并更新集成与 Grant（新 Key 新 id）。')}
+                  {prosePara(theme, '无法找回明文；删旧建新，并更新集成方配置的完整密钥串。')}
                 </section>
 
                 <footer className={`mt-16 border-t pt-8 ${isDark ? 'border-white/[0.08]' : 'border-slate-200'}`}>
@@ -553,7 +524,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
               </p>
               <p className={`mt-1.5 ${isDark ? 'text-amber-100/90' : 'text-amber-950/90'}`}>
                 列表里的 <span className="font-mono">maskedKey</span>、<span className="font-mono">prefix</span>、行 <span className="font-mono">id</span> 均<strong>不能</strong>作为{' '}
-                <span className="font-mono">X-Api-Key</span>。下文「API Key、Scope 与 Grant」含完整规则与 403 排查。
+                <span className="font-mono">X-Api-Key</span>。下文「API Key 与 scope」含完整规则与 403 排查。
               </p>
             </div>
 
@@ -563,7 +534,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
               }`}
             >
               <div>
-                <h3 className={`text-sm font-bold ${textPrimary(theme)}`}>API Key、Scope 与 Grant（详细）</h3>
+                <h3 className={`text-sm font-bold ${textPrimary(theme)}`}>API Key 与 scope（详细）</h3>
                 <p className={`mt-2 text-xs ${textSecondary(theme)}`}>
                   是否允许调用由多层条件共同决定，并非「有 Key 即可调」。
                 </p>
@@ -572,7 +543,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
                 <h4 className={`text-xs font-semibold ${textPrimary(theme)}`}>1. 何种字符串可以作为 X-Api-Key</h4>
                 <ul className={`mt-1.5 list-disc pl-4 text-xs space-y-1 ${textSecondary(theme)}`}>
                   <li>仅 <span className="font-mono">POST /user-settings/api-keys</span> 或 <span className="font-mono">POST /user-mgmt/api-keys</span> 成功响应中的 <span className="font-mono">data.secretPlain</span>（或等价完整明文字段，一般为 <span className="font-mono">sk_</span> 前缀 + 十六进制）。该值<strong>只在创建当次响应</strong>返回。</li>
-                  <li>列表/详情中的 <span className="font-mono">maskedKey</span>、<span className="font-mono">prefix</span>、表主键 <span className="font-mono">id</span>、授权申请里绑定的 apiKeyId 等均<strong>不能</strong>填入 <span className="font-mono">X-Api-Key</span>。网关将请求头整串与存库的 <span className="font-mono">key_hash</span> 比对。</li>
+                  <li>列表/详情中的 <span className="font-mono">maskedKey</span>、<span className="font-mono">prefix</span>、表主键 <span className="font-mono">id</span> 等均<strong>不能</strong>填入 <span className="font-mono">X-Api-Key</span>。网关将请求头整串与存库的 <span className="font-mono">key_hash</span> 比对。</li>
                   <li>个人设置侧撤销 Key 多为<strong>软删除</strong>（<span className="font-mono">status=revoked</span>），列表接口仍可能返回该记录；控制台列表仅展示未撤销项。明文丢失无法找回时只能删键再建。</li>
                 </ul>
               </div>
@@ -581,15 +552,13 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
                 <ul className={`mt-1.5 list-disc pl-4 text-xs space-y-1 ${textSecondary(theme)}`}>
                   <li>目录、解析、调用要求 Key 具备网关认可的 <strong>scope</strong>，须覆盖 <span className="font-mono">catalog</span>、<span className="font-mono">resolve</span>、<span className="font-mono">invoke</span>（或 <span className="font-mono">catalog:*</span> 等形式及通配 <span className="font-mono">*</span>，以后端实现为准）。</li>
                   <li>创建时若未传 <span className="font-mono">scopes</span> 或被存成空数组，可能出现「API Key scope 不允许」等 403。<strong>本控制台偏好设置「新建」</strong>会默认附带 <span className="font-mono">scopes: [&quot;*&quot;]</span>；历史空 scope 的 Key 请撤销后重建。</li>
-                  <li><strong>常见误区：</strong>仅有资源 Grant，而 Key 的 scope 不含 <span className="font-mono">invoke</span>（或等价），仍会 403。</li>
+                  <li><strong>常见误区：</strong>目标动作需要 <span className="font-mono">invoke</span>，而 Key 的 scope 未覆盖，仍会 403。</li>
                 </ul>
               </div>
               <div>
-                <h4 className={`text-xs font-semibold ${textPrimary(theme)}`}>3. Resource Grant（第三层）</h4>
+                <h4 className={`text-xs font-semibold ${textPrimary(theme)}`}>3. 已发布资源</h4>
                 <ul className={`mt-1.5 list-disc pl-4 text-xs space-y-1 ${textSecondary(theme)}`}>
-                  <li>访问<strong>非本人拥有</strong>的已发布资源时，除 scope 外还须具备 Grant（<span className="font-mono">POST /resource-grants</span> 或由工单审批），或资源 <span className="font-mono">accessPolicy</span> 允许在网关侧短路 Grant（仍须 published 与 scope）。待办由<strong>资源拥有者</strong>、<strong>全平台审核员 reviewer</strong>或<strong>平台超管</strong>处理；入口为「授权审批待办」与后台同源列表。</li>
-                  <li>Grant 中 <span className="font-mono">granteeApiKeyId</span> 为 API Key 的<strong>记录 id</strong>，与请求头中的完整 <span className="font-mono">X-Api-Key</span> 明文不同。</li>
-                  <li><strong>常见误区：</strong>仅有 scope、对非自有资源无 Grant，会 403。</li>
+                  <li>资源须为 <span className="font-mono">published</span> 才会按平台规则对目录消费者开放；仍须满足各资源类型的调用边界（如 skill 以制品为主，不做统一 <span className="font-mono">invoke</span>）。</li>
                 </ul>
               </div>
               <div>
@@ -603,7 +572,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
                 <ol className={`mt-1.5 list-decimal pl-4 text-xs space-y-1 ${textSecondary(theme)}`}>
                   <li>确认 <span className="font-mono">X-Api-Key</span> 是否为创建时的完整 <span className="font-mono">secretPlain</span>。</li>
                   <li>在偏好设置中查看该 Key 的 scope；异常则删键重建。</li>
-                  <li>若调用他人资源，确认 Grant 或授权申请已通过，且绑定的是该 Key 的 id。</li>
+                  <li>若仍 403，确认目标资源已发布，并核对网关返回的具体错误码与文案。</li>
                   <li>顺带确认资源已 <span className="font-mono">published</span>，以及 RBAC / 管理接口头要求（本项目鉴权以实际网关为准）。</li>
                 </ol>
               </div>

@@ -3,8 +3,7 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, BookOpen, ChevronDown, Download, FileCheck, Link2, Loader2, Save, Send, Upload } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { ResourceType } from '../../types/dto/catalog';
-import type { ResourceAccessPolicy, ResourceUpsertRequest } from '../../types/dto/resource-center';
-import { accessPolicyFormSelectOptions, accessPolicyHelpLines, normalizeAccessPolicy } from '../../utils/accessPolicy';
+import type { ResourceUpsertRequest } from '../../types/dto/resource-center';
 import { resourceCenterService } from '../../api/services/resource-center.service';
 import { tagService } from '../../api/services/tag.service';
 import { useAuthStore } from '../../stores/authStore';
@@ -532,7 +531,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     description: '',
     sourceType: 'internal',
     providerId: '',
-    categoryId: '',
+    catalogTagId: '',
     endpoint: '',
     mcpRegisterMode: 'http_json' as McpRegisterMode,
     mcpTransport: 'http' as 'http' | 'websocket' | 'stdio',
@@ -570,7 +569,6 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     packValidationMessage: '',
     artifactSha256: '',
     skillRootPath: '',
-    accessPolicy: 'grant_required' as ResourceAccessPolicy,
     serviceDetailMd: '',
   });
   const [mcpImportPaste, setMcpImportPaste] = useState('');
@@ -695,8 +693,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
           serviceDetailMd: item.serviceDetailMd ?? '',
           sourceType: item.sourceType || 'internal',
           providerId: item.providerId ?? '',
-          categoryId: item.categoryId ?? '',
-          accessPolicy: normalizeAccessPolicy(item.accessPolicy) ?? 'grant_required',
+          catalogTagId: item.tagIds?.length ? String(item.tagIds[0]) : '',
           endpoint: item.endpoint || '',
           mcpRegisterMode:
             resourceType === 'mcp'
@@ -942,16 +939,15 @@ export const ResourceRegisterPage: React.FC<Props> = ({
   const buildPayload = (): ResourceUpsertRequest => {
     const providerIdRaw = resourceId ? (form.providerId.trim() || user?.id) : user?.id;
     const providerIdNum = Number(providerIdRaw);
-    const categoryIdNum = Number(form.categoryId.trim());
-    const ap = normalizeAccessPolicy(form.accessPolicy) ?? 'grant_required';
+    const tagIdPick = Number(form.catalogTagId.trim());
     const baseFields = {
       resourceCode: form.resourceCode.trim(),
       displayName: form.displayName.trim(),
       description: form.description.trim() || undefined,
       sourceType: form.sourceType,
-      accessPolicy: ap,
+      accessPolicy: 'open_platform' as const,
       ...(Number.isFinite(providerIdNum) && providerIdNum > 0 ? { providerId: providerIdNum } : {}),
-      ...(form.categoryId.trim() && Number.isFinite(categoryIdNum) && categoryIdNum > 0 ? { categoryId: categoryIdNum } : {}),
+      ...(form.catalogTagId.trim() && Number.isFinite(tagIdPick) && tagIdPick > 0 ? { tagIds: [tagIdPick] } : {}),
     };
     if (resourceType === 'mcp') {
       const acTrim = form.authConfigJson.trim();
@@ -1368,27 +1364,12 @@ export const ResourceRegisterPage: React.FC<Props> = ({
             <Field label="目录标签（选填）" theme={theme}>
               <LantuSelect
                 theme={theme}
-                value={form.categoryId}
-                onChange={(v) => setForm((p) => ({ ...p, categoryId: v }))}
+                value={form.catalogTagId}
+                onChange={(v) => setForm((p) => ({ ...p, catalogTagId: v }))}
                 options={tagOptions}
                 placeholder="不选"
               />
             </Field>
-            <Field label="消费策略（API Key + 资源授权）" full theme={theme}>
-              <LantuSelect
-                theme={theme}
-                value={form.accessPolicy}
-                onChange={(v) =>
-                  setForm((p) => ({ ...p, accessPolicy: (normalizeAccessPolicy(v) ?? 'grant_required') as ResourceAccessPolicy }))
-                }
-                options={accessPolicyFormSelectOptions()}
-                placeholder="请选择"
-              />
-              <p className={`mt-1.5 text-xs leading-relaxed ${textMuted(theme)}`}>
-                {accessPolicyHelpLines()[form.accessPolicy] ?? accessPolicyHelpLines().grant_required}
-              </p>
-            </Field>
-
             <div className="md:col-span-2">
               <button
                 type="button"

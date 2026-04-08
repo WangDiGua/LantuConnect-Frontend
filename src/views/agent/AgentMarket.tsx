@@ -273,7 +273,7 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
       pill: '接入',
       pillIcon: Network,
       title: '统一目录 resolve',
-      description: '与资源目录、accessPolicy 及 Grant 规则一致；须有效 X-Api-Key 与 scope。',
+      description: '与资源目录及网关策略一致；须有效 X-Api-Key 与 scope。',
     },
     {
       variant: 'cyan' as const,
@@ -303,7 +303,7 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
             {chromePageTitle || 'Agent 广场'}
           </span>
         )}
-        description="浏览已发布智能体；试用依赖 resolve + invoke（须有效 Key 与 scope；跨 owner 时尚需 Grant 或符合 accessPolicy）。"
+        description="浏览已发布智能体；试用依赖 resolve + invoke（须有效 Key 与 scope；已发布资源对具备 scope 的调用方开放）。"
         actions={(
           <>
             <button

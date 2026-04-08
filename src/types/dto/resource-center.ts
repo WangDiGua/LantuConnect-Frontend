@@ -32,8 +32,8 @@ export interface ResourceBaseUpsertRequest {
   sourceType?: string;
   /** 归属：提供方 ID（选填，与资源注册文档 5.1 节一致） */
   providerId?: string | number;
-  /** 归属：分类 ID（选填） */
-  categoryId?: string | number;
+  /** 目录标签 id（t_tag → t_resource_tag_rel；可多选时传数组） */
+  tagIds?: number[];
   /** 消费策略（选填；创建默认 grant_required；更新省略则后端保留原值——前端保存时仍传当前表单值） */
   accessPolicy?: ResourceAccessPolicy;
 }
@@ -150,7 +150,8 @@ export interface ResourceCenterItemVO {
   description?: string;
   sourceType?: string;
   providerId?: string;
-  categoryId?: string;
+  /** 目录标签 id，与 catalogTagNames 同序（后端按标签名排序） */
+  tagIds?: number[];
   authType?: string;
   authConfig?: Record<string, unknown>;
   status: ResourceStatus;

@@ -10,7 +10,6 @@ import { safeOpenHttpUrl } from '../../lib/windowNavigate';
 import { btnPrimary, btnSecondary, textPrimary, textSecondary, textMuted, techBadge } from '../../utils/uiClasses';
 import { ResourceMarketDetailShell } from '../../components/market';
 import { ResourceReviewsSection } from '../../components/business/ResourceReviewsSection';
-import { GrantApplicationModal } from '../../components/business/GrantApplicationModal';
 import { GatewayApiKeyInput } from '../../components/common/GatewayApiKeyInput';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
@@ -87,7 +86,6 @@ export const DatasetMarketDetailPage: React.FC<DatasetMarketDetailPageProps> = (
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [tab, setTab] = useState<'intro' | 'files' | 'reviews'>('intro');
-  const [grantOpen, setGrantOpen] = useState(false);
   const [invoking, setInvoking] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [invokeResult, setInvokeResult] = useState<string | null>(null);
@@ -139,11 +137,11 @@ export const DatasetMarketDetailPage: React.FC<DatasetMarketDetailPageProps> = (
         } else if (err instanceof ApiException && (err.status === 401 || err.code === 1002)) {
           setInvokeResult('请先选择有效 API Key');
         } else if (err instanceof ApiException && (err.status === 403 || err.code === 1003)) {
-          setInvokeResult('你暂无该资源使用权限，请先申请授权');
+          setInvokeResult('调用被拒绝：请确认资源已发布，且当前 API Key 具备 resolve 等所需 scope。');
         } else if (err instanceof Error && (err.message.includes('X-Api-Key') || err.message.includes('API Key'))) {
           setInvokeResult('请先填写并绑定 API Key');
         } else {
-          setInvokeResult(`${mapInvokeFlowError(err, 'resolve')}\n请确认 Key 与 resolve 授权后重试`);
+          setInvokeResult(`${mapInvokeFlowError(err, 'resolve')}\n请确认 Key 有效且 scope 覆盖 resolve 后重试`);
         }
         return;
       }
@@ -248,9 +246,6 @@ export const DatasetMarketDetailPage: React.FC<DatasetMarketDetailPageProps> = (
                   收藏
                 </>
               )}
-            </button>
-            <button type="button" className={`${btnPrimary} min-h-11`} onClick={() => setGrantOpen(true)}>
-              申请使用
             </button>
           </>
         )}
@@ -366,15 +361,6 @@ export const DatasetMarketDetailPage: React.FC<DatasetMarketDetailPageProps> = (
             </p>
           </div>
         )}
-      />
-      <GrantApplicationModal
-        open={grantOpen}
-        onClose={() => setGrantOpen(false)}
-        theme={theme}
-        resourceType="dataset"
-        resourceId={ds.id}
-        resourceName={ds.displayName}
-        showMessage={showMessage}
       />
     </>
   );

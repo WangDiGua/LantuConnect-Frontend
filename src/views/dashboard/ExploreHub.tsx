@@ -770,7 +770,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
           </h1>
 
           <p className={heroLeadClass}>
-            数字化资产与能力门户：目录发现与按权消费；统一注册、审核与 API Key / Grant 详见接入指南。
+            数字化资产与能力门户：目录发现与按权消费；统一注册、审核与 API Key / scope 详见接入指南。
           </p>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">

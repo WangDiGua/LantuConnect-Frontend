@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Theme, FontSize } from '../../types';
 import { buildPath } from '../../constants/consoleRoutes';
 import { UserManagementModule } from '../userMgmt/UserManagementModule';
-import { GrantApplicationListPage } from '../userMgmt/GrantApplicationListPage';
 import { DeveloperApplicationListPage } from '../userMgmt/DeveloperApplicationListPage';
 import { btnSecondary } from '../../utils/uiClasses';
 
@@ -12,8 +11,6 @@ const TABS: { id: string; label: string }[] = [
   { id: 'role-management', label: '角色' },
   { id: 'organization', label: '组织' },
   { id: 'api-key-management', label: 'API Key' },
-  { id: 'resource-grant-management', label: '资源授权' },
-  { id: 'grant-applications', label: '授权审批' },
   { id: 'developer-applications', label: '入驻审批' },
 ];
 
@@ -34,9 +31,6 @@ export const AdminUserHubModule: React.FC<AdminUserHubModuleProps> = ({
   const isDark = theme === 'dark';
 
   const inner = (() => {
-    if (activePage === 'grant-applications') {
-      return <GrantApplicationListPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
-    }
     if (activePage === 'developer-applications') {
       return <DeveloperApplicationListPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
     }

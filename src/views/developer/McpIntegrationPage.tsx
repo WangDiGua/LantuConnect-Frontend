@@ -55,10 +55,10 @@ function normAccessPolicy(policy?: string): string {
 
 function accessPolicyLabel(policy?: string): string {
   const p = normAccessPolicy(policy);
-  if (p === 'open_platform') return '开放平台（同租户内通常可免资源授权）';
-  if (p === 'open_org') return '组织内（同部门可短路）';
-  if (p === 'grant_required' || !p) return '需资源授权';
-  return policy || '需资源授权';
+  if (p === 'open_platform') return '开放平台（已发布即可调用）';
+  if (p === 'open_org') return '组织内开放';
+  if (p === 'grant_required' || !p) return '已发布开放（兼容旧目录字段）';
+  return policy || '已发布开放（兼容旧目录字段）';
 }
 
 function isOpenPlatformPolicy(policy?: string): boolean {
@@ -278,10 +278,6 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
     () => (selectedKeyId.trim() ? encodeURIComponent(selectedKeyId.trim()) : '{apiKeyId}'),
     [selectedKeyId],
   );
-  const resourceGrantsUrl = useMemo(
-    () => `${apiBaseUrl}/user-settings/api-keys/${apiKeyPathSegment}/resource-grants`,
-    [apiBaseUrl, apiKeyPathSegment],
-  );
   const invokeEligibilityUrl = useMemo(
     () => `${apiBaseUrl}/user-settings/api-keys/${apiKeyPathSegment}/invoke-eligibility`,
     [apiBaseUrl, apiKeyPathSegment],
@@ -312,20 +308,6 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
     [sdkListUrl, curlPack.keyReqVal],
   );
 
-  const grantsCurlTriple = useMemo(
-    () =>
-      buildCurlTriple({
-        method: 'GET',
-        url: resourceGrantsUrl,
-        headers: [
-          { name: 'Authorization', value: `Bearer ${curlPack.bearerVal}` },
-          { name: 'X-User-Id', value: curlPack.uidVal },
-        ],
-        comments: ['Grant 列表仅允许查询「本人」的 Key；须登录态（Bearer + X-User-Id）。'],
-      }),
-    [resourceGrantsUrl, curlPack.bearerVal, curlPack.uidVal],
-  );
-
   const eligibilityCurlTriple = useMemo(
     () =>
       buildCurlTriple({
@@ -337,7 +319,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
           { name: 'X-User-Id', value: curlPack.uidVal },
         ],
         body: '{"resourceType":"mcp","resourceIds":["58","57"]}',
-        comments: ['与 POST /invoke Grant 判定一致（open_platform / owner Key / Grant 行等）；须登录态。'],
+        comments: ['与网关 invoke 权限预判一致（已发布资源 + Key scope + 运行态等）；须登录态。'],
       }),
     [invokeEligibilityUrl, curlPack.bearerVal, curlPack.uidVal],
   );
@@ -547,16 +529,6 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
     [mcpList, invokeEligibility, eligibilityReliable, user?.id],
   );
 
-  /** 存在需资源授权策略且当前 Key 网关判定仍不可 invoke 时提示 */
-  const showNoGrantFooter = useMemo(() => {
-    if (!eligibilityReliable || !selectedKeyId.trim() || tableRows.length === 0) return false;
-    return tableRows.some((r) => {
-      const p = normAccessPolicy(r.accessPolicy);
-      const grantReq = p === 'grant_required' || !p;
-      return grantReq && !r.invokeEligible;
-    });
-  }, [eligibilityReliable, selectedKeyId, tableRows]);
-
   useEffect(() => {
     setSelectedExportIds(new Set(mcpList.map((m) => m.resourceId)));
   }, [mcpList]);
@@ -653,7 +625,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
       fontSize={fontSize}
       titleIcon={Puzzle}
       breadcrumbSegments={['开发者中心', 'MCP 对外集成']}
-      description="以「选择 API Key」为主线：Grant 列与导出 hasGrantForKey 来自后端 invoke-eligibility，与 POST /invoke 一致。目录 callableOnly 与网关 isResourcePhysicallyCallable 一致（健康仅拦截 down/disabled；熔断仅 OPEN/FORCED_OPEN；HALF_OPEN 仍可出现）。导出 JSON 仅为快照；调用须完整 X-Api-Key。"
+      description="以「选择 API Key」为主线：可调用预判列与导出 hasGrantForKey 来自后端 invoke-eligibility，与 POST /invoke 一致。目录 callableOnly 与网关 isResourcePhysicallyCallable 一致（健康仅拦截 down/disabled；熔断仅 OPEN/FORCED_OPEN；HALF_OPEN 仍可出现）。导出 JSON 仅为快照；调用须完整 X-Api-Key。"
       toolbar={toolbar}
       contentScroll="document"
     >
@@ -668,7 +640,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
           <p className={`text-sm leading-relaxed ${textSecondary(theme)}`}>
             实际执行多是<strong className={textPrimary(theme)}>「解析 → 三选一调用」</strong>：先 <span className="font-mono text-xs">POST /catalog/resolve</span>，再按返回的 <span className="font-mono text-xs">invokeType</span> 选用{' '}
             <span className="font-mono text-xs">/invoke</span>、<span className="font-mono text-xs">/invoke-stream</span> 或 <span className="font-mono text-xs break-all">…/message</span>（JSON-RPC）。下文<strong className={textPrimary(theme)}> 常用三种方式 </strong>
-            已展开；拉目录、Grant、预判及 SDK 等价路径请用<strong className={textPrimary(theme)}> 展开更多 </strong>。须带完整 <span className="font-mono text-xs">X-Api-Key</span>；浏览器场景建议经 BFF。
+            已展开；拉目录、可调用预判及 SDK 等价路径请用<strong className={textPrimary(theme)}> 展开更多 </strong>。须带完整 <span className="font-mono text-xs">X-Api-Key</span>；浏览器场景建议经 BFF。
           </p>
           <div className="flex flex-wrap gap-2">
             <button
@@ -696,7 +668,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
             对外 HTTP 接口（可复制 URL / curl）
           </h2>
           <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
-            大多数集成只需<strong className={textPrimary(theme)}> 下方解析 + 三选一调用 </strong>。拉目录、Grant、预判及 <span className="font-mono">/sdk/v1/*</span> 等价路径在底部{' '}
+            大多数集成只需<strong className={textPrimary(theme)}> 下方解析 + 三选一调用 </strong>。拉目录、预判及 <span className="font-mono">/sdk/v1/*</span> 等价路径在底部{' '}
             <strong className={textPrimary(theme)}>展开更多</strong>。执行向须完整 <span className="font-mono">X-Api-Key</span>；目录 URL 会随「仅显示健康可调用」带上{' '}
             <span className="font-mono">callableOnly</span>。<span className="block mt-1">「复制 curl」可从菜单选择 <strong className={textPrimary(theme)}>Bash、Windows CMD、PowerShell</strong>，避免将 Bash 续行粘贴进 CMD 导致只执行首行。</span>
           </p>
@@ -812,13 +784,13 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
               />
               <span className={textPrimary(theme)}>展开更多</span>
               <span className={`text-xs font-normal ${textMuted(theme)}`}>
-                目录与 Grant、invoke 预判、仅 Key 目录、POST /sdk/v1/resolve …
+                目录与 invoke 预判、仅 Key 目录、POST /sdk/v1/resolve …
               </span>
             </summary>
             <div
               className={`space-y-4 border-t px-4 pb-4 pt-3 ${isDark ? 'border-white/10' : 'border-slate-200'}`}
             >
-              <h4 className={`text-xs font-bold uppercase tracking-wide ${textMuted(theme)}`}>发现与授权（运行时）</h4>
+              <h4 className={`text-xs font-bold uppercase tracking-wide ${textMuted(theme)}`}>发现与调用预判（运行时）</h4>
 
               <div className="space-y-3">
                 <div>
@@ -861,33 +833,10 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
 
             <div>
               <div className={`text-xs font-semibold mb-1 ${textSecondary(theme)}`}>
-                3. 当前 Key 的 Grant 列表（GET，须本人 Key + 登录态）
+                3. 当前 Key 的 invoke 可调用预判（POST，须本人 Key + 登录态）
               </div>
               <p className={`text-[11px] mb-1 ${textMuted(theme)}`}>
-                路径中 <span className="font-mono">apiKeyId</span> 为 Key 的数据库 id（非 secret）。未选择 Key 时占位为{' '}
-                <span className="font-mono">{'{apiKeyId}'}</span>；省略 query 时后端默认 <span className="font-mono">resourceType=mcp</span>。
-              </p>
-              <div className="flex flex-wrap items-start gap-2">
-                <code
-                  className={`flex-1 min-w-0 break-all text-[11px] leading-snug rounded-lg px-2 py-1.5 font-mono ${
-                    isDark ? 'bg-black/30 text-slate-200' : 'bg-slate-100 text-slate-800'
-                  }`}
-                >
-                  {resourceGrantsUrl}
-                </code>
-                <CopyTextBtn text={resourceGrantsUrl} isDark={isDark} label="复制 URL" />
-              </div>
-              <div className="flex flex-wrap gap-2 mt-2">
-                <CopyCurlPlatformBtn triple={grantsCurlTriple} isDark={isDark} label="复制 curl 示例" />
-              </div>
-            </div>
-
-            <div>
-              <div className={`text-xs font-semibold mb-1 ${textSecondary(theme)}`}>
-                4. 当前 Key 的 invoke 授权预判（POST，须本人 Key + 登录态）
-              </div>
-              <p className={`text-[11px] mb-1 ${textMuted(theme)}`}>
-                与网关 <span className="font-mono">ResourceInvokeGrantService</span> 判定逻辑一致（含 open_platform、资源方 Key、授权记录等）；控制台授权列与导出 JSON 以该接口为准，而非仅看本地缓存或手工配置。
+                与网关 invoke 权限判定一致（已发布资源、资源归属、Key scope、运行健康与熔断等）；表格「可调用」列与导出 JSON 的 hasGrantForKey 以该接口为准。
               </p>
               <div className="flex flex-wrap gap-2 mt-2">
                 <CopyCurlPlatformBtn triple={eligibilityCurlTriple} isDark={isDark} label="复制 curl 示例" />
@@ -974,10 +923,10 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
             >
               <div className={`flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                 <div>
-                  <h3 className={`text-sm font-bold ${textPrimary(theme)}`}>已发布 MCP 与授权标签</h3>
+                  <h3 className={`text-sm font-bold ${textPrimary(theme)}`}>已发布 MCP 与可调用预判</h3>
                   <p className={`text-xs mt-0.5 ${textMuted(theme)}`}>
-                    「策略」来自目录 accessPolicy；「Grant」列与导出 hasGrantForKey 来自{' '}
-                    <span className="font-mono text-[11px]">POST …/invoke-eligibility</span>，与网关 invoke 一致（含 open_platform、owner Key、Grant 行等）。
+                    「策略」来自目录 accessPolicy；「可调用」列与导出 hasGrantForKey 来自{' '}
+                    <span className="font-mono text-[11px]">POST …/invoke-eligibility</span>，与网关 invoke 一致。
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
@@ -1005,7 +954,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
 
               {eligibilityLoading ? (
                 <p className={`text-xs flex items-center gap-2 px-4 py-2 border-b ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-100 bg-slate-50/80'}`}>
-                  <Loader2 size={14} className="animate-spin shrink-0" aria-hidden /> 正在加载当前 Key 的 invoke 授权预判…
+                  <Loader2 size={14} className="animate-spin shrink-0" aria-hidden /> 正在加载当前 Key 的 invoke 可调用预判…
                 </p>
               ) : null}
               {eligibilityError ? (
@@ -1064,7 +1013,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
                           策略（目录）
                         </th>
                         <th scope="col" className={thClass}>
-                          资源授权（当前 Key）
+                          可调用（当前 Key）
                         </th>
                         <th scope="col" className={thClass}>
                           链接
@@ -1118,7 +1067,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
                                     isDark ? 'bg-sky-500/20 text-sky-200' : 'bg-sky-50 text-sky-900'
                                   }`}
                                 >
-                                  开放平台（可免资源授权）
+                                  已发布可调用
                                 </span>
                               ) : row.invokeEligible ? (
                                 <span
@@ -1126,7 +1075,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
                                     isDark ? 'bg-emerald-500/20 text-emerald-300' : 'bg-emerald-50 text-emerald-800'
                                   }`}
                                 >
-                                  已授权
+                                  可调用
                                 </span>
                               ) : (
                                 <span
@@ -1134,7 +1083,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
                                     isDark ? 'bg-slate-500/20 text-slate-300' : 'bg-slate-100 text-slate-700'
                                   }`}
                                 >
-                                  未授权
+                                  不可调用
                                 </span>
                               )}
                             </td>
@@ -1159,19 +1108,6 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
               )}
             </div>
 
-            {showNoGrantFooter ? (
-              <p className={`text-xs ${textMuted(theme)}`}>
-                当前 Key 在须授权的 MCP 上尚无生效 Grant；若资源策略为 grant_required，请通过工单或资源拥有者授权。
-                <button
-                  type="button"
-                  className={`ml-1 underline font-medium ${textPrimary(theme)}`}
-                  onClick={() => navigate(buildPath('user', 'my-grant-applications'))}
-                >
-                  我的授权申请
-                </button>
-              </p>
-            ) : null}
-
             <div
               className={`rounded-2xl border p-4 ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-white'}`}
             >
@@ -1180,7 +1116,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
                   <h3 className={`text-sm font-bold ${textPrimary(theme)}`}>导出 JSON</h3>
                   <p className={`text-xs mt-0.5 ${textMuted(theme)}`}>
                     含 schemaVersion、apiBaseUrl、granteeApiKeyId、granteeApiKeyName、exportedAt 与所选 mcps；不包含 secretPlain。
-                    {eligibilityLoading ? ' 授权预判加载完成后再导出，以确保 hasGrantForKey 与网关一致。' : ''}
+                    {eligibilityLoading ? ' 可调用预判加载完成后再导出，以确保 hasGrantForKey 与网关一致。' : ''}
                     {eligibilityError ? ' 预判加载失败时已禁用导出，请先在上文点击「重试」。' : ''}
                   </p>
                 </div>

@@ -67,7 +67,6 @@ const UsageRecordsPage = lazy(() => import('../views/user/UsageRecordsPage').the
 const MyFavoritesPage = lazy(() => import('../views/user/MyFavoritesPage').then(m => ({ default: m.MyFavoritesPage })));
 const UsageStatsPage = lazy(() => import('../views/user/UsageStatsPage').then(m => ({ default: m.UsageStatsPage })));
 const AuthorizedSkillsPage = lazy(() => import('../views/user/AuthorizedSkillsPage').then(m => ({ default: m.AuthorizedSkillsPage })));
-const MyGrantApplicationsPage = lazy(() => import('../views/user/MyGrantApplicationsPage').then(m => ({ default: m.MyGrantApplicationsPage })));
 const ResourceCenterManagementPage = lazy(() => import('../views/resourceCenter/ResourceCenterManagementPage').then(m => ({ default: m.ResourceCenterManagementPage })));
 const ResourceRegisterPage = lazy(() => import('../views/resourceCenter/ResourceRegisterPage').then(m => ({ default: m.ResourceRegisterPage })));
 const SkillExternalMarketBrowsePage = lazy(() =>
@@ -77,7 +76,6 @@ const SkillExternalMarketDetailPage = lazy(() =>
   import('../views/skill/SkillExternalMarketDetailPage').then((m) => ({ default: m.SkillExternalMarketDetailPage })),
 );
 const ResourceAuditList = lazy(() => import('../views/audit/ResourceAuditList').then(m => ({ default: m.ResourceAuditList })));
-const GrantApplicationListPage = lazy(() => import('../views/userMgmt/GrantApplicationListPage').then(m => ({ default: m.GrantApplicationListPage })));
 const DeveloperApplicationListPage = lazy(() => import('../views/userMgmt/DeveloperApplicationListPage').then(m => ({ default: m.DeveloperApplicationListPage })));
 const ApiDocsPage = lazy(() => import('../views/developer/ApiDocsPage').then(m => ({ default: m.ApiDocsPage })));
 const SdkDownloadPage = lazy(() => import('../views/developer/SdkDownloadPage').then(m => ({ default: m.SdkDownloadPage })));
@@ -207,8 +205,6 @@ const SUB_ITEM_PERM_MAP: Record<string, string | string[]> = {
     'org:manage',
     'api-key:manage',
     'apikey:read',
-    'resource-grant:manage',
-    'grant-application:review',
     'developer-application:review',
   ],
   /** 超管 user:manage；审核员只读目录为 user:read（与后端 GET /user-mgmt/users 一致） */
@@ -217,9 +213,6 @@ const SUB_ITEM_PERM_MAP: Record<string, string | string[]> = {
   'organization': 'org:manage',
   'api-key-management': 'api-key:manage',
   'network-config': 'system:config',
-  'resource-grant-management': 'resource-grant:manage',
-  /** 资源 owner / 审核员 / 超管可审；与后端 Grant 工单一致 */
-  'grant-applications': ['resource-grant:manage', 'grant-application:review'],
   'developer-applications': 'developer-application:review',
   'alert-rules': 'system:config',
   'health-config': 'system:config',
@@ -365,8 +358,6 @@ const MainContent = React.memo<{
         case 'role-management':
         case 'organization':
         case 'api-key-management':
-        case 'resource-grant-management':
-        case 'grant-applications':
         case 'developer-applications':
           return <AdminUserHubModule activePage={p} theme={t} fontSize={fs} showMessage={msg} />;
         case 'provider-list':
@@ -377,7 +368,6 @@ const MainContent = React.memo<{
               fontSize={fs}
               mode={p === 'provider-create' ? 'create' : 'list'}
               showMessage={msg}
-              onOpenGrantManagement={() => nav('resource-grant-management')}
             />
           );
         case 'monitoring-overview':
@@ -557,12 +547,8 @@ const MainContent = React.memo<{
         return <MyFavoritesPage theme={t} fontSize={fs} />;
       case 'usage-stats':
         return <UsageStatsPage theme={t} fontSize={fs} />;
-      case 'grant-applications':
-        return <GrantApplicationListPage theme={t} fontSize={fs} showMessage={msg} />;
       case 'developer-applications':
         return <DeveloperApplicationListPage theme={t} fontSize={fs} showMessage={msg} />;
-      case 'my-grant-applications':
-        return <MyGrantApplicationsPage theme={t} fontSize={fs} showMessage={msg} />;
       case 'profile':
         return (
           <UserSettingsHubPage
@@ -1139,6 +1125,14 @@ const MainLayoutContent: React.FC<{
       navigate(buildPath('user', 'api-key-management'), { replace: true });
       return;
     }
+    if (layoutIsAdmin && (normalizedRoutePage === 'resource-grant-management' || normalizedRoutePage === 'grant-applications')) {
+      navigate(buildPath('user', 'user-list'), { replace: true });
+      return;
+    }
+    if (!layoutIsAdmin && normalizedRoutePage === 'my-grant-applications') {
+      navigate(buildPath('user', 'hub'), { replace: true });
+      return;
+    }
     if (layoutIsAdmin && normalizedRoutePage) {
       if (ADMIN_LEGACY_RESOURCE_LIST_PAGES.has(normalizedRoutePage)) {
         const t = LEGACY_PAGE_TO_TYPE[normalizedRoutePage];
@@ -1164,16 +1158,6 @@ const MainLayoutContent: React.FC<{
       !hasPermission('developer:portal')
     ) {
       navigate(defaultPath(), { replace: true });
-      return;
-    }
-    if (
-      !layoutIsAdmin &&
-      normalizedRoutePage === 'grant-applications' &&
-      !hasPermission('grant-application:review') &&
-      !hasPermission('resource-grant:manage')
-    ) {
-      navigate(defaultPath(), { replace: true });
-      showMessage('当前账号无授权审批权限', 'info');
       return;
     }
     if (
@@ -1280,9 +1264,7 @@ const MainLayoutContent: React.FC<{
         return (
           hasPermission('user:manage') ||
           hasPermission('user:read') ||
-          hasPermission('developer-application:review') ||
-          hasPermission('grant-application:review') ||
-          hasPermission('resource-grant:manage')
+          hasPermission('developer-application:review')
         );
       }
       const requiredPerm = adminPermMap[item.id];

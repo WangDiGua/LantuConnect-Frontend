@@ -11,7 +11,6 @@ import { env } from '../../config/env';
 import { btnPrimary, btnSecondary, textPrimary, textSecondary, textMuted, techBadge, statusLabel } from '../../utils/uiClasses';
 import { ResourceMarketDetailShell } from '../../components/market';
 import { ResourceReviewsSection } from '../../components/business/ResourceReviewsSection';
-import { GrantApplicationModal } from '../../components/business/GrantApplicationModal';
 import { GatewayApiKeyInput } from '../../components/common/GatewayApiKeyInput';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
@@ -78,7 +77,6 @@ export const AppMarketDetailPage: React.FC<AppMarketDetailPageProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [tab, setTab] = useState<'intro' | 'use' | 'reviews'>('intro');
-  const [grantOpen, setGrantOpen] = useState(false);
   const [opening, setOpening] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
@@ -157,7 +155,7 @@ export const AppMarketDetailPage: React.FC<AppMarketDetailPageProps> = ({
         } else if (err instanceof ApiException && (err.status === 401 || err.code === 1002)) {
           setGatewayOpenError('请先选择有效 API Key');
         } else if (err instanceof ApiException && (err.status === 403 || err.code === 1003)) {
-          setGatewayOpenError('你暂无该应用使用权限，请先申请授权');
+          setGatewayOpenError('调用被拒绝：请确认应用已发布，且当前 API Key 具备 resolve 等所需 scope。');
         } else if (err instanceof Error && (err.message.includes('X-Api-Key') || err.message.includes('API Key'))) {
           setGatewayOpenError('请先选择并绑定 API Key');
         } else {
@@ -290,9 +288,6 @@ export const AppMarketDetailPage: React.FC<AppMarketDetailPageProps> = ({
                 </>
               )}
             </button>
-            <button type="button" className={`${btnSecondary(theme)} min-h-11`} onClick={() => setGrantOpen(true)}>
-              获取授权指引
-            </button>
             <button
               type="button"
               className={`${btnPrimary} inline-flex min-h-11 items-center justify-center gap-2`}
@@ -411,15 +406,6 @@ export const AppMarketDetailPage: React.FC<AppMarketDetailPageProps> = ({
             ) : null}
           </div>
         )}
-      />
-      <GrantApplicationModal
-        open={grantOpen}
-        onClose={() => setGrantOpen(false)}
-        theme={theme}
-        resourceType="app"
-        resourceId={app.id}
-        resourceName={app.displayName}
-        showMessage={showMessage}
       />
     </>
   );

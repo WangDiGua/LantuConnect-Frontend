@@ -4,7 +4,6 @@ import { Rocket, Star, Heart } from 'lucide-react';
 import type { Theme, FontSize, ThemeColor } from '../../types';
 import { ResourceMarketDetailShell } from '../../components/market';
 import { AgentReviews } from './AgentReviews';
-import { GrantApplicationModal } from '../../components/business/GrantApplicationModal';
 import { buildPath } from '../../constants/consoleRoutes';
 import { agentService } from '../../api/services/agent.service';
 import type { Agent } from '../../types/dto/agent';
@@ -55,7 +54,6 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [tab, setTab] = useState<'intro' | 'capability' | 'reviews'>('intro');
-  const [grantOpen, setGrantOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [adding, setAdding] = useState(false);
 
@@ -192,9 +190,6 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
         )}
         headerActions={(
           <>
-            <button type="button" className={`${btnSecondary(theme)} min-h-11`} onClick={() => setGrantOpen(true)}>
-              申请授权
-            </button>
             <button
               type="button"
               className={`${btnPrimary} min-h-11 ${isInWorkspace(idStr) ? 'cursor-not-allowed opacity-50' : ''}`}
@@ -256,7 +251,7 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
           >
             <h3 className={`text-sm font-bold ${textPrimary(theme)}`}>快捷操作</h3>
             <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
-              试用智能体须具备有效 X-Api-Key 与正确授权范围；跨 owner 时尚需资源授权或符合 accessPolicy。
+              试用须具备有效 X-Api-Key 与 invoke 等 scope；资源上架后平台内均可按策略调用。
             </p>
             <button
               type="button"
@@ -275,16 +270,6 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
             </button>
           </div>
         )}
-      />
-
-      <GrantApplicationModal
-        open={grantOpen}
-        onClose={() => setGrantOpen(false)}
-        theme={theme}
-        resourceType="agent"
-        resourceId={idStr}
-        resourceName={agent.displayName}
-        showMessage={showMessage}
       />
 
       {confirmOpen ? (

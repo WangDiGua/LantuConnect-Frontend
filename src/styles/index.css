@@ -227,10 +227,20 @@
     -webkit-overflow-scrolling: touch;
     overflow-anchor: auto;
   }
+
 }
 
 /* Focus — subtle ring, never thick DaisyUI outline */
 @layer utilities {
+  /**
+   * 探索页内嵌 sticky 左轨：与主列同滚动容器时，scroll anchoring 可能微调 scrollTop，侧栏像「跳一下」。
+   * utilities 层后载入，覆盖同节点上的 .custom-scrollbar / .lantu-scroll-compositor 的 overflow-anchor。
+   */
+  .lantu-hub-sticky-rail-scroll {
+    -webkit-overflow-scrolling: touch;
+    overflow-anchor: none;
+  }
+
   .btn:focus-visible {
     outline-width: 1px !important;
     outline-style: solid !important;

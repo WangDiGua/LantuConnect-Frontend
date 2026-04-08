@@ -32,8 +32,7 @@ export const pageScrollShell = `${mainScrollCompositorClass} ${mainScrollPadX} $
 /** 布局壳层 GPU 合成；勿与同一节点的 overflow-y-auto 主滚动根混用 */
 export const chromeGpuLayerClass = 'transform-gpu';
 /**
- * 控制台主内容最大宽度（与探索页/工作台视觉宽度一致；超大屏两侧留白）。
- * 实际外边距与 {@link contentPaddingX} 由 MainLayout 包在 MainContent 外层统一施加。
+ * 可选：单页/模块内阅读宽约束（如详情、文档）。勿再套在 MainLayout 全宽主.scroll 根上，否则会整体居中留白。
  */
 export const contentMaxWidth = 'max-w-[1400px]';
 /** 与探索页 `pageContainer` 横向节奏一致 */

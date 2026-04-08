@@ -266,6 +266,8 @@ const MainContent = React.memo<{
   setShowUserMenu: (show: boolean) => void;
   setShowAppearanceMenu: (show: boolean) => void;
   exploreHubRail?: ExploreHubRailConfig;
+  /** 桌面端左轨由 MainLayout 抬出滚动区时置 true（仅 hub + 有轨配置） */
+  exploreHubShellRail?: boolean;
   /** 移动侧栏打开时与 Hub 轨 ⌘/Ctrl+K 互斥 */
   mobileNavOpen: boolean;
 }>(({
@@ -282,6 +284,7 @@ const MainContent = React.memo<{
   setShowUserMenu: setMenu,
   setShowAppearanceMenu: setAppMenu,
   exploreHubRail,
+  exploreHubShellRail = false,
   mobileNavOpen,
 }) => {
   const renderResourceList = (type: ResourceType) => (
@@ -417,6 +420,7 @@ const MainContent = React.memo<{
             theme={t}
             fontSize={fs}
             hubRail={exploreHubRail}
+            shellRendersRailOnDesktop={Boolean(exploreHubShellRail)}
             mobileNavDrawerOpen={mobileNavOpen}
           />
         );
@@ -637,6 +641,7 @@ const MainContent = React.memo<{
     prevProps.themeColor === nextProps.themeColor &&
     prevProps.fontSize === nextProps.fontSize &&
     prevProps.exploreHubRail === nextProps.exploreHubRail &&
+    prevProps.exploreHubShellRail === nextProps.exploreHubShellRail &&
     prevProps.mobileNavOpen === nextProps.mobileNavOpen
   );
 });
@@ -1617,6 +1622,8 @@ const MainLayoutContent: React.FC<{
   ]);
 
   const exploreHubRailForContent = page === 'hub' && shellPersonalRail ? shellPersonalRail : undefined;
+  /** 探索页桌面端：左轨固定在滚动区外，仅右侧主画布滚动 */
+  const hubDesktopShellRail = Boolean(exploreHubRailForContent);
 
   const showStandalonePersonalRail =
     personalRailOpen && Boolean(shellPersonalRail) && page !== 'hub';
@@ -1989,6 +1996,7 @@ const MainLayoutContent: React.FC<{
                                 setShowUserMenu={setShowUserMenu}
                                 setShowAppearanceMenu={setShowAppearanceMenu}
                                 exploreHubRail={undefined}
+                                exploreHubShellRail={false}
                                 mobileNavOpen={mobileNavOpen}
                               />
                             </div>
@@ -1997,6 +2005,72 @@ const MainLayoutContent: React.FC<{
                       </div>
                     </div>
                   </div>
+                </div>
+              </div>
+            </div>
+          ) : hubDesktopShellRail ? (
+            <div
+              className={`flex min-h-0 min-w-0 flex-1 flex-col gap-8 lg:flex-row lg:gap-10 ${contentPaddingX}`}
+            >
+              <aside
+                className={`hidden min-h-0 shrink-0 flex-col border-r lg:flex lg:w-52 lg:max-h-none xl:w-56 ${
+                  isDark ? 'border-white/[0.08]' : 'border-slate-200/80'
+                } ${consoleContentTopPad} ${chromeGpuLayerClass} pr-6`}
+              >
+                <div
+                  className={`flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-y-contain custom-scrollbar lantu-hub-sticky-rail-scroll ${mainScrollCompositorClass}`}
+                >
+                  <HubPersonalRail
+                    theme={theme}
+                    sections={exploreHubRailForContent!.sections}
+                    displayName={exploreHubRailForContent!.displayName}
+                    roleLabel={exploreHubRailForContent!.roleLabel}
+                    avatarSeed={exploreHubRailForContent!.avatarSeed}
+                    activeSidebar={exploreHubRailForContent!.activeSidebar}
+                    activeSubItem={exploreHubRailForContent!.activeSubItem}
+                    routeRole={exploreHubRailForContent!.routeRole}
+                    onSubItemClick={exploreHubRailForContent!.onSubItemClick}
+                    suppressGlobalMenuSearchHotkey={mobileNavOpen}
+                    outerScrollOnly
+                    ariaLabel="探索首页导航"
+                  />
+                </div>
+              </aside>
+              <div
+                ref={mainScrollRef}
+                data-lantu-main-scroll
+                className={`min-h-0 min-w-0 flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${consoleScrollSafeBottomPad} lantu-hub-main-scroll`}
+              >
+                <div className="w-full min-w-0">
+                  <AnimatePresence mode="wait">
+                    <RouteContentMotion key={contentKey} animationVariants={animationVariants}>
+                      <div className={`w-full min-w-0 ${consoleContentTopPad}`}>
+                        <MainContent
+                          page={page}
+                          routeId={routeId}
+                          resourceTypeFromQuery={
+                            page === 'resource-center'
+                              ? queryType
+                              : page === 'resource-catalog' || page === 'resource-audit'
+                                ? resourceTypeQuery
+                                : queryType
+                          }
+                          layoutIsAdmin={layoutIsAdmin}
+                          theme={theme}
+                          themePreference={themePreference}
+                          themeColor={themeColor}
+                          fontSize={fontSize}
+                          showMessage={showMessage}
+                          navigateTo={navigateTo}
+                          setShowUserMenu={setShowUserMenu}
+                          setShowAppearanceMenu={setShowAppearanceMenu}
+                          exploreHubRail={exploreHubRailForContent}
+                          exploreHubShellRail
+                          mobileNavOpen={mobileNavOpen}
+                        />
+                      </div>
+                    </RouteContentMotion>
+                  </AnimatePresence>
                 </div>
               </div>
             </div>
@@ -2032,6 +2106,7 @@ const MainLayoutContent: React.FC<{
                         setShowUserMenu={setShowUserMenu}
                         setShowAppearanceMenu={setShowAppearanceMenu}
                         exploreHubRail={exploreHubRailForContent}
+                        exploreHubShellRail={false}
                         mobileNavOpen={mobileNavOpen}
                       />
                     </div>

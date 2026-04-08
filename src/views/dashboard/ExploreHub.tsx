@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef, useSyncExternalStore } from 'react';
 import { Highlight, themes } from 'prism-react-renderer';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -54,8 +54,25 @@ interface ExploreHubProps {
   theme: Theme;
   fontSize: FontSize;
   hubRail?: ExploreHubRailConfig;
+  /**
+   * 为 true 时：桌面端（lg+）由 MainLayout 在滚动区外渲染左轨，本页仅占主栏+右栏；
+   * 小屏仍内嵌左轨并与内容同滚动。
+   */
+  shellRendersRailOnDesktop?: boolean;
   /** 与 MainLayout 移动抽屉联动：打开时抑制轨内全局 ⌘/Ctrl+K */
   mobileNavDrawerOpen?: boolean;
+}
+
+const subscribeLgUp = (onChange: () => void) => {
+  const mq = window.matchMedia('(min-width: 1024px)');
+  mq.addEventListener('change', onChange);
+  return () => mq.removeEventListener('change', onChange);
+};
+const getLgUpSnapshot = () => window.matchMedia('(min-width: 1024px)').matches;
+const getLgUpServer = () => false;
+
+function useLgUp(): boolean {
+  return useSyncExternalStore(subscribeLgUp, getLgUpSnapshot, getLgUpServer);
 }
 
 function formatCount(n: number | null | undefined): string {
@@ -550,12 +567,16 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
   theme,
   fontSize: _fontSize,
   hubRail,
+  shellRendersRailOnDesktop = false,
   mobileNavDrawerOpen = false,
 }) => {
   const navigate = useNavigate();
   const { platformRole } = useUserRole();
   const { showMessage } = useMessage();
   const isDark = theme === 'dark';
+  const lgUp = useLgUp();
+  const hasHubRail = Boolean(hubRail);
+  const embedRailColumn = hasHubRail && (!shellRendersRailOnDesktop || !lgUp);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<Error | null>(null);
   const [hubData, setHubData] = useState<ExploreHubData | null>(null);
@@ -805,28 +826,34 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
         <main className={`${pageContainer} ${hubRail ? 'mt-0' : 'mt-6 sm:mt-7'} space-y-8`}>
           {hubRail ? null : statsGridEl}
 
-          <div className="grid grid-cols-1 items-stretch gap-8 lg:grid-cols-12 lg:gap-10">
-            {hubRail ? (
+          <div
+            className={`grid grid-cols-1 items-stretch gap-8 lg:gap-10 ${
+              embedRailColumn ? 'lg:grid-cols-12' : hasHubRail ? 'lg:grid-cols-10' : 'lg:grid-cols-12'
+            }`}
+          >
+            {embedRailColumn ? (
               <div
                 className="order-2 col-span-1 flex min-h-0 flex-col lg:order-1 lg:col-span-2 lg:sticky lg:top-0 lg:z-[1] lg:self-start lg:max-h-[calc(100dvh-5rem-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px))] lg:overflow-y-auto lg:overscroll-y-contain custom-scrollbar lantu-hub-sticky-rail-scroll lg:pr-6"
               >
                 <HubPersonalRail
                   theme={theme}
-                  sections={hubRail.sections}
-                  displayName={hubRail.displayName}
-                  roleLabel={hubRail.roleLabel}
-                  avatarSeed={hubRail.avatarSeed}
-                  activeSidebar={hubRail.activeSidebar}
-                  activeSubItem={hubRail.activeSubItem}
-                  routeRole={hubRail.routeRole}
-                  onSubItemClick={hubRail.onSubItemClick}
+                  sections={hubRail!.sections}
+                  displayName={hubRail!.displayName}
+                  roleLabel={hubRail!.roleLabel}
+                  avatarSeed={hubRail!.avatarSeed}
+                  activeSidebar={hubRail!.activeSidebar}
+                  activeSubItem={hubRail!.activeSubItem}
+                  routeRole={hubRail!.routeRole}
+                  onSubItemClick={hubRail!.onSubItemClick}
                   suppressGlobalMenuSearchHotkey={mobileNavDrawerOpen}
                   outerScrollOnly
                 />
               </div>
             ) : null}
             <div
-              className={`space-y-8 order-1 ${hubRail ? 'lg:order-2 lg:col-span-7' : 'lg:col-span-8'}`}
+              className={`space-y-8 order-1 ${hasHubRail ? 'lg:col-span-7' : 'lg:col-span-8'}${
+                hasHubRail ? (embedRailColumn ? ' lg:order-2' : ' lg:order-1') : ''
+              }`}
             >
               {hubRail ? (
                 <div className="space-y-6">
@@ -955,7 +982,11 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
               </div>
             </div>
 
-            <div className={`space-y-8 order-3 ${hubRail ? 'lg:col-span-3' : 'lg:col-span-4'}`}>
+            <div
+              className={`space-y-8 order-3 ${hasHubRail ? 'lg:col-span-3' : 'lg:col-span-4'}${
+                hasHubRail && !embedRailColumn ? ' lg:order-2' : ''
+              }`}
+            >
               {(stats?.callsTrend7d?.length ?? 0) > 0 && (
                 <EChartCard
                   theme={theme}

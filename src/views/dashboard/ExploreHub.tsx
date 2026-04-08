@@ -715,7 +715,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
       <div
         className="pointer-events-none absolute inset-0"
         style={{
-          background: `linear-gradient(to right, ${heroVignetteFrom}, transparent 28%, transparent 72%, ${heroVignetteFrom})`,
+          background: `linear-gradient(to right, ${heroVignetteFrom}, transparent 12%, transparent 88%, ${heroVignetteFrom})`,
         }}
         aria-hidden
       />
@@ -727,8 +727,9 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
         aria-hidden
       />
 
-      <div className="relative z-10 w-full lg:flex lg:items-center lg:justify-between lg:gap-6">
-        <div className="w-full min-w-0 lg:max-w-[min(100%,36rem)] xl:max-w-[min(100%,28rem)]">
+      <div className="relative z-10 w-full flex flex-col gap-6 lg:flex-row lg:items-center lg:gap-6 lg:justify-between">
+        {/* 与下方统计栅格、资源卡同宽：主栏内占满可用宽；段落在 heroLeadClass 中另控行长 */}
+        <div className="w-full min-w-0 lg:flex-1">
           <button
             type="button"
             onClick={() => navigate(unifiedResourceCenterPath(platformRole))}

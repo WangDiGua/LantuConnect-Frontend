@@ -14,6 +14,7 @@ import {
   CONSOLE_CARD_RADIUS,
   CONSOLE_CARD_SHADOW_DARK,
   CONSOLE_CARD_SHADOW_LIGHT,
+  mainScrollCompositorClass,
   mainScrollPadBottom,
 } from '../../utils/uiClasses';
 import { ConsolePageFooter } from '../../components/layout/ConsolePageFooter';
@@ -811,7 +812,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
           <div className="grid grid-cols-1 items-stretch gap-8 lg:grid-cols-12 lg:gap-10">
             {hubRail ? (
               <div
-                className="order-2 col-span-1 flex h-full min-h-0 flex-col lg:order-1 lg:col-span-2 lg:pr-6"
+                className={`order-2 col-span-1 flex min-h-0 flex-col lg:order-1 lg:col-span-2 lg:sticky lg:top-0 lg:z-[1] lg:self-start lg:max-h-[calc(100dvh-5rem-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px))] lg:overflow-y-auto lg:overscroll-y-contain custom-scrollbar lg:pr-6 ${mainScrollCompositorClass}`}
               >
                 <HubPersonalRail
                   theme={theme}
@@ -824,6 +825,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
                   routeRole={hubRail.routeRole}
                   onSubItemClick={hubRail.onSubItemClick}
                   suppressGlobalMenuSearchHotkey={mobileNavDrawerOpen}
+                  outerScrollOnly
                 />
               </div>
             ) : null}

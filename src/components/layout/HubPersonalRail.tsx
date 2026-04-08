@@ -24,6 +24,10 @@ export interface HubPersonalRailProps {
   suppressGlobalMenuSearchHotkey?: boolean;
   /** 侧栏 `<nav>` 可访问名称；默认「探索首页导航」 */
   ariaLabel?: string;
+  /**
+   * 为外层的 `sticky + max-h + overflow-y-auto` 壳预留：关闭内部菜单区滚动，整轨随外层一根滚轮滚动，避免双滚动条。
+   */
+  outerScrollOnly?: boolean;
 }
 
 type ParentBlock = {
@@ -85,6 +89,7 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
   onSubItemClick,
   suppressGlobalMenuSearchHotkey = false,
   ariaLabel,
+  outerScrollOnly = false,
 }) => {
   const isDark = theme === 'dark';
   /** 与探索页画布平接，不用独立浮卡；列级分隔由 ExploreHub 父级 border-r 承担 */
@@ -173,11 +178,15 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
 
   const navAria = ariaLabel ?? '探索首页导航';
 
+  const navRootClass = outerScrollOnly
+    ? `${shell} flex min-h-0 flex-col ${mainScrollCompositorClass}`
+    : `${shell} flex h-full min-h-0 flex-col ${mainScrollCompositorClass}`;
+  const menuBodyClass = outerScrollOnly
+    ? 'overflow-x-hidden px-3 pb-4 pt-0 min-w-0'
+    : `min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 pb-4 pt-0 custom-scrollbar ${mainScrollCompositorClass}`;
+
   return (
-    <nav
-      className={`${shell} flex h-full min-h-0 flex-col ${mainScrollCompositorClass}`}
-      aria-label={navAria}
-    >
+    <nav className={navRootClass} aria-label={navAria}>
       <div className="shrink-0 p-4 pb-3" role="group" aria-label={`当前用户 ${displayName}，${roleLabel}`}>
         <div className="flex w-full min-w-0 items-center gap-3 rounded-lg px-1 py-1.5">
           <AvatarGradientFrame isDark={isDark} className="">
@@ -273,9 +282,7 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
         </div>
       </div>
 
-      <div
-        className={`min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 pb-4 pt-0 custom-scrollbar ${mainScrollCompositorClass}`}
-      >
+      <div className={menuBodyClass}>
         <div className="space-y-1">
           {filteredBlocks.length === 0 && searchMode ? (
             <p className="px-1 py-2 text-center text-xs text-slate-400">未找到匹配菜单</p>

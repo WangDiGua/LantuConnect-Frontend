@@ -140,6 +140,14 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
     return out;
   }, [navItems, sidebarRows, navItemStateByKey]);
 
+  /** 侧栏切换不改变顶栏「选中」态：横向第一项（探索发现）始终高亮 */
+  const firstTopNavItemKey = useMemo(() => {
+    for (const p of navPieces) {
+      if (p.kind === 'item') return `${p.block.item.domain}-${p.block.item.id}`;
+    }
+    return null;
+  }, [navPieces]);
+
   useEffect(() => {
     const onHotkey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -204,10 +212,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
           }
           const { item, hasChildren, visibleChildren } = piece.block;
           const key = `${item.domain}-${item.id}`;
-          const isChildActive = hasChildren && activeSidebar === item.id && routeRole === item.domain;
-          const isSelfActive = !hasChildren && activeSidebar === item.id && routeRole === item.domain;
-          const active =
-            isSelfActive || isChildActive;
+          const active = firstTopNavItemKey !== null && key === firstTopNavItemKey;
           const pillBtn = active
             ? isDark
               ? 'text-blue-400'

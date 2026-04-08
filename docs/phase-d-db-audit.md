@@ -17,3 +17,11 @@
 ## 产出
 
 - 确认无引用后，逐表新增 `V31+__drop_*.sql`，并在发版说明中注明回滚方式（通常需自备份恢复）。
+
+## 自动化：与真实库对账
+
+后端仓库提供脚本（相对 `LantuConnect-Backend`）：
+
+- `sql/maintenance/drop-orphan-tables.ps1`  
+  读取库中 `information_schema.tables`，与 **Java `@TableName` + `sql/**` 内 `CREATE TABLE` 汇总的预期清单** 求差，对差集执行 `DROP TABLE IF EXISTS`（保留 `flyway_schema_history`）。  
+  需在 shell 中配置 `LANTU_MYSQL_*` 环境变量后执行；可先加 `-WhatIf` 只打印将执行的 SQL。

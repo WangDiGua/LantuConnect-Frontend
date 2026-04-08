@@ -22,39 +22,18 @@ import { formatDateTime } from '../../utils/formatDateTime';
 import { MgmtPageShell } from './MgmtPageShell';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
 import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedContentToTop';
+import {
+  API_KEY_EXPIRY_OPTIONS,
+  computeExpiresAtForPreset,
+  DEFAULT_API_KEY_EXPIRY_PRESET,
+  type ApiKeyExpiryPreset,
+} from '../../utils/apiKeyExpiryPresets';
 
 interface ApiKeyListPageProps { theme: Theme; fontSize: FontSize; showMessage: (msg: string, type?: 'success' | 'error' | 'info') => void; breadcrumbSegments: string[]; }
 
 const PAGE_SIZE = 20;
 
 const API_KEY_DESC = '完整密钥仅在创建时显示一次';
-
-type ApiKeyExpiryPreset = 'never' | '1d' | '7d' | '30d';
-
-/** 新建弹窗默认有效期：避免全部落库为「永不过期」 */
-const DEFAULT_API_KEY_EXPIRY_PRESET: ApiKeyExpiryPreset = '30d';
-
-const API_KEY_EXPIRY_OPTIONS: { preset: ApiKeyExpiryPreset; label: string }[] = [
-  { preset: '1d', label: '1 天' },
-  { preset: '7d', label: '7 天' },
-  { preset: '30d', label: '30 天' },
-  { preset: 'never', label: '永不过期' },
-];
-
-/** 与后端 LocalDateTime 兼容（本地日历日 + 当前时刻） */
-function computeExpiresAtForPreset(preset: ApiKeyExpiryPreset): string | undefined {
-  if (preset === 'never') return undefined;
-  const addDays = preset === '1d' ? 1 : preset === '7d' ? 7 : 30;
-  const d = new Date();
-  d.setDate(d.getDate() + addDays);
-  const y = d.getFullYear();
-  const mo = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  const h = String(d.getHours()).padStart(2, '0');
-  const min = String(d.getMinutes()).padStart(2, '0');
-  const s = String(d.getSeconds()).padStart(2, '0');
-  return `${y}-${mo}-${day}T${h}:${min}:${s}`;
-}
 
 export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize, showMessage, breadcrumbSegments }) => {
   const isDark = theme === 'dark';

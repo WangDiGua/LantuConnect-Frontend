@@ -28,6 +28,12 @@ import { buildPath, inferConsoleRole, parseRoute } from '../../constants/console
 import { useUserRole } from '../../context/UserRoleContext';
 import { apiKeyScopesAllowGatewayFlow } from '../../utils/apiKeyScopes';
 import { MAX_STORED_API_KEY_LENGTH } from '../../lib/safeStorage';
+import {
+  API_KEY_EXPIRY_OPTIONS,
+  computeExpiresAtForPreset,
+  DEFAULT_API_KEY_EXPIRY_PRESET,
+  type ApiKeyExpiryPreset,
+} from '../../utils/apiKeyExpiryPresets';
 
 const GATEWAY_API_KEY_STORAGE_KEY = 'lantu_api_key';
 
@@ -153,6 +159,7 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
   }, [showMessage]);
 
   const [apiKeyNameError, setApiKeyNameError] = useState('');
+  const [apiKeyExpiryPreset, setApiKeyExpiryPreset] = useState<ApiKeyExpiryPreset>(DEFAULT_API_KEY_EXPIRY_PRESET);
 
   const handleCreateApiKey = useCallback(async () => {
     if (!newKeyName.trim()) {
@@ -164,10 +171,15 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
     createApiKeyInFlightRef.current = true;
     setCreatingApiKey(true);
     try {
-      const created = await userSettingsService.createApiKey({ name: newKeyName.trim() });
+      const expiresAt = computeExpiresAtForPreset(apiKeyExpiryPreset);
+      const created = await userSettingsService.createApiKey({
+        name: newKeyName.trim(),
+        ...(expiresAt ? { expiresAt } : {}),
+      });
       setNewPlainKey(created.plainKey ?? null);
       showMessage('已创建，请立即复制保存密钥。', 'success');
       setNewKeyName('');
+      setApiKeyExpiryPreset(DEFAULT_API_KEY_EXPIRY_PRESET);
       await loadApiKeys();
     } catch (e) {
       pageErrorUnlessServerToast(e, 'API Key 创建失败', showMessage);
@@ -175,7 +187,7 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
       createApiKeyInFlightRef.current = false;
       setCreatingApiKey(false);
     }
-  }, [loadApiKeys, newKeyName, showMessage]);
+  }, [loadApiKeys, newKeyName, apiKeyExpiryPreset, showMessage]);
 
   const openRevokeApiKeyModal = useCallback((key: UserApiKey) => {
     setRevokeKeyTarget(key);
@@ -438,6 +450,36 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
               >
                 {creatingApiKey ? <><Loader2 size={14} className="animate-spin" /> 创建中…</> : <><Plus size={14} /> 新建</>}
               </button>
+            </div>
+            <div className="space-y-1.5">
+              <span className={`text-xs font-semibold ${textMuted(theme)}`}>有效期</span>
+              <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="个人 API Key 有效期">
+                {API_KEY_EXPIRY_OPTIONS.map(({ preset, label }) => {
+                  const on = apiKeyExpiryPreset === preset;
+                  return (
+                    <button
+                      key={preset}
+                      type="button"
+                      role="radio"
+                      aria-checked={on}
+                      disabled={creatingApiKey}
+                      className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors disabled:opacity-50 ${
+                        on
+                          ? isDark
+                            ? 'bg-violet-500/20 text-violet-200 ring-1 ring-violet-400/45'
+                            : 'bg-violet-100 text-violet-900 ring-1 ring-violet-300/80'
+                          : `${btnSecondary(theme)} !shadow-none`
+                      }`}
+                      onClick={() => setApiKeyExpiryPreset(preset)}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className={`text-[11px] leading-relaxed ${textMuted(theme)}`}>
+                与<strong className={textSecondary(theme)}>用户管理 · API Key</strong>一致：按日历日递增；选「永不过期」不写过期时间。
+              </p>
             </div>
             {apiKeyNameError ? (
               <p className={`${fieldErrorText()} text-xs`} role="alert">

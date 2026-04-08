@@ -56,9 +56,14 @@ export function surfaceBg(_theme: Theme) {
   return 'bg-transparent';
 }
 
-export function canvasBodyBg(theme: Theme) {
-  return surfaceBg(theme);
+/** 控制台业务页主背景：与 design token 画布色一致，避免透明区透出 chrome 壳层造成「底部/缝隙白条」 */
+export function canvasBodyBg(_theme: Theme) {
+  return 'bg-lantu-canvas';
 }
+
+/** 主滚动区底：替代外壳 pb，兼顾 iOS Home Indicator */
+export const consoleScrollSafeBottomPad =
+  'pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]';
 
 /** 控制台内容卡片：大圆角 + 极淡浮起阴影（与 UI/卡片背景设计示例 对齐） */
 export const CONSOLE_CARD_RADIUS = 'rounded-[28px]';

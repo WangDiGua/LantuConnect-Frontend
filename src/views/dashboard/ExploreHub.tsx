@@ -801,7 +801,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
       {/*
         顶栏下主内容顶距由 MainLayout 对 MainContent 外包一层 consoleContentTopPad 统一处理；hub 内勿再叠 pt，以免与侧栏不同步。
       */}
-      <div className={`w-full ${mainScrollPadBottom} ${canvasBodyBg(theme)} pb-16 sm:pb-20`}>
+      <div className={`w-full min-w-0 ${mainScrollPadBottom} ${canvasBodyBg(theme)}`}>
         {!hubRail ? <div className={pageContainer}>{hubHeroBanner}</div> : null}
 
         <main className={`${pageContainer} ${hubRail ? 'mt-0' : 'mt-6 sm:mt-7'} space-y-8`}>

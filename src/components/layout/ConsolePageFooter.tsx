@@ -32,7 +32,7 @@ export const ConsolePageFooter: React.FC<ConsolePageFooterProps> = ({ theme, cla
     <footer
       role="contentinfo"
       aria-label="页面页脚"
-      className={`w-full max-w-none shrink-0 border-t border-solid py-2 ${isDark ? 'border-white/[0.08]' : 'border-slate-200/80'} ${className}`}
+      className={`w-full max-w-none shrink-0 border-t border-solid bg-lantu-canvas py-2 ${isDark ? 'border-white/[0.08]' : 'border-slate-200/80'} ${className}`}
     >
       <div className="flex flex-col gap-1.5 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-x-6 md:gap-y-1">
         <div className="min-w-0">

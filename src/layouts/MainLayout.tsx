@@ -160,6 +160,7 @@ import { Tooltip } from '../components/common/Tooltip';
 import {
   chromeGpuLayerClass,
   consoleContentTopPad,
+  consoleScrollSafeBottomPad,
   consoleShellBelowHeaderPt,
   contentMaxWidth,
   contentPaddingX,
@@ -1889,7 +1890,7 @@ const MainLayoutContent: React.FC<{
         />
 
         <div
-          className={`flex min-h-0 min-w-0 flex-1 flex-col px-3 pb-3 md:px-4 md:pb-4 ${consoleShellBelowHeaderPt}`}
+          className={`flex min-h-0 min-w-0 flex-1 flex-col px-3 md:px-4 ${consoleShellBelowHeaderPt}`}
         >
         <aside
           className={`${chromeGpuLayerClass} fixed inset-y-0 left-0 z-50 flex h-full w-[240px] shrink-0 flex-col overflow-hidden px-0 py-2 transition-transform duration-200 ease-out motion-reduce:transition-none lg:hidden ${
@@ -1929,7 +1930,7 @@ const MainLayoutContent: React.FC<{
         </aside>
 
         <main
-          className={`${chromeGpuLayerClass} relative z-0 flex min-h-0 flex-1 flex-col overflow-hidden bg-transparent`}
+          className={`${chromeGpuLayerClass} relative z-0 flex min-h-0 flex-1 flex-col overflow-hidden bg-lantu-canvas`}
         >
           {showStandalonePersonalRail && shellPersonalRail ? (
             <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
@@ -1957,7 +1958,7 @@ const MainLayoutContent: React.FC<{
                     <div
                       ref={routeContentScrollRef}
                       data-lantu-main-scroll
-                      className={`flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain custom-scrollbar ${mainScrollCompositorClass}`}
+                      className={`flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain custom-scrollbar ${mainScrollCompositorClass} ${consoleScrollSafeBottomPad}`}
                     >
                       <div className={`w-full min-w-0 ${chromeGpuLayerClass}`}>
                         <AnimatePresence mode="wait">
@@ -1998,7 +1999,7 @@ const MainLayoutContent: React.FC<{
             <div
               ref={mainScrollRef}
               data-lantu-main-scroll
-              className={`min-h-0 min-w-0 flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass}`}
+              className={`min-h-0 min-w-0 flex-1 overflow-y-auto custom-scrollbar ${mainScrollCompositorClass} ${consoleScrollSafeBottomPad}`}
             >
               <div className={`w-full ${chromeGpuLayerClass}`}>
                 <AnimatePresence mode="wait">

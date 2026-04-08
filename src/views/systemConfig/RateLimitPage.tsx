@@ -23,6 +23,7 @@ import {
   inputBaseError,
   mgmtTableActionDanger,
   mgmtTableActionGhost,
+  mgmtTableRowActions,
   textPrimary,
   textSecondary,
   textMuted,
@@ -429,8 +430,9 @@ export const RateLimitPage: React.FC<RateLimitPageProps> = ({
                   header: '操作',
                   headerClassName: 'text-right',
                   cellClassName: 'text-right align-middle',
+                  cellNowrap: true,
                   cell: (r) => (
-                    <div className="inline-flex flex-nowrap items-center justify-end gap-2">
+                    <div className={mgmtTableRowActions}>
                       <button type="button" onClick={() => startEdit(r)} className={mgmtTableActionGhost(theme)}>
                         编辑
                       </button>

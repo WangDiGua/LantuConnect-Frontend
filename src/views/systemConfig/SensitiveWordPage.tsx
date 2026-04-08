@@ -24,6 +24,7 @@ import {
   mgmtTableActionDanger,
   mgmtTableActionGhost,
   mgmtTableActionPositive,
+  mgmtTableRowActions,
   textPrimary,
   textSecondary,
   textMuted,
@@ -388,8 +389,9 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
         header: '操作',
         headerClassName: 'text-right',
         cellClassName: 'text-right align-middle',
+        cellNowrap: true,
         cell: (item) => (
-          <div className="inline-flex items-center justify-end gap-2 min-h-8 flex-wrap sm:flex-nowrap">
+          <div className={`${mgmtTableRowActions} min-h-8`}>
             <button type="button" className={mgmtTableActionGhost(theme)} onClick={() => openEditModal(item)}>
               编辑
             </button>

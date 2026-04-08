@@ -12,6 +12,7 @@ import {
   btnSecondary,
   mgmtTableActionDanger,
   mgmtTableActionPositive,
+  mgmtTableRowActions,
   statusBadgeClass,
   statusDot,
   statusLabel,
@@ -263,8 +264,9 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
         header: '操作',
         headerClassName: 'text-right',
         cellClassName: 'text-right',
+        cellNowrap: true,
         cell: (item) => (
-          <div className="inline-flex flex-wrap items-center justify-end gap-1">
+          <div className={mgmtTableRowActions}>
             {item.status === 'pending_review' && (
               <>
                 <button

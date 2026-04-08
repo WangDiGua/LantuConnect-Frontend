@@ -25,6 +25,7 @@ import {
   inputBaseError,
   mgmtTableActionDanger,
   mgmtTableActionPositive,
+  mgmtTableRowActions,
   textPrimary,
   textSecondary,
   textMuted,
@@ -269,9 +270,10 @@ export const DeveloperApplicationListPage: React.FC<Props> = ({ theme, fontSize,
         header: '操作',
         headerClassName: 'text-right',
         cellClassName: 'text-right align-middle',
+        cellNowrap: true,
         cell: (app) =>
           app.status === 'pending' ? (
-            <div className="inline-flex flex-wrap items-center justify-end gap-1 h-8">
+            <div className={`${mgmtTableRowActions} h-8`}>
               <button
                 type="button"
                 className={mgmtTableActionPositive(theme)}

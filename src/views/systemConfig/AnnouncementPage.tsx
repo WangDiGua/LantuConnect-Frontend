@@ -22,6 +22,7 @@ import {
   mgmtTableActionDanger,
   mgmtTableActionGhost,
   mgmtTableActionPositive,
+  mgmtTableRowActions,
   textPrimary,
   textSecondary,
   textMuted,
@@ -323,10 +324,11 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
         header: '操作',
         headerClassName: 'text-right',
         cellClassName: 'text-right align-middle',
+        cellNowrap: true,
         cell: (a: AnnouncementItem) => {
           const pubOn = a.enabled !== false;
           return (
-            <div className="inline-flex max-w-[20rem] flex-wrap items-center justify-end gap-2">
+            <div className={mgmtTableRowActions}>
               <button type="button" onClick={() => setDetailAnnouncement(a)} className={mgmtTableActionGhost(theme)}>
                 查看
               </button>

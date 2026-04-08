@@ -18,6 +18,7 @@ import {
   tableCellActionChipsRow,
   mgmtTableActionDanger,
   mgmtTableActionPositive,
+  mgmtTableRowActions,
 } from '../../utils/uiClasses';
 import { TOOLBAR_ROW_LIST } from '../../utils/toolbarFieldClasses';
 import { FilterSelect, Pagination, SearchInput, TableCellEllipsis } from '../../components/common';
@@ -317,8 +318,9 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, fontSize, sho
         header: '操作',
         headerClassName: 'text-right',
         cellClassName: 'text-right',
+        cellNowrap: true,
         cell: (item) => (
-          <div className="inline-flex items-center justify-end gap-1">
+          <div className={mgmtTableRowActions}>
             {item.status === 'pending' ? (
               <>
                 <button

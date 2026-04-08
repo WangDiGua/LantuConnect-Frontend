@@ -14,7 +14,7 @@ import { userMgmtService } from '../../api/services/user-mgmt.service';
 import type { UserRecord, RoleRecord } from '../../types/dto/user-mgmt';
 import {
   btnPrimary, btnSecondary,
-  mgmtTableActionDanger, mgmtTableActionGhost,
+  mgmtTableActionDanger, mgmtTableActionGhost, mgmtTableRowActions,
   textPrimary, textSecondary, textMuted,
 } from '../../utils/uiClasses';
 import { PageError } from '../../components/common/PageError';
@@ -235,8 +235,9 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
         header: '操作',
         headerClassName: 'text-right',
         cellClassName: 'text-right',
+        cellNowrap: true,
         cell: (u) => (
-          <div className="inline-flex flex-nowrap items-center justify-end gap-2">
+          <div className={mgmtTableRowActions}>
             <button type="button" onClick={() => openEdit(u)} className={mgmtTableActionGhost(theme)} aria-label={`编辑用户 ${u.username}`}>
               编辑
             </button>

@@ -239,6 +239,10 @@ export function mgmtTableActionPositive(theme: Theme) {
 export const mgmtTableActionDanger =
   'inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors bg-rose-50 text-rose-600 hover:bg-rose-100 dark:bg-rose-500/15 dark:text-rose-400 dark:hover:bg-rose-500/25';
 
+/** 管理端表格「操作」列内按钮容器：单行排列；表格外层需 overflow-x-auto（如 MgmtDataTable） */
+export const mgmtTableRowActions =
+  'inline-flex shrink-0 flex-nowrap items-center justify-end gap-2';
+
 /* ═══════════════════════════════════════════
    Status Badges
    ═══════════════════════════════════════════ */

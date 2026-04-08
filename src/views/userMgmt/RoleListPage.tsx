@@ -13,7 +13,7 @@ import { userMgmtService } from '../../api/services/user-mgmt.service';
 import type { RoleRecord } from '../../types/dto/user-mgmt';
 import {
   btnPrimary, btnSecondary,
-  mgmtTableActionDanger, mgmtTableActionGhost,
+  mgmtTableActionDanger, mgmtTableActionGhost, mgmtTableRowActions,
   textPrimary, textSecondary, textMuted,
 } from '../../utils/uiClasses';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
@@ -152,8 +152,9 @@ export const RoleListPage: React.FC<RoleListPageProps> = ({ theme, fontSize, bre
         header: '操作',
         headerClassName: 'text-right',
         cellClassName: 'text-right',
+        cellNowrap: true,
         cell: (r) => (
-          <div className="inline-flex flex-nowrap items-center justify-end gap-2">
+          <div className={mgmtTableRowActions}>
             <button
               type="button"
               onClick={() => openEdit(r)}

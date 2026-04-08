@@ -10,6 +10,11 @@ export interface MgmtDataTableColumn<T> {
   headerClassName?: string;
   cell: (row: T) => React.ReactNode;
   cellClassName?: string;
+  /**
+   * 操作列等多按钮：不设 min-w-0，避免单元格被压窄后内部 flex 换行；
+   * 与表格外层横向滚动配合（用户左右滑动即可看全）。
+   */
+  cellNowrap?: boolean;
 }
 
 export interface MgmtDataTableSelectionConfig<T> {
@@ -157,7 +162,13 @@ export function MgmtDataTable<T>({
               {columns.map((col) => (
                 <td
                   key={col.id}
-                  className={[tableCell(), 'min-w-0', col.cellClassName ?? ''].filter(Boolean).join(' ')}
+                  className={[
+                    tableCell(),
+                    col.cellNowrap ? 'whitespace-nowrap' : 'min-w-0',
+                    col.cellClassName ?? '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
                 >
                   {col.cell(row)}
                 </td>

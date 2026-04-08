@@ -222,6 +222,7 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize,
         header: '操作',
         headerClassName: 'text-right',
         cellClassName: 'text-right',
+        cellNowrap: true,
         cell: (k) =>
           k.status === 'active' ? (
             <button type="button" onClick={() => setRevokeTarget(k.id)} className={`${btnGhost(theme)} text-amber-600 dark:text-amber-400`} aria-label={`撤销 API Key：${k.name}`}>

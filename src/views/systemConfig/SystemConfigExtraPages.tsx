@@ -218,6 +218,37 @@ export const SystemParamsPage: React.FC<PageProps> = ({ theme, fontSize, showMes
                       </p>
                     ) : null}
                   </>
+                ) : p.type === 'boolean' ? (
+                  <div>
+                    <label className="flex w-fit cursor-pointer items-center gap-3">
+                      <input
+                        type="checkbox"
+                        className="toggle toggle-primary toggle-sm"
+                        checked={p.value === 'true' || p.value === '1'}
+                        disabled={!p.editable}
+                        onChange={(e) => {
+                          const v = e.target.checked ? 'true' : 'false';
+                          setDraft((prev) => prev.map((x, i) => (i === idx ? { ...x, value: v } : x)));
+                        }}
+                      />
+                      <span className={`text-sm ${textMuted(theme)}`}>
+                        {p.value === 'true' || p.value === '1' ? '是' : '否'}
+                      </span>
+                    </label>
+                  </div>
+                ) : p.type === 'number' ? (
+                  <input
+                    className={`${inputCls} w-full`}
+                    type="number"
+                    inputMode="decimal"
+                    value={Number.isFinite(Number(p.value)) ? Number(p.value) : 0}
+                    disabled={!p.editable}
+                    onChange={(e) => {
+                      const n = Number(e.target.value);
+                      const v = Number.isFinite(n) ? String(n) : '0';
+                      setDraft((prev) => prev.map((x, i) => (i === idx ? { ...x, value: v } : x)));
+                    }}
+                  />
                 ) : (
                   <input
                     className={`${inputCls} w-full`}
@@ -249,6 +280,30 @@ export const SystemParamsPage: React.FC<PageProps> = ({ theme, fontSize, showMes
   );
 };
 
+/** 与库内字典值对应（见 t_security_setting） */
+const PASSWORD_COMPLEXITY_LABELS: Record<string, string> = {
+  low: '低',
+  medium: '中',
+  high: '高',
+};
+const SESSION_BINDING_LABELS: Record<string, string> = {
+  none: '不绑定',
+  ip: 'IP 绑定',
+  device: '设备绑定',
+};
+
+function securitySelectOptionLabel(settingKey: string, optionValue: string): string {
+  if (settingKey === 'password_complexity') return PASSWORD_COMPLEXITY_LABELS[optionValue] ?? optionValue;
+  if (settingKey === 'session_binding') return SESSION_BINDING_LABELS[optionValue] ?? optionValue;
+  return optionValue;
+}
+
+function securityBoolValue(v: SecuritySetting['value']): boolean {
+  if (typeof v === 'boolean') return v;
+  const t = String(v ?? '').trim().toLowerCase();
+  return t === 'true' || t === '1' || t === 'yes';
+}
+
 function SecurityField({
   theme, s, onChange,
 }: {
@@ -258,39 +313,83 @@ function SecurityField({
 }) {
   const inputCls = `${nativeInputClass(theme)} ${INPUT_FOCUS}`;
   const labelCls = `text-sm font-medium ${textSecondary(theme)}`;
+  const titleCls = `${labelCls} mb-1.5 block`;
+  const descriptionEl = s.description ? (
+    <p className={`text-xs mt-1.5 ${textMuted(theme)}`}>{s.description}</p>
+  ) : null;
 
-  if (s.type === 'boolean') {
-    return (
-      <label className="flex items-center gap-3 cursor-pointer">
-        <input
-          type="checkbox"
-          checked={!!s.value}
-          onChange={(e) => onChange({ ...s, value: e.target.checked })}
-          className="toggle toggle-primary toggle-sm"
-        />
-        <span className={labelCls}>{s.label}</span>
-      </label>
-    );
-  }
-  if (s.type === 'number') {
+  if (s.type === 'toggle' || s.type === 'boolean') {
+    const checked = securityBoolValue(s.value);
     return (
       <div>
-        <label className={`${labelCls} mb-1.5 block`}>{s.label}</label>
-        <input
-          className={inputCls}
-          type="number"
-          value={typeof s.value === 'number' ? s.value : Number(s.value)}
-          onChange={(e) => onChange({ ...s, value: Number(e.target.value) })}
-        />
-        {s.description ? <p className={`text-xs mt-1 ${textMuted(theme)}`}>{s.description}</p> : null}
+        <div className={titleCls}>{s.label}</div>
+        <label className="flex cursor-pointer items-center gap-3 w-fit">
+          <input
+            type="checkbox"
+            checked={checked}
+            onChange={(e) => onChange({ ...s, value: e.target.checked })}
+            className="toggle toggle-primary toggle-sm"
+          />
+          <span className={`text-sm ${textMuted(theme)}`}>{checked ? '已开启' : '已关闭'}</span>
+        </label>
+        {descriptionEl}
       </div>
     );
   }
+
+  if (s.type === 'number' || (s.type === 'input' && s.key === 'audit_log_retention')) {
+    const n = typeof s.value === 'number' ? s.value : Number(s.value);
+    const safe = Number.isFinite(n) ? n : 0;
+    return (
+      <div>
+        <label className={titleCls}>{s.label}</label>
+        <input
+          className={inputCls}
+          type="number"
+          min={1}
+          max={3650}
+          step={1}
+          inputMode="numeric"
+          value={safe}
+          onChange={(e) => {
+            const next = Number(e.target.value);
+            onChange({ ...s, value: Number.isFinite(next) ? next : 0 });
+          }}
+        />
+        {descriptionEl}
+      </div>
+    );
+  }
+
+  if (s.type === 'select' && s.options && s.options.length > 0) {
+    const v = String(s.value ?? '');
+    const selectOptions = s.options.map((opt) => ({
+      value: opt,
+      label: securitySelectOptionLabel(s.key, opt),
+    }));
+    return (
+      <div>
+        <label className={titleCls}>{s.label}</label>
+        <LantuSelect
+          theme={theme}
+          value={v}
+          options={selectOptions}
+          onChange={(next) => onChange({ ...s, value: next })}
+        />
+        {descriptionEl}
+      </div>
+    );
+  }
+
   return (
     <div>
-      <label className={`${labelCls} mb-1.5 block`}>{s.label}</label>
-      <input className={inputCls} value={String(s.value ?? '')} onChange={(e) => onChange({ ...s, value: e.target.value })} />
-      {s.description ? <p className={`text-xs mt-1 ${textMuted(theme)}`}>{s.description}</p> : null}
+      <label className={titleCls}>{s.label}</label>
+      <input
+        className={inputCls}
+        value={String(s.value ?? '')}
+        onChange={(e) => onChange({ ...s, value: e.target.value })}
+      />
+      {descriptionEl}
     </div>
   );
 }

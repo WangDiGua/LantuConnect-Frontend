@@ -61,7 +61,9 @@ export interface SecuritySetting {
   value: string | boolean | number;
   label: string;
   description: string;
+  /** 与 t_security_setting.type 一致：toggle/select/input/number… */
   type: 'toggle' | 'input' | 'select' | 'boolean' | 'number' | 'string';
+  /** select 的可选值（后端 options 列 JSON 数组） */
   options?: string[];
   category: string;
 }

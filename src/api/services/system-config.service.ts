@@ -37,6 +37,68 @@ import type { AnnouncementItem } from '../../types/dto/explore';
 const RATE_LIMIT_TARGETS = new Set<RateLimitRule['target']>(['user', 'role', 'ip', 'api_key', 'global', 'path']);
 const RATE_LIMIT_ACTIONS = new Set<RateLimitRule['action']>(['reject', 'queue', 'throttle']);
 
+const SECURITY_SETTING_TYPES = new Set([
+  'toggle',
+  'input',
+  'select',
+  'boolean',
+  'number',
+  'string',
+]);
+
+function parseSecurityOptionsRaw(raw: unknown): string[] | undefined {
+  if (raw == null) return undefined;
+  if (Array.isArray(raw)) {
+    const out = raw.map((x) => String(x)).filter((s) => s.length > 0);
+    return out.length ? out : undefined;
+  }
+  if (typeof raw === 'string') {
+    const t = raw.trim();
+    if (!t) return undefined;
+    try {
+      const j = JSON.parse(t) as unknown;
+      if (Array.isArray(j)) {
+        const out = j.map((x) => String(x)).filter((s) => s.length > 0);
+        return out.length ? out : undefined;
+      }
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
+}
+
+/** 与后端 SecuritySetting 实体对齐，并解析 options JSON */
+export function mapSecuritySettingRecord(raw: unknown): SecuritySetting {
+  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const typeRaw = String(o.type ?? 'string').toLowerCase();
+  const type: SecuritySetting['type'] = SECURITY_SETTING_TYPES.has(typeRaw)
+    ? (typeRaw as SecuritySetting['type'])
+    : 'string';
+  const options = parseSecurityOptionsRaw(o.options);
+
+  let value: SecuritySetting['value'];
+  if (type === 'toggle' || type === 'boolean') {
+    const sv = String(o.value ?? '').trim().toLowerCase();
+    value = sv === 'true' || sv === '1' || sv === 'yes';
+  } else if (type === 'number') {
+    const n = Number(o.value);
+    value = Number.isFinite(n) ? n : 0;
+  } else {
+    value = o.value == null ? '' : String(o.value);
+  }
+
+  return {
+    key: String(o.key ?? ''),
+    value,
+    label: String(o.label ?? o.key ?? ''),
+    description: String(o.description ?? ''),
+    type,
+    options,
+    category: String(o.category ?? ''),
+  };
+}
+
 /** 与后端 SystemParam 序列化字段对齐（含 updateTime → updatedAt） */
 function mapSystemParamRecord(raw: unknown): SystemParam {
   const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
@@ -214,7 +276,7 @@ export const systemConfigService = {
 
   getSecurity: async () => {
     const raw = await http.get<unknown>('/system-config/security');
-    return extractArray<SecuritySetting>(raw);
+    return extractArray<unknown>(raw).map(mapSecuritySettingRecord);
   },
 
   updateSecurity: async (items: SecuritySetting[]) => {

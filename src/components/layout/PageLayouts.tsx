@@ -1,11 +1,5 @@
 import React from 'react';
-import {
-  contentMaxWidth,
-  contentPaddingX,
-  sectionGap,
-  cardGap,
-  detailRailWidth,
-} from '../../utils/uiClasses';
+import { sectionGap, cardGap, detailRailWidth } from '../../utils/uiClasses';
 
 interface BaseLayoutProps {
   children: React.ReactNode;
@@ -20,7 +14,7 @@ function shellClasses(base: string, className?: string): string {
 export const DashboardLayout: React.FC<BaseLayoutProps> = ({ children, className }) => (
   <div
     className={shellClasses(
-      `mx-auto w-full ${contentMaxWidth} ${contentPaddingX} pb-6 sm:pb-7 ${sectionGap}`,
+      `w-full min-w-0 pb-6 sm:pb-7 ${sectionGap}`,
       className,
     )}
   >
@@ -44,7 +38,7 @@ export const MarketLayout: React.FC<BaseLayoutProps> = ({ children, className })
 export const DetailLayout: React.FC<BaseLayoutProps> = ({ children, className }) => (
   <div
     className={shellClasses(
-      `mx-auto w-full ${contentMaxWidth} ${contentPaddingX} pb-5 sm:pb-6 grid grid-cols-1 ${detailRailWidth} ${cardGap} content-start`,
+      `w-full min-w-0 pb-5 sm:pb-6 grid grid-cols-1 ${detailRailWidth} ${cardGap} content-start`,
       className,
     )}
   >

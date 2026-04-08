@@ -162,6 +162,7 @@ import {
   consoleContentTopPad,
   consoleShellBelowHeaderPt,
   contentMaxWidth,
+  contentPaddingX,
   iconChrome,
   mainScrollCompositorClass,
 } from '../utils/uiClasses';
@@ -1933,7 +1934,7 @@ const MainLayoutContent: React.FC<{
           {showStandalonePersonalRail && shellPersonalRail ? (
             <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
               <div
-                className={`mx-auto flex min-h-0 min-w-0 w-full flex-1 flex-col ${contentMaxWidth} px-4 sm:px-5 lg:px-6 xl:px-8`}
+                className={`mx-auto flex min-h-0 min-w-0 w-full flex-1 flex-col ${contentMaxWidth} ${contentPaddingX}`}
               >
                 <div className="grid min-h-0 flex-1 grid-cols-1 gap-8 lg:grid-cols-12 lg:grid-rows-1 lg:gap-10 lg:[grid-template-rows:minmax(0,1fr)]">
                   <div
@@ -1961,7 +1962,7 @@ const MainLayoutContent: React.FC<{
                       <div className={`w-full min-w-0 ${chromeGpuLayerClass}`}>
                         <AnimatePresence mode="wait">
                           <RouteContentMotion key={contentKey} animationVariants={animationVariants}>
-                            <div className={`mx-auto w-full ${contentMaxWidth} ${consoleContentTopPad}`}>
+                            <div className={`w-full min-w-0 ${consoleContentTopPad}`}>
                               <MainContent
                                 page={page}
                                 routeId={routeId}
@@ -2002,7 +2003,7 @@ const MainLayoutContent: React.FC<{
               <div className={`w-full ${chromeGpuLayerClass}`}>
                 <AnimatePresence mode="wait">
                   <RouteContentMotion key={contentKey} animationVariants={animationVariants}>
-                    <div className={`mx-auto w-full ${contentMaxWidth} ${consoleContentTopPad}`}>
+                    <div className={`mx-auto w-full min-w-0 ${contentMaxWidth} ${contentPaddingX} ${consoleContentTopPad}`}>
                       <MainContent
                         page={page}
                         routeId={routeId}

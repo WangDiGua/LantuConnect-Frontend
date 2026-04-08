@@ -17,7 +17,7 @@ const linkClass = (isDark: boolean) =>
 
 export interface ConsolePageFooterProps {
   theme: Theme;
-  /** 与主内容区一致的横向 padding，通常为 `mainScrollPadX` */
+  /** 可选额外 class；横向留白由 MainLayout 主内容外包层统一处理，一般无需再传 `mainScrollPadX` */
   className?: string;
 }
 

@@ -10,7 +10,8 @@ export function pageBg(_theme: Theme) {
   return 'bg-lantu-canvas';
 }
 
-export const mainScrollPadX = 'px-5 sm:px-6 lg:px-8';
+/** 与探索页主栏一致：主滚动区横向内边距（控制台 MainLayout 与页脚等对齐全站用这一组） */
+export const mainScrollPadX = 'px-4 sm:px-5 lg:px-6 xl:px-8';
 export const mainScrollPadBottom = 'pb-6 sm:pb-8';
 /**
  * MainLayout 最外层主壳：仅抵消固定顶栏（ConsoleTopNav 内层行高 h-16=4rem）与 safe-area。
@@ -30,9 +31,13 @@ export const mainScrollCompositorClass = 'min-h-0';
 export const pageScrollShell = `${mainScrollCompositorClass} ${mainScrollPadX} ${mainScrollPadBottom}`;
 /** 布局壳层 GPU 合成；勿与同一节点的 overflow-y-auto 主滚动根混用 */
 export const chromeGpuLayerClass = 'transform-gpu';
-/** 主内容区在侧栏与画布内横向占满，不再用 1400px 人为缩窄；可读性由内部卡片/栅格控制 */
-export const contentMaxWidth = 'max-w-none';
-export const contentPaddingX = 'px-4 sm:px-5 lg:px-7';
+/**
+ * 控制台主内容最大宽度（与探索页/工作台视觉宽度一致；超大屏两侧留白）。
+ * 实际外边距与 {@link contentPaddingX} 由 MainLayout 包在 MainContent 外层统一施加。
+ */
+export const contentMaxWidth = 'max-w-[1400px]';
+/** 与探索页 `pageContainer` 横向节奏一致 */
+export const contentPaddingX = 'px-4 sm:px-5 lg:px-6 xl:px-8';
 export const sectionGap = 'space-y-8';
 /** 同页内多块卡片/图表之间的纵向节奏（略小于 sectionGap，仍明显分层） */
 export const pageBlockStack = 'space-y-6';

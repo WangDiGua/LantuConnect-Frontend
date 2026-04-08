@@ -20,7 +20,7 @@ import { DetailLayout } from '../../components/layout/PageLayouts';
 import {
   canvasBodyBg,
   mainScrollCompositorClass, bentoCard, btnGhost, btnDanger,
-  textPrimary, textSecondary, textMuted, contentMaxWidth, contentPaddingX,
+  textPrimary, textSecondary, textMuted,
   statusBadgeClass, statusDot, statusLabel,
 } from '../../utils/uiClasses';
 import type { DomainStatus } from '../../utils/uiClasses';
@@ -212,7 +212,7 @@ export const AgentDetail: React.FC<AgentDetailProps> = ({ agentId, theme, fontSi
         )}
 
         {stats && (
-          <div className={`mx-auto w-full ${contentMaxWidth} ${contentPaddingX} pb-4`}>
+          <div className="w-full min-w-0 pb-4">
             <div className={`p-4 ${bentoCard(theme)}`}>
               <h3 className={`text-sm font-bold mb-3 flex items-center gap-2 ${textPrimary(theme)}`}><TrendingUp size={16} className="text-blue-500" /> 使用统计</h3>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">

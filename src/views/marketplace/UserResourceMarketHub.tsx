@@ -7,7 +7,6 @@ import { buildPath } from '../../constants/consoleRoutes';
 import { SkillMarket } from '../skill/SkillMarket';
 import {
   mainScrollPadBottom,
-  mainScrollPadX,
   textMuted,
   textSecondary,
 } from '../../utils/uiClasses';
@@ -76,7 +75,7 @@ export const UserResourceMarketHub: React.FC<Props> = ({ theme, fontSize, themeC
 
   return (
     <div
-      className={`flex min-h-0 flex-1 flex-col gap-5 sm:gap-6 ${mainScrollPadX} ${mainScrollPadBottom}`}
+      className={`flex min-h-0 flex-1 flex-col gap-5 sm:gap-6 ${mainScrollPadBottom}`}
     >
       <div
         className={`shrink-0 rounded-2xl border px-5 py-5 sm:px-7 sm:py-6 ${

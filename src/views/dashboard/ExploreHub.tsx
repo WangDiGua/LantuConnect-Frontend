@@ -15,7 +15,6 @@ import {
   CONSOLE_CARD_SHADOW_DARK,
   CONSOLE_CARD_SHADOW_LIGHT,
   mainScrollPadBottom,
-  mainScrollPadX,
 } from '../../utils/uiClasses';
 import { ConsolePageFooter } from '../../components/layout/ConsolePageFooter';
 import { buildPath, buildUserResourceMarketUrl } from '../../constants/consoleRoutes';
@@ -687,7 +686,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
   }
 
   /** 与主画布内容区留出足够内边距，避免区块贴边 */
-  const pageContainer = 'w-full px-4 sm:px-5 lg:px-6 xl:px-8';
+  const pageContainer = 'w-full min-w-0';
 
   /** Hero：压低高度、参考魔搭「中间栏横幅」；有左轨时仅占主栏宽度 */
   const heroRingOffset = isDark ? 'focus-visible:ring-offset-[#0c0e14]' : 'focus-visible:ring-offset-[#0a0a0a]';
@@ -1082,7 +1081,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
         </main>
       </div>
 
-      <ConsolePageFooter theme={theme} className={mainScrollPadX} />
+      <ConsolePageFooter theme={theme} />
 
       <Modal
         open={!!detailAnnouncement}

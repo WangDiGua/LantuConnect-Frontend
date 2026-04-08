@@ -5,6 +5,8 @@ import type { Theme, FontSize } from '../../types';
 import type { ResourceType } from '../../types/dto/catalog';
 import { resourceCenterService } from '../../api/services/resource-center.service';
 import { buildPath } from '../../constants/consoleRoutes';
+import { unifiedResourceCenterPath } from '../../utils/unifiedResourceCenterPath';
+import { useUserRole } from '../../context/UserRoleContext';
 import { RESOURCE_TYPES, RESOURCE_TYPE_LABEL_ZH } from '../../constants/resourceTypes';
 import { MY_PUBLISH_LIST_PAGE_BY_TYPE } from './myPublishListConfigs';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
@@ -27,6 +29,7 @@ interface Props {
 export const MyPublishHubPage: React.FC<Props> = ({ theme }) => {
   const isDark = theme === 'dark';
   const navigate = useNavigate();
+  const { platformRole } = useUserRole();
   const [loading, setLoading] = useState(true);
   const [counts, setCounts] = useState<Record<ResourceType, number>>({
     agent: 0,
@@ -84,7 +87,7 @@ export const MyPublishHubPage: React.FC<Props> = ({ theme }) => {
             <button
               type="button"
               className={btnPrimary}
-              onClick={() => navigate(buildPath('user', 'resource-center'))}
+              onClick={() => navigate(unifiedResourceCenterPath(platformRole))}
             >
               进入统一资源中心
               <ArrowRight size={14} />

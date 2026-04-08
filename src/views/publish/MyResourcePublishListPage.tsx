@@ -26,6 +26,7 @@ import { resourceCenterService } from '../../api/services/resource-center.servic
 import { resourceCenterItemToMyPublishItem } from '../../utils/resourceCenterToMyPublishItem';
 import type { MyPublishItem } from '../../types/dto/user-activity';
 import { buildPath } from '../../constants/consoleRoutes';
+import { unifiedResourceCenterPath } from '../../utils/unifiedResourceCenterPath';
 import { RESOURCE_TYPE_LABEL_ZH, RESOURCE_TYPE_REGISTER_PAGE } from '../../constants/resourceTypes';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { useUserRole } from '../../context/UserRoleContext';
@@ -250,7 +251,7 @@ export const MyResourcePublishListPage: React.FC<Props> = ({ theme, fontSize, re
               <button
                 type="button"
                 className={btnPrimary}
-                onClick={() => navigate(`${buildPath('user', 'resource-center')}?type=${resourceType}`)}
+                onClick={() => navigate(unifiedResourceCenterPath(platformRole, resourceType))}
               >
                 在统一资源中心打开
               </button>

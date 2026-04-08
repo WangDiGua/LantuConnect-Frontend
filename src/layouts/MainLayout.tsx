@@ -20,6 +20,7 @@ import { authService } from '../api/services/auth.service';
 import { notificationService } from '../api/services/notification.service';
 import { tokenStorage } from '../lib/security';
 import { env } from '../config/env';
+import { unifiedResourceCenterPath } from '../utils/unifiedResourceCenterPath';
 import {
   ADMIN_SIDEBAR_ITEMS,
   USER_SIDEBAR_ITEMS,
@@ -969,7 +970,7 @@ const MainLayoutContent: React.FC<{
     if (routeRole === 'user' && normalizedRoutePage && LEGACY_USER_RESOURCE_PAGES.has(normalizedRoutePage)) {
       const type = LEGACY_PAGE_TO_TYPE[normalizedRoutePage];
       if (type) {
-        navigate(`${buildPath('user', 'resource-center')}?type=${type}`, { replace: true });
+        navigate(unifiedResourceCenterPath(platformRole, type), { replace: true });
         return;
       }
     }
@@ -1097,6 +1098,14 @@ const MainLayoutContent: React.FC<{
         }
         return;
       }
+    }
+    if (routeRole === 'user' && normalizedRoutePage === 'resource-center' && canAccessAdminView(platformRole)) {
+      const t = queryType ?? 'agent';
+      const next = `${buildPath('admin', 'resource-catalog')}?type=${t}`;
+      if (`${location.pathname}${location.search}` !== next) {
+        navigate(next, { replace: true });
+      }
+      return;
     }
     if (routeRole === 'user' && normalizedRoutePage === 'resource-center' && !queryType) {
       navigate(`${buildPath('user', 'resource-center')}?type=agent`, { replace: true });
@@ -1293,6 +1302,14 @@ const MainLayoutContent: React.FC<{
         .map((g) => ({
           ...g,
           items: g.items.filter((item) => {
+            if (
+              domain === 'user' &&
+              sidebarId === 'workspace' &&
+              canAccessAdminView(platformRole) &&
+              item.id === 'resource-center'
+            ) {
+              return false;
+            }
             if (item.id === 'developer-onboarding') {
               return (
                 platformRole !== 'developer' &&
@@ -1502,11 +1519,7 @@ const MainLayoutContent: React.FC<{
     (targetPage: string, id?: string | number) => {
       if (targetPage === 'resource-center') {
         const type = typeof id === 'string' ? parseResourceType(id) : undefined;
-        navigate(
-          type
-            ? `${buildPath(consoleRole, 'resource-center')}?type=${type}`
-            : buildPath(consoleRole, 'resource-center'),
-        );
+        navigate(unifiedResourceCenterPath(platformRole, type));
         return;
       }
       if (targetPage === 'resource-catalog') {
@@ -1517,7 +1530,7 @@ const MainLayoutContent: React.FC<{
       const path = buildPath(consoleRole, targetPage, id);
       navigate(path);
     },
-    [navigate, consoleRole],
+    [navigate, consoleRole, platformRole],
   );
 
   const contentKey = useMemo(() => {

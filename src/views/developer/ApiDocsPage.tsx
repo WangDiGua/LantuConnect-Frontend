@@ -7,6 +7,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import type { Theme, FontSize } from '../../types';
 import type { ConsoleRole } from '../../constants/consoleRoutes';
 import { buildPath, buildUserResourceMarketUrl } from '../../constants/consoleRoutes';
+import { useUserRole } from '../../context/UserRoleContext';
+import { unifiedResourceCenterPath } from '../../utils/unifiedResourceCenterPath';
 import { BentoCard } from '../../components/common/BentoCard';
 import {
   glassSidebar,
@@ -156,8 +158,12 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
   const category = API_CATEGORIES.find((c) => c.id === activeCat)!;
 
   const go = useCallback((page: string) => {
+    if (page === 'resource-center') {
+      navigate(unifiedResourceCenterPath(platformRole));
+      return;
+    }
     navigate(buildPath(consoleRole, page));
-  }, [navigate, consoleRole]);
+  }, [navigate, consoleRole, platformRole]);
 
   const scrollToId = useCallback((id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });

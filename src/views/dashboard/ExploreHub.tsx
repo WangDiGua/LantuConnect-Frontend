@@ -20,6 +20,7 @@ import {
 } from '../../utils/uiClasses';
 import { ConsolePageFooter } from '../../components/layout/ConsolePageFooter';
 import { buildPath, buildUserResourceMarketUrl } from '../../constants/consoleRoutes';
+import { unifiedResourceCenterPath } from '../../utils/unifiedResourceCenterPath';
 import { dashboardService } from '../../api/services/dashboard.service';
 import type { ExploreHubData, ExploreResourceItem, AnnouncementItem } from '../../types/dto/explore';
 import { PageError } from '../../components/common/PageError';
@@ -732,7 +733,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
         <div className="w-full min-w-0 lg:max-w-[min(100%,36rem)] xl:max-w-[min(100%,28rem)]">
           <button
             type="button"
-            onClick={() => navigate(buildPath('user', 'resource-center'))}
+            onClick={() => navigate(unifiedResourceCenterPath(platformRole))}
             className={`group mb-3 inline-flex max-w-full items-center gap-2 rounded-full border border-white/[0.12] bg-white/[0.08] px-3 py-1.5 text-left shadow-md backdrop-blur-md transition-colors hover:border-white/[0.16] hover:bg-white/[0.11] focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/55 focus-visible:ring-offset-2 ${heroRingOffset}`}
           >
             <Sparkles className="h-3.5 w-3.5 shrink-0 text-sky-400" strokeWidth={2} aria-hidden />
@@ -755,7 +756,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <button
               type="button"
-              onClick={() => navigate(buildPath('user', 'resource-center'))}
+              onClick={() => navigate(unifiedResourceCenterPath(platformRole))}
               className={`bg-white text-black px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-neutral-100 active:scale-[0.98] transition-all flex items-center justify-center gap-2 w-full sm:w-auto shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 ${heroRingOffset}`}
             >
               开始发布 <ArrowRight size={15} aria-hidden />
@@ -863,7 +864,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
                     title="最新上架"
                     icon={BookOpen}
                     action="资源中心"
-                    onAction={() => navigate(buildPath('user', 'resource-center'))}
+                    onAction={() => navigate(unifiedResourceCenterPath(platformRole))}
                     isDark={isDark}
                   />
                   {recentItems.length > 0 ? (

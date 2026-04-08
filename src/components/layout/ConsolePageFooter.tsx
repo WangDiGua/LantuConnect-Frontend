@@ -2,6 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import type { Theme } from '../../types';
 import { buildPath } from '../../constants/consoleRoutes';
+import { useUserRole } from '../../context/UserRoleContext';
+import { unifiedResourceCenterPath } from '../../utils/unifiedResourceCenterPath';
 
 /** 与界面主品牌一致（顶栏 / 探索 Hero） */
 const PRODUCT_NAME = 'Nexus';
@@ -20,6 +22,7 @@ export interface ConsolePageFooterProps {
 }
 
 export const ConsolePageFooter: React.FC<ConsolePageFooterProps> = ({ theme, className = '' }) => {
+  const { platformRole } = useUserRole();
   const isDark = theme === 'dark';
   const year = new Date().getFullYear();
   const muted = isDark ? 'text-slate-500' : 'text-slate-500';
@@ -56,7 +59,7 @@ export const ConsolePageFooter: React.FC<ConsolePageFooterProps> = ({ theme, cla
               API Playground
             </Link>
             {dot}
-            <Link to={buildPath('user', 'resource-center')} className={linkClass(isDark)}>
+            <Link to={unifiedResourceCenterPath(platformRole)} className={linkClass(isDark)}>
               资源中心
             </Link>
           </div>

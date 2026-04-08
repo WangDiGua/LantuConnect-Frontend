@@ -34,6 +34,7 @@ import { BentoCard } from '../../components/common/BentoCard';
 import { KpiCard } from '../../components/common/KpiCard';
 import { AnimatedList } from '../../components/common/AnimatedList';
 import { buildPath, buildUserResourceMarketUrl } from '../../constants/consoleRoutes';
+import { unifiedResourceCenterPath } from '../../utils/unifiedResourceCenterPath';
 import type { ResourceType } from '../../types/dto/catalog';
 import { DashboardLayout } from '../../components/layout/PageLayouts';
 import { formatDateTime } from '../../utils/formatDateTime';
@@ -252,7 +253,7 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
                 <h2 className={cardHeading(theme)}>我的资源</h2>
                 <button
                   type="button"
-                  onClick={() => navigate(buildPath('user', 'resource-center'))}
+                  onClick={() => navigate(unifiedResourceCenterPath(platformRole))}
                   className={`text-xs font-medium ${ts} transition-colors rounded-lg px-2 py-1 -mr-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
                     isDark
                       ? 'hover:text-neutral-200 focus-visible:ring-sky-400/45 focus-visible:ring-offset-lantu-card'

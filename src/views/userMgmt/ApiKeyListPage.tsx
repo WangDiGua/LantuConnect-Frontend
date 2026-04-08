@@ -53,15 +53,6 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize,
     clearSelection();
   }, [page, search, clearSelection]);
 
-  const selectedActiveKeyIds = useMemo(
-    () =>
-      [...selectedKeys].filter((id) => {
-        const row = filtered.find((k) => k.id === id);
-        return row?.status === 'active';
-      }),
-    [filtered, selectedKeys],
-  );
-
   const fetchKeys = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
@@ -83,6 +74,15 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize,
       (k) => !q || (k.name ?? '').toLowerCase().includes(q) || (k.prefix ?? '').toLowerCase().includes(q),
     );
   }, [keys, search]);
+
+  const selectedActiveKeyIds = useMemo(
+    () =>
+      [...selectedKeys].filter((id) => {
+        const row = filtered.find((k) => k.id === id);
+        return row?.status === 'active';
+      }),
+    [filtered, selectedKeys],
+  );
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = useMemo(() => { const s = (page - 1) * PAGE_SIZE; return filtered.slice(s, s + PAGE_SIZE); }, [filtered, page]);
   useEffect(() => {

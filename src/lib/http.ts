@@ -202,8 +202,6 @@ function mapErrorMessage(status: number, code?: number, fallback?: string): stri
   if (code === 1008) return fallback || '文件大小超出限制，请压缩后重试';
   if (code === 2003) return fallback || '账号已锁定，请联系管理员';
   if (code === 2004) return fallback || '用户名或密码错误';
-  if (code === 2005) return fallback || '短信验证码错误，请重新输入';
-  if (code === 2006) return fallback || '短信发送过于频繁，请稍后重试';
   if (code === 2007) return fallback || '会话校验失败，请刷新后重试';
   if (code === 2009) return fallback || '原密码不正确';
   if (code === 2010) return fallback || '验证码错误，请刷新验证码后重试';
@@ -222,7 +220,6 @@ function mapErrorMessage(status: number, code?: number, fallback?: string): stri
   if (code === 5003) return fallback || '请求超时，请稍后重试';
   if (code === 5004) return fallback || '文件存储失败，请稍后重试';
   if (code === 5005) return fallback || '邮件发送失败，请稍后重试';
-  if (code === 5006) return fallback || '短信发送失败，请稍后重试';
   if (status >= 500 || code === 5001) return fallback || '服务器异常，请稍后重试并携带 TraceId 联系管理员';
   return fallback || '请求失败';
 }

@@ -29,12 +29,6 @@ export const authService = {
   changePassword: (oldPassword: string, newPassword: string) =>
     http.post<void>('/auth/change-password', { oldPassword, newPassword }),
 
-  sendSmsCode: (phone: string, purpose: string = 'bind_phone') =>
-    http.post<void>('/auth/send-sms', { phone, purpose }),
-
-  bindPhone: (phone: string, code: string) =>
-    http.post<void>('/auth/bind-phone', { phone, code }),
-
   updateProfile: (data: { avatar?: string; language?: string; twoStep?: boolean }) =>
     http.put<void>('/auth/profile', data),
 

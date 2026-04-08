@@ -154,13 +154,12 @@ const ADMIN_SIDEBAR_PAGES: Record<string, string[]> = {
 
 const USER_SIDEBAR_PAGES: Record<string, string[]> = {
   'hub': ['hub'],
-  'workspace': ['workspace', 'developer-onboarding', 'authorized-skills', 'my-favorites', 'quick-access'],
-  'skills-center': ['skills-center', 'skill-external-market'],
-  'mcp-center': ['mcp-center', 'mcp-market'],
-  'dataset-center': ['dataset-center', 'dataset-market'],
-  'agents-center': ['agents-center', 'agent-market'],
-  'apps-center': ['apps-center', 'app-market'],
-  'user-resource-assets': [
+  'workspace': [
+    'workspace',
+    'developer-onboarding',
+    'authorized-skills',
+    'my-favorites',
+    'quick-access',
     'my-agents-pub',
     'resource-market',
     'skill-market',
@@ -170,20 +169,35 @@ const USER_SIDEBAR_PAGES: Record<string, string[]> = {
     'my-publish-app',
     'my-publish-dataset',
     'resource-center',
-    'agent-list', 'agent-register',
-    'skill-list', 'skill-register',
-    'mcp-server-list', 'mcp-register',
-    'app-list', 'app-register',
-    'dataset-list', 'dataset-register',
-    'usage-records', 'recent-use', 'usage-stats', 'grant-applications', 'developer-applications', 'my-grant-applications',
+    'agent-list',
+    'agent-register',
+    'skill-list',
+    'skill-register',
+    'mcp-server-list',
+    'mcp-register',
+    'app-list',
+    'app-register',
+    'dataset-list',
+    'dataset-register',
+    'usage-records',
+    'recent-use',
+    'usage-stats',
+    'grant-applications',
+    'developer-applications',
+    'my-grant-applications',
   ],
+  'skills-center': ['skills-center', 'skill-external-market'],
+  'mcp-center': ['mcp-center', 'mcp-market'],
+  'dataset-center': ['dataset-center', 'dataset-market'],
+  'agents-center': ['agents-center', 'agent-market'],
+  'apps-center': ['apps-center', 'app-market'],
   'developer-portal': ['api-docs', 'sdk-download', 'api-playground', 'mcp-integration', 'developer-statistics'],
   'user-settings': ['profile', 'preferences'],
 };
 
 export function findSidebarForPage(role: ConsoleRole, page: string): string | null {
   if (role === 'user' && page === 'resource-center') {
-    return 'user-resource-assets';
+    return 'workspace';
   }
   const map = role === 'admin' ? ADMIN_SIDEBAR_PAGES : USER_SIDEBAR_PAGES;
   for (const [sidebarId, pages] of Object.entries(map)) {
@@ -200,6 +214,10 @@ export function getDefaultPage(role: ConsoleRole, sidebarId: string): string {
 /** Navigation group sub-item ID → URL page name (handles the two renamed pages) */
 export function subItemToPage(sidebarId: string, subItemId: string, isAdmin: boolean): string {
   if (isAdmin && sidebarId === 'overview' && subItemId === 'overview') return 'dashboard';
+  if (isAdmin && sidebarId === 'admin-resource-ops' && subItemId === 'agent-diagnostics') return 'agent-monitoring';
+  if (isAdmin && sidebarId === 'monitoring' && subItemId === 'monitoring-hub') return 'monitoring-overview';
+  if (isAdmin && sidebarId === 'system-config' && subItemId === 'config-hub') return 'tag-management';
+  if (isAdmin && sidebarId === 'user-management' && subItemId === 'user-hub') return 'user-list';
   if (!isAdmin && sidebarId === 'workspace' && subItemId === 'overview') return 'workspace';
   if (!isAdmin && sidebarId === 'skills-center' && subItemId === 'skill-external-market') return 'skill-external-market';
   if (!isAdmin && sidebarId === 'skills-center' && subItemId === 'skills-center') return 'skills-center';
@@ -212,7 +230,13 @@ export function subItemToPage(sidebarId: string, subItemId: string, isAdmin: boo
 
 /** URL page name → navigation group sub-item ID */
 export function pageToSubItem(page: string, sidebarId: string | null, isAdmin: boolean): string {
-  if (isAdmin && page === 'dashboard' && sidebarId === 'overview') return 'overview';
+  if (
+    isAdmin &&
+    sidebarId === 'overview' &&
+    ['dashboard', 'health-check', 'usage-statistics', 'data-reports'].includes(page)
+  ) {
+    return 'overview';
+  }
   if (!isAdmin && page === 'workspace' && sidebarId === 'workspace') return 'overview';
   if (isAdmin && sidebarId === 'system-config' && page === 'skill-external-catalog-settings') {
     return 'skill-external-catalog-settings';
@@ -222,6 +246,9 @@ export function pageToSubItem(page: string, sidebarId: string | null, isAdmin: b
   }
   if (isAdmin && sidebarId === 'admin-resource-ops' && ADMIN_RESOURCE_AUDIT_PAGES.has(page)) {
     return 'resource-audit';
+  }
+  if (isAdmin && sidebarId === 'admin-resource-ops' && (page === 'agent-monitoring' || page === 'agent-trace')) {
+    return 'agent-diagnostics';
   }
   if (!isAdmin && sidebarId === 'skills-center' && page === 'skill-external-market') {
     return 'skill-external-market';
@@ -253,8 +280,20 @@ export function pageToSubItem(page: string, sidebarId: string | null, isAdmin: b
   ) {
     return 'apps-center';
   }
-  if (!isAdmin && sidebarId === 'user-resource-assets' && (page === 'resource-market' || page === 'skill-market' || USER_LEGACY_MARKET_PAGES.has(page))) {
+  if (!isAdmin && sidebarId === 'workspace' && (page === 'resource-market' || page === 'skill-market' || USER_LEGACY_MARKET_PAGES.has(page))) {
     return 'resource-market';
+  }
+  if (isAdmin && sidebarId === 'monitoring' && ADMIN_SIDEBAR_PAGES.monitoring.includes(page)) {
+    return 'monitoring-hub';
+  }
+  if (isAdmin && sidebarId === 'system-config' && ADMIN_SIDEBAR_PAGES['system-config'].includes(page)) {
+    return 'config-hub';
+  }
+  if (isAdmin && sidebarId === 'user-management' && ADMIN_SIDEBAR_PAGES['user-management'].includes(page)) {
+    return 'user-hub';
+  }
+  if (isAdmin && sidebarId === 'admin-resource-ops' && page === 'provider-create') {
+    return 'provider-list';
   }
   return page;
 }

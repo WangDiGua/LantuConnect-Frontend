@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Plus, RefreshCw, Server } from 'lucide-react';
+import { buildPath } from '../../constants/consoleRoutes';
 import type { Theme, FontSize } from '../../types';
 import { providerService } from '../../api/services/provider.service';
 import type { ProviderType, AuthType } from '../../types/dto/provider';
@@ -50,6 +52,7 @@ export const ProviderManagementPage: React.FC<Props> = ({
   showMessage,
   onOpenGrantManagement,
 }) => {
+  const navigate = useNavigate();
   const isDark = theme === 'dark';
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -222,6 +225,15 @@ export const ProviderManagementPage: React.FC<Props> = ({
 
   const listToolbar = (
     <div className="flex flex-wrap items-center justify-end gap-2 w-full">
+      <button
+        type="button"
+        className={btnPrimary}
+        onClick={() => navigate(buildPath('admin', 'provider-create'))}
+        aria-label="新建 Provider"
+      >
+        <Plus size={14} aria-hidden />
+        新建 Provider
+      </button>
       <button type="button" className={btnGhost(theme)} onClick={() => void loadData()} aria-label="刷新 Provider 列表">
         <RefreshCw size={14} aria-hidden />
         刷新

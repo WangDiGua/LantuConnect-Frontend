@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
-  Settings, Lock, Smartphone, Monitor, Bell, Mail, Eye, EyeOff, Database, Palette,
+  Settings, Lock, Monitor, Bell, Mail, Eye, EyeOff, Database, Palette,
   ChevronRight, Trash2, Download, Loader2, KeyRound, Plus, Copy, Check, DownloadCloud,
   Info, RefreshCw,
 } from 'lucide-react';
@@ -101,23 +101,15 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
   const [creatingApiKey, setCreatingApiKey] = useState(false);
   const [revokeKeyTarget, setRevokeKeyTarget] = useState<UserApiKey | null>(null);
   const [revokePassword, setRevokePassword] = useState('');
-  const [revokeSmsCode, setRevokeSmsCode] = useState('');
   const [revokeShowPassword, setRevokeShowPassword] = useState(false);
   const [revokeSubmitting, setRevokeSubmitting] = useState(false);
-  const [revokeSmsSending, setRevokeSmsSending] = useState(false);
-  const [revokeSmsCd, setRevokeSmsCd] = useState(0);
-  const [revokeFieldErrors, setRevokeFieldErrors] = useState<{ password?: string; sms?: string; form?: string }>({});
-  const revokeSmsIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [revokeFieldErrors, setRevokeFieldErrors] = useState<{ password?: string; form?: string }>({});
   const [detailKeyTarget, setDetailKeyTarget] = useState<UserApiKey | null>(null);
   const [rotateKeyTarget, setRotateKeyTarget] = useState<UserApiKey | null>(null);
   const [rotatePassword, setRotatePassword] = useState('');
-  const [rotateSmsCode, setRotateSmsCode] = useState('');
   const [rotateShowPassword, setRotateShowPassword] = useState(false);
   const [rotateSubmitting, setRotateSubmitting] = useState(false);
-  const [rotateSmsSending, setRotateSmsSending] = useState(false);
-  const [rotateSmsCd, setRotateSmsCd] = useState(0);
-  const [rotateFieldErrors, setRotateFieldErrors] = useState<{ password?: string; sms?: string; form?: string }>({});
-  const rotateSmsIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [rotateFieldErrors, setRotateFieldErrors] = useState<{ password?: string; form?: string }>({});
   const [newPlainKey, setNewPlainKey] = useState<string | null>(null);
   const createApiKeyInFlightRef = useRef(false);
 
@@ -185,7 +177,6 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
   const openRevokeApiKeyModal = useCallback((key: UserApiKey) => {
     setRevokeKeyTarget(key);
     setRevokePassword('');
-    setRevokeSmsCode('');
     setRevokeShowPassword(false);
     setRevokeFieldErrors({});
   }, []);
@@ -193,64 +184,12 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
   const closeRevokeApiKeyModal = useCallback(() => {
     setRevokeKeyTarget(null);
     setRevokePassword('');
-    setRevokeSmsCode('');
     setRevokeFieldErrors({});
-    setRevokeSmsCd(0);
-    if (revokeSmsIntervalRef.current) {
-      clearInterval(revokeSmsIntervalRef.current);
-      revokeSmsIntervalRef.current = null;
-    }
   }, []);
-
-  const handleSendRevokeSms = useCallback(async () => {
-    if (revokeSmsSending || revokeSmsCd > 0) return;
-    setRevokeSmsSending(true);
-    setRevokeFieldErrors((e) => ({ ...e, sms: undefined, form: undefined }));
-    try {
-      await userSettingsService.sendRevokeApiKeySms();
-      showMessage('验证码已发送（演示环境见后端日志 mock code）', 'success');
-      if (revokeSmsIntervalRef.current) {
-        clearInterval(revokeSmsIntervalRef.current);
-        revokeSmsIntervalRef.current = null;
-      }
-      setRevokeSmsCd(60);
-      revokeSmsIntervalRef.current = setInterval(() => {
-        setRevokeSmsCd((v) => {
-          if (v <= 1) {
-            if (revokeSmsIntervalRef.current) {
-              clearInterval(revokeSmsIntervalRef.current);
-              revokeSmsIntervalRef.current = null;
-            }
-            return 0;
-          }
-          return v - 1;
-        });
-      }, 1000);
-    } catch (e) {
-      pageErrorUnlessServerToast(e, '发送失败', showMessage);
-    } finally {
-      setRevokeSmsSending(false);
-    }
-  }, [revokeSmsSending, revokeSmsCd, showMessage]);
-
-  React.useEffect(
-    () => () => {
-      if (revokeSmsIntervalRef.current) {
-        clearInterval(revokeSmsIntervalRef.current);
-        revokeSmsIntervalRef.current = null;
-      }
-      if (rotateSmsIntervalRef.current) {
-        clearInterval(rotateSmsIntervalRef.current);
-        rotateSmsIntervalRef.current = null;
-      }
-    },
-    [],
-  );
 
   const openRotateApiKeyModal = useCallback((key: UserApiKey) => {
     setRotateKeyTarget(key);
     setRotatePassword('');
-    setRotateSmsCode('');
     setRotateShowPassword(false);
     setRotateFieldErrors({});
   }, []);
@@ -258,45 +197,8 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
   const closeRotateApiKeyModal = useCallback(() => {
     setRotateKeyTarget(null);
     setRotatePassword('');
-    setRotateSmsCode('');
     setRotateFieldErrors({});
-    setRotateSmsCd(0);
-    if (rotateSmsIntervalRef.current) {
-      clearInterval(rotateSmsIntervalRef.current);
-      rotateSmsIntervalRef.current = null;
-    }
   }, []);
-
-  const handleSendRotateSms = useCallback(async () => {
-    if (rotateSmsSending || rotateSmsCd > 0) return;
-    setRotateSmsSending(true);
-    setRotateFieldErrors((e) => ({ ...e, sms: undefined, form: undefined }));
-    try {
-      await userSettingsService.sendRevokeApiKeySms();
-      showMessage('验证码已发送（与撤销 API Key 共用通道；演示环境见后端日志）', 'success');
-      if (rotateSmsIntervalRef.current) {
-        clearInterval(rotateSmsIntervalRef.current);
-        rotateSmsIntervalRef.current = null;
-      }
-      setRotateSmsCd(60);
-      rotateSmsIntervalRef.current = setInterval(() => {
-        setRotateSmsCd((v) => {
-          if (v <= 1) {
-            if (rotateSmsIntervalRef.current) {
-              clearInterval(rotateSmsIntervalRef.current);
-              rotateSmsIntervalRef.current = null;
-            }
-            return 0;
-          }
-          return v - 1;
-        });
-      }, 1000);
-    } catch (e) {
-      pageErrorUnlessServerToast(e, '发送失败', showMessage);
-    } finally {
-      setRotateSmsSending(false);
-    }
-  }, [rotateSmsSending, rotateSmsCd, showMessage]);
 
   const handleConfirmRotateApiKey = useCallback(async () => {
     if (!rotateKeyTarget?.id?.trim()) {
@@ -309,7 +211,6 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
     try {
       const rotated = await userSettingsService.rotateApiKey(rotateKeyTarget.id, {
         password: rotatePassword.trim() || undefined,
-        smsCode: rotateSmsCode.trim() || undefined,
       });
       const plain = rotated.plainKey?.trim() || '';
       setNewPlainKey(plain || null);
@@ -321,8 +222,6 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
       const msg = e instanceof Error ? e.message : '轮换失败';
       if (/密码|password/i.test(msg)) {
         setRotateFieldErrors({ password: msg });
-      } else if (/验证码|短信|sms/i.test(msg)) {
-        setRotateFieldErrors({ sms: msg });
       } else {
         setRotateFieldErrors({ form: msg });
       }
@@ -334,7 +233,6 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
     rotateKeyTarget,
     rotateSubmitting,
     rotatePassword,
-    rotateSmsCode,
     showMessage,
     loadApiKeys,
     closeRotateApiKeyModal,
@@ -351,7 +249,6 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
     try {
       await userSettingsService.revokeApiKey(revokeKeyTarget.id, {
         password: revokePassword.trim() || undefined,
-        smsCode: revokeSmsCode.trim() || undefined,
       });
       showMessage('API Key 已撤销', 'success');
       closeRevokeApiKeyModal();
@@ -361,8 +258,6 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
       const msg = e instanceof Error ? e.message : '撤销失败';
       if (/密码|password/i.test(msg)) {
         setRevokeFieldErrors({ password: msg });
-      } else if (/验证码|短信|sms/i.test(msg)) {
-        setRevokeFieldErrors({ sms: msg });
       } else {
         setRevokeFieldErrors({ form: msg });
       }
@@ -374,7 +269,6 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
     revokeKeyTarget,
     revokeSubmitting,
     revokePassword,
-    revokeSmsCode,
     showMessage,
     loadApiKeys,
     closeRevokeApiKeyModal,
@@ -406,60 +300,6 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
     }
   }, [pwdCurrent, pwdNew, pwdConfirm, showMessage]);
 
-  const [showPhoneModal, setShowPhoneModal] = useState(false);
-  const [phone, setPhone] = useState('');
-  const [smsCode, setSmsCode] = useState('');
-  const [countdown, setCountdown] = useState(0);
-  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const [smsLoading, setSmsLoading] = useState(false);
-  const [phoneLoading, setPhoneLoading] = useState(false);
-  const [phoneFieldErrors, setPhoneFieldErrors] = useState<{ phone?: string; smsCode?: string }>({});
-
-  const handleSendCode = useCallback(async () => {
-    if (!/^1\d{10}$/.test(phone)) {
-      setPhoneFieldErrors((p) => ({ ...p, phone: '请输入正确的手机号' }));
-      return;
-    }
-    setPhoneFieldErrors((p) => ({ ...p, phone: undefined }));
-    setSmsLoading(true);
-    try {
-      await authService.sendSmsCode(phone);
-      setCountdown(60);
-      countdownRef.current = setInterval(() => {
-        setCountdown((v) => { if (v <= 1) { clearInterval(countdownRef.current!); return 0; } return v - 1; });
-      }, 1000);
-    } catch (e) {
-      pageErrorUnlessServerToast(e, '发送验证码失败', showMessage);
-    } finally {
-      setSmsLoading(false);
-    }
-  }, [phone, showMessage]);
-
-  useEffect(() => () => { if (countdownRef.current) clearInterval(countdownRef.current); }, []);
-
-  const handlePhoneSubmit = useCallback(async () => {
-    const next: { phone?: string; smsCode?: string } = {};
-    if (!/^1\d{10}$/.test(phone)) next.phone = '请输入正确的手机号';
-    if (smsCode.length < 4) next.smsCode = '请输入验证码';
-    if (Object.keys(next).length > 0) {
-      setPhoneFieldErrors((p) => ({ ...p, ...next }));
-      return;
-    }
-    setPhoneFieldErrors({});
-    setPhoneLoading(true);
-    try {
-      await authService.bindPhone(phone, smsCode);
-      showMessage('手机号绑定成功', 'success');
-      setShowPhoneModal(false);
-      setPhone(''); setSmsCode('');
-    } catch (e) {
-      pageErrorUnlessServerToast(e, '绑定失败', showMessage);
-    } finally {
-      setPhoneLoading(false);
-    }
-  }, [phone, smsCode, showMessage]);
-
   const rowBtn = `w-full flex items-center justify-between gap-3 p-3 rounded-xl text-left transition-colors ${isDark ? 'hover:bg-white/[0.04]' : 'hover:bg-slate-50'}`;
 
   return (
@@ -481,10 +321,6 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
               <button type="button" className={rowBtn} onClick={() => { setPwdError(''); setPwdCurrent(''); setPwdNew(''); setPwdConfirm(''); setShowPwdModal(true); }}>
                 <span className="flex items-center gap-3 min-w-0"><Lock size={16} className="text-slate-400 shrink-0" /><span className={`text-sm font-medium ${textSecondary(theme)}`}>登录密码</span></span>
                 <ChevronRight size={16} className="text-slate-400 shrink-0" />
-              </button>
-              <button type="button" className={rowBtn} onClick={() => { setPhone(''); setSmsCode(''); setShowPhoneModal(true); }}>
-                <span className="flex items-center gap-3 min-w-0"><Smartphone size={16} className="text-slate-400 shrink-0" /><span className={`text-sm font-medium ${textSecondary(theme)}`}>手机号</span></span>
-                <span className={`text-xs ${textMuted(theme)}`}>未绑定</span>
               </button>
               <button type="button" className={rowBtn} onClick={() => navigate(buildPath(consoleRole, 'profile'))}>
                 <span className="flex items-center gap-3 min-w-0"><Monitor size={16} className="text-slate-400 shrink-0" /><span className={`text-sm font-medium ${textSecondary(theme)}`}>登录设备与会话</span></span>
@@ -609,7 +445,7 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
               <div className={`rounded-xl p-3 border space-y-2 ${isDark ? 'bg-emerald-500/10 border-emerald-500/25' : 'bg-emerald-50 border-emerald-200'}`}>
                 <p className={`text-xs font-semibold ${isDark ? 'text-emerald-100' : 'text-emerald-950'}`}>密钥仅出现这一次</p>
                 <p className={`text-xs leading-relaxed ${textSecondary(theme)}`}>
-                  服务端只保存摘要，无法用原 id 解密出旧明文。请复制到密码管理器或环境变量；若已丢失，可从列表使用「轮换密钥」在验证密码/短信后获得新串（旧串作废）。需要在本站「市场 / 网关调试」里用时，可一键写入下面共用的本机存储。
+                  服务端只保存摘要，无法用原 id 解密出旧明文。请复制到密码管理器或环境变量；若已丢失，可从列表使用「轮换密钥」在验证登录密码后获得新串（旧串作废）。需要在本站「市场 / 网关调试」里用时，可一键写入下面共用的本机存储。
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <code className={`text-xs break-all flex-1 min-w-[12rem] rounded-lg px-2 py-1.5 ${isDark ? 'bg-black/30 text-emerald-300' : 'bg-white text-emerald-700'}`}>{newPlainKey}</code>
@@ -770,7 +606,7 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
       >
         <div className="space-y-3">
           <p className={`text-xs ${textSecondary(theme)}`}>
-            密钥：<span className="font-mono">{revokeKeyTarget?.name}</span>。已设本地密码时需验证密码；无密码账户须验证发往已绑定手机的短信验证码。
+            密钥：<span className="font-mono">{revokeKeyTarget?.name}</span>。须输入登录密码以确认撤销。若账户尚未设置密码，请先在上方修改密码后再操作。
           </p>
           <div>
             <label htmlFor="revoke-pwd" className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>
@@ -802,45 +638,6 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
             {revokeFieldErrors.password ? (
               <p id="revoke-pwd-err" className={`mt-1 ${fieldErrorText()} text-xs`} role="alert">
                 {revokeFieldErrors.password}
-              </p>
-            ) : null}
-          </div>
-          <div>
-            <label htmlFor="revoke-sms" className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>
-              短信验证码（无密码账户必填）
-            </label>
-            <div className="flex gap-2">
-              <input
-                id="revoke-sms"
-                type="text"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                value={revokeSmsCode}
-                onChange={(e) => {
-                  setRevokeSmsCode(e.target.value);
-                  setRevokeFieldErrors((x) => ({ ...x, sms: undefined }));
-                }}
-                className={`${nativeInputClass(theme)} flex-1${revokeFieldErrors.sms ? ` ${inputBaseError()}` : ''}`}
-                aria-invalid={!!revokeFieldErrors.sms}
-              />
-              <button
-                type="button"
-                disabled={revokeSmsSending || revokeSmsCd > 0}
-                onClick={() => void handleSendRevokeSms()}
-                className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap ${
-                  revokeSmsCd > 0 || revokeSmsSending
-                    ? isDark
-                      ? 'bg-white/5 text-slate-500 cursor-not-allowed'
-                      : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                    : `text-white ${tc.bg}`
-                }`}
-              >
-                {revokeSmsCd > 0 ? `${revokeSmsCd}s` : revokeSmsSending ? '发送中…' : '发送验证码'}
-              </button>
-            </div>
-            {revokeFieldErrors.sms ? (
-              <p className={`mt-1 ${fieldErrorText()} text-xs`} role="alert">
-                {revokeFieldErrors.sms}
               </p>
             ) : null}
           </div>
@@ -982,45 +779,6 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
               </p>
             ) : null}
           </div>
-          <div>
-            <label htmlFor="rotate-sms" className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>
-              短信验证码（无密码账户必填）
-            </label>
-            <div className="flex gap-2">
-              <input
-                id="rotate-sms"
-                type="text"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                value={rotateSmsCode}
-                onChange={(e) => {
-                  setRotateSmsCode(e.target.value);
-                  setRotateFieldErrors((x) => ({ ...x, sms: undefined }));
-                }}
-                className={`${nativeInputClass(theme)} flex-1${rotateFieldErrors.sms ? ` ${inputBaseError()}` : ''}`}
-                aria-invalid={!!rotateFieldErrors.sms}
-              />
-              <button
-                type="button"
-                disabled={rotateSmsSending || rotateSmsCd > 0}
-                onClick={() => void handleSendRotateSms()}
-                className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap ${
-                  rotateSmsCd > 0 || rotateSmsSending
-                    ? isDark
-                      ? 'bg-white/5 text-slate-500 cursor-not-allowed'
-                      : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                    : `text-white ${tc.bg}`
-                }`}
-              >
-                {rotateSmsCd > 0 ? `${rotateSmsCd}s` : rotateSmsSending ? '发送中…' : '发送验证码'}
-              </button>
-            </div>
-            {rotateFieldErrors.sms ? (
-              <p className={`mt-1 ${fieldErrorText()} text-xs`} role="alert">
-                {rotateFieldErrors.sms}
-              </p>
-            ) : null}
-          </div>
           {rotateFieldErrors.form ? (
             <p className={`${fieldErrorText()} text-xs`} role="alert">
               {rotateFieldErrors.form}
@@ -1029,80 +787,6 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
         </div>
       </Modal>
 
-      {/* Phone Modal */}
-      <Modal
-        open={showPhoneModal}
-        onClose={() => {
-          setShowPhoneModal(false);
-          setPhoneFieldErrors({});
-        }}
-        title="绑定手机号"
-        theme={theme}
-        size="sm"
-        footer={
-          <>
-            <button
-              type="button"
-              className={btnSecondary(theme)}
-              onClick={() => {
-                setShowPhoneModal(false);
-                setPhoneFieldErrors({});
-              }}
-            >
-              取消
-            </button>
-            <button type="button" className={`${btnPrimary} disabled:opacity-50`} disabled={phoneLoading} onClick={handlePhoneSubmit}>
-              {phoneLoading ? <><Loader2 size={14} className="animate-spin" /> 绑定中…</> : '确认绑定'}
-            </button>
-          </>
-        }
-      >
-        <div className="space-y-3">
-          <div>
-            <label className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>手机号</label>
-            <input
-              type="tel"
-              value={phone}
-              onChange={(e) => {
-                setPhone(e.target.value);
-                setPhoneFieldErrors((p) => ({ ...p, phone: undefined }));
-              }}
-              placeholder="输入 11 位手机号"
-              className={`${nativeInputClass(theme)}${phoneFieldErrors.phone ? ` ${inputBaseError()}` : ''}`}
-              aria-invalid={!!phoneFieldErrors.phone}
-            />
-            {phoneFieldErrors.phone ? (
-              <p className={`mt-1 ${fieldErrorText()} text-xs`} role="alert">
-                {phoneFieldErrors.phone}
-              </p>
-            ) : null}
-          </div>
-          <div>
-            <label className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>验证码</label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={smsCode}
-                onChange={(e) => {
-                  setSmsCode(e.target.value);
-                  setPhoneFieldErrors((p) => ({ ...p, smsCode: undefined }));
-                }}
-                placeholder="输入验证码"
-                className={`${nativeInputClass(theme)} flex-1${phoneFieldErrors.smsCode ? ` ${inputBaseError()}` : ''}`}
-                aria-invalid={!!phoneFieldErrors.smsCode}
-              />
-              <button type="button" disabled={countdown > 0} onClick={handleSendCode} className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${countdown > 0 ? (isDark ? 'bg-white/5 text-slate-600 cursor-not-allowed' : 'bg-slate-200 text-slate-400 cursor-not-allowed') : `text-white ${tc.bg}`}`}>
-                {countdown > 0 ? `${countdown}s` : '获取验证码'}
-              </button>
-            </div>
-            {phoneFieldErrors.smsCode ? (
-              <p className={`mt-1 ${fieldErrorText()} text-xs`} role="alert">
-                {phoneFieldErrors.smsCode}
-              </p>
-            ) : null}
-          </div>
-        </div>
-      </Modal>
     </div>
   );
 };

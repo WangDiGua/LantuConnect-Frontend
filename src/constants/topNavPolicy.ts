@@ -31,7 +31,6 @@ export const USER_TOP_NAV_NO_RAIL_SIDEBAR_ID_SET = new Set<string>(USER_TOP_NAV_
 export const HUB_PERSONAL_RAIL_PARENT_IDS = [
   'hub',
   'workspace',
-  'user-resource-assets',
   'developer-portal',
   'user-settings',
 ] as const;

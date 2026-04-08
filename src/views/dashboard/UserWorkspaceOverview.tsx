@@ -114,7 +114,7 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
     setLoadError(null);
     try {
       const [ws, db] = await Promise.allSettled([
-        dashboardService.getUserWorkspace(),
+        dashboardService.getMyConsole(),
         dashboardService.getUserDashboard(),
       ]);
       if (ws.status === 'fulfilled') setWorkspace(ws.value);

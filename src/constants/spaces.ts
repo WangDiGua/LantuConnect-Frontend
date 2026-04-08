@@ -4,9 +4,7 @@ import {
   Activity,
   Bot,
   Settings,
-  Rocket,
   Code2,
-  Library,
 } from 'lucide-react';
 
 import {
@@ -16,9 +14,7 @@ import {
   ADMIN_MONITORING_GROUPS,
   ADMIN_SYSTEM_CONFIG_GROUPS,
   ADMIN_DEVELOPER_PORTAL_GROUPS,
-  USER_WORKSPACE_GROUPS,
-  USER_MY_PUBLISH_GROUPS,
-  USER_MY_SPACE_GROUPS,
+  USER_MY_CONSOLE_GROUPS,
 } from './navigation';
 
 import { encryptStorage, decryptStorage } from '../lib/security';
@@ -105,7 +101,7 @@ function standalone(
 export const ADMIN_SPACES: Space[] = [
   {
     id: 'admin-dashboard',
-    label: '系统总览',
+    label: '运营总览',
     icon: LayoutDashboard,
     accentFrom: '#3B82F6',
     accentTo: '#6366F1',
@@ -149,24 +145,11 @@ export const ADMIN_SPACES: Space[] = [
 export const USER_SPACES: Space[] = [
   {
     id: 'user-workspace',
-    label: '工作台',
+    label: '我的',
     icon: LayoutDashboard,
     accentFrom: '#3B82F6',
     accentTo: '#6366F1',
-    sections: [
-      ...fromGroups('workspace', USER_WORKSPACE_GROUPS as NavGroup[]),
-    ],
-  },
-  {
-    id: 'user-resource-hub',
-    label: '资源与资产',
-    icon: Library,
-    accentFrom: '#8B5CF6',
-    accentTo: '#A855F7',
-    sections: [
-      ...fromGroups('user-resource-assets', USER_MY_PUBLISH_GROUPS as NavGroup[]),
-      ...fromGroups('user-resource-assets', USER_MY_SPACE_GROUPS as NavGroup[]),
-    ],
+    sections: [...fromGroups('workspace', USER_MY_CONSOLE_GROUPS as NavGroup[])],
   },
   {
     id: 'user-developer',

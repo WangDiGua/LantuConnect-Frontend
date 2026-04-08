@@ -2,6 +2,7 @@ import { http } from '../../lib/http';
 import { extractArray } from '../../utils/normalizeApiPayload';
 import type {
   AdminOverview,
+  MyConsoleSnapshot,
   UserWorkspace,
   UserWorkspaceRecentUsage,
   HealthSummary,
@@ -485,6 +486,17 @@ export const dashboardService = {
   getUserWorkspace: async () => {
     const raw = await http.get<unknown>('/dashboard/user-workspace');
     return normalizeUserWorkspace(raw);
+  },
+
+  /** BFF：后端实现 `GET /dashboard/my-console` 后返回扩展聚合；未上线时回退 user-workspace */
+  getMyConsole: async (): Promise<MyConsoleSnapshot> => {
+    try {
+      const raw = await http.get<unknown>('/dashboard/my-console');
+      return normalizeUserWorkspace(raw);
+    } catch {
+      const raw = await http.get<unknown>('/dashboard/user-workspace');
+      return normalizeUserWorkspace(raw);
+    }
   },
 
   getHealthSummary: async () => {

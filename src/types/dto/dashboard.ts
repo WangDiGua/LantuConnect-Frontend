@@ -33,6 +33,9 @@ export interface UserWorkspace {
   quickActions: { label: string; route: string; icon: string }[];
 }
 
+/** 与个人「我的」控制台首页聚合一致；优先 GET /dashboard/my-console，不可用时前端可回退 user-workspace */
+export type MyConsoleSnapshot = UserWorkspace;
+
 export interface HealthSummary {
   status?: string;
   healthConfigCount?: number;

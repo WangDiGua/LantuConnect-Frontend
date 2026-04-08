@@ -59,7 +59,6 @@ export interface UserApiKeyResourceGrant {
 
 export interface ApiKeyRevokePayload {
   password?: string;
-  smsCode?: string;
 }
 
 /** POST /user-settings/api-keys/{id}/invoke-eligibility */

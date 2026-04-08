@@ -18,7 +18,6 @@ import {
   BookOpen,
   Database,
   LineChart,
-  GitBranch,
   Server,
   AlertTriangle,
   BarChart3,
@@ -48,8 +47,6 @@ import {
   Terminal,
   Download,
   Compass,
-  Library,
-  Plus,
   Store,
   Braces,
   ScrollText,
@@ -66,7 +63,7 @@ export interface NavSubGroup {
 // ==================== 管理员菜单（接入平台管理视角）====================
 
 export const ADMIN_SIDEBAR_ITEMS = [
-  { id: 'overview', icon: LayoutDashboard, label: '系统总览' },
+  { id: 'overview', icon: LayoutDashboard, label: '运营总览' },
   { id: 'admin-resource-ops', icon: Boxes, label: '资源与运营' },
   { id: 'user-management', icon: Users, label: '用户与权限' },
   { id: 'monitoring', icon: Activity, label: '监控中心' },
@@ -82,8 +79,7 @@ export const USER_SIDEBAR_ITEMS = [
   { id: 'dataset-center', icon: Database, label: '数据集' },
   { id: 'agents-center', icon: Bot, label: 'Agent 广场' },
   { id: 'apps-center', icon: AppWindow, label: '应用集' },
-  { id: 'workspace', icon: LayoutGrid, label: '我的工作台' },
-  { id: 'user-resource-assets', icon: Library, label: '资源与资产' },
+  { id: 'workspace', icon: LayoutGrid, label: '我的' },
   { id: 'developer-portal', icon: Code2, label: '开发者中心' },
   { id: 'user-settings', icon: UserCircle, label: '个人设置' },
 ];
@@ -96,12 +92,7 @@ export const DASHBOARD_GROUPS = [];
 export const ADMIN_OVERVIEW_GROUPS: NavSubGroup[] = [
   {
     title: '总览',
-    items: [
-      { id: 'overview', icon: LayoutDashboard, label: '数据概览' },
-      { id: 'health-check', icon: Activity, label: '健康状态' },
-      { id: 'usage-statistics', icon: TrendingUp, label: '使用统计' },
-      { id: 'data-reports', icon: BarChart3, label: '数据报表' },
-    ],
+    items: [{ id: 'overview', icon: LayoutDashboard, label: '运营总览' }],
   },
 ];
 
@@ -111,11 +102,8 @@ export const ADMIN_RESOURCE_MANAGEMENT_GROUPS: NavSubGroup[] = [
     items: [{ id: 'resource-catalog', icon: Boxes, label: '统一资源中心', tag: '审核' }],
   },
   {
-    title: 'Agent 运维',
-    items: [
-      { id: 'agent-monitoring', icon: LineChart, label: '运行监控' },
-      { id: 'agent-trace', icon: GitBranch, label: '调用追踪' },
-    ],
+    title: '运行诊断',
+    items: [{ id: 'agent-diagnostics', icon: LineChart, label: '运行诊断' }],
   },
 ];
 
@@ -138,10 +126,7 @@ export const ADMIN_AUDIT_CENTER_GROUPS: NavSubGroup[] = [
 export const ADMIN_PROVIDER_MANAGEMENT_GROUPS: NavSubGroup[] = [
   {
     title: 'Provider',
-    items: [
-      { id: 'provider-list', icon: Server, label: 'Provider 列表' },
-      { id: 'provider-create', icon: Plus, label: '新建 Provider' },
-    ],
+    items: [{ id: 'provider-list', icon: Server, label: 'Provider' }],
   },
 ];
 
@@ -154,86 +139,22 @@ export const ADMIN_RESOURCE_OPS_GROUPS: NavSubGroup[] = [
 
 export const ADMIN_USER_MANAGEMENT_GROUPS: NavSubGroup[] = [
   {
-    title: '用户',
-    items: [
-      { id: 'user-list', icon: Users, label: '用户管理' },
-      { id: 'role-management', icon: Fingerprint, label: '角色管理' },
-      { id: 'organization', icon: Building2, label: '组织架构' },
-    ],
-  },
-  {
-    title: '凭证',
-    items: [
-      { id: 'api-key-management', icon: Key, label: 'API Key 管理' },
-      { id: 'token-management', icon: ScrollText, label: 'Token 管理' },
-      { id: 'resource-grant-management', icon: Share2, label: '资源授权管理' },
-      { id: 'grant-applications', icon: ClipboardCheck, label: '授权申请审批' },
-    ],
-  },
-  {
-    title: '入驻',
-    items: [
-      { id: 'developer-applications', icon: Rocket, label: '入驻审批' },
-    ],
+    title: '治理',
+    items: [{ id: 'user-hub', icon: Users, label: '用户与权限' }],
   },
 ];
 
 export const ADMIN_MONITORING_GROUPS: NavSubGroup[] = [
   {
-    title: '观测',
-    items: [
-      { id: 'monitoring-overview', icon: Activity, label: '监控概览' },
-      { id: 'call-logs', icon: Search, label: '调用日志' },
-      { id: 'performance-analysis', icon: BarChart3, label: '性能分析' },
-    ],
-  },
-  {
-    title: '告警',
-    items: [
-      { id: 'alert-management', icon: AlertTriangle, label: '告警管理' },
-      { id: 'alert-rules', icon: Bell, label: '告警规则' },
-    ],
-  },
-  {
-    title: '治理',
-    items: [
-      { id: 'health-config', icon: ShieldCheck, label: '健康检查' },
-      { id: 'circuit-breaker', icon: AlertTriangle, label: '熔断降级' },
-    ],
+    title: '运维',
+    items: [{ id: 'monitoring-hub', icon: Activity, label: '监控与运维' }],
   },
 ];
 
 export const ADMIN_SYSTEM_CONFIG_GROUPS: NavSubGroup[] = [
   {
-    title: '基础',
-    items: [
-      { id: 'tag-management', icon: Tag, label: '标签管理' },
-      { id: 'system-params', icon: Braces, label: '系统参数' },
-      { id: 'skill-external-catalog-settings', icon: Store, label: '技能在线市场配置', tag: '超管' },
-      { id: 'security-settings', icon: Shield, label: '安全设置' },
-      { id: 'network-config', icon: Globe2, label: '网络配置' },
-    ],
-  },
-  {
-    title: '策略',
-    items: [
-      { id: 'quota-management', icon: CreditCard, label: '配额管理' },
-      { id: 'rate-limit-policy', icon: Sliders, label: '限流策略' },
-      { id: 'access-control', icon: Lock, label: '访问控制' },
-    ],
-  },
-  {
-    title: '审计',
-    items: [
-      { id: 'audit-log', icon: History, label: '审计日志' },
-    ],
-  },
-  {
-    title: '内容治理',
-    items: [
-      { id: 'sensitive-words', icon: ShieldCheck, label: '敏感词管理' },
-      { id: 'announcements', icon: Bell, label: '平台公告' },
-    ],
+    title: '平台',
+    items: [{ id: 'config-hub', icon: Settings, label: '平台配置' }],
   },
 ];
 
@@ -304,6 +225,42 @@ export const USER_RESOURCE_ASSETS_GROUPS: NavSubGroup[] = [
   ...USER_MY_SPACE_GROUPS,
 ];
 
+/** 侧栏「我的」：原工作台 + 资源与资产，按任务路径排序 */
+export const USER_MY_CONSOLE_GROUPS: NavSubGroup[] = [
+  {
+    title: '概览',
+    items: [
+      { id: 'overview', icon: LayoutGrid, label: '工作台总览' },
+      { id: 'developer-onboarding', icon: Rocket, label: '开发者入驻' },
+    ],
+  },
+  ...USER_MY_PUBLISH_GROUPS,
+  {
+    title: '使用',
+    items: [
+      { id: 'usage-records', icon: History, label: '使用记录' },
+      { id: 'usage-stats', icon: BarChart3, label: '用量统计' },
+      { id: 'quick-access', icon: Zap, label: '快速入口' },
+      { id: 'recent-use', icon: Clock, label: '最近使用' },
+    ],
+  },
+  {
+    title: '收藏与能力',
+    items: [
+      { id: 'my-favorites', icon: Heart, label: '我的收藏' },
+      { id: 'authorized-skills', icon: Key, label: '已授权技能' },
+    ],
+  },
+  {
+    title: '工单与审批',
+    items: [
+      { id: 'grant-applications', icon: ClipboardCheck, label: '授权审批待办' },
+      { id: 'my-grant-applications', icon: ClipboardCheck, label: '我的授权申请' },
+      { id: 'developer-applications', icon: Rocket, label: '入驻审批' },
+    ],
+  },
+];
+
 export const USER_SETTINGS_GROUPS: NavSubGroup[] = [
   {
     title: '账户',
@@ -353,9 +310,7 @@ export function getNavSubGroups(sidebarId: string, isAdminRole: boolean): NavSub
     case 'developer-portal':
       return ADMIN_DEVELOPER_PORTAL_GROUPS;
     case 'workspace':
-      return USER_WORKSPACE_GROUPS;
-    case 'user-resource-assets':
-      return USER_RESOURCE_ASSETS_GROUPS;
+      return USER_MY_CONSOLE_GROUPS;
     case 'user-settings':
       return USER_SETTINGS_GROUPS;
     default:

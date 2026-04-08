@@ -105,30 +105,6 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ 
 
     return (
       <div className={pageBlockStack}>
-        <div className={`grid grid-cols-2 lg:grid-cols-4 ${kpiGridGap}`}>
-          {kpis.map((k, i) => (
-            <KpiCard
-              key={k.name}
-              theme={theme}
-              label={k.label}
-              value={k.unit && !String(k.value).endsWith(k.unit) ? `${k.value} ${k.unit}` : k.value}
-              trend={k.trend}
-              trendType={k.changeType}
-              previousValue={k.previousValue}
-              glow={GLOW[i % 4]}
-              delay={i * 0.06}
-            />
-          ))}
-        </div>
-
-        <BentoCard theme={theme}>
-          <MonitoringOverviewCharts
-            theme={theme}
-            performance={performanceQ.data ?? []}
-            resourceMix={callMixQ.data ?? []}
-          />
-        </BentoCard>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
           <BentoCard theme={theme} hover glow="indigo">
             <div className="flex items-center gap-3">
@@ -177,6 +153,30 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ 
             </button>
           </BentoCard>
         </div>
+
+        <div className={`grid grid-cols-2 lg:grid-cols-4 ${kpiGridGap}`}>
+          {kpis.map((k, i) => (
+            <KpiCard
+              key={k.name}
+              theme={theme}
+              label={k.label}
+              value={k.unit && !String(k.value).endsWith(k.unit) ? `${k.value} ${k.unit}` : k.value}
+              trend={k.trend}
+              trendType={k.changeType}
+              previousValue={k.previousValue}
+              glow={GLOW[i % 4]}
+              delay={i * 0.06}
+            />
+          ))}
+        </div>
+
+        <BentoCard theme={theme}>
+          <MonitoringOverviewCharts
+            theme={theme}
+            performance={performanceQ.data ?? []}
+            resourceMix={callMixQ.data ?? []}
+          />
+        </BentoCard>
 
         <p className={`text-xs ${textMuted(theme)}`}>
           <Activity size={12} className="inline mr-1 opacity-70" aria-hidden />

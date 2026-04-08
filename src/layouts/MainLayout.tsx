@@ -35,19 +35,28 @@ import { AppearanceMenu } from '../components/business/AppearanceMenu';
 import { MessagePanel, INITIAL_MESSAGE_UNREAD_COUNT } from '../components/business/MessagePanel';
 import { ScrollToTopAffix } from '../components/common/ScrollToTopAffix';
 
-const Overview = lazy(() => import('../views/dashboard/Overview').then(m => ({ default: m.Overview })));
 const ExploreHub = lazy(() => import('../views/dashboard/ExploreHub').then(m => ({ default: m.ExploreHub })));
 const UserWorkspaceOverview = lazy(() => import('../views/dashboard/UserWorkspaceOverview').then(m => ({ default: m.UserWorkspaceOverview })));
 const DeveloperOnboardingPage = lazy(() => import('../views/onboarding/DeveloperOnboardingPage').then(m => ({ default: m.DeveloperOnboardingPage })));
 const QuickAccess = lazy(() => import('../views/dashboard/QuickAccess').then(m => ({ default: m.QuickAccess })));
 const PlaceholderView = lazy(() => import('../views/common/PlaceholderView').then(m => ({ default: m.PlaceholderView })));
 const AgentDetail = lazy(() => import('../views/agent/AgentDetail').then(m => ({ default: m.AgentDetail })));
-const AgentMonitoringPage = lazy(() => import('../views/agent/AgentMonitoringPage').then(m => ({ default: m.AgentMonitoringPage })));
-const AgentTracePage = lazy(() => import('../views/agent/AgentTracePage').then(m => ({ default: m.AgentTracePage })));
 const ProviderManagementPage = lazy(() => import('../views/provider/ProviderManagementPage').then(m => ({ default: m.ProviderManagementPage })));
-const UserManagementModule = lazy(() => import('../views/userMgmt/UserManagementModule').then(m => ({ default: m.UserManagementModule })));
-const SystemConfigModule = lazy(() => import('../views/systemConfig/SystemConfigModule').then(m => ({ default: m.SystemConfigModule })));
-const MonitoringModule = lazy(() => import('../views/monitoring/MonitoringModule').then(m => ({ default: m.MonitoringModule })));
+const AdminOverviewModule = lazy(() =>
+  import('../views/admin/AdminOverviewModule').then((m) => ({ default: m.AdminOverviewModule })),
+);
+const ResourceDiagnosticsModule = lazy(() =>
+  import('../views/admin/ResourceDiagnosticsModule').then((m) => ({ default: m.ResourceDiagnosticsModule })),
+);
+const AdminMonitoringHubModule = lazy(() =>
+  import('../views/admin/AdminMonitoringHubModule').then((m) => ({ default: m.AdminMonitoringHubModule })),
+);
+const AdminSystemConfigHubModule = lazy(() =>
+  import('../views/admin/AdminSystemConfigHubModule').then((m) => ({ default: m.AdminSystemConfigHubModule })),
+);
+const AdminUserHubModule = lazy(() =>
+  import('../views/admin/AdminUserHubModule').then((m) => ({ default: m.AdminUserHubModule })),
+);
 const MyPublishHubPage = lazy(() => import('../views/publish/MyPublishHubPage').then(m => ({ default: m.MyPublishHubPage })));
 const MyPublishListRoute = lazy(() => import('../views/publish/MyPublishListRoute').then(m => ({ default: m.MyPublishListRoute })));
 const UserSettingsHubPage = lazy(() => import('../views/user/UserSettingsHubPage').then(m => ({ default: m.UserSettingsHubPage })));
@@ -72,9 +81,6 @@ const SdkDownloadPage = lazy(() => import('../views/developer/SdkDownloadPage').
 const ApiPlaygroundPage = lazy(() => import('../views/developer/ApiPlaygroundPage').then(m => ({ default: m.ApiPlaygroundPage })));
 const McpIntegrationPage = lazy(() => import('../views/developer/McpIntegrationPage').then(m => ({ default: m.McpIntegrationPage })));
 const DeveloperStatsPage = lazy(() => import('../views/developer/DeveloperStatsPage').then(m => ({ default: m.DeveloperStatsPage })));
-const DataReportsPage = lazy(() => import('../views/dashboard/DataReportsPage').then(m => ({ default: m.DataReportsPage })));
-const HealthCheckOverview = lazy(() => import('../views/dashboard/HealthCheckOverview').then(m => ({ default: m.HealthCheckOverview })));
-const UsageStatsOverview = lazy(() => import('../views/dashboard/UsageStatsOverview').then(m => ({ default: m.UsageStatsOverview })));
 const UserResourceMarketHub = lazy(() =>
   import('../views/marketplace/UserResourceMarketHub').then((m) => ({ default: m.UserResourceMarketHub })),
 );
@@ -186,6 +192,17 @@ function normalizeDeprecatedPage(page: string): string {
 const SUB_ITEM_PERM_MAP: Record<string, string | string[]> = {
   'provider-list': 'provider:view',
   'provider-create': 'provider:manage',
+  'user-hub': [
+    'user:manage',
+    'user:read',
+    'role:manage',
+    'org:manage',
+    'api-key:manage',
+    'apikey:read',
+    'resource-grant:manage',
+    'grant-application:review',
+    'developer-application:review',
+  ],
   /** 超管 user:manage；审核员只读目录为 user:read（与后端 GET /user-mgmt/users 一致） */
   'user-list': ['user:manage', 'user:read'],
   'role-management': 'role:manage',
@@ -285,13 +302,10 @@ const MainContent = React.memo<{
     if (isAdmin) {
       switch (p) {
         case 'dashboard':
-          return <Overview theme={t} fontSize={fs} />;
         case 'health-check':
-          return <HealthCheckOverview theme={t} fontSize={fs} />;
         case 'usage-statistics':
-          return <UsageStatsOverview theme={t} fontSize={fs} />;
         case 'data-reports':
-          return <DataReportsPage theme={t} fontSize={fs} />;
+          return <AdminOverviewModule activePage={p} theme={t} fontSize={fs} />;
 
         case 'resource-catalog':
           return (
@@ -317,9 +331,10 @@ const MainContent = React.memo<{
             />
           );
         case 'agent-monitoring':
-          return <AgentMonitoringPage theme={t} fontSize={fs} showMessage={msg} />;
         case 'agent-trace':
-          return <AgentTracePage theme={t} fontSize={fs} showMessage={msg} />;
+          return (
+            <ResourceDiagnosticsModule activePage={p} theme={t} fontSize={fs} showMessage={msg} />
+          );
 
         case 'skill-register':
           return renderResourceRegister('skill');
@@ -342,7 +357,9 @@ const MainContent = React.memo<{
         case 'api-key-management':
         case 'token-management':
         case 'resource-grant-management':
-          return <UserManagementModule activeSubItem={p} theme={t} fontSize={fs} showMessage={msg} />;
+        case 'grant-applications':
+        case 'developer-applications':
+          return <AdminUserHubModule activePage={p} theme={t} fontSize={fs} showMessage={msg} />;
         case 'provider-list':
         case 'provider-create':
           return (
@@ -354,11 +371,6 @@ const MainContent = React.memo<{
               onOpenGrantManagement={() => nav('resource-grant-management')}
             />
           );
-        case 'grant-applications':
-          return <GrantApplicationListPage theme={t} fontSize={fs} showMessage={msg} />;
-        case 'developer-applications':
-          return <DeveloperApplicationListPage theme={t} fontSize={fs} showMessage={msg} />;
-
         case 'monitoring-overview':
         case 'call-logs':
         case 'performance-analysis':
@@ -366,7 +378,9 @@ const MainContent = React.memo<{
         case 'alert-rules':
         case 'health-config':
         case 'circuit-breaker':
-          return <MonitoringModule activeSubItem={p} theme={t} fontSize={fs} showMessage={msg} />;
+          return (
+            <AdminMonitoringHubModule activePage={p} theme={t} fontSize={fs} showMessage={msg} />
+          );
 
         case 'category-management':
         case 'tag-management':
@@ -380,7 +394,9 @@ const MainContent = React.memo<{
         case 'audit-log':
         case 'sensitive-words':
         case 'announcements':
-          return <SystemConfigModule activeSubItem={p} theme={t} fontSize={fs} showMessage={msg} />;
+          return (
+            <AdminSystemConfigHubModule activePage={p} theme={t} fontSize={fs} showMessage={msg} />
+          );
 
         default:
           return <PlaceholderView title={p} theme={t} fontSize={fs} />;

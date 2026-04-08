@@ -29,7 +29,7 @@ export const authService = {
   changePassword: (oldPassword: string, newPassword: string) =>
     http.post<void>('/auth/change-password', { oldPassword, newPassword }),
 
-  updateProfile: (data: { avatar?: string; language?: string; twoStep?: boolean }) =>
+  updateProfile: (data: { avatar?: string; language?: string }) =>
     http.put<void>('/auth/profile', data),
 
   getLoginHistory: async (params?: { page?: number; pageSize?: number }) => {

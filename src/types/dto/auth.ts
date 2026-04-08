@@ -24,7 +24,6 @@ export interface UserInfo {
   createdAt?: string;
   updatedAt?: string;
   language?: string;
-  twoFactorEnabled?: boolean;
 }
 
 export interface LoginRequest {

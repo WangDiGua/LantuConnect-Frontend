@@ -14,7 +14,7 @@ import { userMgmtService } from '../../api/services/user-mgmt.service';
 import type { UserRecord, RoleRecord } from '../../types/dto/user-mgmt';
 import {
   btnPrimary, btnSecondary,
-  mgmtTableActionDanger, mgmtTableActionGhost, mgmtTableRowActions,
+  mgmtTableActionDanger, mgmtTableActionGhost, mgmtTableActionPositive, mgmtTableRowActions,
   textPrimary, textSecondary, textMuted,
 } from '../../utils/uiClasses';
 import { PageError } from '../../components/common/PageError';

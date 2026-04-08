@@ -76,10 +76,10 @@ export const Modal: React.FC<ModalProps> = ({
                 ? { duration: 0 }
                 : { type: 'spring', stiffness: 400, damping: 30 }
             }
-            className={`relative w-full ${SIZE_MAP[size]} rounded-[2rem] border flex flex-col max-h-[85vh] overflow-hidden motion-reduce:transition-none ${
+            className={`relative w-full ${SIZE_MAP[size]} rounded-[2rem] border flex flex-col max-h-[85vh] overflow-hidden motion-reduce:transition-none shadow-[var(--shadow-modal)] ${
               isDark
-                ? 'bg-lantu-card border-white/[0.08] shadow-2xl'
-                : 'bg-white border-neutral-200/60 shadow-2xl'
+                ? 'bg-lantu-card border-white/[0.08]'
+                : 'bg-white border-neutral-200/60'
             }`}
           >
             {title && (

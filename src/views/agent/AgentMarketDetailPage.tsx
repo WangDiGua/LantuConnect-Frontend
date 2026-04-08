@@ -215,7 +215,7 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
         onTabChange={(id) => setTab(id as 'intro' | 'capability' | 'reviews')}
         mainColumn={(
           <div
-            className={`rounded-[28px] border p-6 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.02)] ${
+            className={`rounded-[28px] border p-6 shadow-[var(--shadow-card)] ${
               isDark ? 'border-white/10 bg-lantu-elevated' : 'border-transparent bg-white'
             }`}
           >
@@ -250,7 +250,7 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
         )}
         sidebarColumn={(
           <div
-            className={`space-y-4 rounded-[28px] border p-5 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.02)] ${
+            className={`space-y-4 rounded-[28px] border p-5 shadow-[var(--shadow-card)] ${
               isDark ? 'border-white/10 bg-lantu-elevated' : 'border-transparent bg-white'
             }`}
           >
@@ -290,7 +290,7 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
       {confirmOpen ? (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
           <div
-            className={`max-w-md rounded-2xl border p-6 shadow-xl ${isDark ? 'border-white/10 bg-lantu-card' : 'border-slate-200 bg-white'}`}
+            className={`max-w-md rounded-2xl border p-6 shadow-[var(--shadow-modal)] ${isDark ? 'border-white/10 bg-lantu-card' : 'border-slate-200 bg-white'}`}
             role="dialog"
             aria-modal="true"
             aria-labelledby="confirm-add-title"

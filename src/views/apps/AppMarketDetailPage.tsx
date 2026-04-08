@@ -313,7 +313,7 @@ export const AppMarketDetailPage: React.FC<AppMarketDetailPageProps> = ({
         onTabChange={(id) => setTab(id as 'intro' | 'use' | 'reviews')}
         mainColumn={(
           <div
-            className={`rounded-[28px] border p-6 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.02)] ${
+            className={`rounded-[28px] border p-6 shadow-[var(--shadow-card)] ${
               isDark ? 'border-white/10 bg-lantu-elevated' : 'border-transparent bg-white'
             }`}
           >

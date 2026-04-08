@@ -86,9 +86,9 @@ const HUB_STAT_BASE_LIGHT = `border-transparent ${CONSOLE_CARD_SHADOW_LIGHT}`;
 const HUB_STAT_BASE_DARK = `border-transparent ${CONSOLE_CARD_SHADOW_DARK}`;
 /** 仅 HubStatCard：悬停略加重层次，边线弱于市场卡「选中」态 */
 const HUB_STAT_HOVER_LIGHT =
-  'hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] hover:border-sky-200/50 hover:bg-gradient-to-br hover:from-white hover:to-gray-50';
+  'hover:shadow-[var(--shadow-card-hover)] hover:border-sky-200/50 hover:bg-gradient-to-br hover:from-white hover:to-gray-50';
 const HUB_STAT_HOVER_DARK =
-  'hover:shadow-[0_20px_50px_rgba(0,0,0,0.45)] hover:border-sky-400/45 hover:bg-gradient-to-br hover:from-lantu-card hover:to-lantu-elevated';
+  'hover:shadow-[var(--shadow-card-hover)] hover:border-sky-400/45 hover:bg-gradient-to-br hover:from-lantu-card hover:to-lantu-elevated';
 
 const Card: React.FC<{ children: React.ReactNode; className?: string; isDark?: boolean }> = ({ children, className = '', isDark = false }) => (
   <div
@@ -130,8 +130,8 @@ const SectionTitle: React.FC<{
 const hubResourceCardClass = (isDark: boolean) =>
   `${CONSOLE_CARD_RADIUS} border border-transparent px-6 pt-6 pb-8 flex flex-col h-full text-left cursor-pointer transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50 focus-visible:ring-offset-2 ${
     isDark
-      ? `bg-lantu-card ${CONSOLE_CARD_SHADOW_DARK} focus-visible:ring-offset-lantu-card hover:border-sky-400/45 hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)]`
-      : `bg-white ${CONSOLE_CARD_SHADOW_LIGHT} focus-visible:ring-offset-white hover:border-sky-200/50 hover:shadow-[0_12px_32px_-8px_rgba(15,23,42,0.06)]`
+      ? `bg-lantu-card ${CONSOLE_CARD_SHADOW_DARK} focus-visible:ring-offset-lantu-card hover:border-sky-400/45 hover:shadow-[var(--shadow-card-hover)]`
+      : `bg-white ${CONSOLE_CARD_SHADOW_LIGHT} focus-visible:ring-offset-white hover:border-sky-200/50 hover:shadow-[var(--shadow-card-hover)]`
   }`;
 
 const HubResourceCard: React.FC<{
@@ -261,7 +261,7 @@ const HubStatCard: React.FC<{
   const iconBoxCls = [
     'mb-4 flex h-12 w-12 items-center justify-center rounded-xl',
     'transition-all duration-500 ease-out',
-    'group-hover:scale-110 group-hover:-rotate-3 group-hover:shadow-[0_8px_20px_rgba(0,0,0,0.15)]',
+    'group-hover:scale-110 group-hover:-rotate-3 group-hover:shadow-[var(--shadow-card-hover)]',
     isDark
       ? 'bg-white/10 text-slate-300 group-hover:bg-white group-hover:text-slate-900'
       : 'bg-slate-50 text-slate-600 group-hover:bg-[#09090b] group-hover:text-white',
@@ -504,7 +504,7 @@ const HeroCodeTerminal: React.FC<{ compact?: boolean }> = ({ compact = false }) 
         aria-hidden
       />
       <div
-        className="relative z-10 overflow-hidden rounded-xl border border-white/[0.09] bg-black/40 shadow-[0_16px_40px_-10px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.04),0_0_48px_-20px_rgba(56,189,248,0.1)] backdrop-blur-xl"
+        className="relative z-10 overflow-hidden rounded-xl border border-white/[0.09] bg-black/40 shadow-[var(--shadow-card)] backdrop-blur-xl"
       >
       <div className={`flex items-center border-b border-white/5 ${headPad}`}>
         <div className={`flex ${compact ? 'gap-1' : 'gap-1.5'}`}>
@@ -691,8 +691,8 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
   /** Hero：压低高度、参考魔搭「中间栏横幅」；有左轨时仅占主栏宽度 */
   const heroRingOffset = isDark ? 'focus-visible:ring-offset-[#0c0e14]' : 'focus-visible:ring-offset-[#0a0a0a]';
   const heroShellClass = isDark
-    ? `relative w-full overflow-hidden rounded-2xl border border-white/[0.11] bg-gradient-to-b from-[#12151f] via-[#0c0e14] to-[#07080c] px-5 py-4 shadow-[0_1px_0_0_rgba(255,255,255,0.06)_inset,0_12px_28px_-10px_rgba(0,0,0,0.5),0_0_0_1px_rgba(0,0,0,0.35)] sm:px-6 sm:py-5`
-    : `relative w-full overflow-hidden rounded-2xl border border-white/10 bg-[#0a0a0a] px-5 py-4 shadow-[0_12px_28px_-10px_rgba(15,23,42,0.35)] sm:px-6 sm:py-5`;
+    ? `relative w-full overflow-hidden rounded-2xl border border-white/[0.11] bg-gradient-to-b from-[#12151f] via-[#0c0e14] to-[#07080c] px-5 py-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),var(--shadow-card)] sm:px-6 sm:py-5`
+    : `relative w-full overflow-hidden rounded-2xl border border-white/10 bg-[#0a0a0a] px-5 py-4 shadow-[var(--shadow-card)] sm:px-6 sm:py-5`;
   const heroGridStyle: React.CSSProperties = {
     backgroundImage: isDark
       ? 'linear-gradient(to right, rgba(255,255,255,0.045) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.045) 1px, transparent 1px)'
@@ -733,7 +733,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
           <button
             type="button"
             onClick={() => navigate(unifiedResourceCenterPath(platformRole))}
-            className={`group mb-3 inline-flex max-w-full items-center gap-2 rounded-full border border-white/[0.12] bg-white/[0.08] px-3 py-1.5 text-left shadow-md backdrop-blur-md transition-colors hover:border-white/[0.16] hover:bg-white/[0.11] focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/55 focus-visible:ring-offset-2 ${heroRingOffset}`}
+            className={`group mb-3 inline-flex max-w-full items-center gap-2 rounded-full border border-white/[0.12] bg-white/[0.08] px-3 py-1.5 text-left shadow-[var(--shadow-control)] backdrop-blur-md transition-colors hover:border-white/[0.16] hover:bg-white/[0.11] focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/55 focus-visible:ring-offset-2 ${heroRingOffset}`}
           >
             <Sparkles className="h-3.5 w-3.5 shrink-0 text-sky-400" strokeWidth={2} aria-hidden />
             <span className="text-xs font-medium text-white sm:text-sm">Nexus Pro 2.0 现已发布</span>
@@ -756,7 +756,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
             <button
               type="button"
               onClick={() => navigate(unifiedResourceCenterPath(platformRole))}
-              className={`bg-white text-black px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-neutral-100 active:scale-[0.98] transition-all flex items-center justify-center gap-2 w-full sm:w-auto shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 ${heroRingOffset}`}
+              className={`bg-white text-black px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-neutral-100 active:scale-[0.98] transition-all flex items-center justify-center gap-2 w-full sm:w-auto shadow-[var(--shadow-control)] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 ${heroRingOffset}`}
             >
               开始发布 <ArrowRight size={15} aria-hidden />
             </button>
@@ -986,12 +986,12 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
                     <div
                       className={`rounded-2xl p-6 flex flex-col items-center justify-center text-center border mt-2 ${
                         isDark
-                          ? 'bg-white/[0.03] border-white/10 shadow-[0_2px_10px_rgba(0,0,0,0.2)]'
-                          : 'bg-neutral-50 border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)]'
+                          ? 'bg-white/[0.03] border-white/10 shadow-[var(--shadow-card)]'
+                          : 'bg-neutral-50 border-gray-100 shadow-[var(--shadow-card)]'
                       }`}
                     >
                       <div className="relative mb-4">
-                        <div className={`w-20 h-20 rounded-full border-4 shadow-sm overflow-hidden flex items-center justify-center ${
+                        <div className={`w-20 h-20 rounded-full border-4 shadow-[var(--shadow-control)] overflow-hidden flex items-center justify-center ${
                           isDark ? 'bg-white/10 border-white/20' : 'bg-white border-white'
                         }`}>
                           <MultiAvatar
@@ -1001,7 +1001,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
                             className="w-16 h-16 rounded-full object-cover"
                           />
                         </div>
-                        <div className="absolute -bottom-2 -right-2 bg-yellow-400 text-yellow-900 text-xs font-bold px-3 py-1 rounded-full border-2 border-white shadow-sm">
+                        <div className="absolute -bottom-2 -right-2 bg-yellow-400 text-yellow-900 text-xs font-bold px-3 py-1 rounded-full border-2 border-white shadow-[var(--shadow-control)]">
                           TOP 1
                         </div>
                       </div>

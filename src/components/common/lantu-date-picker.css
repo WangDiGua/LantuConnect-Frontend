@@ -11,7 +11,7 @@
   border-radius: 14px;
   border: 1px solid transparent;
   overflow: hidden;
-  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.18);
+  box-shadow: var(--shadow-dropdown);
   font-size: 12px;
   min-width: 280px;
 }
@@ -73,7 +73,7 @@
 .lantu-datepicker-panel-dark {
   background: #1c1f2b;
   border-color: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--shadow-dropdown);
 }
 
 .lantu-datepicker-panel-dark .react-datepicker__header {
@@ -192,12 +192,12 @@
   border-radius: 10px;
   padding: 4px;
   text-align: left;
-  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.15);
+  box-shadow: var(--shadow-dropdown);
 }
 
 .lantu-datepicker-panel-dark .react-datepicker__year-dropdown,
 .lantu-datepicker-panel-dark .react-datepicker__month-dropdown {
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--shadow-dropdown);
 }
 
 .lantu-datepicker-panel-light .react-datepicker__year-dropdown,

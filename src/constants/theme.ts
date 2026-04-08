@@ -70,7 +70,7 @@ const BRAND_NEUTRAL_ACCENT: {
   bg: 'bg-neutral-900 hover:bg-neutral-800',
   border: 'border-neutral-900',
   ring: 'ring-neutral-900/30',
-  shadow: 'shadow-neutral-900/15',
+  shadow: 'shadow-[var(--shadow-control)]',
 };
 
 export const THEME_COLOR_CLASSES: Record<ThemeColor, typeof BRAND_NEUTRAL_ACCENT> = {

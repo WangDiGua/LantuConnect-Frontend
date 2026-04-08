@@ -104,7 +104,7 @@ export const LantuSelect: React.FC<LantuSelectProps> = ({
         anchorEl={triggerRef.current}
         align={align}
         matchAnchorWidth
-        className={`rounded-xl border py-1.5 shadow-xl shadow-neutral-900/5 ${menuSurface}`}
+        className={`rounded-xl border py-1.5 shadow-[var(--shadow-dropdown)] ${menuSurface}`}
       >
         <div
           id={listboxId}

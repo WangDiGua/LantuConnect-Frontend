@@ -116,7 +116,7 @@ export function DataTable<T extends Record<string, any>>({
 
   if (loading) {
     return (
-      <div className={`rounded-2xl border shadow-sm ${isDark ? 'bg-lantu-card border-white/10' : 'bg-white border-neutral-200'} ${className}`}>
+      <div className={`rounded-2xl border shadow-[var(--shadow-card)] ${isDark ? 'bg-lantu-card border-white/10' : 'bg-white border-neutral-200'} ${className}`}>
         <div className="p-4">
           <PageSkeleton type="table" rows={6} />
         </div>
@@ -125,7 +125,7 @@ export function DataTable<T extends Record<string, any>>({
   }
 
   return (
-    <div className={`rounded-2xl border overflow-hidden shadow-sm ${isDark ? 'bg-lantu-card border-white/10' : 'bg-white border-neutral-200'} ${className}`}>
+    <div className={`rounded-2xl border overflow-hidden shadow-[var(--shadow-card)] ${isDark ? 'bg-lantu-card border-white/10' : 'bg-white border-neutral-200'} ${className}`}>
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm whitespace-nowrap min-w-full">
           <thead className={`border-b ${isDark ? 'border-white/10 bg-white/[0.03]' : 'bg-neutral-50/80 border-neutral-200'}`}>

@@ -11,7 +11,7 @@ export const TOOLBAR_ROW_LIST =
 
 export function toolbarSearchInputClass(theme: Theme): string {
   const d = theme === 'dark';
-  return `w-full pl-10 pr-4 rounded-xl border text-sm min-h-[2.5rem] box-border outline-none transition-all duration-200 motion-reduce:transition-none shadow-sm focus-visible:outline-none ${
+  return `w-full pl-10 pr-4 rounded-xl border text-sm min-h-[2.5rem] box-border outline-none transition-all duration-200 motion-reduce:transition-none shadow-[var(--shadow-control)] focus-visible:outline-none ${
     d
       ? 'bg-[#2C2C2E] border-white/10 text-white placeholder:text-neutral-500 focus-visible:ring-2 focus-visible:ring-sky-500/35 focus-visible:border-white/25'
       : 'bg-neutral-50/50 border-neutral-200 text-neutral-900 placeholder:text-neutral-400 hover:border-neutral-300 focus-visible:ring-2 focus-visible:ring-neutral-900/10 focus-visible:border-neutral-900 focus:bg-white'

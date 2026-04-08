@@ -66,11 +66,9 @@ export const consoleScrollSafeBottomPad =
 
 /** 控制台内容卡片：大圆角 + 极淡浮起阴影（与 UI/卡片背景设计示例 对齐） */
 export const CONSOLE_CARD_RADIUS = 'rounded-[28px]';
-export const CONSOLE_CARD_SHADOW_LIGHT =
-  'shadow-[0_8px_24px_-4px_rgba(0,0,0,0.02)]';
-/** 深色：仍保持柔和层次，避免旧版 0.5 alpha 过重 */
-export const CONSOLE_CARD_SHADOW_DARK =
-  'shadow-[0_8px_28px_-8px_rgba(0,0,0,0.28)]';
+/** 与 design token `--shadow-card` 一致（图二：偏下漫射） */
+export const CONSOLE_CARD_SHADOW_LIGHT = 'shadow-[var(--shadow-card)]';
+export const CONSOLE_CARD_SHADOW_DARK = 'shadow-[var(--shadow-card)]';
 /** 图二默认：无边线感，仅靠阴影与画布对比分层（1px 占位避免选中/hover 抢 layout） */
 const CONSOLE_CARD_BORDER_LIGHT_DEFAULT = 'border-transparent';
 const CONSOLE_CARD_BORDER_DARK_DEFAULT = 'border-transparent';
@@ -100,8 +98,8 @@ export function glassSidebar(theme: Theme) {
 
 export function glassPanel(theme: Theme) {
   return D(theme)
-    ? `bg-lantu-card/55 backdrop-blur-xl border border-white/[0.08] ${CONSOLE_CARD_RADIUS} shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]`
-    : `bg-white/80 backdrop-blur-md border border-transparent ${CONSOLE_CARD_RADIUS} shadow-[inset_0_1px_0_0_rgba(255,255,255,0.85),0_8px_24px_-4px_rgba(0,0,0,0.02)]`;
+    ? `bg-lantu-card/55 backdrop-blur-xl border border-white/[0.08] ${CONSOLE_CARD_RADIUS} shadow-[var(--shadow-glass-panel)]`
+    : `bg-white/80 backdrop-blur-md border border-transparent ${CONSOLE_CARD_RADIUS} shadow-[var(--shadow-glass-panel)]`;
 }
 
 /* ═══════════════════════════════════════════
@@ -109,9 +107,9 @@ export function glassPanel(theme: Theme) {
    ═══════════════════════════════════════════ */
 
 const CARD_HOVER_SHADOW_LIGHT =
-  'hover:shadow-[0_10px_28px_-6px_rgba(15,23,42,0.04)] motion-reduce:hover:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.02)]';
+  'hover:shadow-[var(--shadow-card-hover)] motion-reduce:hover:shadow-[var(--shadow-card)]';
 const CARD_HOVER_SHADOW_DARK =
-  'hover:shadow-[0_10px_32px_-8px_rgba(0,0,0,0.38)] motion-reduce:hover:shadow-[0_8px_28px_-8px_rgba(0,0,0,0.28)]';
+  'hover:shadow-[var(--shadow-card-hover)] motion-reduce:hover:shadow-[var(--shadow-card)]';
 
 /** 未选中：hover 边线弱于图三选中态，避免与 selected 同色 */
 const CARD_INTERACTIVE_HOVER_LIGHT =
@@ -166,11 +164,11 @@ export const glowRose = 'hover:shadow-[var(--shadow-glow-rose)]';
    Buttons — Vercel / Linear style
    ═══════════════════════════════════════════ */
 
-export const btnPrimary = 'inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm leading-none font-semibold whitespace-nowrap text-white bg-neutral-900 hover:bg-neutral-800 active:scale-[0.98] transition-all shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/45 disabled:opacity-50 disabled:pointer-events-none';
+export const btnPrimary = 'inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm leading-none font-semibold whitespace-nowrap text-white bg-neutral-900 hover:bg-neutral-800 active:scale-[0.98] transition-all shadow-[var(--shadow-control)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/45 disabled:opacity-50 disabled:pointer-events-none';
 
 export const btnDanger = 'inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm leading-none font-medium whitespace-nowrap text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none';
 
-export const btnHeroPrimary = 'inline-flex items-center gap-2 px-6 py-3 bg-white text-neutral-900 text-sm leading-none font-bold whitespace-nowrap rounded-xl hover:scale-[1.02] transition-transform shadow-lg shadow-white/10';
+export const btnHeroPrimary = 'inline-flex items-center gap-2 px-6 py-3 bg-white text-neutral-900 text-sm leading-none font-bold whitespace-nowrap rounded-xl hover:scale-[1.02] transition-transform shadow-[var(--shadow-card)]';
 export const btnHeroSecondary = 'inline-flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 text-white text-sm leading-none font-semibold whitespace-nowrap rounded-xl backdrop-blur-sm transition-colors border border-white/5';
 
 export function btnSecondary(theme: Theme) {

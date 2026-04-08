@@ -509,11 +509,11 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
             <input className={inputCls} value={addCategory} onChange={(e) => setAddCategory(e.target.value)} placeholder="默认" />
           </div>
           <div>
-            <label className={`text-sm font-medium ${textSecondary(theme)} mb-1 block`}>严重级别（severity）</label>
+            <label className={`text-sm font-medium ${textSecondary(theme)} mb-1 block`}>严重级别</label>
             <input type="number" min={1} max={10} className={inputCls} value={addSeverity} onChange={(e) => setAddSeverity(Math.max(1, Number(e.target.value) || 1))} />
           </div>
           <div>
-            <label className={`text-sm font-medium ${textSecondary(theme)} mb-1 block`}>来源（source）</label>
+            <label className={`text-sm font-medium ${textSecondary(theme)} mb-1 block`}>来源</label>
             <input className={inputCls} value={addSource} onChange={(e) => setAddSource(e.target.value)} placeholder="manual" />
           </div>
         </div>
@@ -547,7 +547,7 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
             <input className={inputCls} value={editCategory} onChange={(e) => setEditCategory(e.target.value)} placeholder="默认" />
           </div>
           <div>
-            <label className={`text-sm font-medium ${textSecondary(theme)} mb-1 block`}>严重级别（severity）</label>
+            <label className={`text-sm font-medium ${textSecondary(theme)} mb-1 block`}>严重级别</label>
             <input type="number" min={1} max={10} className={inputCls} value={editSeverity} onChange={(e) => setEditSeverity(Math.max(1, Number(e.target.value) || 1))} />
           </div>
           <div>

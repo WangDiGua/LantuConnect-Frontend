@@ -49,10 +49,11 @@ export function catalogItemDegradationHint(item: Pick<ResourceCatalogItemVO, 'ob
 }
 
 /**
- * 是否与网关侧 `ensureResourceHealthNotDown` + 熔断 open 一致：不可 invoke 时前端同步关闭入口。
- * `unknown`：未配置或未探测，仍允许进入工具测试（由网关最终拦截）。
+ * 与后端目录筛选 `callableOnly` / `UnifiedGatewayServiceImpl#isResourcePhysicallyCallable` 对齐：
+ * - 健康：仅 `down`、`disabled` 视为不可调用（`degraded` / `unhealthy` / `offline` 等仍放行，由网关与探针提示风险）。
+ * - 熔断：仅 `open`、`forced_open` 不可入目录；`half_open` 放行以便完成半开探测恢复。
  *
- * `half_open`（Resilience4j 半开）：与健康同为 UP 时也不应展示为「运行健康」；广场侧视为暂不可可靠调用。
+ * `unknown`：未配置或未探测，仍允许进入工具测试（由网关最终拦截）。
  *
  * 注意：勿用 `degradationHint` 参与判定。后端可能按账号/租户/配额填入提示（与「资源全局故障」不等价），
  * 若据此禁用列表，会导致换账号后同一 MCP「忽而不可用、忽而可用」，与广场「运行状态」预期不符。
@@ -60,22 +61,15 @@ export function catalogItemDegradationHint(item: Pick<ResourceCatalogItemVO, 'ob
 export function isCatalogMcpCallable(item: Pick<ResourceCatalogItemVO, 'observability'>): boolean {
   const h = norm(catalogItemHealthStatus(item));
   const c = norm(catalogItemCircuitState(item));
-  if (c === 'half_open') return false;
   if (c === 'open' || c === 'forced_open') return false;
-  if (
-    h === 'down'
-    || h === 'unhealthy'
-    || h === 'offline'
-    || h === 'out_of_service'
-    || h === 'disabled'
-  ) {
+  if (h === 'down' || h === 'disabled') {
     return false;
   }
   return true;
 }
 
 /**
- * 列表/详情「运行 *」徽章用 key：半开/熔断/健康 down 时勿仅用 healthStatus（否则仍显示「健康」）。
+ * 列表/详情「运行 *」徽章用 key：半开/全断/健康 down 时勿仅用 healthStatus（否则仍显示「健康」）。
  */
 export function catalogRunBadgeHealthKeyForDisplay(item: Pick<ResourceCatalogItemVO, 'observability'>): string {
   const c = norm(catalogItemCircuitState(item));
@@ -91,17 +85,11 @@ export function catalogInvokeSupplementHint(item: Pick<ResourceCatalogItemVO, 'o
 
 export function mcpInvokeBlockedReason(item: Pick<ResourceCatalogItemVO, 'observability'>): string {
   const c = norm(catalogItemCircuitState(item));
-  if (c === 'half_open') {
-    return '熔断处于半开（试探恢复），调用可能不稳定或受限，建议稍后再试。';
-  }
   if (c === 'open' || c === 'forced_open') {
-    return '熔断已断开，网关暂不放行调用。可稍后在健康恢复后重试。';
+    return '熔断已断开，网关暂不放行调用。探活恢复后后端会自动合闸；亦可稍后再试。';
   }
   const h = norm(catalogItemHealthStatus(item));
-  if (h === 'down') return '健康探测为故障（DOWN），网关已禁止调用。';
+  if (h === 'down') return '健康探测为故障，网关已禁止调用。';
   if (h === 'disabled') return '健康检查未启用或已关闭，网关暂不可调用。';
-  if (h === 'unhealthy' || h === 'offline' || h === 'out_of_service') {
-    return '运行状态异常，网关已禁止或即将禁止调用。';
-  }
   return '当前不可调用。';
 }

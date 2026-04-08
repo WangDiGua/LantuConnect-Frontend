@@ -252,7 +252,7 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme, fon
       fontSize={fontSize}
       titleIcon={Terminal}
       breadcrumbSegments={['开发者中心', 'API Playground']}
-      description="调试请求；GET /catalog/resources、/reviews/page、/catalog/resources/{type}/{id}/stats 须 X-User-Id 或 X-Api-Key 之一；POST /catalog/resolve、/invoke、/invoke-stream 须 X-Api-Key（与市场共用的本地密钥）。技能（skill）请勿走统一网关 invoke，请以技能市场的制品下载与 resolve 为准；跨 owner 资源须 Grant 或符合 accessPolicy。"
+      description="调试请求；GET /catalog/resources、/reviews/page、/catalog/resources/{type}/{id}/stats 须 X-User-Id 或 X-Api-Key 之一；POST /catalog/resolve、/invoke、/invoke-stream 须 X-Api-Key（与市场共用的本地密钥）。技能类资源请勿走统一网关 invoke，请以技能市场的制品下载与目录解析为准；跨 owner 资源须 Grant 或符合 accessPolicy。"
       toolbar={playgroundToolbar}
       contentScroll="document"
     >
@@ -301,7 +301,7 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme, fon
               </div>
               {(method === 'POST' || method === 'PUT') && (
                 <div>
-                  <span className={`text-xs font-semibold ${textSecondary(theme)}`}>Body (JSON)</span>
+                  <span className={`text-xs font-semibold ${textSecondary(theme)}`}>请求体 JSON</span>
                   <AutoHeightTextarea value={body} onChange={(e) => setBody(e.target.value)} minRows={6} maxRows={28} className={`mt-2 ${nativeInputClass(theme)} font-mono resize-none`} placeholder='{"key": "value"}' />
                 </div>
               )}

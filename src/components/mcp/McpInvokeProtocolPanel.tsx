@@ -109,7 +109,7 @@ export const McpInvokeProtocolPanel: React.FC<McpInvokeProtocolPanelProps> = ({
                 },
                 {
                   value: 'sdk',
-                  label: invokeUseStream ? `${API_PATH_PREFIX}/sdk/v1/invoke-stream（流式）` : `${API_PATH_PREFIX}/sdk/v1/invoke（SDK）`,
+                  label: invokeUseStream ? `${API_PATH_PREFIX}/sdk/v1/invoke-stream · 流式` : `${API_PATH_PREFIX}/sdk/v1/invoke · SDK`,
                 },
               ]}
               triggerClassName="!text-xs"

@@ -253,7 +253,7 @@ export const ResourceGrantManagementPage: React.FC<Props> = ({ theme, fontSize, 
             />
           </div>
           <div className="mt-3">
-            <p className={`mb-2 text-xs ${textSecondary(theme)}`}>授权动作（actions）</p>
+            <p className={`mb-2 text-xs ${textSecondary(theme)}`}>授权动作</p>
             <div className="flex flex-wrap items-center gap-2">
               {ACTION_OPTIONS.map((option) => {
                 const checked = actions.includes(option.value);

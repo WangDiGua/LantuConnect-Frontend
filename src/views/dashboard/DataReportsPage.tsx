@@ -314,7 +314,7 @@ export const DataReportsPage: React.FC<DataReportsPageProps> = ({ theme, fontSiz
               <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.22 }} className="mb-5">
                 <BentoCard theme={theme} padding="sm" className="!p-0 overflow-hidden">
                   <div className={`px-5 py-3.5 border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-                    <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400">按网关路径（method）聚合</h3>
+                    <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400">按请求方法聚合</h3>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">

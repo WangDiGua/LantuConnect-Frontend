@@ -606,7 +606,7 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _the
               onChange={setGatewayApiKeyDraft}
             />
             <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
-              技能包通过目录解析（resolve）后下载制品；不在此走统一网关 invoke。远程可调用能力请作为 <strong className={textSecondary(theme)}>MCP</strong> 注册。
+              技能包通过目录解析后下载制品；不在此走统一网关 invoke。远程可调用能力请作为 <strong className={textSecondary(theme)}>MCP</strong> 注册。
             </p>
             <p className={`text-xs ${textMuted(theme)}`}>{useSkill.description || '暂无描述'}</p>
             {useResult && <div className={`rounded-xl p-4 text-sm font-medium whitespace-pre-wrap ${isDark ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>{useResult}</div>}

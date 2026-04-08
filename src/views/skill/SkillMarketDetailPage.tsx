@@ -284,7 +284,7 @@ export const SkillMarketDetailPage: React.FC<SkillMarketDetailPageProps> = ({
                   <MarkdownView value={skill.serviceDetailMd} className="text-sm" />
                 ) : (
                   <p className={`text-sm ${textMuted(theme)}`}>
-                    暂无详细介绍；资源所有方可在「资源注册」中填写「技能介绍」（Markdown）。
+                    暂无详细介绍；资源所有方可在「资源注册」中填写「技能介绍」，正文支持 Markdown。
                   </p>
                 )}
                 <p className={`text-sm leading-relaxed ${textSecondary(theme)}`}>{skill.description || '暂无描述'}</p>
@@ -396,7 +396,7 @@ export const SkillMarketDetailPage: React.FC<SkillMarketDetailPageProps> = ({
                   ) : null}
                   {skill.specJson?.extra != null && typeof skill.specJson.extra === 'object' && Object.keys(skill.specJson.extra as object).length > 0 ? (
                     <div>
-                      <p className={`mb-1 text-xs font-medium ${textMuted(theme)}`}>spec 附加（extra）</p>
+                      <p className={`mb-1 text-xs font-medium ${textMuted(theme)}`}>spec 附加信息</p>
                       <pre
                         className={`max-h-48 overflow-auto rounded-lg p-3 text-xs ${
                           isDark ? 'bg-black/30 text-slate-200' : 'bg-white text-slate-800'
@@ -489,7 +489,7 @@ export const SkillMarketDetailPage: React.FC<SkillMarketDetailPageProps> = ({
         <div className="space-y-4">
           <GatewayApiKeyInput theme={theme} id="skill-detail-gateway-key" value={gatewayApiKeyDraft} onChange={setGatewayApiKeyDraft} />
           <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
-            技能包通过目录解析（resolve）后下载制品；不在此走统一网关 invoke。
+            技能包通过目录解析后下载制品；不在此走统一网关 invoke。
           </p>
           <p className={`text-xs ${textMuted(theme)}`}>{skill.description || '暂无描述'}</p>
           {useResult ? (

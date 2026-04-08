@@ -225,7 +225,7 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
                   <MarkdownView value={agent.serviceDetailMd} className="text-sm" />
                 ) : (
                   <p className={`text-sm ${textMuted(theme)}`}>
-                    暂无详细介绍；资源所有方可在「资源注册」中填写「智能体介绍」（Markdown）。
+                    暂无详细介绍；资源所有方可在「资源注册」中填写「智能体介绍」，正文支持 Markdown。
                   </p>
                 )}
                 <p className={`text-sm leading-relaxed ${textSecondary(theme)}`}>{agent.description || '暂无描述'}</p>

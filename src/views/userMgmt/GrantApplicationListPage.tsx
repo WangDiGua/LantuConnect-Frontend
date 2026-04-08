@@ -347,7 +347,7 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, fontSize, sho
               驳回授权申请 · ID {rejectTarget.id}
             </h3>
             <label htmlFor="grant-reject-reason" className={`mt-3 block text-xs font-medium ${textSecondary(theme)}`}>
-              驳回原因（reason）
+              驳回原因
             </label>
             <AutoHeightTextarea
               id="grant-reject-reason"
@@ -361,7 +361,7 @@ export const GrantApplicationListPage: React.FC<Props> = ({ theme, fontSize, sho
               className={`mt-1.5 w-full rounded-xl border px-3 py-2 text-sm resize-none ${
                 isDark ? 'border-white/10 bg-white/[0.04] text-slate-200' : 'border-slate-200 bg-white text-slate-700'
               }${rejectReasonError ? ` ${inputBaseError()}` : ''}`}
-              placeholder="请输入驳回原因（reason）"
+              placeholder="请输入驳回原因"
               aria-invalid={!!rejectReasonError}
               aria-describedby={rejectReasonError ? 'grant-reject-reason-err' : undefined}
             />

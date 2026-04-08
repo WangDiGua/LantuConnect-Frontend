@@ -417,7 +417,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
               ) : null}
               <p className={`text-xs ${textMuted(theme)}`}>
                 {detailTab === 'service'
-                  ? '当前：服务详情（Markdown）'
+                  ? '当前：服务详情'
                   : detailTab === 'invoke'
                     ? '当前：工具测试 · 上方为快速试用，协议与流式见折叠面板'
                     : '当前：资源评论区'}

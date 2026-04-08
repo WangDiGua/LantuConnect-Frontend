@@ -653,7 +653,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
       fontSize={fontSize}
       titleIcon={Puzzle}
       breadcrumbSegments={['开发者中心', 'MCP 对外集成']}
-      description="以「选择 API Key」为主线：Grant 列与导出 hasGrantForKey 来自后端 invoke-eligibility，与 POST /invoke 一致。目录支持 callableOnly 与网关健康/熔断一致。导出 JSON 仅为快照；调用须完整 X-Api-Key。"
+      description="以「选择 API Key」为主线：Grant 列与导出 hasGrantForKey 来自后端 invoke-eligibility，与 POST /invoke 一致。目录 callableOnly 与网关 isResourcePhysicallyCallable 一致（健康仅拦截 down/disabled；熔断仅 OPEN/FORCED_OPEN；HALF_OPEN 仍可出现）。导出 JSON 仅为快照；调用须完整 X-Api-Key。"
       toolbar={toolbar}
       contentScroll="document"
     >
@@ -737,7 +737,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
               <CopyTextBtn text={catalogResolveUrl} isDark={isDark} label="复制 URL" />
             </div>
             <div className="flex flex-wrap gap-2">
-              <CopyCurlPlatformBtn triple={resolveCatalogCurlTriple} isDark={isDark} label="复制 curl（resolve）" />
+              <CopyCurlPlatformBtn triple={resolveCatalogCurlTriple} isDark={isDark} label="复制 curl · 解析" />
             </div>
           </div>
 
@@ -927,8 +927,8 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
                     <CopyTextBtn text={sdkResolveUrl} isDark={isDark} label="复制 SDK resolve URL" />
                   </div>
                   <div className="flex flex-wrap gap-2 mt-2">
-                    <CopyCurlPlatformBtn triple={resolveCatalogCurlTriple} isDark={isDark} label="复制 curl（catalog）" />
-                    <CopyCurlPlatformBtn triple={resolveSdkCurlTriple} isDark={isDark} label="复制 curl（sdk）" />
+                    <CopyCurlPlatformBtn triple={resolveCatalogCurlTriple} isDark={isDark} label="复制 curl · 目录" />
+                    <CopyCurlPlatformBtn triple={resolveSdkCurlTriple} isDark={isDark} label="复制 curl · SDK" />
                   </div>
                 </div>
               </div>
@@ -944,7 +944,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
               className={`rounded-2xl border p-4 space-y-4 ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-white'}`}
             >
               <div>
-                <div className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>API Key（grantee）</div>
+                <div className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>被授权方 API Key</div>
                 {keyOptions.length === 0 ? (
                   <p className={`text-sm ${textMuted(theme)}`}>
                     暂无可用 Key。请前往

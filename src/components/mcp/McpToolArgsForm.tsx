@@ -79,7 +79,7 @@ export const McpToolArgsForm: React.FC<McpToolArgsFormProps> = ({
 
   return (
     <div className="space-y-3" role="group" aria-label="工具参数（根据 inputSchema 生成）">
-      <p className={`text-xs font-semibold ${textSecondary(theme)}`}>参数表单（可同步至下方 JSON）</p>
+      <p className={`text-xs font-semibold ${textSecondary(theme)}`}>参数表单（与下方 JSON 同步）</p>
       {fields.map((f) => {
         const req =
           Array.isArray((inputSchema as Record<string, unknown>).required) &&

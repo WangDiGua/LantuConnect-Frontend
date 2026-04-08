@@ -571,7 +571,7 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
           </h2>
           <p className={`text-xs mb-2 ${textMuted(theme)}`}>
             用于接口请求头 <span className="font-mono">X-Api-Key</span>。创建后<strong className={textSecondary(theme)}>仅当次响应</strong>会展示完整密钥；若未保存，可在<strong className={textSecondary(theme)}>验证身份后轮换密钥</strong>以获取新明文（<strong className={textPrimary(theme)}>旧串立即作废</strong>）。
-            新建将自动带上默认可调用权限（scope）。
+            新建将自动带上默认可调用权限。
           </p>
           <p className={`text-xs mb-3 ${textMuted(theme)}`}>
             服务端只存密钥摘要，无法「找回」原明文。列表中的掩码、前缀、id 不能作为请求头；撤销后本条将不再显示。

@@ -324,7 +324,7 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
           <div className={`${bentoCard(theme)} w-full max-w-lg p-4`} onClick={(e) => e.stopPropagation()}>
             <h3 className={`text-base font-semibold ${textPrimary(theme)}`}>驳回资源 · {rejectTarget.displayName}</h3>
             <label htmlFor="resource-audit-reject-reason" className={`mt-3 block text-xs font-medium ${textSecondary(theme)}`}>
-              驳回原因（reason）
+              驳回原因
             </label>
             <AutoHeightTextarea
               id="resource-audit-reject-reason"
@@ -338,7 +338,7 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
               className={`mt-1.5 w-full rounded-xl border px-3 py-2 text-sm resize-none ${
                 isDark ? 'border-white/10 bg-white/[0.04] text-slate-200' : 'border-slate-200 bg-white text-slate-700'
               }${rejectReasonError ? ` ${inputBaseError()}` : ''}`}
-              placeholder="请输入驳回原因（reason）"
+              placeholder="请输入驳回原因"
               aria-invalid={!!rejectReasonError}
               aria-describedby={rejectReasonError ? 'resource-audit-reject-err' : undefined}
             />

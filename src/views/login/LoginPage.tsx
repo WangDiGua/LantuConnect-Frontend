@@ -191,7 +191,7 @@ export const LoginPage: React.FC = () => {
 
           <div className="w-full max-w-[380px] space-y-8 sm:space-y-10 pb-6 [@media(min-width:1024px)_and_(max-height:820px)]:lg:space-y-5 [@media(min-width:1024px)_and_(max-height:720px)]:lg:space-y-4 [@media(min-width:1024px)_and_(max-height:820px)]:lg:pb-3">
           <div className="space-y-1.5 sm:space-y-2 [@media(min-width:1024px)_and_(max-height:720px)]:lg:space-y-1">
-            <h2 className="text-3xl font-semibold tracking-tight text-neutral-900 [@media(min-width:1024px)_and_(max-height:760px)]:lg:text-2xl">Sign in</h2>
+            <h2 className="text-3xl font-semibold tracking-tight text-neutral-900 [@media(min-width:1024px)_and_(max-height:760px)]:lg:text-2xl">登录</h2>
             <p className="text-sm text-neutral-500 [@media(min-width:1024px)_and_(max-height:680px)]:lg:text-xs">输入学工号进入您的智能工作空间</p>
           </div>
 
@@ -208,7 +208,7 @@ export const LoginPage: React.FC = () => {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 [@media(min-width:1024px)_and_(max-height:820px)]:lg:space-y-4 [@media(min-width:1024px)_and_(max-height:720px)]:lg:space-y-3">
             <div className="space-y-4 [@media(min-width:1024px)_and_(max-height:780px)]:lg:space-y-3 [@media(min-width:1024px)_and_(max-height:680px)]:lg:space-y-2.5">
               <div className="space-y-2">
-                <label className={labelBase(formTheme)}>学工号 (ID)</label>
+                <label className={labelBase(formTheme)}>学工号</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                     <Mail className="w-4 h-4 text-neutral-400" />
@@ -216,7 +216,7 @@ export const LoginPage: React.FC = () => {
                   <input
                     type="text"
                     autoComplete="username"
-                    placeholder="e.g. 20230001"
+                    placeholder="例如 20230001"
                     className={`${inputCls} ${errors.username ? inputBaseError() : ''}`}
                     {...register('username')}
                   />
@@ -226,7 +226,7 @@ export const LoginPage: React.FC = () => {
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className={labelBase(formTheme)}>密码 (Password)</label>
+                  <label className={labelBase(formTheme)}>密码</label>
                 </div>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -252,7 +252,7 @@ export const LoginPage: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <label className={labelBase(formTheme)}>安全验证 (Verification)</label>
+                <label className={labelBase(formTheme)}>安全验证</label>
                 {captchaLoading ? (
                   <div className="h-11 flex items-center justify-center">
                     <Loader2 size={18} className="animate-spin text-neutral-400" />
@@ -302,7 +302,7 @@ export const LoginPage: React.FC = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <span className="ml-2.5 text-sm text-neutral-600 group-hover:text-neutral-900 transition-colors select-none">保持会话 (Keep me signed in)</span>
+              <span className="ml-2.5 text-sm text-neutral-600 group-hover:text-neutral-900 transition-colors select-none">保持会话</span>
             </label>
 
             <div className="space-y-3 pt-2 [@media(min-width:1024px)_and_(max-height:780px)]:lg:space-y-2 [@media(min-width:1024px)_and_(max-height:780px)]:lg:pt-1">
@@ -323,7 +323,7 @@ export const LoginPage: React.FC = () => {
 
               <div className="relative flex items-center py-3 [@media(min-width:1024px)_and_(max-height:760px)]:lg:py-2 [@media(min-width:1024px)_and_(max-height:660px)]:lg:py-1.5">
                 <div className="flex-grow border-t border-neutral-100" />
-                <span className="flex-shrink-0 mx-4 text-xs text-neutral-400 uppercase tracking-widest font-mono">Alternative</span>
+                <span className="flex-shrink-0 mx-4 text-xs text-neutral-400 tracking-widest">其他方式</span>
                 <div className="flex-grow border-t border-neutral-100" />
               </div>
 
@@ -333,7 +333,7 @@ export const LoginPage: React.FC = () => {
                 className="w-full py-2.5 px-4 bg-white border border-neutral-200 hover:bg-neutral-50 text-neutral-700 disabled:text-neutral-400 disabled:cursor-not-allowed rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all duration-300"
               >
                 <ShieldCheck className="w-4 h-4 text-neutral-500" />
-                高校统一认证 (SSO)
+                高校统一认证
               </button>
             </div>
           </form>
@@ -341,8 +341,8 @@ export const LoginPage: React.FC = () => {
           <div className="flex items-center justify-between text-xs text-neutral-400 pt-8 border-t border-neutral-100 [@media(min-width:1024px)_and_(max-height:800px)]:lg:pt-4 [@media(min-width:1024px)_and_(max-height:680px)]:lg:pt-3 [@media(min-width:1024px)_and_(max-height:800px)]:lg:text-xs">
             <span>&copy; 2026 Nexus AI</span>
             <div className="flex gap-4">
-              <a href="#" className="rounded-md hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/25 transition-colors">Privacy</a>
-              <a href="#" className="rounded-md hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/25 transition-colors">Terms</a>
+              <a href="#" className="rounded-md hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/25 transition-colors">隐私</a>
+              <a href="#" className="rounded-md hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/25 transition-colors">条款</a>
             </div>
           </div>
         </div>

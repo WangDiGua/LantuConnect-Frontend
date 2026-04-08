@@ -697,7 +697,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                             <button
                               type="button"
                               disabled={runningActionKey === `audit-approve-${item.id}`}
-                              title="与「资源审核」台一致：通过后进入测试中（testing）"
+                              title="与「资源审核」台一致：通过后进入测试中"
                               onClick={() =>
                                 void runAction(
                                   `audit-approve-${item.id}`,
@@ -788,9 +788,9 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                         className={`inline-flex items-center rounded-lg px-2 py-0.5 text-xs font-semibold ${resourceHealthBadgeClass(theme, item.healthStatus)}`}
                         title={
                           item.degradationHint
-                            ? `已合并最近一次网关调用结果与健康检查表。当前提示：${item.degradationHint}`
+                            ? `健康探针结论与运营提示：${item.degradationHint}`
                             : item.healthStatus
-                              ? `与监控中心健康检查配置一致，原始值：${item.healthStatus}；若曾调用失败，后端会据此覆盖为不可用`
+                              ? `与监控中心健康检查表一致，原始值：${item.healthStatus}。广场「可调用」与网关一致：仅 down/disabled 与健康拦截，熔断仅 OPEN/FORCED_OPEN；降级提示来自最近一次调用或熔断状态，不等同于探针结论`
                               : '未返回健康字段时多为未配置探测'
                         }
                       >

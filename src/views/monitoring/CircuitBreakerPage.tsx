@@ -153,7 +153,7 @@ export const CircuitBreakerPage: React.FC<Props> = ({ theme, fontSize, showMessa
   );
 
   return (
-    <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={AlertTriangle} breadcrumbSegments={['监控中心', '熔断降级']} description="按统一资源类型管理网关熔断：失败阈值、半开探测与降级目标（t_resource_circuit_breaker）" toolbar={toolbar}>
+    <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={AlertTriangle} breadcrumbSegments={['监控中心', '熔断降级']} description="按统一资源类型管理网关熔断：失败阈值、半开探测与降级目标。" toolbar={toolbar}>
       <div className="min-w-0 px-4 sm:px-6 pb-6">
         {loading ? (
           <PageSkeleton type="table" />

@@ -729,7 +729,7 @@ export const QuotaManagementPage: React.FC<Props> = ({ theme, fontSize, showMess
               />
             </div>
             <div>
-              <label className={`${labelCls} mb-1.5 block`}>资源 ID（t_resource）</label>
+              <label className={`${labelCls} mb-1.5 block`}>资源 ID</label>
               <input type="number" min={1} className={inputCls} value={rlDraft.targetId || ''} onChange={(e) => setRlDraft((p) => ({ ...p, targetId: Number(e.target.value) || 1 }))} />
             </div>
           </div>

@@ -278,77 +278,77 @@ function computeResourceRegisterFieldErrors(
   const e: Partial<Record<ResourceRegisterFieldKey, string>> = {};
 
   if (!form.resourceCode.trim()) {
-    e.resourceCode = '请填写资源编码（resourceCode）';
+    e.resourceCode = '请填写资源编码';
   } else if (!/^[a-zA-Z0-9_-]{3,64}$/.test(form.resourceCode.trim())) {
-    e.resourceCode = '资源编码（resourceCode）须为 3–64 位，仅支持字母、数字、下划线和短横线';
+    e.resourceCode = '资源编码须为 3–64 位，仅支持字母、数字、下划线和短横线';
   }
   if (!form.displayName.trim()) {
-    e.displayName = '请填写显示名称（displayName）';
+    e.displayName = '请填写显示名称';
   }
 
   if (resourceType === 'mcp') {
     if (!form.endpoint.trim()) {
-      e.endpoint = '请填写服务地址（endpoint）';
+      e.endpoint = '请填写服务地址';
     } else {
       const activeTransport = modeToTransport(form.mcpRegisterMode);
       if (activeTransport === 'websocket') {
         if (!isValidWsUrl(form.endpoint.trim())) {
-          e.endpoint = '当 transport=websocket 时，endpoint 须为 ws:// 或 wss:// URL';
+          e.endpoint = '选择 WebSocket 传输时，服务地址须为 ws:// 或 wss:// URL';
         }
       } else if (activeTransport === 'stdio') {
         if (!isValidUrl(form.endpoint.trim())) {
-          e.endpoint = 'stdio 边车须将本机 HTTP 转发地址填入 endpoint，且须为 http:// 或 https:// URL';
+          e.endpoint = 'stdio 边车须将本机 HTTP 转发地址填入服务地址，且须为 http:// 或 https:// URL';
         }
       } else if (!isValidUrl(form.endpoint.trim())) {
-        e.endpoint = '当 transport=http 时，endpoint 须为 http:// 或 https:// URL';
+        e.endpoint = '选择 HTTP / SSE 时，服务地址须为 http:// 或 https:// URL';
       }
     }
     if (form.protocol.trim() && form.protocol.trim().toLowerCase() !== 'mcp') {
       e.protocol = 'MCP 资源 protocol 建议固定为 mcp';
     }
-    const authParsed = parseJsonObject(form.authConfigJson, '鉴权配置（authConfig JSON）');
+    const authParsed = parseJsonObject(form.authConfigJson, '鉴权 JSON 配置');
     if (form.authConfigJson.trim() && !authParsed.ok) {
       e.authConfigJson = authParsed.message;
     }
     if (form.authType === 'oauth2_client') {
       if (!authParsed.ok || !authParsed.data) {
-        e.authConfigJson = e.authConfigJson ?? 'oauth2_client 须填写合法 authConfig JSON';
+        e.authConfigJson = e.authConfigJson ?? 'OAuth2 须填写合法的鉴权 JSON';
       } else {
         const d = authParsed.data;
         const tokenUrl = String(d.tokenUrl ?? d.token_url ?? '').trim();
         const clientId = String(d.clientId ?? d.client_id ?? '').trim();
         const secret = String(d.clientSecret ?? d.client_secret ?? '').trim();
         const secretRef = String(d.clientSecretRef ?? '').trim();
-        if (!tokenUrl) e.authConfigJson = e.authConfigJson ?? 'oauth2_client 需要 auth_config.tokenUrl';
-        if (!clientId) e.authConfigJson = e.authConfigJson ?? 'oauth2_client 需要 auth_config.clientId';
-        if (!secret && !secretRef) e.authConfigJson = e.authConfigJson ?? 'oauth2_client 需要 clientSecret 或 clientSecretRef';
+        if (!tokenUrl) e.authConfigJson = e.authConfigJson ?? 'OAuth2 须在 JSON 中填写 tokenUrl';
+        if (!clientId) e.authConfigJson = e.authConfigJson ?? 'OAuth2 须在 JSON 中填写 clientId';
+        if (!secret && !secretRef) e.authConfigJson = e.authConfigJson ?? 'OAuth2 须填写 clientSecret 或 clientSecretRef';
       }
     }
     if (form.authType === 'basic') {
       if (!authParsed.ok || !authParsed.data) {
-        e.authConfigJson = e.authConfigJson ?? 'basic 须填写合法 authConfig JSON';
+        e.authConfigJson = e.authConfigJson ?? 'Basic 须填写合法的鉴权 JSON';
       } else {
         const d = authParsed.data;
         const u = String(d.username ?? '').trim();
         const password = String(d.password ?? '').trim();
         const passwordRef = String(d.passwordSecretRef ?? '').trim();
-        if (!u) e.authConfigJson = e.authConfigJson ?? 'basic 需要 auth_config.username';
-        if (!password && !passwordRef) e.authConfigJson = e.authConfigJson ?? 'basic 需要 password 或 passwordSecretRef';
+        if (!u) e.authConfigJson = e.authConfigJson ?? 'Basic 须在 JSON 中填写 username';
+        if (!password && !passwordRef) e.authConfigJson = e.authConfigJson ?? 'Basic 须填写 password 或 passwordSecretRef';
       }
     }
   }
 
   if (resourceType === 'agent') {
     if (!form.agentType.trim()) {
-      e.agentType = '请填写智能体类型（agentType）';
+      e.agentType = '请填写智能体类型';
     }
-    const specParsed = parseJsonObject(form.specJson, '规格配置（spec JSON）');
+    const specParsed = parseJsonObject(form.specJson, '规格 JSON');
     if (!specParsed.ok) {
       e.specJson = specParsed.message;
     } else {
       const specUrl = typeof specParsed.data?.url === 'string' ? specParsed.data.url.trim() : '';
       if (!specUrl) {
-        e.specJson = e.specJson ?? '智能体规格配置（spec JSON）中必须包含 url';
+        e.specJson = e.specJson ?? '智能体规格 JSON 中必须包含 url';
       } else if (!isValidUrl(specUrl)) {
         e.specJson = e.specJson ?? '智能体规格配置中的 url 须为有效的 http/https URL';
       }
@@ -358,65 +358,65 @@ function computeResourceRegisterFieldErrors(
       e.relatedResourceIds = `关联资源 ID 仅支持正整数（逗号分隔），非法值：${related.invalidTokens.join(', ')}`;
     }
     if (!Number.isFinite(Number(form.maxConcurrency)) || Number(form.maxConcurrency) < 1 || Number(form.maxConcurrency) > 1000) {
-      e.maxConcurrency = '最大并发（maxConcurrency）须在 1~1000 之间';
+      e.maxConcurrency = '最大并发须在 1~1000 之间';
     }
     if (form.agentMaxSteps.trim()) {
       const n = Number(form.agentMaxSteps.trim());
       if (!Number.isInteger(n) || n < 1) {
-        e.agentMaxSteps = 'maxSteps 须为正整数或留空';
+        e.agentMaxSteps = '最大步数须为正整数或留空';
       }
     }
     if (form.agentTemperature.trim()) {
       const t = Number(form.agentTemperature.trim());
       if (!Number.isFinite(t)) {
-        e.agentTemperature = 'temperature 须为有效数字或留空';
+        e.agentTemperature = '采样温度须为有效数字或留空';
       }
     }
   }
 
   if (resourceType === 'skill') {
     if (!form.skillType.trim()) {
-      e.skillType = '请选择技能包格式（skillType）';
+      e.skillType = '请选择技能包格式';
     } else {
       const st = form.skillType.trim().toLowerCase();
       if (!['anthropic_v1', 'folder_v1'].includes(st)) {
-        e.skillType = 'skillType 须为 anthropic_v1 或 folder_v1；可远程调用的 HTTP 工具请注册为 MCP 资源';
+        e.skillType = '技能包格式须为 anthropic_v1 或 folder_v1；可远程调用的 HTTP 工具请注册为 MCP 资源';
       }
     }
-    const specParsed = parseJsonObject(form.specJson, '附加元数据（spec JSON，可空对象）');
+    const specParsed = parseJsonObject(form.specJson, '附加元数据 JSON（可为空对象）');
     if (!specParsed.ok) {
       e.specJson = specParsed.message;
     }
-    const schemaParsed = parseJsonObject(form.paramsSchemaJson, '参数结构（parametersSchema JSON）');
+    const schemaParsed = parseJsonObject(form.paramsSchemaJson, '参数结构 JSON');
     if (!schemaParsed.ok) {
       e.paramsSchemaJson = schemaParsed.message;
     }
-    const manifestParsed = parseJsonObject(form.manifestJson, 'manifest JSON');
+    const manifestParsed = parseJsonObject(form.manifestJson, '清单 JSON');
     if (!manifestParsed.ok) {
       e.manifestJson = manifestParsed.message;
     }
     const uri = form.artifactUri.trim();
     if (uri && !isValidUrl(uri) && !uri.startsWith('/uploads/')) {
-      e.artifactUri = 'artifactUri 须为 http(s) URL 或由上传生成的 /uploads/... 路径';
+      e.artifactUri = '制品地址须为 http(s) URL 或由上传生成的 /uploads/... 路径';
     }
   }
 
   if (resourceType === 'app') {
     if (!form.appUrl.trim()) {
-      e.appUrl = '请填写应用地址（appUrl）';
+      e.appUrl = '请填写应用地址';
     } else if (!isValidUrl(form.appUrl.trim())) {
-      e.appUrl = '应用地址（appUrl）须为有效的 http/https URL';
+      e.appUrl = '应用地址须为有效的 http/https URL';
     }
     if (!form.embedType.trim()) {
-      e.embedType = '请选择嵌入方式（embedType）';
+      e.embedType = '请选择嵌入方式';
     } else {
       const appEt = form.embedType.trim().toLowerCase();
       if (!['iframe', 'redirect', 'micro_frontend'].includes(appEt)) {
-        e.embedType = 'embedType 必须是 iframe、redirect 或 micro_frontend（与后端一致）';
+        e.embedType = '嵌入方式须为 iframe、redirect 或 micro_frontend（与后端一致）';
       }
     }
     if (form.appIcon.trim() && !isValidUrl(form.appIcon.trim())) {
-      e.appIcon = '图标 URL（icon）须为有效的 http/https URL';
+      e.appIcon = '图标 URL 须为有效的 http/https URL';
     }
     const related = parseRelatedIds(form.relatedResourceIds);
     if (related.invalidTokens.length > 0) {
@@ -426,16 +426,16 @@ function computeResourceRegisterFieldErrors(
 
   if (resourceType === 'dataset') {
     if (!form.dataType.trim()) {
-      e.dataType = '请填写数据类型（dataType）';
+      e.dataType = '请填写数据类型';
     }
     if (!form.format.trim()) {
-      e.format = '请填写数据格式（format）';
+      e.format = '请填写数据格式';
     }
     if (Number(form.recordCount) < 0) {
-      e.recordCount = '记录数（recordCount）不能小于 0';
+      e.recordCount = '记录数不能小于 0';
     }
     if (Number(form.fileSize) < 0) {
-      e.fileSize = '文件大小（fileSize）不能小于 0';
+      e.fileSize = '文件大小不能小于 0';
     }
   }
 
@@ -465,34 +465,34 @@ function collectMcpProbeFieldIssues(form: {
       e.endpoint = 'HTTP 探测需要 http(s) URL';
     }
   }
-  const authParsed = parseJsonObject(form.authConfigJson, '鉴权配置（authConfig JSON）');
+  const authParsed = parseJsonObject(form.authConfigJson, '鉴权 JSON 配置');
   if (form.authConfigJson.trim() && !authParsed.ok) {
     e.authConfigJson = authParsed.message;
   }
   if (form.authType === 'oauth2_client') {
     if (!authParsed.ok || !authParsed.data) {
-      e.authConfigJson = e.authConfigJson ?? 'oauth2_client 须填写合法 authConfig JSON';
+      e.authConfigJson = e.authConfigJson ?? 'OAuth2 须填写合法的鉴权 JSON';
     } else {
       const d = authParsed.data;
       const tokenUrl = String(d.tokenUrl ?? d.token_url ?? '').trim();
       const clientId = String(d.clientId ?? d.client_id ?? '').trim();
       const secret = String(d.clientSecret ?? d.client_secret ?? '').trim();
       const secretRef = String(d.clientSecretRef ?? '').trim();
-      if (!tokenUrl) e.authConfigJson = e.authConfigJson ?? 'oauth2_client 需要 auth_config.tokenUrl';
-      if (!clientId) e.authConfigJson = e.authConfigJson ?? 'oauth2_client 需要 auth_config.clientId';
-      if (!secret && !secretRef) e.authConfigJson = e.authConfigJson ?? 'oauth2_client 需要 clientSecret 或 clientSecretRef';
+      if (!tokenUrl) e.authConfigJson = e.authConfigJson ?? 'OAuth2 须在 JSON 中填写 tokenUrl';
+      if (!clientId) e.authConfigJson = e.authConfigJson ?? 'OAuth2 须在 JSON 中填写 clientId';
+      if (!secret && !secretRef) e.authConfigJson = e.authConfigJson ?? 'OAuth2 须填写 clientSecret 或 clientSecretRef';
     }
   }
   if (form.authType === 'basic') {
     if (!authParsed.ok || !authParsed.data) {
-      e.authConfigJson = e.authConfigJson ?? 'basic 须填写合法 authConfig JSON';
+      e.authConfigJson = e.authConfigJson ?? 'Basic 须填写合法的鉴权 JSON';
     } else {
       const d = authParsed.data;
       const u = String(d.username ?? '').trim();
       const password = String(d.password ?? '').trim();
       const passwordRef = String(d.passwordSecretRef ?? '').trim();
-      if (!u) e.authConfigJson = e.authConfigJson ?? 'basic 需要 auth_config.username';
-      if (!password && !passwordRef) e.authConfigJson = e.authConfigJson ?? 'basic 需要 password 或 passwordSecretRef';
+      if (!u) e.authConfigJson = e.authConfigJson ?? 'Basic 须在 JSON 中填写 username';
+      if (!password && !passwordRef) e.authConfigJson = e.authConfigJson ?? 'Basic 须填写 password 或 passwordSecretRef';
     }
   }
   return e;
@@ -915,7 +915,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       const acTrim = form.authConfigJson.trim();
       let authConfig: Record<string, unknown> = {};
       if (acTrim) {
-        const parsed = parseJsonObject(form.authConfigJson, '鉴权配置（authConfig JSON）');
+        const parsed = parseJsonObject(form.authConfigJson, '鉴权 JSON 配置');
         if (!parsed.ok || !parsed.data) {
           setMcpProbeExtra({ authConfigJson: parsed.message });
           return;
@@ -957,7 +957,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       const acTrim = form.authConfigJson.trim();
       let authConfig: Record<string, unknown> = {};
       if (acTrim) {
-        const parsed = parseJsonObject(form.authConfigJson, '鉴权配置（authConfig JSON）');
+        const parsed = parseJsonObject(form.authConfigJson, '鉴权 JSON 配置');
         if (!parsed.ok) throw new Error(parsed.message);
         authConfig = parsed.data || {};
       }
@@ -975,7 +975,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     if (resourceType === 'skill') {
       const parsedSpec = parseJsonObject(form.specJson, '附加元数据（spec JSON）');
       const parsedSchema = parseJsonObject(form.paramsSchemaJson, '参数结构（parametersSchema JSON）');
-      const parsedManifest = parseJsonObject(form.manifestJson, 'manifest JSON');
+      const parsedManifest = parseJsonObject(form.manifestJson, '清单 JSON');
       if (!parsedSpec.ok || !parsedSchema.ok || !parsedManifest.ok) {
         throw new Error(!parsedSpec.ok ? parsedSpec.message : !parsedSchema.ok ? parsedSchema.message : parsedManifest.message);
       }
@@ -1491,9 +1491,9 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                       }));
                     }}
                     options={[
-                      { value: 'http', label: 'HTTP / SSE（http）' },
-                      { value: 'websocket', label: 'WebSocket（websocket）' },
-                      { value: 'stdio', label: 'stdio 边车（stdio）' },
+                      { value: 'http', label: 'HTTP / SSE' },
+                      { value: 'websocket', label: 'WebSocket' },
+                      { value: 'stdio', label: 'stdio 边车' },
                     ]}
                   />
                 </Field>
@@ -1530,15 +1530,15 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     value={form.authType}
                     onChange={(value) => setForm((p) => ({ ...p, authType: value }))}
                     options={[
-                      { value: 'none', label: '无鉴权（none）' },
-                      { value: 'api_key', label: 'API Key（api_key）' },
-                      { value: 'bearer', label: 'Bearer Token（bearer）' },
-                      { value: 'basic', label: 'HTTP Basic（basic）' },
-                      { value: 'oauth2_client', label: 'OAuth2 Client Credentials（oauth2_client）' },
+                      { value: 'none', label: '无鉴权' },
+                      { value: 'api_key', label: 'API Key' },
+                      { value: 'bearer', label: 'Bearer Token' },
+                      { value: 'basic', label: 'HTTP Basic' },
+                      { value: 'oauth2_client', label: 'OAuth2 Client Credentials' },
                     ]}
                   />
                 </Field>
-                <Field label="鉴权配置（JSON）" full theme={theme} error={mcpAuthJsonMerged} fieldId={rrFieldId('authConfigJson')}>
+                <Field label="鉴权 JSON 配置" full theme={theme} error={mcpAuthJsonMerged} fieldId={rrFieldId('authConfigJson')}>
                   <p className={`mb-2 text-xs ${textMuted(theme)}`}>详见到接入指南；可点击下方模板快速填入。</p>
                   <div className="mb-2 flex flex-wrap gap-2">
                     <button
@@ -1622,7 +1622,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                         <Loader2 className="animate-spin" size={16} /> 探测中…
                       </span>
                     ) : (
-                      '探测连通性（initialize）'
+                      '探测连通性'
                     )}
                   </button>
                   <span className={`text-xs ${textMuted(theme)}`}>
@@ -1710,12 +1710,12 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     }`}
                     onClick={() => setAgentAdvancedOpen((o) => !o)}
                   >
-                    <span>高级：公开 / 隐藏 / maxSteps / temperature（与后端入参一致）</span>
+                    <span>高级：公开范围、目录可见性、最大步数与采样温度（与后端一致）</span>
                     <ChevronDown size={16} className={agentAdvancedOpen ? 'rotate-180 transition-transform' : 'transition-transform'} />
                   </button>
                   {agentAdvancedOpen ? (
                     <div className="mt-2 space-y-3 md:grid md:grid-cols-2 md:gap-3 md:space-y-0">
-                      <Field label="对外公开（isPublic）" theme={theme}>
+                      <Field label="对外公开" theme={theme}>
                         <label className="flex cursor-pointer items-center gap-2 text-sm">
                           <input
                             type="checkbox"
@@ -1726,7 +1726,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                           <span className={textMuted(theme)}>在目录中可按公开策略展示</span>
                         </label>
                       </Field>
-                      <Field label="目录外隐藏（hidden）" theme={theme}>
+                      <Field label="目录外隐藏" theme={theme}>
                         <label className="flex cursor-pointer items-center gap-2 text-sm">
                           <input
                             type="checkbox"
@@ -1737,7 +1737,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                           <span className={textMuted(theme)}>与后端 hidden 一致</span>
                         </label>
                       </Field>
-                      <Field label="maxSteps（选填）" theme={theme} error={fieldErrors.agentMaxSteps} fieldId={rrFieldId('agentMaxSteps')}>
+                      <Field label="最大步数（选填）" theme={theme} error={fieldErrors.agentMaxSteps} fieldId={rrFieldId('agentMaxSteps')}>
                         <input
                           id={rrFieldId('agentMaxSteps')}
                           value={form.agentMaxSteps}
@@ -1749,7 +1749,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                           inputMode="numeric"
                         />
                       </Field>
-                      <Field label="temperature（选填）" theme={theme} error={fieldErrors.agentTemperature} fieldId={rrFieldId('agentTemperature')}>
+                      <Field label="采样温度（选填）" theme={theme} error={fieldErrors.agentTemperature} fieldId={rrFieldId('agentTemperature')}>
                         <input
                           id={rrFieldId('agentTemperature')}
                           value={form.agentTemperature}
@@ -2048,7 +2048,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                           placeholder="SKILL.md"
                         />
                       </Field>
-                      <Field label="manifest JSON" full theme={theme} error={fieldErrors.manifestJson} fieldId={rrFieldId('manifestJson')}>
+                      <Field label="清单 JSON" full theme={theme} error={fieldErrors.manifestJson} fieldId={rrFieldId('manifestJson')}>
                         <AutoHeightTextarea
                           id={rrFieldId('manifestJson')}
                           value={form.manifestJson}
@@ -2060,7 +2060,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                           aria-describedby={fieldErrors.manifestJson ? `${rrFieldId('manifestJson')}-err` : undefined}
                         />
                       </Field>
-                      <Field label="spec JSON" full theme={theme} error={fieldErrors.specJson} fieldId={rrFieldId('specJson')}>
+                      <Field label="规格 JSON" full theme={theme} error={fieldErrors.specJson} fieldId={rrFieldId('specJson')}>
                         <div className="mb-2 flex flex-wrap gap-2">
                           <button type="button" className={btnSecondary(theme)} onClick={() => setForm((p) => ({ ...p, specJson: DEFAULT_SKILL_SPEC_JSON }))}>
                             置为 {}
@@ -2077,7 +2077,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                           aria-describedby={fieldErrors.specJson ? `${rrFieldId('specJson')}-err` : undefined}
                         />
                       </Field>
-                      <Field label="parametersSchema JSON" full theme={theme} error={fieldErrors.paramsSchemaJson} fieldId={rrFieldId('paramsSchemaJson')}>
+                      <Field label="参数 Schema JSON" full theme={theme} error={fieldErrors.paramsSchemaJson} fieldId={rrFieldId('paramsSchemaJson')}>
                         <div className="mb-2 flex flex-wrap gap-2">
                           <button
                             type="button"
@@ -2224,7 +2224,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     placeholder="如 教务, 公开数据"
                   />
                 </Field>
-                <Field label="对外公开（isPublic）" theme={theme}>
+                <Field label="对外公开" theme={theme}>
                   <label className="flex cursor-pointer items-center gap-2 text-sm">
                     <input
                       type="checkbox"

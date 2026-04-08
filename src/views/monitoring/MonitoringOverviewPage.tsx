@@ -180,7 +180,7 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ 
 
         <p className={`text-xs ${textMuted(theme)}`}>
           <Activity size={12} className="inline mr-1 opacity-70" aria-hidden />
-          KPI 与图表来自 t_call_log 聚合；资源类型分布覆盖 agent / skill / mcp / app / dataset 及未分类（unknown）。
+          KPI 与图表来自调用日志聚合；资源类型分布覆盖智能体 / 技能 / MCP / 应用 / 数据集及未归类。
         </p>
       </div>
     );

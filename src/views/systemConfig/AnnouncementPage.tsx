@@ -399,7 +399,7 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
             ) : null}
           </div>
           <div>
-            <label className={`text-sm font-medium ${textSecondary(theme)} mb-1 block`}>公告内容（Markdown）</label>
+            <label className={`text-sm font-medium ${textSecondary(theme)} mb-1 block`}>公告内容</label>
             <div
               className={`announcement-md-wrapper rounded-xl overflow-hidden border ${isDark ? 'border-white/10' : 'border-slate-200'}${announcementFieldErrors.content ? ` ${inputBaseError()}` : ''}`}
             >

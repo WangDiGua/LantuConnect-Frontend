@@ -37,7 +37,7 @@ export const AccessPolicyBadge: React.FC<Props> = ({
     <div className={className}>
       <span
         className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${accessPolicyBadgeClass(p, theme)}`}
-        title="资源消费策略：控制网关侧是否要求 per-resource Grant（见接入文档 accessPolicy）"
+        title="资源消费策略：控制网关侧是否要求按资源的 Grant 授权（详见接入文档）"
       >
         消费策略 · {label}
       </span>

@@ -273,7 +273,7 @@ export const DatasetMarketDetailPage: React.FC<DatasetMarketDetailPageProps> = (
                   <MarkdownView value={ds.serviceDetailMd} className="text-sm" />
                 ) : (
                   <p className={`text-sm ${textMuted(theme)}`}>
-                    暂无详细介绍；资源所有方可在「资源注册」中填写「数据集介绍」（Markdown）。
+                    暂无详细介绍；资源所有方可在「资源注册」中填写「数据集介绍」，正文支持 Markdown。
                   </p>
                 )}
                 <p className={`text-sm leading-relaxed ${textSecondary(theme)}`}>{ds.description || '暂无描述'}</p>

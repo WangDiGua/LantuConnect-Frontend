@@ -253,7 +253,7 @@ export const DeveloperStatsPage: React.FC<Props> = ({ theme, fontSize }) => {
         {myOverview ? (
           <div className={`grid grid-cols-2 sm:grid-cols-4 ${kpiGridGap}`}>
             {[
-              { label: '个人总调用（call_log）', value: formatNum(myOverview.totalCalls) },
+              { label: '个人总调用', value: formatNum(myOverview.totalCalls) },
               { label: '今日调用', value: formatNum(myOverview.todayCalls) },
               { label: '错误率', value: `${Number(myOverview.errorRate ?? 0).toFixed(2)}%` },
               { label: '平均延迟', value: `${Number(myOverview.avgLatencyMs ?? 0).toFixed(0)} ms` },
@@ -276,7 +276,7 @@ export const DeveloperStatsPage: React.FC<Props> = ({ theme, fontSize }) => {
           <div className={`grid gap-4 md:grid-cols-2 ${cardSurface} p-5 sm:p-6`}>
             {myOverview.topResources.length > 0 ? (
               <div>
-                <div className={`text-xs font-semibold mb-2 ${tm}`}>Top 资源（call_log）</div>
+                <div className={`text-xs font-semibold mb-2 ${tm}`}>Top 资源（网关调用）</div>
                 <ul className={`space-y-1 text-xs ${isDark ? 'text-neutral-200' : 'text-neutral-700'}`}>
                   {myOverview.topResources.slice(0, 5).map((r, idx) => (
                     <li key={`${r.name}-${idx}`} className="flex justify-between gap-2">

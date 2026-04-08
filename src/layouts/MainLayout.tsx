@@ -182,6 +182,8 @@ function normalizeDeprecatedPage(page: string): string {
       return 'dataset-register';
     case 'category-management':
       return 'tag-management';
+    case 'quota-management':
+      return 'rate-limit-policy';
     case 'submit-agent':
       return 'my-agents-pub';
     case 'submit-skill':
@@ -394,7 +396,6 @@ const MainContent = React.memo<{
         case 'skill-external-catalog-settings':
         case 'security-settings':
         case 'network-config':
-        case 'quota-management':
         case 'rate-limit-policy':
         case 'access-control':
         case 'audit-log':

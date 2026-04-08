@@ -26,7 +26,7 @@ export const ADMIN_ROUTE_MAPPING: Record<string, string> = {
   '安全设置': 'security-settings',
   '网络配置': 'network-config',
   '限流策略': 'rate-limit',
-  '配额管理': 'quota-management',
+  '配额管理': 'rate-limit-policy',
   '访问控制': 'access-control',
   '审计日志': 'audit-log',
   '角色管理': 'role-management',

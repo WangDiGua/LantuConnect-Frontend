@@ -139,10 +139,9 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
   const tm = textMuted(theme);
 
   const displayName = user?.nickname || user?.username || '用户';
-  const quota = dashboard?.quotaUsage;
   const myRes = dashboard?.myResources;
   const activities = dashboard?.recentActivity ?? [];
-  const todayUsage = dashboard?.quotaUsage?.dailyUsed ?? workspace?.totalUsageToday ?? 0;
+  const todayUsage = workspace?.totalUsageToday ?? 0;
   const unreadCount = dashboard?.unreadNotifications ?? workspace?.unreadNotifications ?? 0;
 
   const recentItems = workspace?.recentUsages?.length
@@ -239,40 +238,6 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
           <KpiCard theme={theme} label="今日使用" value={todayUsage} icon={<Cpu size={16} />} glow="amber" delay={0.15} />
           <KpiCard theme={theme} label="未读通知" value={unreadCount} icon={<Bell size={16} />} glow="rose" delay={0.17} />
         </div>
-
-        {/* Quota Usage */}
-        {quota && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring, delay: 0.15 }}
-            className={`${bentoCard(theme)} p-5`}>
-            <h2 className={`${cardHeading(theme)} mb-4`}>调用配额</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {[
-                { label: '日配额', used: quota.dailyUsed, limit: quota.dailyLimit },
-                { label: '月配额', used: quota.monthlyUsed, limit: quota.monthlyLimit },
-              ].map((q) => {
-                const unlimited = q.limit < 0;
-                const pct = unlimited ? 0 : q.limit > 0 ? Math.min((q.used / q.limit) * 100, 100) : 0;
-                const barColor = unlimited ? 'bg-slate-400' : pct > 80 ? 'bg-rose-500' : pct > 50 ? 'bg-amber-500' : 'bg-emerald-500';
-                const limitLabel = unlimited ? '无上限' : q.limit.toLocaleString();
-                return (
-                  <div key={q.label}>
-                    <div className="flex justify-between mb-1.5">
-                      <span className={`text-xs font-medium ${ts}`}>{q.label}</span>
-                      <span className={`text-xs font-bold ${tp}`}>
-                        {q.used.toLocaleString()} / {limitLabel}
-                      </span>
-                    </div>
-                    <div className={`h-2 rounded-full ${isDark ? 'bg-white/[0.06]' : 'bg-slate-100'}`}>
-                      {!unlimited && (
-                        <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </motion.div>
-        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 

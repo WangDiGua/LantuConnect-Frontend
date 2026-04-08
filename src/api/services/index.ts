@@ -13,7 +13,6 @@ export { reviewService } from './review.service';
 export { healthService } from './health.service';
 export { dashboardService } from './dashboard.service';
 export { tagService } from './tag.service';
-export { quotaService } from './quota.service';
 export { userActivityService } from './user-activity.service';
 export { notificationService } from './notification.service';
 export { resourceCatalogService } from './resource-catalog.service';

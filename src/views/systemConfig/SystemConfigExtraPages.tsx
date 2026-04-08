@@ -6,7 +6,6 @@ import { nativeInputClass } from '../../utils/formFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
 import { useSysParams, useUpdateSysParams, useSysSecurity, useUpdateSysSecurity } from '../../hooks/queries/useSystemConfig';
 import { securitySettingValueForApi, systemConfigService } from '../../api/services/system-config.service';
-import { quotaService } from '../../api/services/quota.service';
 import type { SystemParam, SecuritySetting } from '../../types/dto/system-config';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { PageError } from '../../components/common/PageError';
@@ -440,68 +439,6 @@ export const NetworkConfigPage: React.FC<PageProps> = ({ theme, fontSize, showMe
             </div>
             <button type="button" className={`${btnPrimary} disabled:opacity-50`} disabled={saving || loadingList} onClick={handleApply}>
               {saving ? <><Loader2 size={14} className="animate-spin" /> 应用中…</> : '应用'}
-            </button>
-          </div>
-        </BentoCard>
-      </div>
-    </MgmtPageShell>
-  );
-};
-
-const QUOTA_POLICY_OPTIONS = [
-  { value: '仅告警', label: '仅告警' },
-  { value: '软限流', label: '软限流' },
-  { value: '硬拒绝', label: '硬拒绝' },
-];
-
-/** @deprecated 未被路由引用；配额请使用 {@link QuotaManagementPage}（`quota-management`）。保留便于历史对照。 */
-/** 未被路由引用；菜单「配额管理」指向 `QuotaManagementPage`（`quota-management`）。 */
-export const SystemQuotaPage: React.FC<PageProps> = ({ theme, fontSize, showMessage }) => {
-  const inputCls = `${nativeInputClass(theme)} ${INPUT_FOCUS}`;
-  const labelCls = `text-sm font-medium ${textSecondary(theme)}`;
-  const [globalCap, setGlobalCap] = useState('1000000');
-  const [policy, setPolicy] = useState('仅告警');
-  const [saving, setSaving] = useState(false);
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      await quotaService.createQuota({
-        subjectType: 'global',
-        subjectName: '全平台',
-        resourceCategory: 'all',
-        dailyLimit: Number(globalCap) || 0,
-        monthlyLimit: Math.max((Number(globalCap) || 0) * 30, Number(globalCap) || 0),
-      });
-      showMessage('全局配额已保存', 'success');
-    } catch (e) {
-      showMessage(e instanceof Error ? e.message : '保存失败', 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <MgmtPageShell theme={theme} fontSize={fontSize} titleIcon={HardDrive} breadcrumbSegments={['系统配置', '配额管理']}>
-      <div className="px-4 sm:px-6 pb-6">
-        <BentoCard theme={theme} padding="lg" className="max-w-xl">
-          <div className="space-y-4">
-            <div>
-              <label className={`${labelCls} mb-1.5 block`}>全平台日调用上限</label>
-              <input className={inputCls} value={globalCap} onChange={(e) => setGlobalCap(e.target.value)} />
-            </div>
-            <div>
-              <label className={`${labelCls} mb-1.5 block`}>超限策略</label>
-              <LantuSelect
-                theme={theme}
-                triggerClassName={INPUT_FOCUS}
-                value={policy}
-                onChange={setPolicy}
-                options={QUOTA_POLICY_OPTIONS}
-              />
-            </div>
-            <button type="button" className={`${btnPrimary} disabled:opacity-50`} disabled={saving} onClick={handleSave}>
-              {saving ? <><Loader2 size={14} className="animate-spin" /> 保存中…</> : '保存'}
             </button>
           </div>
         </BentoCard>

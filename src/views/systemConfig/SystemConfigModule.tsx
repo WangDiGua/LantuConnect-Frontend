@@ -11,7 +11,6 @@ import {
   NetworkConfigPage,
   AccessControlPage,
 } from './SystemConfigExtraPages';
-import { QuotaManagementPage } from './QuotaManagementPage';
 import { TagManagementPage } from './TagManagementPage';
 import { SensitiveWordPage } from './SensitiveWordPage';
 import { AnnouncementPage } from './AnnouncementPage';
@@ -67,8 +66,6 @@ export const SystemConfigModule: React.FC<SystemConfigModuleProps> = ({
       return <SecuritySettingsPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
     case 'network-config':
       return <NetworkConfigPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
-    case 'quota-management':
-      return <QuotaManagementPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
     case 'access-control':
       return <AccessControlPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
     case 'tag-management':

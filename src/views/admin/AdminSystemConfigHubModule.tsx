@@ -11,7 +11,6 @@ const TABS: { id: string; label: string }[] = [
   { id: 'skill-external-catalog-settings', label: '在线市场' },
   { id: 'security-settings', label: '安全' },
   { id: 'network-config', label: '网络' },
-  { id: 'quota-management', label: '配额' },
   { id: 'rate-limit-policy', label: '限流' },
   { id: 'access-control', label: '访问控制' },
   { id: 'audit-log', label: '审计' },

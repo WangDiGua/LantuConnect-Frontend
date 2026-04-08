@@ -14,7 +14,6 @@ export * from './audit';
 export * from './health';
 export * from './dashboard';
 export * from './tag';
-export * from './quota';
 export * from './user-activity';
 export * from './sensitive-word';
 export * from './developer-application';

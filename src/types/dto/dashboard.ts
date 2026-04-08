@@ -26,7 +26,7 @@ export interface UserWorkspace {
   recentAgents: { id: number; displayName: string; icon: string | null; lastUsedTime: string }[];
   recentSkills: { id: number; displayName: string; icon: string | null; lastUsedTime: string }[];
   favoriteCount: number;
-  /** 后端 widgets 通常不含此项；「今日使用」以 user-dashboard.quotaUsage.dailyUsed 为准 */
+  /** 今日调用量摘要；工作台 KPI「今日使用」优先取此项 */
   totalUsageToday: number;
   /** 与 widgets.unreadNotifications 一致；仪表盘失败时可作未读数回退 */
   unreadNotifications: number;

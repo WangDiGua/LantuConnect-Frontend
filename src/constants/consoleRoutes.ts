@@ -145,7 +145,6 @@ const ADMIN_SIDEBAR_PAGES: Record<string, string[]> = {
     'skill-external-catalog-settings',
     'security-settings',
     'network-config',
-    'quota-management',
     'rate-limit-policy',
     'access-control',
     'audit-log',

@@ -231,6 +231,26 @@ export function mapUserRecord(raw: unknown): UserRecord {
   return rec;
 }
 
+/** 将后端 {@link PlatformRole}（roleName / roleCode / createTime）对齐到 {@link RoleRecord} */
+export function mapRoleRecord(raw: unknown): RoleRecord {
+  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const name = strTrim(o.roleName ?? o.name);
+  const code = strTrim(o.roleCode ?? o.code);
+  const permsRaw = o.permissions;
+  const permissions = Array.isArray(permsRaw) ? permsRaw.map((x) => String(x)) : [];
+  return {
+    id: String(o.id ?? ''),
+    name: name || '—',
+    code: code || '—',
+    description: strTrim(o.description),
+    permissions,
+    userCount: numPg(o.userCount, 0),
+    isSystem: o.isSystem === true,
+    createdAt: strTrim(o.createTime ?? o.createdAt),
+    updatedAt: strTrim(o.updateTime ?? o.updatedAt),
+  };
+}
+
 export const userMgmtService = {
   listUsers: async (params?: UserListQuery) => {
     const raw = await http.get<unknown>('/user-mgmt/users', { params });
@@ -283,7 +303,7 @@ export const userMgmtService = {
 
   getUserRoles: async (userId: string) => {
     const raw = await http.get<unknown>(`/user-mgmt/users/${userId}/roles`);
-    return extractArray<RoleRecord>(raw);
+    return extractArray(raw).map(mapRoleRecord);
   },
 
   bindUserRoles: (userId: string, data: { roleIds: string[] }) =>
@@ -297,14 +317,16 @@ export const userMgmtService = {
 
   listRoles: async () => {
     const raw = await http.get<unknown>('/user-mgmt/roles');
-    return extractArray<RoleRecord>(raw);
+    return extractArray(raw).map(mapRoleRecord);
   },
 
-  createRole: (data: Omit<RoleRecord, 'id' | 'userCount' | 'isSystem' | 'createdAt' | 'updatedAt'>) =>
-    http.post<RoleRecord>('/user-mgmt/roles', data),
+  createRole: async (data: Omit<RoleRecord, 'id' | 'userCount' | 'isSystem' | 'createdAt' | 'updatedAt'>) => {
+    const raw = await http.post<unknown>('/user-mgmt/roles', data);
+    return mapRoleRecord(raw);
+  },
 
   updateRole: (id: string, data: Partial<Omit<RoleRecord, 'id' | 'createdAt' | 'updatedAt'>>) =>
-    http.put<RoleRecord>(`/user-mgmt/roles/${id}`, data),
+    http.put<void>(`/user-mgmt/roles/${id}`, data),
 
   deleteRole: (id: string) => http.delete(`/user-mgmt/roles/${id}`),
 

@@ -25,6 +25,7 @@ import { MgmtPageShell } from './MgmtPageShell';
 import { useUserRole } from '../../context/UserRoleContext';
 import { useMessage } from '../../components/common/Message';
 import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedContentToTop';
+import { isBootstrapSuperAdminUsername } from '../../utils/bootstrapSuperAdmin';
 
 interface UserListPageProps {
   theme: Theme;
@@ -123,7 +124,7 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
 
   const patchUserStatus = useCallback(
     async (u: UserRecord, status: 'active' | 'disabled') => {
-      if (u.status === 'locked') return;
+      if (u.status === 'locked' || isBootstrapSuperAdminUsername(u.username)) return;
       try {
         await userMgmtService.updateUser(u.id, { status });
         showMessage(status === 'active' ? '已启用' : '已停用', 'success');
@@ -137,10 +138,12 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
 
   const runBatchSetStatus = useCallback(
     async (status: 'active' | 'disabled') => {
-      const targets = selectedUsers.filter((u) => u.status !== 'locked');
+      const targets = selectedUsers.filter(
+        (u) => u.status !== 'locked' && !isBootstrapSuperAdminUsername(u.username),
+      );
       const ids = targets.map((u) => u.id);
       if (!ids.length) {
-        showMessage('所选账号中没有可变更状态的记录（已锁定账号需单独处理）', 'info');
+        showMessage('所选账号中没有可变更状态的记录（已锁定或内置超级管理员已自动排除）', 'info');
         return;
       }
       setBatchBusy(true);
@@ -161,6 +164,7 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
 
   const openCreate = useCallback(() => { setForm(emptyForm()); setEditingId(null); setMode('create'); }, []);
   const openEdit = useCallback((u: UserRecord) => {
+    if (isBootstrapSuperAdminUsername(u.username)) return;
     setEditingId(u.id);
     setForm({ username: u.username, email: u.email, password: '', role: u.role, status: u.status === 'locked' ? 'disabled' : u.status });
     setMode('edit');
@@ -279,35 +283,41 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
         cellClassName: 'text-right',
         cellNowrap: true,
         cell: (u) => (
-          <div className={mgmtTableRowActions}>
-            <button type="button" onClick={() => openEdit(u)} className={mgmtTableActionGhost(theme)} aria-label={`编辑用户 ${u.username}`}>
-              编辑
-            </button>
-            {u.status !== 'locked' ? (
-              u.status === 'active' ? (
-                <button
-                  type="button"
-                  className={mgmtTableActionGhost(theme)}
-                  onClick={() => void patchUserStatus(u, 'disabled')}
-                  aria-label={`停用用户 ${u.username}`}
-                >
-                  停用
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className={mgmtTableActionPositive(theme)}
-                  onClick={() => void patchUserStatus(u, 'active')}
-                  aria-label={`启用用户 ${u.username}`}
-                >
-                  启用
-                </button>
-              )
-            ) : null}
-            <button type="button" onClick={() => setDeleteTarget(u.id)} className={mgmtTableActionDanger} aria-label={`删除用户 ${u.username}`}>
-              删除
-            </button>
-          </div>
+          isBootstrapSuperAdminUsername(u.username) ? (
+            <span className={textMuted(theme)} title="内置超级管理员账号，不允许在此修改、启停或删除">
+              —
+            </span>
+          ) : (
+            <div className={mgmtTableRowActions}>
+              <button type="button" onClick={() => openEdit(u)} className={mgmtTableActionGhost(theme)} aria-label={`编辑用户 ${u.username}`}>
+                编辑
+              </button>
+              {u.status !== 'locked' ? (
+                u.status === 'active' ? (
+                  <button
+                    type="button"
+                    className={mgmtTableActionGhost(theme)}
+                    onClick={() => void patchUserStatus(u, 'disabled')}
+                    aria-label={`停用用户 ${u.username}`}
+                  >
+                    停用
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className={mgmtTableActionPositive(theme)}
+                    onClick={() => void patchUserStatus(u, 'active')}
+                    aria-label={`启用用户 ${u.username}`}
+                  >
+                    启用
+                  </button>
+                )
+              ) : null}
+              <button type="button" onClick={() => setDeleteTarget(u.id)} className={mgmtTableActionDanger} aria-label={`删除用户 ${u.username}`}>
+                删除
+              </button>
+            </div>
+          )
         ),
       },
     ];
@@ -315,6 +325,10 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
 
   const saveUser = async () => {
     if (!form.username.trim() || !form.email.trim()) return;
+    if (mode === 'edit' && isBootstrapSuperAdminUsername(form.username)) {
+      showMessage('内置超级管理员账号不允许修改', 'info');
+      return;
+    }
     try {
       if (mode === 'create') {
         await userMgmtService.createUser({
@@ -344,6 +358,12 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
+    const row = users.find((x) => String(x.id) === deleteTarget);
+    if (row && isBootstrapSuperAdminUsername(row.username)) {
+      showMessage('内置超级管理员账号不允许删除', 'info');
+      setDeleteTarget(null);
+      return;
+    }
     try {
       await userMgmtService.deleteUser(deleteTarget);
       if (editingId === deleteTarget) {
@@ -454,7 +474,7 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
                   count={selectedKeys.size}
                   onClear={clearSelection}
                   visibility="always"
-                  idleHint="勾选左侧行后可批量启用或停用。"
+                  idleHint="勾选左侧行后可批量启用或停用（内置超级管理员不可选）。"
                 >
                   <button
                     type="button"
@@ -486,7 +506,7 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
                     ? {
                         selectedKeys,
                         onSelectionChange: setSelectedKeys,
-                        getSelectable: (u) => u.status !== 'locked',
+                        getSelectable: (u) => u.status !== 'locked' && !isBootstrapSuperAdminUsername(u.username),
                       }
                     : undefined
                 }
@@ -500,7 +520,7 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
       <ConfirmDialog
         open={batchDisableConfirm}
         title="批量停用用户"
-        message={`将停用已选中的 ${selectedKeys.size} 个账号（已锁定项已自动排除）。确认继续？`}
+        message={`将停用已选中的 ${selectedKeys.size} 个账号（已锁定与内置超级管理员已自动排除）。确认继续？`}
         variant="warning"
         confirmText="停用"
         loading={batchBusy}

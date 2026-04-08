@@ -5,7 +5,7 @@ import { buildPath } from '../../constants/consoleRoutes';
 import { UserManagementModule } from '../userMgmt/UserManagementModule';
 import { GrantApplicationListPage } from '../userMgmt/GrantApplicationListPage';
 import { DeveloperApplicationListPage } from '../userMgmt/DeveloperApplicationListPage';
-import { btnSecondary, textMuted, textPrimary } from '../../utils/uiClasses';
+import { btnSecondary } from '../../utils/uiClasses';
 
 const TABS: { id: string; label: string }[] = [
   { id: 'user-list', label: '用户' },
@@ -74,9 +74,6 @@ export const AdminUserHubModule: React.FC<AdminUserHubModuleProps> = ({
         })}
       </div>
       <div className="min-h-0 min-w-0 flex-1">{inner}</div>
-      <p className={`mt-4 text-xs ${textMuted(theme)}`}>
-        <span className={textPrimary(theme)}>提示：</span>身份与组织、凭证与工单入口已合并；权限仍按原子能力校验。
-      </p>
     </div>
   );
 };

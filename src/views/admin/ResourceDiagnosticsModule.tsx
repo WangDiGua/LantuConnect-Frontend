@@ -4,7 +4,7 @@ import { Theme, FontSize } from '../../types';
 import { buildPath } from '../../constants/consoleRoutes';
 import { AgentMonitoringPage } from '../agent/AgentMonitoringPage';
 import { AgentTracePage } from '../agent/AgentTracePage';
-import { btnSecondary, textMuted, textPrimary } from '../../utils/uiClasses';
+import { btnSecondary } from '../../utils/uiClasses';
 
 export type ResourceDiagnosticsTab = 'agent-monitoring' | 'agent-trace';
 
@@ -69,9 +69,6 @@ export const ResourceDiagnosticsModule: React.FC<ResourceDiagnosticsModuleProps>
           <AgentTracePage theme={theme} fontSize={fontSize} showMessage={showMessage} />
         ) : null}
       </div>
-      <p className={`mt-4 text-xs ${textMuted(theme)}`}>
-        <span className={textPrimary(theme)}>提示：</span>「运行诊断」聚合监控与追踪；书签与深链仍指向原路径。
-      </p>
     </div>
   );
 };

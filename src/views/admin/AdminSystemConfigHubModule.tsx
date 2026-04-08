@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Theme, FontSize } from '../../types';
 import { buildPath } from '../../constants/consoleRoutes';
 import { SystemConfigModule } from '../systemConfig/SystemConfigModule';
-import { btnSecondary, textMuted, textPrimary } from '../../utils/uiClasses';
+import { btnSecondary } from '../../utils/uiClasses';
 
 const TABS: { id: string; label: string }[] = [
   { id: 'tag-management', label: '标签' },
@@ -67,9 +67,6 @@ export const AdminSystemConfigHubModule: React.FC<AdminSystemConfigHubModuleProp
       <div className="min-h-0 min-w-0 flex-1">
         <SystemConfigModule activeSubItem={activePage} theme={theme} fontSize={fontSize} showMessage={showMessage} />
       </div>
-      <p className={`mt-4 text-xs ${textMuted(theme)}`}>
-        <span className={textPrimary(theme)}>提示：</span>通用 / 策略 / 审计与运营相关配置集中在此；外部链接与权限校验逻辑不变。
-      </p>
     </div>
   );
 };

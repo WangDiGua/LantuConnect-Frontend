@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Theme, FontSize } from '../../types';
 import { buildPath } from '../../constants/consoleRoutes';
 import { MonitoringModule } from '../monitoring/MonitoringModule';
-import { btnSecondary, textMuted, textPrimary } from '../../utils/uiClasses';
+import { btnSecondary } from '../../utils/uiClasses';
 
 const TABS: { id: string; label: string }[] = [
   { id: 'monitoring-overview', label: '监控概览' },
@@ -63,9 +63,6 @@ export const AdminMonitoringHubModule: React.FC<AdminMonitoringHubModuleProps> =
       <div className="min-h-0 min-w-0 flex-1">
         <MonitoringModule activeSubItem={activePage} theme={theme} fontSize={fontSize} showMessage={showMessage} />
       </div>
-      <p className={`mt-4 text-xs ${textMuted(theme)}`}>
-        <span className={textPrimary(theme)}>提示：</span>侧栏已收束为单一入口；子路径书签仍可直接打开对应视图。
-      </p>
     </div>
   );
 };

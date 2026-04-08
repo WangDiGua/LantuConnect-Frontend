@@ -7,7 +7,7 @@ import { Overview } from '../dashboard/Overview';
 import { HealthCheckOverview } from '../dashboard/HealthCheckOverview';
 import { UsageStatsOverview } from '../dashboard/UsageStatsOverview';
 import { DataReportsPage } from '../dashboard/DataReportsPage';
-import { btnSecondary, textMuted, textPrimary } from '../../utils/uiClasses';
+import { btnSecondary } from '../../utils/uiClasses';
 
 export type AdminOverviewTab = 'dashboard' | 'health-check' | 'usage-statistics' | 'data-reports';
 
@@ -89,9 +89,6 @@ export const AdminOverviewModule: React.FC<AdminOverviewModuleProps> = ({ active
         {tab === 'usage-statistics' ? <UsageStatsOverview theme={theme} fontSize={fontSize} /> : null}
         {tab === 'data-reports' ? <DataReportsPage theme={theme} fontSize={fontSize} /> : null}
       </div>
-      <p className={`mt-4 text-xs ${textMuted(theme)}`}>
-        <span className={textPrimary(theme)}>提示：</span>以上视图已合并为「运营总览」，仍可通过书签直接访问各子路径。
-      </p>
     </div>
   );
 };

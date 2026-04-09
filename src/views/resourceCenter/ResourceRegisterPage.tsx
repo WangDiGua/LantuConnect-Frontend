@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, BookOpen, ChevronDown, Loader2, Save, Send, FileText } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { ResourceType } from '../../types/dto/catalog';
-import type { ResourceUpsertRequest } from '../../types/dto/resource-center';
+import type { ResourceCenterItemVO, ResourceUpsertRequest } from '../../types/dto/resource-center';
 import { resourceCenterService } from '../../api/services/resource-center.service';
 import { tagService } from '../../api/services/tag.service';
 import { useAuthStore } from '../../stores/authStore';
@@ -501,6 +501,176 @@ function collectMcpProbeFieldIssues(form: {
   return e;
 }
 
+/** 保持用户在表单中的顺序，并去掉重复 token（仅合法正整数） */
+function parseOrderedRelatedIds(value: string): number[] {
+  const tokens = value
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const seen = new Set<number>();
+  const out: number[] = [];
+  for (const token of tokens) {
+    if (!/^\d+$/.test(token)) continue;
+    const n = Number(token);
+    if (!Number.isFinite(n) || n <= 0) continue;
+    if (seen.has(n)) continue;
+    seen.add(n);
+    out.push(n);
+  }
+  return out;
+}
+
+function isHostedSkillResource(item: ResourceCenterItemVO): boolean {
+  const em = (item.executionMode ?? '').toLowerCase();
+  if (em === 'hosted') return true;
+  const st = (item.skillType ?? '').toLowerCase();
+  return st === 'hosted_v1' || st === 'hosted';
+}
+
+function formatBindingOptionLabel(item: ResourceCenterItemVO): string {
+  const code = item.resourceCode?.trim();
+  const name = item.displayName?.trim() || `资源 #${item.id}`;
+  if (code) return `${name}（${code} · #${item.id}）`;
+  return `${name}（#${item.id}）`;
+}
+
+function orderedPickerPanelClass(isDark: boolean, invalid?: boolean): string {
+  const base = `rounded-xl border max-h-56 overflow-y-auto px-2 py-2 ${
+    isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200 bg-slate-50'
+  }`;
+  return invalid ? `${base} ${inputBaseError()}` : base;
+}
+
+const OrderedRelatedResourcePicker: React.FC<{
+  theme: Theme;
+  isDark: boolean;
+  fieldId: string;
+  value: string;
+  onChangeValue: (next: string) => void;
+  poolItems: ResourceCenterItemVO[];
+  loading: boolean;
+  loadError: boolean;
+  errorStyle: boolean;
+  ariaDescribedby?: string;
+  orphanHint: string;
+}> = ({
+  theme,
+  isDark,
+  fieldId,
+  value,
+  onChangeValue,
+  poolItems,
+  loading,
+  loadError,
+  errorStyle,
+  ariaDescribedby,
+  orphanHint,
+}) => {
+  const selectedIds = useMemo(() => parseOrderedRelatedIds(value), [value]);
+  const poolById = useMemo(() => new Map(poolItems.map((x) => [x.id, x])), [poolItems]);
+  const poolAvailable = useMemo(
+    () => poolItems.filter((x) => !selectedIds.includes(x.id)),
+    [poolItems, selectedIds],
+  );
+
+  const commitIds = (next: number[]) => {
+    onChangeValue(next.length ? next.map(String).join(', ') : '');
+  };
+
+  const move = (idx: number, dir: -1 | 1) => {
+    const j = idx + dir;
+    if (j < 0 || j >= selectedIds.length) return;
+    const copy = [...selectedIds];
+    const t = copy[idx]!;
+    copy[idx] = copy[j]!;
+    copy[j] = t;
+    commitIds(copy);
+  };
+
+  const removeAt = (idx: number) => commitIds(selectedIds.filter((_, i) => i !== idx));
+
+  const addId = (id: number) => {
+    if (selectedIds.includes(id)) return;
+    commitIds([...selectedIds, id]);
+  };
+
+  return (
+    <div id={fieldId} className="space-y-2" aria-describedby={ariaDescribedby}>
+      {loadError ? <p className={`text-xs ${fieldErrorText()}`}>加载可选资源失败，请稍后重试。</p> : null}
+      {loading ? (
+        <div className={`flex items-center gap-2 text-xs ${textMuted(theme)}`}>
+          <Loader2 className="animate-spin" size={14} /> 加载我的资源…
+        </div>
+      ) : null}
+      <div className={orderedPickerPanelClass(isDark, errorStyle)}>
+        <p className={`mb-2 px-1 text-xs font-medium ${textMuted(theme)}`}>已选顺序（先 → 后）</p>
+        {selectedIds.length === 0 ? (
+          <p className={`px-2 py-1 text-xs ${textMuted(theme)}`}>未选择</p>
+        ) : (
+          <ul className="space-y-1">
+            {selectedIds.map((id, idx) => {
+              const row = poolById.get(id);
+              const label = row ? formatBindingOptionLabel(row) : `#${id}（${orphanHint}）`;
+              return (
+                <li
+                  key={id}
+                  className={`flex flex-wrap items-center gap-1 rounded-lg px-2 py-1 text-xs ${
+                    isDark ? 'bg-white/[0.06]' : 'bg-white'
+                  }`}
+                >
+                  <span className="min-w-0 flex-1 break-all">{label}</span>
+                  <button
+                    type="button"
+                    className={btnSecondary(theme)}
+                    disabled={idx === 0}
+                    onClick={() => move(idx, -1)}
+                  >
+                    上移
+                  </button>
+                  <button
+                    type="button"
+                    className={btnSecondary(theme)}
+                    disabled={idx === selectedIds.length - 1}
+                    onClick={() => move(idx, 1)}
+                  >
+                    下移
+                  </button>
+                  <button type="button" className={btnSecondary(theme)} onClick={() => removeAt(idx)}>
+                    移除
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+      <div className={orderedPickerPanelClass(isDark, false)}>
+        <p className={`mb-2 px-1 text-xs font-medium ${textMuted(theme)}`}>候选（勾选加入队尾）</p>
+        {poolAvailable.length === 0 ? (
+          <p className={`px-2 py-1 text-xs ${textMuted(theme)}`}>
+            {poolItems.length === 0 && !loading && !loadError ? '当前没有可绑定的资源' : '暂无更多候选'}
+          </p>
+        ) : (
+          <ul className="max-h-44 space-y-1 overflow-y-auto pr-1">
+            {poolAvailable.map((item) => (
+              <li key={item.id}>
+                <label className="flex cursor-pointer items-start gap-2 px-2 py-1 text-xs">
+                  <input
+                    type="checkbox"
+                    className={lantuCheckboxPrimaryClass}
+                    onChange={() => addId(item.id)}
+                  />
+                  <span className="break-all">{formatBindingOptionLabel(item)}</span>
+                </label>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export const ResourceRegisterPage: React.FC<Props> = ({
   theme,
   fontSize,
@@ -575,6 +745,10 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     pendingPublishedUpdate?: boolean;
     workingDraftAuditTier?: string;
   } | null>(null);
+  const [relationPicklistLoading, setRelationPicklistLoading] = useState(false);
+  const [relationPicklistError, setRelationPicklistError] = useState(false);
+  const [preSkillPickPool, setPreSkillPickPool] = useState<ResourceCenterItemVO[]>([]);
+  const [mcpBindPickPool, setMcpBindPickPool] = useState<ResourceCenterItemVO[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -587,6 +761,43 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       })
       .catch(() => {
         if (!cancelled) setTagOptions([{ value: '', label: '不选' }]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [resourceType]);
+
+  useEffect(() => {
+    if (resourceType !== 'mcp' && resourceType !== 'agent') {
+      setPreSkillPickPool([]);
+      setMcpBindPickPool([]);
+      setRelationPicklistError(false);
+      setRelationPicklistLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setRelationPicklistLoading(true);
+    setRelationPicklistError(false);
+    resourceCenterService
+      .listMinePublishedOrTesting(resourceType === 'mcp' ? 'skill' : 'mcp')
+      .then((items) => {
+        if (cancelled) return;
+        if (resourceType === 'mcp') {
+          const hosted = items.filter(isHostedSkillResource);
+          hosted.sort((a, b) => a.displayName.localeCompare(b.displayName, 'zh-CN'));
+          setPreSkillPickPool(hosted);
+          setMcpBindPickPool([]);
+        } else {
+          const sorted = [...items].sort((a, b) => a.displayName.localeCompare(b.displayName, 'zh-CN'));
+          setMcpBindPickPool(sorted);
+          setPreSkillPickPool([]);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setRelationPicklistError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setRelationPicklistLoading(false);
       });
     return () => {
       cancelled = true;
@@ -1428,26 +1639,31 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                   />
                 </Field>
                 <Field
-                  label="前置 Skill ID（选填）"
+                  label="前置托管技能（选填）"
                   full
                   theme={theme}
                   error={fieldErrors.relatedPreSkillResourceIds}
                   fieldId={rrFieldId('relatedPreSkillResourceIds')}
                 >
                   <p className={`mb-1 text-xs ${textMuted(theme)}`}>
-                    invoke(MCP) 之前按顺序执行的托管技能资源 ID（逗号分隔）；留空表示不设前置链。更新草稿时若不改此栏则不提交修改（与后端「null=不变更」一致）。
+                    在 invoke(MCP) 之前按顺序执行：仅列出您名下「已发布 / 测试中」的托管技能（hosted），从下方勾选；留空表示不设前置链。更新草稿时若集合与加载时一致（顺序无关）则不提交修改（与后端「null=不变更」一致）。
                   </p>
-                  <input
-                    id={rrFieldId('relatedPreSkillResourceIds')}
+                  <OrderedRelatedResourcePicker
+                    theme={theme}
+                    isDark={isDark}
+                    fieldId={rrFieldId('relatedPreSkillResourceIds')}
                     value={form.relatedPreSkillResourceIds}
-                    onChange={(e) => setForm((p) => ({ ...p, relatedPreSkillResourceIds: e.target.value }))}
-                    className={inputClass(isDark, !!fieldErrors.relatedPreSkillResourceIds)}
-                    aria-invalid={!!fieldErrors.relatedPreSkillResourceIds}
+                    onChangeValue={(next) => setForm((p) => ({ ...p, relatedPreSkillResourceIds: next }))}
+                    poolItems={preSkillPickPool}
+                    loading={relationPicklistLoading}
+                    loadError={relationPicklistError}
+                    errorStyle={!!fieldErrors.relatedPreSkillResourceIds}
                     aria-describedby={
-                      fieldErrors.relatedPreSkillResourceIds ? `${rrFieldId('relatedPreSkillResourceIds')}-err` : undefined
+                      fieldErrors.relatedPreSkillResourceIds
+                        ? `${rrFieldId('relatedPreSkillResourceIds')}-err`
+                        : undefined
                     }
-                    placeholder="如 12, 34"
-                    title="逗号分隔的正整数"
+                    orphanHint="不在当前可选列表；可移除或保留"
                   />
                 </Field>
                 <div className="md:col-span-2 flex flex-wrap items-center gap-2">
@@ -1546,25 +1762,28 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                   />
                 </Field>
                 <Field
-                  label="绑定的 MCP ID（选填）"
+                  label="绑定的 MCP（选填）"
                   theme={theme}
                   error={fieldErrors.relatedMcpResourceIds}
                   fieldId={rrFieldId('relatedMcpResourceIds')}
                 >
                   <p className={`mb-1 text-xs ${textMuted(theme)}`}>
-                    agent_depends_mcp：逗号分隔的正整数。更新时若内容与加载时一致则不提交该字段。
+                    agent_depends_mcp：仅可选择您名下「已发布 / 测试中」的 MCP 资源。更新时若集合与加载时一致（顺序无关）则不提交该字段。
                   </p>
-                  <input
-                    id={rrFieldId('relatedMcpResourceIds')}
+                  <OrderedRelatedResourcePicker
+                    theme={theme}
+                    isDark={isDark}
+                    fieldId={rrFieldId('relatedMcpResourceIds')}
                     value={form.relatedMcpResourceIds}
-                    onChange={(e) => setForm((p) => ({ ...p, relatedMcpResourceIds: e.target.value }))}
-                    className={inputClass(isDark, !!fieldErrors.relatedMcpResourceIds)}
-                    aria-invalid={!!fieldErrors.relatedMcpResourceIds}
+                    onChangeValue={(next) => setForm((p) => ({ ...p, relatedMcpResourceIds: next }))}
+                    poolItems={mcpBindPickPool}
+                    loading={relationPicklistLoading}
+                    loadError={relationPicklistError}
+                    errorStyle={!!fieldErrors.relatedMcpResourceIds}
                     aria-describedby={
                       fieldErrors.relatedMcpResourceIds ? `${rrFieldId('relatedMcpResourceIds')}-err` : undefined
                     }
-                    placeholder="如 12, 34"
-                    title="逗号分隔的正整数"
+                    orphanHint="不在当前可选列表；可移除或保留"
                   />
                 </Field>
                 <div className="md:col-span-2">

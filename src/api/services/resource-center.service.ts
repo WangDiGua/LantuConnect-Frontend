@@ -2,6 +2,7 @@ import { http } from '../../lib/http';
 import { tryBatchPost } from '../../utils/batchApi';
 import { runWithConcurrency } from '../../utils/runWithConcurrency';
 import { normalizeAccessPolicy } from '../../utils/accessPolicy';
+import type { ResourceType } from '../../types/dto/catalog';
 import type {
   LifecycleTimelineVO,
   ObservabilitySummaryVO,
@@ -272,6 +273,28 @@ function normalizePage(raw: unknown): ResourceCenterPage {
   return { list: [], total: 0, page: 1, pageSize: 20 };
 }
 
+/** 分页拉平「我的」资源列表（同一 filter 下 total 可能大于单页） */
+async function fetchMineAllPages(
+  base: Omit<ResourceCenterListQuery, 'page'> & { pageSize?: number },
+): Promise<ResourceCenterItemVO[]> {
+  const pageSize = Math.min(500, Math.max(1, base.pageSize ?? 200));
+  let page = 1;
+  const acc: ResourceCenterItemVO[] = [];
+  let total = Number.POSITIVE_INFINITY;
+  while (acc.length < total) {
+    const raw = await http.get<unknown>('/resource-center/resources/mine', {
+      params: { ...base, page, pageSize },
+    });
+    const norm = normalizePage(raw);
+    acc.push(...norm.list);
+    total = norm.total;
+    if (norm.list.length < pageSize) break;
+    page += 1;
+    if (page > 100) break;
+  }
+  return acc;
+}
+
 function toVersionItem(row: unknown): ResourceVersionVO {
   const r = row && typeof row === 'object' && !Array.isArray(row) ? (row as Record<string, unknown>) : {};
   const currentFlag = r.isCurrent ?? r.current;
@@ -290,6 +313,18 @@ export const resourceCenterService = {
   listMine: async (query?: ResourceCenterListQuery): Promise<ResourceCenterPage> => {
     const raw = await http.get<unknown>('/resource-center/resources/mine', { params: query });
     return normalizePage(raw);
+  },
+
+  listMineAllPages: fetchMineAllPages,
+
+  /** 已发布 ∪ 测试中（去重），用于绑定类字段仅选本人资源 */
+  listMinePublishedOrTesting: async (resourceType: ResourceType): Promise<ResourceCenterItemVO[]> => {
+    const pub = await fetchMineAllPages({ resourceType, status: 'published', pageSize: 200 });
+    const tst = await fetchMineAllPages({ resourceType, status: 'testing', pageSize: 200 });
+    const m = new Map<number, ResourceCenterItemVO>();
+    for (const x of pub) m.set(x.id, x);
+    for (const x of tst) m.set(x.id, x);
+    return [...m.values()];
   },
 
   getById: async (id: number): Promise<ResourceCenterItemVO> => {

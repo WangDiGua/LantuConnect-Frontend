@@ -2,8 +2,9 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ClipboardCheck } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { ResourceType } from '../../types/dto/catalog';
-import type { ResourceAuditItemVO } from '../../types/dto/resource-center';
+import type { ResourceAuditItemVO, ResourceCenterItemVO } from '../../types/dto/resource-center';
 import { resourceAuditService } from '../../api/services/resource-audit.service';
+import { resourceCenterService } from '../../api/services/resource-center.service';
 import { useUserRole } from '../../context/UserRoleContext';
 import {
   bentoCard,
@@ -11,6 +12,7 @@ import {
   btnPrimary,
   btnSecondary,
   mgmtTableActionDanger,
+  mgmtTableActionGhost,
   mgmtTableActionPositive,
   mgmtTableRowActions,
   statusBadgeClass,
@@ -46,6 +48,15 @@ interface Props {
 
 const AUDIT_DESC = '支持 approve / reject / publish';
 
+function formatJsonForDisplay(value: unknown): string | null {
+  if (value == null) return null;
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return null;
+  }
+}
+
 export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessage, defaultType }) => {
   const isDark = theme === 'dark';
   const { platformRole } = useUserRole();
@@ -77,7 +88,50 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
   const [batchRejectIds, setBatchRejectIds] = useState<number[] | null>(null);
   const [batchRejectReason, setBatchRejectReason] = useState('');
   const [batchRejectReasonError, setBatchRejectReasonError] = useState('');
+  const [detailTarget, setDetailTarget] = useState<ResourceAuditItemVO | null>(null);
+  const [detailResource, setDetailResource] = useState<ResourceCenterItemVO | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailFetchError, setDetailFetchError] = useState<string | null>(null);
   const PAGE_SIZE = 20;
+
+  const openResourceDetail = useCallback((item: ResourceAuditItemVO) => {
+    setDetailTarget(item);
+    setDetailResource(null);
+    setDetailFetchError(null);
+  }, []);
+
+  useEffect(() => {
+    if (!detailTarget?.resourceId) {
+      setDetailResource(null);
+      setDetailFetchError(null);
+      setDetailLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setDetailLoading(true);
+    setDetailFetchError(null);
+    setDetailResource(null);
+    void resourceCenterService
+      .getById(detailTarget.resourceId)
+      .then((r) => {
+        if (!cancelled) {
+          setDetailResource(r);
+          setDetailFetchError(null);
+        }
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setDetailResource(null);
+          setDetailFetchError(err instanceof Error ? err.message : '加载登记资源详情失败');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setDetailLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [detailTarget]);
 
   const clearSelection = useCallback(() => setSelectedKeys(new Set()), []);
 
@@ -224,7 +278,16 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
         id: 'name',
         header: '资源名称',
         cellClassName: 'font-medium max-w-[12rem]',
-        cell: (item) => <span className={`block truncate ${textPrimary(theme)}`} title={item.displayName}>{item.displayName}</span>,
+        cell: (item) => (
+          <button
+            type="button"
+            className={`block w-full max-w-full truncate text-left font-medium hover:underline ${textPrimary(theme)}`}
+            title={`${item.displayName}（点击查看详情）`}
+            onClick={() => openResourceDetail(item)}
+          >
+            {item.displayName}
+          </button>
+        ),
       },
       { id: 'type', header: '类型', cell: (item) => <span className={textSecondary(theme)}>{item.resourceType}</span> },
       {
@@ -261,6 +324,9 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
         cellNowrap: true,
         cell: (item) => (
           <div className={mgmtTableRowActions}>
+            <button type="button" className={mgmtTableActionGhost(theme)} onClick={() => openResourceDetail(item)}>
+              详情
+            </button>
             {item.status === 'pending_review' && (
               <>
                 <button
@@ -316,17 +382,11 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
                 平台强制下架
               </button>
             )}
-            {item.status !== 'pending_review' &&
-              item.status !== 'testing' &&
-              item.status !== 'merged_live' &&
-              !(item.status === 'published' && canPlatformForceDeprecate) && (
-              <span className={`text-xs ${textMuted(theme)}`}>无可执行动作</span>
-            )}
           </div>
         ),
       },
     ],
-    [theme, runningActionId, canPublishResource, canPlatformForceDeprecate, runAction],
+    [theme, runningActionId, canPublishResource, canPlatformForceDeprecate, runAction, openResourceDetail],
   );
 
   return (
@@ -558,6 +618,174 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
                 }}
               >
                 {runningActionId === `reject-${rejectTarget.id}` ? '提交中…' : '确认驳回'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {detailTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4"
+          onClick={() => setDetailTarget(null)}
+          role="presentation"
+        >
+          <div
+            className={`${bentoCard(theme)} flex w-full max-w-2xl max-h-[90vh] flex-col p-4`}
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="resource-audit-detail-title"
+          >
+            <h3 id="resource-audit-detail-title" className={`shrink-0 text-base font-semibold ${textPrimary(theme)}`}>
+              资源详情（只读）· {detailTarget.displayName}
+            </h3>
+            <div className={`mt-3 min-h-0 flex-1 space-y-4 overflow-y-auto pr-1 text-sm ${textSecondary(theme)}`}>
+              <section>
+                <h4 className={`text-xs font-semibold uppercase tracking-wide ${textMuted(theme)}`}>审核记录</h4>
+                <div className="mt-2 grid gap-x-4 gap-y-2 sm:grid-cols-2">
+                  <span className={textMuted(theme)}>审核项 ID</span>
+                  <span className={textPrimary(theme)}>{detailTarget.id}</span>
+                  <span className={textMuted(theme)}>资源 ID</span>
+                  <span className={textPrimary(theme)}>{detailTarget.resourceId ? detailTarget.resourceId : '—'}</span>
+                  <span className={textMuted(theme)}>类型</span>
+                  <span className={textPrimary(theme)}>{detailTarget.resourceType}</span>
+                  <span className={textMuted(theme)}>状态</span>
+                  <span className={textPrimary(theme)}>{statusLabel(detailTarget.status)}</span>
+                  <span className={textMuted(theme)}>访问策略</span>
+                  <span className={textPrimary(theme)}>{nullDisplay(detailTarget.accessPolicy)}</span>
+                  <span className={textMuted(theme)}>资源编码</span>
+                  <span className={textPrimary(theme)}>{nullDisplay(detailTarget.resourceCode)}</span>
+                  <span className={textMuted(theme)}>提交者</span>
+                  <span className={textPrimary(theme)}>
+                    {resolvePersonDisplay({ names: [detailTarget.submitterName], usernames: [detailTarget.submitter] })}
+                  </span>
+                  <span className={textMuted(theme)}>提交时间</span>
+                  <span className={textPrimary(theme)}>{nullDisplay(formatDateTime(detailTarget.submitTime))}</span>
+                  <span className={textMuted(theme)}>审核意见</span>
+                  <span className={textPrimary(theme)}>{nullDisplay(detailTarget.reason)}</span>
+                  <span className={textMuted(theme)}>复核备注</span>
+                  <span className={textPrimary(theme)}>{nullDisplay(detailTarget.reviewComment)}</span>
+                  <span className={textMuted(theme)}>描述</span>
+                  <span className={`sm:col-span-2 ${textPrimary(theme)}`}>{nullDisplay(detailTarget.description, '暂无描述')}</span>
+                </div>
+              </section>
+
+              <section>
+                <h4 className={`text-xs font-semibold uppercase tracking-wide ${textMuted(theme)}`}>登记资源（完整字段）</h4>
+                {!detailTarget.resourceId ? (
+                  <p className={`mt-2 text-xs ${textMuted(theme)}`}>该审核行未关联资源主键，无法拉取登记详情。</p>
+                ) : detailLoading ? (
+                  <p className={`mt-2 text-xs ${textMuted(theme)}`}>正在加载登记资源…</p>
+                ) : detailFetchError ? (
+                  <p className={`mt-2 text-xs text-amber-600 dark:text-amber-400`}>
+                    无法加载登记资源：{detailFetchError}。上方仍为审核接口返回的可见字段。
+                  </p>
+                ) : detailResource ? (
+                  <div className="mt-2 grid gap-x-4 gap-y-2 sm:grid-cols-2">
+                    <span className={textMuted(theme)}>名称</span>
+                    <span className={textPrimary(theme)}>{detailResource.displayName}</span>
+                    <span className={textMuted(theme)}>类型</span>
+                    <span className={textPrimary(theme)}>{detailResource.resourceType}</span>
+                    <span className={textMuted(theme)}>资源编码</span>
+                    <span className={textPrimary(theme)}>{nullDisplay(detailResource.resourceCode)}</span>
+                    <span className={textMuted(theme)}>状态</span>
+                    <span className={textPrimary(theme)}>{statusLabel(detailResource.status)}</span>
+                    <span className={textMuted(theme)}>负责人</span>
+                    <span className={textPrimary(theme)}>{nullDisplay(detailResource.ownerName)}</span>
+                    <span className={textMuted(theme)}>创建 / 更新</span>
+                    <span className={textPrimary(theme)}>
+                      {nullDisplay(formatDateTime(detailResource.createTime))} / {nullDisplay(formatDateTime(detailResource.updateTime))}
+                    </span>
+                    {detailResource.endpoint != null && detailResource.endpoint !== '' ? (
+                      <>
+                        <span className={textMuted(theme)}>Endpoint</span>
+                        <span className={`font-mono text-xs break-all ${textPrimary(theme)}`}>{detailResource.endpoint}</span>
+                      </>
+                    ) : null}
+                    {detailResource.protocol != null && detailResource.protocol !== '' ? (
+                      <>
+                        <span className={textMuted(theme)}>协议</span>
+                        <span className={textPrimary(theme)}>{detailResource.protocol}</span>
+                      </>
+                    ) : null}
+                    {detailResource.appUrl != null && detailResource.appUrl !== '' ? (
+                      <>
+                        <span className={textMuted(theme)}>应用 URL</span>
+                        <span className={`font-mono text-xs break-all ${textPrimary(theme)}`}>{detailResource.appUrl}</span>
+                      </>
+                    ) : null}
+                    <span className={textMuted(theme)}>描述</span>
+                    <span className={`sm:col-span-2 ${textPrimary(theme)}`}>{nullDisplay(detailResource.description, '暂无描述')}</span>
+                    {detailResource.systemPrompt != null && detailResource.systemPrompt !== '' ? (
+                      <>
+                        <span className={textMuted(theme)}>System Prompt</span>
+                        <pre
+                          className={`sm:col-span-2 mt-0 max-h-48 overflow-auto rounded-lg border px-2 py-1.5 text-xs whitespace-pre-wrap ${
+                            isDark ? 'border-white/10 bg-black/25' : 'border-slate-200 bg-slate-50'
+                          }`}
+                        >
+                          {detailResource.systemPrompt}
+                        </pre>
+                      </>
+                    ) : null}
+                    {detailResource.serviceDetailMd != null && detailResource.serviceDetailMd !== '' ? (
+                      <>
+                        <span className={textMuted(theme)}>服务介绍（Markdown）</span>
+                        <pre
+                          className={`sm:col-span-2 mt-0 max-h-48 overflow-auto rounded-lg border px-2 py-1.5 text-xs whitespace-pre-wrap ${
+                            isDark ? 'border-white/10 bg-black/25' : 'border-slate-200 bg-slate-50'
+                          }`}
+                        >
+                          {detailResource.serviceDetailMd}
+                        </pre>
+                      </>
+                    ) : null}
+                    {formatJsonForDisplay(detailResource.spec) != null ? (
+                      <>
+                        <span className={textMuted(theme)}>spec</span>
+                        <pre
+                          className={`sm:col-span-2 mt-0 max-h-40 overflow-auto rounded-lg border px-2 py-1 font-mono text-[11px] leading-snug ${
+                            isDark ? 'border-white/10 bg-black/25' : 'border-slate-200 bg-slate-50'
+                          }`}
+                        >
+                          {formatJsonForDisplay(detailResource.spec)}
+                        </pre>
+                      </>
+                    ) : null}
+                    {formatJsonForDisplay(detailResource.parametersSchema) != null ? (
+                      <>
+                        <span className={textMuted(theme)}>parametersSchema</span>
+                        <pre
+                          className={`sm:col-span-2 mt-0 max-h-40 overflow-auto rounded-lg border px-2 py-1 font-mono text-[11px] leading-snug ${
+                            isDark ? 'border-white/10 bg-black/25' : 'border-slate-200 bg-slate-50'
+                          }`}
+                        >
+                          {formatJsonForDisplay(detailResource.parametersSchema)}
+                        </pre>
+                      </>
+                    ) : null}
+                    {formatJsonForDisplay(detailResource.authConfig) != null ? (
+                      <>
+                        <span className={textMuted(theme)}>authConfig</span>
+                        <pre
+                          className={`sm:col-span-2 mt-0 max-h-40 overflow-auto rounded-lg border px-2 py-1 font-mono text-[11px] leading-snug ${
+                            isDark ? 'border-white/10 bg-black/25' : 'border-slate-200 bg-slate-50'
+                          }`}
+                        >
+                          {formatJsonForDisplay(detailResource.authConfig)}
+                        </pre>
+                      </>
+                    ) : null}
+                  </div>
+                ) : (
+                  <p className={`mt-2 text-xs ${textMuted(theme)}`}>暂无登记资源数据。</p>
+                )}
+              </section>
+            </div>
+            <div className="mt-4 flex shrink-0 justify-end">
+              <button type="button" className={btnGhost(theme)} onClick={() => setDetailTarget(null)}>
+                关闭
               </button>
             </div>
           </div>

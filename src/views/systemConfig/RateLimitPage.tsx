@@ -3,6 +3,13 @@ import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
+import { PresetOrCustomNumberField } from '../../components/common/PresetOrCustomNumberField';
+import {
+  RATE_LIMIT_BURST,
+  RATE_LIMIT_MAX_REQUESTS,
+  RATE_LIMIT_PRIORITY,
+  RATE_LIMIT_WINDOW_MS,
+} from '../../utils/numericFormPresets';
 import { TOOLBAR_ROW_LIST, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
 import { Search, Plus, Save, Sliders, Loader2 } from 'lucide-react';
 import { useRateLimits, useCreateRateLimit, useUpdateRateLimit, useDeleteRateLimit } from '../../hooks/queries/useSystemConfig';
@@ -284,25 +291,47 @@ export const RateLimitPage: React.FC<RateLimitPageProps> = ({
           </div>
           <div>
             <label className={`${labelCls} mb-1.5 block`}>优先级（大者优先）</label>
-            <input type="number" className={inputCls} value={draft.priority ?? 0} onChange={(e) => setDraft((d) => ({ ...d, priority: Number(e.target.value) }))} />
+            <PresetOrCustomNumberField
+              theme={theme}
+              value={Math.round(draft.priority ?? 0)}
+              onChange={(n) => setDraft((d) => ({ ...d, priority: n }))}
+              presets={RATE_LIMIT_PRIORITY.presets}
+              customMin={RATE_LIMIT_PRIORITY.customMin}
+              customMax={RATE_LIMIT_PRIORITY.customMax}
+              customSeed={RATE_LIMIT_PRIORITY.customSeed}
+              inputClassName={inputCls}
+              ariaLabel="限流优先级"
+            />
           </div>
           <div>
             <label className={`${labelCls} mb-1.5 block`}>时间窗口 (ms)</label>
-            <input type="number" min={1000} className={inputCls} value={draft.windowMs} onChange={(e) => setDraft((d) => ({ ...d, windowMs: Number(e.target.value) || 0 }))} />
+            <PresetOrCustomNumberField
+              theme={theme}
+              value={draft.windowMs}
+              onChange={(n) => setDraft((d) => ({ ...d, windowMs: n }))}
+              presets={RATE_LIMIT_WINDOW_MS.presets}
+              customMin={RATE_LIMIT_WINDOW_MS.customMin}
+              customMax={RATE_LIMIT_WINDOW_MS.customMax}
+              customSeed={RATE_LIMIT_WINDOW_MS.customSeed}
+              inputClassName={inputCls}
+              ariaLabel="限流时间窗口毫秒"
+            />
           </div>
           <div>
             <label className={`${labelCls} mb-1.5 block`}>最大请求数</label>
-            <input
-              type="number"
-              min={1}
-              className={`${inputCls}${rateLimitFieldErrors.maxRequests ? ` ${inputBaseError()}` : ''}`}
+            <PresetOrCustomNumberField
+              theme={theme}
               value={draft.maxRequests}
-              onChange={(e) => {
-                const n = Number(e.target.value) || 0;
+              onChange={(n) => {
                 setDraft((d) => ({ ...d, maxRequests: n }));
                 if (n >= 1) setRateLimitFieldErrors((prev) => ({ ...prev, maxRequests: undefined }));
               }}
-              aria-invalid={!!rateLimitFieldErrors.maxRequests}
+              presets={RATE_LIMIT_MAX_REQUESTS.presets}
+              customMin={RATE_LIMIT_MAX_REQUESTS.customMin}
+              customMax={RATE_LIMIT_MAX_REQUESTS.customMax}
+              customSeed={RATE_LIMIT_MAX_REQUESTS.customSeed}
+              inputClassName={`${inputCls}${rateLimitFieldErrors.maxRequests ? ` ${inputBaseError()}` : ''}`}
+              ariaLabel="限流最大请求数"
             />
             {rateLimitFieldErrors.maxRequests ? (
               <p className={`mt-1 ${fieldErrorText()}`} role="alert">
@@ -312,7 +341,17 @@ export const RateLimitPage: React.FC<RateLimitPageProps> = ({
           </div>
           <div>
             <label className={`${labelCls} mb-1.5 block`}>突发容量 (Burst)</label>
-            <input type="number" min={1} className={inputCls} value={draft.burstLimit} onChange={(e) => setDraft((d) => ({ ...d, burstLimit: Number(e.target.value) || 0 }))} />
+            <PresetOrCustomNumberField
+              theme={theme}
+              value={draft.burstLimit}
+              onChange={(n) => setDraft((d) => ({ ...d, burstLimit: n }))}
+              presets={RATE_LIMIT_BURST.presets}
+              customMin={RATE_LIMIT_BURST.customMin}
+              customMax={RATE_LIMIT_BURST.customMax}
+              customSeed={RATE_LIMIT_BURST.customSeed}
+              inputClassName={inputCls}
+              ariaLabel="限流突发容量"
+            />
           </div>
           <div>
             <label className={`${labelCls} mb-1.5 block`}>超限动作</label>

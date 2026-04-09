@@ -8,6 +8,12 @@ import { resourceCenterService } from '../../api/services/resource-center.servic
 import { tagService } from '../../api/services/tag.service';
 import { useAuthStore } from '../../stores/authStore';
 import { LantuSelect } from '../../components/common/LantuSelect';
+import { PresetOrCustomNumberField } from '../../components/common/PresetOrCustomNumberField';
+import {
+  DATASET_FILE_SIZE_BYTES,
+  DATASET_RECORD_COUNT,
+  RESOURCE_MAX_CONCURRENCY,
+} from '../../utils/numericFormPresets';
 import { filterTagsForResourceType } from '../../utils/marketTags';
 import { buildPath } from '../../constants/consoleRoutes';
 import {
@@ -1503,16 +1509,19 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                   />
                 </Field>
                 <Field label="最大并发" theme={theme} error={fieldErrors.maxConcurrency} fieldId={rrFieldId('maxConcurrency')}>
-                  <input
-                    id={rrFieldId('maxConcurrency')}
-                    type="number"
-                    value={form.maxConcurrency}
-                    onChange={(e) => setForm((p) => ({ ...p, maxConcurrency: Number(e.target.value) || 1 }))}
-                    className={inputClass(isDark, !!fieldErrors.maxConcurrency)}
-                    aria-invalid={!!fieldErrors.maxConcurrency}
-                    aria-describedby={fieldErrors.maxConcurrency ? `${rrFieldId('maxConcurrency')}-err` : undefined}
-                    placeholder="1–1000"
-                  />
+                  <div id={rrFieldId('maxConcurrency')}>
+                    <PresetOrCustomNumberField
+                      theme={theme}
+                      value={form.maxConcurrency}
+                      onChange={(n) => setForm((p) => ({ ...p, maxConcurrency: n }))}
+                      presets={RESOURCE_MAX_CONCURRENCY.presets}
+                      customMin={RESOURCE_MAX_CONCURRENCY.customMin}
+                      customMax={RESOURCE_MAX_CONCURRENCY.customMax}
+                      customSeed={RESOURCE_MAX_CONCURRENCY.customSeed}
+                      inputClassName={inputClass(isDark, !!fieldErrors.maxConcurrency)}
+                      ariaLabel="Agent 最大并发"
+                    />
+                  </div>
                 </Field>
                 <Field label="系统提示词（选填）" full theme={theme}>
                   <AutoHeightTextarea
@@ -1842,28 +1851,34 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                   />
                 </Field>
                 <Field label="记录数（约）" theme={theme} error={fieldErrors.recordCount} fieldId={rrFieldId('recordCount')}>
-                  <input
-                    id={rrFieldId('recordCount')}
-                    type="number"
-                    value={form.recordCount}
-                    onChange={(e) => setForm((p) => ({ ...p, recordCount: Number(e.target.value) || 0 }))}
-                    className={inputClass(isDark, !!fieldErrors.recordCount)}
-                    aria-invalid={!!fieldErrors.recordCount}
-                    aria-describedby={fieldErrors.recordCount ? `${rrFieldId('recordCount')}-err` : undefined}
-                    placeholder="0"
-                  />
+                  <div id={rrFieldId('recordCount')}>
+                    <PresetOrCustomNumberField
+                      theme={theme}
+                      value={form.recordCount}
+                      onChange={(n) => setForm((p) => ({ ...p, recordCount: n }))}
+                      presets={DATASET_RECORD_COUNT.presets}
+                      customMin={DATASET_RECORD_COUNT.customMin}
+                      customMax={DATASET_RECORD_COUNT.customMax}
+                      customSeed={DATASET_RECORD_COUNT.customSeed}
+                      inputClassName={inputClass(isDark, !!fieldErrors.recordCount)}
+                      ariaLabel="数据集记录数约值"
+                    />
+                  </div>
                 </Field>
                 <Field label="体积（与后端一致的数值，见接入指南）" theme={theme} error={fieldErrors.fileSize} fieldId={rrFieldId('fileSize')}>
-                  <input
-                    id={rrFieldId('fileSize')}
-                    type="number"
-                    value={form.fileSize}
-                    onChange={(e) => setForm((p) => ({ ...p, fileSize: Number(e.target.value) || 0 }))}
-                    className={inputClass(isDark, !!fieldErrors.fileSize)}
-                    aria-invalid={!!fieldErrors.fileSize}
-                    aria-describedby={fieldErrors.fileSize ? `${rrFieldId('fileSize')}-err` : undefined}
-                    placeholder="0"
-                  />
+                  <div id={rrFieldId('fileSize')}>
+                    <PresetOrCustomNumberField
+                      theme={theme}
+                      value={form.fileSize}
+                      onChange={(n) => setForm((p) => ({ ...p, fileSize: n }))}
+                      presets={DATASET_FILE_SIZE_BYTES.presets}
+                      customMin={DATASET_FILE_SIZE_BYTES.customMin}
+                      customMax={DATASET_FILE_SIZE_BYTES.customMax}
+                      customSeed={DATASET_FILE_SIZE_BYTES.customSeed}
+                      inputClassName={inputClass(isDark, !!fieldErrors.fileSize)}
+                      ariaLabel="数据集体积字节"
+                    />
+                  </div>
                 </Field>
                 <Field label="标签（选填，逗号分隔）" full theme={theme}>
                   <input

@@ -10,6 +10,12 @@ import {
   tableHeadCell, tableBodyRow, tableCell, textPrimary, textSecondary, textMuted,
 } from '../../utils/uiClasses';
 import { Modal } from '../../components/common/Modal';
+import { PresetOrCustomNumberField } from '../../components/common/PresetOrCustomNumberField';
+import {
+  HEALTH_HEALTHY_THRESHOLD,
+  HEALTH_INTERVAL_SEC,
+  HEALTH_TIMEOUT_SEC,
+} from '../../utils/numericFormPresets';
 import { TableCellEllipsis } from '../../components/common/TableCellEllipsis';
 import { BentoCard } from '../../components/common/BentoCard';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
@@ -240,18 +246,48 @@ export const HealthConfigPage: React.FC<Props> = ({ theme, fontSize, showMessage
             <label className={`${labelCls} mb-1.5 block`}>检查地址</label>
             <input className={inputCls} value={draft.checkUrl ?? ''} onChange={(e) => setDraft((p) => ({ ...p, checkUrl: e.target.value }))} placeholder="https://example.com/health" />
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className={`${labelCls} mb-1.5 block`}>间隔(秒)</label>
-              <input type="number" className={inputCls} value={draft.intervalSec ?? 60} onChange={(e) => setDraft((p) => ({ ...p, intervalSec: Number(e.target.value) }))} />
+              <PresetOrCustomNumberField
+                theme={theme}
+                value={draft.intervalSec ?? 60}
+                onChange={(n) => setDraft((p) => ({ ...p, intervalSec: n }))}
+                presets={HEALTH_INTERVAL_SEC.presets}
+                customMin={HEALTH_INTERVAL_SEC.customMin}
+                customMax={HEALTH_INTERVAL_SEC.customMax}
+                customSeed={HEALTH_INTERVAL_SEC.customSeed}
+                inputClassName={inputCls}
+                ariaLabel="健康检查间隔秒"
+              />
             </div>
             <div>
               <label className={`${labelCls} mb-1.5 block`}>健康阈值</label>
-              <input type="number" className={inputCls} value={draft.healthyThreshold ?? 3} onChange={(e) => setDraft((p) => ({ ...p, healthyThreshold: Number(e.target.value) }))} />
+              <PresetOrCustomNumberField
+                theme={theme}
+                value={draft.healthyThreshold ?? 3}
+                onChange={(n) => setDraft((p) => ({ ...p, healthyThreshold: n }))}
+                presets={HEALTH_HEALTHY_THRESHOLD.presets}
+                customMin={HEALTH_HEALTHY_THRESHOLD.customMin}
+                customMax={HEALTH_HEALTHY_THRESHOLD.customMax}
+                customSeed={HEALTH_HEALTHY_THRESHOLD.customSeed}
+                inputClassName={inputCls}
+                ariaLabel="健康连续成功阈值"
+              />
             </div>
             <div>
               <label className={`${labelCls} mb-1.5 block`}>超时(秒)</label>
-              <input type="number" className={inputCls} value={draft.timeoutSec ?? 5} onChange={(e) => setDraft((p) => ({ ...p, timeoutSec: Number(e.target.value) }))} />
+              <PresetOrCustomNumberField
+                theme={theme}
+                value={draft.timeoutSec ?? 5}
+                onChange={(n) => setDraft((p) => ({ ...p, timeoutSec: n }))}
+                presets={HEALTH_TIMEOUT_SEC.presets}
+                customMin={HEALTH_TIMEOUT_SEC.customMin}
+                customMax={HEALTH_TIMEOUT_SEC.customMax}
+                customSeed={HEALTH_TIMEOUT_SEC.customSeed}
+                inputClassName={inputCls}
+                ariaLabel="健康检查超时秒"
+              />
             </div>
           </div>
         </div>
@@ -265,7 +301,20 @@ export const HealthConfigPage: React.FC<Props> = ({ theme, fontSize, showMessage
         <div className={pageBlockStack}>
           <div><label className={`${labelCls} mb-1.5 block`}>名称</label><input className={inputCls} value={createDraft.displayName} onChange={(e) => setCreateDraft(d => ({ ...d, displayName: e.target.value }))} placeholder="服务名称" /></div>
           <div><label className={`${labelCls} mb-1.5 block`}>检查地址</label><input className={inputCls} value={createDraft.checkUrl} onChange={(e) => setCreateDraft(d => ({ ...d, checkUrl: e.target.value }))} placeholder="https://..." /></div>
-          <div><label className={`${labelCls} mb-1.5 block`}>检查间隔(秒)</label><input type="number" className={inputCls} value={createDraft.intervalSec} onChange={(e) => setCreateDraft(d => ({ ...d, intervalSec: Number(e.target.value) }))} /></div>
+          <div>
+            <label className={`${labelCls} mb-1.5 block`}>检查间隔(秒)</label>
+            <PresetOrCustomNumberField
+              theme={theme}
+              value={createDraft.intervalSec}
+              onChange={(n) => setCreateDraft((d) => ({ ...d, intervalSec: n }))}
+              presets={HEALTH_INTERVAL_SEC.presets}
+              customMin={HEALTH_INTERVAL_SEC.customMin}
+              customMax={HEALTH_INTERVAL_SEC.customMax}
+              customSeed={HEALTH_INTERVAL_SEC.customSeed}
+              inputClassName={inputCls}
+              ariaLabel="新建健康检查间隔"
+            />
+          </div>
         </div>
       </Modal>
     </MgmtPageShell>

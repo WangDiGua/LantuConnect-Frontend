@@ -18,6 +18,12 @@ import type { CircuitBreakerItem } from '../../types/dto/health';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { RESOURCE_TYPE_LABEL, resourceTypeLabel } from '../../constants/resourceTypes';
 import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
+import { PresetOrCustomNumberField } from '../../components/common/PresetOrCustomNumberField';
+import {
+  CIRCUIT_FAILURE_THRESHOLD,
+  CIRCUIT_HALF_OPEN_MAX,
+  CIRCUIT_OPEN_DURATION_SEC,
+} from '../../utils/numericFormPresets';
 
 interface Props {
   theme: Theme;
@@ -254,18 +260,48 @@ export const CircuitBreakerPage: React.FC<Props> = ({ theme, fontSize, showMessa
         }
       >
         <div className={pageBlockStack}>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className={`${labelCls} mb-1.5 block`}>失败阈值</label>
-              <input type="number" className={inputCls} value={draft.failureThreshold ?? 5} onChange={(e) => setDraft((p) => ({ ...p, failureThreshold: Number(e.target.value) }))} />
+              <PresetOrCustomNumberField
+                theme={theme}
+                value={draft.failureThreshold ?? 5}
+                onChange={(n) => setDraft((p) => ({ ...p, failureThreshold: n }))}
+                presets={CIRCUIT_FAILURE_THRESHOLD.presets}
+                customMin={CIRCUIT_FAILURE_THRESHOLD.customMin}
+                customMax={CIRCUIT_FAILURE_THRESHOLD.customMax}
+                customSeed={CIRCUIT_FAILURE_THRESHOLD.customSeed}
+                inputClassName={inputCls}
+                ariaLabel="熔断失败阈值"
+              />
             </div>
             <div>
               <label className={`${labelCls} mb-1.5 block`}>熔断时长(s)</label>
-              <input type="number" className={inputCls} value={draft.openDurationSec ?? 30} onChange={(e) => setDraft((p) => ({ ...p, openDurationSec: Number(e.target.value) }))} />
+              <PresetOrCustomNumberField
+                theme={theme}
+                value={draft.openDurationSec ?? 30}
+                onChange={(n) => setDraft((p) => ({ ...p, openDurationSec: n }))}
+                presets={CIRCUIT_OPEN_DURATION_SEC.presets}
+                customMin={CIRCUIT_OPEN_DURATION_SEC.customMin}
+                customMax={CIRCUIT_OPEN_DURATION_SEC.customMax}
+                customSeed={CIRCUIT_OPEN_DURATION_SEC.customSeed}
+                inputClassName={inputCls}
+                ariaLabel="熔断开启时长秒"
+              />
             </div>
             <div>
               <label className={`${labelCls} mb-1.5 block`}>半开最大调用</label>
-              <input type="number" className={inputCls} value={draft.halfOpenMaxCalls ?? 3} onChange={(e) => setDraft((p) => ({ ...p, halfOpenMaxCalls: Number(e.target.value) }))} />
+              <PresetOrCustomNumberField
+                theme={theme}
+                value={draft.halfOpenMaxCalls ?? 3}
+                onChange={(n) => setDraft((p) => ({ ...p, halfOpenMaxCalls: n }))}
+                presets={CIRCUIT_HALF_OPEN_MAX.presets}
+                customMin={CIRCUIT_HALF_OPEN_MAX.customMin}
+                customMax={CIRCUIT_HALF_OPEN_MAX.customMax}
+                customSeed={CIRCUIT_HALF_OPEN_MAX.customSeed}
+                inputClassName={inputCls}
+                ariaLabel="半开最大调用次数"
+              />
             </div>
           </div>
           <div>

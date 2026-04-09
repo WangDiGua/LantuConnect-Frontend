@@ -16,6 +16,8 @@ import {
   btnPrimary, btnSecondary, textPrimary, textSecondary, textMuted, fieldErrorText, inputBaseError,
 } from '../../utils/uiClasses';
 import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
+import { PresetOrCustomNumberField } from '../../components/common/PresetOrCustomNumberField';
+import { SYSTEM_PARAM_NUMERIC_PRESETS } from '../../utils/numericFormPresets';
 
 interface PageProps {
   theme: Theme;
@@ -261,18 +263,49 @@ export const SystemParamsPage: React.FC<PageProps> = ({ theme, fontSize, showMes
                     </label>
                   </div>
                 ) : p.type === 'number' ? (
-                  <input
-                    className={`${inputCls} w-full`}
-                    type="number"
-                    inputMode="decimal"
-                    value={Number.isFinite(Number(p.value)) ? Number(p.value) : 0}
-                    disabled={!p.editable}
-                    onChange={(e) => {
-                      const n = Number(e.target.value);
-                      const v = Number.isFinite(n) ? String(n) : '0';
-                      setDraft((prev) => prev.map((x, i) => (i === idx ? { ...x, value: v } : x)));
-                    }}
-                  />
+                  (() => {
+                    const presetCfg = SYSTEM_PARAM_NUMERIC_PRESETS[p.key];
+                    const numRaw = Number(p.value);
+                    if (presetCfg) {
+                      const safe = Number.isFinite(numRaw)
+                        ? Math.min(
+                            presetCfg.customMax,
+                            Math.max(presetCfg.customMin, Math.round(numRaw)),
+                          )
+                        : presetCfg.customSeed;
+                      return (
+                        <PresetOrCustomNumberField
+                          theme={theme}
+                          value={safe}
+                          disabled={!p.editable}
+                          onChange={(n) => {
+                            const v = String(n);
+                            setDraft((prev) => prev.map((x, i) => (i === idx ? { ...x, value: v } : x)));
+                          }}
+                          presets={presetCfg.presets}
+                          customMin={presetCfg.customMin}
+                          customMax={presetCfg.customMax}
+                          customSeed={presetCfg.customSeed}
+                          inputClassName={inputCls}
+                          ariaLabel={p.description || p.key}
+                        />
+                      );
+                    }
+                    return (
+                      <input
+                        className={`${inputCls} w-full`}
+                        type="number"
+                        inputMode="decimal"
+                        value={Number.isFinite(Number(p.value)) ? Number(p.value) : 0}
+                        disabled={!p.editable}
+                        onChange={(e) => {
+                          const n = Number(e.target.value);
+                          const v = Number.isFinite(n) ? String(n) : '0';
+                          setDraft((prev) => prev.map((x, i) => (i === idx ? { ...x, value: v } : x)));
+                        }}
+                      />
+                    );
+                  })()
                 ) : (
                   <input
                     className={`${inputCls} w-full`}
@@ -442,15 +475,15 @@ function SecurityField({
 
   if (s.type === 'number') {
     const n = typeof s.value === 'number' ? s.value : Number(s.value);
-    const safe = Number.isFinite(n) ? n : 0;
+    const safe = Number.isFinite(n) ? Math.round(n) : 0;
     return (
       <div>
         <label className={titleCls}>{s.label}</label>
         <input
           className={inputCls}
           type="number"
-          min={1}
-          max={3650}
+          min={0}
+          max={2147483647}
           step={1}
           inputMode="numeric"
           value={safe}

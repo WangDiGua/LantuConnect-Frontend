@@ -39,8 +39,6 @@ export interface ConsoleTopNavProps {
   filteredSubGroupsForSidebarId: (id: string, domain: ConsoleRole) => SubGroup[];
   onLogoClick: () => void;
   onOpenMobileNav: () => void;
-  /** 为 false 时顶栏误固定高亮第一项，易与侧栏不一致；应常驻 true，仅按路由与 activeSidebar 高亮 */
-  topNavHighlightFollowsRoute: boolean;
   /** 右侧：外观、消息、全屏、用户等（由 MainLayout 注入，含 headerMenusRef） */
   toolbarRight: React.ReactNode;
 }
@@ -57,7 +55,6 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
   filteredSubGroupsForSidebarId,
   onLogoClick,
   onOpenMobileNav,
-  topNavHighlightFollowsRoute,
   toolbarRight,
 }) => {
   const searchRows = sidebarSearchRows ?? sidebarRows;
@@ -144,14 +141,6 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
     return out;
   }, [navItems, sidebarRows, navItemStateByKey]);
 
-  /** `topNavHighlightFollowsRoute === false` 时的退路（应极少使用）；首项高亮会与侧栏路由矛盾 */
-  const firstTopNavItemKey = useMemo(() => {
-    for (const p of navPieces) {
-      if (p.kind === 'item') return `${p.block.item.domain}-${p.block.item.id}`;
-    }
-    return null;
-  }, [navPieces]);
-
   useEffect(() => {
     const onHotkey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -216,13 +205,11 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
           }
           const { item, hasChildren, visibleChildren } = piece.block;
           const key = `${item.domain}-${item.id}`;
-          const isChildActive =
-            topNavHighlightFollowsRoute && hasChildren && activeSidebar === item.id && routeRole === item.domain;
-          const isSelfActive =
-            topNavHighlightFollowsRoute && !hasChildren && activeSidebar === item.id && routeRole === item.domain;
-          const active = topNavHighlightFollowsRoute
-            ? isSelfActive || isChildActive
-            : firstTopNavItemKey !== null && key === firstTopNavItemKey;
+          /** 仅当当前壳与条目 domain 一致时高亮（管理壳 `admin` 时顶栏六项均为 `user`，不匹配则全部不高亮，避免误锁「探索发现」） */
+          const domainMatches = routeRole === item.domain;
+          const isChildActive = domainMatches && hasChildren && activeSidebar === item.id;
+          const isSelfActive = domainMatches && !hasChildren && activeSidebar === item.id;
+          const active = isSelfActive || isChildActive;
           const pillBtn = active
             ? isDark
               ? 'text-blue-400'

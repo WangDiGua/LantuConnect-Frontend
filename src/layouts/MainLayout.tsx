@@ -770,8 +770,6 @@ const MainLayoutContent: React.FC<{
    */
   const [personalRailOpen, setPersonalRailOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  /** 顶栏高亮是否跟随当前路由；左轨/抽屉跳转时置为 false，仅首项视觉高亮 */
-  const [topNavHighlightFollowsRoute, setTopNavHighlightFollowsRoute] = useState(true);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const storeLogout = useAuthStore((s) => s.logout);
@@ -1378,7 +1376,6 @@ const MainLayoutContent: React.FC<{
 
   const handleTopNavSidebarClick = (id: string, domain: ConsoleRole) => {
     setMobileNavOpen(false);
-    setTopNavHighlightFollowsRoute(true);
     navigate(buildPath(domain, getDefaultPage(domain, id)));
   };
 
@@ -1407,7 +1404,6 @@ const MainLayoutContent: React.FC<{
   const handleTopNavSubItemClick = useCallback(
     (subItemId: string, parentSidebarId: string, domain: ConsoleRole) => {
       setMobileNavOpen(false);
-      setTopNavHighlightFollowsRoute(true);
       navigateSubItem(subItemId, parentSidebarId, domain);
     },
     [navigateSubItem],
@@ -1416,8 +1412,6 @@ const MainLayoutContent: React.FC<{
   const handleRailSubItemClick = useCallback(
     (subItemId: string, parentSidebarId: string, domain: ConsoleRole) => {
       setMobileNavOpen(false);
-      /** 须与顶栏一致按路由高亮；勿置 false，否则非「探索」域页面仍误亮首项 */
-      setTopNavHighlightFollowsRoute(true);
       navigateSubItem(subItemId, parentSidebarId, domain);
     },
     [navigateSubItem],
@@ -1638,10 +1632,8 @@ const MainLayoutContent: React.FC<{
           platformRole={platformRole}
           onSidebarClick={handleTopNavSidebarClick}
           onSubItemClick={handleTopNavSubItemClick}
-          topNavHighlightFollowsRoute={topNavHighlightFollowsRoute}
           filteredSubGroupsForSidebarId={filteredSubGroupsForSidebarId}
           onLogoClick={() => {
-            setTopNavHighlightFollowsRoute(true);
             navigate(defaultPath());
             setMobileNavOpen(false);
           }}

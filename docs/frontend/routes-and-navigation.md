@@ -155,9 +155,9 @@
 
 ## 顶栏主导航（`ConsoleTopNav`）高亮
 
-- 顶栏横向六项（「探索发现」+ 五类资源广场）的选中态由当前 `activeSidebar`、`routeRole` 与 `topNavHighlightFollowsRoute` 共同决定；**须随路由对齐**，勿在离开探索域后仍固定高亮首项。
-- 从左轨 `HubPersonalRail` 或移动抽屉选择子菜单时，与点击顶栏下拉一致，保持 **`topNavHighlightFollowsRoute === true`**（实现：`MainLayout` 中 `handleRailSubItemClick`）。
-- **个人工作台**等不在顶栏六项内：落在 `workspace` 等侧栏时，顶栏可以 **没有任何一项呈「当前页」高亮**，属预期；仅不应错误高亮「探索发现」。
+- 顶栏六项（「探索发现」+ 五类广场）条目均为 **使用端** `domain: 'user'`。高亮条件：`routeRole === item.domain` 且 `activeSidebar === item.id`（或下拉内子项匹配）。
+- **管理壳**（`routeRole === 'admin'`）下顶栏仍为上述六项，与当前 `activeSidebar`（如 `system-config`）**不会**在 id 上重合，故 **顶栏六项均可无高亮**，属预期；此前若存在「首项退路」会误把「探索发现」锁为选中，已移除。
+- **使用壳**（`routeRole === 'user'`）下：在 Hub 则高亮「探索发现」；在某一广场则高亮对应项；在「个人工作台」等无对应顶栏 id 时顶栏可无高亮。
 
 ## 部分子菜单权限裁剪（`SUB_ITEM_PERM_MAP`）
 

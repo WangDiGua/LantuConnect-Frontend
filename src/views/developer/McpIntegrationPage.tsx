@@ -609,7 +609,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
       theme={theme}
       fontSize={fontSize}
       titleIcon={Puzzle}
-      breadcrumbSegments={['开发者中心', 'MCP 对外集成']}
+      breadcrumbSegments={['开发者中心', '网关集成']}
       description="以「选择 API Key」为主线：可调用预判列与导出 invokeEligibleWithSelectedKey 来自后端 invoke-eligibility，与 POST /invoke 一致。目录 callableOnly 与网关 isResourcePhysicallyCallable 一致（健康仅拦截 down/disabled；熔断仅 OPEN/FORCED_OPEN；HALF_OPEN 仍可出现）。导出 JSON 仅为快照；调用须完整 X-Api-Key。"
       toolbar={toolbar}
       contentScroll="document"
@@ -626,6 +626,15 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
             实际执行多是<strong className={textPrimary(theme)}>「解析 → 三选一调用」</strong>：先 <span className="font-mono text-xs">POST /catalog/resolve</span>（请求体可带 <span className="font-mono text-xs">include</span>，如 <span className="font-mono text-xs">closure</span> / <span className="font-mono text-xs">bindings</span>，展开 Agent↔MCP、MCP↔Skill 绑定；单条详情亦可用 GET 的 query <span className="font-mono text-xs">include</span>），再按返回的 <span className="font-mono text-xs">invokeType</span> 选用{' '}
             <span className="font-mono text-xs">/invoke</span>、<span className="font-mono text-xs">/invoke-stream</span> 或 <span className="font-mono text-xs break-all">…/message</span>（JSON-RPC）。平台内 <span className="font-mono text-xs">skill</span> 均为<strong className={textPrimary(theme)}>托管（hosted）</strong>，通过 <span className="font-mono text-xs">POST /invoke</span> 调用。下文<strong className={textPrimary(theme)}> 常用三种方式 </strong>
             已展开；拉目录、可调用预判及 SDK 等价路径请用<strong className={textPrimary(theme)}> 展开更多 </strong>。须带完整 <span className="font-mono text-xs">X-Api-Key</span>；浏览器场景建议经 BFF。
+          </p>
+          <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
+            <strong className={textPrimary(theme)}>绑定展开：</strong>仅 <span className="font-mono text-xs">POST /invoke</span>{' '}
+            <span className="font-mono text-xs">agent</span> 或托管 <span className="font-mono text-xs">skill</span> 时，若登记了{' '}
+            <span className="font-mono text-xs">agent_depends_mcp</span> 或 <span className="font-mono text-xs">mcp_depends_skill</span>（后者为逆查），网关会在转发/代调前把绑定 MCP 的{' '}
+            <span className="font-mono text-xs">tools/list</span> 聚合写入请求 JSON 的{' '}
+            <span className="font-mono text-xs">_lantu.bindingExpansion</span>（含 <span className="font-mono text-xs">openAiTools</span> /{' '}
+            <span className="font-mono text-xs">routes</span> / <span className="font-mono text-xs">warnings</span>）。仅 invoke{' '}
+            <span className="font-mono text-xs">mcp</span> <strong className={textPrimary(theme)}>不会</strong>反向拉起 Agent；MCP 仍先跑前置托管技能链（若已配置）。Key 须对展开涉及的每个 MCP 具备 invoke scope。
           </p>
           <div className="flex flex-wrap gap-2">
             <button

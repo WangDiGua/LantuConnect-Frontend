@@ -1646,7 +1646,8 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                   fieldId={rrFieldId('relatedPreSkillResourceIds')}
                 >
                   <p className={`mb-1 text-xs ${textMuted(theme)}`}>
-                    在 invoke(MCP) 之前按顺序执行：仅列出您名下「已发布 / 测试中」的托管技能（hosted），从下方勾选；留空表示不设前置链。更新草稿时若集合与加载时一致（顺序无关）则不提交修改（与后端「null=不变更」一致）。
+                    在 invoke(MCP) 之前按顺序执行：仅列出您名下「已发布 / 测试中」的托管技能（hosted），从下方勾选；留空表示不设前置链。更新草稿时若集合与加载时一致（顺序无关）则不提交修改（与后端「null=不变更」一致）。仅 invoke 本 MCP 不会反向拉起 Agent。若调用方改为仅 invoke 某前置技能，网关会对引用该技能的 MCP 做逆查并把同源工具清单写入{' '}
+                    <span className="font-mono">payload._lantu.bindingExpansion</span>。
                   </p>
                   <OrderedRelatedResourcePicker
                     theme={theme}
@@ -1768,7 +1769,8 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                   fieldId={rrFieldId('relatedMcpResourceIds')}
                 >
                   <p className={`mb-1 text-xs ${textMuted(theme)}`}>
-                    agent_depends_mcp：仅可选择您名下「已发布 / 测试中」的 MCP 资源。更新时若集合与加载时一致（顺序无关）则不提交该字段。
+                    agent_depends_mcp：仅可选择您名下「已发布 / 测试中」的 MCP 资源。更新时若集合与加载时一致（顺序无关）则不提交该字段。调用方仅 invoke 本 Agent 时，网关可将绑定 MCP 的工具聚合写入上游请求体{' '}
+                    <span className="font-mono">_lantu.bindingExpansion</span>（须 Key 对各 MCP 具备 invoke）。
                   </p>
                   <OrderedRelatedResourcePicker
                     theme={theme}

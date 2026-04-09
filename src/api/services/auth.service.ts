@@ -4,14 +4,40 @@ import type { PaginatedData } from '../../types/api';
 import type {
   AccountInsights,
   CaptchaResult,
+  LegalNotices,
   LoginRequest,
   LoginResponse,
   RegisterRequest,
   UserInfo,
 } from '../../types/dto/auth';
+import { LOGIN_LEGAL_NOTICES_FALLBACK } from '../../constants/loginLegalNotices';
 import type { SessionItem } from '../../types/dto/explore';
 
 export const authService = {
+  /** 登录页隐私 / 条款（匿名；失败时返回本地占位） */
+  getLegalNotices: async (): Promise<LegalNotices> => {
+    try {
+      const d = await http.get<LegalNotices>('/auth/legal-notices');
+      if (
+        d &&
+        typeof d.privacyBody === 'string' &&
+        d.privacyBody.trim() &&
+        typeof d.termsBody === 'string' &&
+        d.termsBody.trim()
+      ) {
+        return {
+          privacyTitle: d.privacyTitle?.trim() || LOGIN_LEGAL_NOTICES_FALLBACK.privacyTitle,
+          termsTitle: d.termsTitle?.trim() || LOGIN_LEGAL_NOTICES_FALLBACK.termsTitle,
+          privacyBody: d.privacyBody,
+          termsBody: d.termsBody,
+        };
+      }
+    } catch {
+      /* 离线或旧后端 */
+    }
+    return LOGIN_LEGAL_NOTICES_FALLBACK;
+  },
+
   getCaptcha: () => http.get<CaptchaResult>('/captcha/generate'),
   verifyCaptcha: (captchaId: string, code: string) =>
     http.post<boolean>('/captcha/verify', undefined, { params: { captchaId, code } }),

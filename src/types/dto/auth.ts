@@ -66,6 +66,14 @@ export interface CaptchaResult {
   captchaImage: string;
 }
 
+/** GET /auth/legal-notices — 登录页弹窗用（匿名） */
+export interface LegalNotices {
+  privacyTitle: string;
+  privacyBody: string;
+  termsTitle: string;
+  termsBody: string;
+}
+
 /** GET /auth/account-insights — 个人资料安全分与登录活跃度 */
 export type AccountSecurityLevel = 'good' | 'fair' | 'warn';
 

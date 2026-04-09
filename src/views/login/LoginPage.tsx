@@ -8,6 +8,9 @@ import {
 } from 'lucide-react';
 import { loginSchema, LoginFormValues } from '../../schemas/auth.schema';
 import { authService } from '../../api/services/auth.service';
+import { LOGIN_LEGAL_NOTICES_FALLBACK } from '../../constants/loginLegalNotices';
+import type { LegalNotices } from '../../types/dto/auth';
+import { Modal } from '../../components/common/Modal';
 import { useAuthStore } from '../../stores/authStore';
 import { ApiException } from '../../types/api';
 import { useMessage } from '../../components/common/Message';
@@ -26,6 +29,9 @@ export const LoginPage: React.FC = () => {
   const [captchaError, setCaptchaError] = useState('');
   const [captchaId, setCaptchaId] = useState('');
   const [captchaImage, setCaptchaImage] = useState('');
+
+  const [legalModal, setLegalModal] = useState<'none' | 'privacy' | 'terms'>('none');
+  const [legalNotices, setLegalNotices] = useState<LegalNotices>(LOGIN_LEGAL_NOTICES_FALLBACK);
 
   const [mousePos, setMousePos] = useState({ x: -1000, y: -1000 });
   const [latency, setLatency] = useState('12.4');
@@ -72,6 +78,10 @@ export const LoginPage: React.FC = () => {
   }, [setValue]);
 
   useEffect(() => { refreshCaptcha(); }, [refreshCaptcha]);
+
+  useEffect(() => {
+    void authService.getLegalNotices().then(setLegalNotices);
+  }, []);
 
   const onSubmit = async (values: LoginFormValues) => {
     setServerError('');
@@ -341,13 +351,47 @@ export const LoginPage: React.FC = () => {
           <div className="flex items-center justify-between text-xs text-neutral-400 pt-8 border-t border-neutral-100 [@media(min-width:1024px)_and_(max-height:800px)]:lg:pt-4 [@media(min-width:1024px)_and_(max-height:680px)]:lg:pt-3 [@media(min-width:1024px)_and_(max-height:800px)]:lg:text-xs">
             <span>&copy; 2026 Nexus AI</span>
             <div className="flex gap-4">
-              <a href="#" className="rounded-md hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/25 transition-colors">隐私</a>
-              <a href="#" className="rounded-md hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/25 transition-colors">条款</a>
+              <button
+                type="button"
+                className="rounded-md text-sky-600 hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/25 transition-colors"
+                onClick={() => setLegalModal('privacy')}
+              >
+                隐私
+              </button>
+              <button
+                type="button"
+                className="rounded-md text-sky-600 hover:text-neutral-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/25 transition-colors"
+                onClick={() => setLegalModal('terms')}
+              >
+                条款
+              </button>
             </div>
           </div>
         </div>
         </div>
       </div>
+
+      <Modal
+        open={legalModal !== 'none'}
+        onClose={() => setLegalModal('none')}
+        theme="light"
+        size="lg"
+        title={legalModal === 'privacy' ? legalNotices.privacyTitle : legalNotices.termsTitle}
+        contentClassName="flex-1 overflow-y-auto px-6 py-4 max-h-[min(70vh,560px)]"
+        footer={
+          <button
+            type="button"
+            onClick={() => setLegalModal('none')}
+            className="px-4 py-2 rounded-xl text-sm font-medium bg-neutral-900 text-white hover:bg-neutral-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/30"
+          >
+            关闭
+          </button>
+        }
+      >
+        <div className="text-sm text-neutral-700 whitespace-pre-wrap leading-relaxed">
+          {legalModal === 'privacy' ? legalNotices.privacyBody : legalNotices.termsBody}
+        </div>
+      </Modal>
     </div>
   );
 };

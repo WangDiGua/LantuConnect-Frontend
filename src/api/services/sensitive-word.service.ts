@@ -28,9 +28,27 @@ export const sensitiveWordService = {
     }));
   },
 
+  /**
+   * 分类列表：后端返回 `{ category, count }[]`；兼容历史接口纯字符串数组。
+   */
   categories: async () => {
     const raw = await http.get<unknown>('/sensitive-words/categories');
-    return extractArray<SensitiveWordCategoryCount>(raw);
+    const arr = extractArray<unknown>(raw);
+    return arr
+      .map((row): SensitiveWordCategoryCount => {
+        if (typeof row === 'string') {
+          const category = row.trim();
+          return { category, count: 0 };
+        }
+        if (row && typeof row === 'object') {
+          const o = row as Record<string, unknown>;
+          const category = String(o.category ?? '').trim();
+          const n = Number(o.count ?? o.cnt ?? 0);
+          return { category, count: Number.isFinite(n) ? n : 0 };
+        }
+        return { category: '', count: 0 };
+      })
+      .filter((x) => x.category.length > 0);
   },
 
   count: () =>

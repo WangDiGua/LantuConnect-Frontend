@@ -4,6 +4,7 @@ import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { sensitiveWordService } from '../../api/services/sensitive-word.service';
 import type { SensitiveWord, SensitiveWordCategoryCount, SensitiveWordImportResult } from '../../types/dto/sensitive-word';
+import { SENSITIVE_WORD_CATEGORY_PRESETS } from '../../types/dto/sensitive-word';
 import type { PaginatedData } from '../../types/api';
 import { BentoCard } from '../../components/common/BentoCard';
 import { LantuSelect } from '../../components/common/LantuSelect';
@@ -139,6 +140,15 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
     ],
     [categoryOptions],
   );
+
+  /** 联想用：预设顺序 + 接口返回 + 去重；仍可自由输入未列出值 */
+  const categoryDatalistValues = useMemo(() => {
+    const presets = [...SENSITIVE_WORD_CATEGORY_PRESETS] as string[];
+    const presetSet = new Set(presets);
+    const fromApi = categoryOptions.map((c) => c.category).filter(Boolean);
+    const extras = [...new Set(fromApi)].filter((c) => !presetSet.has(c)).sort((a, b) => a.localeCompare(b));
+    return [...presets, ...extras];
+  }, [categoryOptions]);
 
   const fetchList = useCallback(async () => {
     setLoading(true);
@@ -489,6 +499,11 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
         </div>
       }
     >
+      <datalist id="lantu-sensitive-word-categories">
+        {categoryDatalistValues.map((c) => (
+          <option key={c} value={c} />
+        ))}
+      </datalist>
       <div className="px-4 sm:px-6 pb-6">
         {latestImportResult && (
           <BentoCard theme={theme} padding="sm" className="mb-4">
@@ -609,7 +624,17 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
           </div>
           <div>
             <label className={`text-sm font-medium ${textSecondary(theme)} mb-1 block`}>分类</label>
-            <input className={inputCls} value={addCategory} onChange={(e) => setAddCategory(e.target.value)} placeholder="默认" />
+            <input
+              className={inputCls}
+              list="lantu-sensitive-word-categories"
+              value={addCategory}
+              onChange={(e) => setAddCategory(e.target.value)}
+              placeholder="留空则存为 default"
+              autoComplete="off"
+            />
+            <p className={`mt-1 text-xs ${textMuted(theme)}`}>
+              常用值见下拉建议（agent / skill / mcp / app / dataset / general / default）；可直接输入自定义分类。
+            </p>
           </div>
           <div>
             <label className={`text-sm font-medium ${textSecondary(theme)} mb-1 block`}>严重级别</label>
@@ -647,7 +672,14 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
           </div>
           <div>
             <label className={`text-sm font-medium ${textSecondary(theme)} mb-1 block`}>分类</label>
-            <input className={inputCls} value={editCategory} onChange={(e) => setEditCategory(e.target.value)} placeholder="默认" />
+            <input
+              className={inputCls}
+              list="lantu-sensitive-word-categories"
+              value={editCategory}
+              onChange={(e) => setEditCategory(e.target.value)}
+              placeholder="常用分类见建议，或直接输入"
+              autoComplete="off"
+            />
           </div>
           <div>
             <label className={`text-sm font-medium ${textSecondary(theme)} mb-1 block`}>严重级别</label>
@@ -713,7 +745,14 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
             ) : null}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <input className={inputCls} value={batchCategory} onChange={(e) => setBatchCategory(e.target.value)} placeholder="category（可选）" />
+            <input
+              className={inputCls}
+              list="lantu-sensitive-word-categories"
+              value={batchCategory}
+              onChange={(e) => setBatchCategory(e.target.value)}
+              placeholder="category（可选）"
+              autoComplete="off"
+            />
             <input type="number" min={1} max={10} className={inputCls} value={batchSeverity} onChange={(e) => setBatchSeverity(Math.max(1, Number(e.target.value) || 1))} placeholder="severity" />
             <input className={inputCls} value={batchSource} onChange={(e) => setBatchSource(e.target.value)} placeholder="source（可选）" />
           </div>
@@ -767,7 +806,14 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
               </p>
             ) : null}
           </div>
-          <input className={inputCls} value={importCategory} onChange={(e) => setImportCategory(e.target.value)} placeholder="category（可选）" />
+          <input
+            className={inputCls}
+            list="lantu-sensitive-word-categories"
+            value={importCategory}
+            onChange={(e) => setImportCategory(e.target.value)}
+            placeholder="category（可选）"
+            autoComplete="off"
+          />
           <input type="number" min={1} max={10} className={inputCls} value={importSeverity} onChange={(e) => setImportSeverity(Math.max(1, Number(e.target.value) || 1))} placeholder="severity（可选）" />
           <input className={inputCls} value={importSource} onChange={(e) => setImportSource(e.target.value)} placeholder="source（可选）" />
         </div>

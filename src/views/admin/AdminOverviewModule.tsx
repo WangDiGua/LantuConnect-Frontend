@@ -7,7 +7,6 @@ import { Overview } from '../dashboard/Overview';
 import { HealthCheckOverview } from '../dashboard/HealthCheckOverview';
 import { UsageStatsOverview } from '../dashboard/UsageStatsOverview';
 import { DataReportsPage } from '../dashboard/DataReportsPage';
-import { btnSecondary } from '../../utils/uiClasses';
 
 export type AdminOverviewTab = 'dashboard' | 'health-check' | 'usage-statistics' | 'data-reports';
 
@@ -29,7 +28,6 @@ export interface AdminOverviewModuleProps {
 export const AdminOverviewModule: React.FC<AdminOverviewModuleProps> = ({ activePage, theme, fontSize }) => {
   const navigate = useNavigate();
   const { hasPermission } = useUserRole();
-  const isDark = theme === 'dark';
 
   const visibleTabs = useMemo(
     () => ALL_TABS.filter((t) => hasPermission(t.perm)),
@@ -56,33 +54,6 @@ export const AdminOverviewModule: React.FC<AdminOverviewModuleProps> = ({ active
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-      <div
-        className={`mb-4 flex flex-wrap gap-2 border-b pb-3 ${isDark ? 'border-white/10' : 'border-slate-200'}`}
-        role="tablist"
-        aria-label="运营总览"
-      >
-        {visibleTabs.map((t) => {
-          const on = tab === t.id;
-          return (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              aria-selected={on}
-              className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
-                on
-                  ? isDark
-                    ? 'bg-white/10 text-white'
-                    : 'bg-slate-900 text-white'
-                  : `${btnSecondary(theme)} !shadow-none`
-              }`}
-              onClick={() => navigate(buildPath('admin', t.id))}
-            >
-              {t.label}
-            </button>
-          );
-        })}
-      </div>
       <div className="min-h-0 min-w-0 flex-1">
         {tab === 'dashboard' ? <Overview theme={theme} fontSize={fontSize} /> : null}
         {tab === 'health-check' ? <HealthCheckOverview theme={theme} fontSize={fontSize} /> : null}

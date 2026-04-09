@@ -46,6 +46,9 @@ import {
   Compass,
   Braces,
   ScrollText,
+  HeartPulse,
+  GitBranch,
+  Gauge,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -129,8 +132,13 @@ export const DASHBOARD_GROUPS = [];
 
 export const ADMIN_OVERVIEW_GROUPS: NavSubGroup[] = [
   {
-    title: '总览',
-    items: [{ id: 'overview', icon: LayoutDashboard, label: '运营总览' }],
+    title: '运营总览',
+    items: [
+      { id: 'dashboard', icon: LayoutDashboard, label: '数据概览' },
+      { id: 'health-check', icon: HeartPulse, label: '健康状态' },
+      { id: 'usage-statistics', icon: BarChart3, label: '使用统计' },
+      { id: 'data-reports', icon: ScrollText, label: '数据报表' },
+    ],
   },
 ];
 
@@ -141,7 +149,10 @@ export const ADMIN_RESOURCE_MANAGEMENT_GROUPS: NavSubGroup[] = [
   },
   {
     title: '运行诊断',
-    items: [{ id: 'agent-diagnostics', icon: LineChart, label: '运行诊断' }],
+    items: [
+      { id: 'agent-monitoring', icon: LineChart, label: '运行监控' },
+      { id: 'agent-trace', icon: GitBranch, label: '链路追踪' },
+    ],
   },
 ];
 
@@ -178,21 +189,45 @@ export const ADMIN_RESOURCE_OPS_GROUPS: NavSubGroup[] = [
 export const ADMIN_USER_MANAGEMENT_GROUPS: NavSubGroup[] = [
   {
     title: '治理',
-    items: [{ id: 'user-hub', icon: Users, label: '用户与权限' }],
+    items: [
+      { id: 'user-list', icon: Users, label: '用户管理' },
+      { id: 'role-management', icon: Shield, label: '角色权限' },
+      { id: 'organization', icon: Building2, label: '组织管理' },
+      { id: 'api-key-management', icon: Fingerprint, label: '密钥管理' },
+      { id: 'developer-applications', icon: ClipboardCheck, label: '入驻审批' },
+    ],
   },
 ];
 
 export const ADMIN_MONITORING_GROUPS: NavSubGroup[] = [
   {
     title: '运维',
-    items: [{ id: 'monitoring-hub', icon: Activity, label: '监控运维台' }],
+    items: [
+      { id: 'monitoring-overview', icon: LayoutDashboard, label: '监控概览' },
+      { id: 'call-logs', icon: FileText, label: '调用日志' },
+      { id: 'performance-analysis', icon: TrendingUp, label: '性能分析' },
+      { id: 'alert-management', icon: Bell, label: '告警管理' },
+      { id: 'alert-rules', icon: Sliders, label: '告警规则' },
+      { id: 'health-config', icon: Wrench, label: '健康检查' },
+      { id: 'circuit-breaker', icon: Zap, label: '熔断降级' },
+    ],
   },
 ];
 
 export const ADMIN_SYSTEM_CONFIG_GROUPS: NavSubGroup[] = [
   {
     title: '平台',
-    items: [{ id: 'config-hub', icon: Settings, label: '平台配置' }],
+    items: [
+      { id: 'tag-management', icon: Tag, label: '标签管理' },
+      { id: 'system-params', icon: Sliders, label: '系统参数' },
+      { id: 'security-settings', icon: Lock, label: '安全配置' },
+      { id: 'network-config', icon: Globe2, label: '网络配置' },
+      { id: 'rate-limit-policy', icon: Gauge, label: '限流策略' },
+      { id: 'access-control', icon: ShieldCheck, label: '访问控制' },
+      { id: 'audit-log', icon: Receipt, label: '审计日志' },
+      { id: 'sensitive-words', icon: Eye, label: '敏感词库' },
+      { id: 'announcements', icon: Sparkles, label: '平台公告' },
+    ],
   },
 ];
 

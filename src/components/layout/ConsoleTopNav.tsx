@@ -111,7 +111,8 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
     return itemRows
       .map((item) => {
         const allChildren = filteredSubGroupsForSidebarId(item.id, item.domain).flatMap((g) => g.items);
-        const hasChildren = allChildren.length > 0;
+        /** 仅一项子菜单时与点父级重复，顶栏改为直达，不展示下拉 */
+        const hasChildren = allChildren.length > 1;
         return { item, hasChildren, visibleChildren: allChildren };
       })
       .filter((v): v is { item: Extract<ConsoleSidebarRow, { kind: 'item' }>; hasChildren: boolean; visibleChildren: SubGroup['items'] } => !!v);
@@ -231,11 +232,14 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
               : 'text-slate-500 hover:text-slate-900';
 
           if (!hasChildren) {
+            const loneChild = visibleChildren.length === 1 ? visibleChildren[0] : null;
             return (
               <button
                 key={key}
                 type="button"
-                onClick={() => onSidebarClick(item.id, item.domain)}
+                onClick={() =>
+                  loneChild ? onSubItemClick(loneChild.id, item.id, item.domain) : onSidebarClick(item.id, item.domain)
+                }
                 aria-current={active ? 'page' : undefined}
                 className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-bold transition-all duration-300 motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${pillBtn}`}
               >

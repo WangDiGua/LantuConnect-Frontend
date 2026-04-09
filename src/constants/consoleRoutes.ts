@@ -241,13 +241,10 @@ export function getDefaultPage(role: ConsoleRole, sidebarId: string): string {
   return map[sidebarId]?.[0] ?? (role === 'admin' ? 'dashboard' : 'hub');
 }
 
-/** Navigation group sub-item ID → URL page name (handles the two renamed pages) */
+/** Navigation group sub-item ID → URL page name（管理端子项 id 与 page slug 一致时可直出） */
 export function subItemToPage(sidebarId: string, subItemId: string, isAdmin: boolean): string {
+  /** 旧书签：子项 id 曾为 overview */
   if (isAdmin && sidebarId === 'overview' && subItemId === 'overview') return 'dashboard';
-  if (isAdmin && sidebarId === 'admin-resource-ops' && subItemId === 'agent-diagnostics') return 'agent-monitoring';
-  if (isAdmin && sidebarId === 'monitoring' && subItemId === 'monitoring-hub') return 'monitoring-overview';
-  if (isAdmin && sidebarId === 'system-config' && subItemId === 'config-hub') return 'tag-management';
-  if (isAdmin && sidebarId === 'user-management' && subItemId === 'user-hub') return 'user-list';
   if (!isAdmin && sidebarId === 'workspace' && subItemId === 'overview') return 'workspace';
   if (!isAdmin && sidebarId === 'skills-center' && subItemId === 'skills-center') return 'skills-center';
   if (!isAdmin && sidebarId === 'mcp-center' && subItemId === 'mcp-center') return 'mcp-center';
@@ -259,12 +256,8 @@ export function subItemToPage(sidebarId: string, subItemId: string, isAdmin: boo
 
 /** URL page name → navigation group sub-item ID */
 export function pageToSubItem(page: string, sidebarId: string | null, isAdmin: boolean): string {
-  if (
-    isAdmin &&
-    sidebarId === 'overview' &&
-    ['dashboard', 'health-check', 'usage-statistics', 'data-reports'].includes(page)
-  ) {
-    return 'overview';
+  if (isAdmin && sidebarId === 'overview' && ['dashboard', 'health-check', 'usage-statistics', 'data-reports'].includes(page)) {
+    return page;
   }
   if (!isAdmin && page === 'workspace' && sidebarId === 'workspace') return 'overview';
   if (!isAdmin && sidebarId === 'workspace' && USER_WORKBENCH_SATELLITE_PAGES.has(page)) {
@@ -277,7 +270,7 @@ export function pageToSubItem(page: string, sidebarId: string | null, isAdmin: b
     return 'resource-audit';
   }
   if (isAdmin && sidebarId === 'admin-resource-ops' && (page === 'agent-monitoring' || page === 'agent-trace')) {
-    return 'agent-diagnostics';
+    return page;
   }
   if (
     !isAdmin &&
@@ -310,13 +303,13 @@ export function pageToSubItem(page: string, sidebarId: string | null, isAdmin: b
     return 'overview';
   }
   if (isAdmin && sidebarId === 'monitoring' && ADMIN_SIDEBAR_PAGES.monitoring.includes(page)) {
-    return 'monitoring-hub';
+    return page;
   }
   if (isAdmin && sidebarId === 'system-config' && ADMIN_SIDEBAR_PAGES['system-config'].includes(page)) {
-    return 'config-hub';
+    return page;
   }
   if (isAdmin && sidebarId === 'user-management' && ADMIN_SIDEBAR_PAGES['user-management'].includes(page)) {
-    return 'user-hub';
+    return page;
   }
   if (isAdmin && sidebarId === 'admin-resource-ops' && page === 'provider-create') {
     return 'provider-list';

@@ -192,15 +192,14 @@ function normalizeDeprecatedPage(page: string): string {
 const SUB_ITEM_PERM_MAP: Record<string, string | string[]> = {
   'provider-list': 'provider:view',
   'provider-create': 'provider:manage',
-  'user-hub': [
-    'user:manage',
-    'user:read',
-    'role:manage',
-    'org:manage',
-    'api-key:manage',
-    'apikey:read',
-    'developer-application:review',
-  ],
+  'dashboard': 'monitor:view',
+  'health-check': 'monitor:view',
+  'usage-statistics': 'monitor:view',
+  'data-reports': 'monitor:view',
+  'monitoring-overview': 'monitor:view',
+  'call-logs': 'monitor:view',
+  'performance-analysis': 'monitor:view',
+  'alert-management': 'monitor:view',
   /** 超管 user:manage；审核员只读目录为 user:read（与后端 GET /user-mgmt/users 一致） */
   'user-list': ['user:manage', 'user:read'],
   'role-management': 'role:manage',

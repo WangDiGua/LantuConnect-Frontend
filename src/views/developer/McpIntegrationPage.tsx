@@ -631,7 +631,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
             <button
               type="button"
               className={btnSecondary(theme)}
-              onClick={() => navigate(buildPath('user', 'preferences'))}
+              onClick={() => navigate(buildPath('user', 'my-api-keys'))}
             >
               <Settings size={14} aria-hidden />
               偏好设置（创建 API Key）
@@ -885,7 +885,7 @@ export const McpIntegrationPage: React.FC<McpIntegrationPageProps> = ({ theme, f
                     <button
                       type="button"
                       className={`mx-1 underline font-medium ${textPrimary(theme)}`}
-                      onClick={() => navigate(buildPath('user', 'preferences'))}
+                      onClick={() => navigate(buildPath('user', 'my-api-keys'))}
                     >
                       偏好设置
                     </button>

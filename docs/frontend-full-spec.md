@@ -196,6 +196,7 @@
 | developer-portal | `mcp-integration` | `#/c/mcp-integration` | McpIntegrationPage | reachable | — |
 | developer-portal | `developer-statistics` | `#/c/developer-statistics` | DeveloperStatsPage | reachable | — |
 | user-settings | `profile` | `#/c/profile` | UserSettingsHubPage | reachable | — |
+| user-settings | `my-api-keys` | `#/c/my-api-keys` | PlaceholderView | reachable | — |
 | user-settings | `preferences` | `#/c/preferences` | UserSettingsHubPage | reachable | — |
 
 <!-- AUTO-GENERATED A2.2:END -->

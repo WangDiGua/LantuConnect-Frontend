@@ -187,7 +187,7 @@ const USER_SIDEBAR_PAGES: Record<string, string[]> = {
   'agents-center': ['agents-center', 'agent-market'],
   'apps-center': ['apps-center', 'app-market'],
   'developer-portal': ['api-docs', 'sdk-download', 'api-playground', 'mcp-integration', 'developer-statistics'],
-  'user-settings': ['profile', 'preferences'],
+  'user-settings': ['profile', 'my-api-keys', 'preferences'],
 };
 
 function flatPageSet(map: Record<string, string[]>): Set<string> {

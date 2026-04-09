@@ -41,6 +41,8 @@ import {
   ClipboardCheck,
   Code2,
   Terminal,
+  User,
+  KeyRound,
   Download,
   Compass,
   Braces,
@@ -322,6 +324,18 @@ export const USER_MY_PUBLISH_GROUPS: NavSubGroup[] = [];
 /** @deprecated 等同于 {@link USER_MY_CONSOLE_GROUPS} */
 export const USER_RESOURCE_ASSETS_GROUPS: NavSubGroup[] = USER_MY_CONSOLE_GROUPS;
 
+/** 个人设置（profile / 密钥管理 / preferences）二级侧栏 */
+export const USER_SETTINGS_GROUPS: NavSubGroup[] = [
+  {
+    title: '个人设置',
+    items: [
+      { id: 'profile', icon: User, label: '个人资料' },
+      { id: 'my-api-keys', icon: KeyRound, label: '密钥管理' },
+      { id: 'preferences', icon: Sliders, label: '偏好设置' },
+    ],
+  },
+];
+
 // ==================== 子菜单分组路由 ====================
 
 export function getNavSubGroups(sidebarId: string, isAdminRole: boolean): NavSubGroup[] {
@@ -358,6 +372,8 @@ export function getNavSubGroups(sidebarId: string, isAdminRole: boolean): NavSub
       return ADMIN_DEVELOPER_PORTAL_GROUPS;
     case 'workspace':
       return USER_MY_CONSOLE_GROUPS;
+    case 'user-settings':
+      return USER_SETTINGS_GROUPS;
     default:
       return [];
   }

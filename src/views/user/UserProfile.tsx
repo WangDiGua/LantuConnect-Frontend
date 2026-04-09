@@ -279,7 +279,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ theme, onOpenSecurityS
 
   return (
     <div className={`flex-1 overflow-y-auto transition-colors duration-300 ${pageShell}`}>
-      <div className={`mx-auto max-w-7xl space-y-8 ${mainScrollPadBottom}`}>
+      <div className={`w-full min-w-0 space-y-8 ${mainScrollPadBottom}`}>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className={profileCard + ' lg:col-span-2'}>
             <div className={profileLeft}>

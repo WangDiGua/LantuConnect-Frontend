@@ -1453,6 +1453,11 @@ const MainLayoutContent: React.FC<{
     if (adminSidebarItems.length === 0) return [];
     const out: HubPersonalRailSection[] = [];
     for (const item of adminSidebarItems) {
+      /**
+       * `railSectionsUser` 已在 HUB_PERSONAL_RAIL 的「工作台」槽位注入 `admin-workspace` 子树；
+       * 此处再合并会导致 Hub / 移动抽屉左轨中「个人工作台」子项重复渲染。
+       */
+      if (item.id === 'admin-workspace') continue;
       const groups = filteredSubGroupsForSidebarId(item.id, 'admin');
       out.push(...buildHubPersonalNavModel(item.id, 'admin', groups));
     }

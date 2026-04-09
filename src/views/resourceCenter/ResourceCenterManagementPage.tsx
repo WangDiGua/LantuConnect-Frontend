@@ -12,7 +12,7 @@ import type {
 } from '../../types/dto/resource-center';
 import { resourceCenterService } from '../../api/services/resource-center.service';
 import { resourceAuditService } from '../../api/services/resource-audit.service';
-import { useUserRole } from '../../context/UserRoleContext';
+import { useUserRole, canAccessAdminView } from '../../context/UserRoleContext';
 import { useAuthStore } from '../../stores/authStore';
 import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedContentToTop';
 import { RESOURCE_TYPES, RESOURCE_TYPE_LABEL_ZH } from '../../constants/resourceTypes';
@@ -224,6 +224,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
   const authUser = useAuthStore((s) => s.user);
   const myUserId = authUser?.id ? Number(authUser.id) : NaN;
   const { platformRole, hasPermission } = useUserRole();
+  const isAdminConsoleUser = canAccessAdminView(platformRole);
   /** 与 AuditController publish 一致：owner / 部门管理员 / 平台侧开发者账号 */
   const canPublishResource =
     platformRole === 'platform_admin' || platformRole === 'reviewer' || platformRole === 'developer';
@@ -522,7 +523,11 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
         fontSize={fontSize}
         titleIcon={Boxes}
         breadcrumbSegments={['资源中心', title]}
-        description="资源中心闭环：注册、提审、审核（待审核时审核员可在此通过/驳回）、测试发布、版本、下线"
+        description={
+          isAdminConsoleUser
+            ? '仅展示您本人登记与维护的资源。全站资源的查看与审批请使用侧栏「资源与运营 → 资源审核」。'
+            : '资源中心闭环：注册、提审、审核（待审核时审核员可在此通过/驳回）、测试发布、版本、下线'
+        }
         toolbar={shellToolbar}
         contentScroll="document"
       >

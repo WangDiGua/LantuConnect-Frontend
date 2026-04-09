@@ -53,7 +53,7 @@ function validateAllowlistCidrRule(raw: string): string | null {
 const RUNTIME_APP_CONFIG_KEY = 'runtime_app_config';
 
 function isJsonSystemParam(p: SystemParam): boolean {
-  return p.type === 'json' || p.key === RUNTIME_APP_CONFIG_KEY || p.key === 'skill_external_catalog';
+  return p.type === 'json' || p.key === RUNTIME_APP_CONFIG_KEY;
 }
 
 function tryFormatJson(value: string): { ok: true; text: string } | { ok: false } {

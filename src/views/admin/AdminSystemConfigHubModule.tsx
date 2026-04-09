@@ -8,7 +8,6 @@ import { btnSecondary } from '../../utils/uiClasses';
 const TABS: { id: string; label: string }[] = [
   { id: 'tag-management', label: '标签' },
   { id: 'system-params', label: '系统参数' },
-  { id: 'skill-external-catalog-settings', label: '在线市场' },
   { id: 'security-settings', label: '安全' },
   { id: 'network-config', label: '网络' },
   { id: 'rate-limit-policy', label: '限流' },

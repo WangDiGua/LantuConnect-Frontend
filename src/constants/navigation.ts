@@ -44,7 +44,6 @@ import {
   Terminal,
   Download,
   Compass,
-  Store,
   Braces,
   ScrollText,
 } from 'lucide-react';
@@ -306,15 +305,7 @@ export function getNavSubGroups(sidebarId: string, isAdminRole: boolean): NavSub
     case 'apps-center':
       return [];
     case 'skills-center':
-      return [
-        {
-          title: 'Skills',
-          items: [
-            { id: 'skills-center', icon: Braces, label: '平台技能' },
-            { id: 'skill-external-market', icon: Store, label: '在线市场' },
-          ],
-        },
-      ];
+      return [];
     case 'developer-portal':
       return ADMIN_DEVELOPER_PORTAL_GROUPS;
     case 'workspace':

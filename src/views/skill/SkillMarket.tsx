@@ -22,7 +22,6 @@ import {
   Smartphone,
   Puzzle,
   MoreHorizontal,
-  Store,
 } from 'lucide-react';
 import type { Theme, FontSize, ThemeColor } from '../../types';
 import type { Skill } from '../../types/dto/skill';
@@ -262,16 +261,6 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _the
           <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
             <button
               type="button"
-              onClick={() => navigate(buildPath('user', 'skill-external-market'))}
-              className={`inline-flex min-h-11 items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 ${
-                isDark ? 'border-amber-500/35 bg-amber-500/10 text-amber-100 hover:bg-amber-500/15' : 'border-amber-200/90 bg-amber-50 text-amber-900 shadow-sm hover:bg-amber-100/90'
-              }`}
-            >
-              <Store className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-300" aria-hidden />
-              在线市场
-            </button>
-            <button
-              type="button"
               onClick={() => navigate(buildPath('user', 'api-docs'))}
               className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 ${
                 isDark ? 'border-white/[0.12] bg-white/[0.04] text-slate-200 hover:bg-white/[0.08]' : 'border-slate-200/80 bg-white text-slate-800 shadow-sm hover:bg-slate-50'
@@ -440,7 +429,7 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _the
           <Zap className="mt-0.5 h-4 w-4 shrink-0 text-amber-500 dark:text-amber-400" aria-hidden />
           <p>
             <strong className="font-semibold">{chromePageTitle || 'Skills 中心'}</strong>
-            ：平台技能均为 <strong className="font-semibold">托管（hosted）</strong>：目录发现 → resolve → <strong className="font-semibold">POST /invoke</strong>（<span className="font-mono text-[0.9em]">resourceType=skill</span>，须 Key 含 invoke scope）。需要可下载的第三方 ZIP 请到「在线市场」外部目录。
+            ：平台技能均为 <strong className="font-semibold">托管（hosted）</strong>：目录发现 → resolve → <strong className="font-semibold">POST /invoke</strong>（<span className="font-mono text-[0.9em]">resourceType=skill</span>，须 Key 含 invoke scope）。
           </p>
         </div>
 

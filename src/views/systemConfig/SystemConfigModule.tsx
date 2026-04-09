@@ -1,7 +1,5 @@
 import React from 'react';
 import { Theme, FontSize } from '../../types';
-import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
-import { SkillExternalMarketSettingsForm } from '../resourceCenter/SkillExternalMarketSettingsForm';
 import { PlaceholderView } from '../common/PlaceholderView';
 import { RateLimitPage } from './RateLimitPage';
 import { AuditLogPage } from './AuditLogPage';
@@ -51,17 +49,6 @@ export const SystemConfigModule: React.FC<SystemConfigModuleProps> = ({
       );
     case 'system-params':
       return <SystemParamsPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
-    case 'skill-external-catalog-settings':
-      return (
-        <MgmtPageShell
-          theme={theme}
-          fontSize={fontSize}
-          breadcrumbSegments={['系统配置', '技能在线市场配置']}
-          contentScroll="document"
-        >
-          <SkillExternalMarketSettingsForm theme={theme} fontSize={fontSize} showMessage={showMessage} />
-        </MgmtPageShell>
-      );
     case 'security-settings':
       return <SecuritySettingsPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
     case 'network-config':

@@ -131,13 +131,6 @@ function ensureRequiredHeaders(config: InternalAxiosRequestConfig): void {
   if ((path === '/system-config/params' || path === '/system-config/security') && config.method?.toLowerCase() === 'put' && !hasUserId) {
     throw new ApiException({ code: 1001, status: 400, message: '调用 PUT /system-config/params|security 必须提供 X-User-Id' });
   }
-  if (path === '/resource-center/skill-external-catalog/settings' && config.method?.toLowerCase() === 'put' && !hasUserId) {
-    throw new ApiException({
-      code: 1001,
-      status: 400,
-      message: '调用 PUT /resource-center/skill-external-catalog/settings 必须提供 X-User-Id（请确认已登录）',
-    });
-  }
   if ((path === '/system-config/network/apply' || path === '/system-config/acl/publish') && config.method?.toLowerCase() === 'post' && !hasUserId) {
     throw new ApiException({ code: 1001, status: 400, message: '调用 POST /system-config/network/apply|acl/publish 必须提供 X-User-Id' });
   }

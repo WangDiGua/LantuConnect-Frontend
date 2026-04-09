@@ -142,7 +142,6 @@ const ADMIN_SIDEBAR_PAGES: Record<string, string[]> = {
   'system-config': [
     'tag-management',
     'system-params',
-    'skill-external-catalog-settings',
     'security-settings',
     'network-config',
     'rate-limit-policy',
@@ -184,7 +183,7 @@ const USER_SIDEBAR_PAGES: Record<string, string[]> = {
     'usage-stats',
     'developer-applications',
   ],
-  'skills-center': ['skills-center', 'skill-external-market'],
+  'skills-center': ['skills-center'],
   'mcp-center': ['mcp-center', 'mcp-market'],
   'dataset-center': ['dataset-center', 'dataset-market'],
   'agents-center': ['agents-center', 'agent-market'],
@@ -250,7 +249,6 @@ export function subItemToPage(sidebarId: string, subItemId: string, isAdmin: boo
   if (isAdmin && sidebarId === 'system-config' && subItemId === 'config-hub') return 'tag-management';
   if (isAdmin && sidebarId === 'user-management' && subItemId === 'user-hub') return 'user-list';
   if (!isAdmin && sidebarId === 'workspace' && subItemId === 'overview') return 'workspace';
-  if (!isAdmin && sidebarId === 'skills-center' && subItemId === 'skill-external-market') return 'skill-external-market';
   if (!isAdmin && sidebarId === 'skills-center' && subItemId === 'skills-center') return 'skills-center';
   if (!isAdmin && sidebarId === 'mcp-center' && subItemId === 'mcp-center') return 'mcp-center';
   if (!isAdmin && sidebarId === 'dataset-center' && subItemId === 'dataset-center') return 'dataset-center';
@@ -272,9 +270,6 @@ export function pageToSubItem(page: string, sidebarId: string | null, isAdmin: b
   if (!isAdmin && sidebarId === 'workspace' && USER_WORKBENCH_SATELLITE_PAGES.has(page)) {
     return 'overview';
   }
-  if (isAdmin && sidebarId === 'system-config' && page === 'skill-external-catalog-settings') {
-    return 'skill-external-catalog-settings';
-  }
   if (isAdmin && sidebarId === 'admin-resource-ops' && ADMIN_RESOURCE_CATALOG_PAGES.has(page)) {
     return 'resource-catalog';
   }
@@ -283,9 +278,6 @@ export function pageToSubItem(page: string, sidebarId: string | null, isAdmin: b
   }
   if (isAdmin && sidebarId === 'admin-resource-ops' && (page === 'agent-monitoring' || page === 'agent-trace')) {
     return 'agent-diagnostics';
-  }
-  if (!isAdmin && sidebarId === 'skills-center' && page === 'skill-external-market') {
-    return 'skill-external-market';
   }
   if (
     !isAdmin &&

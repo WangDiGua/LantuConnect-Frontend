@@ -178,7 +178,6 @@ const USER_SIDEBAR_PAGES: Record<string, string[]> = {
     'dataset-list',
     'dataset-register',
     'usage-records',
-    'recent-use',
     'usage-stats',
     'developer-applications',
   ],

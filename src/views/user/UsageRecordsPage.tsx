@@ -27,7 +27,7 @@ const TYPE_LABEL: Record<string, string> = { agent: 'Agent', skill: 'Skill', app
 const PAGE_SIZE = 20;
 const PAGE_DESC = '最近使用与调用明细统一查看';
 
-export const UsageRecordsPage: React.FC<UsageRecordsPageProps> = ({ theme, fontSize, initialView = 'records' }) => {
+export const UsageRecordsPage: React.FC<UsageRecordsPageProps> = ({ theme, fontSize, initialView = 'recent' }) => {
   const isDark = theme === 'dark';
   const [viewMode, setViewMode] = useState<ViewMode>(initialView);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('7d');

@@ -185,6 +185,8 @@ function normalizeDeprecatedPage(page: string): string {
       return 'my-publish-skill';
     case 'quick-access':
       return 'workspace';
+    case 'recent-use':
+      return 'usage-records';
     default:
       return page;
   }
@@ -440,9 +442,6 @@ const MainContent = React.memo<{
         return renderResourceRegister('app');
       case 'dataset-register':
         return renderResourceRegister('dataset');
-      case 'recent-use':
-        return <UsageRecordsPage theme={t} fontSize={fs} initialView="recent" />;
-
       case 'resource-market':
         return <UserResourceMarketHub theme={t} fontSize={fs} themeColor={tc} showMessage={msg} />;
 
@@ -516,7 +515,7 @@ const MainContent = React.memo<{
         return <MyPublishListRoute theme={t} fontSize={fs} page={p} />;
 
       case 'usage-records':
-        return <UsageRecordsPage theme={t} fontSize={fs} initialView="records" />;
+        return <UsageRecordsPage theme={t} fontSize={fs} />;
       case 'my-favorites':
         return <MyFavoritesPage theme={t} fontSize={fs} />;
       case 'usage-stats':

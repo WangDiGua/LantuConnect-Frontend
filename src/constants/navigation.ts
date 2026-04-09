@@ -34,7 +34,6 @@ import {
   Globe2,
   Rocket,
   TrendingUp,
-  Clock,
   AppWindow,
   Boxes,
   Tag,
@@ -74,7 +73,7 @@ export interface UserWorkbenchNavItem {
   anyPerm?: readonly string[];
 }
 
-/** 工作台核心入口：发布总览 / 使用记录 / 用量统计 / 最近使用 / 我的收藏 */
+/** 工作台核心入口：发布总览 / 使用记录（含最近使用）/ 用量统计 / 我的收藏 */
 export const USER_WORKBENCH_CORE_NAV: UserWorkbenchNavItem[] = [
   {
     id: 'my-agents-pub',
@@ -85,7 +84,6 @@ export const USER_WORKBENCH_CORE_NAV: UserWorkbenchNavItem[] = [
   },
   { id: 'usage-records', label: '使用记录', icon: History, page: 'usage-records' },
   { id: 'usage-stats', label: '用量统计', icon: BarChart3, page: 'usage-stats' },
-  { id: 'recent-use', label: '最近使用', icon: Clock, page: 'recent-use' },
   { id: 'my-favorites', label: '我的收藏', icon: Heart, page: 'my-favorites' },
 ];
 
@@ -288,7 +286,6 @@ export const USER_MY_CONSOLE_GROUPS: NavSubGroup[] = [
     title: '使用分析',
     items: [
       { id: 'usage-records', icon: History, label: '使用记录' },
-      { id: 'recent-use', icon: Clock, label: '最近使用' },
       { id: 'usage-stats', icon: BarChart3, label: '用量统计' },
     ],
   },

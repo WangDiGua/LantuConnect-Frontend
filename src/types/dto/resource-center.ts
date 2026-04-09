@@ -66,40 +66,21 @@ export interface McpConnectivityProbeResult {
   bodyPreview?: string;
 }
 
-export type SkillPackValidationStatus = 'none' | 'pending' | 'valid' | 'invalid';
-
-/** 技能包分片上传进度（大文件断点续传） */
-export type SkillPackChunkUploadProgress = {
-  phase: 'init' | 'chunk' | 'complete';
-  loaded: number;
-  total: number;
-  chunkIndex?: number;
-  totalChunks?: number;
-};
-
 export interface ResourceSkillUpsertRequest extends ResourceBaseUpsertRequest {
   resourceType: 'skill';
   /** 市场详情「技能介绍」Tab，Markdown，选填 */
   serviceDetailMd?: string;
-  /** pack（默认）或 hosted */
-  executionMode?: 'pack' | 'hosted';
+  /** 平台仅支持 hosted */
+  executionMode?: 'hosted';
   hostedSystemPrompt?: string;
   hostedUserTemplate?: string;
   hostedDefaultModel?: string;
   hostedOutputSchema?: Record<string, unknown>;
   hostedTemperature?: number;
-  /** 技能包格式：anthropic_v1 / folder_v1；hosted 建议 hosted_v1 */
+  /** 固定 hosted_v1 */
   skillType?: string;
-  /** 草稿可空；上传 zip 后由后端写入 */
-  artifactUri?: string;
-  artifactSha256?: string;
-  manifest?: Record<string, unknown>;
-  entryDoc?: string;
-  /** zip 内技能根子目录（可选），与上传 skillRoot 一致 */
-  skillRootPath?: string;
   spec?: Record<string, unknown>;
   parametersSchema?: Record<string, unknown>;
-  /** 目录公开性；技能包不支持网关 invoke */
   isPublic?: boolean;
 }
 
@@ -209,14 +190,8 @@ export interface ResourceCenterItemVO {
   temperature?: number;
   /** --- skill（ResourceManageVO）--- */
   skillType?: string;
-  artifactUri?: string;
-  artifactSha256?: string;
   manifest?: Record<string, unknown>;
   entryDoc?: string;
-  packValidationStatus?: SkillPackValidationStatus | string;
-  packValidatedAt?: string;
-  packValidationMessage?: string;
-  skillRootPath?: string;
   mode?: string;
   maxConcurrency?: number;
   parentResourceId?: number;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Edit2, Trash2, FileText, Settings, BarChart3, Clock, Code2, Globe, Server } from 'lucide-react';
+import { ArrowLeft, Edit2, Trash2, FileText, Settings, BarChart3, Clock, Code2, Globe } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { Skill } from '../../types/dto/skill';
 import { skillService } from '../../api/services/skill.service';
@@ -23,7 +23,7 @@ const AGENT_TYPE_LABEL: Record<string, string> = {
   mcp: 'MCP 协议',
   http_api: 'HTTP API',
   builtin: '内置',
-  skill_pack: '技能包',
+  hosted_skill: '托管技能',
 };
 const SOURCE_TYPE_LABEL: Record<string, string> = { internal: '内部', partner: '合作方', cloud: '云服务' };
 
@@ -63,9 +63,12 @@ export const SkillDetail: React.FC<Props> = ({ skillId, theme, fontSize: _fontSi
   if (error || !skill) return <div className={`flex-1 flex flex-col min-h-0 ${canvasBodyBg(theme)}`}><PageError error={error} onRetry={fetchSkill} /></div>;
 
   const specJson = (skill.specJson ?? {}) as Record<string, unknown>;
-  const packFmt = specJson.packFormat != null ? String(specJson.packFormat) : '';
+  const skillTypeStr = specJson.skillType != null ? String(specJson.skillType) : '';
   const entryDoc = specJson.entryDoc != null ? String(specJson.entryDoc) : '';
-  const packVal = specJson.packValidationStatus != null ? String(specJson.packValidationStatus) : '';
+  const hostedModel =
+    specJson.hostedDefaultModel != null && String(specJson.hostedDefaultModel).trim() !== ''
+      ? String(specJson.hostedDefaultModel)
+      : '';
   const formatCallCount = (n: number) => n >= 10000 ? `${(n / 10000).toFixed(2)}万` : n.toLocaleString();
 
   return (
@@ -100,7 +103,8 @@ export const SkillDetail: React.FC<Props> = ({ skillId, theme, fontSize: _fontSi
                   { label: '显示名称', value: skill.displayName },
                   { label: '标识名称', value: skill.agentName, mono: true },
                   { label: '资源形态', value: AGENT_TYPE_LABEL[skill.agentType] ?? skill.agentType },
-                  { label: '包格式', value: packFmt || '—' },
+                  { label: '执行模式', value: '托管（hosted）' },
+                  { label: '技能类型', value: skillTypeStr || '—' },
                   { label: '来源', value: SOURCE_TYPE_LABEL[skill.sourceType] ?? skill.sourceType },
                   { label: '分类', value: skill.categoryName ?? '未分类' },
                   { label: '公开', value: skill.isPublic ? '是' : '否' },
@@ -118,7 +122,7 @@ export const SkillDetail: React.FC<Props> = ({ skillId, theme, fontSize: _fontSi
             </motion.div>
 
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.05 }} className={`${bentoCard(theme)} p-6`}>
-              <h3 className={`text-sm font-bold mb-4 flex items-center gap-2 ${textPrimary(theme)}`}><Settings size={18} className="text-neutral-800" /> 制品与清单</h3>
+              <h3 className={`text-sm font-bold mb-4 flex items-center gap-2 ${textPrimary(theme)}`}><Settings size={18} className="text-neutral-800" /> 规格与入口</h3>
               <div className="space-y-3">
                 <div className={`flex items-start gap-3 p-3 rounded-xl ${isDark ? 'bg-white/[0.02]' : 'bg-slate-50'} border ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
                   <div className={`p-2 rounded-xl shrink-0 ${isDark ? 'bg-blue-500/15 text-blue-400' : 'bg-blue-50 text-blue-600'}`}><Globe size={18} /></div>
@@ -127,24 +131,17 @@ export const SkillDetail: React.FC<Props> = ({ skillId, theme, fontSize: _fontSi
                     <p className={`text-xs font-mono break-all ${textMuted(theme)}`}>{entryDoc || '—'}</p>
                   </div>
                 </div>
-                <div className={`flex items-start gap-3 p-3 rounded-xl ${isDark ? 'bg-white/[0.02]' : 'bg-slate-50'} border ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-                  <div className={`p-2 rounded-xl shrink-0 ${isDark ? 'bg-emerald-500/15 text-emerald-400' : 'bg-emerald-50 text-emerald-700'}`}><FileText size={18} /></div>
-                  <div className="min-w-0 flex-1">
-                    <p className={`text-sm font-bold mb-1 ${textPrimary(theme)}`}>包校验状态</p>
-                    <p className={`text-xs ${textMuted(theme)}`}>{packVal || '—'}</p>
-                  </div>
-                </div>
-                {specJson.skillRootPath != null && String(specJson.skillRootPath).trim() !== '' ? (
+                {hostedModel ? (
                   <div className={`flex items-start gap-3 p-3 rounded-xl ${isDark ? 'bg-white/[0.02]' : 'bg-slate-50'} border ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-                    <div className={`p-2 rounded-xl shrink-0 ${isDark ? 'bg-orange-500/15 text-orange-400' : 'bg-orange-50 text-orange-600'}`}><Server size={18} /></div>
-                    <div className="min-w-0">
-                      <p className={`text-sm font-bold mb-1 ${textPrimary(theme)}`}>skillRootPath</p>
-                      <p className={`text-xs font-mono break-all ${textMuted(theme)}`}>{String(specJson.skillRootPath)}</p>
+                    <div className={`p-2 rounded-xl shrink-0 ${isDark ? 'bg-emerald-500/15 text-emerald-400' : 'bg-emerald-50 text-emerald-700'}`}><FileText size={18} /></div>
+                    <div className="min-w-0 flex-1">
+                      <p className={`text-sm font-bold mb-1 ${textPrimary(theme)}`}>默认模型</p>
+                      <p className={`text-xs font-mono break-all ${textMuted(theme)}`}>{hostedModel}</p>
                     </div>
                   </div>
                 ) : null}
                 <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
-                  技能包不提供远程 invoke；请在「资源中心」维护制品或通过市场 resolve 下载。远程工具请注册为 MCP。
+                  托管技能由平台在网关内执行，请使用统一网关 <span className="font-mono">POST /invoke</span>（resourceType=skill）。远程 HTTP 工具请注册为 MCP。
                 </p>
               </div>
             </motion.div>
@@ -162,8 +159,8 @@ export const SkillDetail: React.FC<Props> = ({ skillId, theme, fontSize: _fontSi
               <h3 className={`text-sm font-bold mb-4 flex items-center gap-2 ${textPrimary(theme)}`}><BarChart3 size={18} className="text-emerald-500" /> 运行指标</h3>
               <div className="space-y-5">
                 {[
-                  { label: '技能包下载（目录统计）', value: formatCallCount(skill.downloadCount ?? 0), color: 'text-emerald-500' },
-                  { label: '目录浏览/热度（invoke 不适用技能包）', value: formatCallCount(skill.callCount), color: 'text-blue-500' },
+                  { label: '目录下载（统计）', value: formatCallCount(skill.downloadCount ?? 0), color: 'text-emerald-500' },
+                  { label: '目录浏览/热度', value: formatCallCount(skill.callCount), color: 'text-blue-500' },
                   { label: '详情评分（若有）', value: skill.ratingAvg != null ? skill.ratingAvg.toFixed(1) : '—', color: 'text-amber-500' },
                 ].map((item) => (
                   <div key={item.label}>

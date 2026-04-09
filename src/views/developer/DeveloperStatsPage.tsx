@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Zap, RefreshCw, TrendingUp, Database, Download, AlertCircle, BarChart3 } from 'lucide-react';
+import { Zap, RefreshCw, TrendingUp, Database, AlertCircle, BarChart3 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { EChartsOption } from 'echarts';
 import { Theme, FontSize } from '../../types';
@@ -222,7 +222,7 @@ export const DeveloperStatsPage: React.FC<Props> = ({ theme, fontSize }) => {
   const desc =
     data && periodHint
       ? `Owner 资源成效 + 个人调用概览 · ${periodHint} · Owner 用户 ID ${data.ownerUserId}`
-      : 'Owner 维度网关调用、用量记录与技能包下载；下方含 GET /developer/my-statistics 个人调用摘要（口径不同）';
+      : 'Owner 维度网关调用、用量记录与目录下载等行为统计；下方含 GET /developer/my-statistics 个人调用摘要（口径不同）';
 
   const body = (() => {
     if (loading) {
@@ -309,18 +309,17 @@ export const DeveloperStatsPage: React.FC<Props> = ({ theme, fontSize }) => {
           <div className="flex gap-2">
             <AlertCircle size={18} className="shrink-0 opacity-90" aria-hidden />
             <p>
-              <strong>Owner 资源成效</strong>：网关调用量来自归属到你名下资源的 invoke 类 call_log，不等同于门户全量使用；技能包下载为独立计数。「用量记录 invoke」来自 usage_record，便于与网关口径核对。
+              <strong>Owner 资源成效</strong>：网关调用量来自归属到你名下资源的 invoke 类 call_log，不等同于门户全量使用。「用量记录 invoke」来自 usage_record，便于与网关口径核对。
             </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {[
             { label: '网关调用（总计）', value: formatNum(data.gatewayInvokeTotal), icon: Zap, color: isDark ? 'text-neutral-100' : 'text-neutral-800' },
             { label: '网关成功', value: formatNum(data.gatewayInvokeSuccess), icon: TrendingUp, color: 'text-blue-500' },
             { label: '网关非成功（估算）', value: formatNum(gatewayFail), icon: Zap, color: 'text-rose-500' },
             { label: '用量记录 invoke', value: formatNum(data.usageRecordInvokeTotal), icon: Database, color: 'text-emerald-500' },
-            { label: '技能包下载', value: formatNum(data.skillPackDownloadTotal), icon: Download, color: 'text-amber-500' },
           ].map((kpi, i) => (
             <motion.div
               key={kpi.label}

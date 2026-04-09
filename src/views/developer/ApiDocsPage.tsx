@@ -51,7 +51,7 @@ const API_CATEGORIES: ApiCategory[] = [
     { method: 'POST', path: '/auth/refresh', description: '使用 refreshToken 刷新 token', params: [{ name: 'refreshToken', type: 'string', required: true, description: '刷新令牌' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { token: 'eyJ...', refreshToken: 'rt_new' } }, null, 2) },
   ]},
   { id: 'catalog', label: '统一资源目录', endpoints: [
-    { method: 'GET', path: '/catalog/resources', description: '按 resourceType、keyword、status、tags、sortBy 等查询资源目录（逛市场）。列表项含创建者、目录聚合评分与评论数等；**skill** 行可含 **executionMode**（pack / hosted）。须至少有登录态（Authorization → X-User-Id）或 X-Api-Key 之一；二者可同时携带。', params: [{ name: 'page', type: 'number', required: false, description: '页码，默认 1' }, { name: 'pageSize', type: 'number', required: false, description: '每页，默认 20' }, { name: 'resourceType', type: 'string', required: false, description: 'agent/skill/mcp/app/dataset' }, { name: 'keyword', type: 'string', required: false, description: '关键字' }, { name: 'status', type: 'string', required: false, description: '如 published' }, { name: 'sortBy', type: 'string', required: false, description: 'callCount / rating / publishedAt / name（以后端为准）' }, { name: 'sortOrder', type: 'string', required: false, description: 'asc / desc' }, { name: 'tags', type: 'string', required: false, description: '标签名筛选（格式以后端为准，可与 keyword 等组合）' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { list: [{ resourceType: 'agent', resourceId: '1', resourceCode: 'course-advisor', displayName: '选课助手', status: 'published', tags: ['教务'], updateTime: '2026-04-01T10:00:00', createdBy: 1001, createdByName: 'alice', ratingAvg: 4.5, reviewCount: 12 }, { resourceType: 'skill', resourceId: '9', executionMode: 'pack', displayName: '示例技能包', status: 'published' }, { resourceType: 'skill', resourceId: '10', executionMode: 'hosted', displayName: '示例托管技能', status: 'published' }], total: 42, page: 1, pageSize: 20 } }, null, 2) },
+    { method: 'GET', path: '/catalog/resources', description: '按 resourceType、keyword、status、tags、sortBy 等查询资源目录（逛市场）。列表项含创建者、目录聚合评分与评论数等；**skill** 均为托管形态，列表/详情可含 **executionMode**（恒为 **hosted**）。须至少有登录态（Authorization → X-User-Id）或 X-Api-Key 之一；二者可同时携带。', params: [{ name: 'page', type: 'number', required: false, description: '页码，默认 1' }, { name: 'pageSize', type: 'number', required: false, description: '每页，默认 20' }, { name: 'resourceType', type: 'string', required: false, description: 'agent/skill/mcp/app/dataset' }, { name: 'keyword', type: 'string', required: false, description: '关键字' }, { name: 'status', type: 'string', required: false, description: '如 published' }, { name: 'sortBy', type: 'string', required: false, description: 'callCount / rating / publishedAt / name（以后端为准）' }, { name: 'sortOrder', type: 'string', required: false, description: 'asc / desc' }, { name: 'tags', type: 'string', required: false, description: '标签名筛选（格式以后端为准，可与 keyword 等组合）' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { list: [{ resourceType: 'agent', resourceId: '1', resourceCode: 'course-advisor', displayName: '选课助手', status: 'published', tags: ['教务'], updateTime: '2026-04-01T10:00:00', createdBy: 1001, createdByName: 'alice', ratingAvg: 4.5, reviewCount: 12 }, { resourceType: 'skill', resourceId: '9', executionMode: 'hosted', displayName: '示例托管技能 A', status: 'published' }, { resourceType: 'skill', resourceId: '10', executionMode: 'hosted', displayName: '示例托管技能 B', status: 'published' }], total: 42, page: 1, pageSize: 20 } }, null, 2) },
     { method: 'GET', path: '/catalog/resources/{type}/{id}', description: '查询单个资源详情（目录项 + 解析字段，逛市场）。含 createdBy / createdByName 等。可选 query include=closure|bindings|bindingClosure 展开绑定闭包（Agent↔MCP、MCP↔Skill 等）。头要求同 GET /catalog/resources；可与登录态同传 X-Api-Key。', params: [{ name: 'type', type: 'string', required: true, description: '资源类型' }, { name: 'id', type: 'string', required: true, description: '资源 ID' }, { name: 'include', type: 'string', required: false, description: '如 closure、bindings、bindingClosure（逗号分隔，以后端为准）' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { resourceType: 'skill', resourceId: '9', resourceCode: 'weather-tool', displayName: '天气查询', status: 'published', executionMode: 'hosted', createdBy: 1001, createdByName: 'alice', invokeType: 'hosted_llm', endpoint: 'https://gateway/invoke/skill/9', tags: ['工具'] } }, null, 2) },
     { method: 'GET', path: '/catalog/resources/{type}/{id}/stats', description: '资源使用与口碑摘要（调用量、成功率、评分、收藏、趋势、相关推荐）。无评论时 rating 为 null；callTrend 为按日的 cnt 列表。头要求同 GET /catalog/resources。', params: [{ name: 'type', type: 'string', required: true, description: '资源类型' }, { name: 'id', type: 'string', required: true, description: '资源 ID' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { callCount: 1200, successRate: 98.5, rating: 4.2, favoriteCount: 15, callTrend: [{ day: '2026-04-01', cnt: 40 }], relatedResources: [] } }, null, 2) },
     { method: 'GET', path: '/catalog/resources/trending', description: '热门/趋势资源（工作台「探索发现」等可用）；可按 resourceType 筛选。', params: [{ name: 'resourceType', type: 'string', required: false, description: 'agent/skill/mcp/...' }, { name: 'limit', type: 'number', required: false, description: '默认 10' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: [{ resourceType: 'agent', resourceId: '1', displayName: '示例' }] }, null, 2) },
@@ -62,10 +62,10 @@ const API_CATEGORIES: ApiCategory[] = [
     { method: 'GET', path: '/reviews/page', description: '分页查询某资源的评论（替代全量 GET /reviews）。须至少有 X-User-Id（登录）或 X-Api-Key 之一，策略与 GET /catalog/resources 一致。', params: [{ name: 'targetType', type: 'string', required: true, description: 'agent/skill/mcp/app/dataset' }, { name: 'targetId', type: 'string | number', required: true, description: '资源 ID' }, { name: 'page', type: 'number', required: false, description: '页码' }, { name: 'pageSize', type: 'number', required: false, description: '每页条数' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { list: [{ id: 1, targetType: 'mcp', targetId: 56, userId: 1002, userName: 'bob', rating: 5, content: '稳定可用', createTime: '2026-04-01T10:00:00' }], total: 3, page: 1, pageSize: 20 } }, null, 2) },
   ]},
   { id: 'resolve-invoke', label: '解析与调用', endpoints: [
-    { method: 'POST', path: '/catalog/resolve', description: '执行向解析：将资源解析为可调用 endpoint/spec。**X-Api-Key 必填**（完整 secretPlain）；可与 Bearer 同传。另须 Key scope 含 resolve（或 *）；**已发布**资源在网关侧对调用方开放。**技能**：`executionMode=pack` 时仅制品路径，无统一 invoke；`executionMode=hosted`（托管 LLM）可走 invoke。可选 `include` 展开闭包，与 GET 详情一致。', params: [{ name: 'resourceType', type: 'string', required: true, description: '资源类型' }, { name: 'resourceId', type: 'string', required: true, description: '资源 ID' }, { name: 'version', type: 'string', required: false, description: '版本号' }, { name: 'include', type: 'string', required: false, description: '可选 closure / bindings / bindingClosure' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { resourceType: 'agent', resourceId: '1', endpoint: 'https://gateway/invoke/agent/1', invokeType: 'http', version: 'v1' } }, null, 2) },
-    { method: 'POST', path: '/invoke', description: '统一调用入口。**X-Api-Key 必填**。还须 Key scope 含 invoke（或 *）；**已发布**资源可被具备 scope 的调用方使用。**skill**：仅当目录/spec 中 `executionMode=hosted`（托管技能）允许；`executionMode=pack`（技能包）须走制品下载，网关不接受对其 invoke。', params: [{ name: 'resourceType', type: 'string', required: true, description: '资源类型' }, { name: 'resourceId', type: 'string', required: true, description: '资源 ID' }, { name: 'payload', type: 'object', required: false, description: '业务输入' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { requestId: 'req_1', traceId: 'tr_1', resourceType: 'agent', resourceId: '1', statusCode: 200, status: 'success', latencyMs: 124, body: '{\"answer\":\"ok\"}' } }, null, 2) },
+    { method: 'POST', path: '/catalog/resolve', description: '执行向解析：将资源解析为可调用 endpoint/spec。**X-Api-Key 必填**（完整 secretPlain）；可与 Bearer 同传。另须 Key scope 含 resolve（或 *）；**已发布**资源在网关侧对调用方开放。**skill** 均为 **hosted**，解析结果指向网关 **POST /invoke**。可选 `include` 展开闭包，与 GET 详情一致。', params: [{ name: 'resourceType', type: 'string', required: true, description: '资源类型' }, { name: 'resourceId', type: 'string', required: true, description: '资源 ID' }, { name: 'version', type: 'string', required: false, description: '版本号' }, { name: 'include', type: 'string', required: false, description: '可选 closure / bindings / bindingClosure' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { resourceType: 'agent', resourceId: '1', endpoint: 'https://gateway/invoke/agent/1', invokeType: 'http', version: 'v1' } }, null, 2) },
+    { method: 'POST', path: '/invoke', description: '统一调用入口。**X-Api-Key 必填**。还须 Key scope 含 invoke（或 *）；**已发布**资源可被具备 scope 的调用方使用。**skill** 仅支持托管形态：走 **POST /invoke**（`resourceType=skill`），由平台执行 LLM 路由；不再支持 zip/制品包形态的网关 invoke。', params: [{ name: 'resourceType', type: 'string', required: true, description: '资源类型' }, { name: 'resourceId', type: 'string', required: true, description: '资源 ID' }, { name: 'payload', type: 'object', required: false, description: '业务输入' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { requestId: 'req_1', traceId: 'tr_1', resourceType: 'agent', resourceId: '1', statusCode: 200, status: 'success', latencyMs: 124, body: '{\"answer\":\"ok\"}' } }, null, 2) },
     { method: 'POST', path: '/invoke-stream', description: '流式调用（SSE 等）。**X-Api-Key 必填**；权限模型与 /invoke 一致。', params: [{ name: 'resourceType', type: 'string', required: true, description: '资源类型' }, { name: 'resourceId', type: 'string', required: true, description: '资源 ID' }, { name: 'payload', type: 'object', required: false, description: '业务输入' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: {} }, null, 2) },
-    { method: 'POST', path: '/mcp/v1/resources/{resourceType}/{resourceId}/message', description: 'MCP JSON-RPC 兼容路径：请求体为单对象（method / params 等），与网关 invoke 的 payload 构造一致；**X-Api-Key 必填**。`Accept: text/event-stream` 或 query `stream=true` 时走 invoke-stream（仅上游为 MCP HTTP/SSE）。resourceType 多为 **mcp**；**skill** 仅托管形态且网关允许时才会映射到可调用路径，技能包仍以制品为准。', params: [{ name: 'resourceType', type: 'string', required: true, description: '路径参数' }, { name: 'resourceId', type: 'string', required: true, description: '路径参数' }, { name: 'body', type: 'JSON-RPC object', required: true, description: '如 initialize、tools/list、tools/call' }], responseExample: JSON.stringify({ jsonrpc: '2.0', id: 1, result: {} }, null, 2) },
+    { method: 'POST', path: '/mcp/v1/resources/{resourceType}/{resourceId}/message', description: 'MCP JSON-RPC 兼容路径：请求体为单对象（method / params 等），与网关 invoke 的 payload 构造一致；**X-Api-Key 必填**。`Accept: text/event-stream` 或 query `stream=true` 时走 invoke-stream（仅上游为 MCP HTTP/SSE）。resourceType 多为 **mcp**；**skill** 在网关允许时可映射到托管调用路径（与 /invoke 一致）。', params: [{ name: 'resourceType', type: 'string', required: true, description: '路径参数' }, { name: 'resourceId', type: 'string', required: true, description: '路径参数' }, { name: 'body', type: 'JSON-RPC object', required: true, description: '如 initialize、tools/list、tools/call' }], responseExample: JSON.stringify({ jsonrpc: '2.0', id: 1, result: {} }, null, 2) },
   ]},
   { id: 'developer', label: '开发者入驻与个人统计', endpoints: [
     { method: 'POST', path: '/developer/applications', description: '提交开发者入驻申请。**须 X-User-Id**。任意已登录用户可提交；通过后由 platform_admin / reviewer 审批并开通 developer 等平台能力（以后台策略为准）。', params: [{ name: 'body', type: 'DeveloperApplicationCreateRequest', required: true, description: '申请说明等字段' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { id: 1, userId: 1001, status: 'pending' } }, null, 2) },
@@ -77,7 +77,6 @@ const API_CATEGORIES: ApiCategory[] = [
     { method: 'GET', path: '/resource-center/resources/mine', description: '分页查询本人登记的资源（草稿/审核中/已发布等）。', params: [{ name: 'page', type: 'number', required: false, description: '默认 1' }, { name: 'pageSize', type: 'number', required: false, description: '默认 20' }, { name: 'resourceType', type: 'string', required: false, description: '' }, { name: 'status', type: 'string', required: false, description: '' }, { name: 'keyword', type: 'string', required: false, description: '' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { records: [], total: 0, page: 1, pageSize: 20 } }, null, 2) },
     { method: 'POST', path: '/resource-center/resources/{id}/submit', description: '提交审核（进入审核队列）；后续由 reviewer 等在 /audit/* 或统一审核列表处理。', params: [{ name: 'id', type: 'number', required: true, description: '资源主键' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { id: 101, status: 'pending_review' } }, null, 2) },
     { method: 'POST', path: '/resource-center/resources/mcp/connectivity-probe', description: '登记 MCP 前可选：JSON-RPC initialize 短探测，验证 URL 可达（不写登记记录）。', params: [{ name: 'body', type: 'McpConnectivityProbeRequest', required: true, description: 'endpointUrl 等' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { ok: true, latencyMs: 120 } }, null, 2) },
-    { method: 'GET', path: '/resource-center/resources/{id}/skill-artifact', description: '下载已发布技能的制品包（文件流；须具备对应目录/下载权限，非网关 invoke）。', params: [{ name: 'id', type: 'number', required: true, description: '资源 ID' }], responseExample: '（application/octet-stream）' },
   ]},
   { id: 'user-activity', label: '个人用量与收藏', endpoints: [
     { method: 'GET', path: '/user/usage-records', description: '分页查询个人用量记录（门户行为埋点，不等同于网关 call_log 全量）。', params: [{ name: 'page', type: 'number', required: false, description: '' }, { name: 'pageSize', type: 'number', required: false, description: '' }, { name: 'type', type: 'string', required: false, description: '筛选类型' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { records: [], total: 0, page: 1, pageSize: 20 } }, null, 2) },
@@ -85,7 +84,7 @@ const API_CATEGORIES: ApiCategory[] = [
     { method: 'GET', path: '/user/usage-stats', description: '个人用量汇总（工作台展示）。', params: [], responseExample: JSON.stringify({ code: 0, message: 'ok', data: {} }, null, 2) },
   ]},
   { id: 'owner-dashboard', label: 'Owner 资源成效', endpoints: [
-    { method: 'GET', path: '/dashboard/owner-resource-stats', description: 'Owner 维度统计：**网关 invoke（call_log）**、**usage_record(action=invoke) 对照**、**技能包下载**等。**须 X-User-Id**；默认识别当前用户为 owner，管理角色可按后端策略传 ownerUserId。**调用量不等于门户内全部使用量**（见使用指南「调用数字的含义」）。', params: [{ name: 'periodDays', type: 'number', required: false, description: '统计天数，默认 7' }, { name: 'ownerUserId', type: 'number', required: false, description: '指定 owner 用户 ID（部门/平台管理员场景）' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { ownerUserId: 1001, periodDays: 7, periodStart: '', periodEnd: '', gatewayInvokeTotal: 0, gatewayInvokeSuccess: 0, usageRecordInvokeTotal: 0, skillPackDownloadTotal: 0, gatewayInvokesByResourceType: [] } }, null, 2) },
+    { method: 'GET', path: '/dashboard/owner-resource-stats', description: 'Owner 维度统计：**网关 invoke（call_log）**、**usage_record(action=invoke) 对照**等。**须 X-User-Id**；默认识别当前用户为 owner，管理角色可按后端策略传 ownerUserId。**调用量不等于门户内全部使用量**（见使用指南「调用数字的含义」）。', params: [{ name: 'periodDays', type: 'number', required: false, description: '统计天数，默认 7' }, { name: 'ownerUserId', type: 'number', required: false, description: '指定 owner 用户 ID（部门/平台管理员场景）' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { ownerUserId: 1001, periodDays: 7, periodStart: '', periodEnd: '', gatewayInvokeTotal: 0, gatewayInvokeSuccess: 0, usageRecordInvokeTotal: 0, gatewayInvokesByResourceType: [] } }, null, 2) },
   ]},
   { id: 'sandbox-sdk-grants', label: '沙箱/SDK', endpoints: [
     { method: 'POST', path: '/sandbox/sessions', description: '创建沙箱会话（需 X-User-Id + X-Api-Key）', params: [{ name: 'ttlMinutes', type: 'number', required: false, description: '会话时长' }, { name: 'maxCalls', type: 'number', required: false, description: '最大调用次数' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { sessionToken: 'sbx_xxx', maxCalls: 100, usedCalls: 0, status: 'active' } }, null, 2) },
@@ -105,7 +104,7 @@ const GUIDE_TOC: { id: string; label: string }[] = [
   { id: 'doc-access-policy', label: '访问策略' },
   { id: 'doc-publish', label: '登记与上架' },
   { id: 'doc-types', label: '五类资源' },
-  { id: 'doc-skill-pack', label: '技能形态与制品' },
+  { id: 'doc-skill-hosted', label: '托管技能（Skill）' },
   { id: 'doc-activity', label: '用量与统计' },
   { id: 'doc-meta', label: '标签与可观测' },
   { id: 'doc-metrics', label: '数据口径' },
@@ -232,12 +231,12 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
                   {proseH2(theme, '平台是做什么的？')}
                   {prosePara(theme, (
                     <>
-                      本门户面向高校师生与信息化场景：把<strong className={textPrimary(theme)}>智能体、技能包、MCP 服务、应用与数据集</strong>统一登记进「资源中心」，经审核与发布后进入<strong className={textPrimary(theme)}>统一目录</strong>，供师生浏览与调用。教师团队沉淀的能力可被其他学院在合规前提下复用；学生或课题组用 API Key（具备对应 scope）即可调用已发布资源并做实验、编排应用，而无需每人重复对接一套网关细节。
+                      本门户面向高校师生与信息化场景：把<strong className={textPrimary(theme)}>智能体、托管技能、MCP 服务、应用与数据集</strong>统一登记进「资源中心」，经审核与发布后进入<strong className={textPrimary(theme)}>统一目录</strong>，供师生浏览与调用。教师团队沉淀的能力可被其他学院在合规前提下复用；学生或课题组用 API Key（具备对应 scope）即可调用已发布资源并做实验、编排应用，而无需每人重复对接一套网关细节。
                     </>
                   ))}
                   {prosePara(theme, (
                     <>
-                      技术路径一句话：<strong className={textPrimary(theme)}>目录发现 → resolve 解析出可调用信息 → invoke / invoke-stream 走网关</strong>。应用类还可拿短期 <span className="font-mono">launchToken</span>，通过 <span className="font-mono">GET /catalog/apps/launch</span> 跳转真实地址。技能（<span className="font-mono">skill</span>）分两种：<strong className={textPrimary(theme)}>技能包（pack）</strong>以制品下载为主，网关<strong className={textPrimary(theme)}>不接受</strong>对其远程 <span className="font-mono">invoke</span>；<strong className={textPrimary(theme)}>托管技能（hosted）</strong>走平台 LLM 路由，可按 resolve 的 <span className="font-mono">invokeType</span> 走 <span className="font-mono">/invoke</span>。需要通用「远程可调工具协议」仍可登记 <span className="font-mono">mcp</span>。编排侧可用 resolve / 详情的 <span className="font-mono">include=closure</span>（或 <span className="font-mono">bindings</span>）拉取 Agent↔MCP、MCP↔Skill 绑定闭包。
+                      技术路径一句话：<strong className={textPrimary(theme)}>目录发现 → resolve 解析出可调用信息 → invoke / invoke-stream 走网关</strong>。应用类还可拿短期 <span className="font-mono">launchToken</span>，通过 <span className="font-mono">GET /catalog/apps/launch</span> 跳转真实地址。平台内技能（<span className="font-mono">skill</span>）均为<strong className={textPrimary(theme)}>托管（hosted）</strong>：走平台 LLM 路由，按 resolve 的 <span className="font-mono">invokeType</span> 使用 <span className="font-mono">POST /invoke</span>；zip/制品包形态已下线。需要通用「远程可调工具协议」请登记 <span className="font-mono">mcp</span>。编排侧可用 resolve / 详情的 <span className="font-mono">include=closure</span>（或 <span className="font-mono">bindings</span>）拉取 Agent↔MCP、MCP↔Skill 绑定闭包。
                     </>
                   ))}
                   {prosePara(theme, (
@@ -280,7 +279,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
                   {proseH2(theme, '控制台里开发者常去哪？')}
                   <ul className={`list-disc space-y-2 pl-5 text-[15px] leading-7 ${textSecondary(theme)}`}>
                     <li><strong className={textPrimary(theme)}>工作台 / 探索发现</strong>：逛已发布资源；对接 <span className="font-mono">/catalog/resources</span>、<span className="font-mono">/trending</span>、<span className="font-mono">/search-suggestions</span>。</li>
-                    <li><strong className={textPrimary(theme)}>我的发布 · 资源中心</strong>：草稿、提审、版本与技能包；接口前缀 <span className="font-mono">/resource-center/resources</span>。</li>
+                    <li><strong className={textPrimary(theme)}>我的发布 · 资源中心</strong>：草稿、提审、版本与托管技能维护；接口前缀 <span className="font-mono">/resource-center/resources</span>。</li>
                     <li><strong className={textPrimary(theme)}>开发者中心</strong>：本页、SDK、API 调试、开发者统计。</li>
                     <li><strong className={textPrimary(theme)}>个人设置</strong>：个人 API Key、工作台偏好；<span className="font-mono">/user-settings</span>。</li>
                     <li><strong className={textPrimary(theme)}>管理台</strong>（有权限时）：全平台目录、审核队列、用户与组织、监控配额等——与开发者相关的多为代管发布与审批。</li>
@@ -363,7 +362,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
                   ))}
                   {prosePara(theme, (
                     <>
-                      ② <span className="font-mono">POST /invoke</span> 或 <span className="font-mono">POST /invoke-stream</span>（SSE，如 MCP）：统一请求体（含 <span className="font-mono">resourceType</span>、<span className="font-mono">resourceId</span>、<span className="font-mono">payload</span> 等），同样需要 Key 与 invoke scope。<span className="font-mono">skill</span> 仅托管形态可调用；技能包请走制品下载。对外 MCP 清单与网关 JSON 导出见开发者中心「MCP 对外集成」页。
+                      ② <span className="font-mono">POST /invoke</span> 或 <span className="font-mono">POST /invoke-stream</span>（SSE，如 MCP）：统一请求体（含 <span className="font-mono">resourceType</span>、<span className="font-mono">resourceId</span>、<span className="font-mono">payload</span> 等），同样需要 Key 与 invoke scope。<span className="font-mono">skill</span> 均为托管调用（<span className="font-mono">resourceType=skill</span>）。对外 MCP 清单与网关 JSON 导出见开发者中心「MCP 对外集成」页。
                     </>
                   ))}
                   <div className="flex flex-wrap gap-2 pt-1">
@@ -397,7 +396,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
                   {proseH2(theme, '目录与调用条件')}
                   {prosePara(theme, (
                     <>
-                      网关在校验<strong className={textPrimary(theme)}>有效 Key</strong>与<strong className={textPrimary(theme)}>scope</strong>（catalog / resolve / invoke）后，对已<strong className={textPrimary(theme)}>发布（published）</strong>的资源按统一规则开放调用；以当前环境网关实现为准。库表或 JSON 中可能仍出现 <span className="font-mono">accessPolicy</span> 等历史字段，仅供兼容，不作为产品侧配置入口。<span className="font-mono">skill</span> 的 invoke 边界以 <span className="font-mono">executionMode</span> 为准：pack 禁止，hosted 允许。
+                      网关在校验<strong className={textPrimary(theme)}>有效 Key</strong>与<strong className={textPrimary(theme)}>scope</strong>（catalog / resolve / invoke）后，对已<strong className={textPrimary(theme)}>发布（published）</strong>的资源按统一规则开放调用；以当前环境网关实现为准。库表或 JSON 中可能仍出现 <span className="font-mono">accessPolicy</span> 等历史字段，仅供兼容，不作为产品侧配置入口。平台内 <span className="font-mono">skill</span> 仅 <span className="font-mono">hosted</span>，可走统一 <span className="font-mono">invoke</span>；历史 <span className="font-mono">pack</span> 形态已移除。
                     </>
                   ))}
                 </section>
@@ -411,7 +410,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
                   ))}
                   {prosePara(theme, (
                     <>
-                      <span className="font-mono">POST /resource-center/resources/mcp/connectivity-probe</span> 可在登记 MCP 前做短探测。技能支持包上传、分片与版本切换（见 OpenAPI）。下架、废弃、版本回滚等同族接口维护。
+                      <span className="font-mono">POST /resource-center/resources/mcp/connectivity-probe</span> 可在登记 MCP 前做短探测。托管技能为表单/配置登记与版本维护（见 OpenAPI）。下架、废弃、版本回滚等同族接口维护。
                     </>
                   ))}
                   <div className="flex flex-wrap gap-2 pt-1">
@@ -426,22 +425,17 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
                   <ul className={`list-disc space-y-2 pl-5 text-[15px] leading-7 ${textSecondary(theme)}`}>
                     <li><strong className={textPrimary(theme)}>agent</strong>：智能体；<span className="font-mono">resolve</span> 后 <span className="font-mono">invoke</span> / <span className="font-mono">invoke-stream</span>。</li>
                     <li><strong className={textPrimary(theme)}>mcp</strong>：可远程 JSON-RPC / SSE；流式用 <span className="font-mono">invoke-stream</span>。</li>
-                    <li><strong className={textPrimary(theme)}>skill</strong>：<span className="font-mono">pack</span> 形态为技能包（<span className="font-mono">resolve</span> + 制品下载，<strong className={textPrimary(theme)}>禁止</strong> <span className="font-mono">invoke</span>）；<span className="font-mono">hosted</span> 为托管 LLM 技能，可按 resolve 走 <span className="font-mono">invoke</span>。</li>
+                    <li><strong className={textPrimary(theme)}>skill</strong>：仅 <span className="font-mono">hosted</span> 托管 LLM 技能；使用目录 spec 中的 schema，通过 <span className="font-mono">POST /invoke</span> 传 JSON payload。zip/制品包与平台内下载分发已移除。</li>
                     <li><strong className={textPrimary(theme)}>app</strong>：<span className="font-mono">resolve</span> + <span className="font-mono">launch</span> 跳转为主。</li>
                     <li><strong className={textPrimary(theme)}>dataset</strong>：元数据与目录为主，无统一 invoke 模型。</li>
                   </ul>
                 </section>
 
-                <section id="doc-skill-pack" className="mt-14 space-y-4">
-                  {proseH2(theme, '技能包、托管技能与制品下载')}
+                <section id="doc-skill-hosted" className="mt-14 space-y-4">
+                  {proseH2(theme, '托管技能（hosted-only）')}
                   {prosePara(theme, (
                     <>
-                      实训场景常「下发技能包」：<span className="font-mono">resolve</span> 确认已发布且有权限后，<span className="font-mono">GET /resource-center/resources/{'{id}'}/skill-artifact</span> 拉取二进制流（适用于 <span className="font-mono">executionMode=pack</span>）。下载量与网关 invoke 分开统计，并计入 Owner 看板技能包指标。
-                    </>
-                  ))}
-                  {prosePara(theme, (
-                    <>
-                      <span className="font-mono">executionMode=hosted</span> 的托管技能无 zip 制品，请在目录 spec 中查看 schema，并用 <span className="font-mono">POST /invoke</span>（或与 SDK 等价路径）传 JSON payload。需要标准 JSON-RPC 工具面仍可登记 <span className="font-mono">mcp</span>；勿对 <span className="font-mono">pack</span> 形态技能走远程 <span className="font-mono">invoke</span>。
+                      平台仅保留 <span className="font-mono">executionMode=hosted</span>：在资源中心配置系统提示词与 <span className="font-mono">parametersSchema</span>，发布后通过 <span className="font-mono">POST /invoke</span>（<span className="font-mono">resourceType=skill</span>）调用。需要可下载的 HTTP 工具面请登记 <span className="font-mono">mcp</span>。
                     </>
                   ))}
                 </section>
@@ -464,7 +458,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
                   {proseH2(theme, '标签、版本与可观测')}
                   {prosePara(theme, (
                     <>
-                      目录可带 <span className="font-mono">tags</span> 并按标签库名字筛选。数据集自由文本须与标签库<strong>精确匹配</strong>才进入目录标签。<span className="font-mono">version</span> 锁定制品；<span className="font-mono">include=observability</span> 等展示健康/熔断摘要。
+                      目录可带 <span className="font-mono">tags</span> 并按标签库名字筛选。数据集自由文本须与标签库<strong>精确匹配</strong>才进入目录标签。<span className="font-mono">version</span> 锁定发布快照；<span className="font-mono">include=observability</span> 等展示健康/熔断摘要。
                     </>
                   ))}
                   <div className="flex flex-wrap gap-2 pt-1">
@@ -478,7 +472,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
                   {proseH2(theme, '数据口径')}
                   {prosePara(theme, (
                     <>
-                      <span className="font-mono">call_log</span> 反映<strong>网关远程调用</strong>；<span className="font-mono">usage_record</span> 反映门户行为。点开页面、仅 resolve、下载技能包等不都会记为 invoke。请以控制台与接口字段为准。
+                      <span className="font-mono">call_log</span> 反映<strong>网关远程调用</strong>；<span className="font-mono">usage_record</span> 反映门户行为。点开页面、仅 resolve、目录下载等不都会记为 invoke。请以控制台与接口字段为准。
                     </>
                   ))}
                 </section>
@@ -557,7 +551,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
               <div>
                 <h4 className={`text-xs font-semibold ${textPrimary(theme)}`}>3. 已发布资源</h4>
                 <ul className={`mt-1.5 list-disc pl-4 text-xs space-y-1 ${textSecondary(theme)}`}>
-                  <li>资源须为 <span className="font-mono">published</span> 才会按平台规则对目录消费者开放；仍须满足各资源类型的调用边界（如 skill 以制品为主，不做统一 <span className="font-mono">invoke</span>）。</li>
+                  <li>资源须为 <span className="font-mono">published</span> 才会按平台规则对目录消费者开放；仍须满足各资源类型的调用边界（如 skill 须为托管形态且 Key 具备 invoke scope）。</li>
                 </ul>
               </div>
               <div>

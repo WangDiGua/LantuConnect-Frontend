@@ -35,7 +35,7 @@ interface Props {
   item: MyPublishItem;
   onView: () => void;
   onWithdraw?: () => void;
-  /** 默认「调用次数」；技能包等非 invoke 资源可改为「热度」等，避免误导 */
+  /** 默认「调用次数」；无网关 invoke 的资源可改为「热度」等，避免误导 */
   callCountLabel?: string;
   /** 与统一资源中心 / ResourceAuditList 一致：待审核时可执行通过、驳回 */
   canAuditPending?: boolean;

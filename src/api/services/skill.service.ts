@@ -10,19 +10,6 @@ import type {
 import { resourceCatalogService } from './resource-catalog.service';
 import type { CatalogResourceDetailVO, ResourceCatalogItemVO } from '../../types/dto/catalog';
 
-function inferSkillExecutionMode(
-  item: ResourceCatalogItemVO,
-  spec: Record<string, unknown>,
-  invokeType?: string,
-): 'pack' | 'hosted' {
-  const fromItem = item.executionMode && String(item.executionMode).trim().toLowerCase();
-  if (fromItem === 'hosted') return 'hosted';
-  const fromSpec = spec && typeof spec.executionMode === 'string' ? spec.executionMode.trim().toLowerCase() : '';
-  if (fromSpec === 'hosted') return 'hosted';
-  if (invokeType && String(invokeType).toLowerCase() === 'hosted_llm') return 'hosted';
-  return 'pack';
-}
-
 function deprecatedWriteError<T>(): Promise<T> {
   return Promise.reject(
     new ApiException({
@@ -48,13 +35,13 @@ function toSkill(item: ResourceCatalogItemVO): Skill {
     paramsRaw && typeof paramsRaw === 'object' && !Array.isArray(paramsRaw)
       ? (paramsRaw as Record<string, unknown>)
       : null;
-  const executionMode = inferSkillExecutionMode(item, spec, detail.invokeType);
+  const executionMode: Skill['executionMode'] = 'hosted';
   return {
     id,
     agentName: item.resourceCode || `skill-${item.resourceId}`,
     displayName: item.displayName || item.resourceCode || String(item.resourceId),
     description: item.description || '',
-    agentType: 'skill_pack',
+    agentType: 'hosted_skill',
     executionMode,
     mode: 'TOOL',
     parentId: null,
@@ -131,7 +118,7 @@ export const skillService = {
       new ApiException({
         code: 1004,
         status: 400,
-        message: '技能包不支持网关 invoke，请使用目录 resolve 与 skill-artifact/获取技能包下载。',
+        message: '请使用统一网关 POST /invoke（resourceType=skill）调用托管技能。',
       }),
     ),
 };

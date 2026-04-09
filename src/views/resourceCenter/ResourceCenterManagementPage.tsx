@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Boxes, Download, Pencil, Plus, RefreshCw } from 'lucide-react';
+import { Boxes, Pencil, Plus, RefreshCw } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { ResourceType } from '../../types/dto/catalog';
 import type {
@@ -49,7 +49,6 @@ import {
   resourceHealthBadgeClass,
   resourceHealthLabelZh,
   resourceVersionSnapshotLabelZh,
-  skillPackValidationLabelZh,
 } from '../../utils/backendEnumLabels';
 import { nullDisplay } from '../../utils/errorHandler';
 import { formatDateTime } from '../../utils/formatDateTime';
@@ -73,13 +72,7 @@ function lifecycleTimelineNodeClass(ev: LifecycleTimelineEventVO): string {
 
 function skillSubmitBlocked(item: ResourceCenterItemVO): boolean {
   if (item.resourceType !== 'skill') return false;
-  return !Boolean(item.artifactUri?.trim());
-}
-
-/** 与后端 skill-artifact 一致：有制品即可下载（不要求 valid） */
-function skillCanDownloadArtifact(item: ResourceCenterItemVO): boolean {
-  if (item.resourceType !== 'skill') return false;
-  return Boolean(item.artifactUri?.trim());
+  return !Boolean(item.hostedSystemPrompt?.trim());
 }
 
 function isCatalogItemOwner(item: ResourceCenterItemVO, userId: number): boolean {
@@ -507,7 +500,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
       {activeType === 'skill' ? (
         <button type="button" onClick={() => onNavigateRegister('skill')} className={btnPrimary}>
           <Plus size={15} aria-hidden />
-          注册技能包
+          注册托管技能
         </button>
       ) : (
         <button type="button" onClick={() => onNavigateRegister(activeType)} className={btnPrimary}>
@@ -605,7 +598,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                   activeType === 'skill' ? (
                     <button type="button" onClick={() => onNavigateRegister('skill')} className={btnPrimary}>
                       <Plus size={15} />
-                      注册技能包
+                      注册托管技能
                     </button>
                   ) : (
                     <button type="button" onClick={() => onNavigateRegister(activeType)} className={btnPrimary}>
@@ -686,30 +679,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                           {item.resourceType === 'skill' && (
                             <span>
                               技能形态:{' '}
-                              <span className={textSecondary(theme)}>
-                                {String(item.executionMode ?? 'pack').toLowerCase() === 'hosted' ? '托管（invoke）' : '技能包（制品）'}
-                              </span>
-                              {item.packValidationStatus ? (
-                                <>
-                                  {' '}
-                                  · 校验{' '}
-                                  <span
-                                    className={
-                                      String(item.packValidationStatus).toLowerCase() === 'valid'
-                                        ? isDark
-                                          ? 'text-emerald-300'
-                                          : 'text-emerald-700'
-                                        : String(item.packValidationStatus).toLowerCase() === 'invalid'
-                                          ? isDark
-                                            ? 'text-rose-300'
-                                            : 'text-rose-700'
-                                          : textMuted(theme)
-                                    }
-                                  >
-                                    {skillPackValidationLabelZh(item.packValidationStatus)}
-                                  </span>
-                                </>
-                              ) : null}
+                              <span className={textSecondary(theme)}>托管（hosted · invoke）</span>
                             </span>
                           )}
                           {item.resourceType === 'agent' && item.relatedMcpResourceIds && item.relatedMcpResourceIds.length > 0 && (
@@ -738,35 +708,13 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                         <button type="button" onClick={() => void openLifecycleModal(item)} className={mgmtTableActionGhost(theme)}>
                           生命周期
                         </button>
-                        {skillCanDownloadArtifact(item) && (
-                          <button
-                            type="button"
-                            disabled={runningActionKey === `dl-artifact-${item.id}`}
-                            title="下载后端已校验的技能包（GET …/skill-artifact）"
-                            onClick={() => void runAction(
-                              `dl-artifact-${item.id}`,
-                              () => resourceCenterService.downloadSkillArtifact(item.id, item.displayName),
-                              '已开始下载',
-                            )}
-                            className={mgmtTableActionGhost(theme)}
-                          >
-                            {runningActionKey === `dl-artifact-${item.id}` ? (
-                              '下载中…'
-                            ) : (
-                              <>
-                                <Download size={14} className="inline-block align-[-2px] mr-1" />
-                                下载制品
-                              </>
-                            )}
-                          </button>
-                        )}
                         {isActionAllowed(item, 'submit') && (
                           <button
                             type="button"
                             disabled={runningActionKey === `submit-${item.id}` || skillSubmitBlocked(item)}
                             title={
                               skillSubmitBlocked(item) && item.resourceType === 'skill'
-                                ? '技能须先上传 zip 且 pack_validation_status=valid'
+                                ? '托管技能须填写系统提示词（hostedSystemPrompt）后再提交审核'
                                 : undefined
                             }
                             onClick={() => void runMutationAction(`submit-${item.id}`, () => resourceCenterService.submit(item.id), '已提交审核')}

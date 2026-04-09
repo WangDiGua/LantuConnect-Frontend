@@ -103,6 +103,5 @@ export interface OwnerDeveloperStatsVO {
   gatewayInvokeTotal: number;
   gatewayInvokeSuccess: number;
   usageRecordInvokeTotal: number;
-  skillPackDownloadTotal: number;
   gatewayInvokesByResourceType: OwnerResourceTypeInvokeCount[];
 }

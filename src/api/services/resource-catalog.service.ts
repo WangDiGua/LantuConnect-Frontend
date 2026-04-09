@@ -172,7 +172,7 @@ function normalizeCatalogDetail(raw: unknown): CatalogResourceDetailVO {
       merged.executionMode = 'hosted';
     }
     if (!merged.executionMode) {
-      merged.executionMode = 'pack';
+      merged.executionMode = 'hosted';
     }
   }
   return merged;

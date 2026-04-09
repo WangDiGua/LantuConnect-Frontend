@@ -11,8 +11,8 @@ export interface Skill {
   displayName: string;
   description: string;
   agentType: AgentType;
-  /** 与后端 t_resource_skill_ext.execution_mode 一致；缺省视为 pack */
-  executionMode?: 'pack' | 'hosted';
+  /** 与后端 t_resource_skill_ext.execution_mode 一致；平台仅支持 hosted */
+  executionMode?: 'hosted';
   mode: 'TOOL';
   parentId: number | null;
   parentName?: string;
@@ -41,7 +41,7 @@ export interface Skill {
   reviewCount?: number;
   /** 目录/详情接口返回的扩展介绍 Markdown */
   serviceDetailMd?: string;
-  /** 技能包下载次数（后端下载事件表聚合） */
+  /** 目录侧下载统计（后端下载事件表聚合） */
   downloadCount?: number;
   viewCount?: number;
 }

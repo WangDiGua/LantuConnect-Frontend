@@ -20,8 +20,6 @@ import type {
   SkillExternalCatalogSettingsResponse,
   SkillExternalSkillMdResponse,
   SkillExternalReviewVO,
-  SkillPackValidationStatus,
-  SkillPackChunkUploadProgress,
 } from '../../types/dto/resource-center';
 
 function normalizeStatus(raw: unknown): ResourceCenterItemVO['status'] {
@@ -34,13 +32,6 @@ function normalizeStatus(raw: unknown): ResourceCenterItemVO['status'] {
   if (value === 'deprecated') return 'deprecated';
   if (value === 'merged_live') return 'merged_live';
   return 'draft';
-}
-
-function normalizePackStatus(raw: unknown): SkillPackValidationStatus | string | undefined {
-  const v = String(raw ?? '').trim().toLowerCase();
-  if (!v) return undefined;
-  if (v === 'none' || v === 'pending' || v === 'valid' || v === 'invalid') return v;
-  return v;
 }
 
 /** 兼容对象或 JSON 字符串（部分网关/历史接口会 stringify） */
@@ -215,39 +206,8 @@ function toResourceItem(raw: unknown): ResourceCenterItemVO {
         : r?.skill_type != null && r?.skill_type !== ''
           ? String(r.skill_type)
           : undefined,
-    artifactUri:
-      r?.artifactUri != null && String(r.artifactUri).trim() !== ''
-        ? String(r.artifactUri).trim()
-        : r?.artifact_uri != null && String(r.artifact_uri).trim() !== ''
-          ? String(r.artifact_uri).trim()
-          : undefined,
-    artifactSha256:
-      r?.artifactSha256 != null && String(r.artifactSha256).trim() !== ''
-        ? String(r.artifactSha256).trim()
-        : r?.artifact_sha256 != null && String(r.artifact_sha256).trim() !== ''
-          ? String(r.artifact_sha256).trim()
-          : undefined,
     manifest,
     entryDoc: r?.entryDoc != null && r?.entryDoc !== '' ? String(r.entryDoc) : undefined,
-    packValidationStatus: normalizePackStatus(r?.packValidationStatus ?? r?.pack_validation_status),
-    packValidatedAt:
-      r?.packValidatedAt != null && r?.packValidatedAt !== ''
-        ? String(r.packValidatedAt)
-        : r?.pack_validated_at != null && r?.pack_validated_at !== ''
-          ? String(r.pack_validated_at)
-          : undefined,
-    packValidationMessage:
-      r?.packValidationMessage != null
-        ? String(r.packValidationMessage)
-        : r?.pack_validation_message != null
-          ? String(r.pack_validation_message)
-          : undefined,
-    skillRootPath:
-      r?.skillRootPath != null && String(r.skillRootPath).trim() !== ''
-        ? String(r.skillRootPath)
-        : r?.skill_root_path != null && String(r.skill_root_path).trim() !== ''
-          ? String(r.skill_root_path)
-          : undefined,
     mode: r?.mode != null && r?.mode !== '' ? String(r.mode) : undefined,
     maxConcurrency:
       r?.maxConcurrency != null && Number.isFinite(Number(r.maxConcurrency))
@@ -431,54 +391,6 @@ function normalizeSkillExternalCatalogPage(raw: unknown): SkillExternalCatalogPa
 function num(raw: unknown, fallback: number): number {
   const n = Number(raw);
   return Number.isFinite(n) ? n : fallback;
-}
-
-/** 超过此大小走分片上传（每片 4MB，与后端 {@code SkillPackChunkedUploadService.CHUNK_SIZE} 一致） */
-const SKILL_PACK_CHUNK_THRESHOLD = 8 * 1024 * 1024;
-const SERVER_SKILL_CHUNK_SIZE = 4 * 1024 * 1024;
-
-const SKILL_CHUNK_STORAGE_PREFIX = 'lantu_skill_pack_chunk_v1:';
-
-function skillPackChunkStorageKey(file: File, resourceId?: number, skillRoot?: string) {
-  return `${SKILL_CHUNK_STORAGE_PREFIX}${file.name}|${file.size}|${file.lastModified}|${resourceId ?? ''}|${skillRoot ?? ''}`;
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((r) => setTimeout(r, ms));
-}
-
-type SkillPackChunkInitResponse = {
-  uploadId: string;
-  chunkSize: number;
-  totalChunks: number;
-  fileSize: number;
-};
-
-type SkillPackChunkStatusResponse = {
-  totalChunks: number;
-  fileSize: number;
-  receivedCount: number;
-  receivedChunkIndices: number[];
-};
-
-async function postSkillChunk(uploadId: string, chunkIndex: number, blob: Blob): Promise<void> {
-  let lastErr: unknown;
-  for (let attempt = 0; attempt < 4; attempt++) {
-    const fd = new FormData();
-    fd.append('file', blob, 'chunk');
-    try {
-      await http.upload<unknown>(
-        `/resource-center/resources/skills/package-upload/chunk/${uploadId}/${chunkIndex}`,
-        fd,
-        { timeout: 120_000 },
-      );
-      return;
-    } catch (e) {
-      lastErr = e;
-      await sleep(400 * 2 ** attempt);
-    }
-  }
-  throw lastErr;
 }
 
 function normalizeRemoteCatalogMode(raw: unknown): string {
@@ -842,173 +754,4 @@ export const resourceCenterService = {
     return [];
   },
 
-  /** Anthropic 式技能 zip：校验 SKILL.md、写制品与 pack_validation_*。新建时可不传 resourceId（后端创建草稿 skill）。 */
-  uploadSkillPackage: async (file: File, resourceId?: number, skillRoot?: string): Promise<ResourceCenterItemVO> => {
-    const fd = new FormData();
-    fd.append('file', file);
-    if (resourceId != null && Number.isFinite(resourceId) && resourceId > 0) {
-      fd.append('resourceId', String(resourceId));
-    }
-    const sr = skillRoot?.trim();
-    if (sr) {
-      fd.append('skillRoot', sr);
-    }
-    const raw = await http.upload<unknown>('/resource-center/resources/skills/package-upload', fd);
-    return toResourceItem(raw);
-  },
-
-  /**
-   * 技能包上传：小于阈值整包 POST；大于阈值分片+断点续传（刷新页后同文件可继续传未完成分片）。
-   */
-  uploadSkillPackageResumable: async (
-    file: File,
-    resourceId?: number,
-    skillRoot?: string,
-    onProgress?: (p: SkillPackChunkUploadProgress) => void,
-  ): Promise<ResourceCenterItemVO> => {
-    const sr = skillRoot?.trim();
-    if (file.size <= SKILL_PACK_CHUNK_THRESHOLD) {
-      const fd = new FormData();
-      fd.append('file', file);
-      if (resourceId != null && Number.isFinite(resourceId) && resourceId > 0) {
-        fd.append('resourceId', String(resourceId));
-      }
-      if (sr) {
-        fd.append('skillRoot', sr);
-      }
-      const raw = await http.upload<unknown>('/resource-center/resources/skills/package-upload', fd);
-      return toResourceItem(raw);
-    }
-
-    const storageKey = skillPackChunkStorageKey(file, resourceId, sr);
-    let uploadId: string | null = null;
-    let totalChunks = 0;
-    const chunkSize = SERVER_SKILL_CHUNK_SIZE;
-    const done = new Set<number>();
-
-    try {
-      const rawPrev = sessionStorage.getItem(storageKey);
-      if (rawPrev) {
-        const prev = JSON.parse(rawPrev) as { uploadId?: string };
-        if (prev?.uploadId && typeof prev.uploadId === 'string') {
-          try {
-            const st = await http.get<SkillPackChunkStatusResponse>(
-              `/resource-center/resources/skills/package-upload/chunk/${prev.uploadId}/status`,
-            );
-            if (st && st.fileSize === file.size && Array.isArray(st.receivedChunkIndices)) {
-              uploadId = prev.uploadId;
-              totalChunks = st.totalChunks;
-              st.receivedChunkIndices.forEach((i) => done.add(i));
-            }
-          } catch {
-            sessionStorage.removeItem(storageKey);
-          }
-        }
-      }
-    } catch {
-      /* private mode / quota */
-    }
-
-    if (!uploadId) {
-      onProgress?.({ phase: 'init', loaded: 0, total: file.size });
-      const init = await http.post<SkillPackChunkInitResponse>(
-        '/resource-center/resources/skills/package-upload/chunk/init',
-        {
-          fileName: file.name,
-          fileSize: file.size,
-          ...(resourceId != null && Number.isFinite(resourceId) && resourceId > 0 ? { resourceId } : {}),
-          ...(sr ? { skillRoot: sr } : {}),
-        },
-        { timeout: 60_000 },
-      );
-      uploadId = init.uploadId;
-      totalChunks = init.totalChunks;
-      done.clear();
-      try {
-        sessionStorage.setItem(storageKey, JSON.stringify({ uploadId }));
-      } catch {
-        /* ignore */
-      }
-    }
-
-    if (!uploadId || totalChunks <= 0) {
-      throw new Error('分片上传初始化失败');
-    }
-
-    let loaded = 0;
-    for (const idx of done) {
-      const start = idx * chunkSize;
-      const end = Math.min(start + chunkSize, file.size);
-      loaded += end - start;
-    }
-
-    for (let i = 0; i < totalChunks; i++) {
-      if (done.has(i)) {
-        continue;
-      }
-      const start = i * chunkSize;
-      const end = Math.min(start + chunkSize, file.size);
-      const blob = file.slice(start, end);
-      onProgress?.({ phase: 'chunk', loaded, total: file.size, chunkIndex: i, totalChunks });
-      await postSkillChunk(uploadId, i, blob);
-      done.add(i);
-      loaded += end - start;
-      try {
-        sessionStorage.setItem(storageKey, JSON.stringify({ uploadId }));
-      } catch {
-        /* ignore */
-      }
-      onProgress?.({ phase: 'chunk', loaded, total: file.size, chunkIndex: i, totalChunks });
-    }
-
-    onProgress?.({ phase: 'complete', loaded: file.size, total: file.size, totalChunks });
-    const raw = await http.post<unknown>(
-      `/resource-center/resources/skills/package-upload/chunk/${uploadId}/complete`,
-      {},
-      { timeout: 180_000 },
-    );
-    try {
-      sessionStorage.removeItem(storageKey);
-    } catch {
-      /* ignore */
-    }
-    return toResourceItem(raw);
-  },
-
-  /** 从 HTTPS URL 拉取 zip，校验与落库与 uploadSkillPackage 一致；新建资源为 sourceType=cloud。 */
-  importSkillPackageFromUrl: async (
-    url: string,
-    resourceId?: number,
-    skillRoot?: string,
-  ): Promise<ResourceCenterItemVO> => {
-    const raw = await http.post<unknown>(
-      '/resource-center/resources/skills/package-import-url',
-      {
-        url: url.trim(),
-        ...(resourceId != null && Number.isFinite(resourceId) && resourceId > 0 ? { resourceId } : {}),
-        ...(skillRoot?.trim() ? { skillRoot: skillRoot.trim() } : {}),
-      },
-      { timeout: 120_000 },
-    );
-    return toResourceItem(raw);
-  },
-
-  /** 受控下载技能 zip（尤其 isPublic=0、resolve 不直接返回 artifact URL 时）。 */
-  downloadSkillArtifact: async (id: number, displayName?: string): Promise<void> => {
-    const { blob, fileName } = await http.getBlob(`/resource-center/resources/${id}/skill-artifact`);
-    const safeBase = (displayName?.trim() || `skill-${id}`).replace(/[/\\?%*:|"<>]/g, '-').slice(0, 80);
-    const name = (fileName?.trim() || `${safeBase}.zip`).replace(/[/\\?%*:|"<>]/g, '-');
-    const url = URL.createObjectURL(blob);
-    try {
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = name;
-      a.rel = 'noopener';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-    } finally {
-      URL.revokeObjectURL(url);
-    }
-  },
 };

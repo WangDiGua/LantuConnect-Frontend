@@ -160,18 +160,6 @@ export function providerStatusLabelZh(raw: string | null | undefined): string {
   return PROVIDER_STATUS_LABEL[k] ?? (k ? String(raw).trim() : '—');
 }
 
-const SKILL_PACK_VALIDATION_LABEL: Record<string, string> = {
-  none: '未校验',
-  pending: '校验中',
-  valid: '校验通过',
-  invalid: '校验未通过',
-};
-
-export function skillPackValidationLabelZh(raw: string | null | undefined): string {
-  const k = norm(raw);
-  return SKILL_PACK_VALIDATION_LABEL[k] ?? (k ? String(raw).trim() : '—');
-}
-
 const AUDIT_TIER_LABEL: Record<string, string> = {
   low: '低',
   medium: '中',

@@ -252,7 +252,7 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme, fon
       fontSize={fontSize}
       titleIcon={Terminal}
       breadcrumbSegments={['开发者中心', 'API Playground']}
-      description="调试请求；GET /catalog/resources、/reviews/page、/catalog/resources/{type}/{id}/stats 须 X-User-Id 或 X-Api-Key 之一；POST /catalog/resolve、/invoke、/invoke-stream 须 X-Api-Key（与市场共用的本地密钥）。技能类资源请勿走统一网关 invoke，请以技能市场的制品下载与目录解析为准；其余资源须满足已发布、Key 有效且 scope 覆盖等网关条件。"
+      description="调试请求；GET /catalog/resources、/reviews/page、/catalog/resources/{type}/{id}/stats 须 X-User-Id 或 X-Api-Key 之一；POST /catalog/resolve、/invoke、/invoke-stream 须 X-Api-Key（与市场共用的本地密钥）。skill 为托管资源，resolve 后走 POST /invoke（resourceType=skill）；其余资源须满足已发布、Key 有效且 scope 覆盖等网关条件。"
       toolbar={playgroundToolbar}
       contentScroll="document"
     >

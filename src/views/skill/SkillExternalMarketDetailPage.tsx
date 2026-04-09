@@ -380,7 +380,7 @@ export const SkillExternalMarketDetailPage: React.FC<SkillExternalMarketDetailPa
           </button>
           <button type="button" onClick={triggerDownload} className={`${btnPrimary} min-h-11`}>
             <Download className="h-4 w-4" aria-hidden />
-            下载技能包
+            下载外链 ZIP
           </button>
         </div>
       }

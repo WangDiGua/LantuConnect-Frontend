@@ -1,6 +1,6 @@
-import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, BookOpen, ChevronDown, Download, FileCheck, Link2, Loader2, Save, Send, Upload } from 'lucide-react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { ArrowLeft, BookOpen, ChevronDown, Loader2, Save, Send, FileText } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { ResourceType } from '../../types/dto/catalog';
 import type { ResourceUpsertRequest } from '../../types/dto/resource-center';
@@ -20,7 +20,7 @@ import {
   textMuted,
   textPrimary,
 } from '../../utils/uiClasses';
-import { skillPackValidationLabelZh, workingDraftAuditTierLabelZh } from '../../utils/backendEnumLabels';
+import { workingDraftAuditTierLabelZh } from '../../utils/backendEnumLabels';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 import { parseMcpConfigPaste } from '../../utils/mcpConfigImport';
@@ -34,42 +34,6 @@ interface Props {
   resourceType: ResourceType;
   resourceId?: number;
   onBack: () => void;
-}
-
-/** 上传/导入完成后通过 react-router state 传到带 id 的编辑页，避免 remount 瞬间表单尚未拉到制品字段时没有视觉上的一条「已上传」。 */
-type SkillPackPreviewState = { fileName: string; size: number } | { importUrl: string };
-
-type SkillPackEcho = { kind: 'file'; name: string; size: number } | { kind: 'url'; href: string };
-
-function formatSkillPackBytes(n: number): string {
-  if (!Number.isFinite(n) || n < 0) return '—';
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  return `${(n / (1024 * 1024)).toFixed(2)} MB`;
-}
-
-function skillArtifactDisplayLabel(uri: string): string {
-  const t = uri.trim();
-  if (!t) return '';
-  try {
-    if (t.startsWith('http://') || t.startsWith('https://')) {
-      const u = new URL(t);
-      const seg = u.pathname.split('/').filter(Boolean).pop();
-      return (seg || t).trim();
-    }
-  } catch {
-    /* ignore */
-  }
-  const parts = t.replace(/\\/g, '/').split('/');
-  return (parts.pop() || t).trim();
-}
-
-function truncateSkillArtifactPath(s: string, max: number): string {
-  if (s.length <= max) return s;
-  const k = max - 3;
-  const a = Math.ceil(k / 2);
-  const b = Math.floor(k / 2);
-  return `${s.slice(0, a)}…${s.slice(s.length - b)}`;
 }
 
 const TYPE_LABEL: Record<ResourceType, string> = {
@@ -88,7 +52,7 @@ const DEFAULT_SKILL_PARAMS_SCHEMA_JSON = '{\n  "type": "object",\n  "properties"
 
 const TYPE_GUIDE_ONE_LINE: Record<ResourceType, string> = {
   agent: '填写基础信息与运行地址后即可保存。',
-  skill: '请先上传技能包（zip/tar.gz/单 Markdown 等）；清单与 SKILL.md 由平台校验。远程可调用工具请注册 MCP。',
+  skill: '填写系统提示词与参数 Schema；由平台托管执行（hosted）。远程可调用工具请注册 MCP。',
   mcp: '填写接入地址与鉴权即可。',
   app: '填写可访问 URL 与打开方式。',
   dataset: '填写类型与格式等元数据。',
@@ -220,11 +184,8 @@ type ResourceRegisterFieldKey =
   | 'relatedPreSkillResourceIds'
   | 'agentMaxSteps'
   | 'agentTemperature'
-  | 'skillRootPath'
   | 'skillType'
   | 'paramsSchemaJson'
-  | 'manifestJson'
-  | 'artifactUri'
   | 'hostedSystemPrompt'
   | 'hostedOutputSchemaJson'
   | 'hostedTemperature'
@@ -254,11 +215,8 @@ const RR_FIELD_FOCUS_ORDER: ResourceRegisterFieldKey[] = [
   'relatedPreSkillResourceIds',
   'agentMaxSteps',
   'agentTemperature',
-  'skillRootPath',
   'skillType',
   'paramsSchemaJson',
-  'manifestJson',
-  'artifactUri',
   'hostedSystemPrompt',
   'hostedOutputSchemaJson',
   'hostedTemperature',
@@ -287,7 +245,6 @@ function computeResourceRegisterFieldErrors(
     relatedResourceIds: string;
     relatedMcpResourceIds: string;
     relatedPreSkillResourceIds: string;
-    skillExecutionMode: 'pack' | 'hosted';
     hostedSystemPrompt: string;
     hostedUserTemplate: string;
     hostedDefaultModel: string;
@@ -295,11 +252,8 @@ function computeResourceRegisterFieldErrors(
     hostedTemperature: string;
     agentMaxSteps: string;
     agentTemperature: string;
-    skillRootPath: string;
     skillType: string;
     paramsSchemaJson: string;
-    manifestJson: string;
-    artifactUri: string;
     appUrl: string;
     embedType: string;
     appIcon: string;
@@ -417,53 +371,30 @@ function computeResourceRegisterFieldErrors(
   }
 
   if (resourceType === 'skill') {
-    if (form.skillExecutionMode === 'hosted') {
-      if (!form.hostedSystemPrompt.trim()) {
-        e.hostedSystemPrompt = '托管技能须填写系统提示词';
+    if (!form.hostedSystemPrompt.trim()) {
+      e.hostedSystemPrompt = '托管技能须填写系统提示词';
+    }
+    const st = form.skillType.trim().toLowerCase();
+    if (st && st !== 'hosted_v1') {
+      e.skillType = '技能类型须为 hosted_v1';
+    }
+    const outParsed = parseJsonObject(form.hostedOutputSchemaJson, '输出 Schema JSON');
+    if (form.hostedOutputSchemaJson.trim() && !outParsed.ok) {
+      e.hostedOutputSchemaJson = outParsed.message;
+    }
+    if (form.hostedTemperature.trim()) {
+      const ht = Number(form.hostedTemperature.trim());
+      if (!Number.isFinite(ht) || ht < 0 || ht > 2) {
+        e.hostedTemperature = '温度须在 0～2 之间或留空';
       }
-      const st = form.skillType.trim().toLowerCase();
-      if (st && st !== 'hosted_v1') {
-        e.skillType = '托管技能请将「包格式」设为 hosted_v1';
-      }
-      const outParsed = parseJsonObject(form.hostedOutputSchemaJson, '输出 Schema JSON');
-      if (form.hostedOutputSchemaJson.trim() && !outParsed.ok) {
-        e.hostedOutputSchemaJson = outParsed.message;
-      }
-      if (form.hostedTemperature.trim()) {
-        const ht = Number(form.hostedTemperature.trim());
-        if (!Number.isFinite(ht) || ht < 0 || ht > 2) {
-          e.hostedTemperature = '温度须在 0～2 之间或留空';
-        }
-      }
-      const schemaParsed = parseJsonObject(form.paramsSchemaJson, '参数结构 JSON');
-      if (!schemaParsed.ok) {
-        e.paramsSchemaJson = schemaParsed.message;
-      }
-    } else {
-      if (!form.skillType.trim()) {
-        e.skillType = '请选择技能包格式';
-      } else {
-        const st = form.skillType.trim().toLowerCase();
-        if (!['anthropic_v1', 'folder_v1'].includes(st)) {
-          e.skillType = '技能包格式须为 anthropic_v1 或 folder_v1；可远程调用的 HTTP 工具请注册为 MCP 资源';
-        }
-      }
-      const specParsed = parseJsonObject(form.specJson, '附加元数据 JSON（可为空对象）');
-      if (!specParsed.ok) {
-        e.specJson = specParsed.message;
-      }
-      const schemaParsed = parseJsonObject(form.paramsSchemaJson, '参数结构 JSON');
-      if (!schemaParsed.ok) {
-        e.paramsSchemaJson = schemaParsed.message;
-      }
-      const manifestParsed = parseJsonObject(form.manifestJson, '清单 JSON');
-      if (!manifestParsed.ok) {
-        e.manifestJson = manifestParsed.message;
-      }
-      const uri = form.artifactUri.trim();
-      if (uri && !isValidUrl(uri) && !uri.startsWith('/uploads/')) {
-        e.artifactUri = '制品地址须为 http(s) URL 或由上传生成的 /uploads/... 路径';
-      }
+    }
+    const specParsed = parseJsonObject(form.specJson, '附加元数据 JSON（可为空对象）');
+    if (!specParsed.ok) {
+      e.specJson = specParsed.message;
+    }
+    const schemaParsed = parseJsonObject(form.paramsSchemaJson, '参数结构 JSON');
+    if (!schemaParsed.ok) {
+      e.paramsSchemaJson = schemaParsed.message;
     }
   }
 
@@ -575,22 +506,11 @@ export const ResourceRegisterPage: React.FC<Props> = ({
   const isDark = theme === 'dark';
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams] = useSearchParams();
   const user = useAuthStore((s) => s.user);
   const [tagOptions, setTagOptions] = useState<{ value: string; label: string }[]>([{ value: '', label: '不选' }]);
   const [loading, setLoading] = useState(false);
-  /** 技能包本地上传较慢，单独提示动画（与保存/URL 导入共用 loading 时仍显示进度文案） */
-  const [skillPackUploading, setSkillPackUploading] = useState(false);
-  const [skillPackChunkHint, setSkillPackChunkHint] = useState<string | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
-  const [skillTechOpen, setSkillTechOpen] = useState(false);
-  const [skillPackUrl, setSkillPackUrl] = useState('');
-  const [skillPackUrlError, setSkillPackUrlError] = useState('');
-  const [skillSubmitArtifactError, setSkillSubmitArtifactError] = useState<string | null>(null);
   const [mcpProbeExtra, setMcpProbeExtra] = useState<Partial<Record<'endpoint' | 'authConfigJson', string>>>({});
-  const [skillPackEcho, setSkillPackEcho] = useState<SkillPackEcho | null>(null);
-  const skillPackPreviewRef = useRef<SkillPackPreviewState | null>(null);
-  const [skillArtifactDownloading, setSkillArtifactDownloading] = useState(false);
   const [agentAdvancedOpen, setAgentAdvancedOpen] = useState(false);
   const [form, setForm] = useState({
     resourceCode: '',
@@ -616,7 +536,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     fileSize: 0,
     tags: '',
     datasetIsPublic: false,
-    skillType: 'anthropic_v1',
+    skillType: 'hosted_v1',
     mode: resourceType === 'agent' ? 'SUBAGENT' : 'TOOL',
     agentType: 'http_api',
     maxConcurrency: 10,
@@ -628,18 +548,10 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     specJson: resourceType === 'agent' ? DEFAULT_AGENT_SPEC_JSON : resourceType === 'skill' ? DEFAULT_SKILL_SPEC_JSON : '{}',
     paramsSchemaJson: DEFAULT_SKILL_PARAMS_SCHEMA_JSON,
     relatedResourceIds: '',
-    artifactUri: '',
-    entryDoc: 'SKILL.md',
-    manifestJson: '{}',
     skillIsPublic: false,
-    packValidationStatus: 'none',
-    packValidationMessage: '',
-    artifactSha256: '',
-    skillRootPath: '',
     serviceDetailMd: '',
     relatedMcpResourceIds: '',
     relatedPreSkillResourceIds: '',
-    skillExecutionMode: 'pack' as 'pack' | 'hosted',
     hostedSystemPrompt: '',
     hostedUserTemplate: '',
     hostedDefaultModel: '',
@@ -683,60 +595,6 @@ export const ResourceRegisterPage: React.FC<Props> = ({
   }, [resourceId]);
 
   useEffect(() => {
-    if (resourceType !== 'skill' || resourceId) return;
-    const raw = searchParams.get('skillPackUrl');
-    if (!raw?.trim()) return;
-    const url = raw.trim();
-    setSkillPackUrl(url);
-    setSkillTechOpen(true);
-    if (!isValidUrl(url)) {
-      showMessage('来自在线市场的技能包链接无效，请使用 HTTPS 直链', 'error');
-      return;
-    }
-    /** 与 React Strict Mode 双次 effect 兼容：仅用「当前挂载」标记，避免第一次被 tear down 后 loading 永远 true */
-    let active = true;
-    setLoading(true);
-    skillPackPreviewRef.current = { importUrl: url };
-    const skillRootQ = searchParams.get('skillRoot')?.trim() || undefined;
-    void resourceCenterService
-      .importSkillPackageFromUrl(url, undefined, skillRootQ)
-      .then((vo) => {
-        if (!active) return;
-        applySkillPackVoToForm(vo, 'url');
-        setSkillPackUrl('');
-        if (!vo.id) {
-          navigate({ pathname: location.pathname, search: '' }, { replace: true });
-        }
-      })
-      .catch((err) => {
-        if (active) {
-          skillPackPreviewRef.current = null;
-          showMessage(err instanceof Error ? err.message : '从 URL 导入失败', 'error');
-        }
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- 市场深链一次性导入；闭包内使用当期 applySkillPackVoToForm / navigate
-  }, [resourceType, resourceId, searchParams]);
-
-  useLayoutEffect(() => {
-    if (resourceType !== 'skill') return;
-    const raw = location.state as { skillPackPreview?: SkillPackPreviewState } | null | undefined;
-    const p = raw?.skillPackPreview;
-    if (!p) return;
-    if ('fileName' in p) {
-      setSkillPackEcho({ kind: 'file', name: p.fileName, size: p.size });
-    } else {
-      setSkillPackEcho({ kind: 'url', href: p.importUrl });
-    }
-    navigate({ pathname: location.pathname, search: location.search }, { replace: true, state: {} });
-  }, [resourceType, location.state, location.pathname, location.search, navigate]);
-
-  useEffect(() => {
     if (!resourceId) return;
     let cancelled = false;
     setLoading(true);
@@ -752,17 +610,6 @@ export const ResourceRegisterPage: React.FC<Props> = ({
             item.temperature != null)
         ) {
           setAgentAdvancedOpen(true);
-        }
-        const isHostedSkill = resourceType === 'skill' && String(item.executionMode ?? '').toLowerCase() === 'hosted';
-        if (
-          resourceType === 'skill' &&
-          (isHostedSkill ||
-            (item.spec != null && typeof item.spec === 'object' && Object.keys(item.spec).length > 0) ||
-            (item.parametersSchema != null &&
-              typeof item.parametersSchema === 'object' &&
-              Object.keys(item.parametersSchema).length > 0))
-        ) {
-          setSkillTechOpen(true);
         }
         bindingSnapshotRef.current = {
           relatedMcpResourceIds:
@@ -873,16 +720,8 @@ export const ResourceRegisterPage: React.FC<Props> = ({
             : {}),
           ...(resourceType === 'skill'
             ? {
-                skillExecutionMode: isHostedSkill ? 'hosted' : 'pack',
-                skillType: item.skillType || (isHostedSkill ? 'hosted_v1' : 'anthropic_v1'),
-                artifactUri: item.artifactUri || '',
-                entryDoc: item.entryDoc || 'SKILL.md',
-                manifestJson: item.manifest ? JSON.stringify(item.manifest, null, 2) : '{}',
+                skillType: item.skillType || 'hosted_v1',
                 skillIsPublic: item.isPublic === true,
-                packValidationStatus: item.packValidationStatus || 'none',
-                packValidationMessage: item.packValidationMessage || '',
-                artifactSha256: item.artifactSha256 || '',
-                skillRootPath: item.skillRootPath || '',
                 hostedSystemPrompt: item.hostedSystemPrompt ?? '',
                 hostedUserTemplate: item.hostedUserTemplate ?? '',
                 hostedDefaultModel: item.hostedDefaultModel ?? '',
@@ -928,23 +767,9 @@ export const ResourceRegisterPage: React.FC<Props> = ({
   const registerGuideLine = useMemo(
     () =>
       resourceType === 'skill'
-        ? '技能包：上传 zip 或 URL 导入后做安全与清单校验；制品与文档为中心，远程可调用工具请单独注册 MCP。可选填写包内子目录作为校验与 resolve 的 skillRootPath。'
+        ? '托管技能：填写系统提示词与参数 Schema；由平台内 LLM 执行。远程可调用工具请单独注册 MCP。'
         : TYPE_GUIDE_ONE_LINE[resourceType],
     [resourceType],
-  );
-
-  const skillHasArtifact = useMemo(
-    () => resourceType === 'skill' && form.skillExecutionMode === 'pack' && Boolean(form.artifactUri?.trim()),
-    [resourceType, form.skillExecutionMode, form.artifactUri],
-  );
-
-  const skillEchoVisible = useMemo(
-    () =>
-      resourceType === 'skill' &&
-      form.skillExecutionMode === 'pack' &&
-      skillPackEcho != null &&
-      !form.artifactUri?.trim(),
-    [resourceType, form.skillExecutionMode, skillPackEcho, form.artifactUri],
   );
 
   const fieldErrors = useMemo((): Partial<Record<ResourceRegisterFieldKey, string>> =>
@@ -970,14 +795,10 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       form.recordCount,
       form.relatedResourceIds,
       form.resourceCode,
-      form.skillRootPath,
       form.skillType,
       form.specJson,
-      form.manifestJson,
-      form.artifactUri,
       form.relatedMcpResourceIds,
       form.relatedPreSkillResourceIds,
-      form.skillExecutionMode,
       form.hostedSystemPrompt,
       form.hostedUserTemplate,
       form.hostedDefaultModel,
@@ -990,14 +811,6 @@ export const ResourceRegisterPage: React.FC<Props> = ({
   useEffect(() => {
     setMcpProbeExtra({});
   }, [form.endpoint, form.authConfigJson, form.authType, form.mcpRegisterMode]);
-
-  useEffect(() => {
-    if (skillPackUrl) setSkillPackUrlError('');
-  }, [skillPackUrl]);
-
-  useEffect(() => {
-    if (form.artifactUri.trim()) setSkillSubmitArtifactError(null);
-  }, [form.artifactUri]);
 
   const mcpEndpointMerged = fieldErrors.endpoint ?? mcpProbeExtra.endpoint;
   const mcpAuthJsonMerged = fieldErrors.authConfigJson ?? mcpProbeExtra.authConfigJson;
@@ -1102,56 +915,30 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       };
     }
     if (resourceType === 'skill') {
-      if (form.skillExecutionMode === 'hosted') {
-        const parsedSpec = parseJsonObject(form.specJson, '附加元数据（spec JSON）');
-        const parsedSchema = parseJsonObject(form.paramsSchemaJson, '参数结构（parametersSchema JSON）');
-        if (!parsedSpec.ok || !parsedSchema.ok) {
-          throw new Error(!parsedSpec.ok ? parsedSpec.message : parsedSchema.message);
-        }
-        const outParsed = parseJsonObject(form.hostedOutputSchemaJson, '输出 Schema JSON');
-        if (form.hostedOutputSchemaJson.trim() && !outParsed.ok) {
-          throw new Error(outParsed.message);
-        }
-        const tempTrim = form.hostedTemperature.trim();
-        const tempParsed = tempTrim ? Number(tempTrim) : NaN;
-        const specObj = parsedSpec.data || {};
-        const outObj = outParsed.data || {};
-        return {
-          ...baseFields,
-          resourceType: 'skill',
-          executionMode: 'hosted',
-          serviceDetailMd: form.serviceDetailMd.trim(),
-          skillType: form.skillType.trim().toLowerCase() === 'hosted_v1' ? form.skillType.trim() : 'hosted_v1',
-          hostedSystemPrompt: form.hostedSystemPrompt.trim(),
-          hostedUserTemplate: form.hostedUserTemplate.trim() || undefined,
-          hostedDefaultModel: form.hostedDefaultModel.trim() || undefined,
-          ...(Object.keys(outObj).length > 0 ? { hostedOutputSchema: outObj } : {}),
-          ...(Number.isFinite(tempParsed) ? { hostedTemperature: tempParsed } : {}),
-          skillRootPath: form.skillRootPath.trim() || undefined,
-          spec: Object.keys(specObj).length > 0 ? specObj : {},
-          parametersSchema: parsedSchema.data || {},
-          isPublic: form.skillIsPublic,
-        };
-      }
       const parsedSpec = parseJsonObject(form.specJson, '附加元数据（spec JSON）');
       const parsedSchema = parseJsonObject(form.paramsSchemaJson, '参数结构（parametersSchema JSON）');
-      const parsedManifest = parseJsonObject(form.manifestJson, '清单 JSON');
-      if (!parsedSpec.ok || !parsedSchema.ok || !parsedManifest.ok) {
-        throw new Error(!parsedSpec.ok ? parsedSpec.message : !parsedSchema.ok ? parsedSchema.message : parsedManifest.message);
+      if (!parsedSpec.ok || !parsedSchema.ok) {
+        throw new Error(!parsedSpec.ok ? parsedSpec.message : parsedSchema.message);
       }
+      const outParsed = parseJsonObject(form.hostedOutputSchemaJson, '输出 Schema JSON');
+      if (form.hostedOutputSchemaJson.trim() && !outParsed.ok) {
+        throw new Error(outParsed.message);
+      }
+      const tempTrim = form.hostedTemperature.trim();
+      const tempParsed = tempTrim ? Number(tempTrim) : NaN;
       const specObj = parsedSpec.data || {};
-      const manifestObj = parsedManifest.data || {};
+      const outObj = outParsed.data || {};
       return {
         ...baseFields,
         resourceType: 'skill',
-        executionMode: 'pack',
+        executionMode: 'hosted',
         serviceDetailMd: form.serviceDetailMd.trim(),
-        skillType: form.skillType.trim(),
-        artifactUri: form.artifactUri.trim() || undefined,
-        artifactSha256: form.artifactSha256.trim() || undefined,
-        manifest: Object.keys(manifestObj).length > 0 ? manifestObj : undefined,
-        entryDoc: form.entryDoc.trim() || undefined,
-        skillRootPath: form.skillRootPath.trim(),
+        skillType: form.skillType.trim().toLowerCase() === 'hosted_v1' ? form.skillType.trim() : 'hosted_v1',
+        hostedSystemPrompt: form.hostedSystemPrompt.trim(),
+        hostedUserTemplate: form.hostedUserTemplate.trim() || undefined,
+        hostedDefaultModel: form.hostedDefaultModel.trim() || undefined,
+        ...(Object.keys(outObj).length > 0 ? { hostedOutputSchema: outObj } : {}),
+        ...(Number.isFinite(tempParsed) ? { hostedTemperature: tempParsed } : {}),
         spec: Object.keys(specObj).length > 0 ? specObj : {},
         parametersSchema: parsedSchema.data || {},
         isPublic: form.skillIsPublic,
@@ -1218,129 +1005,11 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     };
   };
 
-  const applySkillPackVoToForm = (
-    vo: Awaited<ReturnType<typeof resourceCenterService.uploadSkillPackage>>,
-    via: 'upload' | 'url',
-  ) => {
-    const preview = skillPackPreviewRef.current;
-    skillPackPreviewRef.current = null;
-
-    setForm((prev) => ({
-      ...prev,
-      resourceCode: vo.resourceCode || prev.resourceCode,
-      displayName: vo.displayName || prev.displayName,
-      description: vo.description ?? prev.description,
-      skillExecutionMode: 'pack',
-      skillType: vo.skillType || prev.skillType,
-      artifactUri: vo.artifactUri || '',
-      artifactSha256: vo.artifactSha256 || '',
-      entryDoc: vo.entryDoc || prev.entryDoc,
-      manifestJson: vo.manifest ? JSON.stringify(vo.manifest, null, 2) : prev.manifestJson,
-      packValidationStatus: String(vo.packValidationStatus || 'none'),
-      packValidationMessage: vo.packValidationMessage || '',
-      skillRootPath: vo.skillRootPath || '',
-      skillIsPublic: vo.isPublic === true,
-      sourceType: vo.sourceType || prev.sourceType,
-    }));
-    if (!resourceId && vo.id) {
-      const nextSearch = new URLSearchParams(searchParams);
-      nextSearch.delete('skillTrack');
-      const base = location.pathname.replace(/\/+$/, '');
-      const q = nextSearch.toString();
-      navigate(
-        { pathname: `${base}/${vo.id}`, search: q ? `?${q}` : '' },
-        { replace: true, state: preview ? { skillPackPreview: preview } : undefined },
-      );
-    } else if (preview) {
-      if ('fileName' in preview) {
-        setSkillPackEcho({ kind: 'file', name: preview.fileName, size: preview.size });
-      } else {
-        setSkillPackEcho({ kind: 'url', href: preview.importUrl });
-      }
-    }
-    const ok = String(vo.packValidationStatus).toLowerCase() === 'valid';
-    const verb = via === 'url' ? '从链接导入' : '上传';
-    showMessage(
-      ok ? `技能包已${verb}并通过校验` : `已${verb}：${vo.packValidationMessage || '校验未通过，请检查包内 SKILL.md 等'}`,
-      ok ? 'success' : 'warning',
-    );
-  };
-
-  const handleSkillZipUpload: React.ChangeEventHandler<HTMLInputElement> = async (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
-    const skillPackMaxBytes = 100 * 1024 * 1024;
-    if (file.size > skillPackMaxBytes) {
-      showMessage(`技能包超过 ${skillPackMaxBytes / 1024 / 1024}MB 上限，请压缩或拆分后再传`, 'error');
-      return;
-    }
-    if (file.size === 0) {
-      showMessage('文件为空', 'error');
-      return;
-    }
-    skillPackPreviewRef.current = { fileName: file.name, size: file.size };
-    setSkillPackUploading(true);
-    setSkillPackChunkHint(null);
-    setLoading(true);
-    try {
-      const vo = await resourceCenterService.uploadSkillPackageResumable(
-        file,
-        resourceId,
-        form.skillRootPath.trim() || undefined,
-        (p) => {
-          if (p.phase === 'chunk' && p.totalChunks != null) {
-            const n = (p.chunkIndex ?? 0) + 1;
-            setSkillPackChunkHint(`分片上传 ${n}/${p.totalChunks}（中断后同文件可续传）`);
-          } else if (p.phase === 'complete') {
-            setSkillPackChunkHint('合并并校验中…');
-          } else {
-            setSkillPackChunkHint(null);
-          }
-        },
-      );
-      applySkillPackVoToForm(vo, 'upload');
-    } catch (err) {
-      skillPackPreviewRef.current = null;
-      showMessage(err instanceof Error ? err.message : '上传失败', 'error');
-    } finally {
-      setSkillPackUploading(false);
-      setSkillPackChunkHint(null);
-      setLoading(false);
-    }
-  };
-
-  const handleSkillUrlImport = async () => {
-    const u = skillPackUrl.trim();
-    if (!u) {
-      setSkillPackUrlError('请输入可直链下载的技能包地址（HTTPS，zip/tar.gz 等）');
-      return;
-    }
-    setSkillPackUrlError('');
-    skillPackPreviewRef.current = { importUrl: u };
-    setLoading(true);
-    try {
-      const vo = await resourceCenterService.importSkillPackageFromUrl(
-        u,
-        resourceId,
-        form.skillRootPath.trim() || undefined,
-      );
-      applySkillPackVoToForm(vo, 'url');
-      setSkillPackUrl('');
-    } catch (err) {
-      skillPackPreviewRef.current = null;
-      showMessage(err instanceof Error ? err.message : '从 URL 导入失败', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const save = async (submitAfterSave: boolean) => {
     if (!resourceId && !user?.id) {
       showMessage('请先登录后再注册资源', 'error');
       return;
     }
-    setSkillSubmitArtifactError(null);
     const errs = fieldErrors;
     if (Object.keys(errs).length > 0) {
       requestAnimationFrame(() => {
@@ -1352,13 +1021,6 @@ export const ResourceRegisterPage: React.FC<Props> = ({
         }
       });
       return;
-    }
-    if (submitAfterSave && resourceType === 'skill' && form.skillExecutionMode === 'pack') {
-      if (!form.artifactUri.trim()) {
-        setSkillSubmitArtifactError('提交审核前须已上传技能包（具备 artifactUri）。');
-        requestAnimationFrame(() => document.getElementById(rrFieldId('artifactUri'))?.focus());
-        return;
-      }
     }
     setLoading(true);
     try {
@@ -1406,7 +1068,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     <MgmtPageShell
       theme={theme}
       fontSize={fontSize}
-      titleIcon={FileCheck}
+      titleIcon={FileText}
       breadcrumbSegments={['统一资源中心', registerPageTitle]}
       description={registerGuideLine}
       toolbar={
@@ -1963,34 +1625,11 @@ export const ResourceRegisterPage: React.FC<Props> = ({
 
             {resourceType === 'skill' && (
               <>
-                <Field label="运行方式" full theme={theme}>
-                  <ThemedSelect
-                    isDark={isDark}
-                    value={form.skillExecutionMode}
-                    onChange={(value) => {
-                      const mode = value as 'pack' | 'hosted';
-                      setForm((p) => ({
-                        ...p,
-                        skillExecutionMode: mode,
-                        skillType:
-                          mode === 'hosted'
-                            ? 'hosted_v1'
-                            : p.skillType === 'hosted_v1'
-                              ? 'anthropic_v1'
-                              : p.skillType,
-                      }));
-                    }}
-                    options={[
-                      { value: 'pack', label: '技能包（平台托管 zip 制品）' },
-                      { value: 'hosted', label: '托管技能（平台内 LLM，无 zip）' },
-                    ]}
-                  />
-                  <p className={`mt-1 text-xs ${textMuted(theme)}`}>
-                    托管技能用于 MCP 前置链 JSON 归一化等场景；须配置系统提示词与参数 Schema，不需要上传技能包。
+                <div className="md:col-span-2 space-y-3 rounded-xl border p-4 text-sm border-violet-500/25 bg-violet-500/[0.04]">
+                  <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
+                    技能仅支持 <span className={textPrimary(theme)}>托管（hosted）</span>：平台内 LLM 按系统提示词与参数 Schema 运行；类型固定为{' '}
+                    <code className="rounded bg-black/5 px-1 dark:bg-white/10">hosted_v1</code>。远程 HTTP 工具请注册为 MCP。
                   </p>
-                </Field>
-                {form.skillExecutionMode === 'hosted' ? (
-                  <div className="md:col-span-2 space-y-3 rounded-xl border p-4 text-sm border-violet-500/25 bg-violet-500/[0.04]">
                     <Field label="系统提示词 *" full theme={theme} error={fieldErrors.hostedSystemPrompt} fieldId={rrFieldId('hostedSystemPrompt')}>
                       <AutoHeightTextarea
                         id={rrFieldId('hostedSystemPrompt')}
@@ -2100,243 +1739,6 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                       />
                     </Field>
                   </div>
-                ) : null}
-                <div
-                  className={`md:col-span-2 rounded-xl border px-4 py-3 text-sm ${
-                    form.skillExecutionMode !== 'pack'
-                      ? 'hidden'
-                      : skillHasArtifact
-                      ? isDark
-                        ? 'border-solid border-emerald-500/35 bg-emerald-500/[0.08]'
-                        : 'border-solid border-emerald-300 bg-emerald-50/80'
-                      : `border-dashed ${isDark ? 'border-white/15' : 'border-slate-300'}`
-                  }`}
-                >
-                  <div className={`mb-2 flex flex-wrap items-center justify-between gap-2 ${textPrimary(theme)}`}>
-                    <span className="font-medium">
-                      技能包（zip / tar.gz 等）· 平台托管制品与清单；徽章为 Anthropic/目录约定下的包内语义自检结果
-                    </span>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs ${
-                        String(form.packValidationStatus).toLowerCase() === 'valid'
-                          ? isDark
-                            ? 'bg-emerald-500/20 text-emerald-200'
-                            : 'bg-emerald-100 text-emerald-800'
-                          : String(form.packValidationStatus).toLowerCase() === 'invalid'
-                            ? isDark
-                              ? 'bg-rose-500/20 text-rose-200'
-                              : 'bg-rose-100 text-rose-800'
-                            : isDark
-                              ? 'bg-white/10 text-slate-300'
-                              : 'bg-slate-100 text-slate-600'
-                      }`}
-                    >
-                      {skillPackValidationLabelZh(form.packValidationStatus || 'none')}
-                    </span>
-                  </div>
-                  {resourceId && loading && !skillHasArtifact && !skillEchoVisible ? (
-                    <div className={`mb-3 flex items-center gap-2 text-xs ${isDark ? 'text-sky-300' : 'text-sky-700'}`}>
-                      <Loader2 size={14} className="shrink-0 animate-spin" />
-                      <span>正在从服务端加载已保存的技能包与制品信息…</span>
-                    </div>
-                  ) : null}
-                  {(skillHasArtifact || skillEchoVisible) && (
-                    <div
-                      className={`mb-3 rounded-lg border-l-4 px-3 py-2.5 ${
-                        String(form.packValidationStatus).toLowerCase() === 'invalid'
-                          ? isDark
-                            ? 'border-rose-400 bg-rose-500/10'
-                            : 'border-rose-500 bg-rose-50'
-                          : String(form.packValidationStatus).toLowerCase() === 'valid'
-                            ? isDark
-                              ? 'border-emerald-400 bg-emerald-500/10'
-                              : 'border-emerald-500 bg-emerald-50'
-                            : isDark
-                              ? 'border-sky-400 bg-sky-500/10'
-                              : 'border-sky-500 bg-sky-50'
-                      }`}
-                    >
-                      <div className="flex gap-2">
-                        <FileCheck
-                          size={18}
-                          className={`mt-0.5 shrink-0 ${
-                            String(form.packValidationStatus).toLowerCase() === 'invalid'
-                              ? isDark
-                                ? 'text-rose-300'
-                                : 'text-rose-700'
-                              : isDark
-                                ? 'text-emerald-300'
-                                : 'text-emerald-700'
-                          }`}
-                        />
-                        <div className="min-w-0 flex-1 space-y-1">
-                          <p className={`text-sm font-semibold ${textPrimary(theme)}`}>
-                            {skillHasArtifact
-                              ? '制品已保存，可继续填写基础信息并保存草稿'
-                              : '已收到上传 / 导入请求，正在写入资源…'}
-                          </p>
-                          {skillEchoVisible && skillPackEcho?.kind === 'file' ? (
-                            <p className={`text-xs ${textMuted(theme)}`}>
-                              本地上传：
-                              <span className={`font-medium ${textPrimary(theme)}`}>{skillPackEcho.name}</span>
-                              <span className="mx-1.5 opacity-60">·</span>
-                              {formatSkillPackBytes(skillPackEcho.size)}
-                            </p>
-                          ) : null}
-                          {skillEchoVisible && skillPackEcho?.kind === 'url' ? (
-                            <p className={`break-all text-xs ${textMuted(theme)}`}>
-                              链接导入：
-                              <span className="font-mono">{truncateSkillArtifactPath(skillPackEcho.href, 80)}</span>
-                            </p>
-                          ) : null}
-                          {skillHasArtifact ? (
-                            <>
-                              <p className={`break-all font-mono text-xs leading-snug ${textMuted(theme)}`}>
-                                <span className="opacity-90">制品路径 </span>
-                                {truncateSkillArtifactPath(form.artifactUri.trim(), 72)}
-                              </p>
-                              {form.artifactSha256.trim() ? (
-                                <p className={`font-mono text-xs ${textMuted(theme)}`}>
-                                  SHA-256 {form.artifactSha256.trim().slice(0, 20)}…
-                                </p>
-                              ) : null}
-                              <p className={`text-xs ${textMuted(theme)}`}>
-                                展示名：<span className={textPrimary(theme)}>{skillArtifactDisplayLabel(form.artifactUri)}</span>
-                              </p>
-                            </>
-                          ) : null}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  {form.packValidationMessage ? (
-                    <p className={`mb-2 text-xs ${textMuted(theme)}`}>{form.packValidationMessage}</p>
-                  ) : null}
-                  {skillPackChunkHint ? (
-                    <p className={`mb-2 text-xs ${isDark ? 'text-sky-300' : 'text-sky-700'}`}>{skillPackChunkHint}</p>
-                  ) : null}
-                  {skillSubmitArtifactError ? (
-                    <p className={`mb-2 ${fieldErrorText()}`} role="alert">
-                      {skillSubmitArtifactError}
-                    </p>
-                  ) : null}
-                  <div className={`mb-3 ${textMuted(theme)}`}>
-                    <label htmlFor={rrFieldId('skillRootPath')} className="mb-1 block text-xs font-medium text-current">
-                      技能根目录（可选，zip 内相对路径）
-                    </label>
-                    <input
-                      id={rrFieldId('skillRootPath')}
-                      type="text"
-                      value={form.skillRootPath}
-                      onChange={(e) => setForm((p) => ({ ...p, skillRootPath: e.target.value }))}
-                      disabled={loading}
-                      placeholder="留空＝整包校验；多技能并列时填写子目录，如 my-package/sub-skill"
-                      className={`w-full rounded-lg border px-3 py-2 text-sm ${
-                        isDark ? 'border-white/10 bg-white/[0.04] text-slate-200 placeholder:text-slate-500' : 'border-slate-200 bg-white text-slate-900 placeholder:text-slate-400'
-                      } ${fieldErrors.skillRootPath ? inputBaseError() : ''}`}
-                      aria-invalid={!!fieldErrors.skillRootPath}
-                      aria-describedby={
-                        fieldErrors.skillRootPath ? `${rrFieldId('skillRootPath')}-err` : undefined
-                      }
-                    />
-                    {fieldErrors.skillRootPath ? (
-                      <p id={`${rrFieldId('skillRootPath')}-err`} className={`mt-1 ${fieldErrorText()}`} role="alert">
-                        {fieldErrors.skillRootPath}
-                      </p>
-                    ) : null}
-                    <p className={`mt-1 text-xs leading-relaxed ${textMuted(theme)}`}>
-                      与上传/URL 导入时传入的 skillRoot 一致；resolve 与校验范围仅针对该子树。一般在填好后再上传或导入。
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <label
-                      className={`inline-flex cursor-pointer items-center gap-2 ${btnSecondary(theme)} ${
-                        skillPackUploading ? 'pointer-events-none opacity-80' : ''
-                      }`}
-                    >
-                      {skillPackUploading ? (
-                        <Loader2 size={15} className="animate-spin" />
-                      ) : (
-                        <Upload size={15} />
-                      )}
-                      <span>
-                        {skillPackUploading
-                          ? '上传并校验中…'
-                          : resourceId
-                            ? '上传 / 更换包'
-                            : '上传技能包创建草稿'}
-                      </span>
-                      <input
-                        type="file"
-                        accept=".zip,.tar,.tar.gz,.tgz,.md,.gz,application/zip,application/gzip,application/x-gzip,text/markdown,application/octet-stream"
-                        className="hidden"
-                        onChange={(e) => void handleSkillZipUpload(e)}
-                        disabled={loading}
-                      />
-                    </label>
-                    <div className={`mt-2 flex w-full min-w-[240px] flex-1 flex-col gap-2 sm:mt-0 sm:flex-row sm:items-center`}>
-                      <input
-                        id="rr-skillPackUrl"
-                        type="url"
-                        value={skillPackUrl}
-                        onChange={(e) => setSkillPackUrl(e.target.value)}
-                        disabled={loading}
-                        className={`min-w-0 flex-1 rounded-lg border px-3 py-2 text-sm ${
-                          isDark ? 'border-white/10 bg-white/[0.04] text-slate-200 placeholder:text-slate-500' : 'border-slate-200 bg-white text-slate-900 placeholder:text-slate-400'
-                        } ${skillPackUrlError ? inputBaseError() : ''}`}
-                        aria-invalid={!!skillPackUrlError}
-                        aria-describedby={skillPackUrlError ? 'rr-skillPackUrl-err' : undefined}
-                        placeholder="或粘贴直链（HTTPS）：zip / tar.gz / tar / .md 等，服务端拉取并归一化"
-                      />
-                      <button
-                        type="button"
-                        disabled={loading}
-                        onClick={() => void handleSkillUrlImport()}
-                        className={`inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium ${btnSecondary(theme)}`}
-                      >
-                        <Download size={15} />
-                        <Link2 size={14} className="opacity-80" />
-                        从 URL 导入
-                      </button>
-                    </div>
-                    {skillPackUrlError ? (
-                      <p id="rr-skillPackUrl-err" className={`mt-1 ${fieldErrorText()}`} role="alert">
-                        {skillPackUrlError}
-                      </p>
-                    ) : null}
-                    {resourceId && skillHasArtifact && (
-                      <button
-                        type="button"
-                        disabled={loading || skillArtifactDownloading}
-                        onClick={() => {
-                          setSkillArtifactDownloading(true);
-                          void resourceCenterService
-                            .downloadSkillArtifact(resourceId, form.displayName)
-                            .then(() => showMessage('已开始下载', 'success'))
-                            .catch((e) => showMessage(e instanceof Error ? e.message : '下载失败', 'error'))
-                            .finally(() => setSkillArtifactDownloading(false));
-                        }}
-                        className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium ${btnSecondary(theme)}`}
-                      >
-                        <Download size={15} />
-                        {skillArtifactDownloading ? '下载中…' : '下载制品（skill-artifact）'}
-                      </button>
-                    )}
-                  </div>
-                </div>
-                {form.skillExecutionMode === 'pack' ? (
-                  <Field label="包格式" theme={theme} error={fieldErrors.skillType}>
-                    <ThemedSelect
-                      isDark={isDark}
-                      value={form.skillType}
-                      onChange={(value) => setForm((p) => ({ ...p, skillType: value }))}
-                      options={[
-                        { value: 'anthropic_v1', label: 'anthropic_v1' },
-                        { value: 'folder_v1', label: 'folder_v1' },
-                      ]}
-                    />
-                  </Field>
-                ) : null}
                 <Field label="对外公开" theme={theme}>
                   <label className="flex cursor-pointer items-center gap-2 text-sm">
                     <input
@@ -2348,97 +1750,6 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     <span className={textMuted(theme)}>在目录中可按公开策略展示</span>
                   </label>
                 </Field>
-
-                {form.skillExecutionMode === 'pack' ? (
-                <div className="md:col-span-2">
-                  <button
-                    type="button"
-                    className={`flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left text-xs font-medium ${
-                      isDark ? 'border-white/10 bg-white/[0.03] text-slate-200' : 'border-slate-200 bg-slate-50 text-slate-800'
-                    }`}
-                    onClick={() => setSkillTechOpen((o) => !o)}
-                  >
-                    <span>高级 / 技术字段（制品、manifest、JSON…）</span>
-                    <ChevronDown size={16} className={skillTechOpen ? 'rotate-180 transition-transform' : 'transition-transform'} />
-                  </button>
-                  {skillTechOpen ? (
-                    <div className="mt-2 space-y-3 md:grid md:grid-cols-2 md:gap-3 md:space-y-0">
-                      <Field label="制品地址" theme={theme} error={fieldErrors.artifactUri} fieldId={rrFieldId('artifactUri')}>
-                        <input
-                          id={rrFieldId('artifactUri')}
-                          value={form.artifactUri}
-                          onChange={(e) => setForm((p) => ({ ...p, artifactUri: e.target.value }))}
-                          className={inputClass(isDark, !!fieldErrors.artifactUri)}
-                          aria-invalid={!!fieldErrors.artifactUri}
-                          aria-describedby={fieldErrors.artifactUri ? `${rrFieldId('artifactUri')}-err` : undefined}
-                          placeholder="上传后自动填充，或手填 URL"
-                        />
-                      </Field>
-                      <Field label="SHA-256（只读）" theme={theme}>
-                        <input value={form.artifactSha256} readOnly className={`${inputClass(isDark)} opacity-80`} placeholder="—" />
-                      </Field>
-                      <Field label="入口文档" theme={theme}>
-                        <input
-                          value={form.entryDoc}
-                          onChange={(e) => setForm((p) => ({ ...p, entryDoc: e.target.value }))}
-                          className={inputClass(isDark)}
-                          placeholder="SKILL.md"
-                        />
-                      </Field>
-                      <Field label="清单 JSON" full theme={theme} error={fieldErrors.manifestJson} fieldId={rrFieldId('manifestJson')}>
-                        <AutoHeightTextarea
-                          id={rrFieldId('manifestJson')}
-                          value={form.manifestJson}
-                          onChange={(e) => setForm((p) => ({ ...p, manifestJson: e.target.value }))}
-                          minRows={4}
-                          maxRows={30}
-                          className={`${inputClass(isDark, !!fieldErrors.manifestJson)} font-mono text-xs resize-none`}
-                          aria-invalid={!!fieldErrors.manifestJson}
-                          aria-describedby={fieldErrors.manifestJson ? `${rrFieldId('manifestJson')}-err` : undefined}
-                        />
-                      </Field>
-                      <Field label="规格 JSON" full theme={theme} error={fieldErrors.specJson} fieldId={rrFieldId('specJson')}>
-                        <div className="mb-2 flex flex-wrap gap-2">
-                          <button type="button" className={btnSecondary(theme)} onClick={() => setForm((p) => ({ ...p, specJson: DEFAULT_SKILL_SPEC_JSON }))}>
-                            置为 {}
-                          </button>
-                        </div>
-                        <AutoHeightTextarea
-                          id={rrFieldId('specJson')}
-                          value={form.specJson}
-                          onChange={(e) => setForm((p) => ({ ...p, specJson: e.target.value }))}
-                          minRows={3}
-                          maxRows={28}
-                          className={`${inputClass(isDark, !!fieldErrors.specJson)} font-mono text-xs resize-none`}
-                          aria-invalid={!!fieldErrors.specJson}
-                          aria-describedby={fieldErrors.specJson ? `${rrFieldId('specJson')}-err` : undefined}
-                        />
-                      </Field>
-                      <Field label="参数 Schema JSON" full theme={theme} error={fieldErrors.paramsSchemaJson} fieldId={rrFieldId('paramsSchemaJson')}>
-                        <div className="mb-2 flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            className={btnSecondary(theme)}
-                            onClick={() => setForm((p) => ({ ...p, paramsSchemaJson: DEFAULT_SKILL_PARAMS_SCHEMA_JSON }))}
-                          >
-                            示例模板
-                          </button>
-                        </div>
-                        <AutoHeightTextarea
-                          id={rrFieldId('paramsSchemaJson')}
-                          value={form.paramsSchemaJson}
-                          onChange={(e) => setForm((p) => ({ ...p, paramsSchemaJson: e.target.value }))}
-                          minRows={4}
-                          maxRows={30}
-                          className={`${inputClass(isDark, !!fieldErrors.paramsSchemaJson)} font-mono text-xs resize-none`}
-                          aria-invalid={!!fieldErrors.paramsSchemaJson}
-                          aria-describedby={fieldErrors.paramsSchemaJson ? `${rrFieldId('paramsSchemaJson')}-err` : undefined}
-                        />
-                      </Field>
-                    </div>
-                  ) : null}
-                </div>
-                ) : null}
               </>
             )}
 

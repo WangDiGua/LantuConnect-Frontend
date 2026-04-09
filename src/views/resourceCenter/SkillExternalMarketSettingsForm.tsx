@@ -461,7 +461,7 @@ export const SkillExternalMarketSettingsForm: React.FC<Props> = ({ theme, fontSi
               />
             </div>
             <div className="sm:col-span-2">
-              <label className={`${labelCls} mb-1.5 block`}>GitHub 推导 zip 用分支</label>
+              <label className={`${labelCls} mb-1.5 block`}>GitHub ZIP 直链推导用分支</label>
               <input
                 className={inputCls}
                 value={sh.githubDefaultBranch ?? 'main'}

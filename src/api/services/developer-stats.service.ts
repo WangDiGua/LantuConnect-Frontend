@@ -30,7 +30,6 @@ function normalizeOwnerDeveloperStats(raw: unknown): OwnerDeveloperStatsVO {
     gatewayInvokeTotal: num(o.gatewayInvokeTotal ?? o.gateway_invoke_total),
     gatewayInvokeSuccess: num(o.gatewayInvokeSuccess ?? o.gateway_invoke_success),
     usageRecordInvokeTotal: num(o.usageRecordInvokeTotal ?? o.usage_record_invoke_total),
-    skillPackDownloadTotal: num(o.skillPackDownloadTotal ?? o.skill_pack_download_total),
     gatewayInvokesByResourceType: byType,
   };
 }
@@ -80,7 +79,7 @@ export const developerStatsService = {
   },
 
   /**
-   * Owner 维度：call_log 网关调用、usage_record(invoke)、技能包下载；权限见后端 OwnerDeveloperStatsService。
+   * Owner 维度：call_log 网关调用、usage_record(invoke)、目录下载等行为统计；权限见后端 OwnerDeveloperStatsService。
    */
   getOwnerResourceStats: async (params?: { periodDays?: number; ownerUserId?: number }) => {
     const raw = await http.get<unknown>('/dashboard/owner-resource-stats', { params });

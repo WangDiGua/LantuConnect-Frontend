@@ -14,9 +14,10 @@ export function catalogPrimaryMetricLabel(rt: ResourceType): '调用量' | '使�
   switch (rt) {
     case 'app':
       return '使用量';
-    case 'skill':
     case 'dataset':
       return '下载量';
+    case 'skill':
+      return '调用量';
     default:
       return '调用量';
   }
@@ -29,9 +30,10 @@ export function catalogPrimaryMetricValue(
   switch (rt) {
     case 'app':
       return Math.max(0, Number(item.usageCount ?? 0));
-    case 'skill':
     case 'dataset':
       return Math.max(0, Number(item.downloadCount ?? 0));
+    case 'skill':
+      return Math.max(0, Number(item.callCount ?? 0));
     default:
       return Math.max(0, Number(item.callCount ?? 0));
   }

@@ -42,7 +42,7 @@ export interface ResourceCatalogItemVO {
   callCount?: number;
   /** 应用 usage_record invoke 次数 */
   usageCount?: number;
-  /** 技能包下载事件计数等 */
+  /** 目录侧下载等行为事件计数（后端聚合） */
   downloadCount?: number;
   /** t_resource.view_count */
   viewCount?: number;
@@ -56,7 +56,7 @@ export interface ResourceCatalogItemVO {
   quality?: Record<string, unknown>;
   /** 仅当请求携带 X-Api-Key 时后端可能返回：与 invoke 可调用预判一致 */
   hasGrantForKey?: boolean | null;
-  /** skill：后端目录列表批量填充 execution_mode（pack | hosted） */
+  /** skill：后端目录 execution_mode；平台侧均为 hosted */
   executionMode?: string;
 }
 

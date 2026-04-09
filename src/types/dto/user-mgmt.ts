@@ -8,8 +8,12 @@ export interface UserPlatformRoleRef {
 export interface UserRecord {
   id: string;
   username: string;
+  /** t_user.real_name */
+  realName?: string;
   email: string;
   phone?: string;
+  /** t_user.sex：1 男 2 女 0 未知 */
+  sex?: number;
   avatar?: string;
   /** 编辑表单用：当前选中的平台角色 code（通常取首个绑定角色） */
   role: string;
@@ -65,11 +69,14 @@ export interface OrgNode {
 
 export interface CreateUserPayload {
   username: string;
+  realName: string;
   email: string;
   password: string;
   phone?: string;
   role: string;
   department?: string;
+  /** 0 未知 1 男 2 女 */
+  sex?: number;
 }
 
 export interface CreateApiKeyPayload {

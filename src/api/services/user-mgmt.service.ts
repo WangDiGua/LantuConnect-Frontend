@@ -216,9 +216,15 @@ export function mapUserRecord(raw: unknown): UserRecord {
 
   const primaryPlatformRoleCode = platformRoles[0]?.roleCode ?? '';
 
+  const realName = optStr(o.realName ?? o.real_name);
+  const sexRaw = o.sex;
+  const sexNum = typeof sexRaw === 'number' ? sexRaw : Number(sexRaw);
+  const sex = Number.isFinite(sexNum) ? sexNum : undefined;
+
   const rec: UserRecord = {
     id,
     username: strTrim(o.username),
+    ...(realName ? { realName } : {}),
     email: email || '',
     role: primaryPlatformRoleCode,
     ...(schoolRole !== undefined ? { schoolRole } : {}),
@@ -228,6 +234,9 @@ export function mapUserRecord(raw: unknown): UserRecord {
     updatedAt: strTrim(o.updateTime ?? o.updatedAt),
   };
   if (phone) rec.phone = phone;
+  if (sex !== undefined && sex !== null && [0, 1, 2].includes(sex)) {
+    rec.sex = sex;
+  }
   const av = optStr(o.headImage ?? o.avatar);
   if (av) rec.avatar = av;
   if (department) rec.department = department;

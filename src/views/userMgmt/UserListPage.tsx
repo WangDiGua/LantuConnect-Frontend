@@ -35,8 +35,27 @@ interface UserListPageProps {
 
 type ViewMode = 'list' | 'create' | 'edit';
 
-const emptyForm = (): { username: string; email: string; password: string; role: string; status: 'active' | 'disabled' } => ({
-  username: '', email: '', password: '', role: '', status: 'active',
+interface UserFormState {
+  username: string;
+  realName: string;
+  email: string;
+  password: string;
+  phone: string;
+  /** t_user.sex：0 未知 / 1 男 / 2 女 */
+  sex: number;
+  role: string;
+  status: 'active' | 'disabled';
+}
+
+const emptyForm = (): UserFormState => ({
+  username: '',
+  realName: '',
+  email: '',
+  password: '',
+  phone: '',
+  sex: 0,
+  role: '',
+  status: 'active',
 });
 
 const PAGE_SIZE = 20;
@@ -166,7 +185,16 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
   const openEdit = useCallback((u: UserRecord) => {
     if (isBootstrapSuperAdminUsername(u.username)) return;
     setEditingId(u.id);
-    setForm({ username: u.username, email: u.email, password: '', role: u.role, status: u.status === 'locked' ? 'disabled' : u.status });
+    setForm({
+      username: u.username,
+      realName: u.realName?.trim() || '',
+      email: u.email,
+      password: '',
+      phone: u.phone?.trim() || '',
+      sex: u.sex === 1 || u.sex === 2 ? u.sex : 0,
+      role: u.role,
+      status: u.status === 'locked' ? 'disabled' : u.status,
+    });
     setMode('edit');
   }, []);
 
@@ -178,7 +206,12 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
         cell: (u) => (
           <div className="flex items-center gap-2 min-w-0">
             <MultiAvatar seed={`${u.id}-${u.username}`} alt={u.username} className="w-8 h-8 rounded-lg border border-white/10 shrink-0" />
-            <span className={`font-semibold truncate ${textPrimary(theme)}`} title={u.username}>{u.username}</span>
+            <div className="min-w-0">
+              <span className={`font-semibold truncate block ${textPrimary(theme)}`} title={u.username}>{u.username}</span>
+              {u.realName ? (
+                <span className={`text-xs truncate block ${textMuted(theme)}`} title={u.realName}>{u.realName}</span>
+              ) : null}
+            </div>
           </div>
         ),
       },
@@ -324,7 +357,33 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
   }, [theme, isDark, canMutateUsers, openEdit, patchUserStatus]);
 
   const saveUser = async () => {
-    if (!form.username.trim() || !form.email.trim()) return;
+    if (!form.username.trim()) {
+      showMessage('请填写用户名（登录名）', 'info');
+      return;
+    }
+    if (!form.realName.trim()) {
+      showMessage('请填写真实姓名', 'info');
+      return;
+    }
+    if (!form.email.trim()) {
+      showMessage('请填写邮箱', 'info');
+      return;
+    }
+    const roleCode = form.role.trim() || roles[0]?.code || '';
+    if (!roleCode) {
+      showMessage('请选择平台角色', 'info');
+      return;
+    }
+    if (mode === 'create') {
+      if (!form.password.trim()) {
+        showMessage('请设置初始密码', 'info');
+        return;
+      }
+      if (form.password.trim().length < 6) {
+        showMessage('初始密码至少 6 位', 'info');
+        return;
+      }
+    }
     if (mode === 'edit' && isBootstrapSuperAdminUsername(form.username)) {
       showMessage('内置超级管理员账号不允许修改', 'info');
       return;
@@ -333,18 +392,24 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
       if (mode === 'create') {
         await userMgmtService.createUser({
           username: form.username.trim(),
+          realName: form.realName.trim(),
           email: form.email.trim(),
-          password: form.password || 'temp123456',
-          role: form.role || roles[0]?.code || 'user',
+          password: form.password.trim(),
+          role: roleCode,
+          ...(form.phone.trim() ? { phone: form.phone.trim() } : {}),
+          sex: form.sex,
         });
         showMessage('用户创建成功', 'success');
       } else if (mode === 'edit' && editingId) {
         await userMgmtService.updateUser(editingId, {
-          username: form.username.trim(),
           email: form.email.trim(),
-          role: form.role,
+          realName: form.realName.trim(),
+          role: roleCode,
           status: form.status,
-        } as any);
+          ...(form.phone.trim() ? { phone: form.phone.trim() } : { phone: '' }),
+          sex: form.sex,
+          ...(form.password.trim() ? { password: form.password.trim() } : {}),
+        });
         showMessage('用户更新成功', 'success');
       }
       setMode('list');
@@ -380,6 +445,7 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
   };
 
   const labelCls = `block text-xs font-semibold mb-1 ${textSecondary(theme)}`;
+  const reqMark = <span className="text-red-500 dark:text-red-400 font-normal" aria-hidden>*</span>;
 
   if (mode !== 'list') {
     return (
@@ -392,20 +458,77 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
           description={listDescription}
           contentScroll="document"
         >
-          <div className="px-4 sm:px-6 pb-8 max-w-xl space-y-4">
-            <div className="flex flex-wrap items-center gap-2">
+          <div className="px-4 sm:px-6 pb-8 max-w-3xl">
+            <div className="flex flex-wrap items-center gap-2 mb-6">
               <button type="button" onClick={() => { setMode('list'); setEditingId(null); }} className={btnSecondary(theme)} aria-label="返回用户列表">
                 <ArrowLeft size={15} aria-hidden /> 返回列表
               </button>
-              <button type="button" onClick={saveUser} className={btnPrimary} aria-label="保存用户">
+              <button type="button" onClick={() => void saveUser()} className={btnPrimary} aria-label="保存用户">
                 <Save size={15} aria-hidden /> 保存
               </button>
             </div>
-            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={innerTransition} className="space-y-4">
-              <div><label className={labelCls}>用户名</label><input className={nativeInputClass(theme)} value={form.username} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} placeholder="登录名" /></div>
-              <div><label className={labelCls}>邮箱</label><input type="email" className={nativeInputClass(theme)} value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="user@school.edu.cn" /></div>
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={innerTransition} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="sm:col-span-2">
+                <label className={labelCls}>{reqMark}用户名</label>
+                <input
+                  className={nativeInputClass(theme)}
+                  value={form.username}
+                  onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
+                  placeholder="登录名 / 学工号"
+                  readOnly={mode === 'edit'}
+                  title={mode === 'edit' ? '修改登录名请通过账号体系另行处理' : undefined}
+                  autoComplete="username"
+                />
+                {mode === 'edit' ? <p className={`text-[11px] mt-1 ${textMuted(theme)}`}>登录名创建后不可在此修改。</p> : null}
+              </div>
+              <div className="sm:col-span-2">
+                <label className={labelCls}>{reqMark}真实姓名</label>
+                <input
+                  className={nativeInputClass(theme)}
+                  value={form.realName}
+                  onChange={(e) => setForm((f) => ({ ...f, realName: e.target.value }))}
+                  placeholder="与身份证件对外展示一致"
+                  autoComplete="name"
+                />
+              </div>
               <div>
-                <label className={labelCls}>平台角色</label>
+                <label className={labelCls}>{reqMark}邮箱</label>
+                <input
+                  type="email"
+                  className={nativeInputClass(theme)}
+                  value={form.email}
+                  onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                  placeholder="user@school.edu.cn"
+                  autoComplete="email"
+                />
+              </div>
+              <div>
+                <label className={labelCls}>手机号</label>
+                <input
+                  type="tel"
+                  className={nativeInputClass(theme)}
+                  value={form.phone}
+                  onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                  placeholder="选填"
+                  autoComplete="tel"
+                />
+              </div>
+              <div>
+                <label className={labelCls}>性别</label>
+                <LantuSelect
+                  theme={theme}
+                  value={String(form.sex)}
+                  onChange={(v) => setForm((f) => ({ ...f, sex: Number(v) === 2 ? 2 : Number(v) === 1 ? 1 : 0 }))}
+                  options={[
+                    { value: '0', label: '未知' },
+                    { value: '1', label: '男' },
+                    { value: '2', label: '女' },
+                  ]}
+                  placeholder="选择性别"
+                />
+              </div>
+              <div>
+                <label className={labelCls}>{reqMark}平台角色</label>
                 <LantuSelect
                   theme={theme}
                   value={form.role}
@@ -414,18 +537,34 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
                   placeholder="选择平台绑定角色"
                 />
               </div>
-              <div>
-                <label className={labelCls}>状态</label>
-                <LantuSelect
-                  theme={theme}
-                  value={form.status}
-                  onChange={(v) => setForm((f) => ({ ...f, status: v as 'active' | 'disabled' }))}
-                  options={[
-                    { value: 'active', label: '启用' },
-                    { value: 'disabled', label: '停用' },
-                  ]}
+              <div className="sm:col-span-2">
+                <label className={labelCls}>
+                  {mode === 'create' ? reqMark : null}
+                  初始密码
+                </label>
+                <input
+                  type="password"
+                  className={nativeInputClass(theme)}
+                  value={form.password}
+                  onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                  placeholder={mode === 'create' ? '至少 6 位' : '留空则不修改密码'}
+                  autoComplete={mode === 'create' ? 'new-password' : 'current-password'}
                 />
               </div>
+              {mode === 'edit' ? (
+                <div className="sm:col-span-2">
+                  <label className={labelCls}>账号状态</label>
+                  <LantuSelect
+                    theme={theme}
+                    value={form.status}
+                    onChange={(v) => setForm((f) => ({ ...f, status: v as 'active' | 'disabled' }))}
+                    options={[
+                      { value: 'active', label: '启用' },
+                      { value: 'disabled', label: '停用' },
+                    ]}
+                  />
+                </div>
+              ) : null}
             </motion.div>
           </div>
         </MgmtPageShell>

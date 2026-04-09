@@ -5,10 +5,10 @@
   "type": "module",
   "scripts": {
     "postinstall": "node scripts/copy-vditor-public.mjs",
-    "dev": "node scripts/copy-vditor-public.mjs && vite --mode development --port=3000 --host=0.0.0.0",
-    "dev:stable": "node scripts/copy-vditor-public.mjs && vite --mode no-strict --port=3000 --host=0.0.0.0",
+    "dev": "node scripts/copy-vditor-public.mjs && vite --mode development",
+    "dev:stable": "node scripts/copy-vditor-public.mjs && vite --mode no-strict",
     "build": "node scripts/copy-vditor-public.mjs && vite build --mode production",
-    "preview": "vite preview",
+    "preview": "vite preview --host",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
     "smoke:ui": "node scripts/smoke-ui.mjs",

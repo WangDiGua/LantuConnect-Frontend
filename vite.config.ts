@@ -72,7 +72,10 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      port: 5173,
+      /** true ≡ 0.0.0.0，便于手机/同事通过局域网 IP 访问；HMR 与页面同源时由 Vite 自动处理 */
+      host: true,
+      port: 3000,
+      strictPort: false,
       hmr: process.env.DISABLE_HMR !== 'true',
       proxy: {
         [apiBase]: {
@@ -82,6 +85,11 @@ export default defineConfig(({ mode }) => {
           ws: true,
         },
       },
+    },
+    preview: {
+      host: true,
+      port: 4173,
+      strictPort: false,
     },
     build: {
       outDir: 'dist',

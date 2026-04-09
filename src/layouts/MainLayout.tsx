@@ -1416,7 +1416,8 @@ const MainLayoutContent: React.FC<{
   const handleRailSubItemClick = useCallback(
     (subItemId: string, parentSidebarId: string, domain: ConsoleRole) => {
       setMobileNavOpen(false);
-      setTopNavHighlightFollowsRoute(false);
+      /** 须与顶栏一致按路由高亮；勿置 false，否则非「探索」域页面仍误亮首项 */
+      setTopNavHighlightFollowsRoute(true);
       navigateSubItem(subItemId, parentSidebarId, domain);
     },
     [navigateSubItem],

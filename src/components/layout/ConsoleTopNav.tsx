@@ -39,7 +39,7 @@ export interface ConsoleTopNavProps {
   filteredSubGroupsForSidebarId: (id: string, domain: ConsoleRole) => SubGroup[];
   onLogoClick: () => void;
   onOpenMobileNav: () => void;
-  /** 为 false 时（自左轨/抽屉进入）顶栏主项视觉上固定高亮第一项；为 true 时按路由与 activeSidebar 高亮 */
+  /** 为 false 时顶栏误固定高亮第一项，易与侧栏不一致；应常驻 true，仅按路由与 activeSidebar 高亮 */
   topNavHighlightFollowsRoute: boolean;
   /** 右侧：外观、消息、全屏、用户等（由 MainLayout 注入，含 headerMenusRef） */
   toolbarRight: React.ReactNode;
@@ -144,7 +144,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
     return out;
   }, [navItems, sidebarRows, navItemStateByKey]);
 
-  /** 自左轨进入时：顶栏横向首项（探索发现）保持高亮 */
+  /** `topNavHighlightFollowsRoute === false` 时的退路（应极少使用）；首项高亮会与侧栏路由矛盾 */
   const firstTopNavItemKey = useMemo(() => {
     for (const p of navPieces) {
       if (p.kind === 'item') return `${p.block.item.domain}-${p.block.item.id}`;

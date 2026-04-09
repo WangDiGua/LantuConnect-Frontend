@@ -2,8 +2,7 @@ import React from 'react';
 import { LayoutDashboard } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { TITLE_SIZE_CLASSES } from '../../constants/theme';
-import { useLayoutChrome } from '../../context/LayoutChromeContext';
-import { pageBg, textMuted } from '../../utils/uiClasses';
+import { textMuted } from '../../utils/uiClasses';
 
 interface PlaceholderViewProps {
   title: string;
@@ -12,11 +11,9 @@ interface PlaceholderViewProps {
 }
 
 export const PlaceholderView: React.FC<PlaceholderViewProps> = ({ title, theme, fontSize }) => {
-  const { hasSecondarySidebar } = useLayoutChrome();
-  const outerPad = hasSecondarySidebar ? 'px-2 sm:px-3 lg:px-4' : 'px-1.5 sm:px-2 lg:px-3';
   return (
     <div
-      className={`flex-1 overflow-y-auto flex flex-col items-center justify-center ${outerPad} py-6 ${
+      className={`flex-1 overflow-y-auto flex flex-col items-center justify-center py-6 ${
         theme === 'light' ? 'bg-[#F2F2F7]' : 'bg-[#000000]'
       }`}
     >

@@ -491,8 +491,8 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
     }
   };
 
-  const shellToolbar = (
-    <div className="flex flex-wrap items-center justify-end gap-2 w-full">
+  const resourceListActions = (
+    <>
       <button type="button" onClick={() => void fetchData()} className={btnGhost(theme)} aria-label="刷新资源列表">
         <RefreshCw size={15} aria-hidden />
         刷新
@@ -508,7 +508,11 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
           注册{RESOURCE_TYPE_LABEL_ZH[activeType]}
         </button>
       )}
-    </div>
+    </>
+  );
+
+  const shellToolbar = allowTypeSwitch ? undefined : (
+    <div className="flex flex-wrap items-center justify-end gap-2 w-full">{resourceListActions}</div>
   );
 
   return (
@@ -525,27 +529,34 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
         <div className="px-4 sm:px-6 pb-8">
           <div className={`${bentoCard(theme)} overflow-hidden`}>
             {allowTypeSwitch && (
-            <div className={`flex flex-wrap items-center gap-2 border-b px-6 py-4 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
-              {RESOURCE_TYPES.map((type) => (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => {
-                    setActiveType(type);
-                    setPage(1);
-                    onTypeChange?.(type);
-                  }}
-                  className={`rounded-xl px-3 py-1.5 text-sm font-medium transition-colors ${
-                    type === activeType
-                      ? 'bg-neutral-900 text-white'
-                      : isDark
-                        ? 'bg-white/[0.04] text-slate-300 hover:bg-white/[0.08]'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70'
-                  }`}
-                >
-                  {RESOURCE_TYPE_LABEL_ZH[type]}
-                </button>
-              ))}
+            <div
+              className={`flex flex-wrap items-center justify-between gap-x-3 gap-y-3 border-b px-6 py-4 ${
+                isDark ? 'border-white/[0.06]' : 'border-slate-100'
+              }`}
+            >
+              <div className="flex flex-wrap items-center gap-2 min-w-0">
+                {RESOURCE_TYPES.map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => {
+                      setActiveType(type);
+                      setPage(1);
+                      onTypeChange?.(type);
+                    }}
+                    className={`rounded-xl px-3 py-1.5 text-sm font-medium transition-colors ${
+                      type === activeType
+                        ? 'bg-neutral-900 text-white'
+                        : isDark
+                          ? 'bg-white/[0.04] text-slate-300 hover:bg-white/[0.08]'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70'
+                    }`}
+                  >
+                    {RESOURCE_TYPE_LABEL_ZH[type]}
+                  </button>
+                ))}
+              </div>
+              <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">{resourceListActions}</div>
             </div>
           )}
 

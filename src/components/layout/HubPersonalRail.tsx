@@ -391,7 +391,15 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
                           activeSidebar === sec.parentSidebarId &&
                           activeSubItem === row.subItemId;
                         return (
-                          <li key={`${block.key}::${sec.heading}::${row.subItemId}`}>
+                          <li key={`${block.key}::${sec.heading}::${row.subItemId}`} className="relative">
+                            {isActive ? (
+                              <span
+                                className={`pointer-events-none absolute left-0 top-1/2 z-[1] size-1.5 -translate-x-4 -translate-y-1/2 rounded-full ${
+                                  isDark ? 'bg-white' : 'bg-black'
+                                }`}
+                                aria-hidden
+                              />
+                            ) : null}
                             <button
                               type="button"
                               onClick={() => onSubItemClick(row.subItemId, sec.parentSidebarId, sec.domain)}
@@ -399,8 +407,8 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
                               className={`flex min-h-9 w-full items-center gap-2 rounded-md py-1.5 pl-1 pr-2 text-left text-sm leading-snug transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
                                 isActive
                                   ? isDark
-                                    ? 'bg-white/12 font-medium text-slate-50'
-                                    : 'bg-sky-50 font-medium text-slate-900 ring-1 ring-sky-200/60'
+                                    ? 'font-semibold text-slate-50'
+                                    : 'font-semibold text-slate-900'
                                   : isDark
                                     ? 'font-normal text-slate-400 hover:bg-white/[0.06] hover:text-slate-300'
                                     : 'font-normal text-slate-600 hover:bg-slate-100/80 hover:text-slate-800'

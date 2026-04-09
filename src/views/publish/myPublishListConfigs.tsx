@@ -55,7 +55,7 @@ export function getMyPublishListConfig(
     breadcrumbSegments: ['工作台', BREADCRUMB_SECOND[type]] as const,
     pageDesc: `管理您提交的${label}，跟踪审核进度；审核员可在此对待审核项执行通过或驳回（与统一资源中心一致）。`,
     emptyTitle: `暂无已提交的${label}`,
-    emptyDescription: '创建并提交后，可在此查看审核进度与发布状态。',
+    emptyDescription: '创建并提交后，可在此查看审核进度与发布状态。新建资源请使用页面右上角按钮。',
     emptyActionNavigate: () => navigate(buildPath('user', regPage)),
     emptyActionLabel: `去注册新${label}`,
     detailModalTitle: `${DETAIL_SUFFIX[type]}详情`,

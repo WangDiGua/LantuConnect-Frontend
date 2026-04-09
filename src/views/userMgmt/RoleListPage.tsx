@@ -285,9 +285,16 @@ export const RoleListPage: React.FC<RoleListPageProps> = ({ theme, fontSize, bre
             <div className="min-w-0 flex-1 max-w-md">
               <SearchInput value={search} onChange={setSearch} placeholder="搜索名称、代码或描述…" theme={theme} />
             </div>
-            <button type="button" onClick={openCreate} className={`shrink-0 ${btnPrimary}`} aria-label="新建角色">
-              <Plus size={15} aria-hidden /> 新建角色
-            </button>
+            <div className="flex flex-wrap items-center gap-2 shrink-0 justify-end">
+              {errorMsg ? (
+                <button type="button" onClick={() => void fetchRoles()} className={btnSecondary(theme)} aria-label="重新加载角色列表">
+                  重试加载
+                </button>
+              ) : null}
+              <button type="button" onClick={openCreate} className={btnPrimary} aria-label="新建角色">
+                <Plus size={15} aria-hidden /> 新建角色
+              </button>
+            </div>
           </div>
         }
       >
@@ -299,7 +306,7 @@ export const RoleListPage: React.FC<RoleListPageProps> = ({ theme, fontSize, bre
             <p className={`text-xs mb-2 ${textMuted(theme)}`}>共 {filtered.length} 个角色</p>
           ) : null}
           {errorMsg ? (
-            <EmptyState title="角色数据加载失败" description={errorMsg} action={<button type="button" onClick={() => void fetchRoles()} className={btnSecondary(theme)}>重试</button>} />
+            <EmptyState title="角色数据加载失败" description={`${errorMsg} 请点击右上角「重试加载」。`} />
           ) : loading && roles.length === 0 ? (
             <PageSkeleton type="table" />
           ) : paginated.length === 0 ? (

@@ -10,7 +10,7 @@ import { PageError } from '../../components/common/PageError';
 import { EmptyState } from '../../components/common/EmptyState';
 import { KpiCard } from '../../components/common/KpiCard';
 import { BentoCard } from '../../components/common/BentoCard';
-import { btnPrimary, btnGhost, kpiGridGap, pageBlockStack, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import { btnGhost, kpiGridGap, pageBlockStack, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 
 const PAGE_DESC = '统一网关调用量、成功率、延迟与五类资源（智能体 / 技能 / MCP / 应用 / 数据集）分布汇总';
@@ -47,7 +47,7 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ 
   }, [autoRefresh, kpisQ, performanceQ, callMixQ]);
 
   const toolbar =
-    !kpisQ.isLoading && !kpisQ.isError && (kpisQ.data ?? []).length > 0 ? (
+    !kpisQ.isLoading && !kpisQ.isError ? (
       <div className="flex flex-wrap items-center gap-2 w-full justify-end">
         <label className="flex items-center gap-2 cursor-pointer">
           <input
@@ -65,11 +65,13 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ 
             void kpisQ.refetch();
             void performanceQ.refetch();
             void callMixQ.refetch();
+            void alertsQ.refetch();
           }}
           className={btnGhost(theme)}
           aria-label="立即刷新监控数据"
         >
           <RefreshCw size={15} aria-hidden />
+          刷新
         </button>
       </div>
     ) : undefined;
@@ -91,12 +93,7 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ 
       return (
         <EmptyState
           title="暂无监控数据"
-          description="KPI 指标为空，请检查监控采集服务是否已启用。"
-          action={
-            <button type="button" onClick={() => kpisQ.refetch()} className={btnPrimary}>
-              重新加载
-            </button>
-          }
+          description="KPI 指标为空，请检查监控采集服务是否已启用。可点击页面右上角「刷新」重试加载。"
         />
       );
     }

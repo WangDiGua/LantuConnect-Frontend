@@ -609,20 +609,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
             ) : items.length === 0 ? (
               <EmptyState
                 title="暂无资源"
-                description="当前筛选条件下没有资源，试试调整筛选或注册新资源。"
-                action={
-                  activeType === 'skill' ? (
-                    <button type="button" onClick={() => onNavigateRegister('skill')} className={btnPrimary}>
-                      <Plus size={15} />
-                      注册托管技能
-                    </button>
-                  ) : (
-                    <button type="button" onClick={() => onNavigateRegister(activeType)} className={btnPrimary}>
-                      <Plus size={15} />
-                      注册{RESOURCE_TYPE_LABEL_ZH[activeType]}
-                    </button>
-                  )
-                }
+                description="当前筛选条件下没有资源，可调整状态或搜索条件；新建资源请使用标签行右侧按钮。"
               />
             ) : (
               <>

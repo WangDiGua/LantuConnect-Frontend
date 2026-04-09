@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { X, type LucideIcon } from 'lucide-react';
+import { Plus, X, type LucideIcon } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { ResourceType } from '../../types/dto/catalog';
 import {
@@ -156,13 +156,19 @@ export const MyResourcePublishListPage: React.FC<Props> = ({ theme, fontSize, re
   };
 
   const toolbar = (
-    <span
-      className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
-        isDark ? 'bg-white/5 text-slate-400' : 'border border-slate-100 bg-slate-50 text-slate-500'
-      }`}
-    >
-      共 {items.length} 个
-    </span>
+    <div className="flex flex-wrap items-center justify-end gap-2 w-full">
+      <span
+        className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+          isDark ? 'bg-white/5 text-slate-400' : 'border border-slate-100 bg-slate-50 text-slate-500'
+        }`}
+      >
+        共 {items.length} 个
+      </span>
+      <button type="button" className={btnPrimary} onClick={config.emptyActionNavigate} aria-label={config.emptyActionLabel}>
+        <Plus size={15} aria-hidden />
+        {config.emptyActionLabel}
+      </button>
+    </div>
   );
 
   return (
@@ -180,15 +186,7 @@ export const MyResourcePublishListPage: React.FC<Props> = ({ theme, fontSize, re
           {loading ? (
             <PageSkeleton type="cards" />
           ) : items.length === 0 ? (
-            <EmptyState
-              title={config.emptyTitle}
-              description={config.emptyDescription}
-              action={
-                <button type="button" className={btnPrimary} onClick={config.emptyActionNavigate}>
-                  {config.emptyActionLabel}
-                </button>
-              }
-            />
+            <EmptyState title={config.emptyTitle} description={config.emptyDescription} />
           ) : (
             <>
               {showBatchWithdrawSelect && (

@@ -57,7 +57,7 @@ export interface NavSubGroup {
 }
 
 /**
- * 工作台总览页内入口（原侧栏「我的」下已移除，与探索 Hub 左轨同源收窄）。
+ * 工作台总览页内可复用的导航元数据（侧栏树与部分页面「发现与成效」区）。
  * `page` 为控制台 page slug；`marketTab` 有值时跳转资源市场深链。
  */
 export interface UserWorkbenchNavItem {
@@ -94,7 +94,7 @@ export const USER_WORKBENCH_EXPLORE_NAV: UserWorkbenchNavItem[] = [
   { id: 'dev-stats', label: '资源成效统计', icon: TrendingUp, page: 'developer-statistics', perm: 'developer:portal' },
 ];
 
-/** 自侧栏移除、仍用独立路由的工作台卫星页；用于 `pageToSubItem` 高亮「工作台总览」 */
+/** 个人工作台下独立路由子页；用于 `pageToSubItem` 高亮对应侧栏子项 */
 export const USER_WORKBENCH_SATELLITE_PAGES = new Set<string>(
   USER_WORKBENCH_CORE_NAV.map((x) => x.page).filter((p): p is string => Boolean(p)),
 );
@@ -105,20 +105,20 @@ export const ADMIN_SIDEBAR_ITEMS = [
   { id: 'overview', icon: LayoutDashboard, label: '运营总览' },
   { id: 'admin-resource-ops', icon: Boxes, label: '资源与运营' },
   { id: 'user-management', icon: Users, label: '用户与权限' },
-  { id: 'monitoring', icon: Activity, label: '监控中心' },
-  { id: 'system-config', icon: Settings, label: '系统配置' },
+  { id: 'monitoring', icon: Activity, label: '监控运维' },
+  { id: 'system-config', icon: Settings, label: '平台配置' },
 ];
 
 // ==================== 用户菜单（师生使用视角）====================
 
 export const USER_SIDEBAR_ITEMS = [
   { id: 'hub', icon: Compass, label: '探索发现' },
-  { id: 'skills-center', icon: Braces, label: 'Skills 中心' },
-  { id: 'mcp-center', icon: Puzzle, label: 'MCP 广场' },
-  { id: 'dataset-center', icon: Database, label: '数据集' },
-  { id: 'agents-center', icon: Bot, label: 'Agent 广场' },
-  { id: 'apps-center', icon: AppWindow, label: '应用集' },
-  { id: 'workspace', icon: LayoutGrid, label: '我的' },
+  { id: 'skills-center', icon: Braces, label: '技能广场' },
+  { id: 'mcp-center', icon: Puzzle, label: '接入广场' },
+  { id: 'dataset-center', icon: Database, label: '数据集市' },
+  { id: 'agents-center', icon: Bot, label: '智能广场' },
+  { id: 'apps-center', icon: AppWindow, label: '应用广场' },
+  { id: 'workspace', icon: LayoutGrid, label: '个人工作台' },
   { id: 'developer-portal', icon: Code2, label: '开发者中心' },
 ];
 
@@ -185,7 +185,7 @@ export const ADMIN_USER_MANAGEMENT_GROUPS: NavSubGroup[] = [
 export const ADMIN_MONITORING_GROUPS: NavSubGroup[] = [
   {
     title: '运维',
-    items: [{ id: 'monitoring-hub', icon: Activity, label: '监控与运维' }],
+    items: [{ id: 'monitoring-hub', icon: Activity, label: '监控运维台' }],
   },
 ];
 
@@ -214,69 +214,85 @@ export const ADMIN_DEVELOPER_PORTAL_GROUPS: NavSubGroup[] = [
   },
 ];
 
-// ==================== 用户子菜单 ====================
+// ==================== 用户子菜单（树状：主菜单 + 二级分组）====================
 
-export const USER_WORKSPACE_GROUPS: NavSubGroup[] = [
+/** 探索发现：子级入口（顶栏一级仍为「探索发现」） */
+export const USER_HUB_GROUPS: NavSubGroup[] = [
   {
-    title: '我的',
-    items: [
-      { id: 'overview', icon: LayoutGrid, label: '工作台总览' },
-      { id: 'developer-onboarding', icon: Rocket, label: '开发者入驻' },
-      { id: 'my-favorites', icon: Heart, label: '我的收藏' },
-    ],
+    title: '首页入口',
+    items: [{ id: 'hub', icon: Compass, label: '探索首页' }],
   },
 ];
 
-export const USER_MY_SPACE_GROUPS: NavSubGroup[] = [
+export const USER_SKILLS_CENTER_GROUPS: NavSubGroup[] = [
+  { title: '技能资源', items: [{ id: 'skills-center', icon: Braces, label: '技能广场' }] },
+];
+
+export const USER_MCP_CENTER_GROUPS: NavSubGroup[] = [
+  { title: '互联资源', items: [{ id: 'mcp-center', icon: Puzzle, label: '接入广场' }] },
+];
+
+export const USER_DATASET_CENTER_GROUPS: NavSubGroup[] = [
+  { title: '数据资源', items: [{ id: 'dataset-center', icon: Database, label: '数据集市' }] },
+];
+
+export const USER_AGENTS_CENTER_GROUPS: NavSubGroup[] = [
+  { title: '智能资源', items: [{ id: 'agents-center', icon: Bot, label: '智能广场' }] },
+];
+
+export const USER_APPS_CENTER_GROUPS: NavSubGroup[] = [
+  { title: '应用资源', items: [{ id: 'apps-center', icon: AppWindow, label: '应用广场' }] },
+];
+
+/** 侧栏「个人工作台」：六项能力恢复为树状子菜单；显隐由权限与 `requiresPublish` 控制 */
+export const USER_MY_CONSOLE_GROUPS: NavSubGroup[] = [
   {
-    title: '使用',
+    title: '常用总览',
+    items: [
+      { id: 'overview', icon: LayoutGrid, label: '工作台总览' },
+      { id: 'quick-access', icon: Zap, label: '快速入口' },
+    ],
+  },
+  {
+    title: '使用分析',
     items: [
       { id: 'usage-records', icon: History, label: '使用记录' },
+      { id: 'recent-use', icon: Clock, label: '最近使用' },
       { id: 'usage-stats', icon: BarChart3, label: '用量统计' },
     ],
   },
   {
-    title: '入驻',
-    items: [{ id: 'developer-applications', icon: Rocket, label: '入驻审批' }],
+    title: '个人收藏',
+    items: [{ id: 'my-favorites', icon: Heart, label: '我的收藏' }],
   },
-];
-
-export const USER_MY_PUBLISH_GROUPS: NavSubGroup[] = [
   {
     title: '我的发布',
     requiresPublish: true,
     items: [
       { id: 'my-agents-pub', icon: Rocket, label: '发布总览' },
-      { id: 'resource-center', icon: Boxes, label: '统一资源中心' },
+      { id: 'resource-center', icon: Boxes, label: '资源中心' },
     ],
   },
-];
-
-/** 用户端合并项：我的发布与用量（浏览入口已迁至顶栏各资源中心） */
-export const USER_RESOURCE_ASSETS_GROUPS: NavSubGroup[] = [
-  ...USER_MY_PUBLISH_GROUPS,
-  ...USER_MY_SPACE_GROUPS,
-];
-
-/** 侧栏「我的」：概览 / 发布登记 / 能力与工单（使用记录等已收束到工作台页内） */
-export const USER_MY_CONSOLE_GROUPS: NavSubGroup[] = [
   {
-    title: '概览',
+    title: '入驻服务',
     items: [
-      { id: 'overview', icon: LayoutGrid, label: '工作台总览' },
       { id: 'developer-onboarding', icon: Rocket, label: '开发者入驻' },
+      { id: 'developer-applications', icon: ClipboardCheck, label: '入驻审批' },
     ],
   },
-  {
-    title: '我的发布',
-    requiresPublish: true,
-    items: [{ id: 'resource-center', icon: Boxes, label: '统一资源中心' }],
-  },
-  {
-    title: '工单与审批',
-    items: [{ id: 'developer-applications', icon: Rocket, label: '入驻审批' }],
-  },
 ];
+
+/** @deprecated 等同于 {@link USER_MY_CONSOLE_GROUPS}，保留旧名导出 */
+export const USER_WORKSPACE_GROUPS: NavSubGroup[] = USER_MY_CONSOLE_GROUPS;
+
+/** @deprecated 结构已并入 {@link USER_MY_CONSOLE_GROUPS} */
+export const USER_MY_SPACE_GROUPS: NavSubGroup[] = [];
+
+/** @deprecated 结构已并入 {@link USER_MY_CONSOLE_GROUPS} */
+export const USER_MY_PUBLISH_GROUPS: NavSubGroup[] = [];
+
+/** @deprecated 等同于 {@link USER_MY_CONSOLE_GROUPS} */
+export const USER_RESOURCE_ASSETS_GROUPS: NavSubGroup[] = USER_MY_CONSOLE_GROUPS;
 
 // ==================== 子菜单分组路由 ====================
 
@@ -299,13 +315,17 @@ export function getNavSubGroups(sidebarId: string, isAdminRole: boolean): NavSub
   }
   switch (sidebarId) {
     case 'hub':
-    case 'mcp-center':
-    case 'dataset-center':
-    case 'agents-center':
-    case 'apps-center':
-      return [];
+      return USER_HUB_GROUPS;
     case 'skills-center':
-      return [];
+      return USER_SKILLS_CENTER_GROUPS;
+    case 'mcp-center':
+      return USER_MCP_CENTER_GROUPS;
+    case 'dataset-center':
+      return USER_DATASET_CENTER_GROUPS;
+    case 'agents-center':
+      return USER_AGENTS_CENTER_GROUPS;
+    case 'apps-center':
+      return USER_APPS_CENTER_GROUPS;
     case 'developer-portal':
       return ADMIN_DEVELOPER_PORTAL_GROUPS;
     case 'workspace':

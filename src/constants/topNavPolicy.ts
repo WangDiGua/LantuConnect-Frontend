@@ -27,9 +27,17 @@ export const USER_TOP_NAV_NO_RAIL_SIDEBAR_ID_SET = new Set<string>(USER_TOP_NAV_
  * 横向不出现「平台管理」一级；总览等仍在侧栏抽屉与全局搜索（全量行）可达。
  */
 
-/** 首页 ExploreHub 左栏一级分组（原头像菜单树，树状折叠；顺序即展示顺序；hub 与顶栏「探索发现」对应，置首并默认落地页） */
+/**
+ * 首页 ExploreHub 左栏一级分组（与侧栏抽屉同源顺序：探索 + 五类资源 + 个人工作台 + 开发者中心）。
+ * 每项下为树状二级菜单，与 `getNavSubGroups` 一致。
+ */
 export const HUB_PERSONAL_RAIL_PARENT_IDS = [
   'hub',
+  'skills-center',
+  'mcp-center',
+  'dataset-center',
+  'agents-center',
+  'apps-center',
   'workspace',
   'developer-portal',
 ] as const;

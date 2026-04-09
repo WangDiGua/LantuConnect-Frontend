@@ -145,7 +145,7 @@ export const ADMIN_SPACES: Space[] = [
 export const USER_SPACES: Space[] = [
   {
     id: 'user-workspace',
-    label: '我的',
+    label: '个人工作台',
     icon: LayoutDashboard,
     accentFrom: '#3B82F6',
     accentTo: '#6366F1',

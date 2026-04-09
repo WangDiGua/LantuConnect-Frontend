@@ -268,7 +268,7 @@ export function pageToSubItem(page: string, sidebarId: string | null, isAdmin: b
   }
   if (!isAdmin && page === 'workspace' && sidebarId === 'workspace') return 'overview';
   if (!isAdmin && sidebarId === 'workspace' && USER_WORKBENCH_SATELLITE_PAGES.has(page)) {
-    return 'overview';
+    return page;
   }
   if (isAdmin && sidebarId === 'admin-resource-ops' && ADMIN_RESOURCE_CATALOG_PAGES.has(page)) {
     return 'resource-catalog';
@@ -307,7 +307,7 @@ export function pageToSubItem(page: string, sidebarId: string | null, isAdmin: b
     return 'apps-center';
   }
   if (!isAdmin && sidebarId === 'workspace' && (page === 'resource-market' || page === 'skill-market' || USER_LEGACY_MARKET_PAGES.has(page))) {
-    return 'resource-market';
+    return 'overview';
   }
   if (isAdmin && sidebarId === 'monitoring' && ADMIN_SIDEBAR_PAGES.monitoring.includes(page)) {
     return 'monitoring-hub';

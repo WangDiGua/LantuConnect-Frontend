@@ -33,7 +33,6 @@ import { KpiCard } from '../../components/common/KpiCard';
 import { AnimatedList } from '../../components/common/AnimatedList';
 import { buildPath, buildUserResourceMarketUrl } from '../../constants/consoleRoutes';
 import {
-  USER_WORKBENCH_CORE_NAV,
   USER_WORKBENCH_EXPLORE_NAV,
   type UserWorkbenchNavItem,
 } from '../../constants/navigation';
@@ -85,11 +84,6 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
     if (item.anyPerm && !item.anyPerm.some((p) => hasPermission(p))) return false;
     return true;
   }
-
-  const workbenchCoreNav = useMemo(
-    () => USER_WORKBENCH_CORE_NAV.filter(workbenchNavVisible),
-    [hasPermission],
-  );
 
   const workbenchExploreNav = useMemo(
     () => USER_WORKBENCH_EXPLORE_NAV.filter(workbenchNavVisible),
@@ -192,39 +186,10 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
               欢迎回来，{displayName}
             </h1>
             <p className={`text-sm ${ts}`}>
-              Nexus AI 协同平台为你提供智能体、技能、MCP、数据集与应用等资源；下方「最近使用」与顶部导航五类市场对齐。
+              Nexus AI 协同平台为你提供智能体、技能、MCP、数据集与应用等资源；常用入口已收纳在侧栏「个人工作台」树状菜单中。
             </p>
           </BentoCard>
         </motion.div>
-
-        {/* 工作台核心入口（原侧栏「我的」下六项，收束到本页） */}
-        {workbenchCoreNav.length > 0 ? (
-          <motion.section
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ ...spring, delay: 0.06 }}
-            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3"
-            aria-label="工作台快捷功能"
-          >
-            {workbenchCoreNav.map((item, i) => (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ ...spring, delay: 0.08 + i * 0.03 }}
-              >
-                <button
-                  type="button"
-                  onClick={() => navigateWorkbenchItem(item)}
-                  className={`w-full p-4 flex items-center gap-3 text-left ${bentoCardHover(theme)}`}
-                >
-                  <item.icon size={18} className={ts} aria-hidden />
-                  <span className={`text-sm font-bold ${tp}`}>{item.label}</span>
-                </button>
-              </motion.div>
-            ))}
-          </motion.section>
-        ) : null}
 
         {/* 最近使用条数：与 usage_record 中各类 invoke 一致（同一批最多 8 条内计数） */}
         <div className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 ${kpiGridGap}`}>

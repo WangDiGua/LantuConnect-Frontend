@@ -1302,19 +1302,7 @@ const MainLayoutContent: React.FC<{
   /** 使用端左轨区块（与 Hub 内嵌轨、管理壳固定轨同源 `filteredSubGroupsForSidebarId`） */
   const railSectionsUser: HubPersonalRailSection[] = useMemo(() => {
     const out: HubPersonalRailSection[] = [];
-    const hubTopItem = USER_SIDEBAR_ITEMS.find((i) => i.id === 'hub');
     for (const parentId of HUB_PERSONAL_RAIL_PARENT_IDS) {
-      if (parentId === 'hub') {
-        if (hubTopItem) {
-          out.push({
-            heading: hubTopItem.label,
-            parentSidebarId: 'hub',
-            domain: 'user',
-            rows: [{ subItemId: 'hub', label: hubTopItem.label, icon: hubTopItem.icon }],
-          });
-        }
-        continue;
-      }
       const groups = filteredSubGroupsForSidebarId(parentId, 'user');
       out.push(...buildHubPersonalNavModel(parentId, 'user', groups));
     }

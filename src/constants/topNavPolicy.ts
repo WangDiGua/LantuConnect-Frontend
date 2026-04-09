@@ -45,6 +45,7 @@ export const HUB_PERSONAL_RAIL_PARENT_IDS = [
  */
 export const HUB_ADMIN_RAIL_PARENT_IDS = [
   'overview',
+  'admin-workspace',
   'admin-resource-ops',
   'user-management',
   'monitoring',

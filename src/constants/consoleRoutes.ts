@@ -21,7 +21,7 @@ export const USER_LEGACY_MARKET_PAGE_TO_TAB: Record<string, ResourceType> = {
 
 export const USER_LEGACY_MARKET_PAGES = new Set(Object.keys(USER_LEGACY_MARKET_PAGE_TO_TAB));
 
-/** 管理端旧版「五入口」列表页，重定向至 resource-catalog?type= */
+/** 管理端旧版「五入口」列表页，重定向至 resource-audit?type=（全站资源在审核中心） */
 export const ADMIN_LEGACY_RESOURCE_LIST_PAGES = new Set([
   'agent-list',
   'skill-list',
@@ -38,21 +38,6 @@ export const ADMIN_LEGACY_AUDIT_PAGE_DEFAULT_TYPE: Partial<Record<string, Resour
   'app-audit': 'app',
   'dataset-audit': 'dataset',
 };
-
-const ADMIN_RESOURCE_CATALOG_PAGES = new Set([
-  'resource-catalog',
-  'agent-list',
-  'skill-list',
-  'mcp-server-list',
-  'app-list',
-  'dataset-list',
-  'agent-register',
-  'skill-register',
-  'mcp-register',
-  'app-register',
-  'dataset-register',
-  'agent-detail',
-]);
 
 const ADMIN_RESOURCE_AUDIT_PAGES = new Set([
   'resource-audit',
@@ -126,32 +111,6 @@ export function adminOverviewPath(): string {
   return `/${CONSOLE_PATH_PREFIX}/dashboard`;
 }
 
-const ADMIN_SIDEBAR_PAGES: Record<string, string[]> = {
-  'overview': ['dashboard', 'health-check', 'usage-statistics', 'data-reports'],
-  'admin-resource-ops': [
-    'resource-catalog',
-    'agent-register', 'agent-monitoring', 'agent-trace', 'agent-detail',
-    'skill-register', 'mcp-register', 'app-register', 'dataset-register',
-    'agent-list', 'skill-list', 'mcp-server-list', 'app-list', 'dataset-list',
-    'resource-audit',
-    'agent-audit', 'skill-audit', 'mcp-audit', 'app-audit', 'dataset-audit',
-    'provider-list', 'provider-create',
-  ],
-  'user-management': ['user-list', 'role-management', 'organization', 'api-key-management', 'developer-applications'],
-  'monitoring': ['monitoring-overview', 'call-logs', 'performance-analysis', 'alert-management', 'alert-rules', 'health-config', 'circuit-breaker'],
-  'system-config': [
-    'tag-management',
-    'system-params',
-    'security-settings',
-    'network-config',
-    'rate-limit-policy',
-    'access-control',
-    'audit-log',
-    'sensitive-words',
-    'announcements',
-  ],
-};
-
 const USER_SIDEBAR_PAGES: Record<string, string[]> = {
   'hub': ['hub'],
   'workspace': [
@@ -190,6 +149,43 @@ const USER_SIDEBAR_PAGES: Record<string, string[]> = {
   'user-settings': ['profile', 'my-api-keys', 'preferences'],
 };
 
+/**
+ * 管理端个人工作台路由白名单（与 workspace 对齐，并含登记详情 agent-detail）。
+ * 书签 `resource-catalog` 不在此列，壳层会 replace 到 resource-audit。
+ */
+export const ADMIN_WORKSPACE_PAGES = new Set<string>([...USER_SIDEBAR_PAGES.workspace, 'agent-detail']);
+
+const ADMIN_SIDEBAR_PAGES: Record<string, string[]> = {
+  'overview': ['dashboard', 'health-check', 'usage-statistics', 'data-reports'],
+  /** 须先于 admin-workspace：与工作台共用的 slug（如 developer-applications）优先归入治理菜单 */
+  'user-management': ['user-list', 'role-management', 'organization', 'api-key-management', 'developer-applications'],
+  'admin-resource-ops': [
+    'resource-audit',
+    'agent-audit',
+    'skill-audit',
+    'mcp-audit',
+    'app-audit',
+    'dataset-audit',
+    'agent-monitoring',
+    'agent-trace',
+    'provider-list',
+    'provider-create',
+  ],
+  'admin-workspace': [...USER_SIDEBAR_PAGES.workspace, 'agent-detail'],
+  'monitoring': ['monitoring-overview', 'call-logs', 'performance-analysis', 'alert-management', 'alert-rules', 'health-config', 'circuit-breaker'],
+  'system-config': [
+    'tag-management',
+    'system-params',
+    'security-settings',
+    'network-config',
+    'rate-limit-policy',
+    'access-control',
+    'audit-log',
+    'sensitive-words',
+    'announcements',
+  ],
+};
+
 function flatPageSet(map: Record<string, string[]>): Set<string> {
   const s = new Set<string>();
   for (const pages of Object.values(map)) {
@@ -206,9 +202,11 @@ const USER_PAGE_SET = flatPageSet(USER_SIDEBAR_PAGES);
  * 仅出现在一侧映射中的页面直接定界；两侧皆有时：可进管理端的账号默认走管理壳（与旧 `/admin/*` 行为一致）。
  */
 export function inferConsoleRole(page: string, platformRole?: PlatformRoleCode | null): ConsoleRole {
+  const pr = platformRole ?? 'user';
+  /** 旧书签；可进管理端者走管理壳并 replace 到 resource-audit */
+  if (page === 'resource-catalog' && canAccessAdminView(pr)) return 'admin';
   const a = ADMIN_PAGE_SET.has(page);
   const u = USER_PAGE_SET.has(page);
-  const pr = platformRole ?? 'user';
   if (a && !u) return 'admin';
   if (!a && u) return 'user';
   if (a && u) {
@@ -224,8 +222,14 @@ export function parseRoute(pathname: string): ParsedConsoleRoute | null {
 }
 
 export function findSidebarForPage(role: ConsoleRole, page: string): string | null {
+  if (role === 'admin' && page === 'resource-catalog') {
+    return 'admin-resource-ops';
+  }
   if (role === 'user' && page === 'resource-center') {
     return 'workspace';
+  }
+  if (role === 'admin' && page === 'resource-center') {
+    return 'admin-workspace';
   }
   const map = role === 'admin' ? ADMIN_SIDEBAR_PAGES : USER_SIDEBAR_PAGES;
   for (const [sidebarId, pages] of Object.entries(map)) {
@@ -243,6 +247,7 @@ export function getDefaultPage(role: ConsoleRole, sidebarId: string): string {
 export function subItemToPage(sidebarId: string, subItemId: string, isAdmin: boolean): string {
   /** 旧书签：子项 id 曾为 overview */
   if (isAdmin && sidebarId === 'overview' && subItemId === 'overview') return 'dashboard';
+  if (isAdmin && sidebarId === 'admin-workspace' && subItemId === 'overview') return 'workspace';
   if (!isAdmin && sidebarId === 'workspace' && subItemId === 'overview') return 'workspace';
   if (!isAdmin && sidebarId === 'skills-center' && subItemId === 'skills-center') return 'skills-center';
   if (!isAdmin && sidebarId === 'mcp-center' && subItemId === 'mcp-center') return 'mcp-center';
@@ -257,12 +262,16 @@ export function pageToSubItem(page: string, sidebarId: string | null, isAdmin: b
   if (isAdmin && sidebarId === 'overview' && ['dashboard', 'health-check', 'usage-statistics', 'data-reports'].includes(page)) {
     return page;
   }
+  if (isAdmin && page === 'workspace' && sidebarId === 'admin-workspace') return 'overview';
+  if (isAdmin && sidebarId === 'admin-workspace' && USER_WORKBENCH_SATELLITE_PAGES.has(page)) {
+    return page;
+  }
+  if (isAdmin && sidebarId === 'admin-workspace' && ADMIN_WORKSPACE_PAGES.has(page)) {
+    return page;
+  }
   if (!isAdmin && page === 'workspace' && sidebarId === 'workspace') return 'overview';
   if (!isAdmin && sidebarId === 'workspace' && USER_WORKBENCH_SATELLITE_PAGES.has(page)) {
     return page;
-  }
-  if (isAdmin && sidebarId === 'admin-resource-ops' && ADMIN_RESOURCE_CATALOG_PAGES.has(page)) {
-    return 'resource-catalog';
   }
   if (isAdmin && sidebarId === 'admin-resource-ops' && ADMIN_RESOURCE_AUDIT_PAGES.has(page)) {
     return 'resource-audit';

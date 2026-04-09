@@ -316,7 +316,11 @@ const MainContent = React.memo<{
         case 'data-reports':
           return <AdminOverviewModule activePage={p} theme={t} fontSize={fs} />;
 
-        case 'resource-catalog':
+        case 'workspace':
+          return <UserWorkspaceOverview theme={t} fontSize={fs} />;
+        case 'developer-onboarding':
+          return <DeveloperOnboardingPage embedded />;
+        case 'resource-center':
           return (
             <ResourceCenterManagementPage
               theme={t}
@@ -324,19 +328,54 @@ const MainContent = React.memo<{
               showMessage={msg}
               resourceType={typeQuery ?? 'agent'}
               allowTypeSwitch
-              onTypeChange={(nextType) => nav('resource-catalog', nextType)}
+              onTypeChange={(nextType) => nav('resource-center', nextType)}
               onNavigateRegister={(type, id) => nav(RESOURCE_TYPE_REGISTER_PAGE[type], id)}
             />
           );
+        case 'my-agents-pub':
+          return <MyPublishHubPage theme={t} fontSize={fs} />;
+        case 'my-publish-agent':
+        case 'my-publish-skill':
+        case 'my-publish-mcp':
+        case 'my-publish-app':
+        case 'my-publish-dataset':
+          return <MyPublishListRoute theme={t} fontSize={fs} page={p} />;
+        case 'usage-records':
+          return <UsageRecordsPage theme={t} fontSize={fs} />;
+        case 'my-favorites':
+          return <MyFavoritesPage theme={t} fontSize={fs} />;
+        case 'usage-stats':
+          return <UsageStatsPage theme={t} fontSize={fs} />;
+        case 'resource-market':
+          return <UserResourceMarketHub theme={t} fontSize={fs} themeColor={tc} showMessage={msg} />;
+        case 'agent-list':
+          return renderResourceList('agent');
+        case 'skill-list':
+          return renderResourceList('skill');
+        case 'mcp-server-list':
+          return renderResourceList('mcp');
+        case 'app-list':
+          return renderResourceList('app');
+        case 'dataset-list':
+          return renderResourceList('dataset');
         case 'agent-register':
-          return renderResourceRegister('agent');
+          return (
+            <ResourceRegisterPage
+              theme={t}
+              fontSize={fs}
+              showMessage={msg}
+              resourceType="agent"
+              resourceId={rid ? Number(rid) : undefined}
+              onBack={() => nav('resource-center', 'agent')}
+            />
+          );
         case 'agent-detail':
           return (
             <AgentDetail
               agentId={rid ?? ''}
               theme={t}
               fontSize={fs}
-              onBack={() => nav('resource-catalog', 'agent')}
+              onBack={() => nav('resource-center', typeQuery ?? 'agent')}
             />
           );
         case 'agent-monitoring':
@@ -346,19 +385,55 @@ const MainContent = React.memo<{
           );
 
         case 'skill-register':
-          return renderResourceRegister('skill');
+          return (
+            <ResourceRegisterPage
+              theme={t}
+              fontSize={fs}
+              showMessage={msg}
+              resourceType="skill"
+              resourceId={rid ? Number(rid) : undefined}
+              onBack={() => nav('resource-center', 'skill')}
+            />
+          );
         case 'mcp-register':
-          return renderResourceRegister('mcp');
+          return (
+            <ResourceRegisterPage
+              theme={t}
+              fontSize={fs}
+              showMessage={msg}
+              resourceType="mcp"
+              resourceId={rid ? Number(rid) : undefined}
+              onBack={() => nav('resource-center', 'mcp')}
+            />
+          );
         case 'resource-audit':
           return (
             <ResourceAuditList theme={t} fontSize={fs} showMessage={msg} defaultType={typeQuery} />
           );
 
         case 'app-register':
-          return renderResourceRegister('app');
+          return (
+            <ResourceRegisterPage
+              theme={t}
+              fontSize={fs}
+              showMessage={msg}
+              resourceType="app"
+              resourceId={rid ? Number(rid) : undefined}
+              onBack={() => nav('resource-center', 'app')}
+            />
+          );
 
         case 'dataset-register':
-          return renderResourceRegister('dataset');
+          return (
+            <ResourceRegisterPage
+              theme={t}
+              fontSize={fs}
+              showMessage={msg}
+              resourceType="dataset"
+              resourceId={rid ? Number(rid) : undefined}
+              onBack={() => nav('resource-center', 'dataset')}
+            />
+          );
 
         case 'user-list':
         case 'role-management':
@@ -755,15 +830,15 @@ const MainLayoutContent: React.FC<{
   let resourceTypeQuery = queryType;
   if (layoutIsAdmin && normalizedRoutePage) {
     if (ADMIN_LEGACY_RESOURCE_LIST_PAGES.has(normalizedRoutePage)) {
-      page = 'resource-catalog';
-      resourceTypeQuery = LEGACY_PAGE_TO_TYPE[normalizedRoutePage];
+      page = 'resource-audit';
+      resourceTypeQuery = queryType ?? LEGACY_PAGE_TO_TYPE[normalizedRoutePage];
     } else if (ADMIN_LEGACY_AUDIT_PAGE_DEFAULT_TYPE[normalizedRoutePage]) {
       page = 'resource-audit';
       resourceTypeQuery = queryType ?? ADMIN_LEGACY_AUDIT_PAGE_DEFAULT_TYPE[normalizedRoutePage];
+    } else if (normalizedRoutePage === 'resource-catalog') {
+      page = 'resource-audit';
+      resourceTypeQuery = queryType ?? 'agent';
     }
-  }
-  if (layoutIsAdmin && page === 'resource-catalog') {
-    resourceTypeQuery = resourceTypeQuery ?? 'agent';
   }
 
   const baseActiveSidebar = findSidebarForPage(consoleRole, page)
@@ -1116,9 +1191,9 @@ const MainLayoutContent: React.FC<{
         return;
       }
     }
-    if (normalizedRoutePage === 'resource-center' && canAccessAdminView(platformRole)) {
+    if (layoutIsAdmin && normalizedRoutePage === 'resource-catalog') {
       const t = queryType ?? 'agent';
-      const next = `${buildPath('user', 'resource-catalog')}?type=${t}`;
+      const next = `${buildPath('user', 'resource-audit')}?type=${t}`;
       if (`${location.pathname}${location.search}` !== next) {
         navigate(next, { replace: true });
       }
@@ -1126,10 +1201,6 @@ const MainLayoutContent: React.FC<{
     }
     if (normalizedRoutePage === 'resource-center' && !queryType) {
       navigate(`${buildPath('user', 'resource-center')}?type=agent`, { replace: true });
-      return;
-    }
-    if (layoutIsAdmin && normalizedRoutePage === 'resource-catalog' && !queryType) {
-      navigate(`${buildPath('user', 'resource-catalog')}?type=agent`, { replace: true });
       return;
     }
     if (layoutIsAdmin && normalizedRoutePage === 'token-management') {
@@ -1151,7 +1222,7 @@ const MainLayoutContent: React.FC<{
     if (layoutIsAdmin && normalizedRoutePage) {
       if (ADMIN_LEGACY_RESOURCE_LIST_PAGES.has(normalizedRoutePage)) {
         const t = LEGACY_PAGE_TO_TYPE[normalizedRoutePage];
-        const next = `${buildPath('user', 'resource-catalog')}?type=${t}`;
+        const next = `${buildPath('user', 'resource-audit')}?type=${t}`;
         if (`${location.pathname}${location.search}` !== next) {
           navigate(next, { replace: true });
         }
@@ -1248,10 +1319,11 @@ const MainLayoutContent: React.FC<{
   const userSidebarItems = useMemo(
     () =>
       USER_SIDEBAR_ITEMS.filter((item) => {
+        if (canAccessAdminView(platformRole) && item.id === 'workspace') return false;
         if (item.id === 'developer-portal') return hasPermission('developer:portal');
         return true;
       }),
-    [hasPermission],
+    [hasPermission, platformRole],
   );
 
   const adminSidebarItems = useMemo(() => {
@@ -1346,14 +1418,6 @@ const MainLayoutContent: React.FC<{
         .map((g) => ({
           ...g,
           items: g.items.filter((item) => {
-            if (
-              domain === 'user' &&
-              sidebarId === 'workspace' &&
-              canAccessAdminView(platformRole) &&
-              item.id === 'resource-center'
-            ) {
-              return false;
-            }
             if (item.id === 'developer-onboarding') {
               return (
                 platformRole !== 'developer' &&
@@ -1373,11 +1437,16 @@ const MainLayoutContent: React.FC<{
   const railSectionsUser: HubPersonalRailSection[] = useMemo(() => {
     const out: HubPersonalRailSection[] = [];
     for (const parentId of HUB_PERSONAL_RAIL_PARENT_IDS) {
+      if (canAccessAdminView(platformRole) && parentId === 'workspace') {
+        const groups = filteredSubGroupsForSidebarId('admin-workspace', 'admin');
+        out.push(...buildHubPersonalNavModel('admin-workspace', 'admin', groups));
+        continue;
+      }
       const groups = filteredSubGroupsForSidebarId(parentId, 'user');
       out.push(...buildHubPersonalNavModel(parentId, 'user', groups));
     }
     return out;
-  }, [filteredSubGroupsForSidebarId]);
+  }, [filteredSubGroupsForSidebarId, platformRole]);
 
   /** 管理端左轨区块（权限与 adminSidebarItems 一致） */
   const railSectionsAdmin: HubPersonalRailSection[] = useMemo(() => {
@@ -1429,10 +1498,6 @@ const MainLayoutContent: React.FC<{
       setMobileNavOpen(false);
       const isAdminNav = domain === 'admin';
       const pageName = subItemToPage(parentSidebarId, subItemId, isAdminNav);
-      if (isAdminNav && pageName === 'resource-catalog') {
-        navigate(`${buildPath(domain, 'resource-catalog')}?type=agent`);
-        return;
-      }
       if (isAdminNav && pageName === 'resource-audit') {
         navigate(buildPath(domain, 'resource-audit'));
         return;
@@ -1572,7 +1637,11 @@ const MainLayoutContent: React.FC<{
       }
       if (targetPage === 'resource-catalog') {
         const type = typeof id === 'string' ? parseResourceType(id) : undefined;
-        navigate(`${buildPath('user', 'resource-catalog')}?type=${type ?? 'agent'}`);
+        if (canAccessAdminView(platformRole)) {
+          navigate(`${buildPath('user', 'resource-audit')}?type=${type ?? 'agent'}`);
+        } else {
+          navigate(unifiedResourceCenterPath(platformRole, type));
+        }
         return;
       }
       const path = buildPath(consoleRole, targetPage, id);

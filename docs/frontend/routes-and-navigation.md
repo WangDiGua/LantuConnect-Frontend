@@ -31,19 +31,23 @@
 
 随后若 `routePage !== normalizedRoutePage`，会 `replace` 到规范路径。
 
-## 管理端：兼容 URL 再定向（统一资源与审核）
+## 管理端：兼容 URL 再定向（我的资源中心 vs 审核）
+
+- **「我的」登记与维护**：与开发者一致，走 `#/c/resource-center?type=…`（数据 `created_by = 当前用户`）。
+- **全站资源审核**：走 `#/c/resource-audit?type=…`。
+- 书签 **`#/c/resource-catalog`**（旧「统一目录」）对可进管理端的账号 **replace → `#/c/resource-audit`**（并补 `?type=`）。
 
 下列 **URL 仍可作为书签/外链**，进入后由 `useEffect` **replace** 到 canonical 形式（保留或补全 `?type=`）：
 
-**旧列表页 → `resource-catalog`**
+**旧列表页（管理壳）→ `resource-audit`**
 
 | 旧 path slug | 重定向 target |
 |--------------|---------------|
-| `agent-list` | `#/admin/resource-catalog?type=agent` |
-| `skill-list` | `#/admin/resource-catalog?type=skill` |
-| `mcp-server-list` | `#/admin/resource-catalog?type=mcp` |
-| `app-list` | `#/admin/resource-catalog?type=app` |
-| `dataset-list` | `#/admin/resource-catalog?type=dataset` |
+| `agent-list` | `#/c/resource-audit?type=agent` |
+| `skill-list` | `#/c/resource-audit?type=skill` |
+| `mcp-server-list` | `#/c/resource-audit?type=mcp` |
+| `app-list` | `#/c/resource-audit?type=app` |
+| `dataset-list` | `#/c/resource-audit?type=dataset` |
 
 **旧审核子路由 → `resource-audit`**
 
@@ -55,7 +59,7 @@
 | `app-audit` | `app` |
 | `dataset-audit` | `dataset` |
 
-**资源目录默认 type**：访问 `#/admin/resource-catalog` 且无 `type` 时，会补 `?type=agent`。
+**从 `resource-catalog` 迁入审核**：访问 `#/c/resource-catalog` 且无 `type` 时，会 replace 到 `#/c/resource-audit?type=agent`。
 
 ## 用户端：统一资源与普通列表
 
@@ -69,17 +73,16 @@
 
 ### Admin
 
-| sidebarId | 包含的 `page` slug |
+| sidebarId | 包含的 `page` slug（真值见 `ADMIN_SIDEBAR_PAGES`） |
 |-----------|-------------------|
 | `overview` | `dashboard`, `health-check`, `usage-statistics`, `data-reports` |
-| `resource-management` | `resource-catalog`, `agent-register`, `agent-monitoring`, `agent-trace`, `agent-detail`, `skill-register`, `mcp-register`, `app-register`, `dataset-register`, `agent-list`, `skill-list`, `mcp-server-list`, `app-list`, `dataset-list` |
-| `audit-center` | `resource-audit`, `agent-audit`, `skill-audit`, `mcp-audit`, `app-audit`, `dataset-audit` |
-| `provider-management` | `provider-list`, `provider-create` |
-| `user-management` | `user-list`, `role-management`, `organization`, `api-key-management`, `resource-grant-management`, `grant-applications`, `developer-applications` |
+| `user-management` | `user-list`, `role-management`, `organization`, `api-key-management`, `developer-applications` |
+| `admin-resource-ops` | `resource-audit` 及旧 `*-audit`、`agent-monitoring`、`agent-trace`、`provider-list`、`provider-create` |
+| `admin-workspace` | 与 `USER_SIDEBAR_PAGES.workspace` 一致，并含 `agent-detail`（个人工作台：我的资源中心等） |
 | `monitoring` | `monitoring-overview`, `call-logs`, `performance-analysis`, `alert-management`, `alert-rules`, `health-config`, `circuit-breaker` |
-| `system-config` | `tag-management`, `security-settings`, `quota-management`, `rate-limit-policy`, `access-control`, `audit-log`, `sensitive-words`, `announcements` |
+| `system-config` | `tag-management`, `system-params`, `security-settings`, `network-config`, `rate-limit-policy`, `access-control`, `audit-log`, `sensitive-words`, `announcements` |
 
-子菜单文案与图标见 [`navigation.ts`](../../src/constants/navigation.ts) 中 `ADMIN_*_GROUPS`。管理端 **资源** 侧栏在 UI 上以「统一资源中心 + Agent 运维」分组展示；`agent-list` 等为历史 slug，仍挂在 `resource-management` 下以便 `findSidebarForPage` 校验。
+子菜单树见 [`navigation.ts`](../../src/constants/navigation.ts)。`#/c/agent-list` 等旧 slug 在管理壳下会 replace 到 `resource-audit`；`findSidebarForPage` 仍依赖 `ADMIN_SIDEBAR_PAGES` 收录这些 slug。
 
 ### User
 
@@ -103,7 +106,7 @@
 
 ## `MainContent` 渲染矩阵（有效 `page` → 组件）
 
-以下为 **实际参与 `switch` 渲染** 的 slug（管理端 `agent-list` 等在进入前已被重定向为 `resource-catalog`，不会以旧 slug 渲染管理端内容）。
+以下为 **实际参与 `switch` 渲染** 的 slug（管理端 `agent-list` 等在进入前常被重定向为 `resource-audit`；个人列表用 `resource-center`）。
 
 ### Admin（`layoutIsAdmin === true`）
 
@@ -113,7 +116,7 @@
 | `health-check` | `HealthCheckOverview` |
 | `usage-statistics` | `UsageStatsOverview` |
 | `data-reports` | `DataReportsPage` |
-| `resource-catalog` | `ResourceCenterManagementPage`（`allowTypeSwitch`，`type` 来自 query） |
+| `workspace` / `resource-center` / `my-agents-pub` / `usage-*` / `my-favorites` / `resource-market` / `my-publish-*` 等 | 与使用端工作台相同组件族（`UserWorkspaceOverview`、`ResourceCenterManagementPage`…） |
 | `agent-register` | `ResourceRegisterPage(agent)` |
 | `agent-detail` | `AgentDetail` |
 | `agent-monitoring` | `AgentMonitoringPage` |

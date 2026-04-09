@@ -326,7 +326,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
   }, [items, selectedRcIds, myUserId, showMessage, fetchData, clearRcSelection]);
 
   const title = useMemo(() => {
-    if (allowTypeSwitch) return '统一资源管理';
+    if (allowTypeSwitch) return '资源中心';
     return `${RESOURCE_TYPE_LABEL_ZH[activeType]}资源管理`;
   }, [allowTypeSwitch, activeType]);
 
@@ -521,7 +521,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
         theme={theme}
         fontSize={fontSize}
         titleIcon={Boxes}
-        breadcrumbSegments={['统一资源中心', title]}
+        breadcrumbSegments={['资源中心', title]}
         description="资源中心闭环：注册、提审、审核（待审核时审核员可在此通过/驳回）、测试发布、版本、下线"
         toolbar={shellToolbar}
         contentScroll="document"

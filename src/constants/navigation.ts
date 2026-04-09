@@ -105,6 +105,8 @@ export const USER_WORKBENCH_SATELLITE_PAGES = new Set<string>(
 
 export const ADMIN_SIDEBAR_ITEMS = [
   { id: 'overview', icon: LayoutDashboard, label: '运营总览' },
+  /** 与开发者一致的「我的」资源登记入口；全站资源在「资源审核」 */
+  { id: 'admin-workspace', icon: LayoutGrid, label: '个人工作台' },
   { id: 'admin-resource-ops', icon: Boxes, label: '资源与运营' },
   { id: 'user-management', icon: Users, label: '用户与权限' },
   { id: 'monitoring', icon: Activity, label: '监控运维' },
@@ -143,10 +145,6 @@ export const ADMIN_OVERVIEW_GROUPS: NavSubGroup[] = [
 
 export const ADMIN_RESOURCE_MANAGEMENT_GROUPS: NavSubGroup[] = [
   {
-    title: '资源目录',
-    items: [{ id: 'resource-catalog', icon: Boxes, label: '统一资源中心', tag: '审核' }],
-  },
-  {
     title: '运行诊断',
     items: [
       { id: 'agent-monitoring', icon: LineChart, label: '运行监控' },
@@ -165,9 +163,7 @@ export const ADMIN_DATASET_MANAGEMENT_GROUPS = ADMIN_RESOURCE_MANAGEMENT_GROUPS;
 export const ADMIN_AUDIT_CENTER_GROUPS: NavSubGroup[] = [
   {
     title: '待审核资源',
-    items: [
-      { id: 'resource-audit', icon: ClipboardCheck, label: '资源审核' },
-    ],
+    items: [{ id: 'resource-audit', icon: ClipboardCheck, label: '资源审核', tag: '全站' }],
   },
 ];
 
@@ -324,6 +320,12 @@ export const USER_MY_PUBLISH_GROUPS: NavSubGroup[] = [];
 /** @deprecated 等同于 {@link USER_MY_CONSOLE_GROUPS} */
 export const USER_RESOURCE_ASSETS_GROUPS: NavSubGroup[] = USER_MY_CONSOLE_GROUPS;
 
+/**
+ * 管理端「个人工作台」分组：与 {@link USER_MY_CONSOLE_GROUPS} 结构一致，
+ * 供超管/审核员登记与维护**本人**资源（数据走 /resource-center/resources/mine）。
+ */
+export const ADMIN_PERSONAL_WORKBENCH_GROUPS: NavSubGroup[] = USER_MY_CONSOLE_GROUPS;
+
 /** 个人设置（个人资料页内已含偏好 Tab；侧栏仅 profile / 密钥管理） */
 export const USER_SETTINGS_GROUPS: NavSubGroup[] = [
   {
@@ -342,6 +344,8 @@ export function getNavSubGroups(sidebarId: string, isAdminRole: boolean): NavSub
     switch (sidebarId) {
       case 'overview':
         return ADMIN_OVERVIEW_GROUPS;
+      case 'admin-workspace':
+        return ADMIN_PERSONAL_WORKBENCH_GROUPS;
       case 'admin-resource-ops':
         return ADMIN_RESOURCE_OPS_GROUPS;
       case 'user-management':

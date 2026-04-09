@@ -4,7 +4,10 @@ import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { sensitiveWordService } from '../../api/services/sensitive-word.service';
 import type { SensitiveWord, SensitiveWordCategoryCount, SensitiveWordImportResult } from '../../types/dto/sensitive-word';
-import { SENSITIVE_WORD_CATEGORY_PRESETS } from '../../types/dto/sensitive-word';
+import {
+  SENSITIVE_WORD_CATEGORY_PRESETS,
+  formatSensitiveWordCategoryLabel,
+} from '../../types/dto/sensitive-word';
 import type { PaginatedData } from '../../types/api';
 import { BentoCard } from '../../components/common/BentoCard';
 import { LantuSelect } from '../../components/common/LantuSelect';
@@ -43,7 +46,8 @@ interface Props {
 
 const INPUT_FOCUS = 'focus:ring-2 focus:ring-neutral-900/20 focus:border-neutral-900/35';
 const SENSITIVE_PAGE_SIZE = 20;
-const PAGE_DESCRIPTION = '维护平台敏感词规则，支持批量导入与启用控制。分类建议使用 agent、skill、mcp、app、dataset 等与五类资源一致的命名，便于按场景运营与审计；亦可用 general 表示全站。';
+const PAGE_DESCRIPTION =
+  '维护平台敏感词规则，支持批量导入与启用控制。「分类」仅限敏感词业务专用固定字典（与资源 Tag、五类资源目录无关）；未列出的历史数据仍会显示在原分类下。';
 
 const ENABLED_FILTER_OPTIONS = [
   { value: '', label: '全部状态' },
@@ -133,10 +137,11 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
   const categoryFilterSelectOptions = useMemo(
     () => [
       { value: '', label: '全部分类' },
-      ...categoryOptions.map((c) => ({
-        value: c.category,
-        label: c.count > 0 ? `${c.category}（${c.count}）` : c.category,
-      })),
+      ...categoryOptions.map((c) => {
+        const name = formatSensitiveWordCategoryLabel(c.category);
+        const label = c.count > 0 ? `${name}（${c.count}）` : name;
+        return { value: c.category, label };
+      }),
     ],
     [categoryOptions],
   );
@@ -370,7 +375,11 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
         id: 'category',
         header: '分类',
         cellClassName: 'align-middle',
-        cell: (item) => <span className={textMuted(theme)}>{item.category}</span>,
+        cell: (item) => (
+          <span className={textMuted(theme)} title={item.category}>
+            {formatSensitiveWordCategoryLabel(item.category)}
+          </span>
+        ),
       },
       {
         id: 'enabled',
@@ -633,7 +642,7 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
               autoComplete="off"
             />
             <p className={`mt-1 text-xs ${textMuted(theme)}`}>
-              常用值见下拉建议（agent / skill / mcp / app / dataset / general / default）；可直接输入自定义分类。
+              请从建议中选用敏感词专用分类（非资源 Tag）；仍可直接输入自定义值以兼容历史数据。
             </p>
           </div>
           <div>

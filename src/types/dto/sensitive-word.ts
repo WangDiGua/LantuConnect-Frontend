@@ -46,16 +46,30 @@ export interface SensitiveWordCategoryCount {
   count: number;
 }
 
-/** 与后端预设分类一致（兜底）；实际以下拉接口为准。 */
+/** 敏感词专用固定分类（与资源 Tag / 五类资源无关）；顺序与后端 SensitiveWordFixedCategories 一致。 */
 export const SENSITIVE_WORD_CATEGORY_PRESETS = [
-  'agent',
-  'skill',
-  'mcp',
-  'app',
-  'dataset',
-  'general',
   'default',
+  'general',
+  'review',
+  'user_profile',
+  'announcement',
+  'other',
 ] as const;
+
+/** 管理端展示用中文说明（存库仍为左侧 code） */
+export const SENSITIVE_WORD_CATEGORY_LABELS: Record<string, string> = {
+  default: '默认',
+  general: '全站通用',
+  review: '评论与反馈',
+  user_profile: '用户资料',
+  announcement: '公告与通知',
+  other: '其他场景',
+};
+
+export function formatSensitiveWordCategoryLabel(code: string): string {
+  const c = code?.trim() ?? '';
+  return SENSITIVE_WORD_CATEGORY_LABELS[c] ?? c;
+}
 
 export interface SensitiveWordImportResult {
   added: number;

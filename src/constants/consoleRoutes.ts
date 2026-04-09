@@ -158,7 +158,6 @@ const USER_SIDEBAR_PAGES: Record<string, string[]> = {
     'workspace',
     'developer-onboarding',
     'my-favorites',
-    'quick-access',
     'my-agents-pub',
     'resource-market',
     'skill-market',

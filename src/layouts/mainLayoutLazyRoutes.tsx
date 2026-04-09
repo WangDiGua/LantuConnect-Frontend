@@ -11,7 +11,6 @@ export const UserWorkspaceOverview = lazy(() =>
 export const DeveloperOnboardingPage = lazy(() =>
   import('../views/onboarding/DeveloperOnboardingPage').then((m) => ({ default: m.DeveloperOnboardingPage })),
 );
-export const QuickAccess = lazy(() => import('../views/dashboard/QuickAccess').then((m) => ({ default: m.QuickAccess })));
 export const PlaceholderView = lazy(() =>
   import('../views/common/PlaceholderView').then((m) => ({ default: m.PlaceholderView })),
 );

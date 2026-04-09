@@ -74,7 +74,7 @@ export interface UserWorkbenchNavItem {
   anyPerm?: readonly string[];
 }
 
-/** 图二核心六项：发布总览 / 使用记录 / 用量统计 / 快速入口 / 最近使用 / 我的收藏 */
+/** 工作台核心入口：发布总览 / 使用记录 / 用量统计 / 最近使用 / 我的收藏 */
 export const USER_WORKBENCH_CORE_NAV: UserWorkbenchNavItem[] = [
   {
     id: 'my-agents-pub',
@@ -85,7 +85,6 @@ export const USER_WORKBENCH_CORE_NAV: UserWorkbenchNavItem[] = [
   },
   { id: 'usage-records', label: '使用记录', icon: History, page: 'usage-records' },
   { id: 'usage-stats', label: '用量统计', icon: BarChart3, page: 'usage-stats' },
-  { id: 'quick-access', label: '快速入口', icon: Zap, page: 'quick-access' },
   { id: 'recent-use', label: '最近使用', icon: Clock, page: 'recent-use' },
   { id: 'my-favorites', label: '我的收藏', icon: Heart, page: 'my-favorites' },
 ];
@@ -283,10 +282,7 @@ export const USER_APPS_CENTER_GROUPS: NavSubGroup[] = [
 export const USER_MY_CONSOLE_GROUPS: NavSubGroup[] = [
   {
     title: '常用总览',
-    items: [
-      { id: 'overview', icon: LayoutGrid, label: '工作台总览' },
-      { id: 'quick-access', icon: Zap, label: '快速入口' },
-    ],
+    items: [{ id: 'overview', icon: LayoutGrid, label: '工作台总览' }],
   },
   {
     title: '使用分析',

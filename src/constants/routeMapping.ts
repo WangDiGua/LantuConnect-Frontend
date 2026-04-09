@@ -61,7 +61,6 @@ export const USER_ROUTE_MAPPING: Record<string, string> = {
   
   // Sub-routes
   '概览': 'overview',
-  '快捷入口': 'quick-access',
   '最近项目': 'recent-projects',
   '对话流编排': 'conversation-flow',
   '版本与发布': 'version-publish',

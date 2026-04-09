@@ -60,11 +60,6 @@ const checks = [
     ],
   },
   {
-    file: 'src/views/dashboard/QuickAccess.tsx',
-    patterns: ["navigate(buildPath('user', card.title === '接入文档' ? 'api-docs' : 'hub'))"],
-    forbiddenPatterns: ["buildPath(isAdmin ? 'admin' : 'user', 'api-docs')"],
-  },
-  {
     file: 'src/views/monitoring/CallLogPage.tsx',
     patterns: ['TraceId', 'safeText(r.traceId)', '状态码、TraceId'],
   },

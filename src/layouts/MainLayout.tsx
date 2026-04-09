@@ -42,7 +42,6 @@ import { ScrollToTopAffix } from '../components/common/ScrollToTopAffix';
 const ExploreHub = lazy(() => import('../views/dashboard/ExploreHub').then(m => ({ default: m.ExploreHub })));
 const UserWorkspaceOverview = lazy(() => import('../views/dashboard/UserWorkspaceOverview').then(m => ({ default: m.UserWorkspaceOverview })));
 const DeveloperOnboardingPage = lazy(() => import('../views/onboarding/DeveloperOnboardingPage').then(m => ({ default: m.DeveloperOnboardingPage })));
-const QuickAccess = lazy(() => import('../views/dashboard/QuickAccess').then(m => ({ default: m.QuickAccess })));
 const PlaceholderView = lazy(() => import('../views/common/PlaceholderView').then(m => ({ default: m.PlaceholderView })));
 const AgentDetail = lazy(() => import('../views/agent/AgentDetail').then(m => ({ default: m.AgentDetail })));
 const ProviderManagementPage = lazy(() => import('../views/provider/ProviderManagementPage').then(m => ({ default: m.ProviderManagementPage })));
@@ -184,6 +183,8 @@ function normalizeDeprecatedPage(page: string): string {
       return 'my-publish-agent';
     case 'my-skills':
       return 'my-publish-skill';
+    case 'quick-access':
+      return 'workspace';
     default:
       return page;
   }
@@ -439,8 +440,6 @@ const MainContent = React.memo<{
         return renderResourceRegister('app');
       case 'dataset-register':
         return renderResourceRegister('dataset');
-      case 'quick-access':
-        return <QuickAccess theme={t} fontSize={fs} />;
       case 'recent-use':
         return <UsageRecordsPage theme={t} fontSize={fs} initialView="recent" />;
 
@@ -571,7 +570,6 @@ const MainContent = React.memo<{
     if (p.includes('detail') || p === 'profile') return 'detail' as const;
     if (
       p.includes('market') ||
-      p === 'quick-access' ||
       p === 'skills-center' ||
       p === 'mcp-center' ||
       p === 'dataset-center' ||

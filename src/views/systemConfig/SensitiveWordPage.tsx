@@ -5,8 +5,10 @@ import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { sensitiveWordService } from '../../api/services/sensitive-word.service';
 import type { SensitiveWord, SensitiveWordCategoryCount, SensitiveWordImportResult } from '../../types/dto/sensitive-word';
 import {
-  SENSITIVE_WORD_CATEGORY_PRESETS,
+  DEFAULT_SENSITIVE_WORD_CATEGORY,
+  SENSITIVE_WORD_CATEGORY_OPTIONS,
   formatSensitiveWordCategoryLabel,
+  isSensitiveWordPresetCategory,
 } from '../../types/dto/sensitive-word';
 import type { PaginatedData } from '../../types/api';
 import { BentoCard } from '../../components/common/BentoCard';
@@ -47,7 +49,7 @@ interface Props {
 const INPUT_FOCUS = 'focus:ring-2 focus:ring-neutral-900/20 focus:border-neutral-900/35';
 const SENSITIVE_PAGE_SIZE = 20;
 const PAGE_DESCRIPTION =
-  '维护平台敏感词规则，支持批量导入与启用控制。「分类」仅限敏感词业务专用固定字典（与资源 Tag、五类资源目录无关）；未列出的历史数据仍会显示在原分类下。';
+  '维护平台敏感词规则，支持批量导入与启用控制。「分类」与公告「类型」相同：固定下拉、中文展示；仅服务于敏感词业务，与资源 Tag、五类资源目录无关。历史库中非预设值可在筛选与编辑中查看并改回预设项。';
 
 const ENABLED_FILTER_OPTIONS = [
   { value: '', label: '全部状态' },
@@ -86,19 +88,19 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
 
   const [showAdd, setShowAdd] = useState(false);
   const [addWord, setAddWord] = useState('');
-  const [addCategory, setAddCategory] = useState('');
+  const [addCategory, setAddCategory] = useState<string>(DEFAULT_SENSITIVE_WORD_CATEGORY);
   const [addSeverity, setAddSeverity] = useState(1);
   const [addSource, setAddSource] = useState('manual');
   const [adding, setAdding] = useState(false);
   const [showBatch, setShowBatch] = useState(false);
   const [batchJson, setBatchJson] = useState('{\n  "words": ["示例词1", "示例词2"]\n}');
-  const [batchCategory, setBatchCategory] = useState('');
+  const [batchCategory, setBatchCategory] = useState<string>(DEFAULT_SENSITIVE_WORD_CATEGORY);
   const [batchSeverity, setBatchSeverity] = useState(1);
   const [batchSource, setBatchSource] = useState('manual');
   const [batching, setBatching] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
-  const [importCategory, setImportCategory] = useState('');
+  const [importCategory, setImportCategory] = useState<string>(DEFAULT_SENSITIVE_WORD_CATEGORY);
   const [importSeverity, setImportSeverity] = useState(1);
   const [importSource, setImportSource] = useState('manual');
   const [importing, setImporting] = useState(false);
@@ -146,14 +148,14 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
     [categoryOptions],
   );
 
-  /** 联想用：预设顺序 + 接口返回 + 去重；仍可自由输入未列出值 */
-  const categoryDatalistValues = useMemo(() => {
-    const presets = [...SENSITIVE_WORD_CATEGORY_PRESETS] as string[];
-    const presetSet = new Set(presets);
-    const fromApi = categoryOptions.map((c) => c.category).filter(Boolean);
-    const extras = [...new Set(fromApi)].filter((c) => !presetSet.has(c)).sort((a, b) => a.localeCompare(b));
-    return [...presets, ...extras];
-  }, [categoryOptions]);
+  const editCategorySelectOptions = useMemo(() => {
+    const cur = (editingItem?.category ?? '').trim();
+    const opts = [...SENSITIVE_WORD_CATEGORY_OPTIONS];
+    if (cur && !isSensitiveWordPresetCategory(cur)) {
+      return [...opts, { value: cur, label: `${cur}（历史值）` }];
+    }
+    return opts;
+  }, [editingItem?.category]);
 
   const fetchList = useCallback(async () => {
     setLoading(true);
@@ -193,14 +195,14 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
     try {
       await sensitiveWordService.create({
         word: addWord.trim(),
-        category: addCategory.trim() || undefined,
+        category: addCategory.trim() || DEFAULT_SENSITIVE_WORD_CATEGORY,
         severity: addSeverity,
         source: addSource.trim() || undefined,
       });
       showMessage('已添加', 'success');
       setShowAdd(false);
       setAddWord('');
-      setAddCategory('');
+      setAddCategory(DEFAULT_SENSITIVE_WORD_CATEGORY);
       setAddSeverity(1);
       setAddSource('manual');
       void fetchList();
@@ -222,13 +224,14 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
     try {
       const result = await sensitiveWordService.batchCreate({
         words,
-        category: batchCategory.trim() || undefined,
+        category: batchCategory.trim() || DEFAULT_SENSITIVE_WORD_CATEGORY,
         severity: batchSeverity,
         source: batchSource.trim() || undefined,
       });
       setLatestImportResult(result);
       showMessage(`批量新增完成，新增 ${result.added} 条`, 'success');
       setShowBatch(false);
+      setBatchCategory(DEFAULT_SENSITIVE_WORD_CATEGORY);
       await fetchList();
     } catch (e) {
       showMessage(e instanceof Error ? e.message : '批量新增失败', 'error');
@@ -246,7 +249,7 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
     setImporting(true);
     try {
       const result = await sensitiveWordService.import(importFile, {
-        category: importCategory.trim() || undefined,
+        category: importCategory.trim() || DEFAULT_SENSITIVE_WORD_CATEGORY,
         severity: importSeverity,
         source: importSource.trim() || undefined,
       });
@@ -254,6 +257,7 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
       showMessage(`导入完成，新增 ${result.added} 条`, 'success');
       setShowImport(false);
       setImportFile(null);
+      setImportCategory(DEFAULT_SENSITIVE_WORD_CATEGORY);
       await fetchList();
     } catch (e) {
       showMessage(e instanceof Error ? e.message : '文件导入失败', 'error');
@@ -334,7 +338,8 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
 
   const openEditModal = useCallback((item: SensitiveWord) => {
     setEditingItem(item);
-    setEditCategory(item.category ?? '');
+    const raw = (item.category ?? '').trim();
+    setEditCategory(raw || DEFAULT_SENSITIVE_WORD_CATEGORY);
     setEditSeverity(Math.max(1, item.severity ?? 1));
     setEditEnabled(item.enabled !== false);
   }, []);
@@ -349,7 +354,7 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
     setSavingEdit(true);
     try {
       await sensitiveWordService.update(editingItem.id, {
-        category: editCategory.trim() || undefined,
+        category: editCategory.trim() || DEFAULT_SENSITIVE_WORD_CATEGORY,
         severity: editSeverity,
         enabled: editEnabled,
       });
@@ -495,24 +500,40 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
             />
           </div>
           <div className="flex flex-nowrap items-center justify-end gap-2 shrink-0">
-            <button type="button" className={btnSecondary(theme)} onClick={() => setShowBatch(true)}>
+            <button
+              type="button"
+              className={btnSecondary(theme)}
+              onClick={() => {
+                setBatchCategory(DEFAULT_SENSITIVE_WORD_CATEGORY);
+                setShowBatch(true);
+              }}
+            >
               <Braces size={14} /> JSON 批量新增
             </button>
-            <button type="button" className={btnSecondary(theme)} onClick={() => setShowImport(true)}>
+            <button
+              type="button"
+              className={btnSecondary(theme)}
+              onClick={() => {
+                setImportCategory(DEFAULT_SENSITIVE_WORD_CATEGORY);
+                setShowImport(true);
+              }}
+            >
               <Upload size={14} /> 文件导入
             </button>
-            <button type="button" className={btnPrimary} onClick={() => setShowAdd(true)}>
+            <button
+              type="button"
+              className={btnPrimary}
+              onClick={() => {
+                setAddCategory(DEFAULT_SENSITIVE_WORD_CATEGORY);
+                setShowAdd(true);
+              }}
+            >
               <Plus size={14} /> 单条新增
             </button>
           </div>
         </div>
       }
     >
-      <datalist id="lantu-sensitive-word-categories">
-        {categoryDatalistValues.map((c) => (
-          <option key={c} value={c} />
-        ))}
-      </datalist>
       <div className="px-4 sm:px-6 pb-6">
         {latestImportResult && (
           <BentoCard theme={theme} padding="sm" className="mb-4">
@@ -583,7 +604,7 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
           setShowAdd(false);
           setAddWordError('');
           setAddWord('');
-          setAddCategory('');
+          setAddCategory(DEFAULT_SENSITIVE_WORD_CATEGORY);
           setAddSeverity(1);
           setAddSource('manual');
         }}
@@ -599,7 +620,7 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
                 setShowAdd(false);
                 setAddWordError('');
                 setAddWord('');
-                setAddCategory('');
+                setAddCategory(DEFAULT_SENSITIVE_WORD_CATEGORY);
                 setAddSeverity(1);
                 setAddSource('manual');
               }}
@@ -633,16 +654,15 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
           </div>
           <div>
             <label className={`text-sm font-medium ${textSecondary(theme)} mb-1 block`}>分类</label>
-            <input
-              className={inputCls}
-              list="lantu-sensitive-word-categories"
+            <LantuSelect
+              theme={theme}
               value={addCategory}
-              onChange={(e) => setAddCategory(e.target.value)}
-              placeholder="留空则存为 default"
-              autoComplete="off"
+              onChange={setAddCategory}
+              options={SENSITIVE_WORD_CATEGORY_OPTIONS}
+              ariaLabel="敏感词分类"
             />
             <p className={`mt-1 text-xs ${textMuted(theme)}`}>
-              请从建议中选用敏感词专用分类（非资源 Tag）；仍可直接输入自定义值以兼容历史数据。
+              与公告「类型」相同：仅允许预设项；与资源 Tag、agent/mcp 等无关。
             </p>
           </div>
           <div>
@@ -681,14 +701,16 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
           </div>
           <div>
             <label className={`text-sm font-medium ${textSecondary(theme)} mb-1 block`}>分类</label>
-            <input
-              className={inputCls}
-              list="lantu-sensitive-word-categories"
+            <LantuSelect
+              theme={theme}
               value={editCategory}
-              onChange={(e) => setEditCategory(e.target.value)}
-              placeholder="常用分类见建议，或直接输入"
-              autoComplete="off"
+              onChange={setEditCategory}
+              options={editCategorySelectOptions}
+              ariaLabel="敏感词分类"
             />
+            {editingItem?.category?.trim() && !isSensitiveWordPresetCategory(editingItem.category) ? (
+              <p className={`mt-1 text-xs ${textMuted(theme)}`}>当前为历史分类代码，请择一映射到上方预设项后保存。</p>
+            ) : null}
           </div>
           <div>
             <label className={`text-sm font-medium ${textSecondary(theme)} mb-1 block`}>严重级别</label>
@@ -712,6 +734,7 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
         onClose={() => {
           setShowBatch(false);
           setBatchJsonError('');
+          setBatchCategory(DEFAULT_SENSITIVE_WORD_CATEGORY);
         }}
         title="JSON 批量新增"
         theme={theme}
@@ -723,6 +746,7 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
             onClick={() => {
               setShowBatch(false);
               setBatchJsonError('');
+              setBatchCategory(DEFAULT_SENSITIVE_WORD_CATEGORY);
             }}
           >
             取消
@@ -753,15 +777,17 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
               </p>
             ) : null}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <input
-              className={inputCls}
-              list="lantu-sensitive-word-categories"
+          <div>
+            <label className={`text-sm font-medium ${textSecondary(theme)} mb-1 block`}>分类</label>
+            <LantuSelect
+              theme={theme}
               value={batchCategory}
-              onChange={(e) => setBatchCategory(e.target.value)}
-              placeholder="category（可选）"
-              autoComplete="off"
+              onChange={setBatchCategory}
+              options={SENSITIVE_WORD_CATEGORY_OPTIONS}
+              ariaLabel="批量新增默认分类"
             />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <input type="number" min={1} max={10} className={inputCls} value={batchSeverity} onChange={(e) => setBatchSeverity(Math.max(1, Number(e.target.value) || 1))} placeholder="severity" />
             <input className={inputCls} value={batchSource} onChange={(e) => setBatchSource(e.target.value)} placeholder="source（可选）" />
           </div>
@@ -774,6 +800,7 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
           setShowImport(false);
           setImportFile(null);
           setImportFileError('');
+          setImportCategory(DEFAULT_SENSITIVE_WORD_CATEGORY);
         }}
         title="文件导入（txt/csv/xlsx）"
         theme={theme}
@@ -786,6 +813,7 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
               setShowImport(false);
               setImportFile(null);
               setImportFileError('');
+              setImportCategory(DEFAULT_SENSITIVE_WORD_CATEGORY);
             }}
           >
             取消
@@ -815,14 +843,16 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
               </p>
             ) : null}
           </div>
-          <input
-            className={inputCls}
-            list="lantu-sensitive-word-categories"
-            value={importCategory}
-            onChange={(e) => setImportCategory(e.target.value)}
-            placeholder="category（可选）"
-            autoComplete="off"
-          />
+          <div>
+            <label className={`text-sm font-medium ${textSecondary(theme)} mb-1 block`}>分类</label>
+            <LantuSelect
+              theme={theme}
+              value={importCategory}
+              onChange={setImportCategory}
+              options={SENSITIVE_WORD_CATEGORY_OPTIONS}
+              ariaLabel="导入默认分类"
+            />
+          </div>
           <input type="number" min={1} max={10} className={inputCls} value={importSeverity} onChange={(e) => setImportSeverity(Math.max(1, Number(e.target.value) || 1))} placeholder="severity（可选）" />
           <input className={inputCls} value={importSource} onChange={(e) => setImportSource(e.target.value)} placeholder="source（可选）" />
         </div>

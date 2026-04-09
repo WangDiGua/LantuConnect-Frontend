@@ -46,7 +46,7 @@ export interface SensitiveWordCategoryCount {
   count: number;
 }
 
-/** 敏感词专用固定分类（与资源 Tag / 五类资源无关）；顺序与后端 SensitiveWordFixedCategories 一致。 */
+/** 敏感词专用固定分类（与资源 Tag / 五类资源无关）；顺序与后端 SensitiveWordFixedCategories 一致。存库为稳定英文 code，界面展示中文 label（同公告「类型」模式）。 */
 export const SENSITIVE_WORD_CATEGORY_PRESETS = [
   'default',
   'general',
@@ -56,7 +56,7 @@ export const SENSITIVE_WORD_CATEGORY_PRESETS = [
   'other',
 ] as const;
 
-/** 管理端展示用中文说明（存库仍为左侧 code） */
+/** 管理端下拉展示用中文（对应存库的 code） */
 export const SENSITIVE_WORD_CATEGORY_LABELS: Record<string, string> = {
   default: '默认',
   general: '全站通用',
@@ -65,6 +65,23 @@ export const SENSITIVE_WORD_CATEGORY_LABELS: Record<string, string> = {
   announcement: '公告与通知',
   other: '其他场景',
 };
+
+/** 新增/批量/导入时的默认分类（与 AnnouncementPage 中默认 `notice` 类似） */
+export const DEFAULT_SENSITIVE_WORD_CATEGORY: (typeof SENSITIVE_WORD_CATEGORY_PRESETS)[number] = 'general';
+
+/** 与 `AnnouncementPage` 的 `TYPE_OPTIONS` 相同用法：固定 `{ value, label }` 下拉 */
+export const SENSITIVE_WORD_CATEGORY_OPTIONS: { value: string; label: string }[] = (
+  SENSITIVE_WORD_CATEGORY_PRESETS as readonly string[]
+).map((code) => ({
+  value: code,
+  label: SENSITIVE_WORD_CATEGORY_LABELS[code] ?? code,
+}));
+
+const PRESET_CATEGORY_SET = new Set<string>(SENSITIVE_WORD_CATEGORY_PRESETS);
+
+export function isSensitiveWordPresetCategory(code: string): boolean {
+  return PRESET_CATEGORY_SET.has((code ?? '').trim());
+}
 
 export function formatSensitiveWordCategoryLabel(code: string): string {
   const c = code?.trim() ?? '';

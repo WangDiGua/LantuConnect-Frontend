@@ -29,7 +29,7 @@
 
 - 不允许修改后端代码。
 - 不允许新增后端不存在的接口、字段、状态流转。
-- 页面覆盖必须包含 direct-url-only 页面（如 `agent-detail`、`quick-access`）。
+- 页面覆盖必须包含 direct-url-only 或需兼容旧链的页面（如 `agent-detail`、已归一的 `quick-access` → `workspace`）。
 - 所有流程必须有成功与失败重试分支（特别是评论评分/helpful、resolve/invoke、授权、审核发布）。
 - 错误处理必须遵循文档：`401/403/404/409/429/500 + ResultCode` 组合。
 - 如发现文档与代码冲突：以代码真值为准，并在输出中标记“文档待回写”。

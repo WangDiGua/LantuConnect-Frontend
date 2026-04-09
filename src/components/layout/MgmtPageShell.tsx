@@ -32,7 +32,7 @@ export const MgmtPageShell: React.FC<MgmtPageShellProps> = ({
 }) => {
   const isDark = theme === 'dark';
   const { hasSecondarySidebar } = useLayoutChrome();
-  /** 横向留白仅由 MainLayout 主滚动区外包层（contentPaddingX）承担，此处不再叠加，与探索页/快捷入口主栏宽度一致 */
+  /** 横向留白仅由 MainLayout 主滚动区外包层（contentPaddingX）承担，此处不再叠加，与探索页等主栏宽度一致 */
   const outerPad = consoleMgmtShellOuterBottomPad;
 
   const pageTitle = breadcrumbSegments[breadcrumbSegments.length - 1] ?? '';

@@ -132,12 +132,12 @@
 | 页面 slug | 验收动作 |
 |---|---|
 | `hub` | 推荐流加载 + 筛选 + 跳详情 |
-| `workspace` | 工作台摘要加载 + 快捷入口跳转 |
+| `workspace` | 工作台摘要加载 + 模块跳转 |
 | `my-agents` | 我的 Agent 列表加载/分页 |
 | `authorized-skills` | 已授权技能加载 + 立即使用入口 |
 | `my-favorites` | 收藏列表 + 取消收藏 |
-| `quick-access` (`direct-url-only`) | 仅直链访问；快捷卡片跳转可用 |
-| `recent-use` | 最近使用记录加载 |
+| `usage-records` | 使用记录 tab（调用流水检索+分页）+ 最近使用 tab（默认） |
+| `recent-use`（兼容旧链） | 归一到 `usage-records` 后同上 |
 | `agent-market` | 列表筛选 + 详情 + 使用 |
 | `skill-market` | 列表筛选 + 详情 + 使用 |
 | `mcp-market` | 列表筛选 + 详情 + 使用 |
@@ -156,7 +156,6 @@
 | `dataset-list` | 列表筛选 + 行操作 |
 | `dataset-register` | 保存草稿 + 提交审核 |
 | `my-skills` | 我的 Skill 列表加载/分页 |
-| `usage-records` | 调用记录检索 + 分页 |
 | `usage-stats` | 统计图加载 + 时间维度切换 |
 | `profile` | 资料修改 + 会话管理 |
 | `preferences` | 偏好保存 + API Key 管理 |

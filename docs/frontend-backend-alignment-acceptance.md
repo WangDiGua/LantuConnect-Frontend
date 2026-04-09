@@ -127,8 +127,8 @@
 - `my-agents` -> `/user/my-agents`（过渡）：过渡
 - `authorized-skills` -> `/user/authorized-skills`：已完成
 - `my-favorites` -> `/user/favorites*`：已完成
-- `quick-access`：已完成（入口已换成资源授权）
-- `recent-use` -> `/user/recent-use`：已完成
+- `quick-access`：已移除独立页；旧链归一到 `workspace`
+- `recent-use`：侧栏已合并至 `usage-records`；旧链 normalize → `usage-records`；`/user/recent-use` 接口仍用于最近列表
 - `agent-market` -> `/catalog/resources + /invoke`：已完成
 - `skill-market` -> `/catalog/resources + /invoke`：已完成
 - `app-market` -> `/catalog/resources + /invoke`：已完成
@@ -158,7 +158,7 @@
 - 五类资源注册：`agent-register` / `skill-register` / `mcp-register` / `app-register` / `dataset-register` 全部接入 `/resource-center/resources*`。
 - 我的资源管理：`agent-list` / `skill-list` / `mcp-server-list` / `app-list` / `dataset-list` 已统一接入 `/resource-center/resources/mine`，并支持提审、下线、版本创建/切换。
 - 审核链路：`agent-audit` 与 `skill-audit` 已统一到 `/audit/resources`，支持 `approve/reject/publish`。
-- 占位页替换：`authorized-skills` 与 `recent-use` 已改为真实接口页（`/user/authorized-skills`、`/user/recent-use`）；`my-agents-pub` 已改为发布总览页。
+- 占位页替换：`authorized-skills` 已接 `/user/authorized-skills`；最近使用并入 `usage-records` 页内 tab，`/user/recent-use` 仍为列表接口；`my-agents-pub` 已改为发布总览页。
 
 ### 契约对齐核验
 

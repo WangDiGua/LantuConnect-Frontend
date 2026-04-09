@@ -245,8 +245,8 @@
 | `my-agents` | 保留（过渡） | `/user/my-agents` |
 | `authorized-skills` | 保留 | `/user/authorized-skills` |
 | `my-favorites` | 保留 | `/user/favorites*` |
-| `quick-access` | 保留 | 当前主要本地态 |
-| `recent-use` | 保留 | `/user/recent-use` |
+| `quick-access` | 下线（兼容） | 前端 `normalizeDeprecatedPage` → `workspace` |
+| `recent-use` | 兼容重定向 | 前端 `normalizeDeprecatedPage` → `usage-records`；接口 `/user/recent-use` 仍可为最近列表 |
 | `agent-market` | 下线（旧调用） | 从 `/agents/**` 迁移到 `/catalog/resources` + `/invoke` |
 | `skill-market` | 下线（旧调用） | 从 `/v1/skills/**` 迁移到 `/catalog/resources` + `/invoke` |
 | `app-market` | 下线（旧调用） | 从 `/v1/apps/**` 迁移到 `/catalog/resources` + `/invoke` |

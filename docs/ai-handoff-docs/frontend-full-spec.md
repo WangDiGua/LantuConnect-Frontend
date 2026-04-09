@@ -105,6 +105,8 @@
 
 ### A2.2 user 全量 page
 
+> **已移除「快速入口」**：无 `QuickAccess`；`quick-access` slug 归一到 `workspace`。
+
 | sidebarId | page slug | Hash 路径 | 渲染组件 | 状态 | 说明 |
 |---|---|---|---|---|---|
 | hub | `hub` | `#/user/hub` | `ExploreHub` | reachable | 默认发现页 |
@@ -112,8 +114,6 @@
 | workspace | `my-agents` | `#/user/my-agents` | `MyAgentList` | reachable | 与 my-publish 共用 |
 | workspace | `authorized-skills` | `#/user/authorized-skills` | `AuthorizedSkillsPage` | reachable | - |
 | workspace | `my-favorites` | `#/user/my-favorites` | `MyFavoritesPage` | reachable | 与 my-space 共用 |
-| workspace | `quick-access` | `#/user/quick-access` | `QuickAccess` | direct-url-only | 白名单在，但无子菜单项 |
-| workspace | `recent-use` | `#/user/recent-use` | `RecentUsePage` | reachable | - |
 | agent-market | `agent-market` | `#/user/agent-market` | `AgentMarket` | reachable | - |
 | skill-market | `skill-market` | `#/user/skill-market` | `SkillMarket` | reachable | - |
 | mcp-market | `mcp-market` | `#/user/mcp-market` | `McpMarket` | reachable | MCP 独立市场 |
@@ -133,7 +133,8 @@
 | my-publish | `dataset-register` | `#/user/dataset-register` | `ResourceRegisterPage(dataset)` | reachable | - |
 | my-publish | `my-agents` | `#/user/my-agents` | `MyAgentList` | reachable | 与 workspace 共用 |
 | my-publish | `my-skills` | `#/user/my-skills` | `MySkillList` | reachable | - |
-| my-space | `usage-records` | `#/user/usage-records` | `UsageRecordsPage` | reachable | - |
+| my-space | `usage-records` | `#/user/usage-records` | `UsageRecordsPage` | reachable | 默认「最近使用」tab |
+| — | `recent-use` | `#/user/recent-use` | — | redirect | normalize → `usage-records` |
 | my-space | `usage-stats` | `#/user/usage-stats` | `UsageStatsPage` | reachable | - |
 | user-settings | `profile` | `#/user/profile` | `UserProfile` | reachable | - |
 | user-settings | `preferences` | `#/user/preferences` | `UserSettingsPage` | reachable | - |
@@ -213,11 +214,9 @@
 | 页面 | 全量交互 | Net | 备注 |
 |---|---|---|---|
 | `ExploreHub` | 跳转市场/提交入口 | 否 | 导航型 |
-| `UserWorkspaceOverview` | 数据展示、快捷入口卡片 | 是/否 | 以摘要查询为主 |
-| `QuickAccess` | 勾选显示项、保存、跳转工具页 | 否 | 本地配置 |
+| `UserWorkspaceOverview` | 数据展示、最近使用等模块 | 是/否 | 以摘要查询为主 |
 | `AuthorizedSkillsPage` | 分页、刷新 | 是 | 已授权技能 |
-| `RecentUsePage` | 类型筛选、刷新 | 是 | 最近使用 |
-| `UsageRecordsPage` | 类型筛选、时间区间切换、刷新 | 是/否 | 时间区间多为本地 |
+| `UsageRecordsPage` | 「使用记录 / 最近使用」tab、类型与时间筛选、刷新 | 是/否 | 默认最近使用 |
 | `UsageStatsPage` | 加载统计 | 是 | 展示页 |
 | `MyFavoritesPage` | tab 切换、取消收藏、使用 | 是/否混合 | 使用部分为导航 |
 | `MyPublishHubPage` | 发布总览、跳转资源中心 | 否 | 入口页 |

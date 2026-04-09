@@ -146,7 +146,7 @@ flowchart TD
 |---|---|---|---|
 | 五市场 | FilterBar + CardList + DetailDrawer | `displayName/type/status/tags` | 默认仅 `published`，非发布不可“立即使用” |
 | `my-publish` | ProgressCards + QuickActions + List | 五类资源状态计数与列表 | 从注册到提审路径可达 |
-| `workspace` | SummaryCards + Shortcut + RecentPanel | 个人摘要与快捷入口 | 数据失败可重试 |
+| `workspace` | SummaryCards + RecentPanel 等 | 个人摘要与最近使用 | 数据失败可重试 |
 | `profile/preferences` | Form + SecurityPanel | 资料字段/偏好字段 | 401 跳登录，403 禁写 |
 
 ### 5.1 user 路由级页面清单（全量）
@@ -158,8 +158,9 @@ flowchart TD
 | `workspace` | `my-agents` | 我的资源列表 | 查看/编辑 | `/user/my-agents` |
 | `workspace` | `authorized-skills` | 已授权技能列表 | 立即使用 | `/user/authorized-skills` |
 | `workspace` | `my-favorites` | 收藏列表 | 取消收藏/跳详情 | `/user/favorites*` |
-| `workspace` | `quick-access` | 快速入口卡片 | 直达常用功能 | 前端白名单路由 |
-| `workspace` | `recent-use` | 最近使用时间线 | 复用调用参数 | `/user/recent-use` |
+| `my-space` | `usage-records` | 使用记录 / 最近使用（同页 tab，默认最近使用） | 调用流水筛选分页、最近对象列表 | `/user/usage-records`、`/user/recent-use` |
+| — | `recent-use`（兼容） | 同上 | URL 归一到 `usage-records` | `normalizeDeprecatedPage` |
+| — | `quick-access`（已下线） | — | 旧链归一到 `workspace` | `normalizeDeprecatedPage` |
 | `agent-market` | `agent-market` | 筛选 + 卡片 + 分页 | 查看详情/立即使用 | `/catalog/resources` |
 | `skill-market` | `skill-market` | 筛选 + 卡片 + 分页 | 查看详情/立即使用 | `/catalog/resources` |
 | `mcp-market` | `mcp-market` | 筛选 + 卡片 + 分页 | 查看详情/立即使用 | `/catalog/resources` |
@@ -179,7 +180,6 @@ flowchart TD
 | `my-publish` | `dataset-register` | 注册表单 | 保存草稿/提交审核 | `/resource-center/resources` |
 | `my-publish` | `my-agents` | 我的 Agent 列表 | 查看/编辑 | `/user/my-agents` |
 | `my-publish` | `my-skills` | 我的 Skill 列表 | 查看/编辑 | `/user/my-skills` |
-| `my-space` | `usage-records` | 调用记录表 + 筛选 | 回放调用 | `/user/usage-records` |
 | `my-space` | `usage-stats` | 统计图 + 明细 | 切换统计维度 | `/user/usage-stats` |
 | `user-settings` | `profile` | 资料表单 + 会话管理 | 保存资料/踢出会话 | `/auth/profile`、`/auth/sessions*` |
 | `user-settings` | `preferences` | 偏好设置 + API Key 区 | 保存偏好/创建 key | `/user-settings/*` |

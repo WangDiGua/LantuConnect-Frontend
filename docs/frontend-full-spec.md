@@ -138,13 +138,14 @@
 
 用户端二级市场统一挂在 `marketplace` 一个 `sidebarId` 下（非 `agent-market` 等多个一级侧栏）。
 
+> **已移除「快速入口」**：无 `QuickAccess` 页面与侧栏项；历史 slug `quick-access` 经 `normalizeDeprecatedPage` 归一到 `workspace`（工作台总览）。
+
 | sidebarId | page slug | Hash 路径 | 渲染组件 | 状态 | 说明 |
 |---|---|---|---|---|---|
 | hub | `hub` | `#/user/hub` | `ExploreHub` | reachable | 默认发现页 |
 | workspace | `workspace` | `#/user/workspace` | `UserWorkspaceOverview` | reachable | 子项 `overview` 映射到此 |
 | workspace | `authorized-skills` | `#/user/authorized-skills` | `AuthorizedSkillsPage` | reachable | - |
 | workspace | `my-favorites` | `#/user/my-favorites` | `MyFavoritesPage` | reachable | - |
-| workspace | `quick-access` | `#/user/quick-access` | `QuickAccess` | reachable | - |
 | marketplace | `agent-market` | `#/user/agent-market` | `AgentMarket` | reachable | - |
 | marketplace | `skill-market` | `#/user/skill-market` | `SkillMarket` | reachable | - |
 | marketplace | `mcp-market` | `#/user/mcp-market` | `McpMarket` | reachable | - |
@@ -163,8 +164,8 @@
 | developer-portal | `sdk-download` | `#/user/sdk-download` | `SdkDownloadPage` | reachable | - |
 | developer-portal | `api-playground` | `#/user/api-playground` | `ApiPlaygroundPage` | reachable | - |
 | developer-portal | `developer-statistics` | `#/user/developer-statistics` | `DeveloperStatsPage` | reachable | - |
-| my-space | `usage-records` | `#/user/usage-records` | `UsageRecordsPage` | reachable | - |
-| my-space | `recent-use` | `#/user/recent-use` | `UsageRecordsPage` | reachable | `initialView=recent` |
+| my-space | `usage-records` | `#/user/usage-records` | `UsageRecordsPage` | reachable | 同页含「使用记录 / 最近使用」tab，默认最近使用 |
+| my-space | `recent-use` | `#/user/recent-use` | — | redirect | `normalizeDeprecatedPage` → `usage-records` |
 | my-space | `usage-stats` | `#/user/usage-stats` | `UsageStatsPage` | reachable | - |
 | my-space | `my-grant-applications` | `#/user/my-grant-applications` | `MyGrantApplicationsPage` | reachable | - |
 | user-settings | `profile` | `#/user/profile` | `UserSettingsHubPage` | reachable | `initialTab=profile` |
@@ -245,11 +246,9 @@
 | 页面 | 全量交互 | Net | 备注 |
 |---|---|---|---|
 | `ExploreHub` | 跳转市场/提交入口 | 否 | 导航型 |
-| `UserWorkspaceOverview` | 数据展示、快捷入口卡片 | 是/否 | 以摘要查询为主 |
-| `QuickAccess` | 勾选显示项、保存、跳转工具页 | 否 | 本地配置 |
+| `UserWorkspaceOverview` | 数据展示、最近使用等模块 | 是/否 | 以摘要查询为主 |
 | `AuthorizedSkillsPage` | 分页、刷新 | 是 | 已授权技能 |
-| `RecentUsePage` | 类型筛选、刷新 | 是 | 最近使用 |
-| `UsageRecordsPage` | 类型筛选、时间区间切换、刷新 | 是/否 | 时间区间多为本地 |
+| `UsageRecordsPage` | 「使用记录 / 最近使用」tab、类型与时间筛选、刷新 | 是/否 | 默认 tab 为最近使用；`recent-use` slug 归一本页 |
 | `UsageStatsPage` | 加载统计 | 是 | 展示页 |
 | `MyFavoritesPage` | tab 切换、取消收藏、使用 | 是/否混合 | 使用部分为导航 |
 | `MyPublishHubPage` | 发布总览、跳转资源中心 | 否 | 入口页 |

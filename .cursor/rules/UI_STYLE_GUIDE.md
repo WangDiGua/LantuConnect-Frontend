@@ -26,8 +26,8 @@
 | 2026-03-19 | 外观持久化：`localStorage` 键 `lantu-appearance`（`src/utils/appearanceState.ts`），主题/主题色/字号/字体/动画切换后自动保存，刷新恢复；知识库页 `views/knowledge/*`（列表+创建/批量/开发者/命中测试子页）接入 Agent 管理「知识库」 |
 | 2026-03-19 | `index.css`：覆盖 DaisyUI 输入/下拉/文本域聚焦的 2px 深色 outline，改为 1px 浅蓝 outline；默认控件聚焦边框柔化；`btn`/`btn-outline`/`btn-ghost` 的 `outline-color` 同步为浅主题色 |
 | 2026-03-19 | 暗色主题下列表斑马纹：去掉 `table-zebra`，按奇偶行手写 `bg-white/5`（暗色）/ `bg-slate-50/80`（浅色），避免暗色下出现纯白行；AI 助手页主区与底部输入区背景统一：`main` 在「AI 助手」下设为 `bg-[#F2F2F7]`（浅）/ `bg-[#000000]`（暗），消除底部白条 |
-| 2026-03-19 | §5 主区留白：主内容区外边距收紧为 `px-2 sm:px-3 lg:px-4 py-2 sm:py-3`（或 `py-4` 等适度值），背景色作细边；Overview、QuickAccess、AgentList、AgentCreate、AgentDetail、ToolMarket、UserProfile、PlaceholderView、AIAssistant 已统一按此调整 |
-| 2026-03-19 | 概览 `Overview`、快捷入口 `QuickAccess`、工具市场 `ToolMarket`、用户资料 `UserProfile`、占位页 `PlaceholderView`、`AIAssistant`、`AgentDetail`：主区背景 `#F2F2F7` / 深色 `#000000`，卡片 `shadow-none` + `border-slate-200/80`（或深色 `border-white/10`），去营销重阴影；`MainLayout` 侧栏 Logo 区去掉加号；`AgentCreate` 与列表页壳层对齐（此前已做） |
+| 2026-03-19 | §5 主区留白：主内容区外边距收紧为 `px-2 sm:px-3 lg:px-4 py-2 sm:py-3`（或 `py-4` 等适度值），背景色作细边；Overview、AgentList、AgentCreate、AgentDetail、ToolMarket、UserProfile、PlaceholderView、AIAssistant 等已统一按此调整（历史版本曾含已下线的快捷入口页） |
+| 2026-03-19 | 概览 `Overview`、工具市场 `ToolMarket`、用户资料 `UserProfile`、占位页 `PlaceholderView`、`AIAssistant`、`AgentDetail`：主区背景 `#F2F2F7` / 深色 `#000000`，卡片 `shadow-none` + `border-slate-200/80`（或深色 `border-white/10`），去营销重阴影；`MainLayout` 侧栏 Logo 区去掉加号；`AgentCreate` 与列表页壳层对齐（此前已做） |
 | 2026-03-19 | 新增 §0 文档维护约定、§3 焦点/ring 规范、§4 表格与列表规范；`index.css` 弱化 `.btn:focus-visible`；`AgentList` 表 `min-w-[1280px]` + `overflow-x-auto` + 列 `min-w`；`MainLayout` 输入区 `ring-1`；外观色点 / 创建向导步骤环改细 |
 
 ### 持久化存储（localStorage）

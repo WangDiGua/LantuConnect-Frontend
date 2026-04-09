@@ -81,7 +81,7 @@
 - `#/admin/{unknown}`、`#/user/{unknown}`：必须回落默认页。
 - 无 admin 权限访问 `#/admin/*`：拦截并回 user 默认页。
 - 废弃 slug 必须走 `normalizeDeprecatedPage` 重定向。
-- `quick-access` 允许 direct-url-only，不强制挂菜单。
+- `quick-access`（已下线）：旧直链经 `normalizeDeprecatedPage` 落到 `workspace`，无独立页面。
 
 ## 4) 安全与头部
 

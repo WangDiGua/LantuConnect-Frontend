@@ -86,11 +86,11 @@
 | sidebarId | 包含的 `page` slug |
 |-----------|-------------------|
 | `hub` | `hub` |
-| `workspace` | `workspace`, `authorized-skills`, `my-favorites`, `quick-access` |
+| `workspace` | `workspace`, `authorized-skills`, `my-favorites` |
 | `marketplace` | `agent-market`, `skill-market`, `mcp-market`, `app-market`, `dataset-market` |
 | `my-publish` | `my-agents-pub`, `resource-center`, `agent-list`, `agent-register`, `skill-list`, `skill-register`, `mcp-server-list`, `mcp-register`, `app-list`, `app-register`, `dataset-list`, `dataset-register` |
 | `developer-portal` | `api-docs`, `sdk-download`, `api-playground`, `developer-statistics` |
-| `my-space` | `usage-records`, `recent-use`, `usage-stats`, `my-grant-applications` |
+| `my-space` | `usage-records`, `usage-stats`, `my-grant-applications`（`recent-use` 仅兼容旧链，normalize 至 `usage-records`） |
 | `user-settings` | `profile`, `preferences` |
 
 工作台子菜单里 **`overview` 子项** 映射到 URL `page` **`workspace`**（`subItemToPage`）。
@@ -137,11 +137,9 @@
 | `agent-list` ~ `dataset-list` | `ResourceCenterManagementPage`（固定对应 `resourceType`） |
 | `*-register`（五类） | `ResourceRegisterPage` |
 | `authorized-skills` | `AuthorizedSkillsPage` |
-| `quick-access` | `QuickAccess` |
-| `recent-use` | `UsageRecordsPage(initialView="recent")` |
+| `usage-records` | `UsageRecordsPage`（默认展示「最近使用」tab；`recent-use` 旧 slug 归一至此） |
 | `agent-market` ~ `dataset-market` | 各类 Market 页 |
 | `my-agents-pub` | `MyPublishHubPage` |
-| `usage-records` | `UsageRecordsPage(initialView="records")` |
 | `my-favorites` | `MyFavoritesPage` |
 | `usage-stats` | `UsageStatsPage` |
 | `my-grant-applications` | `MyGrantApplicationsPage` |

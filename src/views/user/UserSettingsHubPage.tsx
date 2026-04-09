@@ -34,7 +34,11 @@ export const UserSettingsHubPage: React.FC<UserSettingsHubPageProps> = ({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {activeTab === 'profile' ? (
-        <UserProfile theme={theme} fontSize={fontSize} />
+        <UserProfile
+          theme={theme}
+          fontSize={fontSize}
+          onOpenSecuritySettings={() => setActiveTab('preferences')}
+        />
       ) : activeTab === 'my-api-keys' ? (
         <UserPersonalApiKeysPage
           theme={theme}

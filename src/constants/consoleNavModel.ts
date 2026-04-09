@@ -10,7 +10,7 @@ export type ConsoleNavIcon = ComponentType<{
 
 /**
  * 控制台导航行：分区标题 + 一级菜单项（含路由域）。
- * 数据源唯一来源：MainLayout `fullSidebarRows`；顶栏筛选见 {@link filterSidebarRowsForSlimTopNav}。
+ * MainLayout：`fullSidebarRows` 供左轨/侧栏抽屉；顶栏横向见 `topNavSidebarRows`；全局菜单搜索常用 `sidebarSearchRows`（可含顶栏独占项）。
  */
 export type ConsoleSidebarRow =
   | { kind: 'section'; label: string }

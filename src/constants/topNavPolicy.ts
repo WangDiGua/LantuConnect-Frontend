@@ -22,22 +22,20 @@ export const USER_TOP_NAV_NO_RAIL_SIDEBAR_IDS = USER_TOP_NAV_SIDEBAR_IDS.filter(
 
 export const USER_TOP_NAV_NO_RAIL_SIDEBAR_ID_SET = new Set<string>(USER_TOP_NAV_NO_RAIL_SIDEBAR_IDS);
 
+/** 顶栏横向展示的六类入口 id（含「探索发现」） */
+export const USER_TOP_NAV_SIDEBAR_ID_SET = new Set<string>(USER_TOP_NAV_SIDEBAR_IDS);
+
 /**
  * 用户壳（consoleRole=user）顶栏：MainLayout 对 filterSidebarRowsForSlimTopNav 始终传入 omitAdminPrimary=true，
  * 横向不出现「平台管理」一级；总览等仍在侧栏抽屉与全局搜索（全量行）可达。
  */
 
 /**
- * 首页 ExploreHub 左栏一级分组（与侧栏抽屉同源顺序：探索 + 五类资源 + 个人工作台 + 开发者中心）。
- * 每项下为树状二级菜单，与 `getNavSubGroups` 一致。
+ * 首页 / 移动抽屉左轨：仅放「探索发现」「个人工作台」「开发者中心」。
+ * 五类资源广场（技能/MCP/数据/智能体/应用）**只在顶栏**，不在侧栏重复列出。
  */
 export const HUB_PERSONAL_RAIL_PARENT_IDS = [
   'hub',
-  'skills-center',
-  'mcp-center',
-  'dataset-center',
-  'agents-center',
-  'apps-center',
   'workspace',
   'developer-portal',
 ] as const;
@@ -100,8 +98,6 @@ export function buildHubPersonalNavModel(
   }));
 }
 
-const USER_TOP_NAV_SET = new Set<string>(USER_TOP_NAV_SIDEBAR_IDS);
-
 export type SlimTopNavOptions = {
   /**
    * 为 true 时不输出管理域一级项（用于探索首页顶栏瘦身；抽屉与搜索仍用全量行）
@@ -139,7 +135,7 @@ export function filterSidebarRowsForSlimTopNav(fullRows: ConsoleSidebarRow[], op
       out.push(row);
       continue;
     }
-    if (USER_TOP_NAV_SET.has(row.id)) {
+    if (USER_TOP_NAV_SIDEBAR_ID_SET.has(row.id)) {
       flushSection();
       out.push(row);
     } else {

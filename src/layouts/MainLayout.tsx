@@ -31,6 +31,7 @@ import {
   HUB_PERSONAL_RAIL_PARENT_IDS,
   filterSidebarRowsForSlimTopNav,
   USER_TOP_NAV_NO_RAIL_SIDEBAR_ID_SET,
+  USER_TOP_NAV_SIDEBAR_IDS,
   type ExploreHubRailConfig,
   type HubPersonalRailSection,
 } from '../constants/topNavPolicy';
@@ -1245,8 +1246,28 @@ const MainLayoutContent: React.FC<{
     });
   }, [platformRole, hasPermission]);
 
-  /** 同一侧栏内合并使用端与管理端分组（全量：桌面管理轨、抽屉与顶栏搜索；分区名与产品稿图二一致） */
+  /** 左轨 / 与顶栏搜索解耦后的「侧栏专用」行：不含五类资源广场（广场仅顶栏展示） */
+  const userSidebarItemsForLeftChrome = useMemo(
+    () => userSidebarItems.filter((item) => !USER_TOP_NAV_NO_RAIL_SIDEBAR_ID_SET.has(item.id)),
+    [userSidebarItems],
+  );
+
   const fullSidebarRows: ConsoleSidebarRow[] = useMemo(() => {
+    const rows: ConsoleSidebarRow[] = [
+      { kind: 'section', label: '使用端' },
+      ...userSidebarItemsForLeftChrome.map((item) => ({ kind: 'item' as const, ...item, domain: 'user' as const })),
+    ];
+    if (adminSidebarItems.length > 0) {
+      rows.push({ kind: 'section', label: '管理端' });
+      rows.push(
+        ...adminSidebarItems.map((item) => ({ kind: 'item' as const, ...item, domain: 'admin' as const })),
+      );
+    }
+    return rows;
+  }, [userSidebarItemsForLeftChrome, adminSidebarItems]);
+
+  /** 菜单搜索（⌘/Ctrl+K）全量可达入口，含五类广场，便于跳转 */
+  const sidebarSearchRows: ConsoleSidebarRow[] = useMemo(() => {
     const rows: ConsoleSidebarRow[] = [
       { kind: 'section', label: '使用端' },
       ...userSidebarItems.map((item) => ({ kind: 'item' as const, ...item, domain: 'user' as const })),
@@ -1261,12 +1282,25 @@ const MainLayoutContent: React.FC<{
   }, [userSidebarItems, adminSidebarItems]);
 
   /**
-   * 顶栏始终不出现「平台管理」一级（与 topNavPolicy 一致）；管理端入口在侧栏与移动抽屉与使用端同一套 HubPersonalRail。
+   * 顶栏横向：探索发现 + 五类广场；管理一级仍由 filter 按 omitAdminPrimary 隐藏。
+   * 数据源与 `fullSidebarRows` 独立，避免左轨重复列出广场项。
    */
-  const topNavSidebarRows = useMemo(
-    () => filterSidebarRowsForSlimTopNav(fullSidebarRows, { omitAdminPrimary: true }),
-    [fullSidebarRows],
-  );
+  const topNavSidebarRows = useMemo(() => {
+    const userTopNavItems = USER_TOP_NAV_SIDEBAR_IDS.map((id) => userSidebarItems.find((i) => i.id === id)).filter(
+      (item): item is (typeof userSidebarItems)[number] => Boolean(item),
+    );
+    const synthetic: ConsoleSidebarRow[] = [
+      { kind: 'section', label: '使用端' },
+      ...userTopNavItems.map((item) => ({ kind: 'item' as const, ...item, domain: 'user' as const })),
+    ];
+    if (adminSidebarItems.length > 0) {
+      synthetic.push({ kind: 'section', label: '管理端' });
+      synthetic.push(
+        ...adminSidebarItems.map((item) => ({ kind: 'item' as const, ...item, domain: 'admin' as const })),
+      );
+    }
+    return filterSidebarRowsForSlimTopNav(synthetic, { omitAdminPrimary: true });
+  }, [userSidebarItems, adminSidebarItems]);
 
   const filteredSubGroupsForSidebarId = useCallback(
     (sidebarId: string, domain: ConsoleRole) => {
@@ -1603,7 +1637,7 @@ const MainLayoutContent: React.FC<{
           activeSidebar={activeSidebar}
           activeSubItem={activeSubItem}
           sidebarRows={topNavSidebarRows}
-          sidebarSearchRows={fullSidebarRows}
+          sidebarSearchRows={sidebarSearchRows}
           platformRole={platformRole}
           onSidebarClick={handleTopNavSidebarClick}
           onSubItemClick={handleTopNavSubItemClick}

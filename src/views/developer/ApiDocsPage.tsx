@@ -101,7 +101,7 @@ const GUIDE_TOC: { id: string; label: string }[] = [
   { id: 'doc-keys', label: 'API Key' },
   { id: 'doc-discover', label: '发现与目录' },
   { id: 'doc-consume', label: '解析与调用' },
-  { id: 'doc-access-policy', label: '访问策略' },
+  { id: 'doc-access-policy', label: '目录与调用条件' },
   { id: 'doc-publish', label: '登记与上架' },
   { id: 'doc-types', label: '五类资源' },
   { id: 'doc-skill-hosted', label: '托管技能（Skill）' },
@@ -396,7 +396,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
                   {proseH2(theme, '目录与调用条件')}
                   {prosePara(theme, (
                     <>
-                      网关在校验<strong className={textPrimary(theme)}>有效 Key</strong>与<strong className={textPrimary(theme)}>scope</strong>（catalog / resolve / invoke）后，对已<strong className={textPrimary(theme)}>发布（published）</strong>的资源按统一规则开放调用；以当前环境网关实现为准。库表或 JSON 中可能仍出现 <span className="font-mono">accessPolicy</span> 等历史字段，仅供兼容，不作为产品侧配置入口。平台内 <span className="font-mono">skill</span> 仅 <span className="font-mono">hosted</span>，可走统一 <span className="font-mono">invoke</span>；历史 <span className="font-mono">pack</span> 形态已移除。
+                      网关在校验<strong className={textPrimary(theme)}>有效 Key</strong>与<strong className={textPrimary(theme)}>scope</strong>（catalog / resolve / invoke）后，对已<strong className={textPrimary(theme)}>发布（published）</strong>的资源按统一规则开放调用；以当前环境网关实现为准。<strong className={textPrimary(theme)}>资源级 Grant / 逐资源「申请授权」已下线</strong>，调用<strong className={textPrimary(theme)}>不</strong>再依赖 <span className="font-mono">accessPolicy</span>（库字段 <span className="font-mono">access_policy</span>）做拦截；若 API 仍返回该字段，仅为<strong className={textPrimary(theme)}>历史兼容回显</strong>（迁移后多为 <span className="font-mono">open_platform</span>）。平台内 <span className="font-mono">skill</span> 仅 <span className="font-mono">hosted</span>，可走统一 <span className="font-mono">invoke</span>；历史 <span className="font-mono">pack</span> 形态已移除。
                     </>
                   ))}
                 </section>

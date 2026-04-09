@@ -1,7 +1,9 @@
 import type { PaginatedData } from '../api';
 import type { ResourceType } from './catalog';
 
-/** 与后端 {@code t_resource.access_policy} / {@code ResourceUpsertRequest.accessPolicy} 一致 */
+/**
+ * 与后端 {@code t_resource.access_policy}  wire 值一致（历史兼容；网关 invoke 不以该枚举拦截，见后端 ResourceAccessPolicy）。
+ */
 export type ResourceAccessPolicy = 'grant_required' | 'open_org' | 'open_platform';
 
 export type ResourceStatus =
@@ -34,7 +36,7 @@ export interface ResourceBaseUpsertRequest {
   providerId?: string | number;
   /** 目录标签 id（t_tag → t_resource_tag_rel；可多选时传数组） */
   tagIds?: number[];
-  /** 后端 access_policy 字段（选填；创建默认由后端决定；产品界面不再解释该枚举） */
+  /** 历史：后端 access_policy；新建统一 open_platform，invoke 不据本字段做 Grant 拦截 */
   accessPolicy?: ResourceAccessPolicy;
 }
 
@@ -162,6 +164,7 @@ export interface ResourceCenterItemVO {
   icon?: string;
   screenshots?: string[];
   isPublic?: boolean;
+  /** 历史：t_resource.access_policy 回显 */
   accessPolicy?: string;
   /** agent/app 关联资源 id（与后端 ResourceManageVO 一致） */
   relatedResourceIds?: number[];
@@ -242,6 +245,7 @@ export interface ResourceAuditItemVO {
   id: number;
   resourceId: number;
   resourceType: ResourceType;
+  /** 历史：审核快照中的 access_policy 回显 */
   accessPolicy?: string;
   resourceCode?: string;
   displayName: string;

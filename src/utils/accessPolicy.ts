@@ -1,4 +1,4 @@
-/** 与后端 {@code t_resource.access_policy} 取值兼容的归一化（仅用于 DTO 映射，不在产品界面展示） */
+/** 与后端 {@code t_resource.access_policy} wire 值兼容的归一化（历史字段；invoke 不据此拦截） */
 export type ResourceAccessPolicyWire = 'grant_required' | 'open_org' | 'open_platform';
 
 const KNOWN: ResourceAccessPolicyWire[] = ['grant_required', 'open_org', 'open_platform'];

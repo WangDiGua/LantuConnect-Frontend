@@ -36,7 +36,7 @@ export interface ResourceCatalogItemVO {
   ratingAvg?: number | null;
   reviewCount?: number | null;
   tags?: string[];
-  /** 与后端 ResourceCatalogItemVO.accessPolicy 一致 */
+  /** 历史：`t_resource.access_policy` 回显；非 invoke 拦截开关 */
   accessPolicy?: string;
   /** t_call_log 聚合 */
   callCount?: number;
@@ -54,7 +54,7 @@ export interface ResourceCatalogItemVO {
   fileSize?: number;
   observability?: Record<string, unknown>;
   quality?: Record<string, unknown>;
-  /** 仅当请求携带 X-Api-Key 时后端可能返回：与 invoke 可调用预判一致 */
+  /** 携带有效 X-Api-Key 时后端可能为 true；历史字段名，不表示存在 per-resource Grant */
   hasGrantForKey?: boolean | null;
   /** skill：后端目录 execution_mode；平台侧均为 hosted */
   executionMode?: string;

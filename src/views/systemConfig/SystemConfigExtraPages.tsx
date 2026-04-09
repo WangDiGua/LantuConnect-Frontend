@@ -322,6 +322,41 @@ function securitySelectOptionLabel(settingKey: string, optionValue: string): str
   return optionValue;
 }
 
+/** 与后端 {@code AuditLogRetentionTask} 一致：0=不自动清理；1–3650=保留天数 */
+const AUDIT_LOG_RETENTION_MIN_DAYS = 1;
+const AUDIT_LOG_RETENTION_MAX_DAYS = 3650;
+const AUDIT_LOG_RETENTION_CUSTOM_FALLBACK = 90;
+
+const AUDIT_LOG_RETENTION_PRESET_OPTIONS: { value: string; label: string }[] = [
+  { value: '1', label: '1 天' },
+  { value: '7', label: '7 天' },
+  { value: '30', label: '约一个月（30 天）' },
+  { value: '0', label: '永远保留（不自动清理）' },
+  { value: 'custom', label: '自定义天数' },
+];
+
+function normalizeAuditLogRetentionDays(raw: SecuritySetting['value']): number {
+  const n = typeof raw === 'number' ? raw : Number(raw);
+  if (!Number.isFinite(n)) return AUDIT_LOG_RETENTION_CUSTOM_FALLBACK;
+  return Math.round(n);
+}
+
+function auditLogRetentionSelectMode(days: number): string {
+  if (days === 0) return '0';
+  if (days === 1) return '1';
+  if (days === 7) return '7';
+  if (days === 30) return '30';
+  return 'custom';
+}
+
+function clampAuditRetentionCustomDays(n: number): number {
+  if (!Number.isFinite(n)) return AUDIT_LOG_RETENTION_CUSTOM_FALLBACK;
+  return Math.min(
+    AUDIT_LOG_RETENTION_MAX_DAYS,
+    Math.max(AUDIT_LOG_RETENTION_MIN_DAYS, Math.round(n)),
+  );
+}
+
 function securityBoolValue(v: SecuritySetting['value']): boolean {
   if (typeof v === 'boolean') return v;
   const t = String(v ?? '').trim().toLowerCase();
@@ -361,7 +396,51 @@ function SecurityField({
     );
   }
 
-  if (s.type === 'number' || (s.type === 'input' && s.key === 'audit_log_retention')) {
+  if (s.key === 'audit_log_retention') {
+    const days = normalizeAuditLogRetentionDays(s.value);
+    const mode = auditLogRetentionSelectMode(days);
+    return (
+      <div>
+        <label className={titleCls}>{s.label}</label>
+        <LantuSelect
+          theme={theme}
+          value={mode}
+          options={AUDIT_LOG_RETENTION_PRESET_OPTIONS}
+          onChange={(next) => {
+            if (next === 'custom') {
+              const seed = mode === 'custom' ? days : AUDIT_LOG_RETENTION_CUSTOM_FALLBACK;
+              onChange({ ...s, value: clampAuditRetentionCustomDays(seed) });
+            } else {
+              onChange({ ...s, value: Number(next) });
+            }
+          }}
+          ariaLabel="审计日志保留策略"
+        />
+        {mode === 'custom' ? (
+          <input
+            className={`${inputCls} mt-2`}
+            type="number"
+            min={AUDIT_LOG_RETENTION_MIN_DAYS}
+            max={AUDIT_LOG_RETENTION_MAX_DAYS}
+            step={1}
+            inputMode="numeric"
+            value={days}
+            onChange={(e) => {
+              const next = Number(e.target.value);
+              onChange({
+                ...s,
+                value: clampAuditRetentionCustomDays(Number.isFinite(next) ? next : AUDIT_LOG_RETENTION_CUSTOM_FALLBACK),
+              });
+            }}
+            aria-label="自定义保留天数"
+          />
+        ) : null}
+        {descriptionEl}
+      </div>
+    );
+  }
+
+  if (s.type === 'number') {
     const n = typeof s.value === 'number' ? s.value : Number(s.value);
     const safe = Number.isFinite(n) ? n : 0;
     return (

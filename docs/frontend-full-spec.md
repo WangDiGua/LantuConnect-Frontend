@@ -4,7 +4,7 @@
 > 目标：输出"全项目能力总册 + 后端对齐真值"双层文档，覆盖全部路由、全部页面交互、全部接口与使用证据。
 > 代码基线：`src/App.tsx`、`src/layouts/MainLayout.tsx`、`src/constants/consoleRoutes.ts`、`src/constants/navigation.ts`、`src/context/UserRoleContext.tsx`、`src/lib/http.ts`、`src/api/services/**`、`src/views/**`。
 
-> **路由与菜单权威说明**：优先对照 [docs/frontend/routes-and-navigation.md](frontend/routes-and-navigation.md) 与上述源码。下文 **A2** 为历史矩阵节选，若与真值文档或 `MainLayout` 不一致，**以真值文档为准**。
+> **路由与菜单权威说明**：优先对照 [docs/frontend/routes-and-navigation.md](frontend/routes-and-navigation.md) 与上述源码。**A2.1 / A2.2** 表格由 `npm run docs:gen-console-routes` 根据 `ADMIN_SIDEBAR_PAGES` / `USER_SIDEBAR_PAGES` 生成；与 `MainLayout` 冲突时以源码为准。
 
 ## B0. 后端路由现状（执行改造时优先遵循）
 
@@ -15,7 +15,8 @@
   - 调用：`POST /invoke`
   - SDK：`/sdk/v1/*`
   - 沙箱：`/sandbox/*`
-  - 调用授权：`/resource-grants*`
+  - 资源可见性/调用策略：由资源 `access_policy` 与网关校验共同决定（见后端 `docs/frontend-alignment-handbook.md` §2.9）；独立 `/resource-grants` CRUD 与 grant 工单已下线。
+  - 兼容占位：`GET /user-settings/api-keys/{apiKeyId}/resource-grants` 仍保留但恒返回空列表。
 - 资源注册中心：`/resource-center/resources*`
 - 资源审核闭环：`/audit/resources/*`
 - 旧路径（`/agents/**`、`/v1/skills/**`、`/v1/apps/**`、`/v1/datasets/**`、`/v1/providers/**`、`/v1/categories/**`）已下线，对应 service 内部为 stub（返回空或抛出 410 异常）。
@@ -74,110 +75,142 @@
 | `category-management` | `tag-management` |
 | `submit-agent` | `my-agents-pub` |
 | `submit-skill` | `my-agents-pub` |
-| `my-agents` | `my-agents-pub` |
-| `my-skills` | `my-agents-pub` |
+| `my-agents` | `my-publish-agent` |
+| `my-skills` | `my-publish-skill` |
+| `quota-management` | `rate-limit-policy` |
+| `quick-access` | `workspace` |
+| `recent-use` | `usage-records` |
 
 管理端旧列表/审核 URL 另见真值文档中的 **replace 到 `resource-catalog` / `resource-audit`**（带 `?type=`）。
 
 ### A2.1 admin 全量 page
 
-侧栏 `sidebarId` 以 `consoleRoutes.ADMIN_SIDEBAR_PAGES` 为准：**资源**为 `resource-management`，**审核**为 `audit-center`，不再使用文档旧版中的多套 `agent-management` / `skill-management` 一级菜单。
+侧栏一级 `sidebarId` 与下列 **逐行** `page` 与 `src/constants/consoleRoutes.ts` 中 `ADMIN_SIDEBAR_PAGES` **完全机械一致**（统一资源目录与旧版「*-list / *-audit」条目共属 `admin-resource-ops`）。浏览器主路径为 **`#/c/{page}`**；`#/admin/*` 仅兼容重定向入站。
+
+<!-- AUTO-GENERATED A2.1:BEGIN -->
+
+> 本表由 `scripts/generate-console-route-tables.mjs` 从 `ADMIN_SIDEBAR_PAGES` 生成；请勿手改块内内容。
 
 | sidebarId | page slug | Hash 路径 | 渲染组件 | 状态 | 说明 |
 |---|---|---|---|---|---|
-| overview | `dashboard` | `#/admin/dashboard` | `Overview` | reachable | 默认页 |
-| overview | `health-check` | `#/admin/health-check` | `HealthCheckOverview` | reachable | - |
-| overview | `usage-statistics` | `#/admin/usage-statistics` | `UsageStatsOverview` | reachable | - |
-| overview | `data-reports` | `#/admin/data-reports` | `DataReportsPage` | reachable | - |
-| resource-management | `resource-catalog` | `#/admin/resource-catalog?type=...` | `ResourceCenterManagementPage` | reachable | 统一资源中心 |
-| resource-management | `agent-list` | `#/admin/agent-list` | — | redirect | replace → `resource-catalog?type=agent` |
-| resource-management | `skill-list` | `#/admin/skill-list` | — | redirect | replace → `resource-catalog?type=skill` |
-| resource-management | `mcp-server-list` | `#/admin/mcp-server-list` | — | redirect | replace → `resource-catalog?type=mcp` |
-| resource-management | `app-list` | `#/admin/app-list` | — | redirect | replace → `resource-catalog?type=app` |
-| resource-management | `dataset-list` | `#/admin/dataset-list` | — | redirect | replace → `resource-catalog?type=dataset` |
-| resource-management | `agent-register` | `#/admin/agent-register` | `ResourceRegisterPage(agent)` | reachable | - |
-| resource-management | `agent-detail` | `#/admin/agent-detail/{id}` | `AgentDetail` | direct-url-only | - |
-| resource-management | `agent-monitoring` | `#/admin/agent-monitoring` | `AgentMonitoringPage` | reachable | - |
-| resource-management | `agent-trace` | `#/admin/agent-trace` | `AgentTracePage` | reachable | - |
-| resource-management | `skill-register` | `#/admin/skill-register` | `ResourceRegisterPage(skill)` | reachable | - |
-| resource-management | `mcp-register` | `#/admin/mcp-register` | `ResourceRegisterPage(mcp)` | reachable | - |
-| resource-management | `app-register` | `#/admin/app-register` | `ResourceRegisterPage(app)` | reachable | - |
-| resource-management | `dataset-register` | `#/admin/dataset-register` | `ResourceRegisterPage(dataset)` | reachable | - |
-| audit-center | `resource-audit` | `#/admin/resource-audit?type=...` | `ResourceAuditList` | reachable | 统一审核 |
-| audit-center | `agent-audit` | `#/admin/agent-audit` | — | redirect | replace → `resource-audit?type=agent` |
-| audit-center | `skill-audit` 等 | `#/admin/skill-audit` … | — | redirect | replace → `resource-audit?type=...` |
-| provider-management | `provider-list` | `#/admin/provider-list` | `ProviderManagementPage` | reachable | - |
-| provider-management | `provider-create` | `#/admin/provider-create` | `ProviderManagementPage` | reachable | - |
-| user-management | `user-list` | `#/admin/user-list` | `UserManagementModule` | reachable | - |
-| user-management | `role-management` | `#/admin/role-management` | `UserManagementModule` | reachable | - |
-| user-management | `organization` | `#/admin/organization` | `UserManagementModule` | reachable | - |
-| user-management | `api-key-management` | `#/admin/api-key-management` | `UserManagementModule` | reachable | - |
-| user-management | `resource-grant-management` | `#/admin/resource-grant-management` | `UserManagementModule` | reachable | - |
-| user-management | `grant-applications` | `#/admin/grant-applications` | `GrantApplicationListPage` | reachable | 授权申请审批 |
-| user-management | `developer-applications` | `#/admin/developer-applications` | `DeveloperApplicationListPage` | reachable | 入驻审批 |
-| monitoring | `monitoring-overview` | `#/admin/monitoring-overview` | `MonitoringModule` | reachable | - |
-| monitoring | `call-logs` | `#/admin/call-logs` | `MonitoringModule` | reachable | - |
-| monitoring | `performance-analysis` | `#/admin/performance-analysis` | `MonitoringModule` | reachable | - |
-| monitoring | `alert-management` | `#/admin/alert-management` | `MonitoringModule` | reachable | - |
-| monitoring | `alert-rules` | `#/admin/alert-rules` | `MonitoringModule` | reachable | 子项级权限 |
-| monitoring | `health-config` | `#/admin/health-config` | `MonitoringModule` | reachable | 子项级权限 |
-| monitoring | `circuit-breaker` | `#/admin/circuit-breaker` | `MonitoringModule` | reachable | 子项级权限 |
-| system-config | `tag-management` | `#/admin/tag-management` | `SystemConfigModule` | reachable | - |
-| system-config | ~~`model-config`~~（已移除） | — | `SystemConfigModule` | — | 产品不再提供大模型配置 |
-| system-config | `security-settings` | `#/admin/security-settings` | `SystemConfigModule` | reachable | - |
-| system-config | `quota-management` | `#/admin/quota-management` | `SystemConfigModule` | reachable | - |
-| system-config | `rate-limit-policy` | `#/admin/rate-limit-policy` | `SystemConfigModule` | reachable | - |
-| system-config | `access-control` | `#/admin/access-control` | `SystemConfigModule` | reachable | - |
-| system-config | `audit-log` | `#/admin/audit-log` | `SystemConfigModule` | reachable | - |
-| system-config | `sensitive-words` | `#/admin/sensitive-words` | `SystemConfigModule` | reachable | - |
-| system-config | `announcements` | `#/admin/announcements` | `SystemConfigModule` | reachable | - |
+| overview | `dashboard` | `#/c/dashboard` | AdminOverviewModule | reachable | — |
+| overview | `health-check` | `#/c/health-check` | AdminOverviewModule | reachable | — |
+| overview | `usage-statistics` | `#/c/usage-statistics` | AdminOverviewModule | reachable | — |
+| overview | `data-reports` | `#/c/data-reports` | AdminOverviewModule | reachable | — |
+| admin-resource-ops | `resource-catalog` | `#/c/resource-catalog?type=…`（管理壳缺省 `type` 时由 `MainLayout` 补 `agent`） | ResourceCenterManagementPage | reachable | — |
+| admin-resource-ops | `agent-register` | `#/c/agent-register` | ResourceRegisterPage(agent) | reachable | — |
+| admin-resource-ops | `agent-monitoring` | `#/c/agent-monitoring` | ResourceDiagnosticsModule | reachable | — |
+| admin-resource-ops | `agent-trace` | `#/c/agent-trace` | ResourceDiagnosticsModule | reachable | — |
+| admin-resource-ops | `agent-detail` | `#/c/agent-detail/{id}` | AgentDetail | direct-url-only | 菜单无直达子项；需 `/c/agent-detail/{id}` |
+| admin-resource-ops | `skill-register` | `#/c/skill-register` | ResourceRegisterPage(skill) | reachable | — |
+| admin-resource-ops | `mcp-register` | `#/c/mcp-register` | ResourceRegisterPage(mcp) | reachable | — |
+| admin-resource-ops | `app-register` | `#/c/app-register` | ResourceRegisterPage(app) | reachable | — |
+| admin-resource-ops | `dataset-register` | `#/c/dataset-register` | ResourceRegisterPage(dataset) | reachable | — |
+| admin-resource-ops | `agent-list` | `#/c/agent-list` | ResourceCenterManagementPage（replace 后生效） | redirect | `MainLayout` replace → `#/c/resource-catalog?type=…` |
+| admin-resource-ops | `skill-list` | `#/c/skill-list` | ResourceCenterManagementPage（replace 后生效） | redirect | `MainLayout` replace → `#/c/resource-catalog?type=…` |
+| admin-resource-ops | `mcp-server-list` | `#/c/mcp-server-list` | ResourceCenterManagementPage（replace 后生效） | redirect | `MainLayout` replace → `#/c/resource-catalog?type=…` |
+| admin-resource-ops | `app-list` | `#/c/app-list` | ResourceCenterManagementPage（replace 后生效） | redirect | `MainLayout` replace → `#/c/resource-catalog?type=…` |
+| admin-resource-ops | `dataset-list` | `#/c/dataset-list` | ResourceCenterManagementPage（replace 后生效） | redirect | `MainLayout` replace → `#/c/resource-catalog?type=…` |
+| admin-resource-ops | `resource-audit` | `#/c/resource-audit?type=…` | ResourceAuditList | reachable | — |
+| admin-resource-ops | `agent-audit` | `#/c/agent-audit` | ResourceAuditList（replace 后生效） | redirect | `MainLayout` replace → `#/c/resource-audit?type=agent`（若缺省 `type` 则用该默认值） |
+| admin-resource-ops | `skill-audit` | `#/c/skill-audit` | ResourceAuditList（replace 后生效） | redirect | `MainLayout` replace → `#/c/resource-audit?type=skill`（若缺省 `type` 则用该默认值） |
+| admin-resource-ops | `mcp-audit` | `#/c/mcp-audit` | ResourceAuditList（replace 后生效） | redirect | `MainLayout` replace → `#/c/resource-audit?type=mcp`（若缺省 `type` 则用该默认值） |
+| admin-resource-ops | `app-audit` | `#/c/app-audit` | ResourceAuditList（replace 后生效） | redirect | `MainLayout` replace → `#/c/resource-audit?type=app`（若缺省 `type` 则用该默认值） |
+| admin-resource-ops | `dataset-audit` | `#/c/dataset-audit` | ResourceAuditList（replace 后生效） | redirect | `MainLayout` replace → `#/c/resource-audit?type=dataset`（若缺省 `type` 则用该默认值） |
+| admin-resource-ops | `provider-list` | `#/c/provider-list` | ProviderManagementPage | reachable | — |
+| admin-resource-ops | `provider-create` | `#/c/provider-create` | ProviderManagementPage | reachable | — |
+| user-management | `user-list` | `#/c/user-list` | AdminUserHubModule | reachable | — |
+| user-management | `role-management` | `#/c/role-management` | AdminUserHubModule | reachable | — |
+| user-management | `organization` | `#/c/organization` | AdminUserHubModule | reachable | — |
+| user-management | `api-key-management` | `#/c/api-key-management` | AdminUserHubModule | reachable | — |
+| user-management | `developer-applications` | `#/c/developer-applications` | AdminUserHubModule | reachable | — |
+| monitoring | `monitoring-overview` | `#/c/monitoring-overview` | AdminMonitoringHubModule | reachable | — |
+| monitoring | `call-logs` | `#/c/call-logs` | AdminMonitoringHubModule | reachable | — |
+| monitoring | `performance-analysis` | `#/c/performance-analysis` | AdminMonitoringHubModule | reachable | — |
+| monitoring | `alert-management` | `#/c/alert-management` | AdminMonitoringHubModule | reachable | — |
+| monitoring | `alert-rules` | `#/c/alert-rules` | AdminMonitoringHubModule | reachable | — |
+| monitoring | `health-config` | `#/c/health-config` | AdminMonitoringHubModule | reachable | — |
+| monitoring | `circuit-breaker` | `#/c/circuit-breaker` | AdminMonitoringHubModule | reachable | — |
+| system-config | `tag-management` | `#/c/tag-management` | AdminSystemConfigHubModule | reachable | — |
+| system-config | `system-params` | `#/c/system-params` | AdminSystemConfigHubModule | reachable | — |
+| system-config | `security-settings` | `#/c/security-settings` | AdminSystemConfigHubModule | reachable | — |
+| system-config | `network-config` | `#/c/network-config` | AdminSystemConfigHubModule | reachable | — |
+| system-config | `rate-limit-policy` | `#/c/rate-limit-policy` | AdminSystemConfigHubModule | reachable | — |
+| system-config | `access-control` | `#/c/access-control` | AdminSystemConfigHubModule | reachable | — |
+| system-config | `audit-log` | `#/c/audit-log` | AdminSystemConfigHubModule | reachable | — |
+| system-config | `sensitive-words` | `#/c/sensitive-words` | AdminSystemConfigHubModule | reachable | — |
+| system-config | `announcements` | `#/c/announcements` | AdminSystemConfigHubModule | reachable | — |
 
-`api-docs` / `sdk-download` / `api-playground` / `developer-statistics`：**勿使用 `#/admin/...`**；从管理端访问会 **replace 到 `#/user/...`**（见 `MainLayout`）。
+<!-- AUTO-GENERATED A2.1:END -->
+
+组件/壳层命名以 `MainLayout.tsx` 中 `MainContent` 及 `Admin*HubModule` 为准。
 
 ### A2.2 user 全量 page
 
-用户端一级 `sidebarId` 以 `navigation.ts` / `USER_SIDEBAR_PAGES` 为准（顶栏为「探索 + 五广场」等独立项，**不是**单一的 `marketplace` 侧栏 id）。下表 Hash 路径历史写法为 `#/user/...`，运行时代码为 `#/c/...`（`/c` 前缀以 `CONSOLE_PATH_PREFIX` 为准）。
+下列行与 `USER_SIDEBAR_PAGES` **机械一致**（含全部 `*-list` 行）。Hash 真值为 **`#/c/...`**；`#/user/*` 仅兼容重定向。
 
-> **已移除「快速入口」**：无 `QuickAccess` 页面与侧栏项；历史 slug `quick-access` 经 `normalizeDeprecatedPage` 归一到 `workspace`（工作台总览）。
+<!-- AUTO-GENERATED A2.2:BEGIN -->
+
+> 本表由 `scripts/generate-console-route-tables.mjs` 从 `USER_SIDEBAR_PAGES` 生成；请勿手改块内内容。
 
 | sidebarId | page slug | Hash 路径 | 渲染组件 | 状态 | 说明 |
 |---|---|---|---|---|---|
-| hub | `hub` | `#/user/hub` | `ExploreHub` | reachable | 默认发现页 |
-| workspace | `workspace` | `#/user/workspace` | `UserWorkspaceOverview` | reachable | 子项 `overview` 映射到此 |
-| — | `authorized-skills` | `#/user/authorized-skills` | — | redirect | `MainLayout` replace → `skills-center` |
-| workspace | `my-favorites` | `#/user/my-favorites` | `MyFavoritesPage` | reachable | - |
-| agents-center | `agents-center` / `agent-market` | `#/user/agents-center` 等 | `AgentMarket` 等 | reachable | 与 `USER_SIDEBAR_PAGES.agents-center` 一致 |
-| skills-center | `skills-center` / `skill-market` | `#/user/skills-center` 等 | `SkillMarket` 等 | reachable | - |
-| mcp-center | `mcp-center` / `mcp-market` | `#/user/mcp-center` 等 | `McpMarket` 等 | reachable | - |
-| apps-center | `apps-center` / `app-market` | `#/user/apps-center` 等 | `AppMarket` 等 | reachable | - |
-| dataset-center | `dataset-center` / `dataset-market` | `#/user/dataset-center` 等 | `DatasetMarket` 等 | reachable | - |
-| my-publish | `my-agents-pub` | `#/user/my-agents-pub` | `MyPublishHubPage` | reachable | 发布总览 |
-| my-publish | `resource-center` | `#/user/resource-center?type=...` | `ResourceCenterManagementPage` | reachable | 无 `type` 时补 `agent` |
-| my-publish | `agent-list` | `#/user/agent-list` | — | redirect | replace → `resource-center?type=agent` |
-| my-publish | `skill-list` 等 | `#/user/skill-list` … | — | redirect | replace → `resource-center?type=...` |
-| my-publish | `agent-register` | `#/user/agent-register` | `ResourceRegisterPage(agent)` | reachable | - |
-| my-publish | `skill-register` | `#/user/skill-register` | `ResourceRegisterPage(skill)` | reachable | - |
-| my-publish | `mcp-register` | `#/user/mcp-register` | `ResourceRegisterPage(mcp)` | reachable | - |
-| my-publish | `app-register` | `#/user/app-register` | `ResourceRegisterPage(app)` | reachable | - |
-| my-publish | `dataset-register` | `#/user/dataset-register` | `ResourceRegisterPage(dataset)` | reachable | - |
-| developer-portal | `api-docs` | `#/user/api-docs` | `ApiDocsPage` | reachable | 需 `developer:portal` |
-| developer-portal | `sdk-download` | `#/user/sdk-download` | `SdkDownloadPage` | reachable | - |
-| developer-portal | `api-playground` | `#/user/api-playground` | `ApiPlaygroundPage` | reachable | - |
-| developer-portal | `developer-statistics` | `#/user/developer-statistics` | `DeveloperStatsPage` | reachable | - |
-| workspace | `usage-records` | `#/user/usage-records` | `UsageRecordsPage` | reachable | 同页含「使用记录 / 最近使用」tab，默认最近使用 |
-| — | `recent-use` | `#/user/recent-use` | — | redirect | `normalizeDeprecatedPage` → `usage-records` |
-| workspace | `usage-stats` | `#/user/usage-stats` | `UsageStatsPage` | reachable | - |
-| — | `my-grant-applications` | `#/user/my-grant-applications` | — | redirect | `MainLayout` replace → `hub` |
-| user-settings | `profile` | `#/user/profile` | `UserSettingsHubPage` | reachable | `initialTab=profile` |
-| user-settings | `preferences` | `#/user/preferences` | `UserSettingsHubPage` | reachable | `initialTab=preferences` |
+| hub | `hub` | `#/c/hub` | ExploreHub | reachable | — |
+| workspace | `workspace` | `#/c/workspace` | UserWorkspaceOverview | reachable | — |
+| workspace | `developer-onboarding` | `#/c/developer-onboarding` | DeveloperOnboardingPage | reachable | — |
+| workspace | `my-favorites` | `#/c/my-favorites` | MyFavoritesPage | reachable | — |
+| workspace | `my-agents-pub` | `#/c/my-agents-pub` | MyPublishHubPage | reachable | — |
+| workspace | `resource-market` | `#/c/resource-market` | UserResourceMarketHub | reachable | — |
+| workspace | `skill-market` | `#/c/skill-market` | —（replace 后生效） | redirect | replace → `skills-center`（保留 `resourceId` query） |
+| workspace | `my-publish-agent` | `#/c/my-publish-agent` | MyPublishListRoute | reachable | — |
+| workspace | `my-publish-skill` | `#/c/my-publish-skill` | MyPublishListRoute | reachable | — |
+| workspace | `my-publish-mcp` | `#/c/my-publish-mcp` | MyPublishListRoute | reachable | — |
+| workspace | `my-publish-app` | `#/c/my-publish-app` | MyPublishListRoute | reachable | — |
+| workspace | `my-publish-dataset` | `#/c/my-publish-dataset` | MyPublishListRoute | reachable | — |
+| workspace | `resource-center` | `#/c/resource-center?type=…` | ResourceCenterManagementPage | reachable | — |
+| workspace | `agent-list` | `#/c/agent-list` | ResourceCenterManagementPage（replace 后生效） | redirect | `unifiedResourceCenterPath(role,type)` replace（管理视角走 `resource-catalog`，否则 `resource-center`） |
+| workspace | `agent-register` | `#/c/agent-register` | ResourceRegisterPage(agent) | reachable | — |
+| workspace | `skill-list` | `#/c/skill-list` | ResourceCenterManagementPage（replace 后生效） | redirect | `unifiedResourceCenterPath(role,type)` replace（管理视角走 `resource-catalog`，否则 `resource-center`） |
+| workspace | `skill-register` | `#/c/skill-register` | ResourceRegisterPage(skill) | reachable | — |
+| workspace | `mcp-server-list` | `#/c/mcp-server-list` | ResourceCenterManagementPage（replace 后生效） | redirect | `unifiedResourceCenterPath(role,type)` replace（管理视角走 `resource-catalog`，否则 `resource-center`） |
+| workspace | `mcp-register` | `#/c/mcp-register` | ResourceRegisterPage(mcp) | reachable | — |
+| workspace | `app-list` | `#/c/app-list` | ResourceCenterManagementPage（replace 后生效） | redirect | `unifiedResourceCenterPath(role,type)` replace（管理视角走 `resource-catalog`，否则 `resource-center`） |
+| workspace | `app-register` | `#/c/app-register` | ResourceRegisterPage(app) | reachable | — |
+| workspace | `dataset-list` | `#/c/dataset-list` | ResourceCenterManagementPage（replace 后生效） | redirect | `unifiedResourceCenterPath(role,type)` replace（管理视角走 `resource-catalog`，否则 `resource-center`） |
+| workspace | `dataset-register` | `#/c/dataset-register` | ResourceRegisterPage(dataset) | reachable | — |
+| workspace | `usage-records` | `#/c/usage-records` | UsageRecordsPage | reachable | — |
+| workspace | `usage-stats` | `#/c/usage-stats` | UsageStatsPage | reachable | — |
+| workspace | `developer-applications` | `#/c/developer-applications` | DeveloperApplicationListPage | reachable | — |
+| skills-center | `skills-center` | `#/c/skills-center` | SkillMarket / SkillMarketDetailPage | reachable | — |
+| mcp-center | `mcp-center` | `#/c/mcp-center` | McpMarket | reachable | — |
+| mcp-center | `mcp-market` | `#/c/mcp-market` | —（replace 后生效） | redirect | replace → 对应广场路由或 `resource-market?tab=`（见 `USER_LEGACY_MARKET_PAGE_TO_TAB`） |
+| dataset-center | `dataset-center` | `#/c/dataset-center` | DatasetMarket / DatasetMarketDetailPage | reachable | — |
+| dataset-center | `dataset-market` | `#/c/dataset-market` | —（replace 后生效） | redirect | replace → 对应广场路由或 `resource-market?tab=`（见 `USER_LEGACY_MARKET_PAGE_TO_TAB`） |
+| agents-center | `agents-center` | `#/c/agents-center` | AgentMarket / AgentMarketDetailPage | reachable | — |
+| agents-center | `agent-market` | `#/c/agent-market` | —（replace 后生效） | redirect | replace → 对应广场路由或 `resource-market?tab=`（见 `USER_LEGACY_MARKET_PAGE_TO_TAB`） |
+| apps-center | `apps-center` | `#/c/apps-center` | AppMarket / AppMarketDetailPage | reachable | — |
+| apps-center | `app-market` | `#/c/app-market` | —（replace 后生效） | redirect | replace → 对应广场路由或 `resource-market?tab=`（见 `USER_LEGACY_MARKET_PAGE_TO_TAB`） |
+| developer-portal | `api-docs` | `#/c/api-docs` | ApiDocsPage | reachable | — |
+| developer-portal | `sdk-download` | `#/c/sdk-download` | SdkDownloadPage | reachable | — |
+| developer-portal | `api-playground` | `#/c/api-playground` | ApiPlaygroundPage | reachable | — |
+| developer-portal | `mcp-integration` | `#/c/mcp-integration` | McpIntegrationPage | reachable | — |
+| developer-portal | `developer-statistics` | `#/c/developer-statistics` | DeveloperStatsPage | reachable | — |
+| user-settings | `profile` | `#/c/profile` | UserSettingsHubPage | reachable | — |
+| user-settings | `preferences` | `#/c/preferences` | UserSettingsHubPage | reachable | — |
+
+<!-- AUTO-GENERATED A2.2:END -->
+
+> **未包含在上表但可达的 slug**（侧栏无入口）：如 `authorized-skills`、`recent-use`、`my-grant-applications` 等，见 **A2.0** 与 `MainLayout` 内 `useEffect` replace。
+
+> **开发者中心子页**：`api-docs` / `sdk-download` / `api-playground` / `mcp-integration` / `developer-statistics` 仅挂在用户壳侧栏；若误打开旧管理书签，`MainLayout` 会 **replace** 到 `#/c/...` 用户路径（见 `DEVELOPER_PORTAL_PAGES`）。
 
 ### A2.3 无效路由行为
 
 | 场景 | 结果 |
 |---|---|
-| `#/admin/{unknown}` 或 `#/user/{unknown}`（未知 `page`） | `routeValid=false`，`replace` 到该 `role` 的 `defaultPath`（非占位页时） |
-| 无 admin 能力访问 `#/admin/*` | 重定向到 user 默认页 |
-| 非 `/:role/:page` 的 `*` | `Navigate` 到 `/404`（见 `MainLayout` 内路由表） |
+| `#/c/{unknown}` 或旧 `#/admin|user/{unknown}`（未知 `page`） | `routeValid=false`，`replace` 到该壳默认页（见 `defaultPath` / `inferConsoleRole`） |
+| 无管理视图能力却访问管理类 page | 落用户壳或默认页（与 `UserRoleContext` / `inferConsoleRole` 一致） |
+| 非 `/c/:page/...` 的 `*` | `Navigate` 到 `/404`（见 `MainLayout` 路由表） |
 
 ## A3. 全量交互矩阵（L3，页面级）
 

@@ -57,7 +57,9 @@
 
 ### 路由与导航
 - **React Router DOM** - 路由管理
-- **自定义空间导航系统** - 类VisionOS风格导航
+- **统一控制台路径** - 登录后主路径为 **`#/c/{page}`**（`CONSOLE_PATH_PREFIX`，见 `src/constants/consoleRoutes.ts`）；`#/user/*`、`#/admin/*` 仅作兼容重定向
+- **侧栏与路由矩阵** - 权威说明见 [docs/frontend/routes-and-navigation.md](./docs/frontend/routes-and-navigation.md)；全量 slug 表见 [docs/frontend-full-spec.md](./docs/frontend-full-spec.md) **A2**（可由 `npm run docs:gen-console-routes` 自源码重生）
+- **导航树与顶栏** - `src/constants/navigation.ts`；空间/探索区辅助配置见 `src/constants/spaces.ts`
 
 ### HTTP
 - **Axios** - HTTP客户端
@@ -255,10 +257,9 @@ src/
 ### 添加新页面
 
 1. 在 `src/views/` 创建页面组件
-2. 在 `src/constants/navigation.ts` 添加导航项
-3. 在 `src/router/routes.tsx` 添加路由
-4. 创建对应的API服务（`src/api/services/`）
-5. 创建React Query Hooks（`src/hooks/queries/`）
+2. 在 `src/constants/navigation.ts` 配置侧栏/子项，在 `src/constants/consoleRoutes.ts` 的 `ADMIN_SIDEBAR_PAGES` / `USER_SIDEBAR_PAGES` 登记 `page` slug，并在 `src/layouts/MainLayout.tsx` 的 `MainContent` 中挂入渲染分支
+3. 运行 `npm run docs:gen-console-routes` 更新文档 **A2**（如有契约变更同步后端 `docs/frontend-alignment-handbook.md`）
+4. 创建对应的 API 服务（`src/api/services/`）与 React Query Hooks（`src/hooks/queries/`）
 
 ### 添加新组件
 

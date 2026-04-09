@@ -186,15 +186,15 @@ export const UserWorkspaceOverview: React.FC<Props> = ({ theme, fontSize: _fontS
               欢迎回来，{displayName}
             </h1>
             <p className={`text-sm ${ts}`}>
-              Nexus AI 协同平台为你提供智能体、技能、MCP、数据集与应用等资源；常用入口已收纳在侧栏「个人工作台」树状菜单中。
+              Nexus AI 协同平台为你提供 Agent、Skills、MCP、数据集与应用等资源；常用入口已收纳在侧栏「个人工作台」树状菜单中。
             </p>
           </BentoCard>
         </motion.div>
 
         {/* 最近使用条数：与 usage_record 中各类 invoke 一致（同一批最多 8 条内计数） */}
         <div className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 ${kpiGridGap}`}>
-          <KpiCard theme={theme} label="最近·智能体" value={recentCountByType('agent')} icon={<Bot size={16} />} glow="indigo" delay={0.05} />
-          <KpiCard theme={theme} label="最近·技能" value={recentCountByType('skill')} icon={<Zap size={16} />} glow="emerald" delay={0.07} />
+          <KpiCard theme={theme} label="最近·Agent" value={recentCountByType('agent')} icon={<Bot size={16} />} glow="indigo" delay={0.05} />
+          <KpiCard theme={theme} label="最近·Skills" value={recentCountByType('skill')} icon={<Zap size={16} />} glow="emerald" delay={0.07} />
           <KpiCard theme={theme} label="最近·MCP" value={recentCountByType('mcp')} icon={<Puzzle size={16} />} glow="violet" delay={0.09} />
           <KpiCard theme={theme} label="最近·应用" value={recentCountByType('app')} icon={<AppWindow size={16} />} glow="cyan" delay={0.11} />
           <KpiCard theme={theme} label="最近·数据集" value={recentCountByType('dataset')} icon={<Database size={16} />} glow="emerald" delay={0.13} />

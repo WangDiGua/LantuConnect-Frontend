@@ -218,7 +218,7 @@ export const DatasetMarketDetailPage: React.FC<DatasetMarketDetailPageProps> = (
       <ResourceMarketDetailShell
         theme={theme}
         onBack={onNavigateToList}
-        backLabel="返回数据集中心"
+        backLabel="返回数据集"
         titleBlock={(
           <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start">
             <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-white ${iconColor}`}>

@@ -116,11 +116,11 @@ export const ADMIN_SIDEBAR_ITEMS = [
 
 export const USER_SIDEBAR_ITEMS = [
   { id: 'hub', icon: Compass, label: '探索发现' },
-  { id: 'skills-center', icon: Braces, label: '技能广场' },
-  { id: 'mcp-center', icon: Puzzle, label: '接入广场' },
-  { id: 'dataset-center', icon: Database, label: '数据集市' },
-  { id: 'agents-center', icon: Bot, label: '智能广场' },
-  { id: 'apps-center', icon: AppWindow, label: '应用广场' },
+  { id: 'skills-center', icon: Braces, label: 'Skills 中心' },
+  { id: 'mcp-center', icon: Puzzle, label: 'MCP 广场' },
+  { id: 'dataset-center', icon: Database, label: '数据集' },
+  { id: 'agents-center', icon: Bot, label: 'Agent 广场' },
+  { id: 'apps-center', icon: AppWindow, label: '应用集' },
   { id: 'workspace', icon: LayoutGrid, label: '个人工作台' },
   { id: 'developer-portal', icon: Code2, label: '开发者中心' },
 ];
@@ -260,23 +260,23 @@ export const USER_HUB_GROUPS: NavSubGroup[] = [
 ];
 
 export const USER_SKILLS_CENTER_GROUPS: NavSubGroup[] = [
-  { title: '技能资源', items: [{ id: 'skills-center', icon: Braces, label: '技能广场' }] },
+  { title: 'Skills', items: [{ id: 'skills-center', icon: Braces, label: 'Skills 中心' }] },
 ];
 
 export const USER_MCP_CENTER_GROUPS: NavSubGroup[] = [
-  { title: '互联资源', items: [{ id: 'mcp-center', icon: Puzzle, label: '接入广场' }] },
+  { title: 'MCP', items: [{ id: 'mcp-center', icon: Puzzle, label: 'MCP 广场' }] },
 ];
 
 export const USER_DATASET_CENTER_GROUPS: NavSubGroup[] = [
-  { title: '数据资源', items: [{ id: 'dataset-center', icon: Database, label: '数据集市' }] },
+  { title: '数据集', items: [{ id: 'dataset-center', icon: Database, label: '数据集' }] },
 ];
 
 export const USER_AGENTS_CENTER_GROUPS: NavSubGroup[] = [
-  { title: '智能资源', items: [{ id: 'agents-center', icon: Bot, label: '智能广场' }] },
+  { title: 'Agent', items: [{ id: 'agents-center', icon: Bot, label: 'Agent 广场' }] },
 ];
 
 export const USER_APPS_CENTER_GROUPS: NavSubGroup[] = [
-  { title: '应用资源', items: [{ id: 'apps-center', icon: AppWindow, label: '应用广场' }] },
+  { title: '应用', items: [{ id: 'apps-center', icon: AppWindow, label: '应用集' }] },
 ];
 
 /** 侧栏「个人工作台」：六项能力恢复为树状子菜单；显隐由权限与 `requiresPublish` 控制 */

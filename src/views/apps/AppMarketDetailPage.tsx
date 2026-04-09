@@ -244,7 +244,7 @@ export const AppMarketDetailPage: React.FC<AppMarketDetailPageProps> = ({
       <ResourceMarketDetailShell
         theme={theme}
         onBack={onNavigateToList}
-        backLabel="返回应用广场"
+        backLabel="返回应用集"
         titleBlock={(
           <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start">
             {app.icon ? (

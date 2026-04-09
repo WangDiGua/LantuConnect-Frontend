@@ -1191,7 +1191,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                         ? '支持 Markdown：数据来源、字段说明、使用限制等；将在数据集市场「数据集介绍」Tab 展示'
                         : resourceType === 'agent'
                           ? '支持 Markdown：适用场景、能力边界、调用说明等；将在智能体市场「智能体介绍」Tab 展示'
-                          : '支持 Markdown：功能说明、嵌入方式、权限与示例等；将在应用广场「应用介绍」Tab 展示'
+                          : '支持 Markdown：功能说明、嵌入方式、权限与示例等；将在应用集「应用介绍」Tab 展示'
                 }
               />
             </Field>

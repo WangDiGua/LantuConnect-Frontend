@@ -154,11 +154,11 @@ flowchart TD
 | 目录 | 页面 slug | 页面骨架 | 主动作 | 后端能力 |
 |---|---|---|---|---|
 | `hub` | `hub` | 推荐流 + 趋势榜 + 搜索建议 | 筛选/查看详情 | `/dashboard/explore-hub`、`/catalog/resources*` |
-| `workspace` | `workspace` | 总览卡片 + 快捷区 + 最近使用 | 跳转常用页面 | `/dashboard/user-workspace` |
+| `workspace` | `workspace` | 总览卡片 + 最近使用等 | 跳转常用页面 | `/dashboard/user-workspace` |
 | `workspace` | `my-agents` | 我的资源列表 | 查看/编辑 | `/user/my-agents` |
 | `workspace` | `authorized-skills` | 已授权技能列表 | 立即使用 | `/user/authorized-skills` |
 | `workspace` | `my-favorites` | 收藏列表 | 取消收藏/跳详情 | `/user/favorites*` |
-| `my-space` | `usage-records` | 使用记录 / 最近使用（同页 tab，默认最近使用） | 调用流水筛选分页、最近对象列表 | `/user/usage-records`、`/user/recent-use` |
+| `workspace` | `usage-records` | 使用记录 / 最近使用（同页 tab，默认最近使用） | 调用流水筛选分页、最近对象列表 | `/user/usage-records`、`/user/recent-use`；侧栏属「个人工作台」|
 | — | `recent-use`（兼容） | 同上 | URL 归一到 `usage-records` | `normalizeDeprecatedPage` |
 | — | `quick-access`（已下线） | — | 旧链归一到 `workspace` | `normalizeDeprecatedPage` |
 | `agent-market` | `agent-market` | 筛选 + 卡片 + 分页 | 查看详情/立即使用 | `/catalog/resources` |

@@ -128,19 +128,20 @@
 | 一级菜单 | 二级菜单 | 页面 page | 备注 |
 |---|---|---|---|
 | 探索发现 | 无 | `hub` | 聚合发现页 |
-| 我的工作台 | 我的智能体 / 已授权技能 / 我的收藏 / 最近使用 | `my-agents` / `authorized-skills` / `my-favorites` / `recent-use` | 总览页 `workspace` 为默认 |
+| 个人工作台 | 工作台总览 / 使用记录 / 用量统计 / 我的收藏 / 发布总览 / 资源中心 / 开发者入驻 / 入驻审批 | `workspace` / `usage-records` / `usage-stats` / `my-favorites` / `my-agents-pub` / `resource-center` / `developer-onboarding` / `developer-applications` | 子项真值见 `navigation.ts` → `USER_MY_CONSOLE_GROUPS`；侧栏仅「使用记录」一项，`usage-records` 页内 tab 含最近使用（默认 tab）；旧 `recent-use` 仅 URL 归一 |
 | Agent 市场 | 无 | `agent-market` | 可调用资源市场 |
 | 技能市场 | 无 | `skill-market` | 可调用资源市场 |
 | MCP 市场 | 无 | `mcp-market` | MCP 资源市场 |
 | 应用广场 | 无 | `app-market` | 跳转/嵌入型 |
 | 数据集 | 无 | `dataset-market` | 元数据消费型 |
-| 我的发布 | 发布总览 / 统一资源中心 | `my-agents-pub` / `resource-center` | 需要发布权限才可见 |
-| 个人资产 | 使用记录 / 用量统计 / 授权申请记录 | `usage-records` / `usage-stats` / `authorization-requests` | 使用侧数据与授权闭环 |
+| 我的发布 | 发布总览 / 统一资源中心 | `my-agents-pub` / `resource-center` | 需要发布权限才可见；列表 UI 见下文「统一资源中心」 |
+| 个人资产（路由/深链） | 授权申请等 | `my-grant-applications` 等 | 若未出现在侧栏分组，以 `MainLayout` / `consoleRoutes` 白名单为准；勿与已废止 slug `authorization-requests` 混淆 |
 
 ## 4.2 应用端“发布”链路
 
 - 菜单入口：`我的发布 -> 统一资源中心`
 - 页面组件：`ResourceCenterManagementPage`（可切换资源类型）
+- **布局（2026-04）**：`allowTypeSwitch` 为 true 时，「刷新 / 注册*」与资源类型标签（Agent/Skill/…）同一行；固定单类型列表时按钮仍在 `MgmtPageShell` 顶栏工具区
 - 与管理端共用注册/提审能力
 - 权限约束：无创建权限时禁止进入并跳转 `hub`
 

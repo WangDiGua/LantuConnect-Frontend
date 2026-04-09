@@ -83,15 +83,21 @@
 
 ### User
 
-| sidebarId | 包含的 `page` slug |
+> **真值来源**：`src/constants/consoleRoutes.ts` → `USER_SIDEBAR_PAGES`（下列为摘要；与侧栏树 `navigation.ts` 不一致时以代码为准）。
+
+| sidebarId | 包含的 `page` slug（摘要） |
 |-----------|-------------------|
 | `hub` | `hub` |
-| `workspace` | `workspace`, `authorized-skills`, `my-favorites` |
-| `marketplace` | `agent-market`, `skill-market`, `mcp-market`, `app-market`, `dataset-market` |
-| `my-publish` | `my-agents-pub`, `resource-center`, `agent-list`, `agent-register`, `skill-list`, `skill-register`, `mcp-server-list`, `mcp-register`, `app-list`, `app-register`, `dataset-list`, `dataset-register` |
-| `developer-portal` | `api-docs`, `sdk-download`, `api-playground`, `developer-statistics` |
-| `my-space` | `usage-records`, `usage-stats`, `my-grant-applications`（`recent-use` 仅兼容旧链，normalize 至 `usage-records`） |
-| `user-settings` | `profile`, `preferences` |
+| `workspace` | `workspace`、`usage-records`、`usage-stats`、`my-favorites`、`my-agents-pub`、`resource-center`、五类 `*-list` / `*-register`、`developer-onboarding`、`developer-applications`、`resource-market`、`skill-market`、`my-publish-*` … |
+| `skills-center` | `skills-center` |
+| `mcp-center` | `mcp-center`、`mcp-market` |
+| `dataset-center` | `dataset-center`、`dataset-market` |
+| `agents-center` | `agents-center`、`agent-market` |
+| `apps-center` | `apps-center`、`app-market` |
+| `developer-portal` | `api-docs`、`sdk-download`、`api-playground`、`mcp-integration`、`developer-statistics` |
+| `user-settings` | `profile`、`preferences` |
+
+**兼容重定向（`MainLayout`）**：`authorized-skills` → `skills-center`；`my-grant-applications` → `hub`；`recent-use`（normalize）→ `usage-records`。
 
 工作台子菜单里 **`overview` 子项** 映射到 URL `page` **`workspace`**（`subItemToPage`）。
 
@@ -146,6 +152,12 @@
 | `profile` / `preferences` | `UserSettingsHubPage`（不同 `initialTab`） |
 | `api-docs` / `sdk-download` / `api-playground` / `developer-statistics` | 开发者中心各页 |
 | 其它 | `PlaceholderView` |
+
+## 顶栏主导航（`ConsoleTopNav`）高亮
+
+- 顶栏横向六项（「探索发现」+ 五类资源广场）的选中态由当前 `activeSidebar`、`routeRole` 与 `topNavHighlightFollowsRoute` 共同决定；**须随路由对齐**，勿在离开探索域后仍固定高亮首项。
+- 从左轨 `HubPersonalRail` 或移动抽屉选择子菜单时，与点击顶栏下拉一致，保持 **`topNavHighlightFollowsRoute === true`**（实现：`MainLayout` 中 `handleRailSubItemClick`）。
+- **个人工作台**等不在顶栏六项内：落在 `workspace` 等侧栏时，顶栏可以 **没有任何一项呈「当前页」高亮**，属预期；仅不应错误高亮「探索发现」。
 
 ## 部分子菜单权限裁剪（`SUB_ITEM_PERM_MAP`）
 

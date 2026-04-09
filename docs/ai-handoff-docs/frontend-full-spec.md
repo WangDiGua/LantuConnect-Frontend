@@ -1,6 +1,6 @@
 # LantuConnect 前端全项目全量对齐总册（L3）
 
-> 更新时间：2026-03-25
+> 更新时间：2026-04-09
 > 目标：输出"全项目能力总册 + 后端对齐真值"双层文档，覆盖全部路由、全部页面交互、全部接口与使用证据。
 > 代码基线：`src/App.tsx`、`src/layouts/MainLayout.tsx`、`src/constants/consoleRoutes.ts`、`src/constants/navigation.ts`、`src/context/UserRoleContext.tsx`、`src/lib/http.ts`、`src/api/services/**`、`src/views/**`。
 
@@ -105,20 +105,20 @@
 
 ### A2.2 user 全量 page
 
-> **已移除「快速入口」**：无 `QuickAccess`；`quick-access` slug 归一到 `workspace`。
+> **已移除「快速入口」**：无 `QuickAccess`；`quick-access` slug 归一到 `workspace`。路由/侧栏权威见 `docs/frontend/routes-and-navigation.md` 与 `USER_SIDEBAR_PAGES`。
 
 | sidebarId | page slug | Hash 路径 | 渲染组件 | 状态 | 说明 |
 |---|---|---|---|---|---|
 | hub | `hub` | `#/user/hub` | `ExploreHub` | reachable | 默认发现页 |
 | workspace | `workspace` | `#/user/workspace` | `UserWorkspaceOverview` | reachable | 通过 sidebar 默认页进入 |
-| workspace | `my-agents` | `#/user/my-agents` | `MyAgentList` | reachable | 与 my-publish 共用 |
-| workspace | `authorized-skills` | `#/user/authorized-skills` | `AuthorizedSkillsPage` | reachable | - |
-| workspace | `my-favorites` | `#/user/my-favorites` | `MyFavoritesPage` | reachable | 与 my-space 共用 |
-| agent-market | `agent-market` | `#/user/agent-market` | `AgentMarket` | reachable | - |
-| skill-market | `skill-market` | `#/user/skill-market` | `SkillMarket` | reachable | - |
-| mcp-market | `mcp-market` | `#/user/mcp-market` | `McpMarket` | reachable | MCP 独立市场 |
-| app-market | `app-market` | `#/user/app-market` | `AppMarket` | reachable | - |
-| dataset-market | `dataset-market` | `#/user/dataset-market` | `DatasetMarket` | reachable | - |
+| workspace | `my-agents` | `#/user/my-agents` | `MyAgentList` | reachable | 与 my-publish 共用（以路由真值为准） |
+| — | `authorized-skills` | `#/user/authorized-skills` | — | redirect | replace → `skills-center` |
+| workspace | `my-favorites` | `#/user/my-favorites` | `MyFavoritesPage` | reachable | 挂在「个人工作台」 |
+| agents-center | `agents-center` / `agent-market` | `#/user/agents-center` 等 | `AgentMarket` 等 | reachable | 顶栏/侧栏 id 为 `agents-center` |
+| skills-center | `skills-center` / `skill-market` | `#/user/skills-center` 等 | `SkillMarket` 等 | reachable | - |
+| mcp-center | `mcp-center` / `mcp-market` | `#/user/mcp-center` 等 | `McpMarket` 等 | reachable | - |
+| apps-center | `apps-center` / `app-market` | `#/user/apps-center` 等 | `AppMarket` 等 | reachable | - |
+| dataset-center | `dataset-center` / `dataset-market` | `#/user/dataset-center` 等 | `DatasetMarket` 等 | reachable | - |
 | my-publish | `my-agents-pub` | `#/user/my-agents-pub` | `MyPublishHubPage` | reachable | 发布总览 |
 | my-publish | `resource-center` | `#/user/resource-center` | `ResourceCenterManagementPage` | reachable | 统一资源中心 |
 | my-publish | `agent-list` | `#/user/agent-list` | `ResourceCenterManagementPage(agent)` | reachable | - |
@@ -133,9 +133,9 @@
 | my-publish | `dataset-register` | `#/user/dataset-register` | `ResourceRegisterPage(dataset)` | reachable | - |
 | my-publish | `my-agents` | `#/user/my-agents` | `MyAgentList` | reachable | 与 workspace 共用 |
 | my-publish | `my-skills` | `#/user/my-skills` | `MySkillList` | reachable | - |
-| my-space | `usage-records` | `#/user/usage-records` | `UsageRecordsPage` | reachable | 默认「最近使用」tab |
+| workspace | `usage-records` | `#/user/usage-records` | `UsageRecordsPage` | reachable | 默认「最近使用」tab |
 | — | `recent-use` | `#/user/recent-use` | — | redirect | normalize → `usage-records` |
-| my-space | `usage-stats` | `#/user/usage-stats` | `UsageStatsPage` | reachable | - |
+| workspace | `usage-stats` | `#/user/usage-stats` | `UsageStatsPage` | reachable | - |
 | user-settings | `profile` | `#/user/profile` | `UserProfile` | reachable | - |
 | user-settings | `preferences` | `#/user/preferences` | `UserSettingsPage` | reachable | - |
 
@@ -178,7 +178,7 @@
 
 | 页面 | 全量交互 | Net | 备注 |
 |---|---|---|---|
-| `ResourceCenterManagementPage` | 刷新、搜索、类型筛选、状态筛选、分页、注册新资源、编辑、删除、提审、下线 | 是 | 统一资源管理（替代旧 AgentList/SkillList/AppList/DatasetList） |
+| `ResourceCenterManagementPage` | 刷新、搜索、类型/状态筛选、分页、注册、编辑、删除、提审、下线；`allowTypeSwitch` 时刷新/注册与类型标签同一行 | 是 | 统一资源管理（替代旧 AgentList/SkillList/AppList/DatasetList） |
 | `ResourceRegisterPage` | 表单填写、保存、返回 | 是 | 统一资源注册（替代旧 AgentCreate/SkillCreate 等） |
 | `ResourceAuditList` | 类型筛选、状态筛选、通过/驳回/发布 | 是 | 统一资源审核 |
 | `AgentDetail` | 测试、删除确认、返回 | 是 | 详情页 |
@@ -519,7 +519,7 @@
 | `userActivityService.getMyAgents` | GET | `/user/my-agents` | 在用(代码+页面) | 我的 Agent |
 | `userActivityService.getMySkills` | GET | `/user/my-skills` | 在用(代码+页面) | 我的 Skill |
 | `userActivityService.getAuthorizedSkills` | GET | `/user/authorized-skills` | 在用(代码+页面) | 已授权技能 |
-| `userActivityService.getRecentUse` | GET | `/user/recent-use` | 在用(代码+页面) | 最近使用 |
+| `userActivityService.getRecentUse` | GET | `/user/recent-use` | 在用(代码+页面) | `UsageRecordsPage`「最近使用」tab |
 
 ### B3.17 用户设置
 

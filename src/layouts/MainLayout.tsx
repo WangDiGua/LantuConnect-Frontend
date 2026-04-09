@@ -1934,9 +1934,10 @@ const MainLayoutContent: React.FC<{
               <div
                 className={`flex min-h-0 min-w-0 w-full flex-1 flex-col ${contentPaddingX}`}
               >
-                <div className="grid min-h-0 flex-1 grid-cols-1 gap-8 lg:grid-cols-12 lg:grid-rows-1 lg:gap-10 lg:[grid-template-rows:minmax(0,1fr)]">
+                {/* 与 hub 壳层一致：左轨固定 w-52/w-56，避免 12 栅格 col-span-2 随主区域变宽 */}
+                <div className="flex min-h-0 flex-1 flex-col gap-8 lg:flex-row lg:gap-10">
                   <div
-                    className={`order-2 flex min-h-0 flex-col max-h-[min(70vh,32rem)] lg:order-1 lg:col-span-2 lg:max-h-[calc(100dvh-5rem-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px))] lg:overflow-y-auto lg:overscroll-y-contain custom-scrollbar lg:pr-6 ${consoleContentTopPad} ${chromeGpuLayerClass}`}
+                    className={`order-2 flex min-h-0 flex-col max-h-[min(70vh,32rem)] lg:order-1 lg:w-52 lg:max-h-[calc(100dvh-5rem-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px))] lg:shrink-0 lg:overflow-y-auto lg:overscroll-y-contain custom-scrollbar xl:w-56 lg:pr-6 ${consoleContentTopPad} ${chromeGpuLayerClass}`}
                   >
                     <HubPersonalRail
                       theme={theme}
@@ -1951,7 +1952,7 @@ const MainLayoutContent: React.FC<{
                       suppressGlobalMenuSearchHotkey={mobileNavOpen}
                     />
                   </div>
-                  <div className="order-1 flex min-h-0 min-w-0 flex-col lg:order-2 lg:col-span-10">
+                  <div className="order-1 flex min-h-0 min-w-0 flex-1 flex-col lg:order-2">
                     <div
                       ref={routeContentScrollRef}
                       data-lantu-main-scroll

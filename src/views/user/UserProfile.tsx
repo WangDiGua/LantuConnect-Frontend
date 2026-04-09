@@ -12,14 +12,16 @@ import {
   MapPin,
   Laptop,
   ShieldCheck,
+  User,
+  Settings,
 } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
-import type { Theme, FontSize } from '../../types';
+import type { Theme, FontSize, ThemeMode, ThemeColor } from '../../types';
 import { useAuthStore } from '../../stores/authStore';
-import { useMessage } from '../../components/common/Message';
 import { authService } from '../../api/services/auth.service';
+import { UserSettingsPage } from './UserSettingsPage';
 import { MultiAvatar } from '../../components/common/MultiAvatar';
 import type { SessionItem } from '../../types/dto/explore';
 import { mainScrollPadBottom } from '../../utils/uiClasses';
@@ -28,14 +30,18 @@ import { Pagination } from '../../components/common/Pagination';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import type { AccountInsights, AccountSecurityLevel, PlatformRoleCode } from '../../types/dto/auth';
 import { PLATFORM_ROLE_LABELS } from '../../constants/platformRoles';
-import { normalizeRole } from '../../context/UserRoleContext';
+import { normalizeRole, useUserRole } from '../../context/UserRoleContext';
 import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedContentToTop';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { buildPath, inferConsoleRole, parseRoute } from '../../constants/consoleRoutes';
 
 interface UserProfileProps {
   theme: Theme;
   fontSize: FontSize;
-  /** 打开账号安全相关设置（如修改密码） */
-  onOpenSecuritySettings?: () => void;
+  themePreference: ThemeMode;
+  themeColor: ThemeColor;
+  showMessage: (msg: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
+  onOpenAppearance: () => void;
 }
 
 interface LoginHistoryRow {
@@ -126,8 +132,22 @@ const ACTIVITY_FALLBACK = [
   { val: 35 },
 ];
 
-export const UserProfile: React.FC<UserProfileProps> = ({ theme, onOpenSecuritySettings }) => {
+export const UserProfile: React.FC<UserProfileProps> = ({
+  theme,
+  fontSize,
+  themePreference,
+  themeColor,
+  showMessage,
+  onOpenAppearance,
+}) => {
   const isDark = theme === 'dark';
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { platformRole: layoutRole } = useUserRole();
+  const routePage = parseRoute(location.pathname)?.page ?? '';
+  const consoleRole = inferConsoleRole(routePage, layoutRole);
+  const settingsSection = routePage === 'preferences' ? 'preferences' : 'profile';
+
   const user = useAuthStore((s) => s.user);
   const displayName = user?.nickname || user?.username || 'User Name';
   const displayEmail = user?.email || 'user@nexus-ai.edu.cn';
@@ -136,7 +156,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({ theme, onOpenSecurityS
   const displayDept = user?.department || '未设置';
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { showMessage } = useMessage();
   const historyPageSize = 10;
   const sessionPageSize = 10;
   const [activeTab, setActiveTab] = useState<'history' | 'devices'>('history');
@@ -242,6 +261,15 @@ export const UserProfile: React.FC<UserProfileProps> = ({ theme, onOpenSecurityS
     loadInsights();
   }, [loadLoginHistory, loadSessions, loadInsights]);
 
+  useEffect(() => {
+    if (routePage !== 'profile') return;
+    const st = location.state as { openProfileDevices?: boolean } | null;
+    if (st?.openProfileDevices) {
+      setActiveTab('devices');
+      navigate(`${location.pathname}${location.search}`, { replace: true, state: {} });
+    }
+  }, [routePage, location.pathname, location.search, location.state, navigate]);
+
   const handleRevokeSession = async (session: SessionItem) => {
     if (session.current || revokingSessionId) return;
     setRevokingSessionId(session.id);
@@ -280,7 +308,26 @@ export const UserProfile: React.FC<UserProfileProps> = ({ theme, onOpenSecurityS
   return (
     <div className={`flex-1 overflow-y-auto transition-colors duration-300 ${pageShell}`}>
       <div className={`w-full min-w-0 space-y-8 ${mainScrollPadBottom}`}>
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className={`border-b ${isDark ? 'border-white/[0.08]' : 'border-slate-200/80'}`}>
+          <div className="flex gap-8">
+            <TabButton
+              active={settingsSection === 'profile'}
+              onClick={() => navigate(buildPath(consoleRole, 'profile'))}
+              label="个人资料"
+              icon={<User size={18} />}
+            />
+            <TabButton
+              active={settingsSection === 'preferences'}
+              onClick={() => navigate(buildPath(consoleRole, 'preferences'))}
+              label="偏好设置"
+              icon={<Settings size={18} />}
+            />
+          </div>
+        </div>
+
+        {settingsSection === 'profile' ? (
+          <>
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className={profileCard + ' lg:col-span-2'}>
             <div className={profileLeft}>
               <div className="group relative">
@@ -439,7 +486,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ theme, onOpenSecurityS
               </div>
               <button
                 type="button"
-                onClick={() => onOpenSecuritySettings?.()}
+                onClick={() => navigate(buildPath(consoleRole, 'preferences'))}
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-white/10 py-3 text-sm font-medium backdrop-blur-md transition hover:bg-white/20"
               >
                 修改安全设置
@@ -725,6 +772,23 @@ export const UserProfile: React.FC<UserProfileProps> = ({ theme, onOpenSecurityS
             )}
           </div>
         </div>
+          </>
+        ) : (
+          <UserSettingsPage
+            embedded
+            theme={theme}
+            themePreference={themePreference}
+            themeColor={themeColor}
+            fontSize={fontSize}
+            showMessage={(msg, type = 'info') =>
+              showMessage(msg, type as 'success' | 'error' | 'info' | 'warning')
+            }
+            onOpenAppearance={onOpenAppearance}
+            onGoToLoginDevices={() => {
+              navigate(buildPath(consoleRole, 'profile'), { state: { openProfileDevices: true } });
+            }}
+          />
+        )}
       </div>
     </div>
   );

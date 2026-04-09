@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import type { Theme, ThemeMode, FontSize, ThemeColor } from '../../types';
 import { UserProfile } from './UserProfile';
-import { UserSettingsPage } from './UserSettingsPage';
 import { UserPersonalApiKeysPage } from './UserPersonalApiKeysPage';
 
 type SettingsTab = 'profile' | 'my-api-keys' | 'preferences';
@@ -33,11 +32,14 @@ export const UserSettingsHubPage: React.FC<UserSettingsHubPageProps> = ({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {activeTab === 'profile' ? (
+      {activeTab === 'profile' || activeTab === 'preferences' ? (
         <UserProfile
           theme={theme}
           fontSize={fontSize}
-          onOpenSecuritySettings={() => setActiveTab('preferences')}
+          themePreference={themePreference}
+          themeColor={themeColor}
+          showMessage={showMessage}
+          onOpenAppearance={onOpenAppearance}
         />
       ) : activeTab === 'my-api-keys' ? (
         <UserPersonalApiKeysPage
@@ -45,16 +47,7 @@ export const UserSettingsHubPage: React.FC<UserSettingsHubPageProps> = ({
           themeColor={themeColor}
           showMessage={(msg, type = 'info') => showMessage(msg, type)}
         />
-      ) : (
-        <UserSettingsPage
-          theme={theme}
-          themePreference={themePreference}
-          fontSize={fontSize}
-          themeColor={themeColor}
-          showMessage={(msg, type = 'info') => showMessage(msg, type)}
-          onOpenAppearance={onOpenAppearance}
-        />
-      )}
+      ) : null}
     </div>
   );
 };

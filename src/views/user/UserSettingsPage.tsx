@@ -31,6 +31,10 @@ export interface UserSettingsPageProps {
   themeColor: ThemeColor;
   showMessage: (msg: string, type?: 'success' | 'error' | 'info') => void;
   onOpenAppearance: () => void;
+  /** 嵌入个人资料页时由外层提供滚动与背景，不重复包裹画布 */
+  embedded?: boolean;
+  /** 嵌入时「登录设备与会话」跳回个人资料并打开设备 Tab */
+  onGoToLoginDevices?: () => void;
 }
 
 type ToggleProps = { on: boolean; onToggle: () => void; theme: Theme };
@@ -60,7 +64,13 @@ function Toggle({ on, onToggle, theme }: ToggleProps) {
 }
 
 export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
-  theme, themePreference, themeColor, showMessage, onOpenAppearance,
+  theme,
+  themePreference,
+  themeColor,
+  showMessage,
+  onOpenAppearance,
+  embedded = false,
+  onGoToLoginDevices,
 }) => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -129,15 +139,26 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
 
   const rowBtn = `w-full flex items-center justify-between gap-3 p-3 rounded-xl text-left transition-colors ${isDark ? 'hover:bg-white/[0.04]' : 'hover:bg-slate-50'}`;
 
-  return (
-    <div className={`flex-1 overflow-y-auto ${canvasBodyBg(theme)}`}>
-      <div className={`w-full min-h-0 ${mainScrollPadBottom}`}>
-        <div className="flex min-w-0 items-center gap-3 mb-4">
-          <div className={`shrink-0 rounded-xl p-2 ${isDark ? 'bg-white/10' : 'bg-slate-100'}`}>
-            <Settings size={22} className={textSecondary(theme)} />
+  const openLoginDevices = () => {
+    if (embedded && onGoToLoginDevices) {
+      onGoToLoginDevices();
+    } else {
+      navigate(buildPath(consoleRole, 'profile'));
+    }
+  };
+
+  const body = (
+    <>
+        {!embedded ? (
+          <div className="flex min-w-0 items-center gap-3 mb-4">
+            <div className={`shrink-0 rounded-xl p-2 ${isDark ? 'bg-white/10' : 'bg-slate-100'}`}>
+              <Settings size={22} className={textSecondary(theme)} />
+            </div>
+            <PageTitleTagline subtitleOnly theme={theme} title={chromePageTitle || '偏好设置'} tagline="账号安全、通知偏好与隐私选项" />
           </div>
-          <PageTitleTagline subtitleOnly theme={theme} title={chromePageTitle || '偏好设置'} tagline="账号安全、通知偏好与隐私选项" />
-        </div>
+        ) : (
+          <p className={`mb-4 text-sm ${textMuted(theme)}`}>账号安全、通知偏好与隐私选项</p>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
           <BentoCard theme={theme}>
@@ -149,7 +170,7 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
                 <span className="flex items-center gap-3 min-w-0"><Lock size={16} className="text-slate-400 shrink-0" /><span className={`text-sm font-medium ${textSecondary(theme)}`}>登录密码</span></span>
                 <ChevronRight size={16} className="text-slate-400 shrink-0" />
               </button>
-              <button type="button" className={rowBtn} onClick={() => navigate(buildPath(consoleRole, 'profile'))}>
+              <button type="button" className={rowBtn} onClick={openLoginDevices}>
                 <span className="flex items-center gap-3 min-w-0"><Monitor size={16} className="text-slate-400 shrink-0" /><span className={`text-sm font-medium ${textSecondary(theme)}`}>登录设备与会话</span></span>
                 <ChevronRight size={16} className="text-slate-400 shrink-0" />
               </button>
@@ -243,7 +264,6 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
           </button>
         </BentoCard>
         </div>
-      </div>
 
       {/* Password Modal */}
       <Modal open={showPwdModal} onClose={() => setShowPwdModal(false)} title="修改密码" theme={theme} size="sm" footer={<><button type="button" className={btnSecondary(theme)} onClick={() => setShowPwdModal(false)}>取消</button><button type="button" className={`${btnPrimary} disabled:opacity-50`} disabled={pwdLoading} onClick={handlePwdSubmit}>{pwdLoading ? <><Loader2 size={14} className="animate-spin" /> 提交中…</> : '确认修改'}</button></>}>
@@ -254,7 +274,16 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
           {pwdError && <p className="text-xs text-rose-500 font-medium">{pwdError}</p>}
         </div>
       </Modal>
+    </>
+  );
 
+  if (embedded) {
+    return body;
+  }
+
+  return (
+    <div className={`flex-1 overflow-y-auto ${canvasBodyBg(theme)}`}>
+      <div className={`w-full min-h-0 ${mainScrollPadBottom}`}>{body}</div>
     </div>
   );
 };

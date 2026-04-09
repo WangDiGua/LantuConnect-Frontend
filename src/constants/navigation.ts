@@ -324,14 +324,13 @@ export const USER_MY_PUBLISH_GROUPS: NavSubGroup[] = [];
 /** @deprecated 等同于 {@link USER_MY_CONSOLE_GROUPS} */
 export const USER_RESOURCE_ASSETS_GROUPS: NavSubGroup[] = USER_MY_CONSOLE_GROUPS;
 
-/** 个人设置（profile / 密钥管理 / preferences）二级侧栏 */
+/** 个人设置（个人资料页内已含偏好 Tab；侧栏仅 profile / 密钥管理） */
 export const USER_SETTINGS_GROUPS: NavSubGroup[] = [
   {
     title: '个人设置',
     items: [
       { id: 'profile', icon: User, label: '个人资料' },
       { id: 'my-api-keys', icon: KeyRound, label: '密钥管理' },
-      { id: 'preferences', icon: Sliders, label: '偏好设置' },
     ],
   },
 ];

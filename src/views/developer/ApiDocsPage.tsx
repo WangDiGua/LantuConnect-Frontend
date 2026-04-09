@@ -281,7 +281,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
                     <li><strong className={textPrimary(theme)}>工作台 / 探索发现</strong>：逛已发布资源；对接 <span className="font-mono">/catalog/resources</span>、<span className="font-mono">/trending</span>、<span className="font-mono">/search-suggestions</span>。</li>
                     <li><strong className={textPrimary(theme)}>我的发布 · 资源中心</strong>：草稿、提审、版本与托管技能维护；接口前缀 <span className="font-mono">/resource-center/resources</span>。</li>
                     <li><strong className={textPrimary(theme)}>开发者中心</strong>：本页、SDK、API 调试、开发者统计。</li>
-                    <li><strong className={textPrimary(theme)}>个人设置</strong>：个人资料、密钥管理（API Key）、偏好设置；路由含 <span className="font-mono">profile</span>、<span className="font-mono">my-api-keys</span>、<span className="font-mono">preferences</span>。</li>
+                    <li><strong className={textPrimary(theme)}>个人设置</strong>：个人资料（页内 Tab 含偏好设置）、密钥管理（API Key）；直达路由 <span className="font-mono">profile</span>、<span className="font-mono">my-api-keys</span>，偏好 Tab 亦可使用 <span className="font-mono">preferences</span>。</li>
                     <li><strong className={textPrimary(theme)}>管理台</strong>（有权限时）：全平台目录、审核队列、用户与组织、监控配额等——与开发者相关的多为代管发布与审批。</li>
                   </ul>
                   <div className="flex flex-wrap gap-2 pt-1">

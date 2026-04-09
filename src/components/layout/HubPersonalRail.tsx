@@ -372,60 +372,71 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
                     <ChevronDown
                       size={14}
                       aria-hidden
-                      className={`shrink-0 opacity-45 transition-[transform,opacity] duration-200 motion-reduce:transition-none group-hover/parent:opacity-75 ${
+                      className={`shrink-0 opacity-45 transition-[transform,opacity] duration-300 ease-out motion-reduce:duration-0 motion-reduce:transition-none group-hover/parent:opacity-75 ${
                         isDark ? 'text-slate-400' : 'text-slate-500'
                       } ${childrenOpen ? 'rotate-0' : '-rotate-90'}`}
                     />
                   </button>
 
-                  {childrenOpen ? (
-                    <ul
-                      className={`mb-1.5 mt-0 space-y-0.5 border-l-2 pb-2 pl-3 pr-1 ml-3 ${
-                        isDark ? 'border-white/[0.14]' : 'border-slate-300/70'
-                      }`}
-                      role="list"
+                  <div
+                    className={`grid overflow-hidden transition-[grid-template-rows] duration-300 ease-out motion-reduce:duration-0 motion-reduce:transition-none ${
+                      childrenOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+                    }`}
+                    aria-hidden={!childrenOpen}
+                  >
+                    <div
+                      className={`min-h-0 overflow-hidden transition-opacity duration-300 ease-out motion-reduce:transition-none motion-reduce:duration-0 ${
+                        childrenOpen ? 'opacity-100' : 'opacity-0'
+                      } ${childrenOpen ? '' : 'pointer-events-none'}`}
                     >
-                      {rowEntries.map(({ sec, row }) => {
-                        const isActive =
-                          routeRole === sec.domain &&
-                          activeSidebar === sec.parentSidebarId &&
-                          activeSubItem === row.subItemId;
-                        return (
-                          <li key={`${block.key}::${sec.heading}::${row.subItemId}`} className="relative">
-                            {isActive ? (
-                              <span
-                                className={`pointer-events-none absolute left-0 top-1/2 z-[1] size-1.5 -translate-x-4 -translate-y-1/2 rounded-full ${
-                                  isDark ? 'bg-white' : 'bg-black'
+                      <ul
+                        className={`mb-1.5 mt-0 space-y-0.5 border-l-2 pb-2 pl-3 pr-1 ml-3 ${
+                          isDark ? 'border-white/[0.14]' : 'border-slate-300/70'
+                        }`}
+                        role="list"
+                      >
+                        {rowEntries.map(({ sec, row }) => {
+                          const isActive =
+                            routeRole === sec.domain &&
+                            activeSidebar === sec.parentSidebarId &&
+                            activeSubItem === row.subItemId;
+                          return (
+                            <li key={`${block.key}::${sec.heading}::${row.subItemId}`} className="relative">
+                              {isActive ? (
+                                <span
+                                  className={`pointer-events-none absolute left-0 top-1/2 z-[1] size-1.5 -translate-x-4 -translate-y-1/2 rounded-full ${
+                                    isDark ? 'bg-white' : 'bg-black'
+                                  }`}
+                                  aria-hidden
+                                />
+                              ) : null}
+                              <button
+                                type="button"
+                                onClick={() => onSubItemClick(row.subItemId, sec.parentSidebarId, sec.domain)}
+                                aria-current={isActive ? 'page' : undefined}
+                                className={`flex min-h-9 w-full items-center gap-2 rounded-md py-1.5 pl-1 pr-2 text-left text-sm leading-snug transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
+                                  isActive
+                                    ? isDark
+                                      ? 'font-semibold text-slate-50'
+                                      : 'font-semibold text-slate-900'
+                                    : isDark
+                                      ? 'font-normal text-slate-400 hover:bg-white/[0.06] hover:text-slate-300'
+                                      : 'font-normal text-slate-600 hover:bg-slate-100/80 hover:text-slate-800'
                                 }`}
-                                aria-hidden
-                              />
-                            ) : null}
-                            <button
-                              type="button"
-                              onClick={() => onSubItemClick(row.subItemId, sec.parentSidebarId, sec.domain)}
-                              aria-current={isActive ? 'page' : undefined}
-                              className={`flex min-h-9 w-full items-center gap-2 rounded-md py-1.5 pl-1 pr-2 text-left text-sm leading-snug transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
-                                isActive
-                                  ? isDark
-                                    ? 'font-semibold text-slate-50'
-                                    : 'font-semibold text-slate-900'
-                                  : isDark
-                                    ? 'font-normal text-slate-400 hover:bg-white/[0.06] hover:text-slate-300'
-                                    : 'font-normal text-slate-600 hover:bg-slate-100/80 hover:text-slate-800'
-                              }`}
-                            >
-                              <row.icon
-                                className="h-3.5 w-3.5 shrink-0 opacity-80"
-                                strokeWidth={2}
-                                aria-hidden
-                              />
-                              <span className="min-w-0 flex-1 truncate">{row.label}</span>
-                            </button>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  ) : null}
+                              >
+                                <row.icon
+                                  className="h-3.5 w-3.5 shrink-0 opacity-80"
+                                  strokeWidth={2}
+                                  aria-hidden
+                                />
+                                <span className="min-w-0 flex-1 truncate">{row.label}</span>
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  </div>
                 </div>
               </div>
             );

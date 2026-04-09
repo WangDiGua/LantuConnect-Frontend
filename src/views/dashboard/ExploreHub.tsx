@@ -4,7 +4,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   Bot, Wrench, Cpu, AppWindow, Database, BookOpen, Users, Sparkles,
   Activity, Flame, ChevronRight, Award, Megaphone, ArrowRight,
-  Star, Heart, MessageCircle, Clock,
+  Star, Heart, MessageCircle, Clock, Crown, TrendingUp, Zap,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { EChartsOption } from 'echarts';
@@ -20,7 +20,7 @@ import { ConsolePageFooter } from '../../components/layout/ConsolePageFooter';
 import { buildPath, buildUserResourceMarketUrl } from '../../constants/consoleRoutes';
 import { unifiedResourceCenterPath } from '../../utils/unifiedResourceCenterPath';
 import { dashboardService } from '../../api/services/dashboard.service';
-import type { ExploreHubData, ExploreResourceItem, AnnouncementItem } from '../../types/dto/explore';
+import type { ExploreHubData, ExploreResourceItem, AnnouncementItem, ContributorItem } from '../../types/dto/explore';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { Modal } from '../../components/common/Modal';
@@ -143,6 +143,281 @@ const SectionTitle: React.FC<{
     )}
   </div>
 );
+
+/** 领奖台排名对应角色文案（仅作展示分层，不等同 RBAC） */
+const CONTRIBUTOR_RANK_ROLE = ['平台贡献者', '优秀贡献者', '活跃贡献者'] as const;
+
+function HubContributorStatCard({
+  label,
+  value,
+  unit = '',
+  trend,
+  icon,
+  isDark,
+}: {
+  label: string;
+  value: React.ReactNode;
+  unit?: string;
+  trend?: boolean;
+  icon: React.ReactNode;
+  isDark: boolean;
+}) {
+  return (
+    <div
+      className={`p-3 sm:p-4 rounded-2xl shadow-sm border transition-colors ${
+        isDark
+          ? 'bg-white/[0.04] border-white/[0.08] hover:border-indigo-400/30'
+          : 'bg-white border-slate-100/80 hover:border-indigo-100'
+      }`}
+    >
+      <div
+        className={`text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 mb-1.5 whitespace-nowrap ${
+          isDark ? 'text-slate-500' : 'text-slate-400'
+        }`}
+      >
+        <span className={isDark ? 'text-indigo-400' : 'text-indigo-500'}>{icon}</span>
+        {label}
+      </div>
+      <div className="flex items-baseline gap-1 flex-wrap">
+        <span className={`text-xl sm:text-2xl font-black ${isDark ? 'text-slate-50' : 'text-slate-800'}`}>{value}</span>
+        {unit ? (
+          <span className={`text-xs font-bold ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{unit}</span>
+        ) : null}
+        {trend ? (
+          <TrendingUp
+            size={14}
+            className={`shrink-0 ml-0.5 ${isDark ? 'text-indigo-400' : 'text-indigo-500'}`}
+            aria-hidden
+          />
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function HubContributorMiniStat({
+  label,
+  value,
+  suffix = '',
+  icon,
+  isDark,
+}: {
+  label: string;
+  value: string;
+  suffix?: string;
+  icon: React.ReactNode;
+  isDark: boolean;
+}) {
+  return (
+    <div
+      className={`flex flex-col items-center justify-center p-2 rounded-xl transition-colors min-w-0 ${
+        isDark ? 'hover:bg-white/[0.04]' : 'hover:bg-slate-50/80'
+      }`}
+    >
+      <div
+        className={`text-[9px] font-bold mb-1 text-center whitespace-nowrap ${isDark ? 'text-slate-500' : 'text-slate-400'}`}
+      >
+        {label}
+      </div>
+      <div className={`text-sm font-black flex items-center gap-0.5 ${isDark ? 'text-slate-100' : 'text-slate-700'}`}>
+        <span className="tabular-nums">{value}</span>
+        {suffix ? (
+          <span className={`text-[10px] font-bold ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{suffix}</span>
+        ) : null}
+        <span className={`shrink-0 ${isDark ? 'text-slate-600' : 'text-slate-200'}`}>{icon}</span>
+      </div>
+    </div>
+  );
+}
+
+function ExploreHubContributorsPodium({ contributors, isDark }: { contributors: ContributorItem[]; isDark: boolean }) {
+  const top = contributors.slice(0, 3);
+  const first = top[0];
+  if (!first) {
+    return <div className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>暂无贡献者数据</div>;
+  }
+  const second = top[1];
+  const third = top[2];
+
+  const ringBorder = isDark ? 'border-white/15' : 'border-slate-100';
+  const subtleBg = isDark ? 'bg-white/[0.03]' : 'bg-neutral-50';
+  const textPri = isDark ? 'text-slate-100' : 'text-slate-900';
+  const textMuted = isDark ? 'text-slate-500' : 'text-slate-400';
+
+  const renderSide = (person: ContributorItem | undefined, rank: 2 | 3, badgeBg: string) => (
+    <div className="flex-1 flex flex-col items-center min-w-0">
+      <div className="relative mb-3">
+        {person ? (
+          <>
+            <div
+              className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full border-4 ${ringBorder} ${
+                isDark ? 'bg-white/5' : 'bg-white'
+              } shadow-sm flex items-center justify-center overflow-hidden`}
+            >
+              <MultiAvatar
+                seed={`${person.userId}-${person.username}`}
+                imageUrl={person.avatar}
+                alt={person.username}
+                className="w-[3.15rem] h-[3.15rem] sm:w-[3.5rem] sm:h-[3.5rem] rounded-full object-cover"
+              />
+            </div>
+            <div
+              className={`absolute -bottom-2 left-1/2 -translate-x-1/2 ${badgeBg} text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-sm whitespace-nowrap z-10`}
+            >
+              TOP {rank}
+            </div>
+          </>
+        ) : (
+          <div
+            className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-dashed flex items-center justify-center text-[9px] font-medium px-1 text-center leading-tight ${
+              isDark ? 'border-white/20 text-slate-500' : 'border-slate-200 text-slate-400'
+            }`}
+          >
+            虚位以待
+          </div>
+        )}
+      </div>
+      {person ? (
+        <>
+          <p className={`text-xs sm:text-sm font-bold ${textPri} mt-1 truncate max-w-full px-0.5 text-center`}>
+            {resolvePersonDisplay({
+              names: [person.userName],
+              usernames: [person.username],
+              ids: [person.userId],
+            })}
+          </p>
+          <p className={`text-[9px] font-bold mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            {CONTRIBUTOR_RANK_ROLE[rank - 1]}
+          </p>
+          <p className={`text-[10px] ${textMuted} font-medium tabular-nums`}>{formatCount(person.totalCalls)} 次调用</p>
+        </>
+      ) : (
+        <p className={`text-xs ${textMuted} mt-1`}>—</p>
+      )}
+    </div>
+  );
+
+  return (
+    <div
+      className={`rounded-2xl border mt-2 overflow-hidden ${subtleBg} ${
+        isDark ? 'border-white/10' : 'border-gray-100'
+      } shadow-[var(--shadow-card)]`}
+    >
+      <div className="flex justify-end px-4 pt-3 sm:px-5 sm:pt-4">
+        <span
+          className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full whitespace-nowrap ${
+            isDark ? 'text-slate-500 bg-white/[0.06]' : 'text-slate-400 bg-slate-100'
+          }`}
+        >
+          本周更新
+        </span>
+      </div>
+
+      <div className="px-3 sm:px-5 pt-6 pb-4 flex items-end justify-between gap-1.5 sm:gap-3">
+        {renderSide(second, 2, isDark ? 'bg-slate-500' : 'bg-slate-400')}
+
+        <div className="flex-[1.12] sm:flex-[1.15] flex flex-col items-center relative z-10 -mt-5 sm:-mt-6 min-w-0 max-w-[46%]">
+          <div className="relative mb-2.5 sm:mb-3 group">
+            <div
+              className="absolute -top-5 sm:-top-6 left-1/2 -translate-x-1/2 text-amber-500 motion-safe:animate-bounce"
+              aria-hidden
+            >
+              <Crown className="w-6 h-6 sm:w-7 sm:h-7" strokeWidth={1.75} fill="currentColor" />
+            </div>
+            <div
+              className={`absolute -inset-1 sm:-inset-1.5 bg-gradient-to-tr from-amber-200/50 via-yellow-300/35 to-amber-200/50 rounded-full blur-md opacity-20 motion-safe:group-hover:opacity-40 transition-opacity ${
+                isDark ? 'from-amber-400/25 via-amber-300/20' : ''
+              }`}
+              aria-hidden
+            />
+            <div
+              className={`relative w-[4.75rem] h-[4.75rem] sm:w-[5.25rem] sm:h-[5.25rem] rounded-full border-[4px] sm:border-[5px] ${
+                isDark ? 'border-slate-800/90 bg-slate-900' : 'border-white bg-white'
+              } shadow-xl flex items-center justify-center overflow-hidden z-10`}
+            >
+              <MultiAvatar
+                seed={`${first.userId}-${first.username}`}
+                imageUrl={first.avatar}
+                alt={first.username}
+                className="w-16 h-16 sm:w-[4.25rem] sm:h-[4.25rem] rounded-full object-cover"
+              />
+            </div>
+            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-400 to-yellow-600 text-white text-[10px] sm:text-xs font-black px-2.5 sm:px-3 py-1 rounded-full shadow-lg border-2 border-white z-20 whitespace-nowrap">
+              TOP 1
+            </div>
+          </div>
+          <h4 className={`text-sm sm:text-base font-black ${textPri} mt-1.5 sm:mt-2 text-center truncate max-w-full px-0.5`}>
+            {resolvePersonDisplay({
+              names: [first.userName],
+              usernames: [first.username],
+              ids: [first.userId],
+            })}
+          </h4>
+          <p
+            className={`text-[10px] sm:text-xs font-bold mt-1 px-2 py-0.5 rounded-full max-w-full truncate ${
+              isDark ? 'text-amber-300 bg-amber-500/15' : 'text-amber-800 bg-amber-50'
+            }`}
+          >
+            {CONTRIBUTOR_RANK_ROLE[0]}
+          </p>
+        </div>
+
+        {renderSide(third, 3, isDark ? 'bg-orange-500' : 'bg-orange-400')}
+      </div>
+
+      <div
+        className={`mx-3 sm:mx-5 mb-4 sm:mb-5 p-3 sm:p-5 rounded-2xl border ${
+          isDark ? 'bg-black/25 border-white/[0.08]' : 'bg-white border-slate-100'
+        } shadow-inner`}
+      >
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-3 sm:mb-4">
+          <HubContributorStatCard
+            label="发布资源"
+            value={first.resourceCount}
+            unit="个"
+            trend={(first.weeklyNewResources ?? 0) > 0}
+            icon={<TrendingUp size={12} aria-hidden />}
+            isDark={isDark}
+          />
+          <HubContributorStatCard
+            label="累计调用"
+            value={formatCount(first.totalCalls)}
+            icon={<Zap size={12} aria-hidden />}
+            isDark={isDark}
+          />
+        </div>
+        <div className="grid grid-cols-3 gap-1 sm:gap-2">
+          <HubContributorMiniStat
+            label="本周新作"
+            value={String(first.weeklyNewResources ?? 0)}
+            suffix="个"
+            icon={<Star size={10} aria-hidden />}
+            isDark={isDark}
+          />
+          <HubContributorMiniStat
+            label="本周调用"
+            value={formatCount(first.weeklyCalls ?? 0)}
+            icon={<TrendingUp size={10} aria-hidden />}
+            isDark={isDark}
+          />
+          <HubContributorMiniStat
+            label="资源获赞"
+            value={formatCount(first.likeCount ?? 0)}
+            icon={<Heart size={10} aria-hidden />}
+            isDark={isDark}
+          />
+        </div>
+      </div>
+
+      <div
+        className={`h-1 bg-gradient-to-r from-amber-200/50 via-indigo-200/50 to-amber-200/50 ${
+          isDark ? 'opacity-35' : 'opacity-50'
+        }`}
+        aria-hidden
+      />
+    </div>
+  );
+}
 
 const hubResourceCardClass = (isDark: boolean) =>
   `${CONSOLE_CARD_RADIUS} border border-transparent px-6 pt-6 pb-8 flex flex-col h-full text-left cursor-pointer transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50 focus-visible:ring-offset-2 ${
@@ -623,7 +898,10 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
   const recentItems = (hubData?.recentPublished ?? []).slice(0, 4);
   const recommendedItems = (hubData?.recommendedForUser ?? []).slice(0, 4);
   const announcements = (hubData?.announcements ?? []).slice(0, 3);
-  const contributors = [...(hubData?.topContributors ?? [])].sort((a, b) => b.totalCalls - a.totalCalls);
+  const topContributors = useMemo(
+    () => [...(hubData?.topContributors ?? [])].sort((a, b) => b.totalCalls - a.totalCalls).slice(0, 3),
+    [hubData?.topContributors],
+  );
   const c = chartColors(theme);
   const axis = baseAxis(theme);
 
@@ -1010,101 +1288,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
 
               <Card className="p-6" isDark={isDark}>
                 <SectionTitle title="杰出贡献者" icon={Award} isDark={isDark} />
-                {contributors.length > 0 ? (
-                  <>
-                    <div
-                      className={`rounded-2xl p-6 flex flex-col items-center justify-center text-center border mt-2 ${
-                        isDark
-                          ? 'bg-white/[0.03] border-white/10 shadow-[var(--shadow-card)]'
-                          : 'bg-neutral-50 border-gray-100 shadow-[var(--shadow-card)]'
-                      }`}
-                    >
-                      <div className="relative mb-4">
-                        <div className={`w-20 h-20 rounded-full border-4 shadow-[var(--shadow-control)] overflow-hidden flex items-center justify-center ${
-                          isDark ? 'bg-white/10 border-white/20' : 'bg-white border-white'
-                        }`}>
-                          <MultiAvatar
-                            seed={`${contributors[0].userId}-${contributors[0].username}`}
-                            imageUrl={contributors[0].avatar}
-                            alt={contributors[0].username}
-                            className="w-16 h-16 rounded-full object-cover"
-                          />
-                        </div>
-                        <div className="absolute -bottom-2 -right-2 bg-yellow-400 text-yellow-900 text-xs font-bold px-3 py-1 rounded-full border-2 border-white shadow-[var(--shadow-control)]">
-                          TOP 1
-                        </div>
-                      </div>
-
-                      <h4 className={`font-bold mb-1 text-lg ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-                        {resolvePersonDisplay({ names: [contributors[0].userName], usernames: [contributors[0].username], ids: [contributors[0].userId] })}
-                      </h4>
-                      <p className={`text-sm mb-6 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>平台贡献者</p>
-
-                      <div className={`w-full grid grid-cols-2 gap-4 border-t pt-5 ${
-                        isDark ? 'border-white/10' : 'border-slate-200/60'
-                      }`}>
-                        <div>
-                          <div className={`text-xs mb-1 font-medium ${isDark ? 'text-slate-400' : 'text-slate-400'}`}>发布资源</div>
-                          <div className={`font-bold text-lg ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{contributors[0].resourceCount} <span className={`text-xs font-normal ${isDark ? 'text-slate-400' : 'text-slate-400'}`}>个</span></div>
-                        </div>
-                        <div>
-                          <div className={`text-xs mb-1 font-medium ${isDark ? 'text-slate-400' : 'text-slate-400'}`}>累计调用</div>
-                          <div className={`font-bold text-lg ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{formatCount(contributors[0].totalCalls)}</div>
-                        </div>
-                      </div>
-
-                      <div className={`w-full grid grid-cols-3 gap-3 border-t pt-5 mt-4 ${
-                        isDark ? 'border-white/10' : 'border-slate-200/60'
-                      }`}>
-                        <div>
-                          <div className={`text-xs mb-1 font-medium ${isDark ? 'text-slate-400' : 'text-slate-400'}`}>本周新作</div>
-                          <div className={`font-bold text-base ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
-                            {contributors[0].weeklyNewResources ?? 0}
-                            <span className={`text-xs font-normal ${isDark ? 'text-slate-400' : 'text-slate-400'}`}> 个</span>
-                          </div>
-                        </div>
-                        <div>
-                          <div className={`text-xs mb-1 font-medium ${isDark ? 'text-slate-400' : 'text-slate-400'}`}>本周调用</div>
-                          <div className={`font-bold text-base ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{formatCount(contributors[0].weeklyCalls ?? 0)}</div>
-                        </div>
-                        <div>
-                          <div className={`text-xs mb-1 font-medium ${isDark ? 'text-slate-400' : 'text-slate-400'}`}>资源获赞</div>
-                          <div className={`font-bold text-base ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{formatCount(contributors[0].likeCount ?? 0)}</div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="mt-5 space-y-2">
-                      {contributors.slice(1, 3).map((c, i) => (
-                        <div key={c.userId} className={`flex items-center justify-between p-3 rounded-xl cursor-pointer transition-colors border border-transparent ${
-                          isDark ? 'hover:bg-white/[0.03] hover:border-white/10' : 'hover:bg-slate-50 hover:border-slate-100'
-                        }`}>
-                          <div className="flex items-center gap-4 min-w-0">
-                            <div className={`font-bold text-sm w-8 h-8 flex items-center justify-center rounded-lg shrink-0 ${
-                              isDark ? 'text-slate-300 bg-white/10' : 'text-slate-400 bg-slate-100'
-                            }`}>
-                              0{i + 2}
-                            </div>
-                            <MultiAvatar
-                              seed={`${c.userId}-${c.username}`}
-                              imageUrl={c.avatar}
-                              alt={c.username}
-                              className="w-9 h-9 rounded-full object-cover shrink-0"
-                            />
-                            <div className={`text-sm font-bold truncate ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
-                              {resolvePersonDisplay({ names: [c.userName], usernames: [c.username], ids: [c.userId] })}
-                            </div>
-                          </div>
-                          <span className={`text-xs shrink-0 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                            {formatCount(c.totalCalls)} 次调用
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-sm text-slate-500">暂无贡献者数据</div>
-                )}
+                <ExploreHubContributorsPodium contributors={topContributors} isDark={isDark} />
               </Card>
             </div>
           </div>

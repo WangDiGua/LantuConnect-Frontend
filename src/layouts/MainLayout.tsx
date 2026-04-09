@@ -1,4 +1,14 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback, Suspense, lazy, useSyncExternalStore } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useMemo,
+  useCallback,
+  Suspense,
+  lazy,
+  useSyncExternalStore,
+} from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import {
@@ -31,6 +41,7 @@ import {
   HUB_PERSONAL_RAIL_PARENT_IDS,
   filterSidebarRowsForSlimTopNav,
   USER_TOP_NAV_NO_RAIL_SIDEBAR_ID_SET,
+  USER_TOP_NAV_SIDEBAR_ID_SET,
   USER_TOP_NAV_SIDEBAR_IDS,
   type ExploreHubRailConfig,
   type HubPersonalRailSection,
@@ -758,6 +769,23 @@ const MainLayoutContent: React.FC<{
       : baseActiveSidebar;
   const activeSubItem = pageToSubItem(page, activeSidebar, layoutIsAdmin);
 
+  /**
+   * 顶栏六项：侧栏/左轨导航时强制「探索发现」(hub) 高亮；仅顶栏点击（或深链落在五广场）时让对应广场项高亮。
+   */
+  const [topNavPreferExploreHub, setTopNavPreferExploreHub] = useState(true);
+
+  useLayoutEffect(() => {
+    if (USER_TOP_NAV_NO_RAIL_SIDEBAR_ID_SET.has(activeSidebar)) {
+      setTopNavPreferExploreHub(false);
+    }
+  }, [activeSidebar]);
+
+  const userTopNavPrimaryHighlightId = useMemo(() => {
+    if (topNavPreferExploreHub) return 'hub';
+    if (USER_TOP_NAV_SIDEBAR_ID_SET.has(activeSidebar)) return activeSidebar;
+    return 'hub';
+  }, [topNavPreferExploreHub, activeSidebar]);
+
   const headerMenusRef = useRef<HTMLDivElement>(null);
   const messagePanelAnchorRef = useRef<HTMLDivElement>(null);
   /** 主内容滚动区：Hash 路由切换不会整页刷新，需手动滚回顶部 */
@@ -1376,6 +1404,9 @@ const MainLayoutContent: React.FC<{
 
   const handleTopNavSidebarClick = (id: string, domain: ConsoleRole) => {
     setMobileNavOpen(false);
+    if (domain === 'user' && USER_TOP_NAV_SIDEBAR_ID_SET.has(id)) {
+      setTopNavPreferExploreHub(id === 'hub');
+    }
     navigate(buildPath(domain, getDefaultPage(domain, id)));
   };
 
@@ -1404,6 +1435,9 @@ const MainLayoutContent: React.FC<{
   const handleTopNavSubItemClick = useCallback(
     (subItemId: string, parentSidebarId: string, domain: ConsoleRole) => {
       setMobileNavOpen(false);
+      if (domain === 'user' && USER_TOP_NAV_SIDEBAR_ID_SET.has(parentSidebarId)) {
+        setTopNavPreferExploreHub(parentSidebarId === 'hub');
+      }
       navigateSubItem(subItemId, parentSidebarId, domain);
     },
     [navigateSubItem],
@@ -1412,6 +1446,7 @@ const MainLayoutContent: React.FC<{
   const handleRailSubItemClick = useCallback(
     (subItemId: string, parentSidebarId: string, domain: ConsoleRole) => {
       setMobileNavOpen(false);
+      setTopNavPreferExploreHub(true);
       navigateSubItem(subItemId, parentSidebarId, domain);
     },
     [navigateSubItem],
@@ -1627,6 +1662,7 @@ const MainLayoutContent: React.FC<{
           routeRole={consoleRole}
           activeSidebar={activeSidebar}
           activeSubItem={activeSubItem}
+          userTopNavPrimaryHighlightId={userTopNavPrimaryHighlightId}
           sidebarRows={topNavSidebarRows}
           sidebarSearchRows={sidebarSearchRows}
           platformRole={platformRole}
@@ -1635,6 +1671,7 @@ const MainLayoutContent: React.FC<{
           filteredSubGroupsForSidebarId={filteredSubGroupsForSidebarId}
           onLogoClick={() => {
             navigate(defaultPath());
+            setTopNavPreferExploreHub(true);
             setMobileNavOpen(false);
           }}
           onOpenMobileNav={() => setMobileNavOpen(true)}
@@ -1881,6 +1918,7 @@ const MainLayoutContent: React.FC<{
               type="button"
               onClick={() => {
                 navigate(defaultPath());
+                setTopNavPreferExploreHub(true);
                 setMobileNavOpen(false);
               }}
               className={`logo-nav-btn w-full rounded-lg border-0 bg-transparent p-0 text-left outline-none ring-0 shadow-none transition-colors focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 ${

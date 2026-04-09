@@ -3,7 +3,7 @@ import { ChevronDown, Menu, Search } from 'lucide-react';
 import type { Theme } from '../../types';
 import { iconMuted, mainScrollCompositorClass } from '../../utils/uiClasses';
 import type { ConsoleRole } from '../../constants/consoleRoutes';
-import { USER_TOP_NAV_SIDEBAR_IDS } from '../../constants/topNavPolicy';
+import { USER_TOP_NAV_SIDEBAR_IDS, USER_TOP_NAV_SIDEBAR_ID_SET } from '../../constants/topNavPolicy';
 import type { PlatformRoleCode } from '../../types/dto/auth';
 import { Logo } from '../common/Logo';
 import { PortalDropdown } from '../common/PortalDropdown';
@@ -29,6 +29,8 @@ export interface ConsoleTopNavProps {
   routeRole: ConsoleRole;
   activeSidebar: string;
   activeSubItem: string;
+  /** 用户壳顶栏六项中当前应高亮的一级 id（含 hub）；与侧栏路由解耦，见 MainLayout `topNavPreferExploreHub` */
+  userTopNavPrimaryHighlightId: string;
   /** 顶栏横向展示的侧栏行（可精简） */
   sidebarRows: ConsoleSidebarRow[];
   /** 菜单搜索匹配的全量侧栏行；缺省时与 sidebarRows 相同 */
@@ -48,6 +50,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
   routeRole,
   activeSidebar,
   activeSubItem,
+  userTopNavPrimaryHighlightId,
   sidebarRows,
   sidebarSearchRows,
   onSidebarClick,
@@ -205,11 +208,14 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
           }
           const { item, hasChildren, visibleChildren } = piece.block;
           const key = `${item.domain}-${item.id}`;
-          /** 仅当当前壳与条目 domain 一致时高亮（管理壳 `admin` 时顶栏六项均为 `user`，不匹配则全部不高亮，避免误锁「探索发现」） */
+          const slotIsUserTopNav = USER_TOP_NAV_SIDEBAR_ID_SET.has(item.id);
+          /** 六项用户域入口：高亮由 `userTopNavPrimaryHighlightId` 决定（侧栏切页仍可保持「探索发现」）；管理域行仍走 domain + activeSidebar */
           const domainMatches = routeRole === item.domain;
           const isChildActive = domainMatches && hasChildren && activeSidebar === item.id;
           const isSelfActive = domainMatches && !hasChildren && activeSidebar === item.id;
-          const active = isSelfActive || isChildActive;
+          const active = slotIsUserTopNav
+            ? item.id === userTopNavPrimaryHighlightId
+            : isSelfActive || isChildActive;
           const pillBtn = active
             ? isDark
               ? 'text-blue-400'

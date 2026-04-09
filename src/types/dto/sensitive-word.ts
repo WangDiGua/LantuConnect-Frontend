@@ -28,6 +28,8 @@ export interface SensitiveWordBatchAddRequest {
 export interface SensitiveWordUpdateRequest {
   category?: string;
   severity?: number;
+  /** 来源（与 `SENSITIVE_WORD_SOURCE_PRESETS` 一致；需后端 PUT 支持） */
+  source?: string;
   enabled?: boolean;
 }
 
@@ -86,6 +88,87 @@ export function isSensitiveWordPresetCategory(code: string): boolean {
 export function formatSensitiveWordCategoryLabel(code: string): string {
   const c = code?.trim() ?? '';
   return SENSITIVE_WORD_CATEGORY_LABELS[c] ?? c;
+}
+
+/** 严重级别 1–10，数值越大处置越严格（与历史库整型字段一致） */
+export const SENSITIVE_WORD_SEVERITY_LEVELS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
+
+const SEVERITY_LABELS: Record<number, string> = {
+  1: '提示',
+  2: '较轻',
+  3: '一般',
+  4: '较高',
+  5: '高',
+  6: '很高',
+  7: '严重',
+  8: '很重',
+  9: '极高',
+  10: '阻断',
+};
+
+export const DEFAULT_SENSITIVE_WORD_SEVERITY = 1;
+
+export const SENSITIVE_WORD_SEVERITY_OPTIONS: { value: string; label: string }[] =
+  SENSITIVE_WORD_SEVERITY_LEVELS.map((n) => ({
+    value: String(n),
+    label: `${n} · ${SEVERITY_LABELS[n]}`,
+  }));
+
+export function normalizeSensitiveWordSeverity(raw: unknown): number {
+  const v = Math.round(Number(raw));
+  if (!Number.isFinite(v)) return DEFAULT_SENSITIVE_WORD_SEVERITY;
+  return Math.max(1, Math.min(10, v));
+}
+
+export function formatSensitiveWordSeverityLabel(severity: unknown): string {
+  const n = normalizeSensitiveWordSeverity(severity);
+  return `${n} · ${SEVERITY_LABELS[n]}`;
+}
+
+/** 来源：与导入/批量路径及运营录入方式对齐（非资源 Tag） */
+export const SENSITIVE_WORD_SOURCE_PRESETS = [
+  'manual',
+  'seed',
+  'json_batch',
+  'txt_upload',
+  'csv_upload',
+  'xlsx_upload',
+  'policy_sync',
+  'other',
+] as const;
+
+export const SENSITIVE_WORD_SOURCE_LABELS: Record<string, string> = {
+  manual: '手工录入',
+  seed: '演示/种子数据',
+  json_batch: 'JSON 批量',
+  txt_upload: 'TXT 文件导入',
+  csv_upload: 'CSV 文件导入',
+  xlsx_upload: 'Excel 导入',
+  policy_sync: '策略同步',
+  other: '其他',
+};
+
+export const DEFAULT_SENSITIVE_WORD_SOURCE_MANUAL: (typeof SENSITIVE_WORD_SOURCE_PRESETS)[number] = 'manual';
+export const DEFAULT_SENSITIVE_WORD_SOURCE_BATCH: (typeof SENSITIVE_WORD_SOURCE_PRESETS)[number] = 'json_batch';
+export const DEFAULT_SENSITIVE_WORD_SOURCE_IMPORT: (typeof SENSITIVE_WORD_SOURCE_PRESETS)[number] = 'txt_upload';
+
+export const SENSITIVE_WORD_SOURCE_OPTIONS: { value: string; label: string }[] = (
+  SENSITIVE_WORD_SOURCE_PRESETS as readonly string[]
+).map((code) => ({
+  value: code,
+  label: SENSITIVE_WORD_SOURCE_LABELS[code] ?? code,
+}));
+
+const PRESET_SOURCE_SET = new Set<string>(SENSITIVE_WORD_SOURCE_PRESETS);
+
+export function isSensitiveWordPresetSource(code: string): boolean {
+  return PRESET_SOURCE_SET.has((code ?? '').trim());
+}
+
+export function formatSensitiveWordSourceLabel(code: string | undefined | null): string {
+  const c = (code ?? '').trim();
+  if (!c) return '—';
+  return SENSITIVE_WORD_SOURCE_LABELS[c] ?? c;
 }
 
 export interface SensitiveWordImportResult {

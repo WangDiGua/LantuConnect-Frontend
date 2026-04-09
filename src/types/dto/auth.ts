@@ -65,3 +65,19 @@ export interface CaptchaResult {
   captchaId: string;
   captchaImage: string;
 }
+
+/** GET /auth/account-insights — 个人资料安全分与登录活跃度 */
+export type AccountSecurityLevel = 'good' | 'fair' | 'warn';
+
+export interface AccountInsights {
+  securityScore: number;
+  securityLevel: AccountSecurityLevel;
+  securityLabel: string;
+  totalSuccessLogins: number;
+  loginCountThisMonth: number;
+  /** 最近 7 天每日成功登录次数（时间正序） */
+  recentSuccessByDay: number[];
+  recentDayLabels: string[];
+  failedAttemptsLast30Days: number;
+  activeSessionCount: number;
+}

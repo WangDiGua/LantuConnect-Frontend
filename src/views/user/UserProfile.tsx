@@ -26,7 +26,7 @@ import { mainScrollPadBottom } from '../../utils/uiClasses';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { Pagination } from '../../components/common/Pagination';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
-import type { PlatformRoleCode } from '../../types/dto/auth';
+import type { AccountInsights, AccountSecurityLevel, PlatformRoleCode } from '../../types/dto/auth';
 import { PLATFORM_ROLE_LABELS } from '../../constants/platformRoles';
 import { normalizeRole } from '../../context/UserRoleContext';
 import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedContentToTop';
@@ -94,6 +94,28 @@ function sessionLooksMobile(s: SessionItem): boolean {
   return /iphone|ipad|ipod|android|mobile|phone|平板/.test(blob);
 }
 
+function securityStatusTextClass(level: AccountSecurityLevel | undefined, isDark: boolean): string {
+  switch (level) {
+    case 'warn':
+      return isDark ? 'text-rose-400' : 'text-rose-600';
+    case 'fair':
+      return isDark ? 'text-amber-400' : 'text-amber-600';
+    default:
+      return isDark ? 'text-sky-400' : 'text-blue-600';
+  }
+}
+
+function securityBarGradientClass(level: AccountSecurityLevel | undefined, isDark: boolean): string {
+  switch (level) {
+    case 'warn':
+      return isDark ? 'from-rose-400 to-orange-500' : 'from-rose-400 to-amber-500';
+    case 'fair':
+      return isDark ? 'from-amber-400 to-amber-600' : 'from-amber-400 to-orange-500';
+    default:
+      return isDark ? 'from-sky-400 to-indigo-400' : 'from-blue-400 to-indigo-500';
+  }
+}
+
 const ACTIVITY_FALLBACK = [
   { val: 10 },
   { val: 25 },
@@ -131,8 +153,15 @@ export const UserProfile: React.FC<UserProfileProps> = ({ theme, onOpenSecurityS
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [sessionsError, setSessionsError] = useState<string | null>(null);
   const [revokingSessionId, setRevokingSessionId] = useState<string | null>(null);
+  const [insights, setInsights] = useState<AccountInsights | null>(null);
 
   const activityData = useMemo(() => {
+    const apiCounts = insights?.recentSuccessByDay;
+    if (apiCounts && apiCounts.length > 0) {
+      const max = Math.max(...apiCounts, 1);
+      if (apiCounts.every((c) => c === 0)) return ACTIVITY_FALLBACK;
+      return apiCounts.map((c) => ({ val: Math.max(4, Math.round((c / max) * 48)) }));
+    }
     const days = 7;
     const counts = Array.from({ length: days }, () => 0);
     const now = Date.now();
@@ -145,7 +174,15 @@ export const UserProfile: React.FC<UserProfileProps> = ({ theme, onOpenSecurityS
     if (counts.every((c) => c === 0)) return ACTIVITY_FALLBACK;
     const max = Math.max(...counts, 1);
     return counts.map((c) => ({ val: Math.max(5, Math.round((c / max) * 45)) }));
-  }, [loginHistory]);
+  }, [insights, loginHistory]);
+
+  const securityScore = insights?.securityScore ?? 80;
+  const securityLabel = insights?.securityLabel ?? '良好';
+  const securityLevel: AccountSecurityLevel = insights?.securityLevel ?? 'good';
+
+  const loadInsights = useCallback(() => {
+    authService.getAccountInsights().then(setInsights).catch(() => setInsights(null));
+  }, []);
 
   const loadLoginHistory = useCallback(
     (page: number = 1) => {
@@ -202,7 +239,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({ theme, onOpenSecurityS
   useEffect(() => {
     loadLoginHistory(1);
     loadSessions(1);
-  }, [loadLoginHistory, loadSessions]);
+    loadInsights();
+  }, [loadLoginHistory, loadSessions, loadInsights]);
 
   const handleRevokeSession = async (session: SessionItem) => {
     if (session.current || revokingSessionId) return;
@@ -211,6 +249,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ theme, onOpenSecurityS
       await authService.revokeSession(session.id);
       showMessage('会话已撤销', 'success');
       await loadSessions(sessionPage);
+      loadInsights();
     } catch (err) {
       showMessage(err instanceof Error ? err.message : '撤销会话失败，请重试', 'error');
     } finally {
@@ -351,13 +390,12 @@ export const UserProfile: React.FC<UserProfileProps> = ({ theme, onOpenSecurityS
                     className={`h-1.5 w-24 overflow-hidden rounded-full ${isDark ? 'bg-white/10' : 'bg-slate-100'}`}
                   >
                     <div
-                      className={`h-full w-4/5 bg-gradient-to-r ${isDark ? 'from-sky-400 to-indigo-400' : 'from-blue-400 to-indigo-500'}`}
+                      className={`h-full bg-gradient-to-r ${securityBarGradientClass(securityLevel, isDark)}`}
+                      style={{ width: `${Math.min(100, Math.max(4, securityScore))}%` }}
                     />
                   </div>
-                  <span
-                    className={`text-xs font-bold ${isDark ? 'text-sky-400' : 'text-blue-600'}`}
-                  >
-                    良好
+                  <span className={`text-xs font-bold ${securityStatusTextClass(securityLevel, isDark)}`}>
+                    {securityLabel}
                   </span>
                 </div>
               </div>
@@ -374,10 +412,17 @@ export const UserProfile: React.FC<UserProfileProps> = ({ theme, onOpenSecurityS
             <div className="relative z-10 flex h-full flex-col justify-between">
               <div>
                 <h3 className="text-lg font-medium opacity-90">登录活跃度</h3>
-                <div className="mt-1 flex items-baseline gap-2">
-                  <span className="text-4xl font-bold">{historyTotal}</span>
-                  <span className="text-sm opacity-70">累计登录记录</span>
+                <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0">
+                  <span className="text-4xl font-bold">
+                    {insights?.loginCountThisMonth ?? historyTotal}
+                  </span>
+                  <span className="text-sm opacity-70">本月成功登录</span>
                 </div>
+                {insights ? (
+                  <p className="mt-1 max-w-[14rem] text-xs leading-snug opacity-65">
+                    累计成功登录 {insights.totalSuccessLogins} 次 · 当前会话 {insights.activeSessionCount}
+                  </p>
+                ) : null}
               </div>
               <div className="-mb-2 h-16 w-full [&_.recharts-surface]:outline-none">
                 <ResponsiveContainer width="100%" height="100%">

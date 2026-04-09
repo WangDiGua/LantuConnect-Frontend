@@ -1,7 +1,14 @@
 import { http } from '../../lib/http';
 import { extractArray, normalizePaginated } from '../../utils/normalizeApiPayload';
 import type { PaginatedData } from '../../types/api';
-import type { CaptchaResult, LoginRequest, LoginResponse, RegisterRequest, UserInfo } from '../../types/dto/auth';
+import type {
+  AccountInsights,
+  CaptchaResult,
+  LoginRequest,
+  LoginResponse,
+  RegisterRequest,
+  UserInfo,
+} from '../../types/dto/auth';
 import type { SessionItem } from '../../types/dto/explore';
 
 export const authService = {
@@ -31,6 +38,9 @@ export const authService = {
 
   updateProfile: (data: { avatar?: string; language?: string }) =>
     http.put<void>('/auth/profile', data),
+
+  /** 安全态势、本月/累计成功登录、近 7 日分布（需登录） */
+  getAccountInsights: () => http.get<AccountInsights>('/auth/account-insights'),
 
   getLoginHistory: async (params?: { page?: number; pageSize?: number }) => {
     const raw = await http.get<unknown>('/auth/login-history', { params });

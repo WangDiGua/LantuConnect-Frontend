@@ -261,7 +261,8 @@ export interface ResourceAuditQuery {
   page?: number;
   pageSize?: number;
   resourceType?: ResourceType;
-  status?: ResourceStatus;
+  /** 传 `all` 时不按状态过滤（与后端 `/audit/resources` 约定一致） */
+  status?: ResourceStatus | 'all';
   keyword?: string;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';

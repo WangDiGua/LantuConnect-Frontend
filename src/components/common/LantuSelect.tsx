@@ -75,7 +75,7 @@ export const LantuSelect: React.FC<LantuSelectProps> = ({
   };
 
   return (
-    <div className={`relative w-full ${className}`.trim()}>
+    <div className={`relative min-w-0 ${className || 'w-full'}`.trim()}>
       <button
         ref={triggerRef}
         type="button"

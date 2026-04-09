@@ -55,7 +55,7 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<ResourceAuditItemVO[]>([]);
   const [resourceType, setResourceType] = useState<ResourceType | ''>(defaultType ?? '');
-  const [statusFilter, setStatusFilter] = useState<'all' | ResourceAuditItemVO['status']>('pending_review');
+  const [statusFilter, setStatusFilter] = useState<'all' | ResourceAuditItemVO['status']>('all');
 
   useEffect(() => {
     setResourceType(defaultType ?? '');
@@ -106,7 +106,8 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
         page,
         pageSize: PAGE_SIZE,
         resourceType: resourceType || undefined,
-        status: statusFilter === 'all' ? undefined : statusFilter,
+        /** 后端对「无 status 参数」会默认仅 pending_review；「全部状态」必须显式传 all */
+        status: statusFilter === 'all' ? 'all' : statusFilter,
         keyword: search.trim() || undefined,
         sortBy: 'submitTime',
         sortOrder: 'desc',
@@ -337,8 +338,8 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
         breadcrumbSegments={['资源审核', '统一资源审核台']}
         description={AUDIT_DESC}
         toolbar={
-          <div className={`${TOOLBAR_ROW_LIST} min-w-0 justify-between gap-3 flex-wrap`}>
-            <div className={`${TOOLBAR_ROW_LIST} min-w-0 flex-1 flex-wrap`}>
+          <div className={`${TOOLBAR_ROW_LIST} min-w-0 justify-between gap-2 sm:gap-3`}>
+            <div className={`${TOOLBAR_ROW_LIST} min-w-0 flex-1`}>
               <FilterSelect
                 value={resourceType}
                 onChange={(v) => { setResourceType(v as ResourceType | ''); setPage(1); }}
@@ -351,7 +352,7 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
                   { value: 'dataset', label: 'Dataset' },
                 ]}
                 theme={theme}
-                className="w-36 shrink-0"
+                className="w-[8.5rem] shrink-0 sm:w-36"
               />
               <FilterSelect
                 value={statusFilter}
@@ -365,9 +366,9 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
                   { value: 'merged_live', label: '已合并上线' },
                 ]}
                 theme={theme}
-                className="w-36 shrink-0"
+                className="w-[8.5rem] shrink-0 sm:w-36"
               />
-              <div className="min-w-0 flex-1 shrink basis-[min(100%,240px)]">
+              <div className="min-w-[12rem] flex-1">
                 <SearchInput
                   value={search}
                   onChange={(value) => {

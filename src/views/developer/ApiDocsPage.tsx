@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   FileText, ExternalLink, Copy, Check, ChevronRight, BookOpen, Library,
   KeyRound, Terminal, Rocket, Tag, AlertCircle, Puzzle,
@@ -100,6 +100,7 @@ const GUIDE_TOC: { id: string; label: string }[] = [
   { id: 'doc-onboarding', label: '开发者入驻' },
   { id: 'doc-keys', label: 'API Key' },
   { id: 'doc-discover', label: '发现与目录' },
+  { id: 'doc-external-integration', label: '外部系统集成（AI 门户）' },
   { id: 'doc-consume', label: '解析与调用' },
   { id: 'doc-access-policy', label: '目录与调用条件' },
   { id: 'doc-publish', label: '登记与上架' },
@@ -136,7 +137,7 @@ export interface ApiDocsPageProps { theme: Theme; fontSize: FontSize; }
 
 export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => {
   const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const { pathname, hash } = useLocation();
   const { platformRole } = useUserRole();
   const routePage = parseRoute(pathname)?.page ?? '';
   const consoleRole: ConsoleRole = inferConsoleRole(routePage, platformRole);
@@ -156,6 +157,13 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
   const scrollToId = useCallback((id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
+
+  useEffect(() => {
+    if (viewMode !== 'guide') return;
+    const id = hash?.replace(/^#/, '').trim();
+    if (!id) return;
+    requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  }, [hash, viewMode]);
 
   const tabBtn = (mode: 'guide' | 'reference', label: string) => (
     <button
@@ -352,6 +360,70 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
                   </div>
                 </section>
 
+                <section id="doc-external-integration" className="mt-14 space-y-4">
+                  {proseH2(theme, '外部系统集成（AI 门户）')}
+                  {prosePara(theme, (
+                    <>
+                      若你的 <strong className={textPrimary(theme)}>React AI 门户</strong>与<strong className={textPrimary(theme)}>本注册平台不在同一工程</strong>，你是<strong className={textPrimary(theme)}>集成方</strong>：在本平台申请 API Key、按本文档调用统一网关；门户浏览器<strong className={textPrimary(theme)}>不要</strong>嵌入完整 <span className="font-mono">secretPlain</span>。
+                    </>
+                  ))}
+                  {proseH3(theme, '推荐架构：自建 BFF')}
+                  {prosePara(theme, (
+                    <>
+                      在<strong className={textPrimary(theme)}>AI 门户服务端</strong>实现一层 <strong className={textPrimary(theme)}>BFF（Backend For Frontend）</strong>：浏览器只带己方登录态访问 BFF；BFF 在服务器上保存 Lantu 下发的完整 <span className="font-mono">X-Api-Key</span>，再向本平台的 <span className="font-mono">POST /invoke</span>、<span className="font-mono">POST /invoke-stream</span> 等发起请求。密钥不进前端 bundle、不进用户可见存储。
+                    </>
+                  ))}
+                  {proseH3(theme, '主调用路径（推荐）')}
+                  <ol className={`list-decimal space-y-2 pl-5 text-[15px] leading-7 ${textSecondary(theme)}`}>
+                    <li>
+                      发现 <span className="font-mono">resourceType</span> / <span className="font-mono">resourceId</span>：可用 <span className="font-mono">GET /catalog/resources</span>，或由运营配置写入集成方配置。
+                    </li>
+                    <li>
+                      可选 <span className="font-mono">POST /catalog/resolve</span>（须 <span className="font-mono">X-Api-Key</span>）：拿到 endpoint、<span className="font-mono">invokeType</span>、spec 等；请求体可带 <span className="font-mono">include</span>（如 <span className="font-mono">closure</span>、<span className="font-mono">bindings</span>、<span className="font-mono">bindingClosure</span>）预览绑定关系。亦可使用 <span className="font-mono">GET /catalog/resources/{'{type}'}/{'{id}'}?include=...</span>。
+                    </li>
+                    <li>
+                      <strong className={textPrimary(theme)}>同步调用</strong>：<span className="font-mono">POST /invoke</span>（JSON 请求/响应），适用于 <span className="font-mono">agent</span>、<span className="font-mono">mcp</span>、托管 <span className="font-mono">skill</span>。
+                    </li>
+                    <li>
+                      <strong className={textPrimary(theme)}>流式</strong>：在<strong className={textPrimary(theme)}>上游协议与网关实现允许</strong>时使用 <span className="font-mono">POST /invoke-stream</span>（<span className="font-mono">text/event-stream</span>）。当前网关实现中：<span className="font-mono">resourceType=skill</span> <strong className={textPrimary(theme)}>不走</strong> <span className="font-mono">invoke-stream</span>；流式入口主要面向 <span className="font-mono">invokeType=mcp</span> 且上游为 HTTP/SSE 的 MCP（非 WebSocket 上游等限制以部署版本 OpenAPI/错误提示为准）。<span className="font-mono">agent</span> 是否流式取决于解析结果与上游能力，请勿默认所有类型均可流式。
+                    </li>
+                  </ol>
+                  {proseH3(theme, '绑定展开（invoke 时）')}
+                  {prosePara(theme, (
+                    <>
+                      对 <span className="font-mono">POST /invoke</span>：当资源为 <span className="font-mono">agent</span> 且存在 <span className="font-mono">agent_depends_mcp</span>，或为托管 <span className="font-mono">skill</span> 且存在指向该技能的 <span className="font-mono">mcp_depends_skill</span>（逆查）时，网关可在转发前聚合绑定 MCP 的 <span className="font-mono">tools/list</span>，写入请求体 <span className="font-mono">payload._lantu.bindingExpansion</span>（含 <span className="font-mono">openAiTools</span>、<span className="font-mono">routes</span>、<span className="font-mono">warnings</span> 等）。<strong className={textPrimary(theme)}>仅 invoke <span className="font-mono">mcp</span> 不会反向拉起 Agent</strong>。Key 须对被展开涉及的各 MCP 具备 invoke scope。可通过配置 <span className="font-mono">lantu.gateway.binding-expansion</span> 关闭（以后端为准）。
+                    </>
+                  ))}
+                  {proseH3(theme, 'invoke-eligibility（控制台辅助）')}
+                  {prosePara(theme, (
+                    <>
+                      <span className="font-mono">POST /user-settings/api-keys/{'{id}'}/invoke-eligibility</span> 便于控制台按 Key 批量查看资源是否在库中为 <span className="font-mono">published</span>。<strong className={textPrimary(theme)}>不等同</strong>网关一次完整 invoke 的全链路（scope、健康、熔断等仍以实际 <span className="font-mono">/invoke</span> 返回为准）。
+                    </>
+                  ))}
+                  {proseH3(theme, '进阶路径')}
+                  {prosePara(theme, (
+                    <>
+                      仅携带 Key、不依赖浏览器登录的集成可使用 <span className="font-mono">/sdk/v1/*</span>（与同路径根接口语义一致，须 <span className="font-mono">X-Api-Key</span>）。需要 MCP JSON-RPC 固定路径时可用 <span className="font-mono">POST /mcp/v1/resources/{'{resourceType}'}/{'{resourceId}'}/message</span>（详见「接口参考」）；多数 AI 门户仍推荐 BFF + <span className="font-mono">/invoke</span> / <span className="font-mono">/invoke-stream</span>。
+                    </>
+                  ))}
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => go('mcp-integration')}
+                      className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${btnSecondary(theme)}`}
+                    >
+                      <Puzzle size={16} /> 网关集成工具（控制台）
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('reference')}
+                      className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${isDark ? 'bg-emerald-500/20 text-emerald-300' : 'bg-emerald-100 text-emerald-800'}`}
+                    >
+                      <FileText size={16} /> 接口参考 · 解析与调用
+                    </button>
+                  </div>
+                </section>
+
                 <section id="doc-consume" className="mt-14 space-y-4">
                   {proseH2(theme, '解析与调用（集成必读）')}
                   {proseH3(theme, '1. 标准两步')}
@@ -362,12 +434,22 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
                   ))}
                   {prosePara(theme, (
                     <>
-                      ② <span className="font-mono">POST /invoke</span> 或 <span className="font-mono">POST /invoke-stream</span>（SSE，如 MCP）：统一请求体（含 <span className="font-mono">resourceType</span>、<span className="font-mono">resourceId</span>、<span className="font-mono">payload</span> 等），同样需要 Key 与 invoke scope。<span className="font-mono">skill</span> 均为托管调用（<span className="font-mono">resourceType=skill</span>）。可调用资源目录导出、curl 预填与绑定展开说明见开发者中心「网关集成」页（不限于 <span className="font-mono">mcp</span> 类型）。
+                      ② <span className="font-mono">POST /invoke</span> 或 <span className="font-mono">POST /invoke-stream</span>（在网关允许的前提下）：统一请求体（含 <span className="font-mono">resourceType</span>、<span className="font-mono">resourceId</span>、<span className="font-mono">payload</span> 等），须 Key 与 invoke scope。<span className="font-mono">skill</span> 均为托管调用（<span className="font-mono">resourceType=skill</span>）。<strong className={textPrimary(theme)}>独立 AI 门户</strong>的推荐架构、流式边界与绑定展开详见上文<strong className={textPrimary(theme)}>「外部系统集成（AI 门户）」</strong>；本控制台提供「网关集成」工具页便于浏览 agent / mcp / skill 目录与导出快照。
                     </>
                   ))}
                   <div className="flex flex-wrap gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setViewMode('guide');
+                        setTimeout(() => scrollToId('doc-external-integration'), 0);
+                      }}
+                      className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${btnSecondary(theme)}`}
+                    >
+                      <Puzzle size={16} /> 外部系统集成（文档）
+                    </button>
                     <button type="button" onClick={() => go('mcp-integration')} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${btnSecondary(theme)}`}>
-                      <Puzzle size={16} /> 网关集成
+                      <Terminal size={16} /> 网关集成工具
                     </button>
                   </div>
                   {proseH3(theme, '2. 应用如何打开')}
@@ -423,7 +505,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
                 <section id="doc-types" className="mt-14 space-y-4">
                   {proseH2(theme, '五类资源（开发者选型）')}
                   <ul className={`list-disc space-y-2 pl-5 text-[15px] leading-7 ${textSecondary(theme)}`}>
-                    <li><strong className={textPrimary(theme)}>agent</strong>：智能体；<span className="font-mono">resolve</span> 后 <span className="font-mono">invoke</span> / <span className="font-mono">invoke-stream</span>。</li>
+                    <li><strong className={textPrimary(theme)}>agent</strong>：智能体；主路径 <span className="font-mono">POST /invoke</span>；是否可走 <span className="font-mono">invoke-stream</span> 取决于解析出的上游协议与网关实现（勿默认均可流式）。</li>
                     <li><strong className={textPrimary(theme)}>mcp</strong>：可远程 JSON-RPC / SSE；流式用 <span className="font-mono">invoke-stream</span>。</li>
                     <li><strong className={textPrimary(theme)}>skill</strong>：仅 <span className="font-mono">hosted</span> 托管 LLM 技能；使用目录 spec 中的 schema，通过 <span className="font-mono">POST /invoke</span> 传 JSON payload。zip/制品包与平台内下载分发已移除。</li>
                     <li><strong className={textPrimary(theme)}>app</strong>：<span className="font-mono">resolve</span> + <span className="font-mono">launch</span> 跳转为主。</li>

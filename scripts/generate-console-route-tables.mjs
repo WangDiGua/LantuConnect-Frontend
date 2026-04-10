@@ -182,7 +182,7 @@ const USER_COMPONENT = {
   'api-docs': 'ApiDocsPage',
   'sdk-download': 'SdkDownloadPage',
   'api-playground': 'ApiPlaygroundPage',
-  'mcp-integration': 'McpIntegrationPage',
+  'mcp-integration': 'GatewayIntegrationPage',
   'developer-statistics': 'DeveloperStatsPage',
 };
 

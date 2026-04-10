@@ -72,8 +72,8 @@ export const SdkDownloadPage = lazy(() =>
 export const ApiPlaygroundPage = lazy(() =>
   import('../views/developer/ApiPlaygroundPage').then((m) => ({ default: m.ApiPlaygroundPage })),
 );
-export const McpIntegrationPage = lazy(() =>
-  import('../views/developer/McpIntegrationPage').then((m) => ({ default: m.McpIntegrationPage })),
+export const GatewayIntegrationPage = lazy(() =>
+  import('../views/developer/GatewayIntegrationPage').then((m) => ({ default: m.GatewayIntegrationPage })),
 );
 export const DeveloperStatsPage = lazy(() =>
   import('../views/developer/DeveloperStatsPage').then((m) => ({ default: m.DeveloperStatsPage })),

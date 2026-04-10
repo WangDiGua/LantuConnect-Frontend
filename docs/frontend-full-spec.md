@@ -193,7 +193,7 @@
 | developer-portal | `api-docs` | `#/c/api-docs` | ApiDocsPage | reachable | — |
 | developer-portal | `sdk-download` | `#/c/sdk-download` | SdkDownloadPage | reachable | — |
 | developer-portal | `api-playground` | `#/c/api-playground` | ApiPlaygroundPage | reachable | — |
-| developer-portal | `mcp-integration` | `#/c/mcp-integration` | McpIntegrationPage | reachable | — |
+| developer-portal | `mcp-integration` | `#/c/mcp-integration` | GatewayIntegrationPage | reachable | — |
 | developer-portal | `developer-statistics` | `#/c/developer-statistics` | DeveloperStatsPage | reachable | — |
 | user-settings | `profile` | `#/c/profile` | UserSettingsHubPage | reachable | — |
 | user-settings | `my-api-keys` | `#/c/my-api-keys` | PlaceholderView | reachable | — |

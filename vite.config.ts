@@ -72,8 +72,11 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      /** true ≡ 0.0.0.0，便于手机/同事通过局域网 IP 访问；HMR 与页面同源时由 Vite 自动处理 */
-      host: true,
+      /**
+       * 监听所有网卡，局域网内可用「本机局域网 IP:3000」访问（终端会打印 Network 行）。
+       * 若其他设备仍打不开，请在 Windows 防火墙放行本机 TCP 3000（或允许 Node/Vite 专用网络）。
+       */
+      host: '0.0.0.0',
       port: 3000,
       strictPort: false,
       hmr: process.env.DISABLE_HMR !== 'true',

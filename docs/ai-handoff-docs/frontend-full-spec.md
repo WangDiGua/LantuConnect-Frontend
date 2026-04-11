@@ -71,33 +71,22 @@
 | overview | `health-check` | `#/c/health-check` | AdminOverviewModule | reachable | — |
 | overview | `usage-statistics` | `#/c/usage-statistics` | AdminOverviewModule | reachable | — |
 | overview | `data-reports` | `#/c/data-reports` | AdminOverviewModule | reachable | — |
-| admin-resource-ops | `resource-catalog` | `#/c/resource-catalog?type=…`（管理壳缺省 `type` 时由 `MainLayout` 补 `agent`） | ResourceCenterManagementPage | reachable | — |
-| admin-resource-ops | `agent-register` | `#/c/agent-register` | ResourceRegisterPage(agent) | reachable | — |
-| admin-resource-ops | `agent-monitoring` | `#/c/agent-monitoring` | ResourceDiagnosticsModule | reachable | — |
-| admin-resource-ops | `agent-trace` | `#/c/agent-trace` | ResourceDiagnosticsModule | reachable | — |
-| admin-resource-ops | `agent-detail` | `#/c/agent-detail/{id}` | AgentDetail | direct-url-only | 菜单无直达子项；需 `/c/agent-detail/{id}` |
-| admin-resource-ops | `skill-register` | `#/c/skill-register` | ResourceRegisterPage(skill) | reachable | — |
-| admin-resource-ops | `mcp-register` | `#/c/mcp-register` | ResourceRegisterPage(mcp) | reachable | — |
-| admin-resource-ops | `app-register` | `#/c/app-register` | ResourceRegisterPage(app) | reachable | — |
-| admin-resource-ops | `dataset-register` | `#/c/dataset-register` | ResourceRegisterPage(dataset) | reachable | — |
-| admin-resource-ops | `agent-list` | `#/c/agent-list` | ResourceCenterManagementPage（replace 后生效） | redirect | `MainLayout` replace → `#/c/resource-catalog?type=…` |
-| admin-resource-ops | `skill-list` | `#/c/skill-list` | ResourceCenterManagementPage（replace 后生效） | redirect | `MainLayout` replace → `#/c/resource-catalog?type=…` |
-| admin-resource-ops | `mcp-server-list` | `#/c/mcp-server-list` | ResourceCenterManagementPage（replace 后生效） | redirect | `MainLayout` replace → `#/c/resource-catalog?type=…` |
-| admin-resource-ops | `app-list` | `#/c/app-list` | ResourceCenterManagementPage（replace 后生效） | redirect | `MainLayout` replace → `#/c/resource-catalog?type=…` |
-| admin-resource-ops | `dataset-list` | `#/c/dataset-list` | ResourceCenterManagementPage（replace 后生效） | redirect | `MainLayout` replace → `#/c/resource-catalog?type=…` |
+| user-management | `user-list` | `#/c/user-list` | AdminUserHubModule | reachable | — |
+| user-management | `role-management` | `#/c/role-management` | AdminUserHubModule | reachable | — |
+| user-management | `organization` | `#/c/organization` | AdminUserHubModule | reachable | — |
+| user-management | `api-key-management` | `#/c/api-key-management` | AdminUserHubModule | reachable | — |
+| user-management | `developer-applications` | `#/c/developer-applications` | AdminUserHubModule | reachable | — |
 | admin-resource-ops | `resource-audit` | `#/c/resource-audit?type=…` | ResourceAuditList | reachable | — |
 | admin-resource-ops | `agent-audit` | `#/c/agent-audit` | ResourceAuditList（replace 后生效） | redirect | `MainLayout` replace → `#/c/resource-audit?type=agent`（若缺省 `type` 则用该默认值） |
 | admin-resource-ops | `skill-audit` | `#/c/skill-audit` | ResourceAuditList（replace 后生效） | redirect | `MainLayout` replace → `#/c/resource-audit?type=skill`（若缺省 `type` 则用该默认值） |
 | admin-resource-ops | `mcp-audit` | `#/c/mcp-audit` | ResourceAuditList（replace 后生效） | redirect | `MainLayout` replace → `#/c/resource-audit?type=mcp`（若缺省 `type` 则用该默认值） |
 | admin-resource-ops | `app-audit` | `#/c/app-audit` | ResourceAuditList（replace 后生效） | redirect | `MainLayout` replace → `#/c/resource-audit?type=app`（若缺省 `type` 则用该默认值） |
 | admin-resource-ops | `dataset-audit` | `#/c/dataset-audit` | ResourceAuditList（replace 后生效） | redirect | `MainLayout` replace → `#/c/resource-audit?type=dataset`（若缺省 `type` 则用该默认值） |
+| admin-resource-ops | `agent-monitoring` | `#/c/agent-monitoring` | ResourceDiagnosticsModule | reachable | — |
+| admin-resource-ops | `agent-trace` | `#/c/agent-trace` | ResourceDiagnosticsModule | reachable | — |
 | admin-resource-ops | `provider-list` | `#/c/provider-list` | ProviderManagementPage | reachable | — |
 | admin-resource-ops | `provider-create` | `#/c/provider-create` | ProviderManagementPage | reachable | — |
-| user-management | `user-list` | `#/c/user-list` | AdminUserHubModule | reachable | — |
-| user-management | `role-management` | `#/c/role-management` | AdminUserHubModule | reachable | — |
-| user-management | `organization` | `#/c/organization` | AdminUserHubModule | reachable | — |
-| user-management | `api-key-management` | `#/c/api-key-management` | AdminUserHubModule | reachable | — |
-| user-management | `developer-applications` | `#/c/developer-applications` | AdminUserHubModule | reachable | — |
+| admin-workspace | `agent-detail` | `#/c/agent-detail/{id}` | AgentDetail | direct-url-only | 菜单无直达子项；需 `/c/agent-detail/{id}` |
 | monitoring | `monitoring-overview` | `#/c/monitoring-overview` | AdminMonitoringHubModule | reachable | — |
 | monitoring | `call-logs` | `#/c/call-logs` | AdminMonitoringHubModule | reachable | — |
 | monitoring | `performance-analysis` | `#/c/performance-analysis` | AdminMonitoringHubModule | reachable | — |
@@ -367,13 +356,17 @@
 | `resourceCenterService.switchVersion` | POST | `/resource-center/resources/{id}/versions/{v}/switch` | 在用(代码+页面) | 切换版本 |
 | `resourceCenterService.listVersions` | GET | `/resource-center/resources/{id}/versions` | 在用(代码+页面) | 版本列表 |
 
-### B3.4 资源授权
+### B3.4 资源授权（已下线）
+
+> **废弃说明**：独立 `/resource-grants` CRUD 与 grant 工单已下线。资源可见性/调用策略现由资源 `access_policy` 与网关校验共同决定。详见后端 `docs/frontend-alignment-handbook.md` §2.9。
 
 | Service#method | Method | Path | 在用证据 | 触发场景 |
 |---|---|---|---|---|
-| `resourceGrantService.create` | POST | `/resource-grants` | 在用(代码+页面) | 授予授权 |
-| `resourceGrantService.list` | GET | `/resource-grants` | 在用(代码+页面) | 授权列表 |
-| `resourceGrantService.revoke` | DELETE | `/resource-grants/{grantId}` | 在用(代码+页面) | 撤销授权 |
+| ~~`resourceGrantService.create`~~ | POST | ~~`/resource-grants`~~ | **已下线** | ~~授予授权~~ |
+| ~~`resourceGrantService.list`~~ | GET | ~~`/resource-grants`~~ | **已下线** | ~~授权列表~~ |
+| ~~`resourceGrantService.revoke`~~ | DELETE | ~~`/resource-grants/{grantId}`~~ | **已下线** | ~~撤销授权~~ |
+
+**替代方案**：使用资源的 `access_policy` 字段配置访问策略，通过 `/catalog/resources` 和 `/resource-center/resources` 管理。
 
 ### B3.5 SDK / 沙箱
 

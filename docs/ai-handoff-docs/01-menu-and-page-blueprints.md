@@ -94,7 +94,7 @@
 | `user-management` | `role-management` | 角色表 + 权限配置 | 新增/编辑/删除角色 | `/user-mgmt/roles*` |
 | `user-management` | `organization` | 组织树 + 明细面板 | 新增/移动/删除组织 | `/user-mgmt/org-tree`、`/user-mgmt/orgs*` |
 | `user-management` | `api-key-management` | 列表 + 创建弹窗 | 创建/撤销 API Key | `/user-mgmt/api-keys*` |
-| `user-management` | `resource-grant-management` | 授权表 + 授权弹窗 | 新增授权/撤销授权 | `/resource-grants*` |
+| `user-management` | `resource-grant-management` | 授权表 + 授权弹窗 | 新增授权/撤销授权 | ~~`/resource-grants*`~~（已废弃，下线时间待定）<br>**替代方案**：使用 `/catalog/resources` 统一资源目录 |
 | `user-management` | `developer-applications` | 入驻申请表 + 审批弹窗 | 通过/驳回申请 | `/developer/applications*` |
 | `monitoring` | `monitoring-overview` | KPI + 告警摘要 + 热点 | 切换时间窗 | `/monitoring/kpis`、`/monitoring/alerts` |
 | `monitoring` | `call-logs` | 筛选 + 调用日志表 | 按条件检索 | `/monitoring/call-logs` |
@@ -131,6 +131,8 @@ flowchart TD
 ```
 
 ### `resource-grant-management`
+
+> **注意**：`/resource-grants` 接口已废弃，下线时间待定。替代方案：使用 `/catalog/resources` 统一资源目录。
 
 ```mermaid
 flowchart TD

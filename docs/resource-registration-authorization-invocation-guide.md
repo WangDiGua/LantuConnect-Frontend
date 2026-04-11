@@ -1,8 +1,9 @@
 # 五类资源注册-审核-授权-调用超详细实施文档（后端真值版）
 
-> 版本：v1.0  
+> 版本：v1.1  
+> 更新日期：2026-04-11  
 > 适用对象：前端开发、产品、测试、联调负责人  
-> 目标：避免前端流程继续“想当然”，按后端真实能力完整落地 `mcp/agent/skill/dataset/app` 五类资源闭环  
+> 目标：避免前端流程继续"想当然"，按后端真实能力完整落地 `mcp/agent/skill/dataset/app` 五类资源闭环  
 > 后端上下文路径：`/regis`（与 `VITE_API_BASE_URL` 一致）
 
 ---
@@ -11,9 +12,9 @@
 
 - 后端已经打通五类资源的主链路：**注册 -> 提审 -> 审核 -> 发布 -> 目录可见 -> 使用/调用**。
 - 上架不是一步：**`approve` 不等于上架**，必须再执行 `publish` 才到 `published`。
-- 授权不是“授权链接”：当前是 **`API Key + Scope + Grant` 三层校验模型**。
-- **强统一（浏览 / 执行）**：`GET /catalog/resources*` 可仅靠登录态（JWT）或 API Key **逛市场**；**`POST /catalog/resolve`、`POST /invoke`、`POST /invoke-stream` 必须带本人有效 `X-Api-Key`**（不能只依赖“仅登录”）。
-- 五类资源都能注册，但“使用方式”不同：
+- 授权不是"授权链接"：当前是 **`API Key + Scope + published 状态` 两层校验模型**（Grant 已于 2026-04-09 下线）。
+- **强统一（浏览 / 执行）**：`GET /catalog/resources*` 可仅靠登录态（JWT）或 API Key **逛市场**；**`POST /catalog/resolve`、`POST /invoke`、`POST /invoke-stream` 必须带本人有效 `X-Api-Key`**（不能只依赖"仅登录"）。
+- 五类资源都能注册，但"使用方式"不同：
   - `agent/mcp`：可走 `POST /catalog/resolve` 与统一调用 `POST /invoke`（或流式 `invoke-stream`）。
   - `skill`：可走 `POST /catalog/resolve`；**网关不接受** `resourceType=skill` 的 `POST /invoke`（与 Key 策略无关的协议限制）。
   - `app`：主要是解析后拿 URL 跳转/嵌入（`invokeType=redirect`）。
@@ -29,7 +30,7 @@
   - 创建/更新自己的资源
   - 提审自己的资源
   - 下线自己的资源
-  - 管理自己资源的授权（Grant）
+  - ~~管理自己资源的授权（Grant）~~ **已废弃（2026-04-09）**
 - 部门管理员（dept_admin）
   - 审核资源（approve/reject/publish）
   - 可操作资源（由后端 owner/admin 判断）
@@ -42,7 +43,7 @@
   - 我的资源列表（按类型分 tab）
   - 创建/编辑页面（五类动态表单）
   - 提审/下线/版本页面
-  - 授权管理页面（Grant 管理）
+  - ~~授权管理页面（Grant 管理）~~ **已废弃（2026-04-09）**
 - 管理员侧
   - 审核列表（pending_review）
   - 审核详情（approve/reject/publish）
@@ -82,9 +83,22 @@
 
 ## 3.4 授权（Grant）
 
-- `POST /resource-grants` 授权给某个 API Key
-- `GET /resource-grants?resourceType=&resourceId=` 查看某资源授权列表
-- `DELETE /resource-grants/{grantId}` 撤销授权
+> ⚠️ **已废弃（2026-04-09 下线）**
+>
+> 资源级 Grant 接口已下线，以下接口不再可用：
+> - ~~`POST /resource-grants`~~ 授权给某个 API Key
+> - ~~`GET /resource-grants?resourceType=&resourceId=`~~ 查看某资源授权列表
+> - ~~`DELETE /resource-grants/{grantId}`~~ 撤销授权
+>
+> **新权限模型**：`API Key + Scope + published 状态`
+> - 资源必须处于 `published` 状态才能被调用
+> - API Key 的 `scopes` 字段控制可访问的资源类型和操作
+> - 使用 `POST /user-settings/api-keys/{id}/invoke-eligibility` 预判调用权限
+>
+> **相关接口**：
+> - `GET /user-settings/api-keys` 查看我的 API Key 列表
+> - `POST /user-settings/api-keys` 创建 API Key（含 scopes）
+> - `POST /user-settings/api-keys/{id}/invoke-eligibility` 预判调用权限
 
 ---
 
@@ -203,14 +217,14 @@ flowchart TD
 
 ## 6. 审核与上架（关键误区纠正）
 
-## 6.1 为什么“通过后还没上架”
+## 6.1 为什么"通过后还没上架"
 
 后端是分段状态：
 
 1. `approve`：`pending_review -> testing`
 2. `publish`：`testing -> published`
 
-只有 `published` 才应在前端标记为“已上架可用”。
+只有 `published` 才应在前端标记为"已上架可用"。
 
 ## 6.2 审核接口调用顺序（管理员）
 
@@ -224,57 +238,83 @@ flowchart TD
 
 ## 7. 授权模型（不是授权链接）
 
-## 7.1 三层校验结构
+> ⚠️ **重要变更（2026-04-09）**
+>
+> 资源级 Grant 已下线，当前权限模型简化为：**`API Key + Scope + published 状态`**
 
-调用是否成功，至少过三层：
+## 7.1 两层校验结构
+
+调用是否成功，需通过两层校验：
 
 1. 用户角色权限（RBAC，若带 `X-User-Id`）
-2. API Key scope（`catalog/resolve/invoke` 的范围）
-3. Grant（资源拥有者是否把该资源授权给该 API Key）
+2. API Key scope（`catalog/resolve/invoke` 的范围）+ 资源状态（必须 `published`）
 
-## 7.2 授权流程图
+~~3. Grant（资源拥有者是否把该资源授权给该 API Key）~~ **已废弃**
+
+## 7.2 权限流程图
 
 ```mermaid
 flowchart LR
-    ownerUser[ResourceOwner] --> createGrant["POST /resource-grants"]
-    createGrant --> grantActive[GrantActive]
-    thirdCaller[ThirdPartyApiKey] --> resolveResource["POST /catalog/resolve"]
+    user[用户/调用方] --> createKey["POST /user-settings/api-keys<br/>(scopes: catalog,resolve,invoke)"]
+    createKey --> apiKeyActive[API Key Active]
+    apiKeyActive --> resolveResource["POST /catalog/resolve"]
     resolveResource --> invokeResource["POST /invoke"]
-    invokeResource --> checkLayer{"RBAC+Scope+GrantPass"}
+    invokeResource --> checkLayer{"Scope覆盖<br/>+ 资源published?"}
     checkLayer -->|yes| invokeSuccess[Success]
     checkLayer -->|no| forbidden403[Forbidden]
-    ownerUser --> revokeGrant["DELETE /resource-grants/{grantId}"]
-    revokeGrant --> forbidden403
+    user --> checkEligibility["POST /invoke-eligibility<br/>预判调用权限"]
+    checkEligibility --> eligibleResult{"可调用?"}
+    eligibleResult -->|yes| resolveResource
+    eligibleResult -->|no| showReason[显示原因]
 ```
 
-## 7.3 授权接口（资源拥有者/平台管理员）
+## 7.3 API Key 管理接口
 
-`POST /resource-grants`
+`POST /user-settings/api-keys` 创建 API Key
 
 ```json
 {
-  "resourceType": "mcp",
-  "resourceId": 29,
-  "granteeApiKeyId": "api-key-id-xxx",
-  "actions": ["catalog", "resolve", "invoke"],
+  "name": "my-api-key",
+  "scopes": ["catalog", "resolve", "invoke"],
   "expiresAt": "2026-12-31T23:59:59"
 }
 ```
 
 字段说明：
 
-- `actions` 只支持：`catalog`、`resolve`、`invoke`、`*`
-- 不允许空 actions
-- 过期时间到了会自动失效（校验时拒绝）
+- `scopes` 支持：`catalog`、`resolve`、`invoke` 或组合
+- `expiresAt` 可选，过期后 Key 自动失效
+
+**预判调用权限**：
+
+`POST /user-settings/api-keys/{id}/invoke-eligibility`
+
+```json
+{
+  "resourceType": "mcp",
+  "resourceIds": ["29", "30"]
+}
+```
+
+返回：
+
+```json
+{
+  "byResourceId": {
+    "29": true,
+    "30": false
+  }
+}
+```
 
 ## 7.4 常见授权误区
 
-- 误区1：给了 scope 就能调  
-  - 错：跨 owner 的 API Key 还要有 Grant。
-- 误区2：给了 Grant 就能调  
-  - 错：scope 不覆盖 `invoke` 也会 403。
-- 误区3：授权链接可替代 API Key  
-  - 错：后端目前无“授权链接”协议，只有 API Key + Scope + Grant。
+- 误区1：给了 scope 就能调
+  - 错：资源还必须处于 `published` 状态。
+- 误区2：需要 Grant 授权
+  - 错：资源级 Grant 已下线，只需 API Key + Scope + published 状态。
+- 误区3：授权链接可替代 API Key
+  - 错：后端无"授权链接"协议，只有 API Key + Scope。
 
 ---
 
@@ -297,7 +337,7 @@ flowchart TD
 
 ## 8.2 接口头部规范（前端必须统一）
 
-- 管理类接口（资源注册、审核、grant 管理）：
+- 管理类接口（资源注册、审核、API Key 管理）：
   - `Authorization: Bearer <token>`
   - `X-User-Id`（由认证链路注入或透传）
 - 目录（`GET /catalog/resources*`）：
@@ -328,7 +368,7 @@ flowchart TD
 
 ---
 
-## 9. 五类资源“使用方式差异”细化（前端必读）
+## 9. 五类资源"使用方式差异"细化（前端必读）
 
 ## 9.1 MCP
 
@@ -364,7 +404,7 @@ flowchart TD
 
 ---
 
-## 10. 版本管理（避免“更新覆盖线上”）
+## 10. 版本管理（避免"更新覆盖线上"）
 
 ## 10.1 创建版本
 
@@ -392,7 +432,7 @@ flowchart TD
 
 ---
 
-## 11. 前端“分子级”落地清单（逐页面）
+## 11. 前端"分子级"落地清单（逐页面）
 
 ## 11.1 创建页（五类动态表单）
 
@@ -422,8 +462,8 @@ flowchart TD
   - 驳回 -> `reject`（必须填写 reason）
   - 发布 -> `publish`
 - 强提醒：
-  - 通过后卡片状态应显示 `testing`，不要显示“已上架”
-  - 发布成功后才显示“已上架/可使用”
+  - 通过后卡片状态应显示 `testing`，不要显示"已上架"
+  - 发布成功后才显示"已上架/可使用"
 
 ## 11.4 市场页
 
@@ -443,13 +483,16 @@ flowchart TD
   - `app` -> URL 打开/嵌入
   - `dataset` -> 展示 metadata/spec
 
-## 11.6 授权管理页
+## 11.6 API Key 管理页
 
-- 资源拥有者进入后：
-  - 查询授权列表
-  - 新增授权（选择 API Key、actions、过期时间）
-  - 撤销授权
-- 第三方接入文案必须写清：需要平台发放 API Key + 对应资源 Grant
+> ⚠️ **已废弃（2026-04-09）**：资源级 Grant 管理已下线
+
+- 用户进入后：
+  - 查看我的 API Key 列表
+  - 创建 API Key（设置 scopes、过期时间）
+  - 撤销/轮换 API Key
+  - 预判调用权限（invoke-eligibility）
+- 第三方接入文案：需要创建 API Key 并设置正确的 scopes
 
 ---
 
@@ -460,7 +503,7 @@ flowchart TD
 - 403 无权限
   - 检查 RBAC 是否有类型访问权限
   - 检查 API Key scope 是否覆盖动作
-  - 检查是否存在有效 Grant
+  - 检查资源是否处于 `published` 状态
 - 404 不存在
   - 资源 ID、类型、版本号是否匹配
 - 400 参数错误
@@ -474,16 +517,15 @@ flowchart TD
 
 ## 13.1 MCP 完整验收
 
-1. 开发者创建 MCP 成功（状态 `draft`）  
-2. 提审成功（状态 `pending_review`）  
-3. 管理员 approve 后状态 `testing`  
-4. 管理员 publish 后状态 `published`  
-5. 市场 `resourceType=mcp&status=published` 可见  
-6. resolve 返回 endpoint/spec 正确  
-7. invoke 可成功  
-8. 未授权第三方 API Key 调用返回 403  
-9. 授权后第三方调用成功  
-10. 撤销授权后再次 403
+1. 开发者创建 MCP 成功（状态 `draft`）
+2. 提审成功（状态 `pending_review`）
+3. 管理员 approve 后状态 `testing`
+4. 管理员 publish 后状态 `published`
+5. 市场 `resourceType=mcp&status=published` 可见
+6. resolve 返回 endpoint/spec 正确
+7. invoke 可成功（需有效 API Key + scope 覆盖）
+8. 无 API Key 或 scope 不覆盖时返回 403
+9. 资源未 published 时无法调用
 
 ## 13.2 其余四类验收最小集
 
@@ -495,8 +537,8 @@ flowchart TD
 
 ## 14. 最后两条硬规则（防再跑偏）
 
-- 规则1：**任何“上架成功”文案必须以 `published` 为准**，不能以 `approve` 为准。  
-- 规则2：**任何“授权”文案必须按 Grant 模型描述**，不要再写“授权链接”。
+- 规则1：**任何"上架成功"文案必须以 `published` 为准**，不能以 `approve` 为准。
+- 规则2：**任何"授权"文案必须按 API Key + Scope + published 状态模型描述**，不要再写"授权链接"或"Grant"。
 
 ---
 
@@ -509,7 +551,5 @@ flowchart TD
 - `src/main/java/com/lantu/connect/audit/service/impl/AuditServiceImpl.java`
 - `src/main/java/com/lantu/connect/gateway/controller/ResourceCatalogController.java`
 - `src/main/java/com/lantu/connect/gateway/service/impl/UnifiedGatewayServiceImpl.java`
-- `src/main/java/com/lantu/connect/gateway/controller/ResourceGrantController.java`
-- `src/main/java/com/lantu/connect/gateway/security/ResourceInvokeGrantService.java`
+- ~~`src/main/java/com/lantu/connect/gateway/controller/ResourceGrantController.java`~~ **已废弃**
 - `src/main/java/com/lantu/connect/gateway/security/ApiKeyScopeService.java`
-

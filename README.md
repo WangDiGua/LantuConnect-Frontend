@@ -17,14 +17,21 @@
 
 ### 🎯 核心特性
 
-- **🤖 智能体管理**：创建、配置、部署和管理AI智能体
-- **📚 知识库系统**：文档上传、向量检索、命中测试
-- **🔄 工作流引擎**：可视化工作流设计、执行和监控
-- **📊 数据监控**：实时监控、告警管理、性能分析
-- **👥 用户管理**：角色权限、API密钥、组织架构
-- **💰 计费系统**：使用统计、配额管理、账单查询
-- **🛠️ 工具市场**：MCP服务器、工具发现与发布
-- **📈 数据可视化**：ECharts图表、实时仪表盘
+- **🤖 智能体管理**：创建、配置、部署和管理AI智能体 ✅ 已实现
+- **📊 数据监控**：实时监控、告警管理、性能分析 ✅ 已实现
+- **👥 用户管理**：角色权限、API密钥、组织架构 ✅ 已实现
+- **🛠️ 工具市场**：MCP服务器、工具发现与发布 ✅ 已实现
+- **📈 数据可视化**：ECharts图表、实时仪表盘 ✅ 已实现
+- **📦 资源注册中心**：资源统一注册、编辑、版本管理 ✅ 已实现
+- **✅ 审核中心**：资源审核、发布管理 ✅ 已实现
+- **👨‍💻 开发者中心**：API 文档、SDK 下载、API 调试、开发者统计 ✅ 已实现
+- **🏪 应用市场**：应用浏览、使用、评价 ✅ 已实现
+- **📊 数据集市场**：数据集浏览、申请使用 ✅ 已实现
+- **🎯 技能市场**：技能浏览、调用、评价 ✅ 已实现
+- **🔌 MCP 市场**：MCP 服务器浏览、工具调用 ✅ 已实现
+- **⚙️ 提供商管理**：模型提供商配置与管理 ✅ 已实现
+- **📤 发布管理**：我的发布资源管理 ✅ 已实现
+- **🚪 入驻引导**：开发者入驻申请与审批 ✅ 已实现
 
 ### 🏆 产品定位
 
@@ -163,20 +170,33 @@ src/
 │   └── api.ts             # API类型
 ├── utils/                 # 工具函数
 └── views/                 # 页面组件
-    ├── adminApp/          # 管理员控制台
+    ├── admin/             # 管理员控制台
     ├── agent/             # 智能体管理
-    ├── knowledge/         # 知识库
-    ├── monitoring/         # 监控中心
-    ├── systemConfig/       # 系统配置
-    ├── tools/              # 工具管理
-    └── userApp/            # 用户工作台
+    ├── apps/              # 应用市场
+    ├── audit/             # 审核中心
+    ├── common/            # 公共页面
+    ├── dashboard/         # 仪表盘
+    ├── dataset/           # 数据集市场
+    ├── developer/         # 开发者中心
+    ├── login/             # 登录页
+    ├── marketplace/       # 统一资源市场
+    ├── mcp/               # MCP市场
+    ├── monitoring/        # 监控中心
+    ├── onboarding/        # 入驻引导
+    ├── provider/          # 提供商管理
+    ├── publish/           # 发布管理
+    ├── resourceCenter/    # 资源注册中心
+    ├── skill/             # 技能市场
+    ├── systemConfig/      # 系统配置
+    ├── user/              # 用户工作台
+    └── userMgmt/          # 用户管理
 ```
 
 ---
 
 ## 🎨 UI设计规范
 
-项目遵循统一的UI设计规范，详见 [UI_STYLE_GUIDE.md](./docs/UI_STYLE_GUIDE.md)。
+项目遵循统一的UI设计规范，详见 [UI_STYLE_GUIDE.md](./.cursor/rules/UI_STYLE_GUIDE.md)。
 
 ### 核心原则
 
@@ -190,6 +210,60 @@ src/
 - **优先使用DaisyUI组件**：`btn`、`card`、`badge`、`table`等
 - **统一使用通用组件**：`DataTable`、`SearchInput`、`Pagination`等
 - **数据可视化**：统一使用 `EChartCard` + `echartsTheme`
+
+#### 业务组件
+
+位于 `src/components/business/` 目录，封装特定业务场景的 UI 组件：
+
+| 组件名 | 用途 | 使用场景 |
+|--------|------|----------|
+| `PublishStatusStepper` | 发布状态步骤条 | 展示资源发布流程状态（草稿→待审核→测试中→已发布），支持驳回/暂停等特殊状态 |
+| `PublishResourceCard` | 发布资源卡片 | 我的发布列表项，展示资源信息、状态步骤条、调用统计，支持审核/发布/撤回操作 |
+| `BindingClosureSection` | 绑定闭包区块 | 展示与当前资源在登记关系中处于同一连通分量的关联资源，支持快速跳转 |
+| `MessagePanel` | 消息面板 | 消息中心弹层，支持系统/通知/告警分类、已读/未读筛选、时间范围过滤、详情查看 |
+| `ResourceReviewsSection` | 资源评论区块 | 资源详情页评论区，支持评分分布展示、评论树形结构、回复、点赞、删除 |
+
+**使用示例**：
+
+```tsx
+import { PublishStatusStepper } from '../components/business/PublishStatusStepper';
+import { PublishResourceCard } from '../components/business/PublishResourceCard';
+
+<PublishStatusStepper theme={theme} current="pending_review" />
+
+<PublishResourceCard
+  theme={theme}
+  item={publishItem}
+  onView={() => navigateToDetail()}
+  onWithdraw={() => handleWithdraw()}
+/>
+```
+
+#### MCP 组件
+
+位于 `src/components/mcp/` 目录，用于 MCP（Model Context Protocol）资源调用与调试：
+
+| 组件名 | 用途 | 使用场景 |
+|--------|------|----------|
+| `McpDetailInvokeTab` | MCP 详情调用标签页 | MCP 资源详情页的「调用」标签页，整合快速试用与协议调试功能 |
+| `McpInvokeProtocolPanel` | MCP 调用协议面板 | JSON-RPC 协议调试面板，支持快捷/高级模式、流式调用、通道选择 |
+| `McpInvokeResultSection` | MCP 调用结果展示区 | 展示网关调用结果，包括状态码、耗时、JSON-RPC 错误解析、内容摘要 |
+| `McpToolArgsForm` | MCP 工具参数表单 | 根据 `inputSchema` 自动生成参数表单，支持枚举、布尔、数值、文本类型 |
+
+**使用示例**：
+
+```tsx
+import { McpDetailInvokeTab } from '../components/mcp/McpDetailInvokeTab';
+
+<McpDetailInvokeTab
+  theme={theme}
+  detail={mcpDetail}
+  invokeCatalogVersion={version}
+  loadMcpDetailByPath={loadDetail}
+  detailPageLoading={loading}
+  showMessage={showMessage}
+/>
+```
 
 ---
 
@@ -215,40 +289,87 @@ src/
 
 ## 📦 核心功能模块
 
-### 1. 智能体管理
+### 1. 智能体管理 ✅ 已实现
 - Agent列表、创建、编辑、删除
 - Agent版本管理
 - Agent市场（发现、发布、评分）
 - Agent调试与测试
 - Agent监控与追踪
 
-### 2. 知识库系统
-- 知识库CRUD
-- 文档上传（支持批量）
-- 向量检索与命中测试
-- 开发者API
-- 批量操作
-
-### 3. 工作流引擎
-- 可视化工作流编辑器
-- 工作流执行与调度
-- 执行历史与日志
-- 工作流模板
-
-### 4. 监控中心
+### 2. 监控中心 ✅ 已实现
 - 实时KPI监控
 - 调用日志查询
 - 告警管理与规则配置
 - 性能分析
 - 分布式追踪
 
-### 5. 系统管理（管理员）
+### 3. 系统管理（管理员） ✅ 已实现
 - 用户与角色管理
 - API密钥与Token管理
 - 组织架构
 - 系统配置（模型、限流、审计日志）
 - 网关路由管理
 - 数据备份与恢复
+
+### 4. 资源注册中心 ✅ 已实现
+- 资源统一注册与编辑
+- 版本管理与控制
+- 资源元数据维护
+- 资源状态管理
+
+### 5. 审核中心 ✅ 已实现
+- 资源审核流程
+- 发布审批管理
+- 审核记录查询
+- 审核状态跟踪
+
+### 6. 开发者中心 ✅ 已实现
+- API 文档浏览
+- SDK 下载
+- API 调试工具
+- 开发者统计数据
+
+### 7. 应用市场 ✅ 已实现
+- 应用浏览与搜索
+- 应用使用与部署
+- 应用评价与反馈
+- 应用收藏管理
+
+### 8. 数据集市场 ✅ 已实现
+- 数据集浏览与搜索
+- 数据集申请使用
+- 数据集详情查看
+- 数据集评价
+
+### 9. 技能市场 ✅ 已实现
+- 技能浏览与搜索
+- 技能调用与测试
+- 技能评价与反馈
+- 技能收藏管理
+
+### 10. MCP 市场 ✅ 已实现
+- MCP 服务器浏览
+- 工具列表查看
+- 工具调用与测试
+- MCP 资源管理
+
+### 11. 提供商管理 ✅ 已实现
+- 模型提供商配置
+- 提供商连接测试
+- 提供商状态监控
+- 提供商权限管理
+
+### 12. 发布管理 ✅ 已实现
+- 我的发布资源列表
+- 发布状态管理
+- 发布统计分析
+- 发布版本控制
+
+### 13. 入驻引导 ✅ 已实现
+- 开发者入驻申请
+- 入驻审批流程
+- 入驻资料管理
+- 入驻进度跟踪
 
 ---
 

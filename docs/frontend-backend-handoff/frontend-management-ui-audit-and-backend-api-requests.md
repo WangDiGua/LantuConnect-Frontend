@@ -67,17 +67,18 @@
 
 ---
 
-### 2.2 授权申请审批 `GET /grant-applications/pending`
+### 2.2 ~~授权申请审批~~（已废弃） ~~`GET /grant-applications/pending`~~
 
-**现状（前端）**
+> **注意**：该接口已下线（下线时间：2026-04），请勿继续使用。
 
-- `grantApplicationService.listPending` 仅传 `status`、`page`、`pageSize`。
-- 搜索框通过 `filteredRows` **仅在当前页** 上对 `id`、`resourceType`、`resourceId`、`apiKeyId`、`actions`、`useCase` 等拼接字符串做 `includes`。
+**~~现状（前端）~~**
 
-**建议后端**
+- ~~`grantApplicationService.listPending` 仅传 `status`、`page`、`pageSize`。~~
+- ~~搜索框通过 `filteredRows` **仅在当前页** 上对 `id`、`resourceType`、`resourceId`、`apiKeyId`、`actions`、`useCase` 等拼接字符串做 `includes`。~~
 
-- 增加可选 `keyword`（或 `q`）：对上述字段及申请人相关字段做统一模糊/分词检索（具体字段与前表 `GrantApplicationVO` 对齐）。
-- 保证分页 `total` 为过滤后总数。
+**替代方案**
+
+资源授权管理已整合到统一资源管理流程中，使用 `/resource-center/resources` 进行资源管理。
 
 ---
 

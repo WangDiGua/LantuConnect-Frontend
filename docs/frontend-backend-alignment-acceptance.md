@@ -6,7 +6,7 @@
 
 - 全局契约层（`src/lib/http.ts`）
   - 统一注入 `X-User-Id`、`X-Username`、`X-Request-Id`、`X-Trace-Id`。
-  - 增加强约束校验：`/invoke`、`/sdk/v1/*`、`/sandbox/*`、`/resource-grants*` 的必填 Header 缺失时前置抛错。
+  - 增加强约束校验：`/invoke`、`/sdk/v1/*`、`/sandbox/*`、~~`/resource-grants*`~~（已废弃） 的必填 Header 缺失时前置抛错。
   - 统一错误码映射：覆盖 `401/1002`、`403/1003`、`400/1001`、`404/1004`、`410+1004`、`429/3001`、`3002~3005`、`500/5001`。
   - 分页契约兜底：`PageResult.total` 缺失时从响应头 `X-Total-Count` 回填。
 
@@ -34,7 +34,7 @@
 - 页面侧迁移（`src/views/**`）
   - 开发者文档、Playground、SDK 示例已切换到 `/api` 基础路径和统一网关示例。
   - 市场页与发布页入口调整为“探索/我的发布”路径，移除旧提交路径依赖。
-  - 新增资源授权管理页 `ResourceGrantManagementPage` 并接入 `/resource-grants*`。
+  - 新增资源授权管理页 `ResourceGrantManagementPage` 并接入 ~~`/resource-grants*`~~（已废弃，下线时间：2026-04）。**替代方案**：使用 `/resource-center/resources` 进行资源管理。
 
 ## 2) 接口清单（保留 / 迁移 / 下线）
 
@@ -55,7 +55,7 @@
 - 目录：`GET /catalog/resources`、`GET /catalog/resources/{type}/{id}`
 - 解析：`POST /catalog/resolve`
 - 调用：`POST /invoke`
-- 授权：`POST /resource-grants`、`GET /resource-grants`、`DELETE /resource-grants/{grantId}`
+- ~~授权：`POST /resource-grants`、`GET /resource-grants`、`DELETE /resource-grants/{grantId}`~~（已废弃，下线时间：2026-04）
 - 沙箱：`POST /sandbox/sessions`、`GET /sandbox/sessions/mine`、`POST /sandbox/invoke`
 - SDK：`GET /sdk/v1/resources`、`GET /sdk/v1/resources/{type}/{id}`、`POST /sdk/v1/resolve`、`POST /sdk/v1/invoke`
 
@@ -100,7 +100,7 @@
 - `role-management` -> `/user-mgmt/roles*`：已完成
 - `organization` -> `/user-mgmt/org*`：已完成
 - `api-key-management` -> `/user-mgmt/api-keys*`：已完成
-- `resource-grant-management` -> `/resource-grants*`：已完成（新增）
+- `resource-grant-management` -> ~~`/resource-grants*`~~（已废弃）：**已下线**（替代方案：使用 `/resource-center/resources` 管理资源）
 - `monitoring-overview` -> `/monitoring/kpis`：已完成
 - `call-logs` -> `/monitoring/call-logs`：已完成
 - `performance-analysis` -> `/monitoring/performance`：已完成
@@ -114,7 +114,7 @@
 - `security-settings` -> `/system-config/security`：已完成
 - `quota-management` -> `/quotas*`,`/rate-limits*`：已完成
 - `rate-limit-policy` -> `/system-config/rate-limits*`：已完成
-- `access-control` -> `/system-config/acl/publish` + `/resource-grants*`：已完成
+- `access-control` -> `/system-config/acl/publish` + ~~`/resource-grants*`~~（已废弃）：已完成
 - `audit-log` -> `/system-config/audit-logs`：已完成
 - `api-docs`：已完成（示例已切换新链路）
 - `sdk-download`：已完成（示例已切换新链路）
@@ -201,7 +201,7 @@
 - 版本创建/切换/查询（`/resource-center/resources/{id}/versions*`）
 - 目录查询与解析（`/catalog/resources*`、`/catalog/resolve`）
 - 调用链路（`/invoke`：需 `X-Api-Key`）
-- 授权链路（`/resource-grants*`）
+- ~~授权链路（`/resource-grants*`）~~（已废弃，下线时间：2026-04）
 
 缺失信息：测试账号（开发者/管理员）或可用 Bearer Token、可调用的 `X-Api-Key`。
 

@@ -11,7 +11,7 @@
 | `ResourceCatalogController`      | `/catalog`、`/invoke`           | `02`、`03`、`04` |
 | `ResourceRegistryController`     | `/resource-center/resources`   | `02`、`03`、`04` |
 | `AuditController`                | `/audit`                       | `02`、`03`      |
-| `ResourceGrantController`        | `/resource-grants`             | `02`、`03`      |
+| `ResourceGrantController` | ~~`/resource-grants`~~（已废弃，下线时间待定）<br>**替代方案**：使用 `/catalog/resources` | `02`、`03` |
 | `SdkGatewayController`           | `/sdk/v1`                      | `02`           |
 | `SandboxController`              | `/sandbox`                     | `02`           |
 | `DeveloperApplicationController` | `/developer/applications`      | `02`、`06`      |

@@ -151,10 +151,12 @@
   1) 用户 RBAC（有 `X-User-Id` 时）
   2) API Key scope
   3) 资源 grant（资源拥有者或平台管理员授予）
-- 新增授权管理接口（供前端授权页接入）：
-  - `POST /resource-grants`：授予/更新授权
-  - `GET /resource-grants?resourceType=&resourceId=`：查询授权列表
-  - `DELETE /resource-grants/{grantId}`：撤销授权
+- ~~新增授权管理接口（供前端授权页接入）：~~（已废弃，下线时间：2026-04）
+  - ~~`POST /resource-grants`：授予/更新授权~~
+  - ~~`GET /resource-grants?resourceType=&resourceId=`：查询授权列表~~
+  - ~~`DELETE /resource-grants/{grantId}`：撤销授权~~
+  
+  **替代方案**：资源授权管理已整合到统一资源管理流程中，使用 `/resource-center/resources` 进行资源管理
 
 ---
 
@@ -216,7 +218,7 @@
 | `role-management` | 保留 | `/user-mgmt/roles*` |
 | `organization` | 保留 | `/user-mgmt/org-tree`,`/user-mgmt/orgs*` |
 | `api-key-management` | 保留 | `/user-mgmt/api-keys*` |
-| `resource-grant-management` | 保留（新增） | `/resource-grants*`（资源授权他人调用） |
+| `resource-grant-management` | ~~保留（新增）~~ **已下线** | ~~`/resource-grants*`（资源授权他人调用）~~ **替代方案**：使用 `/resource-center/resources` 管理资源 |
 | `monitoring-overview` | 保留 | `/monitoring/kpis` |
 | `call-logs` | 保留 | `/monitoring/call-logs` |
 | `performance-analysis` | 保留 | `/monitoring/performance` |
@@ -230,7 +232,7 @@
 | `security-settings` | 保留 | `/system-config/security` |
 | `quota-management` | 保留 | `/quotas*`,`/rate-limits*` |
 | `rate-limit-policy` | 保留 | `/system-config/rate-limits*` |
-| `access-control` | 保留 | `/system-config/acl/publish` + `/resource-grants*` |
+| `access-control` | 保留 | `/system-config/acl/publish` + ~~`/resource-grants*`~~（已废弃） |
 | `audit-log` | 保留 | `/system-config/audit-logs` |
 | `api-docs` | 保留 | 文档页，不直接绑定单一接口 |
 | `sdk-download` | 保留 | `/sdk/v1/*`（示例链路） |
@@ -313,13 +315,17 @@
 | POST | `/invoke` | body:`InvokeRequest` | **`X-Api-Key` 必填**；`X-User-Id?`,`X-Trace-Id?` | 保留 |
 | POST | `/invoke-stream` | body: 同 invoke | **`X-Api-Key` 必填**；权限同 invoke | 保留 |
 
-## 4.2.1 资源调用授权管理（新增）
+## 4.2.1 资源调用授权管理（已废弃）
+
+> **注意**：以下接口已下线（下线时间：2026-04），请勿继续使用。
 
 | 方法 | 路径 | 请求要点 | 鉴权/权限 | 结论 |
 |---|---|---|---|---|
-| POST | `/resource-grants` | body:`ResourceGrantCreateRequest` | `X-User-Id`；资源拥有者或平台管理员 | 保留（新增） |
-| GET | `/resource-grants` | query:`resourceType,resourceId` | `X-User-Id`；资源拥有者或平台管理员 | 保留（新增） |
-| DELETE | `/resource-grants/{grantId}` | path:`grantId` | `X-User-Id`；资源拥有者或平台管理员 | 保留（新增） |
+| ~~POST~~ | ~~`/resource-grants`~~ | ~~body:`ResourceGrantCreateRequest`~~ | ~~`X-User-Id`；资源拥有者或平台管理员~~ | **已下线** |
+| ~~GET~~ | ~~`/resource-grants`~~ | ~~query:`resourceType,resourceId`~~ | ~~`X-User-Id`；资源拥有者或平台管理员~~ | **已下线** |
+| ~~DELETE~~ | ~~`/resource-grants/{grantId}`~~ | ~~path:`grantId`~~ | ~~`X-User-Id`；资源拥有者或平台管理员~~ | **已下线** |
+
+**替代方案**：资源授权管理已整合到统一资源管理流程中，使用 `/resource-center/resources` 进行资源管理。
 
 ## 4.2.2 统一资源注册中心（新增）
 
@@ -792,7 +798,7 @@ revokeGrant --> invoke
 | UserActivity | `/user/recent-use` | `useractivity/dto/RecentUseVO` |
 | Review | `/reviews` | `review/dto/ReviewCreateRequest`,`review/dto/ReviewSummaryVO` |
 | Notification | `/notifications` | `notification/entity/Notification` |
-| Grant | `/resource-grants*` | `gateway/dto/ResourceGrantCreateRequest`,`ResourceGrantVO` |
+| Grant | ~~`/resource-grants*`~~（已废弃） | ~~`gateway/dto/ResourceGrantCreateRequest`,`ResourceGrantVO`~~ |
 | Tags | `/tags`,`/tags/batch` | `dataset/dto/TagCreateRequest`,`dataset/entity/Tag` |
 | SensitiveWord | `/sensitive-words*` | `common/sensitive/SensitiveWordController` 内部请求对象 `AddRequest/BatchAddRequest/UpdateRequest/CheckRequest` |
 | File | `/files/upload` | multipart 入参，无独立 DTO |

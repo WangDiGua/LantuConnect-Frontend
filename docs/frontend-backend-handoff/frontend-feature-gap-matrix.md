@@ -34,9 +34,9 @@
 
 | 路由 page | 主要组件 | 列表/数据 API | 数据流 | 备注 |
 |-----------|----------|---------------|--------|------|
-| user-list / role-management / api-key-management / resource-grant-management | UserManagementModule | `userMgmtService` 等 | serverPaged | 资源授权列表：**grantee 关键词仅筛当前页**；全库需后端 query |
+| user-list / role-management / api-key-management / ~~resource-grant-management~~（已废弃） | UserManagementModule | `userMgmtService` 等 | serverPaged | ~~资源授权列表：**grantee 关键词仅筛当前页**；全库需后端 query~~（已废弃，下线时间：2026-04） |
 | organization | OrgStructurePage | `getOrgTree` + `createOrg` / `updateOrg` / `deleteOrg` | 树 CRUD | 表单 Modal 改善父节点选择 |
-| grant-applications | GrantApplicationListPage | `grantApplicationService.listPending` + **`keyword`** | serverPaged | 应与后端 query 一致 |
+| ~~grant-applications~~（已废弃） | ~~GrantApplicationListPage~~ | ~~`grantApplicationService.listPending` + **`keyword`**~~ | ~~serverPaged~~ | ~~应与后端 query 一致~~（已废弃，下线时间：2026-04） |
 | developer-applications | DeveloperApplicationListPage | `developerApplicationService.list` + **`keyword`** | serverPaged | 防抖请求 |
 
 ---

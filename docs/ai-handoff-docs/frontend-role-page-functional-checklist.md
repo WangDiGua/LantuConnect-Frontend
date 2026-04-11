@@ -10,15 +10,15 @@
 
 ## 2. 文档入口
 
-- [README](./frontend-alignment-playbook/README.md)
-- [01 菜单与页面蓝图](./frontend-alignment-playbook/01-menu-and-page-blueprints.md)
-- [02 接口到页面映射总表](./frontend-alignment-playbook/02-api-to-page-mapping.md)
-- [03 按钮流程与状态机](./frontend-alignment-playbook/03-button-flows-and-state-machine.md)
-- [04 查询参数与字段展示映射](./frontend-alignment-playbook/04-query-fields-and-display-mapping.md)
-- [05 权限、错误与路由守卫](./frontend-alignment-playbook/05-permissions-errors-routing.md)
-- [06 改造顺序与验收](./frontend-alignment-playbook/06-rollout-and-acceptance.md)
-- [07 Controller 覆盖矩阵](./frontend-alignment-playbook/07-controller-coverage-matrix.md)
-- [08 全量覆盖审计矩阵](./frontend-alignment-playbook/08-coverage-audit-matrix.md)
+- [README](./README.md)
+- [01 菜单与页面蓝图](./01-menu-and-page-blueprints.md)
+- [02 接口到页面映射总表](./02-api-to-page-mapping.md)
+- [03 按钮流程与状态机](./03-button-flows-and-state-machine.md)
+- [04 查询参数与字段展示映射](./04-query-fields-and-display-mapping.md)
+- [05 权限、错误与路由守卫](./05-permissions-errors-routing.md)
+- [06 改造顺序与验收](./06-rollout-and-acceptance.md)
+- [07 Controller 覆盖矩阵](./07-controller-coverage-matrix.md)
+- [08 全量覆盖审计矩阵](./08-coverage-audit-matrix.md)
 
 ## 3. 对齐参考文档
 

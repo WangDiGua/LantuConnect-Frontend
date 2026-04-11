@@ -10,7 +10,7 @@
 
 | # | 差异类型 | 涉及手册章节 | 严重度 | 说明 |
 |---|---------|------------|--------|------|
-| 1 | 新增控制器 | §4（缺失） | **高** | `GrantApplicationController`（`/grant-applications`）整体缺失，前端无法对接授权申请工单 |
+| 1 | 新增控制器 | §4（缺失） | **高** | ~~`GrantApplicationController`（`/grant-applications`）~~（已废弃，下线时间待定）<br>**替代方案**：使用 `/catalog/resources` 统一资源目录 |
 | 2 | 权限变更 | §4.11 审核接口 | **高** | `publish` 端点权限从 `platform_admin/dept_admin` 收紧为仅 `platform_admin` |
 | 3 | 参数变更 | §4.11 审核接口 | **高** | 所有审核列表/操作端点新增 `X-User-Id` 必填 header；列表新增 `status` 查询参数 |
 | 4 | 参数变更 | §4.10 Dashboard | **中** | `GET /dashboard/admin-overview` 新增 `X-User-Id` 必填 header |
@@ -29,17 +29,19 @@
 
 ### 差异 1：新增 `GrantApplicationController`（授权申请工单）
 
+> **注意**：`/grant-applications` 接口已废弃，下线时间待定。替代方案：使用 `/catalog/resources` 统一资源目录。
+
 **手册现状：** 完全缺失，手册只记录了 `/resource-grants` 的直接授权模式。
 
 **代码真值：** 新增 `GrantApplicationController`，路由前缀 `/grant-applications`。
 
 | 方法 | 路径 | 鉴权/权限 | 请求要点 | 返回 |
 |------|------|----------|---------|------|
-| POST | `/grant-applications` | `X-User-Id` + `@AuditLog` | body: `GrantApplicationRequest` | `R<Map<String,Long>>` (applicationId) |
-| GET | `/grant-applications/mine` | `X-User-Id` | query: `status?`, `page`, `pageSize` | `R<PageResult<GrantApplicationVO>>` |
-| GET | `/grant-applications/pending` | `@RequireRole({"platform_admin"})` | query: `status?`, `page`, `pageSize` | `R<PageResult<GrantApplicationVO>>` |
-| POST | `/grant-applications/{id}/approve` | `@RequireRole({"platform_admin"})` + `X-User-Id` + `@AuditLog` | path: `id` | `R<Void>` |
-| POST | `/grant-applications/{id}/reject` | `@RequireRole({"platform_admin"})` + `X-User-Id` + `@AuditLog` | path: `id`; body: `ResourceRejectRequest` | `R<Void>` |
+| POST | ~~`/grant-applications`~~（已废弃） | `X-User-Id` + `@AuditLog` | body: `GrantApplicationRequest` | `R<Map<String,Long>>` (applicationId) |
+| GET | ~~`/grant-applications/mine`~~（已废弃） | `X-User-Id` | query: `status?`, `page`, `pageSize` | `R<PageResult<GrantApplicationVO>>` |
+| GET | ~~`/grant-applications/pending`~~（已废弃） | `@RequireRole({"platform_admin"})` | query: `status?`, `page`, `pageSize` | `R<PageResult<GrantApplicationVO>>` |
+| POST | ~~`/grant-applications/{id}/approve`~~（已废弃） | `@RequireRole({"platform_admin"})` + `X-User-Id` + `@AuditLog` | path: `id` | `R<Void>` |
+| POST | ~~`/grant-applications/{id}/reject`~~（已废弃） | `@RequireRole({"platform_admin"})` + `X-User-Id` + `@AuditLog` | path: `id`; body: `ResourceRejectRequest` | `R<Void>` |
 
 **GrantApplicationRequest 字段：**
 
@@ -195,8 +197,9 @@ GET /dashboard/admin-overview    @RequirePermission(monitor:view) + header: X-Us
 
 | Controller | 路由前缀 | 对应文档 |
 |------------|---------|---------|
-| `GrantApplicationController` | `/grant-applications` | `02`、`03` |
+| ~~`GrantApplicationController`~~（已废弃） | ~~`/grant-applications`~~（已废弃） | `02`、`03` |
 
+总 Controller 数更新为 **28**。
 ---
 
 ### 差异 8：新增基础设施配置
@@ -241,16 +244,18 @@ GET /dashboard/admin-overview    @RequirePermission(monitor:view) + header: X-Us
 
 ### 差异 10：缺少授权申请流程图
 
+> **注意**：`/grant-applications` 接口已废弃，下线时间待定。替代方案：使用 `/catalog/resources` 统一资源目录。
+
 **手册现状（§5.6）：** 有 4 个流程图（登录刷新、入驻、统一调用、授权他人调用），但缺少"授权申请→审批"流程。
 
 **应补充的流程：**
 
 ```
-开发者 → POST /grant-applications（提交申请）
-       → GET /grant-applications/mine（查看我的申请）
-平台管理员 → GET /grant-applications/pending（查看待审批）
-           → POST /grant-applications/{id}/approve（通过 → 自动创建 grant）
-           → POST /grant-applications/{id}/reject（驳回）
+开发者 → POST /grant-applications（提交申请）（已废弃）
+       → GET /grant-applications/mine（查看我的申请）（已废弃）
+平台管理员 → GET /grant-applications/pending（查看待审批）（已废弃）
+           → POST /grant-applications/{id}/approve（通过 → 自动创建 grant）（已废弃）
+           → POST /grant-applications/{id}/reject（驳回）（已废弃）
 ```
 
 ---

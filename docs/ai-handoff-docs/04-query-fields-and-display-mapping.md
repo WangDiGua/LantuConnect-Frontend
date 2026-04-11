@@ -31,7 +31,7 @@
 | `POST /invoke`                        | 调用结果面板   | `traceId/statusCode/latencyMs`               | `body/requestId`                          |
 | `GET /resource-center/resources/mine` | `*-list` | `displayName/status/updateTime`              | `resourceCode/resourceType/version`       |
 | `GET /audit/resources`                | 审核页      | `displayName/resourceType/status/submitTime` | `submitter/reviewer`                      |
-| `GET /resource-grants`                | 授权中心     | `granteeApiKeyId/actions/expiresAt/status`   | `grantId/resourceType/resourceId`         |
+| ~~`GET /resource-grants`~~（已废弃） | 授权中心 | `granteeApiKeyId/actions/expiresAt/status` | `grantId/resourceType/resourceId` |
 | `GET /monitoring/call-logs`           | 调用日志     | `traceId/statusCode/latencyMs/time`          | `resourceType/resourceId/caller`          |
 | `GET /notifications`                  | 消息中心     | `title/read/time`                            | `content/type`                            |
 | `GET /reviews`                        | 评价区      | `rating/content/helpfulCount`                | `author/createdAt`                        |
@@ -53,6 +53,8 @@
 - `StatusBadge`：`pending_review/testing/published/rejected`
 
 ### 授权中心页
+> **注意**：`/resource-grants` 接口已废弃，下线时间待定。替代方案：使用 `/catalog/resources` 统一资源目录。
+
 - `GrantTable`：`granteeApiKeyId/actions/expiresAt/status`
 - `GrantModal`：`resourceType/resourceId/granteeApiKeyId/actions/expiresAt`
 

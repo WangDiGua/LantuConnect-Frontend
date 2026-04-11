@@ -226,17 +226,24 @@ flowchart TD
 
 ## 6.2 授权管理页流程（当前实现）
 
-- 页面：`ResourceGrantManagementPage`
+> **⚠️ 重要提示**：独立 `/resource-grants` CRUD 接口已下线（下线时间：2026-04）。资源可见性/调用策略现由资源 `access_policy` 与网关校验共同决定。详见 [frontend-backend-alignment-spec.md](./frontend-backend-alignment-spec.md) §2.9。
+
+- 页面：`ResourceGrantManagementPage`（**已下线**）
 - 新增授权输入：
   - `resourceType`
   - `resourceId`
   - `granteeApiKeyId`
   - `actions[]`（`catalog/resolve/invoke/*`，非空）
   - `expiresAt`（可选）
-- 接口：
-  - 创建 `POST /resource-grants`
-  - 查询 `GET /resource-grants?resourceType=&resourceId=`
-  - 撤销 `DELETE /resource-grants/{grantId}`
+- 接口（**已废弃**）：
+  - ~~创建 `POST /resource-grants`~~ → **替代方案**：使用 `/resource-center/resources` 管理资源
+  - ~~查询 `GET /resource-grants?resourceType=&resourceId=`~~ → **替代方案**：使用 `/catalog/resources` 统一资源目录
+  - ~~撤销 `DELETE /resource-grants/{grantId}`~~ → **替代方案**：使用 `/resource-center/resources` 管理资源
+
+**迁移指南**：
+- 资源授权现通过资源的 `access_policy` 字段控制
+- 使用 `/catalog/resources` 查询资源目录
+- 使用 `/resource-center/resources` 进行资源管理操作
 
 ## 6.3 调用时序（标准）
 

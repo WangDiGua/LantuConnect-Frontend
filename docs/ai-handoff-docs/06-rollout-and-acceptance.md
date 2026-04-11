@@ -4,7 +4,7 @@
 
 1. 资源中心：五类 `*-register/*-list` + 生命周期按钮  
 2. 审核中心：`audit-center` 五类审核页  
-3. 授权中心：`resource-grant-management`  
+3. 授权中心：`resource-grant-management`（**注意**：`/resource-grants` 接口已废弃，下线时间待定。替代方案：使用 `/catalog/resources` 统一资源目录）
 4. 五市场：默认 `published` + resolve/invoke  
 5. 用户与权限管理  
 6. 监控与系统配置  
@@ -20,6 +20,8 @@
 `mcp-register -> mcp-server-list submit -> audit-center/mcp-audit approve -> publish -> mcp-market resolve/invoke`
 
 ### 授权闭环
+> **注意**：`/resource-grants` 接口已废弃，下线时间待定。替代方案：使用 `/catalog/resources` 统一资源目录。
+
 未授权 invoke 403 -> 新增授权 -> invoke 成功 -> 撤销授权 -> invoke 403
 
 ## 3) 角色验收清单
@@ -27,7 +29,7 @@
 ### platform_admin
 - 五类资源全链路可操作
 - 审核中心三动作齐全
-- 授权新增/撤销立即生效
+- 授权新增/撤销立即生效（**注意**：`/resource-grants` 接口已废弃，下线时间待定。替代方案：使用 `/catalog/resources` 统一资源目录）
 
 ### dept_admin
 - 可见页面符合权限收敛
@@ -52,7 +54,7 @@
 2. 在列表提审。  
 3. 到 `audit-center/mcp-audit` 通过并发布。  
 4. 到 `mcp-market` 检索并执行 `resolve/invoke`。  
-5. 到授权中心新增授权，再撤销授权，验证调用方结果变化。  
+5. 到授权中心新增授权，再撤销授权，验证调用方结果变化。（**注意**：`/resource-grants` 接口已废弃，下线时间待定。替代方案：使用 `/catalog/resources` 统一资源目录）
 6. 在评价区提交评论并点赞 helpful，验证列表刷新。
 
 ### dept_admin
@@ -104,7 +106,7 @@
 | `role-management` | 角色增改删 + 系统角色保护校验 |
 | `organization` | 组织树增改删 + 挂载校验 |
 | `api-key-management` | API Key 新建 + 撤销 |
-| `resource-grant-management` | 新增授权 + 撤销授权 + 调用影响验证 |
+| `resource-grant-management` | 新增授权 + 撤销授权 + 调用影响验证（**注意**：`/resource-grants` 接口已废弃，下线时间待定。替代方案：使用 `/catalog/resources` 统一资源目录） |
 | `developer-applications` | 入驻申请审批（通过/驳回） |
 | `monitoring-overview` | KPI + 告警摘要展示 |
 | `call-logs` | 日志检索 + 分页 + 重试 |

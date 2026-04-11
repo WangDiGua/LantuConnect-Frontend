@@ -48,16 +48,16 @@
 ### 申请 API 授权（前端引导）
 - 前置：非 owner
 - 接口：无后端申请单（仅前端引导）
-- 成功：引导 owner 到授权中心执行 `POST /resource-grants`
+- 成功：引导 owner 到授权中心执行 ~~`POST /resource-grants`~~（已废弃，下线时间待定）<br>**替代方案**：使用 `/catalog/resources` 统一资源目录
 
 ### 新增授权
 - 前置：owner/管理员
-- 接口：`POST /resource-grants`
+- 接口：~~`POST /resource-grants`~~（已废弃，下线时间待定）<br>**替代方案**：使用 `/catalog/resources` 统一资源目录
 - 请求：`resourceType/resourceId/granteeApiKeyId/actions/expiresAt?`
 - 成功：授权记录出现；调用方可 invoke
 
 ### 撤销授权
-- 接口：`DELETE /resource-grants/{grantId}`
+- 接口：~~`DELETE /resource-grants/{grantId}`~~（已废弃，下线时间待定）<br>**替代方案**：使用 `/catalog/resources` 统一资源目录
 - 成功：调用方再次 invoke 返回 403
 
 ### 立即使用 / 调用
@@ -116,6 +116,8 @@
 5. 在市场页检索到该资源（`published`）。
 
 ### 授权 -> 调用 -> 撤销（成功路径）
+> **注意**：`/resource-grants` 接口已废弃，下线时间待定。替代方案：使用 `/catalog/resources` 统一资源目录。
+
 1. 在 `resource-grant-management` 点击 `新增授权`。
 2. 填写 `resourceType/resourceId/granteeApiKeyId/actions/expiresAt`。
 3. 保存后调用方 `invoke` 成功。

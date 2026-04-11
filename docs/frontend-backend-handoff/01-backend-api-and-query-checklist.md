@@ -27,7 +27,7 @@
 | `developer-application.service.ts`                                                | `GET /developer/applications`：`status`、`keyword`、分页                                        |
 | `monitoring.service.ts`                                                           | `listCallLogs`：`keyword`、`status`；`listAlerts`：`keyword`、`severity`、`alertStatus`          |
 | `user-mgmt.service.ts`                                                            | `listUsers`、`listTokens` 等的 `keyword`、`status`、分页                                          |
-| `resource-grant.service.ts`                                                       | `GET /resource-grants`：仅 `resourceType`+`resourceId`+分页；**前端需 grantee 全库检索时请增加 `keyword`** |
+| `resource-grant.service.ts` | ~~`GET /resource-grants`：仅 `resourceType`+`resourceId`+分页~~（已废弃，下线时间：2026-04） |
 | `resource-audit.service.ts`                                                       | 审核列表 `keyword`、`status`、`resourceType` 等（以类型为准）                                            |
 | `quota.service.ts`                                                                | `listQuotas` / `listRateLimits`：前端列表多为客户端筛选；大表时建议服务端 `keyword`、`subjectType` 等             |
 | `provider.service.ts`                                                             | 列表 `keyword`（实现里可能映射为 `name`）/`status`                                                     |

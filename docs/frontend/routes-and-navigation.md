@@ -14,52 +14,67 @@
 - URL 中的 `role` 决定管理端壳层 vs 用户端壳层；平台角色（如 `platform_admin`）与控制台 `admin` 的映射见 `UserRoleContext` / `canAccessAdminView`，不在此展开。
 - **`/admin` 下访问开发者中心子页**（`api-docs`、`sdk-download`、`api-playground`、`developer-statistics`）会被 **重定向到 `/user/...`** 同路径（`DEVELOPER_PORTAL_PAGES`）。
 
-## `normalizeDeprecatedPage`（仅替换 slug，不重写 query）
+## 已废弃路由
 
-[`MainLayout.tsx`](../../src/layouts/MainLayout.tsx) 在解析 URL 后先规范化 `page`：
+> **重要提示**：以下路由 slug 已废弃，仅作为书签/外链兼容保留。访问时会自动重定向到新路径。
 
-| 请求 slug | 规范化为 |
-|-----------|----------|
-| `agent-create`, `agent-versions` | `agent-register` |
-| `skill-create` | `skill-register` |
-| `app-create` | `app-register` |
-| `dataset-create` | `dataset-register` |
-| `category-management` | `tag-management` |
-| `submit-agent`, `submit-skill` | `my-agents-pub` |
-| `my-agents`, `my-skills` | `my-agents-pub` |
-| 其它 | 原样 |
+### 废弃路由重定向映射表
+
+#### 1. 旧列表页 → 资源审核页
+
+| 废弃 slug | 重定向目标 | 说明 |
+|-----------|------------|------|
+| `agent-list` | `resource-audit?type=agent` | 智能体列表 → 智能体审核 |
+| `skill-list` | `resource-audit?type=skill` | 技能列表 → 技能审核 |
+| `mcp-server-list` | `resource-audit?type=mcp` | MCP服务列表 → MCP审核 |
+| `app-list` | `resource-audit?type=app` | 应用列表 → 应用审核 |
+| `dataset-list` | `resource-audit?type=dataset` | 数据集列表 → 数据集审核 |
+
+#### 2. 旧审核子路由 → 统一资源审核
+
+| 废弃 slug | 默认 type | 说明 |
+|-----------|-----------|------|
+| `agent-audit` | `agent` | 智能体审核 → 统一审核（智能体类型） |
+| `skill-audit` | `skill` | 技能审核 → 统一审核（技能类型） |
+| `mcp-audit` | `mcp` | MCP审核 → 统一审核（MCP类型） |
+| `app-audit` | `app` | 应用审核 → 统一审核（应用类型） |
+| `dataset-audit` | `dataset` | 数据集审核 → 统一审核（数据集类型） |
+
+#### 3. 统一资源目录迁移
+
+| 废弃 slug | 重定向目标 | 重定向条件 |
+|-----------|------------|------------|
+| `resource-catalog` | `resource-audit?type=agent` | 仅管理端（`admin` 角色） |
+
+**`resource-catalog` 重定向逻辑说明**：
+- **触发条件**：用户角色为 `admin` 且访问 `#/c/resource-catalog`
+- **重定向行为**：自动 `replace` 到 `#/c/resource-audit?type=agent`
+- **query 参数处理**：若 URL 带有 `?type=xxx`，则保留该参数；否则默认 `type=agent`
+- **实现位置**：[`MainLayout.tsx`](../../src/layouts/MainLayout.tsx) 中的 `useEffect` 重定向逻辑
+
+### URL 规范化（`normalizeDeprecatedPage`）
+
+[`MainLayout.tsx`](../../src/layouts/MainLayout.tsx) 在解析 URL 后先规范化 `page`（仅替换 slug，不重写 query）：
+
+| 请求 slug | 规范化为 | 说明 |
+|-----------|----------|------|
+| `agent-create`, `agent-versions` | `agent-register` | 智能体创建/版本 → 统一注册页 |
+| `skill-create` | `skill-register` | 技能创建 → 技能注册页 |
+| `app-create` | `app-register` | 应用创建 → 应用注册页 |
+| `dataset-create` | `dataset-register` | 数据集创建 → 数据集注册页 |
+| `category-management` | `tag-management` | 分类管理 → 标签管理 |
+| `submit-agent`, `submit-skill` | `my-agents-pub` | 提交入口 → 我的发布 |
+| `my-agents`, `my-skills` | `my-agents-pub` | 旧我的资源 → 我的发布 |
+| 其它 | 原样 | 无需规范化 |
 
 随后若 `routePage !== normalizedRoutePage`，会 `replace` 到规范路径。
 
-## 管理端：兼容 URL 再定向（我的资源中心 vs 审核）
+## 管理端：资源中心与审核
 
 - **「我的」登记与维护**：与开发者一致，走 `#/c/resource-center?type=…`（数据 `created_by = 当前用户`）。
 - **全站资源审核**：走 `#/c/resource-audit?type=…`。
-- 书签 **`#/c/resource-catalog`**（旧「统一目录」）对可进管理端的账号 **replace → `#/c/resource-audit`**（并补 `?type=`）。
 
-下列 **URL 仍可作为书签/外链**，进入后由 `useEffect` **replace** 到 canonical 形式（保留或补全 `?type=`）：
-
-**旧列表页（管理壳）→ `resource-audit`**
-
-| 旧 path slug | 重定向 target |
-|--------------|---------------|
-| `agent-list` | `#/c/resource-audit?type=agent` |
-| `skill-list` | `#/c/resource-audit?type=skill` |
-| `mcp-server-list` | `#/c/resource-audit?type=mcp` |
-| `app-list` | `#/c/resource-audit?type=app` |
-| `dataset-list` | `#/c/resource-audit?type=dataset` |
-
-**旧审核子路由 → `resource-audit`**
-
-| 旧 path slug | 默认 `type`（可被 query 覆盖） |
-|--------------|--------------------------------|
-| `agent-audit` | `agent` |
-| `skill-audit` | `skill` |
-| `mcp-audit` | `mcp` |
-| `app-audit` | `app` |
-| `dataset-audit` | `dataset` |
-
-**从 `resource-catalog` 迁入审核**：访问 `#/c/resource-catalog` 且无 `type` 时，会 replace 到 `#/c/resource-audit?type=agent`。
+上述废弃 URL 进入后由 `useEffect` **replace** 到 canonical 形式（保留或补全 `?type=`）。
 
 ## 用户端：统一资源与普通列表
 
@@ -168,6 +183,88 @@
 
 `provider-list`（`provider:view`）、`provider-create`（`provider:manage`）、`role-management`（`role:manage`）、`organization`（`org:manage`）、`api-key-management`（`api-key:manage`）、`resource-grant-management` / `grant-applications`（`resource-grant:manage`）、`developer-applications`（`developer-application:review`）、`alert-rules` / `health-config` / `circuit-breaker`（`system:config`）。  
 审核类子项另有 `resourceType` 相关权限位（实现见 `MainLayout` 中 `filteredSubGroupsForSidebarId` 等相关逻辑）。
+
+## 路由变更历史
+
+> 记录重要的路由迁移与命名规范变更，便于追溯和维护。
+
+### 2024-2025：统一资源管理重构
+
+#### 统一资源审核页迁移
+
+**变更背景**：原各类型资源有独立的审核页面（`agent-audit`、`skill-audit` 等），为简化维护和统一体验，合并为单一 `resource-audit` 页面，通过 `?type=` 参数区分资源类型。
+
+| 变更前 | 变更后 | 影响范围 |
+|--------|--------|----------|
+| `agent-audit` | `resource-audit?type=agent` | 管理端审核入口 |
+| `skill-audit` | `resource-audit?type=skill` | 管理端审核入口 |
+| `mcp-audit` | `resource-audit?type=mcp` | 管理端审核入口 |
+| `app-audit` | `resource-audit?type=app` | 管理端审核入口 |
+| `dataset-audit` | `resource-audit?type=dataset` | 管理端审核入口 |
+
+**兼容处理**：旧路由保留为书签兼容，自动重定向到新路径。
+
+#### 统一资源目录迁移
+
+**变更背景**：`resource-catalog` 原为管理端统一资源目录入口，功能与 `resource-audit` 高度重叠，故合并。
+
+| 变更前 | 变更后 | 说明 |
+|--------|--------|------|
+| `resource-catalog` | `resource-audit?type=agent` | 管理端统一入口 |
+
+**兼容处理**：仅管理端角色访问时触发重定向。
+
+#### 列表页迁移
+
+**变更背景**：管理端原有的独立列表页（`agent-list`、`skill-list` 等）功能与审核页重复，统一迁移到 `resource-audit`。
+
+| 变更前 | 变更后 | 说明 |
+|--------|--------|------|
+| `agent-list` | `resource-audit?type=agent` | 管理端智能体列表 |
+| `skill-list` | `resource-audit?type=skill` | 管理端技能列表 |
+| `mcp-server-list` | `resource-audit?type=mcp` | 管理端MCP列表 |
+| `app-list` | `resource-audit?type=app` | 管理端应用列表 |
+| `dataset-list` | `resource-audit?type=dataset` | 管理端数据集列表 |
+
+### 路由命名规范变更
+
+#### 创建页 → 注册页统一命名
+
+**变更背景**：为统一术语，将「创建」相关页面统一命名为「注册」。
+
+| 旧命名 | 新命名 | 说明 |
+|--------|--------|------|
+| `agent-create` | `agent-register` | 智能体注册页 |
+| `skill-create` | `skill-register` | 技能注册页 |
+| `app-create` | `app-register` | 应用注册页 |
+| `dataset-create` | `dataset-register` | 数据集注册页 |
+| `agent-versions` | `agent-register` | 智能体版本管理合并到注册页 |
+
+#### 分类管理 → 标签管理
+
+**变更背景**：功能定位调整，「分类管理」更名为「标签管理」。
+
+| 旧命名 | 新命名 |
+|--------|--------|
+| `category-management` | `tag-management` |
+
+#### 我的资源统一入口
+
+**变更背景**：简化用户入口，将分散的「我的」页面统一到「我的发布」。
+
+| 旧命名 | 新命名 | 说明 |
+|--------|--------|------|
+| `my-agents` | `my-agents-pub` | 我的智能体 |
+| `my-skills` | `my-agents-pub` | 我的技能 |
+| `submit-agent` | `my-agents-pub` | 提交智能体入口 |
+| `submit-skill` | `my-agents-pub` | 提交技能入口 |
+
+### 废弃路由处理策略
+
+1. **保留兼容期**：废弃路由在代码中保留重定向逻辑，确保旧书签/外链可用。
+2. **自动重定向**：通过 `normalizeDeprecatedPage` 和 `useEffect` 实现无感迁移。
+3. **参数保留**：重定向时保留原有 query 参数（如 `?type=`）。
+4. **文档同步**：本章节记录所有废弃路由及其迁移目标。
 
 ## 相关 API
 

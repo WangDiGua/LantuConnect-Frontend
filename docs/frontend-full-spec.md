@@ -356,18 +356,22 @@
 
 | Service#method | Method | Path | 在用证据 | 触发场景 |
 |---|---|---|---|---|
+| `authService.getLegalNotices` | GET | `/auth/legal-notices` | 在用(代码+页面) | 登录页隐私条款 |
 | `authService.getCaptcha` | GET | `/captcha/generate` | 在用(代码+页面) | 登录页加载/刷新验证码 |
-| `authService.verifyCaptcha` | POST | `/captcha/verify` | 在用(仅service) | 页面未调用 |
+| `authService.verifyCaptcha` | POST | `/captcha/verify` | 预留接口 | 登录流程未调用；后端验证码校验可选 |
 | `authService.login` | POST | `/auth/login` | 在用(代码+页面) | 登录提交 |
-| `authService.register` | POST | `/auth/register` | 在用(仅service) | 页面无注册入口 |
+| `authService.register` | POST | `/auth/register` | 预留接口 | 注册功能尚未开放 |
 | `authService.logout` | POST | `/auth/logout` | 在用(代码+页面) | 顶栏退出登录 |
 | `authService.getCurrentUser` | GET | `/auth/me` | 在用(代码+页面) | App 启动鉴权恢复（每次有 token 时调用） |
-| `authService.refreshToken` | POST | `/auth/refresh` | 在用(仅service) | 刷新由 `lib/http.ts` 拦截器直接实现 |
+| `authService.refreshToken` | POST | `/auth/refresh` | 内部使用 | 由 `lib/http.ts` 拦截器在 401 时自动调用 |
 | `authService.changePassword` | POST | `/auth/change-password` | 在用(代码+页面) | 个人资料改密 |
 | `authService.sendSmsCode` | POST | `/auth/send-sms` | 在用(代码+页面) | 绑定手机发送验证码 |
 | `authService.bindPhone` | POST | `/auth/bind-phone` | 在用(代码+页面) | 绑定手机提交 |
 | `authService.updateProfile` | PUT | `/auth/profile` | 在用(代码+页面) | 个人资料保存 |
 | `authService.getLoginHistory` | GET | `/auth/login-history` | 在用(代码+页面) | 个人资料页登录历史 |
+| `authService.getAccountInsights` | GET | `/auth/account-insights` | 在用(代码+页面) | 个人资料页安全态势 |
+| `authService.listSessions` | GET | `/auth/sessions` | 在用(代码+页面) | 个人资料页登录设备与会话 |
+| `authService.revokeSession` | DELETE | `/auth/sessions/{sessionId}` | 在用(代码+页面) | 个人资料页强制注销会话 |
 
 ### B3.2 统一资源目录与调用
 
@@ -393,13 +397,17 @@
 | `resourceCenterService.switchVersion` | POST | `/resource-center/resources/{id}/versions/{v}/switch` | 在用(代码+页面) | 切换版本 |
 | `resourceCenterService.listVersions` | GET | `/resource-center/resources/{id}/versions` | 在用(代码+页面) | 版本列表 |
 
-### B3.4 资源授权
+### B3.4 资源授权（已下线）
+
+> **废弃说明**：独立 `/resource-grants` CRUD 与 grant 工单已下线。资源可见性/调用策略现由资源 `access_policy` 与网关校验共同决定。详见后端 `docs/frontend-alignment-handbook.md` §2.9。
 
 | Service#method | Method | Path | 在用证据 | 触发场景 |
 |---|---|---|---|---|
-| `resourceGrantService.create` | POST | `/resource-grants` | 在用(代码+页面) | 授予授权 |
-| `resourceGrantService.list` | GET | `/resource-grants` | 在用(代码+页面) | 授权列表 |
-| `resourceGrantService.revoke` | DELETE | `/resource-grants/{grantId}` | 在用(代码+页面) | 撤销授权 |
+| ~~`resourceGrantService.create`~~ | POST | ~~`/resource-grants`~~ | **已下线** | ~~授予授权~~ |
+| ~~`resourceGrantService.list`~~ | GET | ~~`/resource-grants`~~ | **已下线** | ~~授权列表~~ |
+| ~~`resourceGrantService.revoke`~~ | DELETE | ~~`/resource-grants/{grantId}`~~ | **已下线** | ~~撤销授权~~ |
+
+**替代方案**：使用资源的 `access_policy` 字段配置访问策略，通过 `/catalog/resources` 和 `/resource-center/resources` 管理。
 
 ### B3.5 SDK / 沙箱
 
@@ -455,17 +463,17 @@
 | Service#method | Method | Path | 在用证据 | 触发场景 |
 |---|---|---|---|---|
 | `userMgmtService.listUsers` | GET | `/user-mgmt/users` | 在用(代码+页面) | 用户列表 |
-| `userMgmtService.getUserById` | GET | `/user-mgmt/users/{id}` | 在用(仅service) | 用户详情 |
+| `userMgmtService.getUserById` | GET | `/user-mgmt/users/{id}` | 预留接口 | 单用户详情查询；列表页暂未使用 |
 | `userMgmtService.createUser` | POST | `/user-mgmt/users` | 在用(代码+页面) | 用户创建 |
 | `userMgmtService.updateUser` | PUT | `/user-mgmt/users/{id}` | 在用(代码+页面) | 用户编辑 |
 | `userMgmtService.deleteUser` | DELETE | `/user-mgmt/users/{id}` | 在用(代码+页面) | 用户删除 |
-| `userMgmtService.getUserOrg` | GET | `/user-mgmt/users/{id}/org` | 在用(仅service) | 查询用户组织 |
-| `userMgmtService.bindUserOrg` | PUT | `/user-mgmt/users/{id}/org` | 在用(仅service) | 绑定用户组织 |
-| `userMgmtService.unbindUserOrg` | DELETE | `/user-mgmt/users/{id}/org` | 在用(仅service) | 解绑用户组织 |
-| `userMgmtService.getUserRoles` | GET | `/user-mgmt/users/{id}/roles` | 在用(仅service) | 查询用户角色 |
-| `userMgmtService.bindUserRoles` | POST | `/user-mgmt/users/{id}/roles` | 在用(仅service) | 绑定角色 |
-| `userMgmtService.replaceUserRoles` | PUT | `/user-mgmt/users/{id}/roles` | 在用(仅service) | 替换角色 |
-| `userMgmtService.removeUserRole` | DELETE | `/user-mgmt/users/{id}/roles/{roleId}` | 在用(仅service) | 移除角色 |
+| `userMgmtService.getUserOrg` | GET | `/user-mgmt/users/{id}/org` | 预留接口 | 查询用户组织；组织架构页暂未使用 |
+| `userMgmtService.bindUserOrg` | PUT | `/user-mgmt/users/{id}/org` | 预留接口 | 绑定用户组织；组织架构页暂未使用 |
+| `userMgmtService.unbindUserOrg` | DELETE | `/user-mgmt/users/{id}/org` | 预留接口 | 解绑用户组织；组织架构页暂未使用 |
+| `userMgmtService.getUserRoles` | GET | `/user-mgmt/users/{id}/roles` | 预留接口 | 查询用户角色；角色管理页暂未使用 |
+| `userMgmtService.bindUserRoles` | POST | `/user-mgmt/users/{id}/roles` | 预留接口 | 绑定角色；角色管理页暂未使用 |
+| `userMgmtService.replaceUserRoles` | PUT | `/user-mgmt/users/{id}/roles` | 预留接口 | 替换角色；角色管理页暂未使用 |
+| `userMgmtService.removeUserRole` | DELETE | `/user-mgmt/users/{id}/roles/{roleId}` | 预留接口 | 移除角色；角色管理页暂未使用 |
 | `userMgmtService.listRoles` | GET | `/user-mgmt/roles` | 在用(代码+页面) | 角色列表 |
 | `userMgmtService.createRole` | POST | `/user-mgmt/roles` | 在用(代码+页面) | 角色创建 |
 | `userMgmtService.updateRole` | PUT | `/user-mgmt/roles/{id}` | 在用(代码+页面) | 角色编辑 |
@@ -474,10 +482,10 @@
 | `userMgmtService.createApiKey` | POST | `/user-mgmt/api-keys` | 在用(代码+页面) | API Key 创建 |
 | `userMgmtService.revokeApiKey` | PATCH | `/user-mgmt/api-keys/{id}/revoke` | 在用(代码+页面) | API Key 撤销 |
 | `userMgmtService.getOrgTree` | GET | `/user-mgmt/org-tree` | 在用(代码+页面) | 组织树加载 |
-| `userMgmtService.getOrgById` | GET | `/user-mgmt/orgs/{id}` | 在用(仅service) | 单组织节点 |
-| `userMgmtService.createOrg` | POST | `/user-mgmt/orgs` | 在用(仅service) | 创建组织 |
-| `userMgmtService.updateOrg` | PUT | `/user-mgmt/orgs/{id}` | 在用(仅service) | 更新组织 |
-| `userMgmtService.deleteOrg` | DELETE | `/user-mgmt/orgs/{id}` | 在用(仅service) | 删除组织 |
+| `userMgmtService.getOrgById` | GET | `/user-mgmt/orgs/{id}` | 预留接口 | 单组织节点查询；组织架构页暂未使用 |
+| `userMgmtService.createOrg` | POST | `/user-mgmt/orgs` | 在用(代码+页面) | 组织架构页新增部门 |
+| `userMgmtService.updateOrg` | PUT | `/user-mgmt/orgs/{id}` | 在用(代码+页面) | 组织架构页编辑部门名称 |
+| `userMgmtService.deleteOrg` | DELETE | `/user-mgmt/orgs/{id}` | 在用(代码+页面) | 组织架构页删除部门 |
 
 ### B3.10 监控治理
 
@@ -487,11 +495,11 @@
 | `monitoringService.listCallLogs` | GET | `/monitoring/call-logs` | 在用(代码+页面) | 调用日志 |
 | `monitoringService.listAlerts` | GET | `/monitoring/alerts` | 在用(代码+页面) | 告警页 |
 | `monitoringService.listAlertRules` | GET | `/monitoring/alert-rules` | 在用(代码+页面) | 告警规则列表 |
-| `monitoringService.getAlertRuleById` | GET | `/monitoring/alert-rules/{id}` | 在用(仅service) | 单条规则查询 |
+| `monitoringService.getAlertRuleById` | GET | `/monitoring/alert-rules/{id}` | 预留接口 | 单条规则查询；编辑时使用列表数据 |
 | `monitoringService.createAlertRule` | POST | `/monitoring/alert-rules` | 在用(代码+页面) | 规则创建 |
 | `monitoringService.updateAlertRule` | PUT | `/monitoring/alert-rules/{id}` | 在用(代码+页面) | 规则编辑 |
 | `monitoringService.deleteAlertRule` | DELETE | `/monitoring/alert-rules/{id}` | 在用(代码+页面) | 规则删除 |
-| `monitoringService.dryRunAlertRule` | POST | `/monitoring/alert-rules/{id}/dry-run` | 在用(仅service) | 规则试运行 |
+| `monitoringService.dryRunAlertRule` | POST | `/monitoring/alert-rules/{id}/dry-run` | 在用(代码+页面) | 告警规则页「试跑」按钮 |
 | `monitoringService.listTraces` | GET | `/monitoring/traces` | 在用(代码+页面) | Trace 列表 |
 | `monitoringService.getPerformanceMetrics` | GET | `/monitoring/performance` | 在用(代码+页面) | 性能分析 |
 
@@ -500,10 +508,10 @@
 | Service#method | Method | Path | 在用证据 | 触发场景 |
 |---|---|---|---|---|
 | `healthService.listHealthConfigs` | GET | `/health/configs` | 在用(代码+页面) | 健康配置列表 |
-| `healthService.createHealthConfig` | POST | `/health/configs` | 在用(仅service) | 新增健康配置 |
+| `healthService.createHealthConfig` | POST | `/health/configs` | 在用(代码+页面) | 健康检查页「新增检查」按钮 |
 | `healthService.updateHealthConfig` | PUT | `/health/configs/{id}` | 在用(代码+页面) | 健康配置保存 |
-| `healthService.deleteHealthConfig` | DELETE | `/health/configs/{id}` | 在用(仅service) | 删除健康配置 |
-| `healthService.getSecurityConfig` | GET | `/health/security-config` | 在用(仅service) | 安全配置 |
+| `healthService.deleteHealthConfig` | DELETE | `/health/configs/{id}` | 预留接口 | 删除健康配置；页面暂未提供删除入口 |
+| `healthService.getSecurityConfig` | GET | `/health/security-config` | 预留接口 | 安全配置；页面暂未使用 |
 | `healthService.listCircuitBreakers` | GET | `/health/circuit-breakers` | 在用(代码+页面) | 熔断列表 |
 | `healthService.updateCircuitBreaker` | PUT | `/health/circuit-breakers/{id}` | 在用(代码+页面) | 熔断配置 |
 | `healthService.manualBreak` | POST | `/health/circuit-breakers/{id}/break` | 在用(代码+页面) | 手动熔断 |
@@ -513,18 +521,22 @@
 
 | Service#method | Method | Path | 在用证据 | 触发场景 |
 |---|---|---|---|---|
-| `dashboardService.getAdminOverview` | GET | `/dashboard/admin-overview` | 在用(仅service) | 管理概览 |
+| `dashboardService.getAdminOverview` | GET | `/dashboard/admin-overview` | 在用(代码+页面) | 管理概览页（Overview.tsx） |
 | `dashboardService.getUserWorkspace` | GET | `/dashboard/user-workspace` | 在用(代码+页面) | 用户工作台摘要 |
-| `dashboardService.getHealthSummary` | GET | `/dashboard/health-summary` | 在用(仅service) | 健康摘要 |
+| `dashboardService.getMyConsole` | GET | `/dashboard/my-console` | 在用(代码+页面) | BFF 聚合（回退 user-workspace） |
+| `dashboardService.getHealthSummary` | GET | `/dashboard/health-summary` | 在用(代码+页面) | 管理概览页健康摘要卡片 |
 | `dashboardService.getUsageStats` | GET | `/dashboard/usage-stats` | 在用(代码+页面) | 使用统计页 |
 | `dashboardService.getDataReports` | GET | `/dashboard/data-reports` | 在用(代码+页面) | 数据报表页 |
+| `dashboardService.getExploreHub` | GET | `/dashboard/explore-hub` | 待后端实现 | 探索发现聚合（B7.1） |
+| `dashboardService.getAdminRealtime` | GET | `/dashboard/admin-realtime` | 在用(代码+页面) | 管理概览页实时数据 |
+| `dashboardService.getUserDashboard` | GET | `/dashboard/user-dashboard` | 待后端实现 | 用户个人面板（B7.3） |
 
 ### B3.13 系统配置
 
 | Service#method | Method | Path | 在用证据 | 触发场景 |
 |---|---|---|---|---|
 | `systemConfigService.listRateLimits` | GET | `/system-config/rate-limits` | 在用(代码+页面) | 限流规则列表 |
-| `systemConfigService.getRateLimitById` | GET | `/system-config/rate-limits/{id}` | 在用(仅service) | 单条查询 |
+| `systemConfigService.getRateLimitById` | GET | `/system-config/rate-limits/{id}` | 预留接口 | 单条查询；编辑时使用列表数据 |
 | `systemConfigService.createRateLimit` | POST | `/system-config/rate-limits` | 在用(代码+页面) | 创建 |
 | `systemConfigService.updateRateLimit` | PUT | `/system-config/rate-limits/{id}` | 在用(代码+页面) | 更新 |
 | `systemConfigService.deleteRateLimit` | DELETE | `/system-config/rate-limits/{id}` | 在用(代码+页面) | 删除 |
@@ -541,14 +553,14 @@
 | Service#method | Method | Path | 在用证据 | 触发场景 |
 |---|---|---|---|---|
 | `quotaService.listQuotas` | GET | `/quotas` | 在用(代码+页面) | 配额列表 |
-| `quotaService.getQuota` | GET | `/quotas/{id}` | 在用(仅service) | 单条查询 |
+| `quotaService.getQuota` | GET | `/quotas/{id}` | 预留接口 | 单条查询；编辑时使用列表数据 |
 | `quotaService.createQuota` | POST | `/quotas` | 在用(代码+页面) | 创建 |
-| `quotaService.updateQuota` | PUT | `/quotas` | 在用(仅service) | 更新 |
-| `quotaService.deleteQuota` | DELETE | `/quotas/{id}` | 在用(仅service) | 删除 |
+| `quotaService.updateQuota` | PUT | `/quotas` | 预留接口 | 更新；页面暂未使用 |
+| `quotaService.deleteQuota` | DELETE | `/quotas/{id}` | 预留接口 | 删除；页面暂未使用 |
 | `quotaService.listRateLimits` | GET | `/rate-limits` | 在用(代码+页面) | 限流列表 |
-| `quotaService.getRateLimit` | GET | `/rate-limits/{id}` | 在用(仅service) | 单条查询 |
+| `quotaService.getRateLimit` | GET | `/rate-limits/{id}` | 预留接口 | 单条查询；编辑时使用列表数据 |
 | `quotaService.createRateLimit` | POST | `/rate-limits` | 在用(代码+页面) | 创建 |
-| `quotaService.deleteRateLimit` | DELETE | `/rate-limits/{id}` | 在用(仅service) | 删除 |
+| `quotaService.deleteRateLimit` | DELETE | `/rate-limits/{id}` | 预留接口 | 删除；页面暂未使用 |
 | `quotaService.toggleRateLimit` | PATCH | `/rate-limits/{id}` | 在用(代码+页面) | 启停 |
 
 ### B3.15 标签与内容治理
@@ -560,14 +572,18 @@
 | `tagService.remove` | DELETE | `/tags/{id}` | 在用(代码+页面) | 标签删除 |
 | `tagService.batchCreate` | POST | `/tags/batch` | 在用(代码+页面) | 标签批量新增 |
 | `sensitiveWordService.list` | GET | `/sensitive-words` | 在用(代码+页面) | 敏感词列表 |
-| `sensitiveWordService.categories` | GET | `/sensitive-words/categories` | 在用(仅service) | 分类 |
-| `sensitiveWordService.count` | GET | `/sensitive-words/count` | 在用(仅service) | 计数 |
+| `sensitiveWordService.categories` | GET | `/sensitive-words/categories` | 在用(代码+页面) | 敏感词页分类筛选下拉 |
+| `sensitiveWordService.count` | GET | `/sensitive-words/count` | 预留接口 | 计数；页面暂未使用 |
 | `sensitiveWordService.create` | POST | `/sensitive-words` | 在用(代码+页面) | 新增 |
-| `sensitiveWordService.batchCreate` | POST | `/sensitive-words/batch` | 在用(仅service) | 批量新增 |
+| `sensitiveWordService.batchCreate` | POST | `/sensitive-words/batch` | 在用(代码+页面) | 敏感词页「JSON 批量新增」 |
 | `sensitiveWordService.update` | PUT | `/sensitive-words/{id}` | 在用(代码+页面) | 更新 |
 | `sensitiveWordService.remove` | DELETE | `/sensitive-words/{id}` | 在用(代码+页面) | 删除 |
-| `sensitiveWordService.check` | POST | `/sensitive-words/check` | 在用(仅service) | 检测 |
-| `fileUploadService.upload` | POST | `/files/upload` | 在用(仅service) | 文件上传 |
+| `sensitiveWordService.batchRemove` | POST | `/sensitive-words/batch-delete` | 在用(代码+页面) | 敏感词页批量删除 |
+| `sensitiveWordService.batchSetEnabled` | PUT | `/sensitive-words/batch` | 在用(代码+页面) | 敏感词页批量启用/禁用 |
+| `sensitiveWordService.check` | POST | `/sensitive-words/check` | 预留接口 | 检测；页面暂未使用 |
+| `sensitiveWordService.import` | POST | `/sensitive-words/import` | 在用(代码+页面) | 敏感词页文件导入 |
+| `sensitiveWordService.importTxt` | POST | `/sensitive-words/import-txt` | 在用(代码+页面) | txt 文件导入 |
+| `fileUploadService.upload` | POST | `/files/upload` | 在用(代码+页面) | 个人资料页头像上传 |
 
 ### B3.16 用户活动
 
@@ -587,12 +603,16 @@
 
 | Service#method | Method | Path | 在用证据 | 触发场景 |
 |---|---|---|---|---|
-| `userSettingsService.getWorkspace` | GET | `/user-settings/workspace` | 在用(仅service) | hook 存在 |
-| `userSettingsService.updateWorkspace` | PUT | `/user-settings/workspace` | 在用(仅service) | hook 存在 |
-| `userSettingsService.listApiKeys` | GET | `/user-settings/api-keys` | 在用(仅service) | hook 存在 |
-| `userSettingsService.createApiKey` | POST | `/user-settings/api-keys` | 在用(仅service) | hook 存在 |
-| `userSettingsService.deleteApiKey` | DELETE | `/user-settings/api-keys/{id}` | 在用(仅service) | hook 存在 |
-| `userSettingsService.getStats` | GET | `/user-settings/stats` | 在用(仅service) | hook 存在 |
+| `userSettingsService.getWorkspace` | GET | `/user-settings/workspace` | 在用(代码+页面) | 偏好设置页加载通知偏好 |
+| `userSettingsService.updateWorkspace` | PUT | `/user-settings/workspace` | 在用(代码+页面) | 偏好设置页保存通知偏好 |
+| `userSettingsService.listApiKeys` | GET | `/user-settings/api-keys` | 在用(代码+页面) | 个人 API Key 页列表 |
+| `userSettingsService.createApiKey` | POST | `/user-settings/api-keys` | 在用(代码+页面) | 个人 API Key 页新建 |
+| `userSettingsService.deleteApiKey` | DELETE | `/user-settings/api-keys/{id}` | 在用(代码+页面) | 个人 API Key 页撤销 |
+| `userSettingsService.revokeApiKey` | POST | `/user-settings/api-keys/{id}/revoke` | 在用(代码+页面) | 个人 API Key 页撤销（需密码验证） |
+| `userSettingsService.rotateApiKey` | POST | `/user-settings/api-keys/{id}/rotate` | 在用(代码+页面) | 个人 API Key 页轮换密钥 |
+| `userSettingsService.postInvokeEligibility` | POST | `/user-settings/api-keys/{id}/invoke-eligibility` | 预留接口 | 调用预判；页面暂未使用 |
+| `userSettingsService.listResourceGrantsForApiKey` | GET | `/user-settings/api-keys/{apiKeyId}/resource-grants` | 已下线 | 恒返回空列表 |
+| `userSettingsService.getStats` | GET | `/user-settings/stats` | 预留接口 | 统计；页面暂未使用 |
 
 ### B3.18 已下线（stub/deprecatedWriteError）
 
@@ -668,15 +688,20 @@
 
 | 能力 | 分类 | 现状 |
 |---|---|---|
-| `/auth/register` | 仅service | 页面无注册入口 |
-| `/captcha/verify` | 仅service | 登录流程未调用 |
-| `sensitiveWordService.categories/count/batchCreate/check` | 仅service | 页面仅用 list/create/update/remove |
+| `/auth/register` | 预留接口 | 注册功能尚未开放 |
+| `/captcha/verify` | 预留接口 | 登录流程未调用；后端验证码校验可选 |
+| `sensitiveWordService.count/check` | 预留接口 | 页面暂未使用 |
+| `userMgmtService` 用户组织/角色绑定相关 | 预留接口 | 组织架构页/角色管理页暂未使用 |
+| `healthService.deleteHealthConfig/getSecurityConfig` | 预留接口 | 页面暂未使用 |
+| `quotaService.updateQuota/deleteQuota/deleteRateLimit` | 预留接口 | 页面暂未使用 |
+| `userSettingsService.getStats` | 预留接口 | 页面暂未使用 |
 
 **以下在最新改造中已接入页面（不再属于预留）：**
 
 | 能力 | 接入页面 | 接入方式 |
 |---|---|---|
 | `/user-settings/*` | UserSettingsPage | 通知偏好读取/保存 |
+| `userSettingsService.listApiKeys/createApiKey/deleteApiKey` | UserPersonalApiKeysPage | 个人 API Key 管理 |
 | `userMgmtService` 组织 CRUD | OrgStructurePage | 新建/编辑/删除组织节点 |
 | `monitoringService.dryRunAlertRule` | AlertRulesPage | "试跑"按钮调用 API |
 | `reviewService.create/toggleHelpful` | SkillMarket / AppMarket | 评价提交和点赞 |
@@ -684,7 +709,8 @@
 | `resourceGrantService.create` | DatasetMarket | 替代旧 applyAccess |
 | `fileUploadService.upload` | UserProfile | 头像上传 |
 | `healthService.createHealthConfig` | HealthConfigPage | 新增健康检查配置 |
-| `quotaService.deleteQuota` | QuotaManagementPage | 删除配额规则 |
+| `dashboardService.getAdminOverview/getHealthSummary` | Overview | 管理概览页 |
+| `sensitiveWordService.categories/batchCreate` | SensitiveWordPage | 分类筛选与批量新增 |
 
 **已标记 @deprecated 的死代码文件（19 个，已从 tsconfig 排除）：**
 

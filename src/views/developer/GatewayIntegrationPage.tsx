@@ -39,29 +39,23 @@ export const GatewayIntegrationQuickLinksToolbar: React.FC<GatewayIntegrationQui
   const routePage = parseRoute(pathname)?.page ?? '';
   const consoleRole: ConsoleRole = inferConsoleRole(routePage, platformRole);
   const isDark = theme === 'dark';
+  const chip = `inline-flex min-h-9 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium ${
+    isDark ? 'border-white/12 text-slate-300 hover:bg-white/[0.06]' : 'border-slate-200/90 text-slate-600 hover:bg-slate-50'
+  }`;
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap items-center justify-end gap-2">
       <button
         type="button"
-        className={`inline-flex items-center gap-1 rounded-xl border px-3 py-1.5 text-xs font-medium ${
-          isDark ? 'border-white/15 text-slate-200 hover:bg-white/5' : 'border-slate-200 text-slate-700 hover:bg-slate-50'
-        }`}
+        className={chip}
         onClick={() => navigate(`${buildPath(consoleRole, 'developer-docs')}#doc-external-integration`)}
         aria-label="打开接入指南外部系统集成"
       >
-        <BookOpen size={14} aria-hidden />
+        <BookOpen size={14} className="shrink-0 opacity-85" aria-hidden />
         接入指南
       </button>
-      <button
-        type="button"
-        className={`inline-flex items-center gap-1 rounded-xl border px-3 py-1.5 text-xs font-medium ${
-          isDark ? 'border-white/15 text-slate-200 hover:bg-white/5' : 'border-slate-200 text-slate-700 hover:bg-slate-50'
-        }`}
-        onClick={() => navigate(buildPath(consoleRole, 'developer-tools'))}
-        aria-label="打开 API Playground"
-      >
-        <Terminal size={14} aria-hidden />
-        API Playground
+      <button type="button" className={chip} onClick={() => navigate(buildPath(consoleRole, 'developer-tools'))} aria-label="打开 API Playground">
+        <Terminal size={14} className="shrink-0 opacity-85" aria-hidden />
+        Playground
       </button>
     </div>
   );

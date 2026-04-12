@@ -3,7 +3,6 @@ import { Puzzle, Terminal } from 'lucide-react';
 import { useSearchParams, useLocation } from 'react-router-dom';
 import type { Theme, FontSize } from '../../types';
 import { parseRoute } from '../../constants/consoleRoutes';
-import { textMuted } from '../../utils/uiClasses';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { ApiPlaygroundPage, PlaygroundLinkToDocsButton } from './ApiPlaygroundPage';
 import { GatewayIntegrationPage, GatewayIntegrationQuickLinksToolbar } from './GatewayIntegrationPage';
@@ -18,7 +17,7 @@ function parseTab(raw: string | null): ToolsTab {
 }
 
 const HUB_DESCRIPTION =
-  '联调与集成放在同一页：先用 Playground 发真实请求、确认 Key/Headers 与路径；再切到网关集成对照场景说明、闭包与 MCP 工具路径。两处操作的是同一套后端能力，只是从「试请求」到「按场景理解」递进。';
+  '在此页完成「试请求 → 看场景 → 用网关工具」：上方 Playground 发 HTTP；切换「网关集成」读说明；最下方「网关调试」选 Key 与目录导出。';
 
 export interface DeveloperToolsHubPageProps {
   theme: Theme;
@@ -65,9 +64,16 @@ export const DeveloperToolsHubPage: React.FC<DeveloperToolsHubPageProps> = ({ th
           : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
     }`;
 
+  /** 主 Tab 与辅助链分层：左侧分段控件、右侧次要操作，避免一行挤成四个同级按钮 */
   const hubToolbar = (
-    <div className="flex min-w-0 flex-wrap items-center gap-2">
-      <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label="调试与网关子区">
+    <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+      <div
+        className={`inline-flex w-fit max-w-full flex-wrap rounded-xl p-1 ${
+          isDark ? 'bg-white/[0.06]' : 'bg-slate-200/80'
+        }`}
+        role="tablist"
+        aria-label="调试与网关子区"
+      >
         <button
           type="button"
           className={tabBtn(tab === 'playground')}
@@ -82,18 +88,10 @@ export const DeveloperToolsHubPage: React.FC<DeveloperToolsHubPageProps> = ({ th
           网关集成
         </button>
       </div>
-      {tab === 'playground' ? (
-        <div className="flex min-w-0 flex-wrap items-center gap-2 border-l border-dashed pl-2 sm:pl-3 border-slate-400/25 dark:border-white/15">
-          <span className={`hidden sm:inline text-xs ${textMuted(theme)}`}>相关文档</span>
-          <PlaygroundLinkToDocsButton theme={theme} />
-        </div>
-      ) : null}
-      {tab === 'gateway' ? (
-        <div className="flex min-w-0 flex-wrap items-center gap-2 border-l border-dashed pl-2 sm:pl-3 border-slate-400/25 dark:border-white/15">
-          <span className={`hidden sm:inline text-xs ${textMuted(theme)}`}>快捷跳转</span>
-          <GatewayIntegrationQuickLinksToolbar theme={theme} />
-        </div>
-      ) : null}
+      <div className="flex min-w-0 flex-wrap items-center gap-2 sm:justify-end">
+        {tab === 'playground' ? <PlaygroundLinkToDocsButton theme={theme} /> : null}
+        {tab === 'gateway' ? <GatewayIntegrationQuickLinksToolbar theme={theme} /> : null}
+      </div>
     </div>
   );
 

@@ -667,7 +667,11 @@ export const GatewayPlaygroundToolsSection: React.FC<GatewayPlaygroundToolsSecti
   };
 
   return (
-    <div className="space-y-6 w-full max-w-5xl mx-auto">
+    <div
+      className={`mx-auto mt-10 w-full max-w-5xl space-y-6 border-t pt-8 ${
+        isDark ? 'border-white/[0.08]' : 'border-slate-200/90'
+      }`}
+    >
       <div
         className={`rounded-2xl border p-4 space-y-3 ${
           isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-slate-50/80'

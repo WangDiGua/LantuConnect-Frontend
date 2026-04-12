@@ -5,11 +5,10 @@ import type { Theme, FontSize } from '../../types';
 import { ApiException, type ApiResponse } from '../../types/api';
 import { http } from '../../lib/http';
 import { GlassPanel } from '../../components/common/GlassPanel';
-import { BentoCard } from '../../components/common/BentoCard';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
 import {
-  btnPrimary, btnGhost, textPrimary, textSecondary, textMuted,
+  btnPrimary, textPrimary, textSecondary, textMuted,
 } from '../../utils/uiClasses';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
@@ -103,13 +102,13 @@ export const PlaygroundLinkToDocsButton: React.FC<PlaygroundLinkToDocsButtonProp
   return (
     <button
       type="button"
-      className={`inline-flex items-center gap-1 rounded-xl border px-3 py-1.5 text-xs font-medium ${
-        isDark ? 'border-white/15 text-slate-200 hover:bg-white/5' : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+      className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium ${
+        isDark ? 'border-white/12 text-slate-300 hover:bg-white/[0.06]' : 'border-slate-200/90 text-slate-600 hover:bg-slate-50'
       }`}
       onClick={() => navigate(buildPath('user', 'developer-docs'))}
-      aria-label="打开接入指南"
+      aria-label="打开接入与文档中的接入指南"
     >
-      <BookOpen size={14} aria-hidden />
+      <BookOpen size={14} className="shrink-0 opacity-85" aria-hidden />
       接入指南
     </button>
   );
@@ -261,10 +260,21 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme, fon
   const playgroundToolbar = <PlaygroundLinkToDocsButton theme={theme} />;
 
   const mainContent = (
-      <div className="px-4 sm:px-6 pb-8 w-full flex flex-col min-h-0">
-        <div className="flex-1 min-h-0 flex flex-col lg:flex-row gap-4 overflow-hidden">
+      <div className="w-full min-h-0 flex flex-col gap-6 px-4 pb-8 pt-1 sm:px-6">
+        <section aria-labelledby="playground-http-heading" className="min-h-0">
+          <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+            <div>
+              <h2 id="playground-http-heading" className={`text-sm font-semibold ${textPrimary(theme)}`}>
+                HTTP 调试
+              </h2>
+              <p className={`mt-0.5 text-xs leading-relaxed ${textMuted(theme)}`}>
+                构造请求与查看响应；执行向路径须带有效 <span className="font-mono">X-Api-Key</span>。
+              </p>
+            </div>
+          </div>
+          <div className="flex min-h-0 flex-col gap-4 lg:max-h-[min(640px,calc(100vh-17rem))] lg:flex-row lg:items-stretch">
           {/* Request panel */}
-          <GlassPanel theme={theme} padding="sm" className="lg:w-1/2 flex flex-col overflow-hidden">
+          <GlassPanel theme={theme} padding="sm" className="flex min-h-[280px] flex-col overflow-hidden lg:w-1/2 lg:min-h-0 lg:max-h-full">
             <div className={`px-4 py-3 border-b font-semibold text-sm shrink-0 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'} ${textPrimary(theme)}`}>请求构造</div>
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               <div className="flex gap-2">
@@ -325,7 +335,7 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme, fon
           </GlassPanel>
 
           {/* Response panel */}
-          <GlassPanel theme={theme} padding="sm" className="lg:w-1/2 flex flex-col overflow-hidden">
+          <GlassPanel theme={theme} padding="sm" className="flex min-h-[240px] flex-col overflow-hidden lg:w-1/2 lg:min-h-0 lg:max-h-full">
             <div className={`px-4 py-3 border-b font-semibold text-sm flex items-center justify-between shrink-0 ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
               <span className={textPrimary(theme)}>响应</span>
               {response && (
@@ -335,13 +345,13 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme, fon
                 </div>
               )}
             </div>
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex min-h-[200px] flex-1 flex-col overflow-y-auto lg:min-h-0">
               {!response && !loading && (
-                <div className="flex items-center justify-center h-full p-8">
-                  <div className="text-center">
-                    <Terminal size={40} className={`mx-auto mb-3 ${textMuted(theme)}`} />
-                    <p className={`text-sm ${textMuted(theme)}`}>点击「发送请求」查看响应结果</p>
-                  </div>
+                <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center">
+                  <Terminal size={32} className={`opacity-40 ${textMuted(theme)}`} aria-hidden />
+                  <p className={`max-w-[18rem] text-xs leading-relaxed ${textMuted(theme)}`}>
+                    左侧填写 URL 与 Headers 后点击「发送请求」，响应将显示在此区域
+                  </p>
                 </div>
               )}
               {loading && (
@@ -380,22 +390,43 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme, fon
             </div>
           </GlassPanel>
         </div>
+        </section>
 
-        {/* History */}
+        {/* History：纵向列表便于扫读，避免多列「标签云」 */}
         {history.length > 0 && (
-          <BentoCard theme={theme} padding="sm" className="mt-4 shrink-0">
-            <h3 className={`text-xs font-semibold mb-3 px-2 ${textSecondary(theme)}`}>最近请求（最近 5 条）</h3>
-            <div className="flex flex-wrap gap-2 px-2">
-              {history.map((entry, i) => (
-                <button key={i} type="button" onClick={() => loadHistory(entry)} className={btnGhost(theme)}>
-                  <span className={`font-bold ${METHOD_COLORS[entry.method]}`}>{entry.method}</span>
-                  <span className="font-mono truncate max-w-[200px]">{entry.url}</span>
-                  <span className={`px-1.5 py-0.5 rounded-md text-xs font-bold ${getStatusCls(entry.status, isDark)}`}>{entry.status}</span>
-                  <span className={textMuted(theme)}>{entry.time}ms</span>
-                </button>
-              ))}
+          <section aria-labelledby="playground-history-heading" className="shrink-0">
+            <h3 id="playground-history-heading" className={`mb-2 text-xs font-semibold uppercase tracking-wide ${textSecondary(theme)}`}>
+              最近请求
+            </h3>
+            <div
+              className={`overflow-hidden rounded-xl border ${
+                isDark ? 'border-white/[0.08] bg-white/[0.02]' : 'border-slate-200 bg-white'
+              }`}
+            >
+              <ul className={`divide-y ${isDark ? 'divide-white/[0.06]' : 'divide-slate-100'}`}>
+                {history.map((entry, i) => (
+                  <li key={`${entry.method}-${entry.url}-${i}`}>
+                    <button
+                      type="button"
+                      onClick={() => loadHistory(entry)}
+                      className={`flex w-full min-h-11 items-center gap-2 px-3 py-2.5 text-left text-xs transition-colors sm:gap-3 ${
+                        isDark ? 'hover:bg-white/[0.04]' : 'hover:bg-slate-50'
+                      }`}
+                    >
+                      <span className={`w-11 shrink-0 font-mono font-bold tabular-nums ${METHOD_COLORS[entry.method]}`}>{entry.method}</span>
+                      <span className="min-w-0 flex-1 truncate font-mono text-[11px] sm:text-xs" title={entry.url}>
+                        {entry.url}
+                      </span>
+                      <span className={`shrink-0 rounded-md px-1.5 py-0.5 font-mono text-[11px] font-bold tabular-nums ${getStatusCls(entry.status, isDark)}`}>
+                        {entry.status}
+                      </span>
+                      <span className={`w-12 shrink-0 text-right tabular-nums ${textMuted(theme)}`}>{entry.time}ms</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
             </div>
-          </BentoCard>
+          </section>
         )}
 
         <GatewayPlaygroundToolsSection theme={theme} />

@@ -115,6 +115,9 @@ const USER_SIDEBAR_PAGES: Record<string, string[]> = {
   'hub': ['hub'],
   'workspace': [
     'workspace',
+    'profile',
+    'my-api-keys',
+    'preferences',
     'developer-onboarding',
     'my-favorites',
     'my-agents-pub',
@@ -145,8 +148,13 @@ const USER_SIDEBAR_PAGES: Record<string, string[]> = {
   'dataset-center': ['dataset-center', 'dataset-market'],
   'agents-center': ['agents-center', 'agent-market'],
   'apps-center': ['apps-center', 'app-market'],
-  'developer-portal': ['api-docs', 'sdk-download', 'api-playground', 'mcp-integration', 'developer-statistics'],
-  'user-settings': ['profile', 'my-api-keys', 'preferences'],
+  'developer-portal': [
+    'api-docs',
+    'sdk-download',
+    'api-playground',
+    'mcp-integration',
+    'developer-statistics',
+  ],
 };
 
 /**
@@ -322,7 +330,7 @@ export function pageToSubItem(page: string, sidebarId: string | null, isAdmin: b
     return 'provider-list';
   }
   /** 偏好设置已并入个人资料 Tab；URL 仍为 /c/preferences 时侧栏高亮「个人资料」 */
-  if (!isAdmin && sidebarId === 'user-settings' && page === 'preferences') {
+  if (!isAdmin && sidebarId === 'workspace' && page === 'preferences') {
     return 'profile';
   }
   return page;

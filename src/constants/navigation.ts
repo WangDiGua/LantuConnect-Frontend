@@ -7,7 +7,6 @@ import {
   Wrench,
   Bot,
   Zap,
-  Package,
   FileText,
   Search,
   Shield,
@@ -281,6 +280,13 @@ export const USER_MY_CONSOLE_GROUPS: NavSubGroup[] = [
     items: [{ id: 'overview', icon: LayoutGrid, label: '工作台总览' }],
   },
   {
+    title: '账户',
+    items: [
+      { id: 'profile', icon: User, label: '个人资料' },
+      { id: 'my-api-keys', icon: KeyRound, label: '密钥与集成套餐' },
+    ],
+  },
+  {
     title: '使用分析',
     items: [
       { id: 'usage-records', icon: History, label: '使用记录' },
@@ -326,17 +332,6 @@ export const USER_RESOURCE_ASSETS_GROUPS: NavSubGroup[] = USER_MY_CONSOLE_GROUPS
  */
 export const ADMIN_PERSONAL_WORKBENCH_GROUPS: NavSubGroup[] = USER_MY_CONSOLE_GROUPS;
 
-/** 个人设置（个人资料页内已含偏好 Tab；侧栏仅 profile / 密钥管理） */
-export const USER_SETTINGS_GROUPS: NavSubGroup[] = [
-  {
-    title: '个人设置',
-    items: [
-      { id: 'profile', icon: User, label: '个人资料' },
-      { id: 'my-api-keys', icon: KeyRound, label: '密钥管理' },
-    ],
-  },
-];
-
 // ==================== 子菜单分组路由 ====================
 
 export function getNavSubGroups(sidebarId: string, isAdminRole: boolean): NavSubGroup[] {
@@ -375,8 +370,6 @@ export function getNavSubGroups(sidebarId: string, isAdminRole: boolean): NavSub
       return ADMIN_DEVELOPER_PORTAL_GROUPS;
     case 'workspace':
       return USER_MY_CONSOLE_GROUPS;
-    case 'user-settings':
-      return USER_SETTINGS_GROUPS;
     default:
       return [];
   }

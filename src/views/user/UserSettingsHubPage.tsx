@@ -1,20 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import type { Theme, ThemeMode, FontSize, ThemeColor } from '../../types';
 import { UserProfile } from './UserProfile';
-import { UserPersonalApiKeysPage } from './UserPersonalApiKeysPage';
-
-type SettingsTab = 'profile' | 'my-api-keys' | 'preferences';
 
 interface UserSettingsHubPageProps {
   theme: Theme;
   fontSize: FontSize;
   themePreference: ThemeMode;
   themeColor: ThemeColor;
-  showMessage: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void;
+  showMessage: (msg: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
   onOpenAppearance: () => void;
-  initialTab?: SettingsTab;
 }
 
+/** 个人资料 / 偏好设置：路由由 `profile` 与 `preferences` slug 区分，正文由 {@link UserProfile} 内解析 */
 export const UserSettingsHubPage: React.FC<UserSettingsHubPageProps> = ({
   theme,
   fontSize,
@@ -22,33 +19,15 @@ export const UserSettingsHubPage: React.FC<UserSettingsHubPageProps> = ({
   themeColor,
   showMessage,
   onOpenAppearance,
-  initialTab = 'profile',
-}) => {
-  const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab);
-
-  useEffect(() => {
-    setActiveTab(initialTab);
-  }, [initialTab]);
-
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      {activeTab === 'profile' || activeTab === 'preferences' ? (
-        <UserProfile
-          theme={theme}
-          fontSize={fontSize}
-          themePreference={themePreference}
-          themeColor={themeColor}
-          showMessage={showMessage}
-          onOpenAppearance={onOpenAppearance}
-        />
-      ) : activeTab === 'my-api-keys' ? (
-        <UserPersonalApiKeysPage
-          theme={theme}
-          themeColor={themeColor}
-          showMessage={(msg, type = 'info') => showMessage(msg, type)}
-        />
-      ) : null}
-    </div>
-  );
-};
-
+}) => (
+  <div className="flex min-h-0 flex-1 flex-col">
+    <UserProfile
+      theme={theme}
+      fontSize={fontSize}
+      themePreference={themePreference}
+      themeColor={themeColor}
+      showMessage={showMessage}
+      onOpenAppearance={onOpenAppearance}
+    />
+  </div>
+);

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import {
   KeyRound, Loader2, Plus, Copy, Check, DownloadCloud, Info, RefreshCw, Eye, EyeOff,
 } from 'lucide-react';
@@ -8,7 +8,9 @@ import { userSettingsService } from '../../api/services/user-settings.service';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { Modal } from '../../components/common/Modal';
 import { BentoCard } from '../../components/common/BentoCard';
-import type { UserApiKey } from '../../types/dto/user-settings';
+import type { UserApiKey, UserIntegrationPackageOption } from '../../types/dto/user-settings';
+import { LantuSelect } from '../../components/common/LantuSelect';
+import type { LantuSelectOption } from '../../components/common/LantuSelect';
 import { isServerErrorGloballyNotified } from '../../types/api';
 import {
   btnPrimary,
@@ -54,6 +56,8 @@ export interface UserPersonalApiKeysPageProps {
   theme: Theme;
   themeColor: ThemeColor;
   showMessage: (msg: string, type?: 'success' | 'error' | 'info') => void;
+  /** 嵌入「密钥与集成套餐」总页时隐藏顶部大标题，由外层 Tab 承担层级 */
+  embeddedInHub?: boolean;
 }
 
 function pageErrorUnlessServerToast(
@@ -69,6 +73,7 @@ export const UserPersonalApiKeysPage: React.FC<UserPersonalApiKeysPageProps> = (
   theme,
   themeColor,
   showMessage,
+  embeddedInHub = false,
 }) => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -98,6 +103,46 @@ export const UserPersonalApiKeysPage: React.FC<UserPersonalApiKeysPageProps> = (
   const [newPlainKey, setNewPlainKey] = useState<string | null>(null);
   const createApiKeyInFlightRef = useRef(false);
 
+  const [integrationPackages, setIntegrationPackages] = useState<UserIntegrationPackageOption[]>([]);
+  const [integrationPackagesError, setIntegrationPackagesError] = useState<string | null>(null);
+  const [createIntegrationPackageId, setCreateIntegrationPackageId] = useState('');
+  const [detailPackageDraft, setDetailPackageDraft] = useState('');
+  const [detailPackageSaving, setDetailPackageSaving] = useState(false);
+
+  const packageSelectOptions = useMemo<LantuSelectOption[]>(() => {
+    const base: LantuSelectOption[] = [{ value: '', label: '不绑定套餐（按 scope）' }];
+    const active = integrationPackages.filter((p) => (p.status ?? 'active').toLowerCase() === 'active');
+    return base.concat(
+      active.map((p) => ({
+        value: p.id,
+        label: `${p.name}（${p.itemCount} 项）`,
+      })),
+    );
+  }, [integrationPackages]);
+
+  const packageLabelById = useMemo(() => {
+    const m = new Map(integrationPackages.map((p) => [p.id, p.name]));
+    return (id?: string | null) => {
+      if (!id?.trim()) return '未绑定（按 scope）';
+      return m.get(id.trim()) ?? id.trim();
+    };
+  }, [integrationPackages]);
+
+  const loadIntegrationPackages = useCallback(async () => {
+    try {
+      const list = await userSettingsService.listIntegrationPackages();
+      setIntegrationPackages(Array.isArray(list) ? list : []);
+      setIntegrationPackagesError(null);
+    } catch {
+      setIntegrationPackagesError('集成套餐列表加载失败');
+      setIntegrationPackages([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadIntegrationPackages();
+  }, [loadIntegrationPackages]);
+
   const loadApiKeys = useCallback(async () => {
     setApiKeysLoading(true);
     setApiKeysError(null);
@@ -111,9 +156,15 @@ export const UserPersonalApiKeysPage: React.FC<UserPersonalApiKeysPageProps> = (
     }
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     void loadApiKeys();
   }, [loadApiKeys]);
+
+  useEffect(() => {
+    if (detailKeyTarget) {
+      setDetailPackageDraft(detailKeyTarget.integrationPackageId?.trim() ?? '');
+    }
+  }, [detailKeyTarget]);
 
   const [apiKeyNameError, setApiKeyNameError] = useState('');
   const [apiKeyExpiryPreset, setApiKeyExpiryPreset] = useState<ApiKeyExpiryPreset>(DEFAULT_API_KEY_EXPIRY_PRESET);
@@ -129,14 +180,17 @@ export const UserPersonalApiKeysPage: React.FC<UserPersonalApiKeysPageProps> = (
     setCreatingApiKey(true);
     try {
       const expiresAt = computeExpiresAtForPreset(apiKeyExpiryPreset);
+      const pkg = createIntegrationPackageId.trim();
       const created = await userSettingsService.createApiKey({
         name: newKeyName.trim(),
         ...(expiresAt ? { expiresAt } : {}),
+        ...(pkg ? { integrationPackageId: pkg } : {}),
       });
       setNewPlainKey(created.plainKey ?? null);
       showMessage('已创建，请立即复制保存密钥。', 'success');
       setNewKeyName('');
       setApiKeyExpiryPreset(DEFAULT_API_KEY_EXPIRY_PRESET);
+      setCreateIntegrationPackageId('');
       await loadApiKeys();
     } catch (e) {
       pageErrorUnlessServerToast(e, 'API Key 创建失败', showMessage);
@@ -144,7 +198,29 @@ export const UserPersonalApiKeysPage: React.FC<UserPersonalApiKeysPageProps> = (
       createApiKeyInFlightRef.current = false;
       setCreatingApiKey(false);
     }
-  }, [loadApiKeys, newKeyName, apiKeyExpiryPreset, showMessage]);
+  }, [loadApiKeys, newKeyName, apiKeyExpiryPreset, createIntegrationPackageId, showMessage]);
+
+  const handleSaveDetailIntegrationPackage = useCallback(async () => {
+    if (!detailKeyTarget?.id?.trim()) return;
+    const cur = detailKeyTarget.integrationPackageId?.trim() ?? '';
+    const next = detailPackageDraft.trim();
+    if (cur === next) return;
+    setDetailPackageSaving(true);
+    try {
+      await userSettingsService.patchApiKeyIntegrationPackage(detailKeyTarget.id, {
+        integrationPackageId: next || null,
+      });
+      showMessage('已更新集成套餐', 'success');
+      await loadApiKeys();
+      setDetailKeyTarget((prev) =>
+        prev && prev.id === detailKeyTarget.id ? { ...prev, integrationPackageId: next || null } : prev,
+      );
+    } catch (e) {
+      pageErrorUnlessServerToast(e, '更新集成套餐失败', showMessage);
+    } finally {
+      setDetailPackageSaving(false);
+    }
+  }, [detailKeyTarget, detailPackageDraft, loadApiKeys, showMessage]);
 
   const openRevokeApiKeyModal = useCallback((key: UserApiKey) => {
     setRevokeKeyTarget(key);
@@ -249,17 +325,19 @@ export const UserPersonalApiKeysPage: React.FC<UserPersonalApiKeysPageProps> = (
   return (
     <div className={`flex-1 overflow-y-auto ${canvasBodyBg(theme)}`}>
       <div className={`w-full min-h-0 ${mainScrollPadBottom}`}>
-        <div className="flex min-w-0 items-center gap-3 mb-4">
-          <div className={`shrink-0 rounded-xl p-2 ${isDark ? 'bg-white/10' : 'bg-slate-100'}`}>
-            <KeyRound size={22} className={textSecondary(theme)} />
+        {!embeddedInHub ? (
+          <div className="flex min-w-0 items-center gap-3 mb-4">
+            <div className={`shrink-0 rounded-xl p-2 ${isDark ? 'bg-white/10' : 'bg-slate-100'}`}>
+              <KeyRound size={22} className={textSecondary(theme)} />
+            </div>
+            <PageTitleTagline
+              subtitleOnly
+              theme={theme}
+              title={chromePageTitle || '密钥管理'}
+              tagline="个人调用开放平台接口：请求头 X-Api-Key"
+            />
           </div>
-          <PageTitleTagline
-            subtitleOnly
-            theme={theme}
-            title={chromePageTitle || '密钥管理'}
-            tagline="个人调用开放平台接口：请求头 X-Api-Key"
-          />
-        </div>
+        ) : null}
 
         <BentoCard theme={theme}>
           <h2 className={`text-base font-bold mb-2 flex items-center gap-2 ${textPrimary(theme)}`}>
@@ -325,6 +403,25 @@ export const UserPersonalApiKeysPage: React.FC<UserPersonalApiKeysPageProps> = (
               <p className={`text-[11px] leading-relaxed ${textMuted(theme)}`}>
                 与<strong className={textSecondary(theme)}>用户管理 · API Key</strong>一致：按日历日递增；选「永不过期」不写过期时间。
               </p>
+            </div>
+            <div className="space-y-1.5">
+              <span className={`text-xs font-semibold ${textMuted(theme)}`}>集成套餐（可选）</span>
+              <LantuSelect
+                value={createIntegrationPackageId}
+                onChange={setCreateIntegrationPackageId}
+                options={packageSelectOptions}
+                theme={theme}
+                placeholder="不绑定或选择套餐…"
+                disabled={creatingApiKey}
+                ariaLabel="新建 API Key 时绑定集成套餐"
+              />
+              {integrationPackagesError ? (
+                <p className="text-[11px] text-amber-600 dark:text-amber-400">{integrationPackagesError}</p>
+              ) : (
+                <p className={`text-[11px] leading-relaxed ${textMuted(theme)}`}>
+                  请先在「密钥与集成套餐」页切换到<strong className={textSecondary(theme)}>集成套餐</strong>标签并创建白名单、填写<strong className={textSecondary(theme)}>已上线</strong>资源；绑定后网关仅允许包内资源。
+                </p>
+              )}
             </div>
             {apiKeyNameError ? (
               <p className={`${fieldErrorText()} text-xs`} role="alert">
@@ -398,6 +495,9 @@ export const UserPersonalApiKeysPage: React.FC<UserPersonalApiKeysPageProps> = (
                       <p className={`text-xs font-mono ${textMuted(theme)}`}>id: {key.id}</p>
                       <p className={`text-xs font-mono ${textMuted(theme)}`} title="网关按 scope 校验 catalog/resolve/invoke">
                         scope: {key.scopes?.length ? key.scopes.join(', ') : '—'}
+                      </p>
+                      <p className={`text-xs ${textMuted(theme)}`} title="绑定集成套餐时网关裁剪可访问资源">
+                        集成套餐：{packageLabelById(key.integrationPackageId)}
                       </p>
                       {!apiKeyScopesAllowGatewayFlow(key.scopes) ? (
                         <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
@@ -524,9 +624,31 @@ export const UserPersonalApiKeysPage: React.FC<UserPersonalApiKeysPageProps> = (
         theme={theme}
         size="sm"
         footer={
-          <button type="button" className={btnPrimary} onClick={() => setDetailKeyTarget(null)}>
-            关闭
-          </button>
+          <div className="flex flex-wrap gap-2 justify-end w-full">
+            <button
+              type="button"
+              className={btnSecondary(theme)}
+              onClick={() => setDetailKeyTarget(null)}
+              disabled={detailPackageSaving}
+            >
+              关闭
+            </button>
+            <button
+              type="button"
+              className={btnPrimary}
+              disabled={detailPackageSaving}
+              onClick={() => void handleSaveDetailIntegrationPackage()}
+            >
+              {detailPackageSaving ? (
+                <>
+                  <Loader2 size={14} className="animate-spin inline mr-1" aria-hidden />
+                  保存中…
+                </>
+              ) : (
+                '保存套餐'
+              )}
+            </button>
+          </div>
         }
       >
         {detailKeyTarget ? (
@@ -543,6 +665,21 @@ export const UserPersonalApiKeysPage: React.FC<UserPersonalApiKeysPageProps> = (
               <span className={`font-semibold ${textSecondary(theme)}`}>scope：</span>
               {detailKeyTarget.scopes?.length ? detailKeyTarget.scopes.join(', ') : '—'}
             </p>
+            <div className="space-y-1.5 pt-1">
+              <span className={`font-semibold ${textSecondary(theme)}`}>集成套餐</span>
+              <LantuSelect
+                value={detailPackageDraft}
+                onChange={setDetailPackageDraft}
+                options={packageSelectOptions}
+                theme={theme}
+                placeholder="选择套餐…"
+                disabled={detailPackageSaving}
+                ariaLabel="修改 API Key 绑定的集成套餐"
+              />
+              {integrationPackagesError ? (
+                <p className="text-[11px] text-amber-600 dark:text-amber-400">{integrationPackagesError}</p>
+              ) : null}
+            </div>
             <p>
               <span className={`font-semibold ${textSecondary(theme)}`}>掩码 / 前缀：</span>
               {detailKeyTarget.maskedKey || detailKeyTarget.prefix || '—'}

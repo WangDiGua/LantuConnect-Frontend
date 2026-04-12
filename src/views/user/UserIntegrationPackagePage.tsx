@@ -1,0 +1,309 @@
+import React, { useCallback, useEffect, useState } from 'react';
+import { Package, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import type { Theme, ThemeColor } from '../../types';
+import { userSettingsService } from '../../api/services/user-settings.service';
+import type { IntegrationPackageItemDTO, IntegrationPackageVO } from '../../types/dto/integration-package';
+import type { UserIntegrationPackageOption } from '../../types/dto/user-settings';
+import { btnPrimary, btnSecondary, textMuted, textPrimary, textSecondary, canvasBodyBg, mainScrollPadBottom } from '../../utils/uiClasses';
+import { nativeInputClass } from '../../utils/formFieldClasses';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
+import { Modal } from '../../components/common/Modal';
+import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
+import { ConfirmDialog } from '../../components/common/ConfirmDialog';
+import { PageTitleTagline } from '../../components/common/PageTitleTagline';
+import { BentoCard } from '../../components/common/BentoCard';
+import { useLayoutChrome } from '../../context/LayoutChromeContext';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { buildPath, inferConsoleRole, parseRoute } from '../../constants/consoleRoutes';
+import { useUserRole } from '../../context/UserRoleContext';
+
+interface Props {
+  theme: Theme;
+  themeColor: ThemeColor;
+  showMessage: (msg: string, type?: 'success' | 'error' | 'info') => void;
+  /** 嵌入「密钥与集成套餐」总页时隐藏顶部大标题 */
+  embeddedInHub?: boolean;
+}
+
+function parseItemLines(text: string): IntegrationPackageItemDTO[] {
+  const out: IntegrationPackageItemDTO[] = [];
+  for (const line of text.split('\n')) {
+    const t = line.trim();
+    if (!t || t.startsWith('#')) continue;
+    const parts = t.split(/[\s,]+/).filter(Boolean);
+    if (parts.length < 2) continue;
+    const resourceType = parts[0].trim().toLowerCase();
+    const resourceId = Number(parts[1]);
+    if (!Number.isFinite(resourceId)) continue;
+    out.push({ resourceType, resourceId });
+  }
+  return out;
+}
+
+function formatItemLines(items: IntegrationPackageItemDTO[]): string {
+  return items.map((i) => `${i.resourceType} ${i.resourceId}`).join('\n');
+}
+
+export const UserIntegrationPackagePage: React.FC<Props> = ({ theme, showMessage, embeddedInHub = false }) => {
+  const isDark = theme === 'dark';
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const { platformRole } = useUserRole();
+  const routePage = parseRoute(pathname)?.page ?? '';
+  const consoleRole = inferConsoleRole(routePage, platformRole);
+  const { chromePageTitle } = useLayoutChrome();
+  const [list, setList] = useState<UserIntegrationPackageOption[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState<IntegrationPackageVO | null>(null);
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [status, setStatus] = useState<'active' | 'disabled'>('active');
+  const [itemLines, setItemLines] = useState('agent 1\nmcp 2');
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const rows = await userSettingsService.listIntegrationPackages();
+      setList(rows);
+    } catch (e) {
+      showMessage(e instanceof Error ? e.message : '加载失败', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [showMessage]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const openCreate = () => {
+    setEditing(null);
+    setName('');
+    setDescription('');
+    setStatus('active');
+    setItemLines('# 每行：类型 空格 数字ID；须为平台已上线（published）资源，例如 agent 12 或 mcp 3\n');
+    setModalOpen(true);
+  };
+
+  const openEdit = async (id: string) => {
+    setSaving(true);
+    try {
+      const pkg = await userSettingsService.getIntegrationPackage(id);
+      setEditing(pkg);
+      setName(pkg.name);
+      setDescription(pkg.description ?? '');
+      setStatus(pkg.status === 'disabled' ? 'disabled' : 'active');
+      setItemLines(formatItemLines(pkg.items ?? []));
+      setModalOpen(true);
+    } catch (e) {
+      showMessage(e instanceof Error ? e.message : '加载套餐失败', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const save = async () => {
+    const items = parseItemLines(itemLines);
+    if (!name.trim()) {
+      showMessage('请填写套餐名称', 'error');
+      return;
+    }
+    if (items.length === 0) {
+      showMessage('请至少添加一行资源（类型 + ID）', 'error');
+      return;
+    }
+    setSaving(true);
+    try {
+      if (editing) {
+        await userSettingsService.updateIntegrationPackage(editing.id, {
+          name: name.trim(),
+          description: description.trim() || null,
+          status,
+          items,
+        });
+        showMessage('已保存', 'success');
+      } else {
+        await userSettingsService.createIntegrationPackage({
+          name: name.trim(),
+          description: description.trim() || null,
+          status: 'active',
+          items,
+        });
+        showMessage('已创建', 'success');
+      }
+      setModalOpen(false);
+      await load();
+    } catch (e) {
+      showMessage(e instanceof Error ? e.message : '保存失败', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await userSettingsService.deleteIntegrationPackage(deleteId);
+      showMessage('已删除', 'success');
+      setDeleteId(null);
+      await load();
+    } catch (e) {
+      showMessage(e instanceof Error ? e.message : '删除失败', 'error');
+    }
+  };
+
+  return (
+    <div className={`flex-1 overflow-y-auto ${canvasBodyBg(theme)}`}>
+      <div className={`w-full min-h-0 ${mainScrollPadBottom}`}>
+        {!embeddedInHub ? (
+          <div className="flex min-w-0 items-center gap-3 mb-4">
+            <div className={`shrink-0 rounded-xl p-2 ${isDark ? 'bg-white/10' : 'bg-slate-100'}`}>
+              <Package size={22} className={textSecondary(theme)} />
+            </div>
+            <PageTitleTagline
+              subtitleOnly
+              theme={theme}
+              title={chromePageTitle || '集成套餐'}
+              tagline="自选已上线资源组成白名单；在密钥管理中把 API Key 绑定到套餐后，调用仅允许包内资源"
+            />
+          </div>
+        ) : null}
+
+        <BentoCard theme={theme}>
+          <div className="flex flex-wrap gap-2 mb-4">
+            <button type="button" className={btnPrimary} onClick={openCreate}>
+              <Plus size={16} className="inline mr-1" aria-hidden />
+              新建套餐
+            </button>
+            <button type="button" className={btnSecondary(theme)} onClick={() => void load()} disabled={loading}>
+              <RefreshCw size={16} className="inline mr-1" aria-hidden />
+              刷新
+            </button>
+            <button
+              type="button"
+              className={btnSecondary(theme)}
+              onClick={() => navigate(`${buildPath(consoleRole, 'my-api-keys')}`)}
+            >
+              去绑定 API Key
+            </button>
+          </div>
+
+          {loading ? (
+            <PageSkeleton type="table" rows={3} />
+          ) : (
+            <div
+              className={`rounded-2xl border overflow-hidden ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-white'}`}
+            >
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className={isDark ? 'bg-white/[0.04]' : 'bg-slate-50'}>
+                    <th className={`text-left px-3 py-2 ${textSecondary(theme)}`}>名称</th>
+                    <th className={`text-left px-3 py-2 ${textSecondary(theme)}`}>状态</th>
+                    <th className={`text-left px-3 py-2 ${textSecondary(theme)}`}>资源数</th>
+                    <th className={`text-right px-3 py-2 ${textSecondary(theme)}`}>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {list.map((p) => (
+                    <tr key={p.id} className={`border-t ${isDark ? 'border-white/10' : 'border-slate-100'}`}>
+                      <td className={`px-3 py-2 ${textPrimary(theme)}`}>
+                        <div className="font-medium">{p.name}</div>
+                        <div className={`text-xs ${textMuted(theme)}`}>{p.id}</div>
+                      </td>
+                      <td className={`px-3 py-2 ${textMuted(theme)}`}>{p.status}</td>
+                      <td className={`px-3 py-2 ${textMuted(theme)}`}>{p.itemCount ?? 0}</td>
+                      <td className="px-3 py-2 text-right space-x-2">
+                        <button type="button" className={btnSecondary(theme)} onClick={() => void openEdit(p.id)}>
+                          编辑
+                        </button>
+                        <button type="button" className={btnSecondary(theme)} onClick={() => setDeleteId(p.id)}>
+                          <Trash2 size={14} className="inline" aria-hidden />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {list.length === 0 ? (
+                <p className={`px-3 py-6 text-sm text-center ${textMuted(theme)}`}>暂无套餐，点击「新建套餐」添加资源白名单。</p>
+              ) : null}
+            </div>
+          )}
+
+          <p className={`text-xs mt-4 ${textMuted(theme)} leading-relaxed`}>
+            未绑定套餐时，API Key 按 scope 与平台规则调用<strong className={textPrimary(theme)}>已上线</strong>资源；绑定套餐后，网关<strong className={textPrimary(theme)}>仅允许</strong>套餐内资源（仍须满足 scope 等校验）。
+          </p>
+        </BentoCard>
+      </div>
+
+      <Modal
+        open={modalOpen}
+        onClose={() => !saving && setModalOpen(false)}
+        title={editing ? '编辑集成套餐' : '新建集成套餐'}
+        theme={theme}
+        footer={
+          <>
+            <button type="button" className={btnSecondary(theme)} onClick={() => setModalOpen(false)} disabled={saving}>
+              取消
+            </button>
+            <button type="button" className={btnPrimary} onClick={() => void save()} disabled={saving}>
+              {saving ? '保存中…' : '保存'}
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <div>
+            <label className={`text-xs font-medium ${textSecondary(theme)}`}>名称</label>
+            <input className={`mt-1 w-full ${nativeInputClass(theme)}`} value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <div>
+            <label className={`text-xs font-medium ${textSecondary(theme)}`}>说明</label>
+            <input
+              className={`mt-1 w-full ${nativeInputClass(theme)}`}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="可选"
+            />
+          </div>
+          {editing ? (
+            <div>
+              <label className={`text-xs font-medium ${textSecondary(theme)}`}>状态</label>
+              <select
+                className={`mt-1 w-full ${nativeInputClass(theme)}`}
+                value={status}
+                onChange={(e) => setStatus(e.target.value === 'disabled' ? 'disabled' : 'active')}
+              >
+                <option value="active">active（可选中绑定 Key）</option>
+                <option value="disabled">disabled（暂停使用）</option>
+              </select>
+            </div>
+          ) : null}
+          <div>
+            <label className={`text-xs font-medium ${textSecondary(theme)}`}>资源列表（每行：类型 空格 ID）</label>
+            <AutoHeightTextarea
+              value={itemLines}
+              onChange={(e) => setItemLines(e.target.value)}
+              minRows={6}
+              maxRows={20}
+              className={`mt-1 ${nativeInputClass(theme)} font-mono text-xs`}
+            />
+          </div>
+        </div>
+      </Modal>
+
+      <ConfirmDialog
+        open={deleteId != null}
+        title="删除集成套餐？"
+        message="将解除该套餐与 API Key 的绑定（Key 的 integration_package_id 会清空）。"
+        confirmText="删除"
+        variant="danger"
+        onCancel={() => setDeleteId(null)}
+        onConfirm={() => void confirmDelete()}
+      />
+    </div>
+  );
+};

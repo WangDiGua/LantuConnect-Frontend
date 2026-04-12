@@ -73,6 +73,9 @@ const AdminUserHubModule = lazy(() =>
 const MyPublishHubPage = lazy(() => import('../views/publish/MyPublishHubPage').then(m => ({ default: m.MyPublishHubPage })));
 const MyPublishListRoute = lazy(() => import('../views/publish/MyPublishListRoute').then(m => ({ default: m.MyPublishListRoute })));
 const UserSettingsHubPage = lazy(() => import('../views/user/UserSettingsHubPage').then(m => ({ default: m.UserSettingsHubPage })));
+const UserApiKeysIntegrationHubPage = lazy(() =>
+  import('../views/user/UserApiKeysIntegrationHubPage').then((m) => ({ default: m.UserApiKeysIntegrationHubPage })),
+);
 const UsageRecordsPage = lazy(() => import('../views/user/UsageRecordsPage').then(m => ({ default: m.UsageRecordsPage })));
 const MyFavoritesPage = lazy(() => import('../views/user/MyFavoritesPage').then(m => ({ default: m.MyFavoritesPage })));
 const UsageStatsPage = lazy(() => import('../views/user/UsageStatsPage').then(m => ({ default: m.UsageStatsPage })));
@@ -248,7 +251,6 @@ const DEVELOPER_PORTAL_PAGES = new Set([
   'sdk-download',
   'api-playground',
   'mcp-integration',
-  'my-integration-packages',
   'developer-statistics',
 ]);
 
@@ -611,17 +613,6 @@ const MainContent = React.memo<{
       case 'developer-applications':
         return <DeveloperApplicationListPage theme={t} fontSize={fs} showMessage={msg} />;
       case 'profile':
-        return (
-          <UserSettingsHubPage
-            theme={t}
-            fontSize={fs}
-            themePreference={tpref}
-            themeColor={tc}
-            showMessage={msg}
-            onOpenAppearance={() => { setMenu(true); setAppMenu(true); }}
-            initialTab="profile"
-          />
-        );
       case 'preferences':
         return (
           <UserSettingsHubPage
@@ -631,33 +622,10 @@ const MainContent = React.memo<{
             themeColor={tc}
             showMessage={msg}
             onOpenAppearance={() => { setMenu(true); setAppMenu(true); }}
-            initialTab="preferences"
           />
         );
       case 'my-api-keys':
-        return (
-          <UserSettingsHubPage
-            theme={t}
-            fontSize={fs}
-            themePreference={tpref}
-            themeColor={tc}
-            showMessage={msg}
-            onOpenAppearance={() => { setMenu(true); setAppMenu(true); }}
-            initialTab="my-api-keys"
-          />
-        );
-      case 'my-integration-packages':
-        return (
-          <UserSettingsHubPage
-            theme={t}
-            fontSize={fs}
-            themePreference={tpref}
-            themeColor={tc}
-            showMessage={msg}
-            onOpenAppearance={() => { setMenu(true); setAppMenu(true); }}
-            initialTab="my-integration-packages"
-          />
-        );
+        return <UserApiKeysIntegrationHubPage theme={t} themeColor={tc} showMessage={msg} />;
 
       case 'api-docs':
         return <ApiDocsPage theme={t} fontSize={fs} />;
@@ -678,7 +646,7 @@ const MainContent = React.memo<{
   const skeletonType = (() => {
     if (p === 'dashboard' || p === 'workspace') return 'dashboard' as const;
     if (p.includes('create')) return 'form' as const;
-    if (p.includes('detail') || p === 'profile' || p === 'my-api-keys' || p === 'my-integration-packages') return 'detail' as const;
+    if (p.includes('detail') || p === 'profile' || p === 'my-api-keys') return 'detail' as const;
     if (
       p.includes('market') ||
       p === 'skills-center' ||
@@ -855,6 +823,11 @@ const MainLayoutContent: React.FC<{
     }
   }
 
+  /** 旧独立路由「集成套餐」已并入 my-api-keys；侧栏与主内容按 my-api-keys 处理 */
+  if (page === 'my-integration-packages') {
+    page = 'my-api-keys';
+  }
+
   const baseActiveSidebar = findSidebarForPage(consoleRole, page)
     ?? (layoutIsAdmin ? 'overview' : 'workspace');
   /** 与 resource-market 重定向一致：缺省 / 非法 tab 视为 agent，避免高亮瞬间落在「资源与资产」 */
@@ -876,6 +849,17 @@ const MainLayoutContent: React.FC<{
    * 顶栏六项：侧栏/左轨导航时强制「探索发现」(hub) 高亮；仅顶栏点击（或深链落在五广场）时让对应广场项高亮。
    */
   const [topNavPreferExploreHub, setTopNavPreferExploreHub] = useState(true);
+
+  /** 书签 /c/my-integration-packages → 规范为 /c/my-api-keys?tab=packages */
+  useLayoutEffect(() => {
+    if (routePage !== 'my-integration-packages') return;
+    const sp = new URLSearchParams(location.search);
+    if (!sp.has('tab')) sp.set('tab', 'packages');
+    const next = `${buildPath(consoleRole, 'my-api-keys')}?${sp}`;
+    if (`${location.pathname}${location.search}` !== next) {
+      navigate(next, { replace: true });
+    }
+  }, [routePage, location.pathname, location.search, navigate, consoleRole]);
 
   useLayoutEffect(() => {
     if (USER_TOP_NAV_NO_RAIL_SIDEBAR_ID_SET.has(activeSidebar)) {
@@ -1674,6 +1658,10 @@ const MainLayoutContent: React.FC<{
     if (page === 'resource-catalog') return `${page}?type=${resourceTypeQuery ?? 'agent'}`;
     if (page === 'resource-audit') return `${page}?type=${resourceTypeQuery ?? 'all'}`;
     if (page === 'resource-market') return `resource-market?tab=${marketTabQuery ?? 'agent'}`;
+    if (page === 'my-api-keys') {
+      const tab = new URLSearchParams(location.search).get('tab');
+      return tab ? `my-api-keys?tab=${tab}` : 'my-api-keys';
+    }
     if (page === 'skills-center') return routeId ? `skills-center/${routeId}` : 'skills-center';
     if (page === 'mcp-center') return routeId ? `mcp-center/${routeId}` : 'mcp-center';
     if (page === 'dataset-center') return routeId ? `dataset-center/${routeId}` : 'dataset-center';

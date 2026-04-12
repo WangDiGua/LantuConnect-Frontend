@@ -175,7 +175,7 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
                 <ChevronRight size={16} className="text-slate-400 shrink-0" />
               </button>
               <button type="button" className={rowBtn} onClick={() => navigate(buildPath(consoleRole, 'my-api-keys'))}>
-                <span className="flex items-center gap-3 min-w-0"><KeyRound size={16} className="text-slate-400 shrink-0" /><span className={`text-sm font-medium ${textSecondary(theme)}`}>API Key（个人调用）</span></span>
+                <span className="flex items-center gap-3 min-w-0"><KeyRound size={16} className="text-slate-400 shrink-0" /><span className={`text-sm font-medium ${textSecondary(theme)}`}>密钥与集成套餐</span></span>
                 <ChevronRight size={16} className="text-slate-400 shrink-0" />
               </button>
             </div>

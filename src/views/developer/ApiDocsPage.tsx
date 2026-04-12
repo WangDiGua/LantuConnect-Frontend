@@ -578,6 +578,20 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({
                       <span className="font-mono">GET /developer/my-statistics</span> 为个人摘要；Owner 资源成效用 <span className="font-mono">GET /dashboard/owner-resource-stats</span>。二者<strong className={textPrimary(theme)}>口径不同</strong>，请勿混读。
                     </>
                   ))}
+                  <div id="doc-developer-stats" className="scroll-mt-24 space-y-3 rounded-xl border px-4 py-3 text-[15px] leading-7 border-slate-200/80 bg-slate-50/80 dark:border-white/10 dark:bg-white/[0.03]">
+                    <p className={`font-semibold ${textPrimary(theme)}`}>控制台「开发者统计」页上的两块数字</p>
+                    <p className={textSecondary(theme)}>
+                      <strong className={textPrimary(theme)}>个人调用概览</strong>（<span className="font-mono">GET /developer/my-statistics</span>
+                      ）：面向<strong>当前登录账号</strong>的调用摘要，含总调用、今日、错误率、延迟、Top 资源与 Key 等。
+                    </p>
+                    <p className={textSecondary(theme)}>
+                      <strong className={textPrimary(theme)}>Owner 资源成效</strong>（<span className="font-mono">GET /dashboard/owner-resource-stats</span>
+                      ）：按<strong>你作为资源 Owner</strong> 统计归属资源的网关调用与对应用量；周期可选，与上一块<strong>不是同一套口径</strong>，不能简单相加对比。
+                    </p>
+                    <p className={textSecondary(theme)}>
+                      网关「调用」主要来自网关侧调用日志；「用量记录 invoke」来自应用侧埋点，用于与网关核对。浏览、仅 resolve、下载等不一定都记为 invoke，以接口与后端说明为准。更细的表与字段含义见下文「数据口径」。
+                    </p>
+                  </div>
                 </section>
 
                 <section id="doc-meta" className="mt-14 space-y-4">

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Zap, RefreshCw, TrendingUp, Database, AlertCircle, BarChart3 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Zap, RefreshCw, TrendingUp, Database, AlertCircle, BarChart3, BookOpen } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { EChartsOption } from 'echarts';
 import { Theme, FontSize } from '../../types';
@@ -15,6 +16,7 @@ import { EChartCard } from '../../components/charts/EChartCard';
 import { LantuSelect } from '../../components/common/LantuSelect';
 import { baseGrid, baseLegend, baseTooltip, chartColors } from '../../components/charts/echartsTheme';
 import { RESOURCE_TYPE_LABEL_ZH, parseResourceType } from '../../constants/resourceTypes';
+import { buildPath } from '../../constants/consoleRoutes';
 
 interface Props { theme: Theme; fontSize: FontSize; }
 
@@ -35,6 +37,7 @@ function labelResourceType(resourceType: string): string {
 
 export const DeveloperStatsPage: React.FC<Props> = ({ theme, fontSize }) => {
   const isDark = theme === 'dark';
+  const navigate = useNavigate();
   const { platformRole } = useUserRole();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<OwnerDeveloperStatsVO | null>(null);
@@ -107,7 +110,7 @@ export const DeveloperStatsPage: React.FC<Props> = ({ theme, fontSize }) => {
     const axisLabel = { color: c.muted, fontSize: 11 };
     return {
       title: {
-        text: '按资源类型（网关调用，来自 call_log）',
+        text: '按资源类型（网关调用）',
         left: 10,
         top: 6,
         textStyle: { fontSize: 13, fontWeight: 600, color: c.text },
@@ -221,8 +224,8 @@ export const DeveloperStatsPage: React.FC<Props> = ({ theme, fontSize }) => {
 
   const desc =
     data && periodHint
-      ? `Owner 资源成效 + 个人调用概览 · ${periodHint} · Owner 用户 ID ${data.ownerUserId}`
-      : 'Owner 维度网关调用、用量记录与目录下载等行为统计；下方含 GET /developer/my-statistics 个人调用摘要（口径不同）';
+      ? `个人调用与 Owner 资源成效 · ${periodHint} · Owner 用户 ${data.ownerUserId}`
+      : '查看个人调用摘要与名下资源的网关调用（周期可选）';
 
   const body = (() => {
     if (loading) {
@@ -237,15 +240,23 @@ export const DeveloperStatsPage: React.FC<Props> = ({ theme, fontSize }) => {
     return (
       <div className="w-full space-y-5">
         <div
-          className={`flex flex-col gap-3 rounded-xl border px-4 py-3 text-sm ${isDark ? 'border-sky-500/25 bg-sky-500/5 text-sky-100/90' : 'border-sky-200 bg-sky-50 text-sky-950'}`}
+          className={`flex flex-col gap-2 rounded-xl border px-4 py-3 text-sm ${isDark ? 'border-sky-500/25 bg-sky-500/5 text-sky-100/90' : 'border-sky-200 bg-sky-50 text-sky-950'}`}
         >
           <div className="flex gap-2">
             <AlertCircle size={18} className="shrink-0 opacity-90" aria-hidden />
-            <div className="space-y-1">
-              <p className="font-medium">个人调用概览（GET /developer/my-statistics）</p>
-              <p className={`text-xs ${isDark ? 'text-sky-200/85' : 'text-sky-900/80'}`}>
-                按当前登录用户的调用记录聚合，含今日调用、错误率、近 7 日趋势、Top 资源与活跃 API Key；与下方 Owner 成效（资源归属、可选周期）指标<strong>不可逐项相加对比</strong>。
+            <div className="min-w-0 flex-1 space-y-2">
+              <p className="font-medium leading-snug">个人调用概览</p>
+              <p className={`text-xs leading-relaxed ${isDark ? 'text-sky-200/85' : 'text-sky-900/80'}`}>
+                按<strong>当前登录账号</strong>汇总的调用情况；与下方「Owner 资源成效」不是同一套数字，不要相加对比。
               </p>
+              <button
+                type="button"
+                onClick={() => navigate(`${buildPath('user', 'developer-docs')}#doc-developer-stats`)}
+                className={`inline-flex items-center gap-1 text-xs font-medium underline underline-offset-2 ${isDark ? 'text-sky-300 hover:text-sky-200' : 'text-sky-800 hover:text-sky-950'}`}
+              >
+                <BookOpen size={14} className="shrink-0" aria-hidden />
+                接入指南：两类指标怎么读
+              </button>
             </div>
           </div>
         </div>
@@ -278,7 +289,7 @@ export const DeveloperStatsPage: React.FC<Props> = ({ theme, fontSize }) => {
               <div>
                 <div className={`text-xs font-semibold mb-2 ${tm}`}>Top 资源（网关调用）</div>
                 <ul className={`space-y-1 text-xs ${isDark ? 'text-neutral-200' : 'text-neutral-700'}`}>
-                  {myOverview.topResources.slice(0, 5).map((r, idx) => (
+                  {myOverview.topResources.slice(0, 3).map((r, idx) => (
                     <li key={`${r.name}-${idx}`} className="flex justify-between gap-2">
                       <span className="truncate" title={r.name}>{r.name}</span>
                       <span className="tabular-nums shrink-0">{formatNum(r.calls)}</span>
@@ -291,7 +302,7 @@ export const DeveloperStatsPage: React.FC<Props> = ({ theme, fontSize }) => {
               <div>
                 <div className={`text-xs font-semibold mb-2 ${tm}`}>API Key 使用</div>
                 <ul className={`space-y-1 text-xs ${isDark ? 'text-neutral-200' : 'text-neutral-700'}`}>
-                  {myOverview.apiKeyUsage.slice(0, 5).map((k, idx) => (
+                  {myOverview.apiKeyUsage.slice(0, 3).map((k, idx) => (
                     <li key={`${k.keyPrefix}-${idx}`} className="flex justify-between gap-2">
                       <span className="truncate font-mono" title={k.keyPrefix}>{k.keyPrefix}</span>
                       <span className="tabular-nums shrink-0">{formatNum(k.calls)}</span>
@@ -304,13 +315,24 @@ export const DeveloperStatsPage: React.FC<Props> = ({ theme, fontSize }) => {
         ) : null}
 
         <div
-          className={`flex flex-col gap-3 rounded-xl border px-4 py-3 text-sm ${isDark ? 'border-amber-500/25 bg-amber-500/5 text-amber-100/90' : 'border-amber-200 bg-amber-50 text-amber-950'}`}
+          className={`flex flex-col gap-2 rounded-xl border px-4 py-3 text-sm ${isDark ? 'border-amber-500/25 bg-amber-500/5 text-amber-100/90' : 'border-amber-200 bg-amber-50 text-amber-950'}`}
         >
           <div className="flex gap-2">
             <AlertCircle size={18} className="shrink-0 opacity-90" aria-hidden />
-            <p>
-              <strong>Owner 资源成效</strong>：网关调用量来自归属到你名下资源的 invoke 类 call_log，不等同于门户全量使用。「用量记录 invoke」来自 usage_record，便于与网关口径核对。
-            </p>
+            <div className="min-w-0 flex-1 space-y-2">
+              <p className="font-medium leading-snug">Owner 资源成效</p>
+              <p className={`text-xs leading-relaxed ${isDark ? 'text-amber-200/90' : 'text-amber-950/90'}`}>
+                按<strong>你名下已发布资源</strong>统计网关调用；「用量记录」用于和网关数字对账。详情见接入指南。
+              </p>
+              <button
+                type="button"
+                onClick={() => navigate(`${buildPath('user', 'developer-docs')}#doc-metrics`)}
+                className={`inline-flex items-center gap-1 text-xs font-medium underline underline-offset-2 ${isDark ? 'text-amber-200 hover:text-amber-100' : 'text-amber-900 hover:text-amber-950'}`}
+              >
+                <BookOpen size={14} className="shrink-0" aria-hidden />
+                接入指南：数据口径（call_log / usage_record）
+              </button>
+            </div>
           </div>
         </div>
 

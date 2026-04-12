@@ -100,6 +100,7 @@ const GUIDE_TOC: { id: string; label: string }[] = [
   { id: 'doc-debug-gateway', label: '调试与网关页' },
   { id: 'doc-onboarding', label: '开发者入驻' },
   { id: 'doc-keys', label: 'API Key' },
+  { id: 'doc-api-keys-console', label: '密钥页与集成套餐' },
   { id: 'doc-discover', label: '发现与目录' },
   { id: 'doc-external-integration', label: '外部系统集成（AI 门户）' },
   { id: 'doc-gateway-bff-sdk', label: 'BFF 与 SDK 路径' },
@@ -407,6 +408,34 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({
                       <KeyRound size={16} /> 密钥与集成套餐
                     </button>
                   </div>
+                  <h3 id="doc-api-keys-console" className={`scroll-mt-24 mt-8 text-base font-semibold ${textPrimary(theme)}`}>
+                    「密钥与集成套餐」页怎么用？
+                  </h3>
+                  {prosePara(theme, (
+                    <>
+                      个人工作台 → <strong className={textPrimary(theme)}>密钥与集成套餐</strong> 分两个标签：<strong className={textPrimary(theme)}>API 密钥</strong> 创建与管理 <span className="font-mono">X-Api-Key</span>；<strong className={textPrimary(theme)}>集成套餐</strong> 维护资源白名单。将 Key <strong className={textPrimary(theme)}>绑定到某个套餐</strong>后，网关在校验 scope 等权限的前提下，<strong className={textPrimary(theme)}>优先按套餐内已上线资源</strong>裁剪可访问范围。
+                    </>
+                  ))}
+                  {prosePara(theme, (
+                    <>
+                      创建 Key 时，响应里的完整密钥<strong className={textPrimary(theme)}>仅当次返回</strong>；若未保存，可在列表中<strong className={textPrimary(theme)}>验证登录密码后轮换</strong>以获取新明文（旧串立即作废）。新建 Key 通常会带上默认可调用权限（scope）。服务端只存摘要，列表中的掩码、前缀、id <strong className={textPrimary(theme)}>不能</strong>当作请求头里的 <span className="font-mono">X-Api-Key</span>；撤销后本条不再可用。
+                    </>
+                  ))}
+                  {prosePara(theme, (
+                    <>
+                      <strong className={textPrimary(theme)}>有效期</strong>与后台「用户管理 · API Key」规则一致：按<strong className={textPrimary(theme)}>日历日</strong>递增；选择「永不过期」则不写过期时间字段。
+                    </>
+                  ))}
+                  {prosePara(theme, (
+                    <>
+                      <strong className={textPrimary(theme)}>集成套餐（可选）</strong>：请先在<strong className={textPrimary(theme)}>集成套餐</strong>标签创建白名单并勾选<strong className={textPrimary(theme)}>已上线</strong>资源，再回到「API 密钥」绑定。绑定后网关按套餐优先匹配；未绑定时仅按 scope 等规则校验。
+                    </>
+                  ))}
+                  {prosePara(theme, (
+                    <>
+                      创建成功后若要在本站「市场 / 网关调试」中试用，可使用页面上<strong className={textPrimary(theme)}>写入本机网关 Key</strong>，与 axios、Playground 等共用本地存储（勿在不可信环境使用）。
+                    </>
+                  ))}
                 </section>
 
                 <section id="doc-discover" className="mt-14 space-y-4">

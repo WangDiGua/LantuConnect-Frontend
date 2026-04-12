@@ -187,7 +187,7 @@ export const UserIntegrationPackagePage: React.FC<Props> = ({ theme, showMessage
               subtitleOnly
               theme={theme}
               title={chromePageTitle || '集成套餐'}
-              tagline="自选已上线资源组成白名单；在密钥管理中把 API Key 绑定到套餐后，调用仅允许包内资源"
+              tagline="把已上线资源收成白名单，再回「API 密钥」绑定到 Key。"
             />
           </div>
         ) : null}
@@ -254,7 +254,7 @@ export const UserIntegrationPackagePage: React.FC<Props> = ({ theme, showMessage
           )}
 
           <p className={`text-xs mt-4 ${textMuted(theme)} leading-relaxed`}>
-            未绑定套餐时，API Key 按 scope 与平台规则调用<strong className={textPrimary(theme)}>已上线</strong>资源；绑定套餐后，网关<strong className={textPrimary(theme)}>仅允许</strong>套餐内资源（仍须满足 scope 等校验）。
+            未绑套餐时按 scope；绑定后网关优先按套餐内<strong className={textPrimary(theme)}>已上线</strong>资源。
           </p>
         </BentoCard>
       </div>

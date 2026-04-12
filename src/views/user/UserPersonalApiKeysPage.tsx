@@ -334,7 +334,7 @@ export const UserPersonalApiKeysPage: React.FC<UserPersonalApiKeysPageProps> = (
               subtitleOnly
               theme={theme}
               title={chromePageTitle || '密钥管理'}
-              tagline="个人调用开放平台接口：请求头 X-Api-Key"
+              tagline="个人 Key，用于请求头 X-Api-Key；说明见接入指南。"
             />
           </div>
         ) : null}
@@ -343,14 +343,10 @@ export const UserPersonalApiKeysPage: React.FC<UserPersonalApiKeysPageProps> = (
           <h2 className={`text-base font-bold mb-2 flex items-center gap-2 ${textPrimary(theme)}`}>
             <KeyRound size={18} className={tc.text} /> API Key（个人调用）
           </h2>
-          <p className={`text-xs mb-2 ${textMuted(theme)}`}>
-            用于接口请求头 <span className="font-mono">X-Api-Key</span>。创建后<strong className={textSecondary(theme)}>仅当次响应</strong>会展示完整密钥；若未保存，可在<strong className={textSecondary(theme)}>验证身份后轮换密钥</strong>以获取新明文（<strong className={textPrimary(theme)}>旧串立即作废</strong>）。
-            新建将自动带上默认可调用权限。
-          </p>
           <p className={`text-xs mb-3 ${textMuted(theme)}`}>
-            服务端只存密钥摘要，无法「找回」原明文。列表中的掩码、前缀、id 不能作为请求头；撤销后本条将不再显示。
-            <button type="button" onClick={() => navigate(buildPath(consoleRole, 'developer-docs'))} className={`ml-1 underline font-medium ${tc.text}`}>
-              完整说明见 API 文档
+            创建后<strong className={textSecondary(theme)}>只显示一次</strong>完整密钥；丢失可轮换。列表里只有掩码。
+            <button type="button" onClick={() => navigate(`${buildPath(consoleRole, 'developer-docs')}#doc-api-keys-console`)} className={`ml-1 underline font-medium ${tc.text}`}>
+              接入指南
             </button>
           </p>
           <div className="space-y-3">
@@ -400,9 +396,7 @@ export const UserPersonalApiKeysPage: React.FC<UserPersonalApiKeysPageProps> = (
                   );
                 })}
               </div>
-              <p className={`text-[11px] leading-relaxed ${textMuted(theme)}`}>
-                与<strong className={textSecondary(theme)}>用户管理 · API Key</strong>一致：按日历日递增；选「永不过期」不写过期时间。
-              </p>
+              <p className={`text-[11px] leading-relaxed ${textMuted(theme)}`}>按日历日计算；选「永不过期」不写过期时间。</p>
             </div>
             <div className="space-y-1.5">
               <span className={`text-xs font-semibold ${textMuted(theme)}`}>集成套餐（可选）</span>
@@ -419,7 +413,7 @@ export const UserPersonalApiKeysPage: React.FC<UserPersonalApiKeysPageProps> = (
                 <p className="text-[11px] text-amber-600 dark:text-amber-400">{integrationPackagesError}</p>
               ) : (
                 <p className={`text-[11px] leading-relaxed ${textMuted(theme)}`}>
-                  请先在「密钥与集成套餐」页切换到<strong className={textSecondary(theme)}>集成套餐</strong>标签并创建白名单、填写<strong className={textSecondary(theme)}>已上线</strong>资源；绑定后网关仅允许包内资源。
+                  需先在<strong className={textSecondary(theme)}>集成套餐</strong>标签建白名单；绑定后网关按套餐裁剪资源。
                 </p>
               )}
             </div>
@@ -432,7 +426,7 @@ export const UserPersonalApiKeysPage: React.FC<UserPersonalApiKeysPageProps> = (
               <div className={`rounded-xl p-3 border space-y-2 ${isDark ? 'bg-emerald-500/10 border-emerald-500/25' : 'bg-emerald-50 border-emerald-200'}`}>
                 <p className={`text-xs font-semibold ${isDark ? 'text-emerald-100' : 'text-emerald-950'}`}>密钥仅出现这一次</p>
                 <p className={`text-xs leading-relaxed ${textSecondary(theme)}`}>
-                  服务端只保存摘要，无法用原 id 解密出旧明文。请复制到密码管理器或环境变量；若已丢失，可从列表使用「轮换密钥」在验证登录密码后获得新串（旧串作废）。需要在本站「市场 / 网关调试」里用时，可一键写入下面共用的本机存储。
+                  请立即复制保存；未备份可「轮换密钥」拿新串。下方可写入本机，供本站调试与 Playground 共用。
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <code className={`text-xs break-all flex-1 min-w-[12rem] rounded-lg px-2 py-1.5 ${isDark ? 'bg-black/30 text-emerald-300' : 'bg-white text-emerald-700'}`}>{newPlainKey}</code>
@@ -506,7 +500,7 @@ export const UserPersonalApiKeysPage: React.FC<UserPersonalApiKeysPageProps> = (
                       ) : null}
                       <p className={`text-xs ${textMuted(theme)}`} title="掩码或前缀，不可作为 X-Api-Key">
                         {key.maskedKey || key.prefix}
-                        <span className={`block text-xs mt-0.5 ${textMuted(theme)}`}>（掩码，非请求头密钥）</span>
+                        <span className={`block text-xs mt-0.5 ${textMuted(theme)}`}>（非完整密钥）</span>
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-1.5 shrink-0 justify-end">

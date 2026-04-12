@@ -92,7 +92,7 @@ export function canvasCard(theme: Theme) {
 
 export function glassSidebar(theme: Theme) {
   return D(theme)
-    ? 'bg-lantu-chrome/85 backdrop-blur-2xl border-r border-transparent'
+    ? 'bg-lantu-canvas/85 backdrop-blur-2xl border-r border-transparent'
     : 'bg-[#FDFDFD] backdrop-blur-2xl border-r border-neutral-200';
 }
 

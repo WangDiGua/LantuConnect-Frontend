@@ -1736,7 +1736,7 @@ const MainLayoutContent: React.FC<{
         data-theme={theme === 'dark' ? 'dark' : 'light'}
         className={`h-screen flex min-h-0 flex-col overflow-hidden selection:bg-neutral-200 selection:text-neutral-900 ${
           FONT_FAMILY_CLASSES[fontFamily]
-        } bg-lantu-chrome`}
+        } ${isDark ? 'bg-lantu-canvas' : 'bg-lantu-chrome'}`}
       >
         <span className="sr-only" aria-live="polite" aria-atomic="true">
           {realtimeLiveText}
@@ -2004,7 +2004,7 @@ const MainLayoutContent: React.FC<{
         <aside
           className={`${chromeGpuLayerClass} fixed inset-y-0 left-0 z-50 flex h-full w-[240px] shrink-0 flex-col overflow-hidden px-0 py-2 transition-transform duration-200 ease-out motion-reduce:transition-none lg:hidden ${
             mobileNavOpen ? 'translate-x-0' : '-translate-x-full'
-          } ${isDark ? 'bg-lantu-chrome' : 'bg-gray-100'}`}
+          } ${isDark ? 'bg-lantu-canvas' : 'bg-gray-100'}`}
         >
           <div className="shrink-0 px-4 pt-2">
             <button
@@ -2050,9 +2050,7 @@ const MainLayoutContent: React.FC<{
                 {/* 与 hub 壳层一致：左轨固定 w-52/w-56，避免 12 栅格 col-span-2 随主区域变宽 */}
                 <div className="flex min-h-0 flex-1 flex-col gap-8 lg:flex-row lg:gap-10">
                   <div
-                    className={`order-2 flex min-h-0 flex-col max-h-[min(70vh,32rem)] lg:order-1 lg:w-52 lg:max-h-[calc(100dvh-5rem-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px))] lg:shrink-0 lg:overflow-y-auto lg:overscroll-y-contain custom-scrollbar xl:w-56 lg:pr-6 ${consoleContentTopPad} ${chromeGpuLayerClass} ${
-                      isDark ? 'lg:bg-lantu-chrome' : ''
-                    }`}
+                    className={`order-2 flex min-h-0 flex-col max-h-[min(70vh,32rem)] lg:order-1 lg:w-52 lg:max-h-[calc(100dvh-5rem-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px))] lg:shrink-0 lg:overflow-y-auto lg:overscroll-y-contain custom-scrollbar xl:w-56 lg:pr-6 ${consoleContentTopPad} ${chromeGpuLayerClass}`}
                   >
                     <HubPersonalRail
                       theme={theme}
@@ -2114,9 +2112,7 @@ const MainLayoutContent: React.FC<{
               className={`flex min-h-0 min-w-0 flex-1 flex-col gap-8 lg:flex-row lg:gap-10 ${contentPaddingX}`}
             >
               <aside
-                className={`hidden min-h-0 shrink-0 flex-col lg:flex lg:w-52 lg:max-h-none xl:w-56 ${consoleContentTopPad} ${chromeGpuLayerClass} pr-6 ${
-                  isDark ? 'lg:bg-lantu-chrome' : ''
-                }`}
+                className={`hidden min-h-0 shrink-0 flex-col lg:flex lg:w-52 lg:max-h-none xl:w-56 ${consoleContentTopPad} ${chromeGpuLayerClass} pr-6`}
               >
                 <div
                   className={`flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-y-contain custom-scrollbar lantu-hub-sticky-rail-scroll ${mainScrollCompositorClass}`}

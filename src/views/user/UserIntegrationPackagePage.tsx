@@ -1,14 +1,15 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Package, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import type { Theme, ThemeColor } from '../../types';
+import type { ResourceType } from '../../types/dto/catalog';
 import { userSettingsService } from '../../api/services/user-settings.service';
+import { resourceCatalogService } from '../../api/services/resource-catalog.service';
 import type { IntegrationPackageItemDTO, IntegrationPackageVO } from '../../types/dto/integration-package';
 import type { UserIntegrationPackageOption } from '../../types/dto/user-settings';
 import { btnPrimary, btnSecondary, textMuted, textPrimary, textSecondary, canvasBodyBg, mainScrollPadBottom } from '../../utils/uiClasses';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { Modal } from '../../components/common/Modal';
-import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
 import { BentoCard } from '../../components/common/BentoCard';
@@ -16,6 +17,10 @@ import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { buildPath, inferConsoleRole, parseRoute } from '../../constants/consoleRoutes';
 import { useUserRole } from '../../context/UserRoleContext';
+import {
+  IntegrationPackageResourcePicker,
+  type SelectedPackageResource,
+} from './IntegrationPackageResourcePicker';
 
 interface Props {
   theme: Theme;
@@ -25,23 +30,24 @@ interface Props {
   embeddedInHub?: boolean;
 }
 
-function parseItemLines(text: string): IntegrationPackageItemDTO[] {
-  const out: IntegrationPackageItemDTO[] = [];
-  for (const line of text.split('\n')) {
-    const t = line.trim();
-    if (!t || t.startsWith('#')) continue;
-    const parts = t.split(/[\s,]+/).filter(Boolean);
-    if (parts.length < 2) continue;
-    const resourceType = parts[0].trim().toLowerCase();
-    const resourceId = Number(parts[1]);
-    if (!Number.isFinite(resourceId)) continue;
-    out.push({ resourceType, resourceId });
-  }
-  return out;
-}
-
-function formatItemLines(items: IntegrationPackageItemDTO[]): string {
-  return items.map((i) => `${i.resourceType} ${i.resourceId}`).join('\n');
+async function enrichLabels(items: IntegrationPackageItemDTO[]): Promise<SelectedPackageResource[]> {
+  if (items.length === 0) return [];
+  return Promise.all(
+    items.map(async (item) => {
+      try {
+        const d = await resourceCatalogService.getByTypeAndId(
+          item.resourceType as ResourceType,
+          String(item.resourceId),
+        );
+        return {
+          item,
+          label: `${d.displayName}（${item.resourceType} #${item.resourceId}）`,
+        };
+      } catch {
+        return { item, label: `${item.resourceType} #${item.resourceId}` };
+      }
+    }),
+  );
 }
 
 export const UserIntegrationPackagePage: React.FC<Props> = ({ theme, showMessage, embeddedInHub = false }) => {
@@ -55,13 +61,15 @@ export const UserIntegrationPackagePage: React.FC<Props> = ({ theme, showMessage
   const [list, setList] = useState<UserIntegrationPackageOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [pickerMountKey, setPickerMountKey] = useState(0);
   const [editing, setEditing] = useState<IntegrationPackageVO | null>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<'active' | 'disabled'>('active');
-  const [itemLines, setItemLines] = useState('agent 1\nmcp 2');
+  const [selectedRows, setSelectedRows] = useState<SelectedPackageResource[]>([]);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const catalogEnrichGen = useRef(0);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -80,11 +88,13 @@ export const UserIntegrationPackagePage: React.FC<Props> = ({ theme, showMessage
   }, [load]);
 
   const openCreate = () => {
+    catalogEnrichGen.current += 1;
     setEditing(null);
     setName('');
     setDescription('');
     setStatus('active');
-    setItemLines('# 每行：类型 空格 数字ID；须为平台已上线（published）资源，例如 agent 12 或 mcp 3\n');
+    setSelectedRows([]);
+    setPickerMountKey((k) => k + 1);
     setModalOpen(true);
   };
 
@@ -96,8 +106,18 @@ export const UserIntegrationPackagePage: React.FC<Props> = ({ theme, showMessage
       setName(pkg.name);
       setDescription(pkg.description ?? '');
       setStatus(pkg.status === 'disabled' ? 'disabled' : 'active');
-      setItemLines(formatItemLines(pkg.items ?? []));
+      const base = (pkg.items ?? []).map((item) => ({
+        item,
+        label: `${item.resourceType} #${item.resourceId}`,
+      }));
+      setSelectedRows(base);
+      setPickerMountKey((k) => k + 1);
+      const gen = ++catalogEnrichGen.current;
       setModalOpen(true);
+      void enrichLabels(pkg.items ?? []).then((rows) => {
+        if (gen !== catalogEnrichGen.current) return;
+        setSelectedRows(rows);
+      });
     } catch (e) {
       showMessage(e instanceof Error ? e.message : '加载套餐失败', 'error');
     } finally {
@@ -106,13 +126,13 @@ export const UserIntegrationPackagePage: React.FC<Props> = ({ theme, showMessage
   };
 
   const save = async () => {
-    const items = parseItemLines(itemLines);
+    const items = selectedRows.map((r) => r.item);
     if (!name.trim()) {
       showMessage('请填写套餐名称', 'error');
       return;
     }
     if (items.length === 0) {
-      showMessage('请至少添加一行资源（类型 + ID）', 'error');
+      showMessage('请至少选择一条已上线资源', 'error');
       return;
     }
     setSaving(true);
@@ -244,6 +264,7 @@ export const UserIntegrationPackagePage: React.FC<Props> = ({ theme, showMessage
         onClose={() => !saving && setModalOpen(false)}
         title={editing ? '编辑集成套餐' : '新建集成套餐'}
         theme={theme}
+        size="lg"
         footer={
           <>
             <button type="button" className={btnSecondary(theme)} onClick={() => setModalOpen(false)} disabled={saving}>
@@ -282,16 +303,13 @@ export const UserIntegrationPackagePage: React.FC<Props> = ({ theme, showMessage
               </select>
             </div>
           ) : null}
-          <div>
-            <label className={`text-xs font-medium ${textSecondary(theme)}`}>资源列表（每行：类型 空格 ID）</label>
-            <AutoHeightTextarea
-              value={itemLines}
-              onChange={(e) => setItemLines(e.target.value)}
-              minRows={6}
-              maxRows={20}
-              className={`mt-1 ${nativeInputClass(theme)} font-mono text-xs`}
-            />
-          </div>
+          <IntegrationPackageResourcePicker
+            key={pickerMountKey}
+            theme={theme}
+            active={modalOpen}
+            value={selectedRows}
+            onChange={setSelectedRows}
+          />
         </div>
       </Modal>
 

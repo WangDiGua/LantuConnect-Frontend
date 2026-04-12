@@ -248,14 +248,10 @@ export const UserIntegrationPackagePage: React.FC<Props> = ({ theme, showMessage
                 </tbody>
               </table>
               {list.length === 0 ? (
-                <p className={`px-3 py-6 text-sm text-center ${textMuted(theme)}`}>暂无套餐，点击「新建套餐」添加资源白名单。</p>
+                <p className={`px-3 py-6 text-sm text-center ${textMuted(theme)}`}>暂无套餐，可先新建再添加资源。</p>
               ) : null}
             </div>
           )}
-
-          <p className={`text-xs mt-4 ${textMuted(theme)} leading-relaxed`}>
-            未绑套餐时按 scope；绑定后网关优先按套餐内<strong className={textPrimary(theme)}>已上线</strong>资源。
-          </p>
         </BentoCard>
       </div>
 

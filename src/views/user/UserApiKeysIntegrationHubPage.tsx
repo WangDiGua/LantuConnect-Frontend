@@ -102,7 +102,9 @@ export const UserApiKeysIntegrationHubPage: React.FC<Props> = ({
             页面说明
           </button>
         </div>
-        <p className={`mt-2 text-xs ${textMuted(theme)}`}>管理调用密钥与白名单套餐；细则见接入指南。</p>
+        <p className={`mt-2 text-xs ${textMuted(theme)}`}>
+          {tab === 'keys' ? '创建与管理调用密钥；套餐与网关规则点「页面说明」。' : '维护白名单资源组；绑到 Key 请切回「API 密钥」。'}
+        </p>
       </div>
 
       <div className="min-h-0 flex-1 flex flex-col">

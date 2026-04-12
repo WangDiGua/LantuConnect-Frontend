@@ -40,7 +40,6 @@ import {
   ClipboardCheck,
   Code2,
   Terminal,
-  User,
   KeyRound,
   Download,
   Compass,
@@ -277,12 +276,8 @@ export const USER_APPS_CENTER_GROUPS: NavSubGroup[] = [
 export const USER_MY_CONSOLE_GROUPS: NavSubGroup[] = [
   {
     title: '常用总览',
-    items: [{ id: 'overview', icon: LayoutGrid, label: '工作台总览' }],
-  },
-  {
-    title: '账户',
     items: [
-      { id: 'profile', icon: User, label: '个人资料' },
+      { id: 'overview', icon: LayoutGrid, label: '工作台总览' },
       { id: 'my-api-keys', icon: KeyRound, label: '密钥与集成套餐' },
     ],
   },

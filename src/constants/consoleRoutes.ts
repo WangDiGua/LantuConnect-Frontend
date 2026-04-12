@@ -329,9 +329,9 @@ export function pageToSubItem(page: string, sidebarId: string | null, isAdmin: b
   if (isAdmin && sidebarId === 'admin-resource-ops' && page === 'provider-create') {
     return 'provider-list';
   }
-  /** 偏好设置已并入个人资料 Tab；URL 仍为 /c/preferences 时侧栏高亮「个人资料」 */
-  if (!isAdmin && sidebarId === 'workspace' && page === 'preferences') {
-    return 'profile';
+  /** 个人资料 / 偏好设置已从侧栏移除；仍高亮「工作台总览」以免无匹配子项 */
+  if (!isAdmin && sidebarId === 'workspace' && (page === 'profile' || page === 'preferences')) {
+    return 'overview';
   }
   return page;
 }

@@ -3,12 +3,15 @@ import type { AxiosRequestConfig } from 'axios';
 import { extractArray, normalizePaginated } from '../../utils/normalizeApiPayload';
 import { normalizeExploreResourceItem } from './dashboard.service';
 import type {
+  AggregatedCapabilityToolsVO,
   CatalogResourceDetailVO,
+  GatewayIntegrationHintsVO,
   ResourceBindingSummaryVO,
   ResourceCatalogItemVO,
   ResourceCatalogQueryRequest,
   ResourceResolveRequest,
   ResourceType,
+  ToolDispatchRouteVO,
 } from '../../types/dto/catalog';
 import type { ResourceStatsVO, SearchSuggestion, ExploreResourceItem } from '../../types/dto/explore';
 
@@ -166,13 +169,13 @@ function normalizeCatalogDetail(raw: unknown): CatalogResourceDetailVO {
   if (merged.resourceType === 'skill') {
     if (!merged.executionMode && merged.spec && typeof merged.spec === 'object') {
       const em = String((merged.spec as Record<string, unknown>).executionMode ?? '').trim().toLowerCase();
-      if (em === 'hosted') merged.executionMode = 'hosted';
+      if (em === 'context') merged.executionMode = 'context';
     }
-    if (!merged.executionMode && merged.invokeType && String(merged.invokeType).toLowerCase() === 'hosted_llm') {
-      merged.executionMode = 'hosted';
+    if (!merged.executionMode && merged.invokeType && String(merged.invokeType).toLowerCase() === 'portal_context') {
+      merged.executionMode = 'context';
     }
     if (!merged.executionMode) {
-      merged.executionMode = 'hosted';
+      merged.executionMode = 'context';
     }
   }
   return merged;
@@ -204,6 +207,62 @@ function normalizeResourceStats(raw: unknown): ResourceStatsVO {
     favoriteCount: numStat(o.favoriteCount),
     callTrend: normalizeStatsCallTrend(o.callTrend),
     relatedResources: extractArray(o.relatedResources).map(normalizeStatsRelated),
+  };
+}
+
+function normalizeToolRouteRow(raw: unknown): ToolDispatchRouteVO {
+  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  return {
+    unifiedFunctionName: String(o.unifiedFunctionName ?? o.unified_function_name ?? ''),
+    resourceType: String(o.resourceType ?? o.resource_type ?? ''),
+    resourceId: String(o.resourceId ?? o.resource_id ?? ''),
+    upstreamToolName:
+      o.upstreamToolName != null
+        ? String(o.upstreamToolName)
+        : o.upstream_tool_name != null
+          ? String(o.upstream_tool_name)
+          : undefined,
+  };
+}
+
+function normalizeAggregatedCapabilityTools(raw: unknown): AggregatedCapabilityToolsVO {
+  const x = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const oa = x.openAiTools ?? x.open_ai_tools;
+  return {
+    entry:
+      x.entry && typeof x.entry === 'object' && !Array.isArray(x.entry)
+        ? (x.entry as Record<string, string>)
+        : undefined,
+    openAiTools: extractArray(oa),
+    routes: extractArray(x.routes).map(normalizeToolRouteRow),
+    warnings: extractArray(x.warnings).map((w) => String(w)),
+    mcpQueriedCount: optLong(x.mcpQueriedCount ?? x.mcp_queried_count),
+    toolFunctionCount: optLong(x.toolFunctionCount ?? x.tool_function_count),
+    aggregateTruncated:
+      x.aggregateTruncated != null
+        ? Boolean(x.aggregateTruncated)
+        : x.aggregate_truncated != null
+          ? Boolean(x.aggregate_truncated)
+          : undefined,
+  };
+}
+
+function normalizeGatewayIntegrationHints(raw: unknown): GatewayIntegrationHintsVO {
+  const x = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const be = x.bindingExpansion && typeof x.bindingExpansion === 'object' ? (x.bindingExpansion as Record<string, unknown>) : {};
+  const cap = x.capabilities && typeof x.capabilities === 'object' ? (x.capabilities as Record<string, unknown>) : {};
+  const mergeRaw = be.mergeActiveSkillMcps ?? be.merge_active_skill_mcps;
+  return {
+    bindingExpansion: {
+      enabled: Boolean(be.enabled),
+      agent: Boolean(be.agent),
+      /** 旧后端未返回该字段时与 Java 默认 true 对齐，避免误显 false */
+      mergeActiveSkillMcps: mergeRaw === undefined ? true : Boolean(mergeRaw),
+    },
+    capabilities: {
+      maxMcpsPerAggregate: numStat(cap.maxMcpsPerAggregate ?? cap.max_mcps_per_aggregate, 0),
+      maxToolsPerResponse: numStat(cap.maxToolsPerResponse ?? cap.max_tools_per_response, 0),
+    },
   };
 }
 
@@ -242,5 +301,23 @@ export const resourceCatalogService = {
   getSearchSuggestions: async (q: string) => {
     const raw = await http.get<unknown>('/catalog/resources/search-suggestions', { params: { q } });
     return extractArray<SearchSuggestion>(raw);
+  },
+
+  /** 须 X-Api-Key（http 拦截器从偏好设置注入） */
+  fetchAggregatedTools: async (
+    entryResourceType: string,
+    entryResourceId: string,
+    config?: AxiosRequestConfig,
+  ): Promise<AggregatedCapabilityToolsVO> => {
+    const raw = await http.get<unknown>('/catalog/capabilities/tools', {
+      params: { entryResourceType, entryResourceId },
+      ...config,
+    });
+    return normalizeAggregatedCapabilityTools(raw);
+  },
+
+  fetchGatewayIntegrationHints: async (): Promise<GatewayIntegrationHintsVO> => {
+    const raw = await http.get<unknown>('/catalog/gateway/integration-hints');
+    return normalizeGatewayIntegrationHints(raw);
   },
 };

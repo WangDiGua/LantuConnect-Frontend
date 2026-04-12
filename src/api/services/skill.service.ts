@@ -35,13 +35,13 @@ function toSkill(item: ResourceCatalogItemVO): Skill {
     paramsRaw && typeof paramsRaw === 'object' && !Array.isArray(paramsRaw)
       ? (paramsRaw as Record<string, unknown>)
       : null;
-  const executionMode: Skill['executionMode'] = 'hosted';
+  const executionMode: Skill['executionMode'] = 'context';
   return {
     id,
     agentName: item.resourceCode || `skill-${item.resourceId}`,
     displayName: item.displayName || item.resourceCode || String(item.resourceId),
     description: item.description || '',
-    agentType: 'hosted_skill',
+    agentType: 'context_skill',
     executionMode,
     mode: 'TOOL',
     parentId: null,
@@ -118,7 +118,7 @@ export const skillService = {
       new ApiException({
         code: 1004,
         status: 400,
-        message: '请使用统一网关 POST /invoke（resourceType=skill）调用托管技能。',
+        message: '技能为 Context 规范，仅可通过目录与 POST /catalog/resolve 获取；不可使用 POST /invoke（resourceType=skill）。',
       }),
     ),
 };

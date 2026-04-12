@@ -72,7 +72,7 @@ function lifecycleTimelineNodeClass(ev: LifecycleTimelineEventVO): string {
 
 function skillSubmitBlocked(item: ResourceCenterItemVO): boolean {
   if (item.resourceType !== 'skill') return false;
-  return !Boolean(item.hostedSystemPrompt?.trim());
+  return !Boolean(item.contextPrompt?.trim());
 }
 
 function isCatalogItemOwner(item: ResourceCenterItemVO, userId: number): boolean {
@@ -682,17 +682,17 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                           {item.resourceType === 'skill' && (
                             <span>
                               技能形态:{' '}
-                              <span className={textSecondary(theme)}>托管（hosted · invoke）</span>
+                              <span className={textSecondary(theme)}>Context（目录 / resolve）</span>
+                            </span>
+                          )}
+                          {item.resourceType === 'skill' && item.relatedMcpResourceIds && item.relatedMcpResourceIds.length > 0 && (
+                            <span className="font-mono" title="skill_depends_mcp">
+                              绑定 MCP: {item.relatedMcpResourceIds.join(', ')}
                             </span>
                           )}
                           {item.resourceType === 'agent' && item.relatedMcpResourceIds && item.relatedMcpResourceIds.length > 0 && (
                             <span className="font-mono" title="agent_depends_mcp">
                               绑定 MCP: {item.relatedMcpResourceIds.join(', ')}
-                            </span>
-                          )}
-                          {item.resourceType === 'mcp' && item.relatedPreSkillResourceIds && item.relatedPreSkillResourceIds.length > 0 && (
-                            <span className="font-mono" title="mcp_depends_skill">
-                              前置 Skill: {item.relatedPreSkillResourceIds.join(', ')}
                             </span>
                           )}
                         </div>
@@ -717,7 +717,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                             disabled={runningActionKey === `submit-${item.id}` || skillSubmitBlocked(item)}
                             title={
                               skillSubmitBlocked(item) && item.resourceType === 'skill'
-                                ? '托管技能须填写系统提示词（hostedSystemPrompt）后再提交审核'
+                                ? 'Context 技能须填写规范 Markdown（contextPrompt）后再提交审核'
                                 : undefined
                             }
                             onClick={() => void runMutationAction(`submit-${item.id}`, () => resourceCenterService.submit(item.id), '已提交审核')}

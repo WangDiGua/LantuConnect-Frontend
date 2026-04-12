@@ -149,6 +149,13 @@ function ensureRequiredHeaders(config: InternalAxiosRequestConfig): void {
   if (path === '/catalog/resolve' && !hasApiKey) {
     throw new ApiException({ code: 1001, status: 400, message: '调用 POST /catalog/resolve 必须提供 X-Api-Key' });
   }
+  if (path === '/catalog/capabilities/tools' && !hasApiKey) {
+    throw new ApiException({
+      code: 1001,
+      status: 400,
+      message: '调用 GET /catalog/capabilities/tools 必须提供 X-Api-Key（请在偏好设置保存完整 Key）',
+    });
+  }
   if (path.startsWith('/catalog/resources') && !hasUserId && !hasApiKey) {
     throw new ApiException({ code: 1001, status: 400, message: '浏览目录接口必须至少提供 X-User-Id（登录）或 X-Api-Key' });
   }

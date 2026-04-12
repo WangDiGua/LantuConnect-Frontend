@@ -56,7 +56,7 @@ export interface ResourceCatalogItemVO {
   quality?: Record<string, unknown>;
   /** 携带有效 X-Api-Key 时后端可能为 true；历史字段名，不表示存在 per-resource Grant */
   hasGrantForKey?: boolean | null;
-  /** skill：后端目录 execution_mode；平台侧均为 hosted */
+  /** skill：后端目录 execution_mode（context） */
   executionMode?: string;
 }
 
@@ -140,4 +140,36 @@ export interface SandboxSessionVO {
   expiresAt?: string;
   lastInvokeAt?: string;
   status?: string;
+}
+
+/** GET /catalog/capabilities/tools — 与后端 AggregatedCapabilityToolsVO 对齐 */
+export interface ToolDispatchRouteVO {
+  unifiedFunctionName: string;
+  resourceType: string;
+  resourceId: string;
+  upstreamName?: string;
+  upstreamToolName?: string;
+}
+
+export interface AggregatedCapabilityToolsVO {
+  entry?: Record<string, string> | null;
+  openAiTools: unknown[];
+  routes: ToolDispatchRouteVO[];
+  warnings: string[];
+  mcpQueriedCount?: number | null;
+  toolFunctionCount?: number | null;
+  aggregateTruncated?: boolean | null;
+}
+
+/** GET /catalog/gateway/integration-hints */
+export interface GatewayIntegrationHintsVO {
+  bindingExpansion: {
+    enabled: boolean;
+    agent: boolean;
+    mergeActiveSkillMcps: boolean;
+  };
+  capabilities: {
+    maxMcpsPerAggregate: number;
+    maxToolsPerResponse: number;
+  };
 }

@@ -24,6 +24,7 @@ const AGENT_TYPE_LABEL: Record<string, string> = {
   http_api: 'HTTP API',
   builtin: '内置',
   hosted_skill: '托管技能',
+  context_skill: 'Context 技能',
 };
 const SOURCE_TYPE_LABEL: Record<string, string> = { internal: '内部', partner: '合作方', cloud: '云服务' };
 
@@ -65,9 +66,9 @@ export const SkillDetail: React.FC<Props> = ({ skillId, theme, fontSize: _fontSi
   const specJson = (skill.specJson ?? {}) as Record<string, unknown>;
   const skillTypeStr = specJson.skillType != null ? String(specJson.skillType) : '';
   const entryDoc = specJson.entryDoc != null ? String(specJson.entryDoc) : '';
-  const hostedModel =
-    specJson.hostedDefaultModel != null && String(specJson.hostedDefaultModel).trim() !== ''
-      ? String(specJson.hostedDefaultModel)
+  const contextPrompt =
+    specJson.contextPrompt != null && String(specJson.contextPrompt).trim() !== ''
+      ? String(specJson.contextPrompt)
       : '';
   const formatCallCount = (n: number) => n >= 10000 ? `${(n / 10000).toFixed(2)}万` : n.toLocaleString();
 
@@ -103,7 +104,7 @@ export const SkillDetail: React.FC<Props> = ({ skillId, theme, fontSize: _fontSi
                   { label: '显示名称', value: skill.displayName },
                   { label: '标识名称', value: skill.agentName, mono: true },
                   { label: '资源形态', value: AGENT_TYPE_LABEL[skill.agentType] ?? skill.agentType },
-                  { label: '执行模式', value: '托管（hosted）' },
+                  { label: '执行模式', value: 'Context（目录 / resolve）' },
                   { label: '技能类型', value: skillTypeStr || '—' },
                   { label: '来源', value: SOURCE_TYPE_LABEL[skill.sourceType] ?? skill.sourceType },
                   { label: '分类', value: skill.categoryName ?? '未分类' },
@@ -131,17 +132,17 @@ export const SkillDetail: React.FC<Props> = ({ skillId, theme, fontSize: _fontSi
                     <p className={`text-xs font-mono break-all ${textMuted(theme)}`}>{entryDoc || '—'}</p>
                   </div>
                 </div>
-                {hostedModel ? (
+                {contextPrompt ? (
                   <div className={`flex items-start gap-3 p-3 rounded-xl ${isDark ? 'bg-white/[0.02]' : 'bg-slate-50'} border ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
                     <div className={`p-2 rounded-xl shrink-0 ${isDark ? 'bg-emerald-500/15 text-emerald-400' : 'bg-emerald-50 text-emerald-700'}`}><FileText size={18} /></div>
                     <div className="min-w-0 flex-1">
-                      <p className={`text-sm font-bold mb-1 ${textPrimary(theme)}`}>默认模型</p>
-                      <p className={`text-xs font-mono break-all ${textMuted(theme)}`}>{hostedModel}</p>
+                      <p className={`text-sm font-bold mb-1 ${textPrimary(theme)}`}>规范正文（contextPrompt）</p>
+                      <p className={`text-xs whitespace-pre-wrap break-words ${textMuted(theme)}`}>{contextPrompt}</p>
                     </div>
                   </div>
                 ) : null}
                 <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
-                  托管技能由平台在网关内执行，请使用统一网关 <span className="font-mono">POST /invoke</span>（resourceType=skill）。远程 HTTP 工具请注册为 MCP。
+                  Context 技能仅通过 catalog 与 <span className="font-mono">POST /catalog/resolve</span> 消费；不可 <span className="font-mono">POST /invoke</span>（resourceType=skill）。远程工具请注册 MCP。
                 </p>
               </div>
             </motion.div>

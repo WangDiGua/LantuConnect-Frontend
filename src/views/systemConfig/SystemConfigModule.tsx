@@ -12,7 +12,6 @@ import {
 import { TagManagementPage } from './TagManagementPage';
 import { SensitiveWordPage } from './SensitiveWordPage';
 import { AnnouncementPage } from './AnnouncementPage';
-
 export interface SystemConfigModuleProps {
   activeSubItem: string;
   theme: Theme;

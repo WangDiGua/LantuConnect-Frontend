@@ -33,12 +33,25 @@ export interface UserApiKey {
   lastUsed?: string;
   callCount: number;
   createdAt: string;
+  /** 非空时网关按集成套餐白名单裁剪可访问资源 */
+  integrationPackageId?: string | null;
+}
+
+/** GET /user-settings/integration-packages 下拉用 */
+export interface UserIntegrationPackageOption {
+  id: string;
+  name: string;
+  description?: string;
+  /** active | disabled */
+  status?: string;
+  itemCount: number;
 }
 
 export interface CreateUserApiKeyPayload {
   name: string;
   scopes?: string[];
   expiresAt?: string;
+  integrationPackageId?: string | null;
 }
 
 /** 历史兼容：资源级 Grant 已下线，列表接口恒为空。 */

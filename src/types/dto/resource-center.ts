@@ -24,6 +24,8 @@ export interface ResourceCenterListQuery {
   status?: ResourceStatus;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+  /** 与后端一致：按指定资源的创建者过滤「我的」列表，用于绑定 MCP 等 */
+  forResourceId?: number;
 }
 
 export interface ResourceBaseUpsertRequest {
@@ -48,8 +50,6 @@ export interface ResourceMcpUpsertRequest extends ResourceBaseUpsertRequest {
   authConfig?: Record<string, unknown>;
   /** 市场详情「服务详情」Tab，Markdown，选填 */
   serviceDetailMd?: string;
-  /** 前置 Hosted Skill id，顺序与 invoke 链一致；空数组清空 */
-  relatedPreSkillResourceIds?: number[];
 }
 
 /** POST /resource-center/resources/mcp/connectivity-probe */
@@ -72,18 +72,19 @@ export interface ResourceSkillUpsertRequest extends ResourceBaseUpsertRequest {
   resourceType: 'skill';
   /** 市场详情「技能介绍」Tab，Markdown，选填 */
   serviceDetailMd?: string;
-  /** 平台仅支持 hosted */
-  executionMode?: 'hosted';
-  hostedSystemPrompt?: string;
-  hostedUserTemplate?: string;
-  hostedDefaultModel?: string;
-  hostedOutputSchema?: Record<string, unknown>;
-  hostedTemperature?: number;
-  /** 固定 hosted_v1 */
+  /** 平台仅支持 context */
+  executionMode?: 'context';
+  /** 规范/提示词正文 */
+  contextPrompt?: string;
+  /** 固定 context_v1 */
   skillType?: string;
   spec?: Record<string, unknown>;
   parametersSchema?: Record<string, unknown>;
   isPublic?: boolean;
+  manifest?: Record<string, unknown>;
+  entryDoc?: string;
+  /** 可选：skill_depends_mcp */
+  relatedMcpResourceIds?: number[];
 }
 
 export interface ResourceAgentUpsertRequest extends ResourceBaseUpsertRequest {
@@ -99,7 +100,6 @@ export interface ResourceAgentUpsertRequest extends ResourceBaseUpsertRequest {
   hidden?: boolean;
   maxSteps?: number;
   temperature?: number;
-  relatedResourceIds?: number[];
   /** agent_depends_mcp */
   relatedMcpResourceIds?: number[];
 }
@@ -166,16 +166,12 @@ export interface ResourceCenterItemVO {
   isPublic?: boolean;
   /** 历史：t_resource.access_policy 回显 */
   accessPolicy?: string;
-  /** agent/app 关联资源 id（与后端 ResourceManageVO 一致） */
+  /** app 等关联资源 id */
   relatedResourceIds?: number[];
   relatedMcpResourceIds?: number[];
-  relatedPreSkillResourceIds?: number[];
   executionMode?: string;
-  hostedSystemPrompt?: string;
-  hostedUserTemplate?: string;
-  hostedDefaultModel?: string;
-  hostedOutputSchema?: Record<string, unknown>;
-  hostedTemperature?: number | null;
+  /** skill：规范正文 */
+  contextPrompt?: string;
   dataType?: string;
   format?: string;
   recordCount?: number;

@@ -148,44 +148,22 @@ function toResourceItem(raw: unknown): ResourceCenterItemVO {
         .map((n: unknown) => Number(n))
         .filter((n: number) => Number.isFinite(n) && n > 0);
     })(),
-    relatedPreSkillResourceIds: (() => {
-      const refIds = r?.relatedPreSkillResourceIds ?? r?.related_pre_skill_resource_ids;
-      if (!Array.isArray(refIds)) return undefined;
-      return refIds
-        .map((n: unknown) => Number(n))
-        .filter((n: number) => Number.isFinite(n) && n > 0);
-    })(),
     executionMode:
       r?.executionMode != null && String(r.executionMode).trim() !== ''
         ? String(r.executionMode).trim().toLowerCase()
         : r?.execution_mode != null && String(r.execution_mode).trim() !== ''
           ? String(r.execution_mode).trim().toLowerCase()
           : undefined,
-    hostedSystemPrompt:
-      r?.hostedSystemPrompt != null && String(r.hostedSystemPrompt).trim() !== ''
-        ? String(r.hostedSystemPrompt)
-        : r?.hosted_system_prompt != null && String(r.hosted_system_prompt).trim() !== ''
-          ? String(r.hosted_system_prompt)
-          : undefined,
-    hostedUserTemplate:
-      r?.hostedUserTemplate != null && String(r.hostedUserTemplate).trim() !== ''
-        ? String(r.hostedUserTemplate)
-        : r?.hosted_user_template != null && String(r.hosted_user_template).trim() !== ''
-          ? String(r.hosted_user_template)
-          : undefined,
-    hostedDefaultModel:
-      r?.hostedDefaultModel != null && String(r.hostedDefaultModel).trim() !== ''
-        ? String(r.hostedDefaultModel)
-        : r?.hosted_default_model != null && String(r.hosted_default_model).trim() !== ''
-          ? String(r.hosted_default_model)
-          : undefined,
-    hostedOutputSchema: asRecordObject(r?.hostedOutputSchema ?? r?.hosted_output_schema),
-    hostedTemperature:
-      r?.hostedTemperature != null && Number.isFinite(Number(r.hostedTemperature))
-        ? Number(r.hostedTemperature)
-        : r?.hosted_temperature != null && Number.isFinite(Number(r.hosted_temperature))
-          ? Number(r.hosted_temperature)
-          : undefined,
+    contextPrompt:
+      r?.contextPrompt != null && String(r.contextPrompt).trim() !== ''
+        ? String(r.contextPrompt)
+        : r?.context_prompt != null && String(r.context_prompt).trim() !== ''
+          ? String(r.context_prompt)
+          : r?.hostedSystemPrompt != null && String(r.hostedSystemPrompt).trim() !== ''
+            ? String(r.hostedSystemPrompt)
+            : r?.hosted_system_prompt != null && String(r.hosted_system_prompt).trim() !== ''
+              ? String(r.hosted_system_prompt)
+              : undefined,
     dataType: r?.dataType ? String(r.dataType) : undefined,
     format: r?.format ? String(r.format) : undefined,
     recordCount: Number(r?.recordCount ?? 0) || 0,
@@ -317,10 +295,15 @@ export const resourceCenterService = {
 
   listMineAllPages: fetchMineAllPages,
 
-  /** 已发布 ∪ 测试中（去重），用于绑定类字段仅选本人资源 */
-  listMinePublishedOrTesting: async (resourceType: ResourceType): Promise<ResourceCenterItemVO[]> => {
-    const pub = await fetchMineAllPages({ resourceType, status: 'published', pageSize: 200 });
-    const tst = await fetchMineAllPages({ resourceType, status: 'testing', pageSize: 200 });
+  /** 已发布 ∪ 测试中（去重），用于绑定类字段仅选与当前登记资源同一创建者的资源 */
+  listMinePublishedOrTesting: async (
+    resourceType: ResourceType,
+    forResourceId?: number,
+  ): Promise<ResourceCenterItemVO[]> => {
+    const scope =
+      forResourceId != null && forResourceId > 0 ? { forResourceId } : {};
+    const pub = await fetchMineAllPages({ resourceType, status: 'published', pageSize: 200, ...scope });
+    const tst = await fetchMineAllPages({ resourceType, status: 'testing', pageSize: 200, ...scope });
     const m = new Map<number, ResourceCenterItemVO>();
     for (const x of pub) m.set(x.id, x);
     for (const x of tst) m.set(x.id, x);

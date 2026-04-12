@@ -8,9 +8,11 @@ import type {
   InvokeEligibilityResponse,
   UserApiKey,
   UserApiKeyResourceGrant,
+  UserIntegrationPackageOption,
   UserStats,
   UserWorkspace,
 } from '../../types/dto/user-settings';
+import type { IntegrationPackageUpsertPayload, IntegrationPackageVO } from '../../types/dto/integration-package';
 
 function numPg(v: unknown, fallback = 0): number {
   const n = Number(v);
@@ -32,6 +34,11 @@ function mapUserApiKeyRecord(raw: unknown): UserApiKey {
     : typeof scopesRaw === 'string' && scopesRaw.trim()
       ? scopesRaw.split(/[\s,]+/).filter(Boolean)
       : [];
+  const pkgRaw = o.integrationPackageId;
+  const integrationPackageId =
+    pkgRaw === null || pkgRaw === undefined || pkgRaw === ''
+      ? undefined
+      : String(pkgRaw).trim() || undefined;
   return {
     id: String(o.id ?? o.apiKeyId ?? o.keyId ?? '').trim(),
     name: String(o.name ?? o.keyName ?? '未命名'),
@@ -44,6 +51,7 @@ function mapUserApiKeyRecord(raw: unknown): UserApiKey {
     lastUsed: o.lastUsed ? String(o.lastUsed) : undefined,
     callCount: numPg(o.callCount ?? o.invokeCount),
     createdAt: String(o.createdAt ?? o.createTime ?? ''),
+    integrationPackageId,
   };
 }
 
@@ -65,9 +73,15 @@ export const userSettingsService = {
   createApiKey: async (data: CreateUserApiKeyPayload) => {
     const scopes =
       Array.isArray(data.scopes) && data.scopes.length > 0 ? data.scopes : [...DEFAULT_USER_API_KEY_SCOPES];
+    const pkg = data.integrationPackageId?.trim();
     const raw = await http.post<UserApiKey & { plainKey?: string; secretPlain?: string }>(
       '/user-settings/api-keys',
-      { ...data, scopes },
+      {
+        name: data.name,
+        scopes,
+        ...(data.expiresAt ? { expiresAt: data.expiresAt } : {}),
+        ...(pkg ? { integrationPackageId: pkg } : {}),
+      },
     );
     const plain = (raw as { secretPlain?: string; plainKey?: string }).secretPlain ?? raw.plainKey ?? '';
     const base = mapUserApiKeyRecord(raw);
@@ -103,4 +117,33 @@ export const userSettingsService = {
   },
 
   getStats: () => http.get<UserStats>('/user-settings/stats'),
+
+  listIntegrationPackages: async (): Promise<UserIntegrationPackageOption[]> => {
+    const raw = await http.get<unknown>('/user-settings/integration-packages');
+    return extractArray<unknown>(raw).map((x) => {
+      const o = x && typeof x === 'object' ? (x as Record<string, unknown>) : {};
+      return {
+        id: String(o.id ?? '').trim(),
+        name: String(o.name ?? o.id ?? ''),
+        description: o.description != null ? String(o.description) : undefined,
+        status: o.status != null ? String(o.status) : undefined,
+        itemCount: numPg(o.itemCount),
+      };
+    });
+  },
+
+  getIntegrationPackage: (id: string) =>
+    http.get<IntegrationPackageVO>(`/user-settings/integration-packages/${encodeURIComponent(id)}`),
+
+  createIntegrationPackage: (body: IntegrationPackageUpsertPayload) =>
+    http.post<IntegrationPackageVO>('/user-settings/integration-packages', body),
+
+  updateIntegrationPackage: (id: string, body: IntegrationPackageUpsertPayload) =>
+    http.put<IntegrationPackageVO>(`/user-settings/integration-packages/${encodeURIComponent(id)}`, body),
+
+  deleteIntegrationPackage: (id: string) =>
+    http.delete<void>(`/user-settings/integration-packages/${encodeURIComponent(id)}`),
+
+  patchApiKeyIntegrationPackage: (id: string, body: { integrationPackageId?: string | null }) =>
+    http.patch<void>(`/user-settings/api-keys/${encodeURIComponent(id)}/integration-package`, body),
 };

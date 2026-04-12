@@ -58,7 +58,7 @@ const DEFAULT_SKILL_PARAMS_SCHEMA_JSON = '{\n  "type": "object",\n  "properties"
 
 const TYPE_GUIDE_ONE_LINE: Record<ResourceType, string> = {
   agent: '填写基础信息与运行地址后即可保存。',
-  skill: '填写系统提示词与参数 Schema；由平台托管执行（hosted）。远程可调用工具请注册 MCP。',
+  skill: '填写规范 Markdown（context）与可选参数 Schema；可绑定已发布的 MCP。技能仅通过目录/resolve 消费，不可 invoke。',
   mcp: '填写接入地址与鉴权即可。',
   app: '填写可访问 URL 与打开方式。',
   dataset: '填写类型与格式等元数据。',
@@ -187,14 +187,11 @@ type ResourceRegisterFieldKey =
   | 'maxConcurrency'
   | 'relatedResourceIds'
   | 'relatedMcpResourceIds'
-  | 'relatedPreSkillResourceIds'
   | 'agentMaxSteps'
   | 'agentTemperature'
   | 'skillType'
   | 'paramsSchemaJson'
-  | 'hostedSystemPrompt'
-  | 'hostedOutputSchemaJson'
-  | 'hostedTemperature'
+  | 'contextPrompt'
   | 'appUrl'
   | 'embedType'
   | 'appIcon'
@@ -218,14 +215,11 @@ const RR_FIELD_FOCUS_ORDER: ResourceRegisterFieldKey[] = [
   'maxConcurrency',
   'relatedResourceIds',
   'relatedMcpResourceIds',
-  'relatedPreSkillResourceIds',
   'agentMaxSteps',
   'agentTemperature',
   'skillType',
   'paramsSchemaJson',
-  'hostedSystemPrompt',
-  'hostedOutputSchemaJson',
-  'hostedTemperature',
+  'contextPrompt',
   'appUrl',
   'embedType',
   'appIcon',
@@ -250,12 +244,7 @@ function computeResourceRegisterFieldErrors(
     maxConcurrency: number;
     relatedResourceIds: string;
     relatedMcpResourceIds: string;
-    relatedPreSkillResourceIds: string;
-    hostedSystemPrompt: string;
-    hostedUserTemplate: string;
-    hostedDefaultModel: string;
-    hostedOutputSchemaJson: string;
-    hostedTemperature: string;
+    contextPrompt: string;
     agentMaxSteps: string;
     agentTemperature: string;
     skillType: string;
@@ -330,10 +319,6 @@ function computeResourceRegisterFieldErrors(
         if (!password && !passwordRef) e.authConfigJson = e.authConfigJson ?? 'Basic 须填写 password 或 passwordSecretRef';
       }
     }
-    const preSkillRel = parseRelatedIds(form.relatedPreSkillResourceIds);
-    if (preSkillRel.invalidTokens.length > 0) {
-      e.relatedPreSkillResourceIds = `前置 Skill ID 仅支持正整数（逗号分隔），非法值：${preSkillRel.invalidTokens.join(', ')}`;
-    }
   }
 
   if (resourceType === 'agent') {
@@ -350,10 +335,6 @@ function computeResourceRegisterFieldErrors(
       } else if (!isValidUrl(specUrl)) {
         e.specJson = e.specJson ?? '智能体规格配置中的 url 须为有效的 http/https URL';
       }
-    }
-    const related = parseRelatedIds(form.relatedResourceIds);
-    if (related.invalidTokens.length > 0) {
-      e.relatedResourceIds = `关联 Skill 等资源 ID 仅支持正整数（逗号分隔），非法值：${related.invalidTokens.join(', ')}`;
     }
     const mcpRel = parseRelatedIds(form.relatedMcpResourceIds);
     if (mcpRel.invalidTokens.length > 0) {
@@ -377,22 +358,16 @@ function computeResourceRegisterFieldErrors(
   }
 
   if (resourceType === 'skill') {
-    if (!form.hostedSystemPrompt.trim()) {
-      e.hostedSystemPrompt = '托管技能须填写系统提示词';
+    if (!form.contextPrompt.trim()) {
+      e.contextPrompt = '请填写规范 Markdown（context）';
     }
     const st = form.skillType.trim().toLowerCase();
-    if (st && st !== 'hosted_v1') {
-      e.skillType = '技能类型须为 hosted_v1';
+    if (st && st !== 'context_v1') {
+      e.skillType = '技能类型须为 context_v1';
     }
-    const outParsed = parseJsonObject(form.hostedOutputSchemaJson, '输出 Schema JSON');
-    if (form.hostedOutputSchemaJson.trim() && !outParsed.ok) {
-      e.hostedOutputSchemaJson = outParsed.message;
-    }
-    if (form.hostedTemperature.trim()) {
-      const ht = Number(form.hostedTemperature.trim());
-      if (!Number.isFinite(ht) || ht < 0 || ht > 2) {
-        e.hostedTemperature = '温度须在 0～2 之间或留空';
-      }
+    const skillMcpRel = parseRelatedIds(form.relatedMcpResourceIds);
+    if (skillMcpRel.invalidTokens.length > 0) {
+      e.relatedMcpResourceIds = `绑定的 MCP ID 仅支持正整数（逗号分隔），非法值：${skillMcpRel.invalidTokens.join(', ')}`;
     }
     const specParsed = parseJsonObject(form.specJson, '附加元数据 JSON（可为空对象）');
     if (!specParsed.ok) {
@@ -518,13 +493,6 @@ function parseOrderedRelatedIds(value: string): number[] {
     out.push(n);
   }
   return out;
-}
-
-function isHostedSkillResource(item: ResourceCenterItemVO): boolean {
-  const em = (item.executionMode ?? '').toLowerCase();
-  if (em === 'hosted') return true;
-  const st = (item.skillType ?? '').toLowerCase();
-  return st === 'hosted_v1' || st === 'hosted';
 }
 
 function formatBindingOptionLabel(item: ResourceCenterItemVO): string {
@@ -705,36 +673,27 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     embedType: 'iframe',
     appIcon: '',
     appScreenshotsText: '',
-    appIsPublic: false,
     dataType: 'structured',
     format: 'json',
     recordCount: 0,
     fileSize: 0,
     tags: '',
-    datasetIsPublic: false,
-    skillType: 'hosted_v1',
+    skillType: 'context_v1',
     mode: resourceType === 'agent' ? 'SUBAGENT' : 'TOOL',
     agentType: 'http_api',
     maxConcurrency: 10,
     systemPrompt: '',
-    agentIsPublic: false,
     agentHidden: false,
     agentMaxSteps: '',
     agentTemperature: '',
     specJson: resourceType === 'agent' ? DEFAULT_AGENT_SPEC_JSON : resourceType === 'skill' ? DEFAULT_SKILL_SPEC_JSON : '{}',
     paramsSchemaJson: DEFAULT_SKILL_PARAMS_SCHEMA_JSON,
     relatedResourceIds: '',
-    skillIsPublic: false,
     serviceDetailMd: '',
     relatedMcpResourceIds: '',
-    relatedPreSkillResourceIds: '',
-    hostedSystemPrompt: '',
-    hostedUserTemplate: '',
-    hostedDefaultModel: '',
-    hostedOutputSchemaJson: '',
-    hostedTemperature: '',
+    contextPrompt: '',
   });
-  const bindingSnapshotRef = useRef({ relatedMcpResourceIds: '', relatedPreSkillResourceIds: '' });
+  const bindingSnapshotRef = useRef({ relatedMcpResourceIds: '' });
   const [mcpImportPaste, setMcpImportPaste] = useState('');
   const [mcpProbeLoading, setMcpProbeLoading] = useState(false);
   /** 已发布资源双轨编辑：用于提示线上版本 vs 草稿 */
@@ -747,7 +706,6 @@ export const ResourceRegisterPage: React.FC<Props> = ({
   } | null>(null);
   const [relationPicklistLoading, setRelationPicklistLoading] = useState(false);
   const [relationPicklistError, setRelationPicklistError] = useState(false);
-  const [preSkillPickPool, setPreSkillPickPool] = useState<ResourceCenterItemVO[]>([]);
   const [mcpBindPickPool, setMcpBindPickPool] = useState<ResourceCenterItemVO[]>([]);
 
   useEffect(() => {
@@ -768,8 +726,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
   }, [resourceType]);
 
   useEffect(() => {
-    if (resourceType !== 'mcp' && resourceType !== 'agent') {
-      setPreSkillPickPool([]);
+    if (resourceType !== 'agent' && resourceType !== 'skill') {
       setMcpBindPickPool([]);
       setRelationPicklistError(false);
       setRelationPicklistLoading(false);
@@ -779,19 +736,11 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     setRelationPicklistLoading(true);
     setRelationPicklistError(false);
     resourceCenterService
-      .listMinePublishedOrTesting(resourceType === 'mcp' ? 'skill' : 'mcp')
+      .listMinePublishedOrTesting('mcp', resourceId ?? undefined)
       .then((items) => {
         if (cancelled) return;
-        if (resourceType === 'mcp') {
-          const hosted = items.filter(isHostedSkillResource);
-          hosted.sort((a, b) => a.displayName.localeCompare(b.displayName, 'zh-CN'));
-          setPreSkillPickPool(hosted);
-          setMcpBindPickPool([]);
-        } else {
-          const sorted = [...items].sort((a, b) => a.displayName.localeCompare(b.displayName, 'zh-CN'));
-          setMcpBindPickPool(sorted);
-          setPreSkillPickPool([]);
-        }
+        const sorted = [...items].sort((a, b) => a.displayName.localeCompare(b.displayName, 'zh-CN'));
+        setMcpBindPickPool(sorted);
       })
       .catch(() => {
         if (!cancelled) setRelationPicklistError(true);
@@ -802,12 +751,12 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     return () => {
       cancelled = true;
     };
-  }, [resourceType]);
+  }, [resourceType, resourceId]);
 
   useEffect(() => {
     if (!resourceId) {
       setLoadedResourceMeta(null);
-      bindingSnapshotRef.current = { relatedMcpResourceIds: '', relatedPreSkillResourceIds: '' };
+      bindingSnapshotRef.current = { relatedMcpResourceIds: '' };
     }
   }, [resourceId]);
 
@@ -821,24 +770,15 @@ export const ResourceRegisterPage: React.FC<Props> = ({
         if (item.sourceType && item.sourceType !== 'internal') setAdvancedOpen(true);
         if (
           resourceType === 'agent' &&
-          (item.isPublic === true ||
-            item.hidden === true ||
-            item.maxSteps != null ||
-            item.temperature != null)
+          (item.hidden === true || item.maxSteps != null || item.temperature != null)
         ) {
           setAgentAdvancedOpen(true);
         }
         bindingSnapshotRef.current = {
           relatedMcpResourceIds:
-            resourceType === 'agent'
+            resourceType === 'agent' || resourceType === 'skill'
               ? Array.isArray(item.relatedMcpResourceIds)
                 ? item.relatedMcpResourceIds.join(', ')
-                : ''
-              : '',
-          relatedPreSkillResourceIds:
-            resourceType === 'mcp'
-              ? Array.isArray(item.relatedPreSkillResourceIds)
-                ? item.relatedPreSkillResourceIds.join(', ')
                 : ''
               : '',
         };
@@ -892,7 +832,6 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                 appIcon: item.icon || '',
                 appScreenshotsText:
                   Array.isArray(item.screenshots) && item.screenshots.length > 0 ? item.screenshots.join('\n') : '',
-                appIsPublic: item.isPublic === true,
               }
             : {}),
           ...(resourceType === 'dataset'
@@ -904,7 +843,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                 tags: Array.isArray(item.tags) ? item.tags.join(',') : '',
               }
             : {}),
-          ...(resourceType === 'agent' || resourceType === 'app'
+          ...(resourceType === 'app'
             ? {
                 relatedResourceIds: Array.isArray(item.relatedResourceIds) ? item.relatedResourceIds.join(', ') : '',
               }
@@ -919,7 +858,6 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     : prev.specJson,
                 systemPrompt: item.systemPrompt ?? '',
                 maxConcurrency: item.maxConcurrency ?? prev.maxConcurrency,
-                agentIsPublic: item.isPublic === true,
                 agentHidden: item.hidden === true,
                 agentMaxSteps: item.maxSteps != null ? String(item.maxSteps) : '',
                 agentTemperature: item.temperature != null ? String(item.temperature) : '',
@@ -928,28 +866,13 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                   : '',
               }
             : {}),
-          ...(resourceType === 'mcp'
-            ? {
-                relatedPreSkillResourceIds: Array.isArray(item.relatedPreSkillResourceIds)
-                  ? item.relatedPreSkillResourceIds.join(', ')
-                  : '',
-              }
-            : {}),
           ...(resourceType === 'skill'
             ? {
-                skillType: item.skillType || 'hosted_v1',
-                skillIsPublic: item.isPublic === true,
-                hostedSystemPrompt: item.hostedSystemPrompt ?? '',
-                hostedUserTemplate: item.hostedUserTemplate ?? '',
-                hostedDefaultModel: item.hostedDefaultModel ?? '',
-                hostedOutputSchemaJson:
-                  item.hostedOutputSchema != null && typeof item.hostedOutputSchema === 'object'
-                    ? JSON.stringify(item.hostedOutputSchema, null, 2)
-                    : '',
-                hostedTemperature:
-                  item.hostedTemperature != null && Number.isFinite(Number(item.hostedTemperature))
-                    ? String(item.hostedTemperature)
-                    : '',
+                skillType: item.skillType || 'context_v1',
+                contextPrompt: item.contextPrompt ?? '',
+                relatedMcpResourceIds: Array.isArray(item.relatedMcpResourceIds)
+                  ? item.relatedMcpResourceIds.join(', ')
+                  : '',
                 specJson:
                   item.spec && typeof item.spec === 'object'
                     ? JSON.stringify(item.spec, null, 2)
@@ -960,7 +883,6 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     : prev.paramsSchemaJson,
               }
             : {}),
-          ...(resourceType === 'dataset' ? { datasetIsPublic: item.isPublic === true } : {}),
         }));
         setLoadedResourceMeta({
           status: item.status,
@@ -984,7 +906,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
   const registerGuideLine = useMemo(
     () =>
       resourceType === 'skill'
-        ? '托管技能：填写系统提示词与参数 Schema；由平台内 LLM 执行。远程可调用工具请单独注册 MCP。'
+        ? 'Context 技能：填写规范 Markdown 与参数 Schema；可选绑定已发布 MCP。对外仅通过目录/resolve 获取正文，不可 invoke。'
         : TYPE_GUIDE_ONE_LINE[resourceType],
     [resourceType],
   );
@@ -1015,12 +937,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       form.skillType,
       form.specJson,
       form.relatedMcpResourceIds,
-      form.relatedPreSkillResourceIds,
-      form.hostedSystemPrompt,
-      form.hostedUserTemplate,
-      form.hostedDefaultModel,
-      form.hostedOutputSchemaJson,
-      form.hostedTemperature,
+      form.contextPrompt,
       resourceType,
     ],
   );
@@ -1115,11 +1032,6 @@ export const ResourceRegisterPage: React.FC<Props> = ({
         authConfig = parsed.data || {};
       }
       authConfig = { ...authConfig, transport: modeToTransport(form.mcpRegisterMode) };
-      const preSkillIds = mergeRelationIdsForUpsert(
-        Boolean(resourceId),
-        form.relatedPreSkillResourceIds,
-        bindingSnapshotRef.current.relatedPreSkillResourceIds,
-      );
       return {
         ...baseFields,
         resourceType: 'mcp',
@@ -1128,7 +1040,6 @@ export const ResourceRegisterPage: React.FC<Props> = ({
         authType: form.authType || 'none',
         authConfig,
         serviceDetailMd: form.serviceDetailMd.trim(),
-        ...(preSkillIds !== undefined ? { relatedPreSkillResourceIds: preSkillIds } : {}),
       };
     }
     if (resourceType === 'skill') {
@@ -1137,34 +1048,28 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       if (!parsedSpec.ok || !parsedSchema.ok) {
         throw new Error(!parsedSpec.ok ? parsedSpec.message : parsedSchema.message);
       }
-      const outParsed = parseJsonObject(form.hostedOutputSchemaJson, '输出 Schema JSON');
-      if (form.hostedOutputSchemaJson.trim() && !outParsed.ok) {
-        throw new Error(outParsed.message);
-      }
-      const tempTrim = form.hostedTemperature.trim();
-      const tempParsed = tempTrim ? Number(tempTrim) : NaN;
       const specObj = parsedSpec.data || {};
-      const outObj = outParsed.data || {};
+      const skillMcpBind = mergeRelationIdsForUpsert(
+        Boolean(resourceId),
+        form.relatedMcpResourceIds,
+        bindingSnapshotRef.current.relatedMcpResourceIds,
+      );
       return {
         ...baseFields,
         resourceType: 'skill',
-        executionMode: 'hosted',
+        executionMode: 'context',
         serviceDetailMd: form.serviceDetailMd.trim(),
-        skillType: form.skillType.trim().toLowerCase() === 'hosted_v1' ? form.skillType.trim() : 'hosted_v1',
-        hostedSystemPrompt: form.hostedSystemPrompt.trim(),
-        hostedUserTemplate: form.hostedUserTemplate.trim() || undefined,
-        hostedDefaultModel: form.hostedDefaultModel.trim() || undefined,
-        ...(Object.keys(outObj).length > 0 ? { hostedOutputSchema: outObj } : {}),
-        ...(Number.isFinite(tempParsed) ? { hostedTemperature: tempParsed } : {}),
+        skillType: form.skillType.trim().toLowerCase() === 'context_v1' ? form.skillType.trim() : 'context_v1',
+        contextPrompt: form.contextPrompt.trim(),
         spec: Object.keys(specObj).length > 0 ? specObj : {},
         parametersSchema: parsedSchema.data || {},
-        isPublic: form.skillIsPublic,
+        isPublic: true,
+        ...(skillMcpBind !== undefined ? { relatedMcpResourceIds: skillMcpBind } : {}),
       };
     }
     if (resourceType === 'agent') {
       const parsedSpec = parseJsonObject(form.specJson, '规格配置（spec JSON）');
       if (!parsedSpec.ok) throw new Error(parsedSpec.message);
-      const agentRelated = parseRelatedIds(form.relatedResourceIds).ids;
       const msTrim = form.agentMaxSteps.trim();
       const maxStepsParsed = msTrim ? Number(msTrim) : NaN;
       const tempTrim = form.agentTemperature.trim();
@@ -1183,11 +1088,10 @@ export const ResourceRegisterPage: React.FC<Props> = ({
         spec: parsedSpec.data || {},
         maxConcurrency: Number(form.maxConcurrency) || 10,
         systemPrompt: form.systemPrompt.trim() ? form.systemPrompt.trim() : undefined,
-        isPublic: form.agentIsPublic,
+        isPublic: true,
         hidden: form.agentHidden,
         ...(Number.isFinite(maxStepsParsed) && maxStepsParsed > 0 ? { maxSteps: maxStepsParsed } : {}),
         ...(Number.isFinite(tempParsed) ? { temperature: tempParsed } : {}),
-        relatedResourceIds: agentRelated.length > 0 ? agentRelated : undefined,
         ...(mcpBind !== undefined ? { relatedMcpResourceIds: mcpBind } : {}),
       };
     }
@@ -1205,7 +1109,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
         embedType: form.embedType.trim().toLowerCase(),
         icon: form.appIcon.trim() || undefined,
         screenshots: shotLines.length > 0 ? shotLines : undefined,
-        isPublic: form.appIsPublic,
+        isPublic: true,
         relatedResourceIds: appRelated.length > 0 ? appRelated : undefined,
       };
     }
@@ -1218,7 +1122,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       recordCount: Number(form.recordCount) || 0,
       fileSize: Number(form.fileSize) || 0,
       tags: form.tags.split(',').map((s) => s.trim()).filter(Boolean),
-      isPublic: form.datasetIsPublic,
+      isPublic: true,
     };
   };
 
@@ -1293,7 +1197,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
           <button
             type="button"
             className={`inline-flex items-center gap-1 text-sm font-medium ${isDark ? 'text-sky-400 hover:text-sky-300' : 'text-sky-600 hover:text-sky-700'}`}
-            onClick={() => navigate(buildPath('user', 'api-docs'))}
+            onClick={() => navigate(buildPath('user', 'developer-docs'))}
             aria-label="打开接入指南"
           >
             <BookOpen size={14} aria-hidden />
@@ -1638,35 +1542,6 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     placeholder={DEFAULT_MCP_AUTH_CONFIG_JSON}
                   />
                 </Field>
-                <Field
-                  label="前置托管技能（选填）"
-                  full
-                  theme={theme}
-                  error={fieldErrors.relatedPreSkillResourceIds}
-                  fieldId={rrFieldId('relatedPreSkillResourceIds')}
-                >
-                  <p className={`mb-1 text-xs ${textMuted(theme)}`}>
-                    在 invoke(MCP) 之前按顺序执行：仅列出您名下「已发布 / 测试中」的托管技能（hosted），从下方勾选；留空表示不设前置链。更新草稿时若集合与加载时一致（顺序无关）则不提交修改（与后端「null=不变更」一致）。仅 invoke 本 MCP 不会反向拉起 Agent。若调用方改为仅 invoke 某前置技能，网关会对引用该技能的 MCP 做逆查并把同源工具清单写入{' '}
-                    <span className="font-mono">payload._lantu.bindingExpansion</span>。
-                  </p>
-                  <OrderedRelatedResourcePicker
-                    theme={theme}
-                    isDark={isDark}
-                    fieldId={rrFieldId('relatedPreSkillResourceIds')}
-                    value={form.relatedPreSkillResourceIds}
-                    onChangeValue={(next) => setForm((p) => ({ ...p, relatedPreSkillResourceIds: next }))}
-                    poolItems={preSkillPickPool}
-                    loading={relationPicklistLoading}
-                    loadError={relationPicklistError}
-                    errorStyle={!!fieldErrors.relatedPreSkillResourceIds}
-                    aria-describedby={
-                      fieldErrors.relatedPreSkillResourceIds
-                        ? `${rrFieldId('relatedPreSkillResourceIds')}-err`
-                        : undefined
-                    }
-                    orphanHint="不在当前可选列表；可移除或保留"
-                  />
-                </Field>
                 <div className="md:col-span-2 flex flex-wrap items-center gap-2">
                   <button
                     type="button"
@@ -1750,18 +1625,6 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     placeholder="角色与回答约束（选填）"
                   />
                 </Field>
-                <Field label="关联资源 ID（选填）" theme={theme} error={fieldErrors.relatedResourceIds} fieldId={rrFieldId('relatedResourceIds')}>
-                  <input
-                    id={rrFieldId('relatedResourceIds')}
-                    value={form.relatedResourceIds}
-                    onChange={(e) => setForm((p) => ({ ...p, relatedResourceIds: e.target.value }))}
-                    className={inputClass(isDark, !!fieldErrors.relatedResourceIds)}
-                    aria-invalid={!!fieldErrors.relatedResourceIds}
-                    aria-describedby={fieldErrors.relatedResourceIds ? `${rrFieldId('relatedResourceIds')}-err` : undefined}
-                    placeholder="如 12, 34"
-                    title="逗号分隔的正整数"
-                  />
-                </Field>
                 <Field
                   label="绑定的 MCP（选填）"
                   theme={theme}
@@ -1796,22 +1659,11 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     }`}
                     onClick={() => setAgentAdvancedOpen((o) => !o)}
                   >
-                    <span>高级：公开范围、目录可见性、最大步数与采样温度（与后端一致）</span>
+                    <span>高级：目录外隐藏、最大步数与采样温度（与后端一致）</span>
                     <ChevronDown size={16} className={agentAdvancedOpen ? 'rotate-180 transition-transform' : 'transition-transform'} />
                   </button>
                   {agentAdvancedOpen ? (
                     <div className="mt-2 space-y-3 md:grid md:grid-cols-2 md:gap-3 md:space-y-0">
-                      <Field label="对外公开" theme={theme}>
-                        <label className="flex cursor-pointer items-center gap-2 text-sm">
-                          <input
-                            type="checkbox"
-                            checked={form.agentIsPublic}
-                            onChange={(e) => setForm((p) => ({ ...p, agentIsPublic: e.target.checked }))}
-                            className={lantuCheckboxPrimaryClass}
-                          />
-                          <span className={textMuted(theme)}>在目录中可按公开策略展示</span>
-                        </label>
-                      </Field>
                       <Field label="目录外隐藏" theme={theme}>
                         <label className="flex cursor-pointer items-center gap-2 text-sm">
                           <input
@@ -1857,77 +1709,23 @@ export const ResourceRegisterPage: React.FC<Props> = ({
               <>
                 <div className="md:col-span-2 space-y-3 rounded-xl border p-4 text-sm border-violet-500/25 bg-violet-500/[0.04]">
                   <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
-                    技能仅支持 <span className={textPrimary(theme)}>托管（hosted）</span>：平台内 LLM 按系统提示词与参数 Schema 运行；类型固定为{' '}
-                    <code className="rounded bg-black/5 px-1 dark:bg-white/10">hosted_v1</code>。远程 HTTP 工具请注册为 MCP。
+                    技能为 <span className={textPrimary(theme)}>Context</span> 规范文档：通过目录与 resolve 拉取正文与绑定 MCP；不可通过{' '}
+                    <span className="font-mono">POST /invoke</span> 执行。类型固定为{' '}
+                    <code className="rounded bg-black/5 px-1 dark:bg-white/10">context_v1</code>。需要远程工具时请注册 MCP 并在下方可选绑定。
                   </p>
-                    <Field label="系统提示词 *" full theme={theme} error={fieldErrors.hostedSystemPrompt} fieldId={rrFieldId('hostedSystemPrompt')}>
+                    <Field label="规范 Markdown（context）*" full theme={theme} error={fieldErrors.contextPrompt} fieldId={rrFieldId('contextPrompt')}>
                       <AutoHeightTextarea
-                        id={rrFieldId('hostedSystemPrompt')}
-                        value={form.hostedSystemPrompt}
-                        onChange={(e) => setForm((p) => ({ ...p, hostedSystemPrompt: e.target.value }))}
+                        id={rrFieldId('contextPrompt')}
+                        value={form.contextPrompt}
+                        onChange={(e) => setForm((p) => ({ ...p, contextPrompt: e.target.value }))}
                         minRows={4}
                         maxRows={24}
-                        className={`${inputClass(isDark, !!fieldErrors.hostedSystemPrompt)} resize-none`}
-                        aria-invalid={!!fieldErrors.hostedSystemPrompt}
+                        className={`${inputClass(isDark, !!fieldErrors.contextPrompt)} resize-none`}
+                        aria-invalid={!!fieldErrors.contextPrompt}
                         aria-describedby={
-                          fieldErrors.hostedSystemPrompt ? `${rrFieldId('hostedSystemPrompt')}-err` : undefined
+                          fieldErrors.contextPrompt ? `${rrFieldId('contextPrompt')}-err` : undefined
                         }
-                        placeholder="角色、输出约束与工具前处理说明等"
-                      />
-                    </Field>
-                    <Field label="用户消息模板（选填）" full theme={theme}>
-                      <AutoHeightTextarea
-                        value={form.hostedUserTemplate}
-                        onChange={(e) => setForm((p) => ({ ...p, hostedUserTemplate: e.target.value }))}
-                        minRows={2}
-                        maxRows={16}
-                        className={`${inputClass(isDark)} resize-none`}
-                        placeholder="可使用 {{input}} 占位输入 JSON"
-                      />
-                    </Field>
-                    <Field label="默认模型（选填）" theme={theme}>
-                      <input
-                        value={form.hostedDefaultModel}
-                        onChange={(e) => setForm((p) => ({ ...p, hostedDefaultModel: e.target.value }))}
-                        className={inputClass(isDark)}
-                        placeholder="留空则走网关默认路由"
-                      />
-                    </Field>
-                    <Field
-                      label="输出 Schema JSON（选填）"
-                      full
-                      theme={theme}
-                      error={fieldErrors.hostedOutputSchemaJson}
-                      fieldId={rrFieldId('hostedOutputSchemaJson')}
-                    >
-                      <AutoHeightTextarea
-                        id={rrFieldId('hostedOutputSchemaJson')}
-                        value={form.hostedOutputSchemaJson}
-                        onChange={(e) => setForm((p) => ({ ...p, hostedOutputSchemaJson: e.target.value }))}
-                        minRows={3}
-                        maxRows={20}
-                        className={`${inputClass(isDark, !!fieldErrors.hostedOutputSchemaJson)} font-mono text-xs resize-none`}
-                        aria-invalid={!!fieldErrors.hostedOutputSchemaJson}
-                        aria-describedby={
-                          fieldErrors.hostedOutputSchemaJson
-                            ? `${rrFieldId('hostedOutputSchemaJson')}-err`
-                            : undefined
-                        }
-                        placeholder="JSON Schema 对象，约束模型输出"
-                      />
-                    </Field>
-                    <Field label="温度（选填）" theme={theme} error={fieldErrors.hostedTemperature} fieldId={rrFieldId('hostedTemperature')}>
-                      <input
-                        id={rrFieldId('hostedTemperature')}
-                        value={form.hostedTemperature}
-                        onChange={(e) => setForm((p) => ({ ...p, hostedTemperature: e.target.value }))}
-                        className={inputClass(isDark, !!fieldErrors.hostedTemperature)}
-                        inputMode="decimal"
-                        placeholder="0～2，留空则默认"
-                        aria-invalid={!!fieldErrors.hostedTemperature}
-                        aria-describedby={
-                          fieldErrors.hostedTemperature ? `${rrFieldId('hostedTemperature')}-err` : undefined
-                        }
+                        placeholder="角色、输出约束、调用约定等（Markdown）"
                       />
                     </Field>
                     <Field label="规格 JSON（选填）" full theme={theme} error={fieldErrors.specJson} fieldId={rrFieldId('specJson')}>
@@ -1969,16 +1767,30 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                       />
                     </Field>
                   </div>
-                <Field label="对外公开" theme={theme}>
-                  <label className="flex cursor-pointer items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={form.skillIsPublic}
-                      onChange={(e) => setForm((p) => ({ ...p, skillIsPublic: e.target.checked }))}
-                      className={lantuCheckboxPrimaryClass}
-                    />
-                    <span className={textMuted(theme)}>在目录中可按公开策略展示</span>
-                  </label>
+                <Field
+                  label="绑定的 MCP（选填）"
+                  theme={theme}
+                  error={fieldErrors.relatedMcpResourceIds}
+                  fieldId={rrFieldId('relatedMcpResourceIds')}
+                >
+                  <p className={`mb-1 text-xs ${textMuted(theme)}`}>
+                    skill_depends_mcp：仅可选择您名下「已发布 / 测试中」的 MCP。更新草稿时若集合与加载时一致（顺序无关）则不提交该字段。resolve 时会在返回的规范中列出绑定 MCP。
+                  </p>
+                  <OrderedRelatedResourcePicker
+                    theme={theme}
+                    isDark={isDark}
+                    fieldId={rrFieldId('relatedMcpResourceIds')}
+                    value={form.relatedMcpResourceIds}
+                    onChangeValue={(next) => setForm((p) => ({ ...p, relatedMcpResourceIds: next }))}
+                    poolItems={mcpBindPickPool}
+                    loading={relationPicklistLoading}
+                    loadError={relationPicklistError}
+                    errorStyle={!!fieldErrors.relatedMcpResourceIds}
+                    aria-describedby={
+                      fieldErrors.relatedMcpResourceIds ? `${rrFieldId('relatedMcpResourceIds')}-err` : undefined
+                    }
+                    orphanHint="不在当前可选列表；可移除或保留"
+                  />
                 </Field>
               </>
             )}
@@ -2027,17 +1839,6 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     maxRows={18}
                     className={`${inputClass(isDark)} font-mono text-xs resize-none`}
                   />
-                </Field>
-                <Field label="对外公开" theme={theme}>
-                  <label className="flex cursor-pointer items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={form.appIsPublic}
-                      onChange={(e) => setForm((p) => ({ ...p, appIsPublic: e.target.checked }))}
-                      className={lantuCheckboxPrimaryClass}
-                    />
-                    <span className={textMuted(theme)}>公开可见</span>
-                  </label>
                 </Field>
                 <Field label="关联资源 ID（选填）" theme={theme} error={fieldErrors.relatedResourceIds} fieldId={rrFieldId('relatedResourceIds')}>
                   <input
@@ -2108,17 +1909,6 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     className={inputClass(isDark)}
                     placeholder="如 教务, 公开数据"
                   />
-                </Field>
-                <Field label="对外公开" theme={theme}>
-                  <label className="flex cursor-pointer items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={form.datasetIsPublic}
-                      onChange={(e) => setForm((p) => ({ ...p, datasetIsPublic: e.target.checked }))}
-                      className={lantuCheckboxPrimaryClass}
-                    />
-                    <span className={textMuted(theme)}>与后端数据集扩展 is_public 一致</span>
-                  </label>
                 </Field>
               </>
             )}

@@ -146,13 +146,28 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
   const [activeCat, setActiveCat] = useState(API_CATEGORIES[0].id);
   const category = API_CATEGORIES.find((c) => c.id === activeCat)!;
 
-  const go = useCallback((page: string) => {
-    if (page === 'resource-center') {
-      navigate(unifiedResourceCenterPath(platformRole));
-      return;
-    }
-    navigate(buildPath(consoleRole, page));
-  }, [navigate, consoleRole, platformRole]);
+  const go = useCallback(
+    (page: string) => {
+      if (page === 'resource-center') {
+        navigate(unifiedResourceCenterPath(platformRole));
+        return;
+      }
+      if (page === 'mcp-integration') {
+        navigate(`${buildPath(consoleRole, 'developer-tools')}?tab=gateway`);
+        return;
+      }
+      if (page === 'api-playground') {
+        navigate(buildPath(consoleRole, 'developer-tools'));
+        return;
+      }
+      if (page === 'sdk-download') {
+        navigate(`${buildPath(consoleRole, 'developer-docs')}?tab=sdk`);
+        return;
+      }
+      navigate(buildPath(consoleRole, page));
+    },
+    [navigate, consoleRole, platformRole],
+  );
 
   const scrollToId = useCallback((id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });

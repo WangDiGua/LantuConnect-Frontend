@@ -470,7 +470,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                 </p>
                 <button
                   type="button"
-                  onClick={() => navigate(buildPath('user', 'api-docs'))}
+                  onClick={() => navigate(buildPath('user', 'developer-docs'))}
                   className={`mt-2 inline-flex min-h-9 items-center gap-1 rounded-lg px-2 py-1.5 font-semibold underline-offset-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/45 ${
                     isDark ? 'text-amber-200 hover:text-white' : 'text-amber-900 hover:text-amber-950'
                   }`}
@@ -520,7 +520,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
           <div className="flex shrink-0 flex-wrap items-center gap-2 lg:justify-end">
             <button
               type="button"
-              onClick={() => navigate(buildPath('user', 'api-docs'))}
+              onClick={() => navigate(buildPath('user', 'developer-docs'))}
               className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 ${
                 isDark ? 'border-white/[0.12] bg-white/[0.04] text-slate-200 hover:bg-white/[0.08]' : 'border-slate-200/80 bg-white text-slate-800 shadow-sm hover:bg-slate-50'
               }`}

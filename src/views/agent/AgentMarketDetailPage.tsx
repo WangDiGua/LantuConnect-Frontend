@@ -273,7 +273,7 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
             <button
               type="button"
               className={`${btnPrimary} inline-flex w-full min-h-11 items-center justify-center`}
-              onClick={() => navigate(buildPath('user', 'api-docs'))}
+              onClick={() => navigate(buildPath('user', 'developer-docs'))}
             >
               打开 API 文档
             </button>

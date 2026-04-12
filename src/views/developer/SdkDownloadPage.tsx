@@ -223,8 +223,8 @@ export const SdkDownloadPage: React.FC<SdkDownloadPageProps> = ({ theme, fontSiz
                 </div>
                 <div className={`flex items-center gap-2 mt-4 pt-3 border-t border-dashed ${isDark ? 'border-white/[0.06]' : 'border-slate-200'}`}>
                   <button type="button" onClick={() => setRoadmapModal(sdk)} className={btnSecondary(theme)}><FileText size={14} /> 说明</button>
-                  <button type="button" onClick={() => navigate(buildPath('user', 'api-docs'))} className={btnSecondary(theme)}><BookOpen size={14} /> 接入指南</button>
-                  <button type="button" onClick={() => navigate(buildPath('user', 'api-playground'))} className={btnPrimary}><Terminal size={14} /> API 调试</button>
+                  <button type="button" onClick={() => navigate(buildPath('user', 'developer-docs'))} className={btnSecondary(theme)}><BookOpen size={14} /> 接入指南</button>
+                  <button type="button" onClick={() => navigate(buildPath('user', 'developer-tools'))} className={btnPrimary}><Terminal size={14} /> API 调试</button>
                 </div>
               </BentoCard>
             ))}

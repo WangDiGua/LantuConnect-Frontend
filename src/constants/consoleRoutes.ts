@@ -148,13 +148,7 @@ const USER_SIDEBAR_PAGES: Record<string, string[]> = {
   'dataset-center': ['dataset-center', 'dataset-market'],
   'agents-center': ['agents-center', 'agent-market'],
   'apps-center': ['apps-center', 'app-market'],
-  'developer-portal': [
-    'api-docs',
-    'sdk-download',
-    'api-playground',
-    'mcp-integration',
-    'developer-statistics',
-  ],
+  'developer-portal': ['developer-docs', 'developer-tools', 'developer-statistics'],
 };
 
 /**

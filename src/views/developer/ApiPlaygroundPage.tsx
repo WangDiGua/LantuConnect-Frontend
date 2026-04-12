@@ -24,6 +24,7 @@ import {
   readBoundedLocalStorage,
   type PlaygroundHistoryEntry,
 } from '../../lib/safeStorage';
+import { GatewayPlaygroundToolsSection } from './GatewayPlaygroundToolsSection';
 
 /** 与 `usePersistedGatewayApiKey`、axios 注入逻辑共用 */
 const GATEWAY_API_KEY_STORAGE_KEY = 'lantu_api_key';
@@ -238,7 +239,7 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme, fon
       className={`inline-flex items-center gap-1 rounded-xl border px-3 py-1.5 text-xs font-medium ${
         isDark ? 'border-white/15 text-slate-200 hover:bg-white/5' : 'border-slate-200 text-slate-700 hover:bg-slate-50'
       }`}
-      onClick={() => navigate(buildPath('user', 'api-docs'))}
+      onClick={() => navigate(buildPath('user', 'developer-docs'))}
       aria-label="打开接入指南"
     >
       <BookOpen size={14} aria-hidden />
@@ -392,6 +393,8 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme, fon
             </div>
           </BentoCard>
         )}
+
+        <GatewayPlaygroundToolsSection theme={theme} />
       </div>
     </MgmtPageShell>
   );

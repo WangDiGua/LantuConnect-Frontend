@@ -2,7 +2,6 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Star,
-  Heart,
   MessageSquare,
   Eye,
   BarChart2,
@@ -11,6 +10,7 @@ import {
   Sparkles,
   Network,
   Gauge,
+  FileText,
 } from 'lucide-react';
 import type { Theme, FontSize, ThemeColor } from '../../types';
 import {
@@ -126,6 +126,15 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
       .then((p) => setTagStatsRows(p.list))
       .catch(() => setTagStatsRows([]));
   }, []);
+
+  useEffect(() => {
+    if (!loading && !error && tagFilter == null) {
+      void resourceCatalogService
+        .list({ resourceType: 'agent', status: 'published', page: 1, pageSize: 100 })
+        .then((p) => setTagStatsRows(p.list))
+        .catch(() => {});
+    }
+  }, [loading, error, tagFilter]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -308,20 +317,20 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
           <>
             <button
               type="button"
-              onClick={() => navigate(buildPath('user', 'my-favorites'))}
+              onClick={() => navigate(buildPath('user', 'developer-docs'))}
               className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 ${
                 isDark ? 'border-white/[0.12] bg-white/[0.04] text-slate-200 hover:bg-white/[0.08]' : 'border-slate-200/80 bg-white text-slate-800 shadow-sm hover:bg-slate-50'
               }`}
             >
-              <Heart className="h-3.5 w-3.5 shrink-0 text-violet-500 dark:text-violet-400" aria-hidden />
-              我的收藏
+              <FileText className="h-3.5 w-3.5 shrink-0 text-violet-500 dark:text-violet-400" aria-hidden />
+              接入与部署
             </button>
             <button
               type="button"
               onClick={() => navigate(buildPath('user', 'agent-register'))}
               className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-bold text-white shadow-md transition hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/45 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 sm:text-sm"
             >
-              发布智能体
+              发布 Agent
               <Sparkles className="h-3.5 w-3.5" aria-hidden />
             </button>
           </>
@@ -391,7 +400,7 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
               <span className={`shrink-0 text-sm font-semibold ${textPrimary(theme)}`}>
-                智能体目录
+                Agent 服务
                 {tagFilter != null && (
                   <span className={`ml-2 text-xs font-normal ${textMuted(theme)}`}>· {tagFilter}</span>
                 )}

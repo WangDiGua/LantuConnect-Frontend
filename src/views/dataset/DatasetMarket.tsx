@@ -151,6 +151,15 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _t
   }, []);
 
   useEffect(() => {
+    if (!loading && !loadError && tagFilter == null) {
+      void resourceCatalogService
+        .list({ resourceType: 'dataset', status: 'published', page: 1, pageSize: 100 })
+        .then((p) => setTagStatsRows(p.list))
+        .catch(() => {});
+    }
+  }, [loading, loadError, tagFilter]);
+
+  useEffect(() => {
     if (catalogTags.length === 0 && tagFilter !== null) setTagFilter(null);
   }, [catalogTags.length, tagFilter]);
 
@@ -215,21 +224,8 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _t
     [],
   );
 
-  const FilterSection = ({
-    title,
-    children,
-  }: {
-    title: string;
-    children: React.ReactNode;
-  }) => (
-    <section aria-label={title}>
-      <h3 className={`text-xs font-bold uppercase tracking-wide mb-2 ${textMuted(theme)}`}>{title}</h3>
-      {children}
-    </section>
-  );
-
-  const TagNav = () => (
-    <nav aria-label="数据集标签">
+  const CategoryNav = ({ className }: { className?: string }) => (
+    <nav aria-label="数据集标签分类" className={className}>
       <ul className="space-y-1">
         <li>
           <button
@@ -306,17 +302,6 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _t
     },
   ] as const;
 
-  const desktopSidebar = (
-    <aside className="hidden w-full shrink-0 space-y-6 lg:block lg:w-52 xl:w-56">
-      <FilterSection title="标签">
-        <p className={`mb-2 text-xs leading-snug ${textMuted(theme)}`}>
-          与标签管理一致（含「通用」桶）；计数来自已上架列表快照（单页最多 100 条）。
-        </p>
-        <TagNav />
-      </FilterSection>
-    </aside>
-  );
-
   return (
     <MarketPlazaPageShell
       theme={theme}
@@ -333,7 +318,7 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _t
         <>
           <button
             type="button"
-            onClick={() => navigate(buildPath('user', 'api-docs'))}
+            onClick={() => navigate(buildPath('user', 'developer-docs'))}
             className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 ${
               isDark ? 'border-white/[0.12] bg-white/[0.04] text-slate-200 hover:bg-white/[0.08]' : 'border-slate-200/80 bg-white text-slate-800 shadow-sm hover:bg-slate-50'
             }`}
@@ -358,12 +343,12 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _t
           ：侧栏「标签」计数基于最近一次已上架目录快照（单页最多 100 条）；切换标签会重新请求列表。
         </p>
       )}
-      sidebar={desktopSidebar}
+      sidebar={<CategoryNav className="hidden w-full shrink-0 lg:block lg:w-52 xl:w-56" />}
       main={(
         <>
           <div className="space-y-3 lg:hidden">
             <div>
-              <p className={`mb-2 text-xs font-semibold ${textMuted(theme)}`}>标签</p>
+              <p className={`mb-2 text-xs font-semibold ${textMuted(theme)}`}>分类</p>
               <div
                 className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                 role="tablist"
@@ -418,7 +403,7 @@ export const DatasetMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _t
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
             <span className={`shrink-0 text-sm font-semibold ${textPrimary(theme)}`}>
-              数据集目录
+              数据集服务
               {tagFilter != null && (
                 <span className={`ml-2 text-xs font-normal ${textMuted(theme)}`}>· {tagFilter}</span>
               )}

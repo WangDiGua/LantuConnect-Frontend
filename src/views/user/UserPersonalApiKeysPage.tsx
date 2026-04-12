@@ -349,7 +349,7 @@ export const UserPersonalApiKeysPage: React.FC<UserPersonalApiKeysPageProps> = (
           </p>
           <p className={`text-xs mb-3 ${textMuted(theme)}`}>
             服务端只存密钥摘要，无法「找回」原明文。列表中的掩码、前缀、id 不能作为请求头；撤销后本条将不再显示。
-            <button type="button" onClick={() => navigate(buildPath(consoleRole, 'api-docs'))} className={`ml-1 underline font-medium ${tc.text}`}>
+            <button type="button" onClick={() => navigate(buildPath(consoleRole, 'developer-docs'))} className={`ml-1 underline font-medium ${tc.text}`}>
               完整说明见 API 文档
             </button>
           </p>

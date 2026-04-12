@@ -47,16 +47,12 @@ export const ConsolePageFooter: React.FC<ConsolePageFooterProps> = ({ theme, cla
 
         <nav aria-label="页脚导航" className="flex min-w-0 flex-col gap-0.5 md:flex-row md:flex-wrap md:items-center md:justify-end">
           <div className="flex flex-wrap items-center gap-y-0.5">
-            <Link to={buildPath('user', 'api-docs')} className={linkClass(isDark)}>
-              接入文档
+            <Link to={buildPath('user', 'developer-docs')} className={linkClass(isDark)}>
+              接入与文档
             </Link>
             {dot}
-            <Link to={buildPath('user', 'sdk-download')} className={linkClass(isDark)}>
-              SDK 下载
-            </Link>
-            {dot}
-            <Link to={buildPath('user', 'api-playground')} className={linkClass(isDark)}>
-              API Playground
+            <Link to={buildPath('user', 'developer-tools')} className={linkClass(isDark)}>
+              调试与网关
             </Link>
             {dot}
             <Link to={unifiedResourceCenterPath(platformRole)} className={linkClass(isDark)}>

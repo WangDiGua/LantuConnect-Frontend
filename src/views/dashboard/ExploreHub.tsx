@@ -1061,7 +1061,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => navigate(buildPath('user', 'api-docs'))}
+              onClick={() => navigate(buildPath('user', 'developer-docs'))}
               className={`text-slate-400 text-sm font-medium hover:text-white transition-colors rounded-lg px-2 py-1.5 -ml-1 border border-transparent hover:border-white/15 hover:bg-white/[0.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/45 focus-visible:ring-offset-2 ${heroRingOffset}`}
             >
               查看文档

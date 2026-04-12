@@ -99,6 +99,15 @@ export const AppMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
       .catch(() => setTagStatsRows([]));
   }, []);
 
+  useEffect(() => {
+    if (!loading && !loadError && tagFilter == null) {
+      void resourceCatalogService
+        .list({ resourceType: 'app', status: 'published', page: 1, pageSize: 100 })
+        .then((p) => setTagStatsRows(p.list))
+        .catch(() => {});
+    }
+  }, [loading, loadError, tagFilter]);
+
   const loadApps = useCallback(() => {
     let cancelled = false;
     setLoading(true);
@@ -250,7 +259,7 @@ export const AppMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
         <>
           <button
             type="button"
-            onClick={() => navigate(buildPath('user', 'api-docs'))}
+            onClick={() => navigate(buildPath('user', 'developer-docs'))}
             className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50 ${
               isDark ? 'border-white/[0.12] bg-white/[0.04] text-slate-200 hover:bg-white/[0.08]' : 'border-slate-200/80 bg-white text-slate-800 shadow-sm hover:bg-slate-50'
             }`}
@@ -333,7 +342,7 @@ export const AppMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
             <span className={`shrink-0 text-sm font-semibold ${textPrimary(theme)}`}>
-              应用目录
+              应用服务
               {tagFilter != null && (
                 <span className={`ml-2 text-xs font-normal ${textMuted(theme)}`}>· {tagFilter}</span>
               )}

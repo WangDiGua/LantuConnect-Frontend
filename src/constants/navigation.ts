@@ -41,7 +41,6 @@ import {
   Code2,
   Terminal,
   KeyRound,
-  Download,
   Compass,
   Braces,
   ScrollText,
@@ -226,19 +225,16 @@ export const ADMIN_SYSTEM_CONFIG_GROUPS: NavSubGroup[] = [
 
 export const ADMIN_DEVELOPER_PORTAL_GROUPS: NavSubGroup[] = [
   {
-    title: '文档',
-    items: [
-      { id: 'api-docs', icon: FileText, label: '接入指南' },
-      { id: 'sdk-download', icon: Download, label: 'SDK 下载' },
-      { id: 'api-playground', icon: Terminal, label: 'API Playground' },
-      { id: 'mcp-integration', icon: Puzzle, label: '网关集成' },
-    ],
+    title: '文档与 SDK',
+    items: [{ id: 'developer-docs', icon: BookOpen, label: '接入与文档' }],
+  },
+  {
+    title: '联调与网关',
+    items: [{ id: 'developer-tools', icon: Terminal, label: '调试与网关' }],
   },
   {
     title: '统计',
-    items: [
-      { id: 'developer-statistics', icon: BarChart3, label: '开发者统计' },
-    ],
+    items: [{ id: 'developer-statistics', icon: BarChart3, label: '开发者统计' }],
   },
 ];
 

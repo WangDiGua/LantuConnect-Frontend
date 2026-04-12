@@ -83,11 +83,11 @@ const ResourceCenterManagementPage = lazy(() => import('../views/resourceCenter/
 const ResourceRegisterPage = lazy(() => import('../views/resourceCenter/ResourceRegisterPage').then(m => ({ default: m.ResourceRegisterPage })));
 const ResourceAuditList = lazy(() => import('../views/audit/ResourceAuditList').then(m => ({ default: m.ResourceAuditList })));
 const DeveloperApplicationListPage = lazy(() => import('../views/userMgmt/DeveloperApplicationListPage').then(m => ({ default: m.DeveloperApplicationListPage })));
-const ApiDocsPage = lazy(() => import('../views/developer/ApiDocsPage').then(m => ({ default: m.ApiDocsPage })));
-const SdkDownloadPage = lazy(() => import('../views/developer/SdkDownloadPage').then(m => ({ default: m.SdkDownloadPage })));
-const ApiPlaygroundPage = lazy(() => import('../views/developer/ApiPlaygroundPage').then(m => ({ default: m.ApiPlaygroundPage })));
-const GatewayIntegrationPage = lazy(() =>
-  import('../views/developer/GatewayIntegrationPage').then((m) => ({ default: m.GatewayIntegrationPage })),
+const DeveloperDocsHubPage = lazy(() =>
+  import('../views/developer/DeveloperDocsHubPage').then((m) => ({ default: m.DeveloperDocsHubPage })),
+);
+const DeveloperToolsHubPage = lazy(() =>
+  import('../views/developer/DeveloperToolsHubPage').then((m) => ({ default: m.DeveloperToolsHubPage })),
 );
 const DeveloperStatsPage = lazy(() => import('../views/developer/DeveloperStatsPage').then(m => ({ default: m.DeveloperStatsPage })));
 const UserResourceMarketHub = lazy(() =>
@@ -202,6 +202,12 @@ function normalizeDeprecatedPage(page: string): string {
       return 'workspace';
     case 'recent-use':
       return 'usage-records';
+    case 'api-docs':
+    case 'sdk-download':
+      return 'developer-docs';
+    case 'api-playground':
+    case 'mcp-integration':
+      return 'developer-tools';
     default:
       return page;
   }
@@ -246,13 +252,7 @@ const LEGACY_PAGE_TO_TYPE: Record<string, ResourceType> = {
 };
 
 /** 开发者中心仅挂在应用端路由；旧版 /admin/... 链接触发重定向 */
-const DEVELOPER_PORTAL_PAGES = new Set([
-  'api-docs',
-  'sdk-download',
-  'api-playground',
-  'mcp-integration',
-  'developer-statistics',
-]);
+const DEVELOPER_PORTAL_PAGES = new Set(['developer-docs', 'developer-tools', 'developer-statistics']);
 
 const MainContent = React.memo<{
   page: string;
@@ -627,14 +627,10 @@ const MainContent = React.memo<{
       case 'my-api-keys':
         return <UserApiKeysIntegrationHubPage theme={t} themeColor={tc} showMessage={msg} />;
 
-      case 'api-docs':
-        return <ApiDocsPage theme={t} fontSize={fs} />;
-      case 'sdk-download':
-        return <SdkDownloadPage theme={t} fontSize={fs} />;
-      case 'api-playground':
-        return <ApiPlaygroundPage theme={t} fontSize={fs} />;
-      case 'mcp-integration':
-        return <GatewayIntegrationPage theme={t} fontSize={fs} />;
+      case 'developer-docs':
+        return <DeveloperDocsHubPage theme={t} fontSize={fs} />;
+      case 'developer-tools':
+        return <DeveloperToolsHubPage theme={t} fontSize={fs} />;
       case 'developer-statistics':
         return <DeveloperStatsPage theme={t} fontSize={fs} />;
 
@@ -861,6 +857,35 @@ const MainLayoutContent: React.FC<{
     }
   }, [routePage, location.pathname, location.search, navigate, consoleRole]);
 
+  /** 开发者中心旧 slug → hub（保留 hash；补全 tab） */
+  useLayoutEffect(() => {
+    if (!routePage) return;
+    const pathSearchHash = `${location.pathname}${location.search}${location.hash}`;
+    if (routePage === 'sdk-download') {
+      const sp = new URLSearchParams(location.search);
+      if (!sp.has('tab')) sp.set('tab', 'sdk');
+      const next = `${buildPath(consoleRole, 'developer-docs')}?${sp.toString()}${location.hash}`;
+      if (pathSearchHash !== next) navigate(next, { replace: true });
+      return;
+    }
+    if (routePage === 'api-docs') {
+      const next = `${buildPath(consoleRole, 'developer-docs')}${location.search}${location.hash}`;
+      if (pathSearchHash !== next) navigate(next, { replace: true });
+      return;
+    }
+    if (routePage === 'api-playground') {
+      const next = `${buildPath(consoleRole, 'developer-tools')}${location.search}${location.hash}`;
+      if (pathSearchHash !== next) navigate(next, { replace: true });
+      return;
+    }
+    if (routePage === 'mcp-integration') {
+      const sp = new URLSearchParams(location.search);
+      if (!sp.has('tab')) sp.set('tab', 'gateway');
+      const next = `${buildPath(consoleRole, 'developer-tools')}?${sp.toString()}${location.hash}`;
+      if (pathSearchHash !== next) navigate(next, { replace: true });
+    }
+  }, [routePage, location.pathname, location.search, location.hash, navigate, consoleRole]);
+
   useLayoutEffect(() => {
     if (USER_TOP_NAV_NO_RAIL_SIDEBAR_ID_SET.has(activeSidebar)) {
       setTopNavPreferExploreHub(false);
@@ -1054,8 +1079,17 @@ const MainLayoutContent: React.FC<{
   // Route validation & redirect (allow admin users to access user views for mode switcher)
   useEffect(() => {
     if (routePage && normalizedRoutePage && routePage !== normalizedRoutePage) {
-      navigate(buildPath('user', normalizedRoutePage, routeId), { replace: true });
-      return;
+      if (
+        routePage === 'api-docs' ||
+        routePage === 'sdk-download' ||
+        routePage === 'api-playground' ||
+        routePage === 'mcp-integration'
+      ) {
+        /* 规范 URL 由 useLayoutEffect（开发者 hub）处理，避免覆盖 tab/hash */
+      } else {
+        navigate(buildPath('user', normalizedRoutePage, routeId), { replace: true });
+        return;
+      }
     }
     if (!layoutIsAdmin && normalizedRoutePage && LEGACY_USER_RESOURCE_PAGES.has(normalizedRoutePage)) {
       const type = LEGACY_PAGE_TO_TYPE[normalizedRoutePage];
@@ -1661,6 +1695,14 @@ const MainLayoutContent: React.FC<{
     if (page === 'my-api-keys') {
       const tab = new URLSearchParams(location.search).get('tab');
       return tab ? `my-api-keys?tab=${tab}` : 'my-api-keys';
+    }
+    if (page === 'developer-docs') {
+      const tab = new URLSearchParams(location.search).get('tab');
+      return tab ? `developer-docs?tab=${tab}` : 'developer-docs';
+    }
+    if (page === 'developer-tools') {
+      const tab = new URLSearchParams(location.search).get('tab');
+      return tab ? `developer-tools?tab=${tab}` : 'developer-tools';
     }
     if (page === 'skills-center') return routeId ? `skills-center/${routeId}` : 'skills-center';
     if (page === 'mcp-center') return routeId ? `mcp-center/${routeId}` : 'mcp-center';

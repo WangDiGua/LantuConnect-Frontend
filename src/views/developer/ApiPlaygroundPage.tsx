@@ -18,6 +18,7 @@ import { buildPath } from '../../constants/consoleRoutes';
 import {
   MAX_PLAYGROUND_HISTORY_ITEMS,
   MAX_STORED_API_KEY_LENGTH,
+  normalizeCatalogResourcesListPageSizeInUrl,
   normalizePlaygroundHistory,
   parsePlaygroundHistoryFromStorage,
   readBoundedLocalStorage,
@@ -124,8 +125,10 @@ export interface ApiPlaygroundPageProps {
 export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme, fontSize, embedInHub = false }) => {
   const isDark = theme === 'dark';
   const [method, setMethod] = useState('GET');
-  const [url, setUrl] = useState(
-    () => `${env.VITE_API_BASE_URL.replace(/\/$/, '')}/catalog/resources?page=1&pageSize=10&resourceType=agent`,
+  const [url, setUrl] = useState(() =>
+    normalizeCatalogResourcesListPageSizeInUrl(
+      `${env.VITE_API_BASE_URL.replace(/\/$/, '')}/catalog/resources?page=1&pageSize=10&resourceType=agent`,
+    ),
   );
   const [headers, setHeaders] = useState<HeaderPair[]>([
     { key: 'Authorization', value: '' },
@@ -168,12 +171,18 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme, fon
     setExecuteKeyHint(null);
   }, [url, method]);
 
+  /** 迁移本地「最近请求」与地址栏中仍带 pageSize=20 的旧目录列表 URL */
+  React.useEffect(() => {
+    setUrl((u) => normalizeCatalogResourcesListPageSizeInUrl(u));
+  }, []);
+
   const addHeader = () => setHeaders([...headers, { key: '', value: '' }]);
   const updateHeader = (idx: number, field: 'key' | 'value', val: string) => { const n = [...headers]; n[idx] = { ...n[idx], [field]: val }; setHeaders(n); };
   const removeHeader = (idx: number) => setHeaders(headers.filter((_, i) => i !== idx));
 
   const sendRequest = useCallback(async () => {
     const resolvedPath = toRelativeApiPath(url);
+    const resolvedEffective = normalizeCatalogResourcesListPageSizeInUrl(resolvedPath);
     if (playgroundPathNeedsApiKey(url) && !effectivePlaygroundApiKey(headers)) {
       setExecuteKeyHint(
         '此路径须带有效 X-Api-Key（完整 secretPlain）。请在 Headers 填写，或在资源市场 / 个人设置保存网关 Key（与 axios 共用本地存储后会自动注入请求）。',
@@ -185,7 +194,7 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme, fon
     setLoading(true);
     setResponse(null);
     const started = Date.now();
-    const isAbsolute = /^https?:\/\//i.test(resolvedPath);
+    const isAbsolute = /^https?:\/\//i.test(resolvedEffective);
 
     const hdrs = new Headers();
     headers.forEach((h) => {
@@ -203,7 +212,7 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme, fon
       let text = '';
       let respHeaders: Record<string, string> = {};
       if (isAbsolute) {
-        const res = await fetch(resolvedPath, init);
+        const res = await fetch(resolvedEffective, init);
         text = await res.text();
         status = res.status;
         res.headers.forEach((v, k) => {
@@ -216,7 +225,7 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme, fon
             })()
           : undefined;
         const axiosRes = await http.instance.request<ApiResponse<unknown>>({
-          url: resolvedPath,
+          url: resolvedEffective,
           method,
           data: reqBody,
           headers: Object.fromEntries(hdrs.entries()),
@@ -233,11 +242,14 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme, fon
       const time = Date.now() - started;
       setResponse({ status, time, body: text, headers: respHeaders });
       setHistory((prev) =>
-        normalizePlaygroundHistory([{ method, url: resolvedPath, status, time, body, responseBody: text }, ...prev]).slice(
+        normalizePlaygroundHistory([{ method, url: resolvedEffective, status, time, body, responseBody: text }, ...prev]).slice(
           0,
           MAX_PLAYGROUND_HISTORY_ITEMS,
         ),
       );
+      if (resolvedEffective !== resolvedPath) {
+        setUrl((u) => normalizeCatalogResourcesListPageSizeInUrl(u));
+      }
     } catch (e) {
       const time = Date.now() - started;
       const status = e instanceof ApiException ? e.status : 0;
@@ -245,17 +257,25 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme, fon
       const respBody = JSON.stringify({ error: msg }, null, 2);
       setResponse({ status, time, body: respBody, headers: {} });
       setHistory((prev) =>
-        normalizePlaygroundHistory([{ method, url: resolvedPath, status, time, body, responseBody: respBody }, ...prev]).slice(
+        normalizePlaygroundHistory([{ method, url: resolvedEffective, status, time, body, responseBody: respBody }, ...prev]).slice(
           0,
           MAX_PLAYGROUND_HISTORY_ITEMS,
         ),
       );
+      if (resolvedEffective !== resolvedPath) {
+        setUrl((u) => normalizeCatalogResourcesListPageSizeInUrl(u));
+      }
     } finally {
       setLoading(false);
     }
   }, [method, url, body, headers]);
 
-  const loadHistory = (entry: HistoryEntry) => { setMethod(entry.method); setUrl(entry.url); setBody(entry.body); setResponse({ status: entry.status, time: entry.time, body: entry.responseBody, headers: {} }); };
+  const loadHistory = (entry: HistoryEntry) => {
+    setMethod(entry.method);
+    setUrl(normalizeCatalogResourcesListPageSizeInUrl(entry.url));
+    setBody(entry.body);
+    setResponse({ status: entry.status, time: entry.time, body: entry.responseBody, headers: {} });
+  };
 
   const playgroundToolbar = <PlaygroundLinkToDocsButton theme={theme} />;
 

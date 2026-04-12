@@ -8,6 +8,35 @@ export const MAX_WORKSPACE_AGENT_IDS = 500;
 
 const HTTP_METHODS = new Set(['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS']);
 
+/** GET /catalog/resources 列表（非 /catalog/resources/{type}/{id}） */
+function pathnameFromPlaygroundUrl(url: string): string {
+  const t = url.trim();
+  if (!t) return '';
+  if (/^https?:\/\//i.test(t)) {
+    try {
+      return new URL(t).pathname.replace(/\/+$/, '') || '/';
+    } catch {
+      return t.split(/[?#]/)[0].replace(/\/+$/, '') || '/';
+    }
+  }
+  return t.split(/[?#]/)[0].replace(/\/+$/, '') || '/';
+}
+
+function isCatalogResourcesListUrl(url: string): boolean {
+  return /\/catalog\/resources$/.test(pathnameFromPlaygroundUrl(url));
+}
+
+/**
+ * 试玩默认分页由 20 改为 10 后，迁移本地历史与地址栏中的旧 query（仅 GET 目录列表路径）。
+ * 避免 `pageSize=200` 被误改：只匹配 `pageSize=20` 作为独立参数。
+ */
+export function normalizeCatalogResourcesListPageSizeInUrl(url: string): string {
+  if (!url || url.length > MAX_PLAYGROUND_URL_LENGTH) return url;
+  if (!isCatalogResourcesListUrl(url)) return url;
+  if (!url.includes('pageSize=20')) return url;
+  return url.replace(/([?&])pageSize=20(?=&|$)/g, '$1pageSize=10');
+}
+
 export interface PlaygroundHistoryEntry {
   method: string;
   url: string;
@@ -49,7 +78,8 @@ export function normalizePlaygroundHistory(entries: unknown): PlaygroundHistoryE
     const o = e as Record<string, unknown>;
     const methodRaw = typeof o.method === 'string' ? o.method.toUpperCase() : 'GET';
     if (!HTTP_METHODS.has(methodRaw)) continue;
-    const url = typeof o.url === 'string' ? o.url : '';
+    const urlRaw = typeof o.url === 'string' ? o.url : '';
+    const url = normalizeCatalogResourcesListPageSizeInUrl(urlRaw);
     if (url.length > MAX_PLAYGROUND_URL_LENGTH) continue;
     const status = typeof o.status === 'number' && Number.isFinite(o.status) ? o.status : 0;
     const time = typeof o.time === 'number' && Number.isFinite(o.time) ? o.time : 0;

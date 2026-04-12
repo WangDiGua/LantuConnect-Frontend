@@ -97,6 +97,7 @@ const GUIDE_TOC: { id: string; label: string }[] = [
   { id: 'doc-intro', label: '平台概览' },
   { id: 'doc-roles', label: '账号与组织' },
   { id: 'doc-console', label: '控制台导航' },
+  { id: 'doc-debug-gateway', label: '调试与网关页' },
   { id: 'doc-onboarding', label: '开发者入驻' },
   { id: 'doc-keys', label: 'API Key' },
   { id: 'doc-discover', label: '发现与目录' },
@@ -340,6 +341,36 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({
                     </button>
                     <button type="button" onClick={() => go('developer-statistics')} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${btnSecondary(theme)}`}>
                       <Library size={16} /> 开发者统计
+                    </button>
+                  </div>
+                </section>
+
+                <section id="doc-debug-gateway" className="mt-14 space-y-4">
+                  {proseH2(theme, '「调试与网关」页怎么用？')}
+                  {prosePara(theme, (
+                    <>
+                      开发者中心 → <strong className={textPrimary(theme)}>调试与网关</strong> 把三件事放在同一页：先试 HTTP、再看集成说明、最后用网关工具做目录与导出。
+                    </>
+                  ))}
+                  <ul className={`list-disc space-y-2 pl-5 text-[15px] leading-7 ${textSecondary(theme)}`}>
+                    <li>
+                      <strong className={textPrimary(theme)}>API Playground</strong>：上方「HTTP 调试」里填 URL、Headers 与（可选）请求体，发请求后在右侧看状态码与响应体。
+                    </li>
+                    <li>
+                      <strong className={textPrimary(theme)}>网关集成</strong>：同一页的第二个 Tab，阅读与外部系统、网关对接相关的说明与快捷入口。
+                    </li>
+                    <li>
+                      <strong className={textPrimary(theme)}>网关调试</strong>：页面最下方，选择 API Key、勾选资源目录、试算与导出集成包（JSON）等。
+                    </li>
+                  </ul>
+                  {prosePara(theme, (
+                    <>
+                      独立打开「API Playground」路由时，行为与嵌入 Hub 时一致；目录类接口（如 <span className="font-mono">GET /catalog/resources</span>、<span className="font-mono">/reviews/page</span>、<span className="font-mono">/catalog/resources/{'{type}'}/{'{id}'}/stats</span>）通常需要 <span className="font-mono">X-User-Id</span> 或 <span className="font-mono">X-Api-Key</span> 至少其一；执行向（如 <span className="font-mono">POST /catalog/resolve</span>、<span className="font-mono">/invoke</span>、<span className="font-mono">/invoke-stream</span>）须携带有效的 <span className="font-mono">X-Api-Key</span>。平台内 <span className="font-mono">skill</span> 为托管资源，需通过 resolve 使用 <span className="font-mono">contextPrompt</span> 等路径；其他资源类型需满足已发布、Key 有效且 scope 覆盖等网关条件。更细的接口路径与参数见本页「接口参考」与「API Key」章节。
+                    </>
+                  ))}
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <button type="button" onClick={() => go('api-playground')} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${btnSecondary(theme)}`}>
+                      <Library size={16} /> 打开调试与网关
                     </button>
                   </div>
                 </section>

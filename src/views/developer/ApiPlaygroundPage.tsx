@@ -288,7 +288,7 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme, fon
                 HTTP 调试
               </h2>
               <p className={`mt-0.5 text-xs leading-relaxed ${textMuted(theme)}`}>
-                构造请求与查看响应；执行向路径须带有效 <span className="font-mono">X-Api-Key</span>。
+                左侧填请求，右侧看返回。执行向接口需有效 Key，详见接入指南。
               </p>
             </div>
           </div>
@@ -463,7 +463,7 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme, fon
       fontSize={fontSize}
       titleIcon={Terminal}
       breadcrumbSegments={['开发者中心', 'API Playground']}
-      description="调试请求；GET /catalog/resources、/reviews/page、/catalog/resources/{type}/{id}/stats 须 X-User-Id 或 X-Api-Key 之一；POST /catalog/resolve、/invoke、/invoke-stream 须 X-Api-Key（与市场共用的本地密钥）。skill 为托管资源，resolve 后走 POST /invoke（resourceType=skill）；其余资源须满足已发布、Key 有效且 scope 覆盖等网关条件。"
+      description="调试 HTTP；鉴权与路径要求见接入指南「调试与网关页」。"
       toolbar={playgroundToolbar}
       contentScroll="document"
     >

@@ -102,6 +102,7 @@ const GUIDE_TOC: { id: string; label: string }[] = [
   { id: 'doc-keys', label: 'API Key' },
   { id: 'doc-discover', label: '发现与目录' },
   { id: 'doc-external-integration', label: '外部系统集成（AI 门户）' },
+  { id: 'doc-gateway-bff-sdk', label: 'BFF 与 SDK 路径' },
   { id: 'doc-consume', label: '解析与调用' },
   { id: 'doc-access-policy', label: '目录与调用条件' },
   { id: 'doc-publish', label: '登记与上架' },
@@ -479,6 +480,44 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({
                   {prosePara(theme, (
                     <>
                       仅携带 Key、不依赖浏览器登录的集成可使用 <span className="font-mono">/sdk/v1/*</span>（与同路径根接口语义一致，须 <span className="font-mono">X-Api-Key</span>）。需要 MCP JSON-RPC 固定路径时可用 <span className="font-mono">POST /mcp/v1/resources/{'{resourceType}'}/{'{resourceId}'}/message</span>（详见「接口参考」）；多数 AI 门户仍推荐 BFF + <span className="font-mono">/invoke</span> / <span className="font-mono">/invoke-stream</span>。
+                    </>
+                  ))}
+                  <h3 id="doc-gateway-bff-sdk" className={`scroll-mt-24 mt-8 text-base font-semibold ${textPrimary(theme)}`}>
+                    BFF 与 SDK 路径（控制台「外部门户调用」）
+                  </h3>
+                  {prosePara(theme, (
+                    <>
+                      <strong className={textPrimary(theme)}>并不是「把注册中心里所有 Agent/MCP 一次性代过去」</strong>：网关不会按全目录批量调用；由<strong className={textPrimary(theme)}>外部门户 / BFF</strong>决定本次 <span className="font-mono">resourceId</span>。「发现」类接口针对<strong className={textPrimary(theme)}>一个入口</strong>（<span className="font-mono">entryResourceType + entryResourceId</span>）返回闭包工具表，不是全平台目录。在控制台需要<strong className={textPrimary(theme)}>勾选目录、试算闭包、导出联调 JSON</strong>，请用「调试与网关」→ API Playground 页底的网关调试区。
+                    </>
+                  ))}
+                  <ol className={`list-decimal space-y-2 pl-5 text-[15px] leading-7 ${textSecondary(theme)}`}>
+                    <li>
+                      <strong className={textPrimary(theme)}>鉴权</strong>：在服务端保存 <span className="font-mono">X-Api-Key</span>，仅由服务端转发到网关。
+                    </li>
+                    <li>
+                      <strong className={textPrimary(theme)}>发现（工具表）</strong>：<span className="font-mono">GET /sdk/v1/capabilities/tools</span>
+                      ，query 须带<strong className={textPrimary(theme)}>一个</strong> <span className="font-mono">entryResourceType</span> 与 <span className="font-mono">entryResourceId</span>：返回从该入口出发的<strong className={textPrimary(theme)}>闭包内</strong>工具聚合，不是全市场列表。
+                    </li>
+                    <li>
+                      <strong className={textPrimary(theme)}>Agent</strong>：<span className="font-mono">POST /sdk/v1/invoke</span>；流式 <span className="font-mono">POST /sdk/v1/invoke-stream</span>。
+                    </li>
+                    <li>
+                      <strong className={textPrimary(theme)}>MCP 工具</strong>：JSON-RPC <span className="font-mono">POST /mcp/v1/resources/mcp/&lt;mcpResourceId&gt;/message</span>（不经统一 invoke 请求体）。
+                    </li>
+                  </ol>
+                  {prosePara(theme, (
+                    <>
+                      根路径 <span className="font-mono">POST /invoke</span> 与 <span className="font-mono">POST /sdk/v1/invoke</span> 语义等价；新项目建议统一 <span className="font-mono">/sdk/v1/*</span>。
+                    </>
+                  ))}
+                  {prosePara(theme, (
+                    <>
+                      <strong className={textPrimary(theme)}>invoke Agent 时挂载 Skill（可选）</strong>：在 <span className="font-mono">payload</span> 或 <span className="font-mono">payload._lantu</span> 提供 <span className="font-mono">activeSkillIds</span>；若开启 <span className="font-mono">merge-active-skill-mcps</span>，网关合并 Skill 依赖 MCP 与 Agent 绑定。
+                    </>
+                  ))}
+                  {prosePara(theme, (
+                    <>
+                      参考实现：Nexus 门户 <span className="font-mono">lib/lantu-client.ts</span>（Agent 走 <span className="font-mono">/sdk/v1/invoke</span>，MCP 走 <span className="font-mono">/mcp/v1/…/message</span>）。
                     </>
                   ))}
                   <div className="flex flex-wrap gap-2 pt-1">

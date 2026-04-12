@@ -1,8 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { BookOpen, ExternalLink, Puzzle, Terminal } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
-import { env } from '../../config/env';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { btnPrimary, btnSecondary, textMuted, textPrimary, textSecondary } from '../../utils/uiClasses';
 import { buildPath, inferConsoleRole, parseRoute, type ConsoleRole } from '../../constants/consoleRoutes';
@@ -15,17 +14,6 @@ const GATEWAY_INTEGRATION_TABS: readonly { id: GatewayIntegrationTabId; label: s
   { id: 'skill-context', label: 'Skill（门户上下文）', hint: 'resolve，不可 invoke' },
   { id: 'app-dataset-mcp', label: 'App / 数据集（经 MCP）', hint: '经 MCP 封装后调用' },
 ] as const;
-
-function buildPublicApiBaseUrl(): string {
-  const base = env.VITE_API_BASE_URL.replace(/\/$/, '');
-  if (base.startsWith('http://') || base.startsWith('https://')) {
-    return base;
-  }
-  if (typeof window !== 'undefined') {
-    return `${window.location.origin}${base}`;
-  }
-  return base;
-}
 
 export interface GatewayIntegrationQuickLinksToolbarProps {
   theme: Theme;
@@ -47,8 +35,8 @@ export const GatewayIntegrationQuickLinksToolbar: React.FC<GatewayIntegrationQui
       <button
         type="button"
         className={chip}
-        onClick={() => navigate(`${buildPath(consoleRole, 'developer-docs')}#doc-external-integration`)}
-        aria-label="打开接入指南外部系统集成"
+        onClick={() => navigate(`${buildPath(consoleRole, 'developer-docs')}#doc-gateway-bff-sdk`)}
+        aria-label="打开接入指南 BFF 与 SDK 路径"
       >
         <BookOpen size={14} className="shrink-0 opacity-85" aria-hidden />
         接入指南
@@ -75,7 +63,6 @@ export const GatewayIntegrationPage: React.FC<GatewayIntegrationPageProps> = ({ 
   const routePage = parseRoute(pathname)?.page ?? '';
   const consoleRole: ConsoleRole = inferConsoleRole(routePage, platformRole);
   const isDark = theme === 'dark';
-  const apiBaseUrl = useMemo(() => buildPublicApiBaseUrl(), []);
   const [gatewayTab, setGatewayTab] = useState<GatewayIntegrationTabId>('portal-invoke');
 
   const toolbar = <GatewayIntegrationQuickLinksToolbar theme={theme} />;
@@ -135,56 +122,22 @@ export const GatewayIntegrationPage: React.FC<GatewayIntegrationPageProps> = ({ 
               </button>
             </div>
             <p className={`text-sm leading-relaxed ${textSecondary(theme)}`}>
-              五类资源中仅 <strong className={textPrimary(theme)}>Agent</strong> 与 <strong className={textPrimary(theme)}>MCP</strong> 可走{' '}
-              <span className="font-mono text-[11px]">POST …/invoke</span>；每次请求只对应一个 <span className="font-mono text-[11px]">resourceType + resourceId</span>。
+              仅 <strong className={textPrimary(theme)}>Agent</strong> 与 <strong className={textPrimary(theme)}>MCP</strong> 可走{' '}
+              <span className="font-mono text-[11px]">POST …/invoke</span>；一次请求对应一个资源。Key 放在服务端，由 BFF 转发，不要塞进浏览器。
             </p>
-            <p
-              className={`text-sm leading-relaxed rounded-xl border px-3 py-2.5 ${
-                isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200 bg-slate-50/90'
-              } ${textSecondary(theme)}`}
-            >
-              <strong className={textPrimary(theme)}>并不是「把注册中心里所有 Agent/MCP 一次性代过去」</strong>：网关不会按全目录替你批量调用；由<strong className={textPrimary(theme)}>外部门户 / BFF 业务逻辑</strong>决定本次要调哪一个{' '}
-              <span className="font-mono text-[11px]">resourceId</span>（例如用户在你们产品里选了某个智能体，对应一个 id）。下方「发现」接口也是针对<strong className={textPrimary(theme)}>一个入口</strong>（<span className="font-mono text-[11px]">entryResourceType + entryResourceId</span>）返回闭包工具表，不是列出全平台目录。若要在控制台里<strong className={textPrimary(theme)}>勾选目录、试算闭包、导出联调 JSON</strong>，请用右上角「API Playground」里的网关调试区。
+            <p className={`text-sm leading-relaxed ${textMuted(theme)}`}>
+              发现工具表、invoke、MCP 消息路径、Skill 挂载与示例代码见接入指南「BFF 与 SDK 路径」。
             </p>
-            <div
-              className={`rounded-xl border p-3 space-y-2.5 ${
-                isDark ? 'border-violet-500/35 bg-violet-500/[0.06]' : 'border-violet-200 bg-violet-50/80'
-              }`}
-            >
-              <p className={`text-xs font-semibold ${isDark ? 'text-violet-200' : 'text-violet-900'}`}>
-                BFF 主路径（<span className="font-mono text-[11px]">/sdk/v1/*</span>）
-              </p>
-              <ol className={`list-decimal list-inside space-y-1.5 text-sm leading-relaxed ${textSecondary(theme)}`}>
-                <li>
-                  <strong className={textPrimary(theme)}>鉴权</strong>：服务端保存 <span className="font-mono text-[11px]">X-Api-Key</span>，仅服务端转发到网关。
-                </li>
-                <li>
-                  <strong className={textPrimary(theme)}>发现（工具表）</strong>：{' '}
-                  <span className="font-mono text-[11px]">GET {apiBaseUrl}/sdk/v1/capabilities/tools</span>
-                  ，query 须带<strong className={textPrimary(theme)}>一个</strong>{' '}
-                  <span className="font-mono text-[11px]">entryResourceType</span> + <span className="font-mono text-[11px]">entryResourceId</span>：返回从该入口出发的<strong className={textPrimary(theme)}>闭包内</strong>工具聚合，不是全市场列表。
-                </li>
-                <li>
-                  <strong className={textPrimary(theme)}>Agent</strong>：{' '}
-                  <span className="font-mono text-[11px]">POST {apiBaseUrl}/sdk/v1/invoke</span>；流式{' '}
-                  <span className="font-mono text-[11px]">POST {apiBaseUrl}/sdk/v1/invoke-stream</span>。
-                </li>
-                <li>
-                  <strong className={textPrimary(theme)}>MCP 工具</strong>：JSON-RPC{' '}
-                  <span className="font-mono text-[11px]">POST {apiBaseUrl}/mcp/v1/resources/mcp/&lt;mcpResourceId&gt;/message</span>（不经统一 invoke 体）。
-                </li>
-              </ol>
-              <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
-                根路径 <span className="font-mono">POST /invoke</span> 与 <span className="font-mono">POST /sdk/v1/invoke</span> 语义等价；新项目建议统一 <span className="font-mono">/sdk/v1/*</span>。
-              </p>
-              <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
-                <strong className={textPrimary(theme)}>invoke Agent 时挂载 Skill（可选）</strong>：在 <span className="font-mono text-[11px]">payload</span> /{' '}
-                <span className="font-mono text-[11px]">payload._lantu</span> 提供 <span className="font-mono text-[11px]">activeSkillIds</span>；若开启 <span className="font-mono text-[11px]">merge-active-skill-mcps</span>，网关合并 Skill 依赖 MCP 与 Agent 绑定。
-              </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className={btnSecondary(theme)}
+                onClick={() => navigate(`${buildPath(consoleRole, 'developer-docs')}#doc-gateway-bff-sdk`)}
+              >
+                <BookOpen size={14} className="inline mr-1" aria-hidden />
+                接入指南 · BFF 与 SDK
+              </button>
             </div>
-            <p className={`text-xs ${textMuted(theme)}`}>
-              参考实现：Nexus 门户 <span className="font-mono">lib/lantu-client.ts</span>（Agent 走 <span className="font-mono">/sdk/v1/invoke</span>，MCP 走 <span className="font-mono">/mcp/v1/…/message</span>）。
-            </p>
           </section>
         ) : null}
 
@@ -198,14 +151,9 @@ export const GatewayIntegrationPage: React.FC<GatewayIntegrationPageProps> = ({ 
             <h2 className={`text-sm font-bold ${textPrimary(theme)}`}>Skill（门户上下文）</h2>
             <p className={`text-sm leading-relaxed ${textSecondary(theme)}`}>
               <strong className={textPrimary(theme)}>Skill</strong> 不可 <span className="font-mono text-[11px]">invoke</span>；用{' '}
-              <span className="font-mono text-[11px]">POST …/resolve</span> 拉取上下文与绑定闭包。
+              <span className="font-mono text-[11px]">POST …/resolve</span> 拉上下文与闭包（<span className="font-mono text-[11px]">/sdk/v1/resolve</span> 与{' '}
+              <span className="font-mono text-[11px]">/catalog/resolve</span> 等价）。细节见下方文档链接。
             </p>
-            <ul className={`list-disc pl-5 space-y-1.5 text-sm ${textSecondary(theme)}`}>
-              <li>
-                <span className="font-mono text-[11px]">POST {apiBaseUrl}/sdk/v1/resolve</span>（与{' '}
-                <span className="font-mono text-[11px]">POST {apiBaseUrl}/catalog/resolve</span> 等价）
-              </li>
-            </ul>
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
@@ -264,7 +212,7 @@ export const GatewayIntegrationPage: React.FC<GatewayIntegrationPageProps> = ({ 
       fontSize={fontSize}
       titleIcon={Puzzle}
       breadcrumbSegments={['开发者中心', '网关集成']}
-      description="说明如何调用网关；Key、目录、invoke 预判与闭包试算请在 API Playground 中完成。"
+      description="场景说明见接入指南；选 Key、试闭包与导出请在 Playground。"
       toolbar={toolbar}
       contentScroll="document"
     >

@@ -1,7 +1,8 @@
 /** localStorage 安全与体积：校验结构、截断、防异常大包拖垮页面 */
 
 export const MAX_STORED_API_KEY_LENGTH = 8192;
-export const MAX_PLAYGROUND_HISTORY_ITEMS = 24;
+/** API Playground「最近请求」条数上限（本地 `lantu_playground_history` 同步） */
+export const MAX_PLAYGROUND_HISTORY_ITEMS = 3;
 export const MAX_PLAYGROUND_BODY_CHARS = 24_000;
 export const MAX_PLAYGROUND_URL_LENGTH = 4096;
 export const MAX_WORKSPACE_AGENT_IDS = 500;

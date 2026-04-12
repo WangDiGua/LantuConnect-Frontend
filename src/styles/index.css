@@ -69,6 +69,9 @@
   --color-lantu-elevated: var(--bg-elevated);
   --color-lantu-subtle: var(--bg-subtle);
   --color-lantu-border: var(--border-default);
+  /** 暗夜卡片/面板与画布分界（亮色为透明，由阴影承担层次） */
+  --color-lantu-border-raised: var(--border-raised);
+  --color-lantu-card-hover: var(--bg-card-hover);
   --color-lantu-text-primary: var(--text-primary);
   --color-lantu-text-secondary: var(--text-secondary);
   --color-lantu-text-muted: var(--text-muted);
@@ -140,33 +143,34 @@
     /* Border */
     --border-default: #e5e5e5;
     --border-subtle: #f5f5f5;
+    --border-raised: transparent;
   }
 
-  /* 暗夜：对齐 ChatGPT Web 暗色（侧栏最深、主区略亮、抬升面 #2f2f2f） */
+  /* 暗夜：ChatGPT 式层次 — 壳最深、主区中灰、卡片略抬升 + 细描边，阴影轻于「整块糊黑」 */
   [data-theme="dark"] {
     --canvas-bg: #212121;
-    --canvas-card-bg: #2f2f2f;
+    --canvas-card-bg: #2c2c2c;
     --bg-chrome: #171717;
-    --bg-elevated: #2f2f2f;
+    --bg-elevated: #2c2c2c;
 
     --bg-page-from: #212121;
     --bg-page-to: #212121;
-    --bg-surface: #2f2f2f;
-    --bg-card: #2f2f2f;
-    --bg-card-hover: #3a3a3a;
-    --bg-subtle: #1c1c1c;
+    --bg-surface: #2c2c2c;
+    --bg-card: #2c2c2c;
+    --bg-card-hover: #383838;
+    --bg-subtle: #1e1e1e;
 
-    --glass-bg: rgba(47, 47, 47, 0.72);
-    --glass-nav-bg: rgba(23, 23, 23, 0.58);
-    --glass-nav-fallback: rgba(47, 47, 47, 0.96);
+    --glass-bg: rgba(44, 44, 44, 0.65);
+    --glass-nav-bg: rgba(23, 23, 23, 0.52);
+    --glass-nav-fallback: rgba(23, 23, 23, 0.97);
     --glass-border: rgba(255, 255, 255, 0.06);
 
-    --shadow-control: 0 1px 2px rgba(0, 0, 0, 0.12), 0 1px 5px rgba(0, 0, 0, 0.1);
-    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.14), 0 2px 10px rgba(0, 0, 0, 0.12);
-    --shadow-card-hover: 0 2px 4px rgba(0, 0, 0, 0.14), 0 4px 14px rgba(0, 0, 0, 0.14);
-    --shadow-dropdown: 0 2px 6px rgba(0, 0, 0, 0.14), 0 4px 16px rgba(0, 0, 0, 0.14);
-    --shadow-modal: 0 2px 8px rgba(0, 0, 0, 0.16), 0 6px 22px rgba(0, 0, 0, 0.18);
-    --shadow-glass-panel: inset 0 1px 0 0 rgba(255, 255, 255, 0.05), 0 1px 3px rgba(0, 0, 0, 0.12), 0 2px 10px rgba(0, 0, 0, 0.12);
+    --shadow-control: 0 1px 2px rgba(0, 0, 0, 0.18);
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.22);
+    --shadow-card-hover: 0 2px 4px rgba(0, 0, 0, 0.24);
+    --shadow-dropdown: 0 2px 8px rgba(0, 0, 0, 0.28);
+    --shadow-modal: 0 4px 12px rgba(0, 0, 0, 0.32);
+    --shadow-glass-panel: inset 0 1px 0 0 rgba(255, 255, 255, 0.045), 0 1px 2px rgba(0, 0, 0, 0.2);
     --shadow-glow-indigo: 0 2px 12px rgba(129, 140, 248, 0.05);
     --shadow-glow-emerald: 0 2px 12px rgba(16, 185, 129, 0.05);
     --shadow-glow-amber: 0 2px 12px rgba(245, 158, 11, 0.05);
@@ -181,6 +185,8 @@
 
     --border-default: rgba(255, 255, 255, 0.08);
     --border-subtle: rgba(255, 255, 255, 0.05);
+    /** 与画布区分的 1px 边界（替代过重投影） */
+    --border-raised: #373737;
   }
 }
 

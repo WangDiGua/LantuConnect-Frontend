@@ -197,12 +197,12 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
             />
           </AvatarGradientFrame>
           <div className="min-w-0 flex-1">
-            <div className={`truncate text-sm font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{displayName}</div>
+            <div className={`truncate text-sm font-semibold ${isDark ? 'text-lantu-text-primary' : 'text-slate-900'}`}>{displayName}</div>
             <div className="mt-1 flex min-w-0 items-center gap-1.5">
               <span
                 className={`inline-flex max-w-full shrink truncate rounded-md border px-2 py-0.5 text-xs font-medium leading-tight tabular-nums ${
                   isDark
-                    ? 'border-white/12 bg-white/[0.08] text-slate-300'
+                    ? 'border-white/12 bg-white/[0.08] text-lantu-text-secondary'
                     : 'border-slate-200/80 bg-slate-100/90 text-slate-600'
                 }`}
                 title={roleLabel}
@@ -230,9 +230,9 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
           size={15}
           className={[
             'block shrink-0 transition-colors duration-200',
-            searchFocused
+              searchFocused
               ? isDark
-                ? 'text-slate-100'
+                ? 'text-lantu-text-primary'
                 : 'text-gray-900'
               : iconMuted(theme),
           ].join(' ')}
@@ -252,7 +252,7 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
           placeholder="搜索菜单..."
           className={[
             'min-w-0 flex-1 border-none bg-transparent px-2.5 py-0 text-sm font-medium leading-none outline-none',
-            isDark ? 'text-slate-200 placeholder:text-slate-500' : 'text-gray-700 placeholder-gray-400',
+            isDark ? 'text-lantu-text-primary placeholder:text-lantu-text-muted' : 'text-gray-700 placeholder-gray-400',
           ].join(' ')}
           aria-label="搜索菜单"
         />
@@ -264,7 +264,7 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
               : [
                   'scale-100 opacity-100',
                   isDark
-                    ? 'border border-white/15 bg-white/10 text-slate-400 shadow-[0_1px_2px_rgba(0,0,0,0.25),0_1px_0_rgba(0,0,0,0.12)]'
+                    ? 'border border-white/15 bg-white/10 text-lantu-text-muted shadow-[0_1px_2px_rgba(0,0,0,0.25),0_1px_0_rgba(0,0,0,0.12)]'
                     : 'border border-gray-200/80 bg-white text-gray-500 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_1px_0_rgba(0,0,0,0.02)]',
                 ].join(' '),
           ].join(' ')}
@@ -285,7 +285,7 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
       <div className={menuBodyClass}>
         <div className="space-y-1">
           {filteredBlocks.length === 0 && searchMode ? (
-            <p className="px-1 py-2 text-center text-xs text-slate-400">未找到匹配菜单</p>
+            <p className="px-1 py-2 text-center text-xs text-lantu-text-muted">未找到匹配菜单</p>
           ) : null}
           {filteredBlocks.map((fb, blockIdx) => {
             const { block, rowEntries, isSingleton } = fb;
@@ -305,7 +305,7 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
                   />
                   <span
                     className={`max-w-[12rem] shrink-0 text-center text-xs font-bold uppercase leading-none tracking-wider ${
-                      isDark ? 'text-slate-400' : 'text-slate-600'
+                      isDark ? 'text-lantu-text-muted' : 'text-slate-600'
                     }`}
                   >
                     管理端
@@ -333,10 +333,10 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
                       className={`flex min-h-11 w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
                         isActive
                           ? isDark
-                            ? 'bg-white/10 font-medium text-slate-100'
+                            ? 'bg-white/10 font-medium text-lantu-text-primary'
                             : 'bg-slate-100 font-medium text-slate-900'
                           : isDark
-                            ? 'text-slate-200 hover:bg-white/[0.06]'
+                            ? 'text-lantu-text-secondary hover:bg-white/[0.06]'
                             : 'text-slate-800 hover:bg-slate-100'
                       }`}
                     >
@@ -359,12 +359,12 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
                     aria-expanded={childrenOpen}
                     className={`group/parent flex min-h-11 w-full items-center gap-2 rounded-lg px-2.5 py-2.5 text-left text-sm font-semibold tracking-tight transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
                       isDark
-                        ? 'text-slate-100 hover:bg-white/[0.06]'
+                        ? 'text-lantu-text-primary hover:bg-white/[0.06]'
                         : 'text-slate-900 hover:bg-slate-100/90'
                     }`}
                   >
                     <ParentIcon
-                      className={`h-[18px] w-[18px] shrink-0 ${isDark ? 'text-slate-200' : 'text-slate-700'}`}
+                      className={`h-[18px] w-[18px] shrink-0 ${isDark ? 'text-lantu-text-primary' : 'text-slate-700'}`}
                       strokeWidth={2.25}
                       aria-hidden
                     />
@@ -373,7 +373,7 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
                       size={14}
                       aria-hidden
                       className={`shrink-0 opacity-45 transition-[transform,opacity] duration-300 ease-out motion-reduce:duration-0 motion-reduce:transition-none group-hover/parent:opacity-75 ${
-                        isDark ? 'text-slate-400' : 'text-slate-500'
+                        isDark ? 'text-lantu-text-muted' : 'text-slate-500'
                       } ${childrenOpen ? 'rotate-0' : '-rotate-90'}`}
                     />
                   </button>
@@ -417,10 +417,10 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
                                 className={`flex min-h-9 w-full items-center gap-2 rounded-md py-1.5 pl-1 pr-2 text-left text-sm leading-snug transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
                                   isActive
                                     ? isDark
-                                      ? 'font-semibold text-slate-50'
+                                      ? 'font-semibold text-lantu-text-primary'
                                       : 'font-semibold text-slate-900'
                                     : isDark
-                                      ? 'font-normal text-slate-400 hover:bg-white/[0.06] hover:text-slate-300'
+                                      ? 'font-normal text-lantu-text-muted hover:bg-white/[0.06] hover:text-lantu-text-secondary'
                                       : 'font-normal text-slate-600 hover:bg-slate-100/80 hover:text-slate-800'
                                 }`}
                               >

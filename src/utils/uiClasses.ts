@@ -69,9 +69,9 @@ export const CONSOLE_CARD_RADIUS = 'rounded-[28px]';
 /** 与 design token `--shadow-card` 一致（图二：偏下漫射） */
 export const CONSOLE_CARD_SHADOW_LIGHT = 'shadow-[var(--shadow-card)]';
 export const CONSOLE_CARD_SHADOW_DARK = 'shadow-[var(--shadow-card)]';
-/** 图二默认：无边线感，仅靠阴影与画布对比分层（1px 占位避免选中/hover 抢 layout） */
+/** 图二默认：亮色无边线；暗夜用细描边区分卡片与主区，避免「一坨灰」 */
 const CONSOLE_CARD_BORDER_LIGHT_DEFAULT = 'border-transparent';
-const CONSOLE_CARD_BORDER_DARK_DEFAULT = 'border-transparent';
+const CONSOLE_CARD_BORDER_DARK_DEFAULT = 'border-lantu-border-raised';
 /** 图三选中：细冷色描边 */
 export const CONSOLE_CARD_BORDER_SELECTED_LIGHT = 'border-sky-200/85';
 export const CONSOLE_CARD_BORDER_SELECTED_DARK = 'border-sky-400/45';
@@ -92,13 +92,13 @@ export function canvasCard(theme: Theme) {
 
 export function glassSidebar(theme: Theme) {
   return D(theme)
-    ? 'bg-lantu-chrome/85 backdrop-blur-2xl border-r border-white/[0.06]'
+    ? 'bg-lantu-chrome/85 backdrop-blur-2xl border-r border-lantu-border-raised'
     : 'bg-[#FDFDFD] backdrop-blur-2xl border-r border-neutral-200';
 }
 
 export function glassPanel(theme: Theme) {
   return D(theme)
-    ? `bg-lantu-card/55 backdrop-blur-xl border border-white/[0.08] ${CONSOLE_CARD_RADIUS} shadow-[var(--shadow-glass-panel)]`
+    ? `bg-lantu-card/55 backdrop-blur-xl border border-lantu-border-raised ${CONSOLE_CARD_RADIUS} shadow-[var(--shadow-glass-panel)]`
     : `bg-white/80 backdrop-blur-md border border-transparent ${CONSOLE_CARD_RADIUS} shadow-[var(--shadow-glass-panel)]`;
 }
 
@@ -117,9 +117,9 @@ const CARD_INTERACTIVE_HOVER_LIGHT =
 const CARD_INTERACTIVE_HOVER_LIGHT_SELECTED =
   `hover:border-sky-300/95 ${CARD_HOVER_SHADOW_LIGHT}`;
 const CARD_INTERACTIVE_HOVER_DARK =
-  `hover:border-white/[0.14] hover:bg-[#3a3a3a] ${CARD_HOVER_SHADOW_DARK}`;
+  `hover:border-sky-400/40 hover:bg-lantu-card-hover ${CARD_HOVER_SHADOW_DARK}`;
 const CARD_INTERACTIVE_HOVER_DARK_SELECTED =
-  `hover:border-sky-400/65 hover:bg-[#3a3a3a] ${CARD_HOVER_SHADOW_DARK}`;
+  `hover:border-sky-400/65 hover:bg-lantu-card-hover ${CARD_HOVER_SHADOW_DARK}`;
 
 export function bentoCard(theme: Theme, opts?: BentoCardStyleOptions) {
   const sel = opts?.selected === true;

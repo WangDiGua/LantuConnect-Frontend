@@ -178,7 +178,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
           aria-label="打开菜单"
           onClick={onOpenMobileNav}
         >
-          <Menu size={20} className={isDark ? 'text-slate-300' : 'text-slate-600'} />
+          <Menu size={20} className={isDark ? 'text-lantu-text-primary' : 'text-slate-600'} />
         </button>
         <button
           type="button"
@@ -218,10 +218,10 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
             : isSelfActive || isChildActive;
           const pillBtn = active
             ? isDark
-              ? 'text-blue-400'
+              ? 'text-sky-400'
               : 'text-blue-600'
             : isDark
-              ? 'text-slate-500 hover:text-slate-200'
+              ? 'text-lantu-text-muted hover:text-lantu-text-primary'
               : 'text-slate-500 hover:text-slate-900';
 
           if (!hasChildren) {
@@ -288,10 +288,10 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
                     className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-[15px] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-inset ${
                       activeSubItem === subItem.id && activeSidebar === item.id && routeRole === item.domain
                         ? isDark
-                          ? 'bg-white/10 font-semibold text-slate-100'
+                          ? 'bg-white/10 font-semibold text-lantu-text-primary'
                           : 'bg-slate-100 font-semibold text-slate-900'
                         : isDark
-                          ? 'text-slate-300 hover:bg-white/[0.06]'
+                          ? 'text-lantu-text-secondary hover:bg-white/[0.06]'
                           : 'text-slate-700 hover:bg-slate-50'
                     }`}
                   >
@@ -335,7 +335,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
             'block shrink-0 transition-colors duration-200',
             hotSearchFocused
               ? isDark
-                ? 'text-slate-100'
+                ? 'text-lantu-text-primary'
                 : 'text-gray-900'
               : isDark
                 ? `${iconMuted(theme)}`
@@ -357,7 +357,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
           placeholder="热门搜索（即将上线）"
           className={[
             'flex-1 min-w-0 h-full cursor-default border-none bg-transparent px-2.5 py-0 text-sm font-medium leading-none outline-none',
-            isDark ? 'text-slate-200 placeholder:text-slate-500' : 'text-gray-700 placeholder-gray-400',
+            isDark ? 'text-lantu-text-primary placeholder:text-lantu-text-muted' : 'text-gray-700 placeholder-gray-400',
           ].join(' ')}
           aria-label="热门搜索，功能即将上线，当前为只读占位不可输入"
         />

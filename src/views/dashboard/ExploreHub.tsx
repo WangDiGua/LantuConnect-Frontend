@@ -98,19 +98,19 @@ const ANNOUNCEMENT_LABEL: Record<string, string> = {
   notice: '系统通知',
 };
 
-/** 与全站 bento 一致的极淡底影 + 默认无边线（图二） */
+/** 与全站 bento 一致；暗夜用细描边 + 轻阴影区分于主区 */
 const HUB_STAT_BASE_LIGHT = `border-transparent ${CONSOLE_CARD_SHADOW_LIGHT}`;
-const HUB_STAT_BASE_DARK = `border-transparent ${CONSOLE_CARD_SHADOW_DARK}`;
+const HUB_STAT_BASE_DARK = `border-lantu-border-raised ${CONSOLE_CARD_SHADOW_DARK}`;
 /** 仅 HubStatCard：悬停略加重层次，边线弱于市场卡「选中」态 */
 const HUB_STAT_HOVER_LIGHT =
   'hover:shadow-[var(--shadow-card-hover)] hover:border-sky-200/50 hover:bg-gradient-to-br hover:from-white hover:to-gray-50';
 const HUB_STAT_HOVER_DARK =
-  'hover:shadow-[var(--shadow-card-hover)] hover:border-sky-400/45 hover:bg-gradient-to-br hover:from-lantu-card hover:to-lantu-elevated';
+  'hover:shadow-[var(--shadow-card-hover)] hover:border-sky-400/45 hover:bg-lantu-card-hover';
 
 const Card: React.FC<{ children: React.ReactNode; className?: string; isDark?: boolean }> = ({ children, className = '', isDark = false }) => (
   <div
-    className={`${CONSOLE_CARD_RADIUS} border border-transparent overflow-hidden ${
-      isDark ? `bg-lantu-card ${CONSOLE_CARD_SHADOW_DARK}` : `bg-white ${CONSOLE_CARD_SHADOW_LIGHT}`
+    className={`${CONSOLE_CARD_RADIUS} border overflow-hidden ${
+      isDark ? `border-lantu-border-raised bg-lantu-card ${CONSOLE_CARD_SHADOW_DARK}` : `border-transparent bg-white ${CONSOLE_CARD_SHADOW_LIGHT}`
     } ${className}`}
   >
     {children}
@@ -120,7 +120,7 @@ const Card: React.FC<{ children: React.ReactNode; className?: string; isDark?: b
 const sectionActionBtn = (isDark: boolean) =>
   `text-sm font-medium inline-flex items-center gap-1 rounded-lg px-2 py-1 -mr-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
     isDark
-      ? 'text-slate-400 hover:text-slate-100 focus-visible:ring-sky-400/50 focus-visible:ring-offset-lantu-card'
+      ? 'text-lantu-text-secondary hover:text-lantu-text-primary focus-visible:ring-sky-400/50 focus-visible:ring-offset-lantu-card'
       : 'text-slate-500 hover:text-slate-900 focus-visible:ring-neutral-900/25 focus-visible:ring-offset-white'
   }`;
 
@@ -133,8 +133,8 @@ const SectionTitle: React.FC<{
 }> = ({ title, action, onAction, icon: Icon, isDark = false }) => (
   <div className="flex items-center justify-between gap-3 mb-6">
     <div className="flex items-center gap-2 min-w-0">
-      {Icon && <Icon className={`shrink-0 ${isDark ? 'text-slate-300' : 'text-slate-800'}`} size={20} />}
-      <h2 className={`text-xl font-bold tracking-tight truncate ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{title}</h2>
+      {Icon && <Icon className={`shrink-0 ${isDark ? 'text-lantu-text-primary' : 'text-slate-800'}`} size={20} />}
+      <h2 className={`text-xl font-bold tracking-tight truncate ${isDark ? 'text-lantu-text-primary' : 'text-slate-900'}`}>{title}</h2>
     </div>
     {action && onAction && (
       <button type="button" onClick={onAction} className={`shrink-0 ${sectionActionBtn(isDark)}`}>
@@ -172,16 +172,16 @@ function HubContributorStatCard({
     >
       <div
         className={`text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 mb-1.5 whitespace-nowrap ${
-          isDark ? 'text-slate-500' : 'text-slate-400'
+          isDark ? 'text-lantu-text-muted' : 'text-slate-400'
         }`}
       >
         <span className={isDark ? 'text-indigo-400' : 'text-indigo-500'}>{icon}</span>
         {label}
       </div>
       <div className="flex items-baseline gap-1 flex-wrap">
-        <span className={`text-xl sm:text-2xl font-black ${isDark ? 'text-slate-50' : 'text-slate-800'}`}>{value}</span>
+        <span className={`text-xl sm:text-2xl font-black ${isDark ? 'text-lantu-text-primary' : 'text-slate-800'}`}>{value}</span>
         {unit ? (
-          <span className={`text-xs font-bold ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{unit}</span>
+          <span className={`text-xs font-bold ${isDark ? 'text-lantu-text-muted' : 'text-slate-400'}`}>{unit}</span>
         ) : null}
         {trend ? (
           <TrendingUp
@@ -215,16 +215,16 @@ function HubContributorMiniStat({
       }`}
     >
       <div
-        className={`text-[9px] font-bold mb-1 text-center whitespace-nowrap ${isDark ? 'text-slate-500' : 'text-slate-400'}`}
+        className={`text-[9px] font-bold mb-1 text-center whitespace-nowrap ${isDark ? 'text-lantu-text-muted' : 'text-slate-400'}`}
       >
         {label}
       </div>
-      <div className={`text-sm font-black flex items-center gap-0.5 ${isDark ? 'text-slate-100' : 'text-slate-700'}`}>
+      <div className={`text-sm font-black flex items-center gap-0.5 ${isDark ? 'text-lantu-text-primary' : 'text-slate-700'}`}>
         <span className="tabular-nums">{value}</span>
         {suffix ? (
-          <span className={`text-[10px] font-bold ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{suffix}</span>
+          <span className={`text-[10px] font-bold ${isDark ? 'text-lantu-text-muted' : 'text-slate-400'}`}>{suffix}</span>
         ) : null}
-        <span className={`shrink-0 ${isDark ? 'text-slate-600' : 'text-slate-200'}`}>{icon}</span>
+        <span className={`shrink-0 ${isDark ? 'text-lantu-text-secondary' : 'text-slate-200'}`}>{icon}</span>
       </div>
     </div>
   );
@@ -234,15 +234,15 @@ function ExploreHubContributorsPodium({ contributors, isDark }: { contributors: 
   const top = contributors.slice(0, 3);
   const first = top[0];
   if (!first) {
-    return <div className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>暂无贡献者数据</div>;
+    return <div className={`text-sm ${isDark ? 'text-lantu-text-secondary' : 'text-slate-500'}`}>暂无贡献者数据</div>;
   }
   const second = top[1];
   const third = top[2];
 
   const ringBorder = isDark ? 'border-white/15' : 'border-slate-100';
   const subtleBg = isDark ? 'bg-white/[0.03]' : 'bg-neutral-50';
-  const textPri = isDark ? 'text-slate-100' : 'text-slate-900';
-  const textMuted = isDark ? 'text-slate-500' : 'text-slate-400';
+  const textPri = isDark ? 'text-lantu-text-primary' : 'text-slate-900';
+  const textMuted = isDark ? 'text-lantu-text-muted' : 'text-slate-400';
 
   const renderSide = (person: ContributorItem | undefined, rank: 2 | 3, badgeBg: string) => (
     <div className="flex-1 flex flex-col items-center min-w-0">
@@ -286,7 +286,7 @@ function ExploreHubContributorsPodium({ contributors, isDark }: { contributors: 
               ids: [person.userId],
             })}
           </p>
-          <p className={`text-[9px] font-bold mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+          <p className={`text-[9px] font-bold mt-0.5 ${isDark ? 'text-lantu-text-muted' : 'text-slate-500'}`}>
             {CONTRIBUTOR_RANK_ROLE[rank - 1]}
           </p>
           <p className={`text-[10px] ${textMuted} font-medium tabular-nums`}>{formatCount(person.totalCalls)} 次调用</p>
@@ -306,7 +306,7 @@ function ExploreHubContributorsPodium({ contributors, isDark }: { contributors: 
       <div className="flex justify-end px-4 pt-3 sm:px-5 sm:pt-4">
         <span
           className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full whitespace-nowrap ${
-            isDark ? 'text-slate-500 bg-white/[0.06]' : 'text-slate-400 bg-slate-100'
+            isDark ? 'text-lantu-text-muted bg-white/[0.06]' : 'text-slate-400 bg-slate-100'
           }`}
         >
           本周更新
@@ -420,10 +420,10 @@ function ExploreHubContributorsPodium({ contributors, isDark }: { contributors: 
 }
 
 const hubResourceCardClass = (isDark: boolean) =>
-  `${CONSOLE_CARD_RADIUS} border border-transparent px-6 pt-6 pb-8 flex flex-col h-full text-left cursor-pointer transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50 focus-visible:ring-offset-2 ${
+  `${CONSOLE_CARD_RADIUS} border px-6 pt-6 pb-8 flex flex-col h-full text-left cursor-pointer transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50 focus-visible:ring-offset-2 ${
     isDark
-      ? `bg-lantu-card ${CONSOLE_CARD_SHADOW_DARK} focus-visible:ring-offset-lantu-card hover:border-sky-400/45 hover:shadow-[var(--shadow-card-hover)]`
-      : `bg-white ${CONSOLE_CARD_SHADOW_LIGHT} focus-visible:ring-offset-white hover:border-sky-200/50 hover:shadow-[var(--shadow-card-hover)]`
+      ? `border-lantu-border-raised bg-lantu-card ${CONSOLE_CARD_SHADOW_DARK} focus-visible:ring-offset-lantu-card hover:border-sky-400/45 hover:shadow-[var(--shadow-card-hover)]`
+      : `border-transparent bg-white ${CONSOLE_CARD_SHADOW_LIGHT} focus-visible:ring-offset-white hover:border-sky-200/50 hover:shadow-[var(--shadow-card-hover)]`
   }`;
 
 const HubResourceCard: React.FC<{
@@ -434,7 +434,7 @@ const HubResourceCard: React.FC<{
   showReason?: boolean;
 }> = ({ item, isDark, onOpen, rank, showReason }) => {
   const authorLabel = item.author?.trim() || '平台资源';
-  const metaMuted = isDark ? 'text-slate-500' : 'text-slate-400';
+  const metaMuted = isDark ? 'text-lantu-text-muted' : 'text-slate-400';
   const showRating = item.rating != null && item.rating > 0 && !Number.isNaN(Number(item.rating));
   const fav = item.favoriteCount != null ? Number(item.favoriteCount) : 0;
   const rev = item.reviewCount != null ? Number(item.reviewCount) : 0;
@@ -444,7 +444,7 @@ const HubResourceCard: React.FC<{
         <div className="flex flex-wrap items-center gap-2 min-w-0">
           <span
             className={`text-xs font-bold px-2.5 py-1 rounded-lg shrink-0 ${
-              isDark ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-600'
+              isDark ? 'bg-white/10 text-lantu-text-secondary' : 'bg-slate-100 text-slate-600'
             }`}
           >
             {TYPE_LABEL[item.resourceType] ?? item.resourceType}
@@ -463,7 +463,7 @@ const HubResourceCard: React.FC<{
         {rank != null ? (
           <div
             className={`w-8 h-8 rounded-full border flex items-center justify-center text-xs font-bold shrink-0 ${
-              isDark ? 'bg-white/5 border-white/10 text-slate-400' : 'bg-slate-50 border-slate-100 text-slate-400'
+              isDark ? 'bg-white/5 border-white/10 text-lantu-text-muted' : 'bg-slate-50 border-slate-100 text-slate-400'
             }`}
           >
             {rank}
@@ -471,8 +471,8 @@ const HubResourceCard: React.FC<{
         ) : null}
       </div>
 
-      <h4 className={`font-bold text-lg mb-2 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{item.displayName}</h4>
-      <p className={`text-sm leading-relaxed flex-grow ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{item.description}</p>
+      <h4 className={`font-bold text-lg mb-2 ${isDark ? 'text-lantu-text-primary' : 'text-slate-900'}`}>{item.displayName}</h4>
+      <p className={`text-sm leading-relaxed flex-grow ${isDark ? 'text-lantu-text-secondary' : 'text-slate-500'}`}>{item.description}</p>
 
       <div className={`flex flex-wrap gap-x-3 gap-y-1 mt-4 text-xs ${metaMuted}`}>
         {showRating ? (
@@ -506,7 +506,7 @@ const HubResourceCard: React.FC<{
           isDark ? 'border-white/10' : 'border-slate-100'
         }`}
       >
-        <div className={`flex items-center gap-2 text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+        <div className={`flex items-center gap-2 text-xs ${isDark ? 'text-lantu-text-secondary' : 'text-slate-500'}`}>
           <div
             className={`w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-xs ${
               isDark ? 'bg-gradient-to-br from-slate-600 to-slate-700' : 'bg-gradient-to-br from-slate-200 to-slate-300'
@@ -516,7 +516,7 @@ const HubResourceCard: React.FC<{
           </div>
           {authorLabel}
         </div>
-        <div className={`text-xs font-medium flex items-center gap-1.5 ${isDark ? 'text-slate-400' : 'text-slate-400'}`}>
+        <div className={`text-xs font-medium flex items-center gap-1.5 ${isDark ? 'text-lantu-text-muted' : 'text-slate-400'}`}>
           <Activity size={14} aria-hidden />
           {item.callCount == null ? '—' : formatCount(item.callCount)}
         </div>
@@ -555,7 +555,7 @@ const HubStatCard: React.FC<{
     'transition-all duration-500 ease-out',
     'group-hover:scale-110 group-hover:-rotate-3 group-hover:shadow-[var(--shadow-card-hover)]',
     isDark
-      ? 'bg-white/10 text-slate-300 group-hover:bg-white group-hover:text-slate-900'
+      ? 'bg-white/10 text-lantu-text-secondary group-hover:bg-white group-hover:text-neutral-900'
       : 'bg-slate-50 text-slate-600 group-hover:bg-[#09090b] group-hover:text-white',
   ].join(' ');
 
@@ -569,12 +569,12 @@ const HubStatCard: React.FC<{
           <Icon size={22} strokeWidth={2} />
         </div>
         <div className={`mb-1.5 text-[2rem] font-black leading-none tracking-tight font-sans transition-colors duration-300 ${
-          isDark ? 'text-slate-100' : 'text-gray-900'
+          isDark ? 'text-lantu-text-primary' : 'text-gray-900'
         }`}>
           {value}
         </div>
         <div className={`text-xs font-medium transition-colors duration-300 ${
-          isDark ? 'text-slate-400 group-hover:text-slate-200' : 'text-slate-500 group-hover:text-slate-800'
+          isDark ? 'text-lantu-text-secondary group-hover:text-lantu-text-primary' : 'text-slate-500 group-hover:text-slate-800'
         }`}>
           {label}
         </div>
@@ -988,9 +988,9 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
   const pageContainer = 'w-full min-w-0';
 
   /** Hero：压低高度、参考魔搭「中间栏横幅」；有左轨时仅占主栏宽度 */
-  const heroRingOffset = isDark ? 'focus-visible:ring-offset-[#0c0e14]' : 'focus-visible:ring-offset-[#0a0a0a]';
+  const heroRingOffset = isDark ? 'focus-visible:ring-offset-lantu-canvas' : 'focus-visible:ring-offset-[#0a0a0a]';
   const heroShellClass = isDark
-    ? `relative w-full overflow-hidden rounded-2xl border border-white/[0.11] bg-gradient-to-b from-[#12151f] via-[#0c0e14] to-[#07080c] px-5 py-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),var(--shadow-card)] sm:px-6 sm:py-5`
+    ? `relative w-full overflow-hidden rounded-2xl border border-lantu-border-raised bg-gradient-to-b from-[#252830] via-[#1e2128] to-[#181b22] px-5 py-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.055),var(--shadow-card)] sm:px-6 sm:py-5`
     : `relative w-full overflow-hidden rounded-2xl border border-white/10 bg-[#0a0a0a] px-5 py-4 shadow-[var(--shadow-card)] sm:px-6 sm:py-5`;
   const heroGridStyle: React.CSSProperties = {
     backgroundImage: isDark
@@ -998,9 +998,9 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
       : 'linear-gradient(to right, rgba(255,255,255,0.055) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.055) 1px, transparent 1px)',
     backgroundSize: '32px 32px',
   };
-  const heroVignetteFrom = isDark ? '#0c0e14' : '#0a0a0a';
+  const heroVignetteFrom = isDark ? '#1e2128' : '#0a0a0a';
   const heroLeadClass = isDark
-    ? 'text-slate-400 text-sm sm:text-[15px] font-normal leading-relaxed max-w-xl mb-4'
+    ? 'text-lantu-text-secondary text-sm sm:text-[15px] font-normal leading-relaxed max-w-xl mb-4'
     : 'text-slate-300 text-sm sm:text-[15px] font-light leading-relaxed max-w-xl mb-4';
 
   const heroCompactTerminal = Boolean(hubRail);
@@ -1181,7 +1181,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
                       ))}
                     </div>
                   ) : (
-                    <p className={`text-sm ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>暂无最新上架资源</p>
+                    <p className={`text-sm ${isDark ? 'text-lantu-text-muted' : 'text-slate-500'}`}>暂无最新上架资源</p>
                   )}
                 </div>
                 <div>
@@ -1205,7 +1205,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
                       ))}
                     </div>
                   ) : (
-                    <p className={`text-sm ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>暂无个性化推荐，可多使用资源与收藏以便生成推荐</p>
+                    <p className={`text-sm ${isDark ? 'text-lantu-text-muted' : 'text-slate-500'}`}>暂无个性化推荐，可多使用资源与收藏以便生成推荐</p>
                   )}
                 </div>
               </div>
@@ -1246,12 +1246,12 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center justify-between mb-1">
-                            <h4 className={`font-bold text-lg ${isDark ? 'text-slate-100 group-hover:text-white' : 'text-slate-900 group-hover:text-black'}`}>{item.title}</h4>
+                            <h4 className={`font-bold text-lg ${isDark ? 'text-lantu-text-primary group-hover:text-white' : 'text-slate-900 group-hover:text-black'}`}>{item.title}</h4>
                             <span className={`text-xs px-2 py-1 rounded-md ${
-                              isDark ? 'text-slate-400 bg-white/5' : 'text-slate-400 bg-slate-50'
+                              isDark ? 'text-lantu-text-secondary bg-white/5' : 'text-slate-400 bg-slate-50'
                             }`}>{formatDateTime(item.createdAt)}</span>
                           </div>
-                          <p className={`text-sm leading-relaxed mt-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{item.summary}</p>
+                          <p className={`text-sm leading-relaxed mt-2 ${isDark ? 'text-lantu-text-secondary' : 'text-slate-500'}`}>{item.summary}</p>
                         </div>
                       </button>
                     ))}
@@ -1306,7 +1306,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
       >
         {detailAnnouncement && (
           <div className="space-y-3">
-            <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            <div className={`text-xs ${isDark ? 'text-lantu-text-muted' : 'text-slate-500'}`}>
               <span
                 className={`px-2 py-0.5 rounded-md mr-2 font-medium ${
                   isDark ? 'bg-white/10 text-slate-200' : 'bg-slate-100 text-slate-700'

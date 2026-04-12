@@ -19,7 +19,6 @@ import {
   MoreVertical,
   LogOut,
   User,
-  KeyRound,
 } from 'lucide-react';
 import { Theme, ThemeMode, ThemeColor, FontSize, FontFamily, AnimationStyle } from '../types';
 import { FONT_FAMILY_CLASSES, getRootFontSizePx } from '../constants/theme';
@@ -249,6 +248,7 @@ const DEVELOPER_PORTAL_PAGES = new Set([
   'sdk-download',
   'api-playground',
   'mcp-integration',
+  'my-integration-packages',
   'developer-statistics',
 ]);
 
@@ -646,6 +646,18 @@ const MainContent = React.memo<{
             initialTab="my-api-keys"
           />
         );
+      case 'my-integration-packages':
+        return (
+          <UserSettingsHubPage
+            theme={t}
+            fontSize={fs}
+            themePreference={tpref}
+            themeColor={tc}
+            showMessage={msg}
+            onOpenAppearance={() => { setMenu(true); setAppMenu(true); }}
+            initialTab="my-integration-packages"
+          />
+        );
 
       case 'api-docs':
         return <ApiDocsPage theme={t} fontSize={fs} />;
@@ -666,7 +678,7 @@ const MainContent = React.memo<{
   const skeletonType = (() => {
     if (p === 'dashboard' || p === 'workspace') return 'dashboard' as const;
     if (p.includes('create')) return 'form' as const;
-    if (p.includes('detail') || p === 'profile' || p === 'my-api-keys') return 'detail' as const;
+    if (p.includes('detail') || p === 'profile' || p === 'my-api-keys' || p === 'my-integration-packages') return 'detail' as const;
     if (
       p.includes('market') ||
       p === 'skills-center' ||
@@ -816,7 +828,7 @@ const MainLayoutContent: React.FC<{
     normalizedRoutePage != null ? inferConsoleRole(normalizedRoutePage, platformRole) : undefined;
   const queryType = parseResourceType(new URLSearchParams(location.search).get('type'));
   const marketTabQuery = parseResourceType(new URLSearchParams(location.search).get('tab'));
-  const isStandaloneUserSettingsPage = ['profile', 'my-api-keys', 'preferences'].includes(
+  const isStandaloneUserSettingsPage = ['profile', 'my-api-keys', 'my-integration-packages', 'preferences'].includes(
     normalizedRoutePage ?? '',
   );
   const routeValid = !!(
@@ -1682,10 +1694,6 @@ const MainLayoutContent: React.FC<{
 
   /** 供 LayoutChrome（如市场页文案）使用；主滚动区不再渲染重复标题条 */
   const headerTitle = useMemo(() => {
-    if (!layoutIsAdmin && activeSidebar === 'user-settings') {
-      const activeChild = navChildrenForActiveSidebar.find((c) => c.id === activeSubItem);
-      return activeChild?.label ?? '个人设置';
-    }
     const parentItem = [...USER_SIDEBAR_ITEMS, ...ADMIN_SIDEBAR_ITEMS].find((i) => i.id === activeSidebar);
     if (!parentItem) return layoutIsAdmin ? '管理后台' : '工作台';
     if (navChildrenForActiveSidebar.length === 0) return parentItem.label;
@@ -1920,22 +1928,6 @@ const MainLayoutContent: React.FC<{
                         <User size={15} className="shrink-0 opacity-90" aria-hidden />
                         个人资料
                       </button>
-                      <button
-                        type="button"
-                        role="menuitem"
-                        onClick={() => {
-                          setShowUserMenu(false);
-                          navigate(buildPath('user', 'my-api-keys'));
-                          if (layoutIsAdmin) setRole('user');
-                          setMobileNavOpen(false);
-                        }}
-                        className={`flex min-h-11 w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-inset ${
-                          isDark ? 'text-slate-200 hover:bg-white/[0.08]' : 'text-slate-800 hover:bg-slate-100'
-                        }`}
-                      >
-                        <KeyRound size={15} className="shrink-0 opacity-90" aria-hidden />
-                        密钥管理
-                      </button>
                       <div className={`mx-2 my-1 h-px ${isDark ? 'bg-white/[0.08]' : 'bg-slate-200/80'}`} aria-hidden />
                       <button
                         type="button"
@@ -1973,7 +1965,7 @@ const MainLayoutContent: React.FC<{
                         ? 'border-white/10 bg-white/[0.06] hover:bg-white/[0.1] focus-visible:ring-offset-lantu-card'
                         : 'border-slate-200/80 bg-white hover:bg-slate-50 focus-visible:ring-offset-white'
                     }`}
-                    aria-label={`账户菜单：${displayUserName}；含个人资料、密钥管理、退出登录`}
+                    aria-label={`账户菜单：${displayUserName}；含个人资料、退出登录`}
                     aria-expanded={showUserMenu}
                   >
                     <AvatarGradientFrame

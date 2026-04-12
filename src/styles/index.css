@@ -165,9 +165,10 @@
     --glass-nav-fallback: rgba(23, 23, 23, 0.97);
     --glass-border: rgba(255, 255, 255, 0.06);
 
-    --shadow-control: 0 1px 2px rgba(0, 0, 0, 0.18);
-    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.22);
-    --shadow-card-hover: 0 2px 4px rgba(0, 0, 0, 0.24);
+    --shadow-control: 0 1px 2px rgba(0, 0, 0, 0.2);
+    /** 无边线时略加强漫射，避免卡片与主区糊成一块 */
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.22), 0 2px 8px rgba(0, 0, 0, 0.18), 0 4px 16px rgba(0, 0, 0, 0.12);
+    --shadow-card-hover: 0 2px 6px rgba(0, 0, 0, 0.26), 0 6px 18px rgba(0, 0, 0, 0.16);
     --shadow-dropdown: 0 2px 8px rgba(0, 0, 0, 0.28);
     --shadow-modal: 0 4px 12px rgba(0, 0, 0, 0.32);
     --shadow-glass-panel: inset 0 1px 0 0 rgba(255, 255, 255, 0.045), 0 1px 2px rgba(0, 0, 0, 0.2);
@@ -185,8 +186,8 @@
 
     --border-default: rgba(255, 255, 255, 0.08);
     --border-subtle: rgba(255, 255, 255, 0.05);
-    /** 与画布区分的 1px 边界（替代过重投影） */
-    --border-raised: #373737;
+    /** 默认不用实线描边；与亮色一致靠色阶 + 阴影；需描边时用 border-default */
+    --border-raised: transparent;
   }
 }
 

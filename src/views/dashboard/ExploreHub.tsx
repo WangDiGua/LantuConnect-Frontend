@@ -98,9 +98,9 @@ const ANNOUNCEMENT_LABEL: Record<string, string> = {
   notice: '系统通知',
 };
 
-/** 与全站 bento 一致；暗夜用细描边 + 轻阴影区分于主区 */
+/** 与全站 bento 一致：无边线，靠底色 + 阴影 */
 const HUB_STAT_BASE_LIGHT = `border-transparent ${CONSOLE_CARD_SHADOW_LIGHT}`;
-const HUB_STAT_BASE_DARK = `border-lantu-border-raised ${CONSOLE_CARD_SHADOW_DARK}`;
+const HUB_STAT_BASE_DARK = `border-transparent ${CONSOLE_CARD_SHADOW_DARK}`;
 /** 仅 HubStatCard：悬停略加重层次，边线弱于市场卡「选中」态 */
 const HUB_STAT_HOVER_LIGHT =
   'hover:shadow-[var(--shadow-card-hover)] hover:border-sky-200/50 hover:bg-gradient-to-br hover:from-white hover:to-gray-50';
@@ -109,8 +109,8 @@ const HUB_STAT_HOVER_DARK =
 
 const Card: React.FC<{ children: React.ReactNode; className?: string; isDark?: boolean }> = ({ children, className = '', isDark = false }) => (
   <div
-    className={`${CONSOLE_CARD_RADIUS} border overflow-hidden ${
-      isDark ? `border-lantu-border-raised bg-lantu-card ${CONSOLE_CARD_SHADOW_DARK}` : `border-transparent bg-white ${CONSOLE_CARD_SHADOW_LIGHT}`
+    className={`${CONSOLE_CARD_RADIUS} border border-transparent overflow-hidden ${
+      isDark ? `bg-lantu-card ${CONSOLE_CARD_SHADOW_DARK}` : `bg-white ${CONSOLE_CARD_SHADOW_LIGHT}`
     } ${className}`}
   >
     {children}
@@ -420,10 +420,10 @@ function ExploreHubContributorsPodium({ contributors, isDark }: { contributors: 
 }
 
 const hubResourceCardClass = (isDark: boolean) =>
-  `${CONSOLE_CARD_RADIUS} border px-6 pt-6 pb-8 flex flex-col h-full text-left cursor-pointer transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50 focus-visible:ring-offset-2 ${
+  `${CONSOLE_CARD_RADIUS} border border-transparent px-6 pt-6 pb-8 flex flex-col h-full text-left cursor-pointer transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50 focus-visible:ring-offset-2 ${
     isDark
-      ? `border-lantu-border-raised bg-lantu-card ${CONSOLE_CARD_SHADOW_DARK} focus-visible:ring-offset-lantu-card hover:border-sky-400/45 hover:shadow-[var(--shadow-card-hover)]`
-      : `border-transparent bg-white ${CONSOLE_CARD_SHADOW_LIGHT} focus-visible:ring-offset-white hover:border-sky-200/50 hover:shadow-[var(--shadow-card-hover)]`
+      ? `bg-lantu-card ${CONSOLE_CARD_SHADOW_DARK} focus-visible:ring-offset-lantu-card hover:border-sky-400/45 hover:shadow-[var(--shadow-card-hover)]`
+      : `bg-white ${CONSOLE_CARD_SHADOW_LIGHT} focus-visible:ring-offset-white hover:border-sky-200/50 hover:shadow-[var(--shadow-card-hover)]`
   }`;
 
 const HubResourceCard: React.FC<{
@@ -990,7 +990,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
   /** Hero：压低高度、参考魔搭「中间栏横幅」；有左轨时仅占主栏宽度 */
   const heroRingOffset = isDark ? 'focus-visible:ring-offset-lantu-canvas' : 'focus-visible:ring-offset-[#0a0a0a]';
   const heroShellClass = isDark
-    ? `relative w-full overflow-hidden rounded-2xl border border-lantu-border-raised bg-gradient-to-b from-[#252830] via-[#1e2128] to-[#181b22] px-5 py-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.055),var(--shadow-card)] sm:px-6 sm:py-5`
+    ? `relative w-full overflow-hidden rounded-2xl border border-transparent bg-gradient-to-b from-[#252830] via-[#1e2128] to-[#181b22] px-5 py-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.055),var(--shadow-card)] sm:px-6 sm:py-5`
     : `relative w-full overflow-hidden rounded-2xl border border-white/10 bg-[#0a0a0a] px-5 py-4 shadow-[var(--shadow-card)] sm:px-6 sm:py-5`;
   const heroGridStyle: React.CSSProperties = {
     backgroundImage: isDark

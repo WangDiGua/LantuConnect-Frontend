@@ -69,9 +69,9 @@ export const CONSOLE_CARD_RADIUS = 'rounded-[28px]';
 /** 与 design token `--shadow-card` 一致（图二：偏下漫射） */
 export const CONSOLE_CARD_SHADOW_LIGHT = 'shadow-[var(--shadow-card)]';
 export const CONSOLE_CARD_SHADOW_DARK = 'shadow-[var(--shadow-card)]';
-/** 图二默认：亮色无边线；暗夜用细描边区分卡片与主区，避免「一坨灰」 */
+/** 图二默认：亮/暗均无边线，靠画布 vs 卡片底色 + `--shadow-card` 分层（与亮色一致） */
 const CONSOLE_CARD_BORDER_LIGHT_DEFAULT = 'border-transparent';
-const CONSOLE_CARD_BORDER_DARK_DEFAULT = 'border-lantu-border-raised';
+const CONSOLE_CARD_BORDER_DARK_DEFAULT = 'border-transparent';
 /** 图三选中：细冷色描边 */
 export const CONSOLE_CARD_BORDER_SELECTED_LIGHT = 'border-sky-200/85';
 export const CONSOLE_CARD_BORDER_SELECTED_DARK = 'border-sky-400/45';
@@ -92,13 +92,13 @@ export function canvasCard(theme: Theme) {
 
 export function glassSidebar(theme: Theme) {
   return D(theme)
-    ? 'bg-lantu-chrome/85 backdrop-blur-2xl border-r border-lantu-border-raised'
+    ? 'bg-lantu-chrome/85 backdrop-blur-2xl border-r border-transparent'
     : 'bg-[#FDFDFD] backdrop-blur-2xl border-r border-neutral-200';
 }
 
 export function glassPanel(theme: Theme) {
   return D(theme)
-    ? `bg-lantu-card/55 backdrop-blur-xl border border-lantu-border-raised ${CONSOLE_CARD_RADIUS} shadow-[var(--shadow-glass-panel)]`
+    ? `bg-lantu-card/55 backdrop-blur-xl border border-transparent ${CONSOLE_CARD_RADIUS} shadow-[var(--shadow-glass-panel)]`
     : `bg-white/80 backdrop-blur-md border border-transparent ${CONSOLE_CARD_RADIUS} shadow-[var(--shadow-glass-panel)]`;
 }
 

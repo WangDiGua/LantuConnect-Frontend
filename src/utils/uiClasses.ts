@@ -92,7 +92,7 @@ export function canvasCard(theme: Theme) {
 
 export function glassSidebar(theme: Theme) {
   return D(theme)
-    ? 'bg-lantu-surface/70 backdrop-blur-2xl border-r border-white/[0.06]'
+    ? 'bg-lantu-chrome/85 backdrop-blur-2xl border-r border-white/[0.06]'
     : 'bg-[#FDFDFD] backdrop-blur-2xl border-r border-neutral-200';
 }
 
@@ -117,9 +117,9 @@ const CARD_INTERACTIVE_HOVER_LIGHT =
 const CARD_INTERACTIVE_HOVER_LIGHT_SELECTED =
   `hover:border-sky-300/95 ${CARD_HOVER_SHADOW_LIGHT}`;
 const CARD_INTERACTIVE_HOVER_DARK =
-  `hover:border-white/[0.14] hover:bg-[#1e2636] ${CARD_HOVER_SHADOW_DARK}`;
+  `hover:border-white/[0.14] hover:bg-[#3a3a3a] ${CARD_HOVER_SHADOW_DARK}`;
 const CARD_INTERACTIVE_HOVER_DARK_SELECTED =
-  `hover:border-sky-400/65 hover:bg-[#1e2636] ${CARD_HOVER_SHADOW_DARK}`;
+  `hover:border-sky-400/65 hover:bg-[#3a3a3a] ${CARD_HOVER_SHADOW_DARK}`;
 
 export function bentoCard(theme: Theme, opts?: BentoCardStyleOptions) {
   const sel = opts?.selected === true;
@@ -174,14 +174,16 @@ export const btnHeroSecondary = 'inline-flex items-center gap-2 px-6 py-3 bg-whi
 export function btnSecondary(theme: Theme) {
   return `inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm leading-none font-semibold whitespace-nowrap transition-all duration-200 motion-reduce:transition-none active:scale-[0.98] motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/40 ${
     D(theme)
-      ? 'bg-white/10 text-neutral-300 hover:bg-white/15 hover:text-white focus-visible:ring-sky-400/45'
+      ? 'bg-white/10 text-lantu-text-secondary hover:bg-white/15 hover:text-lantu-text-primary focus-visible:ring-sky-400/45'
       : 'bg-neutral-100 text-neutral-900 hover:bg-neutral-200/80'
   }`;
 }
 
 export function btnGhost(theme: Theme) {
   return `inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm leading-none font-medium whitespace-nowrap transition-all duration-200 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/35 ${
-    D(theme) ? 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5 focus-visible:ring-sky-400/40' : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
+    D(theme)
+      ? 'text-lantu-text-secondary hover:text-lantu-text-primary hover:bg-white/5 focus-visible:ring-sky-400/40'
+      : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
   }`;
 }
 
@@ -191,7 +193,7 @@ export function btnGhost(theme: Theme) {
 
 export function tableHeadCell(theme: Theme) {
   return `px-6 py-3.5 text-[12px] font-medium uppercase tracking-wider text-left whitespace-nowrap ${
-    D(theme) ? 'text-neutral-500' : 'text-neutral-500'
+    D(theme) ? 'text-lantu-text-muted' : 'text-neutral-500'
   }`;
 }
 
@@ -221,7 +223,7 @@ export function tableCellActionChipsRow() {
 export function mgmtTableActionGhost(theme: Theme) {
   return `inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${
     D(theme)
-      ? 'bg-white/[0.08] text-slate-200 hover:bg-white/12'
+      ? 'bg-white/[0.08] text-lantu-text-primary hover:bg-white/12'
       : 'bg-slate-100 text-slate-700 hover:bg-slate-200/90'
   }`;
 }
@@ -331,15 +333,15 @@ export function statusLabel(status: DomainStatus | string | null | undefined) {
    ═══════════════════════════════════════════ */
 
 export function textPrimary(theme: Theme) {
-  return D(theme) ? 'text-neutral-100' : 'text-neutral-900';
+  return D(theme) ? 'text-lantu-text-primary' : 'text-neutral-900';
 }
 
 export function textSecondary(theme: Theme) {
-  return D(theme) ? 'text-neutral-400' : 'text-neutral-500';
+  return D(theme) ? 'text-lantu-text-secondary' : 'text-neutral-500';
 }
 
 export function textMuted(theme: Theme) {
-  return D(theme) ? 'text-neutral-500' : 'text-neutral-400';
+  return D(theme) ? 'text-lantu-text-muted' : 'text-neutral-400';
 }
 
 /** 页面主标题（H1 级） */
@@ -359,7 +361,7 @@ export function cardHeading(theme: Theme) {
 
 /** 表单字段标签 */
 export function labelBase(theme: Theme) {
-  return `text-sm font-medium ${D(theme) ? 'text-neutral-300' : 'text-neutral-700'}`;
+  return `text-sm font-medium ${D(theme) ? 'text-lantu-text-secondary' : 'text-neutral-700'}`;
 }
 
 /** 辅助说明 / 表单项下提示 */
@@ -379,7 +381,7 @@ export function inputBase(theme: Theme) {
   const base =
     'w-full rounded-xl text-sm transition-all duration-200 motion-reduce:transition-none focus:outline-none focus-visible:ring-2 disabled:opacity-50 disabled:pointer-events-none';
   return D(theme)
-    ? `${base} border border-white/[0.1] bg-white/[0.04] px-4 py-2.5 text-neutral-100 placeholder:text-neutral-500 focus-visible:border-sky-500/35 focus-visible:ring-sky-500/30`
+    ? `${base} border border-white/[0.1] bg-white/[0.04] px-4 py-2.5 text-lantu-text-primary placeholder:text-lantu-text-secondary focus-visible:border-sky-500/35 focus-visible:ring-sky-500/30`
     : `${base} border border-neutral-200 bg-neutral-50/50 px-4 py-2.5 text-neutral-900 placeholder:text-neutral-400 focus-visible:border-neutral-900 focus-visible:bg-white focus-visible:ring-neutral-900/8`;
 }
 
@@ -402,7 +404,7 @@ export function linkInline(theme: Theme) {
 export function iconButton(theme: Theme) {
   return `inline-flex items-center justify-center min-h-10 min-w-10 shrink-0 rounded-xl transition-colors duration-200 motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
     D(theme)
-      ? 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5 focus-visible:ring-sky-400/45 focus-visible:ring-offset-lantu-card'
+      ? 'text-lantu-text-secondary hover:text-lantu-text-primary hover:bg-white/5 focus-visible:ring-sky-400/45 focus-visible:ring-offset-lantu-card'
       : 'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 focus-visible:ring-neutral-900/22 focus-visible:ring-offset-white'
   }`;
 }
@@ -410,13 +412,13 @@ export function iconButton(theme: Theme) {
 /** 顶栏、画布内工具按钮等 Lucide 图标（暗色对比度高于 neutral-400） */
 export function iconChrome(theme: Theme) {
   return D(theme)
-    ? 'text-slate-300 hover:text-slate-100'
+    ? 'text-lantu-text-primary hover:text-white'
     : 'text-slate-500 hover:text-slate-800';
 }
 
 /** 搜索框前缀、侧栏搜索等次要装饰图标 */
 export function iconMuted(theme: Theme) {
-  return D(theme) ? 'text-slate-400' : 'text-slate-500';
+  return D(theme) ? 'text-lantu-text-secondary' : 'text-slate-500';
 }
 
 /** 卡片/按钮等标准动效时长（配合 motion-reduce） */
@@ -428,6 +430,6 @@ export const transitionStandard = 'transition-all duration-200 ease-out motion-r
 
 export function techBadge(theme: Theme) {
   return `text-xs uppercase tracking-wide font-medium px-2 py-0.5 rounded-lg border ${
-    D(theme) ? 'bg-white/5 text-neutral-500 border-white/10' : 'bg-neutral-100 text-neutral-600 border-neutral-200/60'
+    D(theme) ? 'bg-white/5 text-lantu-text-muted border-white/10' : 'bg-neutral-100 text-neutral-600 border-neutral-200/60'
   }`;
 }

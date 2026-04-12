@@ -133,16 +133,67 @@ function proseH3(theme: Theme, children: React.ReactNode) {
   return <h3 className={`scroll-mt-24 mt-8 text-base font-semibold ${textPrimary(theme)}`}>{children}</h3>;
 }
 
-export interface ApiDocsPageProps { theme: Theme; fontSize: FontSize; }
+export interface ApiDocsGuideReferenceToolbarProps {
+  theme: Theme;
+  viewMode: 'guide' | 'reference';
+  onViewModeChange: (mode: 'guide' | 'reference') => void;
+}
 
-export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => {
+/** 供「接入与文档」hub 与独立接入指南页共用：使用指南 / 接口参考 */
+export const ApiDocsGuideReferenceToolbar: React.FC<ApiDocsGuideReferenceToolbarProps> = ({
+  theme,
+  viewMode,
+  onViewModeChange,
+}) => {
+  const isDark = theme === 'dark';
+  const tabBtn = (mode: 'guide' | 'reference', label: string) => (
+    <button
+      key={mode}
+      type="button"
+      onClick={() => onViewModeChange(mode)}
+      className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+        viewMode === mode
+          ? (isDark ? 'bg-white/10 text-white shadow-sm' : 'bg-white text-neutral-900 shadow-sm ring-1 ring-slate-200')
+          : (isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-600 hover:text-slate-900')
+      }`}
+    >
+      {label}
+    </button>
+  );
+  return (
+    <div className={`flex shrink-0 rounded-xl p-1 ${isDark ? 'bg-white/[0.06]' : 'bg-slate-200/80'}`} role="tablist" aria-label="接入指南视图">
+      {tabBtn('guide', '使用指南')}
+      {tabBtn('reference', '接口参考')}
+    </div>
+  );
+};
+
+export interface ApiDocsPageProps {
+  theme: Theme;
+  fontSize: FontSize;
+  /** 嵌入「接入与文档」hub：不包 MgmtPageShell，由 hub 统一面包屑与说明 */
+  embedInHub?: boolean;
+  /** hub 嵌入时由父级控制「使用指南 / 接口参考」（与 embedInHub 同用） */
+  viewMode?: 'guide' | 'reference';
+  onViewModeChange?: (mode: 'guide' | 'reference') => void;
+}
+
+export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({
+  theme,
+  fontSize,
+  embedInHub = false,
+  viewMode: viewModeProp,
+  onViewModeChange,
+}) => {
   const navigate = useNavigate();
   const { pathname, hash } = useLocation();
   const { platformRole } = useUserRole();
   const routePage = parseRoute(pathname)?.page ?? '';
   const consoleRole: ConsoleRole = inferConsoleRole(routePage, platformRole);
   const isDark = theme === 'dark';
-  const [viewMode, setViewMode] = useState<'guide' | 'reference'>('guide');
+  const [viewModeInternal, setViewModeInternal] = useState<'guide' | 'reference'>('guide');
+  const viewMode = viewModeProp ?? viewModeInternal;
+  const setViewMode = onViewModeChange ?? setViewModeInternal;
   const [activeCat, setActiveCat] = useState(API_CATEGORIES[0].id);
   const category = API_CATEGORIES.find((c) => c.id === activeCat)!;
 
@@ -180,38 +231,11 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
     requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   }, [hash, viewMode]);
 
-  const tabBtn = (mode: 'guide' | 'reference', label: string) => (
-    <button
-      key={mode}
-      type="button"
-      onClick={() => setViewMode(mode)}
-      className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-        viewMode === mode
-          ? (isDark ? 'bg-white/10 text-white shadow-sm' : 'bg-white text-neutral-900 shadow-sm ring-1 ring-slate-200')
-          : (isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-600 hover:text-slate-900')
-      }`}
-    >
-      {label}
-    </button>
-  );
-
   const docsToolbar = (
-    <div className={`flex shrink-0 rounded-xl p-1 ${isDark ? 'bg-white/[0.06]' : 'bg-slate-200/80'}`}>
-      {tabBtn('guide', '使用指南')}
-      {tabBtn('reference', '接口参考')}
-    </div>
+    <ApiDocsGuideReferenceToolbar theme={theme} viewMode={viewMode} onViewModeChange={setViewMode} />
   );
 
-  return (
-    <MgmtPageShell
-      theme={theme}
-      fontSize={fontSize}
-      titleIcon={BookOpen}
-      breadcrumbSegments={['开发者中心', '接入指南']}
-      description="面向师生的开发者导读：从入驻、登记资源到目录发现与网关调用；详请见正文与「接口参考」"
-      toolbar={docsToolbar}
-      contentScroll="document"
-    >
+  const mainContent = (
       <div className="min-h-0 w-full flex flex-col px-4 sm:px-6 pb-8">
         {viewMode === 'guide' && (
           <div className="flex-1 min-h-0 flex w-full min-w-0 items-start">
@@ -761,6 +785,23 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({ theme, fontSize }) => 
           </>
         )}
       </div>
+  );
+
+  if (embedInHub) {
+    return mainContent;
+  }
+
+  return (
+    <MgmtPageShell
+      theme={theme}
+      fontSize={fontSize}
+      titleIcon={BookOpen}
+      breadcrumbSegments={['开发者中心', '接入指南']}
+      description="面向师生的开发者导读：从入驻、登记资源到目录发现与网关调用；详请见正文与「接口参考」"
+      toolbar={docsToolbar}
+      contentScroll="document"
+    >
+      {mainContent}
     </MgmtPageShell>
   );
 };

@@ -112,9 +112,14 @@ function CopyBtn({ text, isDark }: { text: string; isDark: boolean }) {
   );
 }
 
-export interface SdkDownloadPageProps { theme: Theme; fontSize: FontSize; }
+export interface SdkDownloadPageProps {
+  theme: Theme;
+  fontSize: FontSize;
+  /** 嵌入「接入与文档」hub：不包 MgmtPageShell */
+  embedInHub?: boolean;
+}
 
-export const SdkDownloadPage: React.FC<SdkDownloadPageProps> = ({ theme, fontSize }) => {
+export const SdkDownloadPage: React.FC<SdkDownloadPageProps> = ({ theme, fontSize, embedInHub = false }) => {
   const isDark = theme === 'dark';
   const navigate = useNavigate();
   const [roadmapModal, setRoadmapModal] = useState<SdkRoadmapInfo | null>(null);
@@ -122,16 +127,7 @@ export const SdkDownloadPage: React.FC<SdkDownloadPageProps> = ({ theme, fontSiz
 
   const apiBaseHint = env.VITE_API_BASE_URL;
 
-  return (
-    <>
-      <MgmtPageShell
-        theme={theme}
-        fontSize={fontSize}
-        titleIcon={Download}
-        breadcrumbSegments={['开发者中心', 'SDK 下载']}
-        description="后端 SDK v1 HTTP 网关已就绪；多语言封装包规划中"
-        contentScroll="document"
-      >
+  const sdkInner = (
         <div className={`px-4 sm:px-6 pb-8 ${pageBlockStack}`}>
         <div
           className={`rounded-2xl border px-5 py-4 sm:px-6 sm:py-5 text-sm leading-relaxed ${
@@ -142,6 +138,11 @@ export const SdkDownloadPage: React.FC<SdkDownloadPageProps> = ({ theme, fontSiz
             <BookOpen size={18} className={`mt-0.5 shrink-0 ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`} />
             <div>
               <p className={`font-semibold ${textPrimary(theme)}`}>SDK v1 网关（与业务网关同源能力）</p>
+              {embedInHub ? (
+                <p className={`mt-1 text-xs ${textSecondary(theme)}`}>
+                  与同一页「接入指南」中的鉴权、<span className="font-mono">code/data</span> 约定及接口语义一致；此处仅汇总 <span className="font-mono">/sdk/v1</span> 路径与可复制示例，便于边读文档边对照请求。
+                </p>
+              ) : null}
               <p className={`mt-1 text-xs ${textSecondary(theme)}`}>
                 所有路径挂在本应用的 API 前缀下，例如完整路径形如
                 <code className={`mx-1 rounded px-1 font-mono text-xs ${isDark ? 'bg-white/10' : 'bg-slate-100'}`}>{`${apiBaseHint}/sdk/v1/invoke`}</code>
@@ -231,8 +232,9 @@ export const SdkDownloadPage: React.FC<SdkDownloadPageProps> = ({ theme, fontSiz
           </div>
         </div>
         </div>
-      </MgmtPageShell>
+  );
 
+  const modal = (
       <Modal open={!!roadmapModal} onClose={() => setRoadmapModal(null)} title={roadmapModal ? `${roadmapModal.name}` : ''} theme={theme} size="sm" footer={<button type="button" className={btnSecondary(theme)} onClick={() => setRoadmapModal(null)}>关闭</button>}>
         {roadmapModal && (
           <div className={`space-y-3 text-sm ${textSecondary(theme)}`}>
@@ -241,6 +243,30 @@ export const SdkDownloadPage: React.FC<SdkDownloadPageProps> = ({ theme, fontSiz
           </div>
         )}
       </Modal>
+  );
+
+  if (embedInHub) {
+    return (
+      <>
+        {sdkInner}
+        {modal}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <MgmtPageShell
+        theme={theme}
+        fontSize={fontSize}
+        titleIcon={Download}
+        breadcrumbSegments={['开发者中心', 'SDK 下载']}
+        description="后端 SDK v1 HTTP 网关已就绪；多语言封装包规划中"
+        contentScroll="document"
+      >
+        {sdkInner}
+      </MgmtPageShell>
+      {modal}
     </>
   );
 };

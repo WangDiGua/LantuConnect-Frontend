@@ -27,23 +27,19 @@ function buildPublicApiBaseUrl(): string {
   return base;
 }
 
-export interface GatewayIntegrationPageProps {
+export interface GatewayIntegrationQuickLinksToolbarProps {
   theme: Theme;
-  fontSize: FontSize;
 }
 
-export const GatewayIntegrationPage: React.FC<GatewayIntegrationPageProps> = ({ theme, fontSize }) => {
+/** 接入指南锚点 + 回到同页 Playground；供「调试与网关」hub 与独立网关页共用 */
+export const GatewayIntegrationQuickLinksToolbar: React.FC<GatewayIntegrationQuickLinksToolbarProps> = ({ theme }) => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { platformRole } = useUserRole();
   const routePage = parseRoute(pathname)?.page ?? '';
   const consoleRole: ConsoleRole = inferConsoleRole(routePage, platformRole);
-
   const isDark = theme === 'dark';
-  const apiBaseUrl = useMemo(() => buildPublicApiBaseUrl(), []);
-  const [gatewayTab, setGatewayTab] = useState<GatewayIntegrationTabId>('portal-invoke');
-
-  const toolbar = (
+  return (
     <div className="flex flex-wrap gap-2">
       <button
         type="button"
@@ -69,17 +65,28 @@ export const GatewayIntegrationPage: React.FC<GatewayIntegrationPageProps> = ({ 
       </button>
     </div>
   );
+};
 
-  return (
-    <MgmtPageShell
-      theme={theme}
-      fontSize={fontSize}
-      titleIcon={Puzzle}
-      breadcrumbSegments={['开发者中心', '网关集成']}
-      description="说明如何调用网关；Key、目录、invoke 预判与闭包试算请在 API Playground 中完成。"
-      toolbar={toolbar}
-      contentScroll="document"
-    >
+export interface GatewayIntegrationPageProps {
+  theme: Theme;
+  fontSize: FontSize;
+  /** 嵌入「调试与网关」hub：不包 MgmtPageShell */
+  embedInHub?: boolean;
+}
+
+export const GatewayIntegrationPage: React.FC<GatewayIntegrationPageProps> = ({ theme, fontSize, embedInHub = false }) => {
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const { platformRole } = useUserRole();
+  const routePage = parseRoute(pathname)?.page ?? '';
+  const consoleRole: ConsoleRole = inferConsoleRole(routePage, platformRole);
+  const isDark = theme === 'dark';
+  const apiBaseUrl = useMemo(() => buildPublicApiBaseUrl(), []);
+  const [gatewayTab, setGatewayTab] = useState<GatewayIntegrationTabId>('portal-invoke');
+
+  const toolbar = <GatewayIntegrationQuickLinksToolbar theme={theme} />;
+
+  const mainContent = (
       <div className="px-4 sm:px-6 pb-10 w-full max-w-5xl flex flex-col gap-6">
         <div
           role="tablist"
@@ -251,6 +258,23 @@ export const GatewayIntegrationPage: React.FC<GatewayIntegrationPageProps> = ({ 
           </section>
         ) : null}
       </div>
+  );
+
+  if (embedInHub) {
+    return mainContent;
+  }
+
+  return (
+    <MgmtPageShell
+      theme={theme}
+      fontSize={fontSize}
+      titleIcon={Puzzle}
+      breadcrumbSegments={['开发者中心', '网关集成']}
+      description="说明如何调用网关；Key、目录、invoke 预判与闭包试算请在 API Playground 中完成。"
+      toolbar={toolbar}
+      contentScroll="document"
+    >
+      {mainContent}
     </MgmtPageShell>
   );
 };

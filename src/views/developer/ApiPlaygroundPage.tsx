@@ -94,10 +94,35 @@ function CopyBtn({ text, isDark }: { text: string; isDark: boolean }) {
   );
 }
 
-export interface ApiPlaygroundPageProps { theme: Theme; fontSize: FontSize; }
+export interface PlaygroundLinkToDocsButtonProps { theme: Theme }
 
-export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme, fontSize }) => {
+/** 供「调试与网关」hub 工具栏与独立 Playground 页共用 */
+export const PlaygroundLinkToDocsButton: React.FC<PlaygroundLinkToDocsButtonProps> = ({ theme }) => {
   const navigate = useNavigate();
+  const isDark = theme === 'dark';
+  return (
+    <button
+      type="button"
+      className={`inline-flex items-center gap-1 rounded-xl border px-3 py-1.5 text-xs font-medium ${
+        isDark ? 'border-white/15 text-slate-200 hover:bg-white/5' : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+      }`}
+      onClick={() => navigate(buildPath('user', 'developer-docs'))}
+      aria-label="打开接入指南"
+    >
+      <BookOpen size={14} aria-hidden />
+      接入指南
+    </button>
+  );
+};
+
+export interface ApiPlaygroundPageProps {
+  theme: Theme;
+  fontSize: FontSize;
+  /** 嵌入「调试与网关」hub：不包 MgmtPageShell，由 hub 统一面包屑 */
+  embedInHub?: boolean;
+}
+
+export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme, fontSize, embedInHub = false }) => {
   const isDark = theme === 'dark';
   const [method, setMethod] = useState('GET');
   const [url, setUrl] = useState(
@@ -233,30 +258,9 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme, fon
 
   const loadHistory = (entry: HistoryEntry) => { setMethod(entry.method); setUrl(entry.url); setBody(entry.body); setResponse({ status: entry.status, time: entry.time, body: entry.responseBody, headers: {} }); };
 
-  const playgroundToolbar = (
-    <button
-      type="button"
-      className={`inline-flex items-center gap-1 rounded-xl border px-3 py-1.5 text-xs font-medium ${
-        isDark ? 'border-white/15 text-slate-200 hover:bg-white/5' : 'border-slate-200 text-slate-700 hover:bg-slate-50'
-      }`}
-      onClick={() => navigate(buildPath('user', 'developer-docs'))}
-      aria-label="打开接入指南"
-    >
-      <BookOpen size={14} aria-hidden />
-      接入指南
-    </button>
-  );
+  const playgroundToolbar = <PlaygroundLinkToDocsButton theme={theme} />;
 
-  return (
-    <MgmtPageShell
-      theme={theme}
-      fontSize={fontSize}
-      titleIcon={Terminal}
-      breadcrumbSegments={['开发者中心', 'API Playground']}
-      description="调试请求；GET /catalog/resources、/reviews/page、/catalog/resources/{type}/{id}/stats 须 X-User-Id 或 X-Api-Key 之一；POST /catalog/resolve、/invoke、/invoke-stream 须 X-Api-Key（与市场共用的本地密钥）。skill 为托管资源，resolve 后走 POST /invoke（resourceType=skill）；其余资源须满足已发布、Key 有效且 scope 覆盖等网关条件。"
-      toolbar={playgroundToolbar}
-      contentScroll="document"
-    >
+  const mainContent = (
       <div className="px-4 sm:px-6 pb-8 w-full flex flex-col min-h-0">
         <div className="flex-1 min-h-0 flex flex-col lg:flex-row gap-4 overflow-hidden">
           {/* Request panel */}
@@ -396,6 +400,23 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme, fon
 
         <GatewayPlaygroundToolsSection theme={theme} />
       </div>
+  );
+
+  if (embedInHub) {
+    return mainContent;
+  }
+
+  return (
+    <MgmtPageShell
+      theme={theme}
+      fontSize={fontSize}
+      titleIcon={Terminal}
+      breadcrumbSegments={['开发者中心', 'API Playground']}
+      description="调试请求；GET /catalog/resources、/reviews/page、/catalog/resources/{type}/{id}/stats 须 X-User-Id 或 X-Api-Key 之一；POST /catalog/resolve、/invoke、/invoke-stream 须 X-Api-Key（与市场共用的本地密钥）。skill 为托管资源，resolve 后走 POST /invoke（resourceType=skill）；其余资源须满足已发布、Key 有效且 scope 覆盖等网关条件。"
+      toolbar={playgroundToolbar}
+      contentScroll="document"
+    >
+      {mainContent}
     </MgmtPageShell>
   );
 };

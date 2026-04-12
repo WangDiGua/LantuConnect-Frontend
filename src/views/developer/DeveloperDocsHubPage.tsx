@@ -1,10 +1,11 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { BookOpen, Download } from 'lucide-react';
 import { useSearchParams, useLocation } from 'react-router-dom';
 import type { Theme, FontSize } from '../../types';
 import { parseRoute } from '../../constants/consoleRoutes';
 import { textMuted } from '../../utils/uiClasses';
-import { ApiDocsPage } from './ApiDocsPage';
+import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
+import { ApiDocsPage, ApiDocsGuideReferenceToolbar } from './ApiDocsPage';
 import { SdkDownloadPage } from './SdkDownloadPage';
 
 const TAB_QUERY = 'tab';
@@ -15,6 +16,9 @@ type DocsTab = 'docs' | 'sdk';
 function parseTab(raw: string | null): DocsTab {
   return raw === TAB_SDK ? 'sdk' : 'docs';
 }
+
+const HUB_DESCRIPTION =
+  '本页把「读懂平台」与「按同一套契约写 HTTP」绑在一起：先读接入指南建立鉴权、目录与调用边界，再切到 SDK 查看与指南一致的 /sdk/v1 路径与可复制示例，避免文档与代码各说各话。';
 
 export interface DeveloperDocsHubPageProps {
   theme: Theme;
@@ -30,6 +34,8 @@ export const DeveloperDocsHubPage: React.FC<DeveloperDocsHubPageProps> = ({ them
     if (legacySdk) return 'sdk';
     return parseTab(searchParams.get(TAB_QUERY));
   }, [legacySdk, searchParams]);
+
+  const [docsViewMode, setDocsViewMode] = useState<'guide' | 'reference'>('guide');
 
   const setTab = useCallback(
     (next: DocsTab) => {
@@ -61,24 +67,48 @@ export const DeveloperDocsHubPage: React.FC<DeveloperDocsHubPageProps> = ({ them
           : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
     }`;
 
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="mb-3 shrink-0 px-1">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <button type="button" className={tabBtn(tab === 'docs', '接入指南')} onClick={() => setTab('docs')} aria-pressed={tab === 'docs'}>
-            <BookOpen size={16} className="shrink-0 opacity-90" aria-hidden />
-            接入指南
-          </button>
-          <button type="button" className={tabBtn(tab === 'sdk', 'SDK 下载')} onClick={() => setTab('sdk')} aria-pressed={tab === 'sdk'}>
-            <Download size={16} className="shrink-0 opacity-90" aria-hidden />
-            SDK 下载
-          </button>
+  const hubToolbar = (
+    <div className="flex min-w-0 flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label="接入与文档子区">
+        <button type="button" className={tabBtn(tab === 'docs', '接入指南')} onClick={() => setTab('docs')} aria-pressed={tab === 'docs'}>
+          <BookOpen size={16} className="shrink-0 opacity-90" aria-hidden />
+          接入指南
+        </button>
+        <button type="button" className={tabBtn(tab === 'sdk', 'SDK 与示例')} onClick={() => setTab('sdk')} aria-pressed={tab === 'sdk'}>
+          <Download size={16} className="shrink-0 opacity-90" aria-hidden />
+          SDK 与示例
+        </button>
+      </div>
+      {tab === 'docs' ? (
+        <div className="flex min-w-0 flex-wrap items-center gap-2 border-l border-dashed pl-2 sm:pl-3 border-slate-400/25 dark:border-white/15">
+          <span className={`hidden sm:inline text-xs ${textMuted(theme)}`}>指南内视图</span>
+          <ApiDocsGuideReferenceToolbar theme={theme} viewMode={docsViewMode} onViewModeChange={setDocsViewMode} />
         </div>
-        <p className={`mt-2 text-xs ${textMuted(theme)}`}>接入说明与 HTTP SDK v1 路径、示例代码在同一入口切换查看。</p>
-      </div>
-      <div className="min-h-0 flex-1 flex flex-col">
-        {tab === 'docs' ? <ApiDocsPage theme={theme} fontSize={fontSize} /> : <SdkDownloadPage theme={theme} fontSize={fontSize} />}
-      </div>
+      ) : null}
     </div>
+  );
+
+  return (
+    <MgmtPageShell
+      theme={theme}
+      fontSize={fontSize}
+      titleIcon={BookOpen}
+      breadcrumbSegments={['开发者中心', '接入与文档']}
+      description={HUB_DESCRIPTION}
+      toolbar={hubToolbar}
+      contentScroll="document"
+    >
+      {tab === 'docs' ? (
+        <ApiDocsPage
+          theme={theme}
+          fontSize={fontSize}
+          embedInHub
+          viewMode={docsViewMode}
+          onViewModeChange={setDocsViewMode}
+        />
+      ) : (
+        <SdkDownloadPage theme={theme} fontSize={fontSize} embedInHub />
+      )}
+    </MgmtPageShell>
   );
 };

@@ -4,8 +4,9 @@ import { useSearchParams, useLocation } from 'react-router-dom';
 import type { Theme, FontSize } from '../../types';
 import { parseRoute } from '../../constants/consoleRoutes';
 import { textMuted } from '../../utils/uiClasses';
-import { ApiPlaygroundPage } from './ApiPlaygroundPage';
-import { GatewayIntegrationPage } from './GatewayIntegrationPage';
+import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
+import { ApiPlaygroundPage, PlaygroundLinkToDocsButton } from './ApiPlaygroundPage';
+import { GatewayIntegrationPage, GatewayIntegrationQuickLinksToolbar } from './GatewayIntegrationPage';
 
 const TAB_QUERY = 'tab';
 const TAB_GATEWAY = 'gateway';
@@ -15,6 +16,9 @@ type ToolsTab = 'playground' | 'gateway';
 function parseTab(raw: string | null): ToolsTab {
   return raw === TAB_GATEWAY ? 'gateway' : 'playground';
 }
+
+const HUB_DESCRIPTION =
+  '联调与集成放在同一页：先用 Playground 发真实请求、确认 Key/Headers 与路径；再切到网关集成对照场景说明、闭包与 MCP 工具路径。两处操作的是同一套后端能力，只是从「试请求」到「按场景理解」递进。';
 
 export interface DeveloperToolsHubPageProps {
   theme: Theme;
@@ -61,33 +65,53 @@ export const DeveloperToolsHubPage: React.FC<DeveloperToolsHubPageProps> = ({ th
           : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
     }`;
 
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="mb-3 shrink-0 px-1">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <button
-            type="button"
-            className={tabBtn(tab === 'playground')}
-            onClick={() => setTab('playground')}
-            aria-pressed={tab === 'playground'}
-          >
-            <Terminal size={16} className="shrink-0 opacity-90" aria-hidden />
-            API Playground
-          </button>
-          <button type="button" className={tabBtn(tab === 'gateway')} onClick={() => setTab('gateway')} aria-pressed={tab === 'gateway'}>
-            <Puzzle size={16} className="shrink-0 opacity-90" aria-hidden />
-            网关集成
-          </button>
+  const hubToolbar = (
+    <div className="flex min-w-0 flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label="调试与网关子区">
+        <button
+          type="button"
+          className={tabBtn(tab === 'playground')}
+          onClick={() => setTab('playground')}
+          aria-pressed={tab === 'playground'}
+        >
+          <Terminal size={16} className="shrink-0 opacity-90" aria-hidden />
+          API Playground
+        </button>
+        <button type="button" className={tabBtn(tab === 'gateway')} onClick={() => setTab('gateway')} aria-pressed={tab === 'gateway'}>
+          <Puzzle size={16} className="shrink-0 opacity-90" aria-hidden />
+          网关集成
+        </button>
+      </div>
+      {tab === 'playground' ? (
+        <div className="flex min-w-0 flex-wrap items-center gap-2 border-l border-dashed pl-2 sm:pl-3 border-slate-400/25 dark:border-white/15">
+          <span className={`hidden sm:inline text-xs ${textMuted(theme)}`}>相关文档</span>
+          <PlaygroundLinkToDocsButton theme={theme} />
         </div>
-        <p className={`mt-2 text-xs ${textMuted(theme)}`}>在线调试网关请求与查看 MCP/绑定说明、工具导出等能力。</p>
-      </div>
-      <div className="min-h-0 flex-1 flex flex-col">
-        {tab === 'playground' ? (
-          <ApiPlaygroundPage theme={theme} fontSize={fontSize} />
-        ) : (
-          <GatewayIntegrationPage theme={theme} fontSize={fontSize} />
-        )}
-      </div>
+      ) : null}
+      {tab === 'gateway' ? (
+        <div className="flex min-w-0 flex-wrap items-center gap-2 border-l border-dashed pl-2 sm:pl-3 border-slate-400/25 dark:border-white/15">
+          <span className={`hidden sm:inline text-xs ${textMuted(theme)}`}>快捷跳转</span>
+          <GatewayIntegrationQuickLinksToolbar theme={theme} />
+        </div>
+      ) : null}
     </div>
+  );
+
+  return (
+    <MgmtPageShell
+      theme={theme}
+      fontSize={fontSize}
+      titleIcon={Terminal}
+      breadcrumbSegments={['开发者中心', '调试与网关']}
+      description={HUB_DESCRIPTION}
+      toolbar={hubToolbar}
+      contentScroll="document"
+    >
+      {tab === 'playground' ? (
+        <ApiPlaygroundPage theme={theme} fontSize={fontSize} embedInHub />
+      ) : (
+        <GatewayIntegrationPage theme={theme} fontSize={fontSize} embedInHub />
+      )}
+    </MgmtPageShell>
   );
 };

@@ -28,7 +28,7 @@ const TYPE_LABELS: Record<GatewayResourceType, string> = {
   mcp: 'MCP',
 };
 
-const CATALOG_PAGE_SIZE = 20;
+const CATALOG_PAGE_SIZE = 10;
 
 function exportKey(rt: GatewayResourceType, resourceId: string): string {
   return `${rt}:${resourceId}`;

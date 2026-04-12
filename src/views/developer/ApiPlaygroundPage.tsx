@@ -125,7 +125,7 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme, fon
   const isDark = theme === 'dark';
   const [method, setMethod] = useState('GET');
   const [url, setUrl] = useState(
-    () => `${env.VITE_API_BASE_URL.replace(/\/$/, '')}/catalog/resources?page=1&pageSize=20&resourceType=agent`,
+    () => `${env.VITE_API_BASE_URL.replace(/\/$/, '')}/catalog/resources?page=1&pageSize=10&resourceType=agent`,
   );
   const [headers, setHeaders] = useState<HeaderPair[]>([
     { key: 'Authorization', value: '' },

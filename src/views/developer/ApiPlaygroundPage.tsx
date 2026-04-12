@@ -280,7 +280,7 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme, fon
   const playgroundToolbar = <PlaygroundLinkToDocsButton theme={theme} />;
 
   const mainContent = (
-      <div className="w-full min-h-0 flex flex-col gap-6 px-4 pb-8 pt-1 sm:px-6">
+      <div className="w-full min-h-0 flex flex-col gap-8 px-4 pb-12 pt-1 sm:px-6">
         <section aria-labelledby="playground-http-heading" className="min-h-0">
           <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
             <div>

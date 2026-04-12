@@ -667,85 +667,94 @@ export const GatewayPlaygroundToolsSection: React.FC<GatewayPlaygroundToolsSecti
   };
 
   return (
-    <div
-      className={`mx-auto mt-10 w-full max-w-5xl space-y-6 border-t pt-8 ${
+    <section
+      aria-labelledby="gateway-playground-heading"
+      className={`mx-auto mt-12 w-full max-w-5xl space-y-8 border-t pt-10 pb-2 sm:pb-4 ${
         isDark ? 'border-white/[0.08]' : 'border-slate-200/90'
       }`}
     >
       <div
-        className={`rounded-2xl border p-4 space-y-3 ${
+        className={`rounded-2xl border p-5 sm:p-6 space-y-5 ${
           isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-slate-50/80'
         }`}
       >
-        <h2 className={`text-sm font-bold ${textPrimary(theme)}`}>网关调试（Key / 目录 / 试算 / 导出）</h2>
-        <p className={`text-xs ${textMuted(theme)}`}>
-          选择 Key、勾选资源、绑定预览、闭包工具聚合与导出 JSON；须完整 <span className="font-mono">X-Api-Key</span>（与 Playground 顶部说明一致）。
-        </p>
-        <div className="flex flex-wrap gap-2">
-          <button type="button" className={btnSecondary(theme)} onClick={() => navigate(buildPath(consoleRole, 'my-api-keys'))}>
-            <Settings size={14} aria-hidden />
-            偏好设置（创建 API Key）
-          </button>
-          <button type="button" className={btnSecondary(theme)} onClick={() => void loadKeys()}>
-            <RefreshCw size={14} aria-hidden /> 刷新 Key
-          </button>
-          <button type="button" className={btnSecondary(theme)} onClick={() => void loadAllCatalogs()}>
-            <RefreshCw size={14} aria-hidden /> 刷新目录
-          </button>
+        <div className="space-y-2">
+          <h2 id="gateway-playground-heading" className={`text-base font-bold tracking-tight ${textPrimary(theme)}`}>
+            网关调试（Key / 目录 / 试算 / 导出）
+          </h2>
+          <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
+            选择 Key、勾选资源、绑定预览、闭包工具聚合与导出 JSON；须完整 <span className="font-mono">X-Api-Key</span>（与 Playground 顶部说明一致）。
+          </p>
+          <div className="flex flex-wrap gap-2 pt-1">
+            <button type="button" className={btnSecondary(theme)} onClick={() => navigate(buildPath(consoleRole, 'my-api-keys'))}>
+              <Settings size={14} aria-hidden />
+              偏好设置（创建 API Key）
+            </button>
+            <button type="button" className={btnSecondary(theme)} onClick={() => void loadKeys()}>
+              <RefreshCw size={14} aria-hidden /> 刷新 Key
+            </button>
+            <button type="button" className={btnSecondary(theme)} onClick={() => void loadAllCatalogs()}>
+              <RefreshCw size={14} aria-hidden /> 刷新目录
+            </button>
+          </div>
         </div>
-      </div>
 
         {keysLoading || catalogLoading ? (
-          <PageSkeleton type="form" rows={6} />
+          <div className={`border-t pt-5 ${isDark ? 'border-white/[0.08]' : 'border-slate-200/90'}`}>
+            <PageSkeleton type="form" rows={6} />
+          </div>
         ) : (
-          <>
-            <div
-              className={`rounded-2xl border p-4 space-y-4 ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-white'}`}
-            >
-              <div>
-                <div className={`text-sm font-bold mb-1 ${textPrimary(theme)}`}>1. 选择 API Key</div>
-                <div className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>用于 invoke-eligibility 预判（与当前 Key 绑定）</div>
-                {keyOptions.length === 0 ? (
-                  <p className={`text-sm ${textMuted(theme)}`}>
-                    暂无可用 Key。请前往
-                    <button
-                      type="button"
-                      className={`mx-1 underline font-medium ${textPrimary(theme)}`}
-                      onClick={() => navigate(buildPath(consoleRole, 'my-api-keys'))}
-                    >
-                      偏好设置
-                    </button>
-                    创建。
-                  </p>
-                ) : (
-                  <LantuSelect
-                    theme={theme}
-                    className="w-full max-w-md"
-                    value={selectedKeyId}
-                    onChange={setSelectedKeyId}
-                    options={keyOptions}
-                  />
-                )}
-              </div>
+          <div
+            className={`space-y-4 border-t pt-5 ${isDark ? 'border-white/[0.08]' : 'border-slate-200/90'}`}
+          >
+            <div>
+              <div className={`text-sm font-bold ${textPrimary(theme)}`}>1. 选择 API Key</div>
+              <div className={`text-xs font-semibold mt-1 mb-2 ${textSecondary(theme)}`}>用于 invoke-eligibility 预判（与当前 Key 绑定）</div>
+              {keyOptions.length === 0 ? (
+                <p className={`text-sm ${textMuted(theme)}`}>
+                  暂无可用 Key。请前往
+                  <button
+                    type="button"
+                    className={`mx-1 underline font-medium ${textPrimary(theme)}`}
+                    onClick={() => navigate(buildPath(consoleRole, 'my-api-keys'))}
+                  >
+                    偏好设置
+                  </button>
+                  创建。
+                </p>
+              ) : (
+                <LantuSelect
+                  theme={theme}
+                  className="w-full max-w-md"
+                  value={selectedKeyId}
+                  onChange={setSelectedKeyId}
+                  options={keyOptions}
+                />
+              )}
             </div>
+          </div>
+        )}
+      </div>
 
+      {!(keysLoading || catalogLoading) && (
+        <>
             <div
-              className={`rounded-2xl border overflow-hidden ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-white'}`}
+              className={`rounded-2xl border ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-white'}`}
             >
               <div
-                className={`flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b ${isDark ? 'border-white/10' : 'border-slate-200'}`}
+                className={`space-y-4 px-4 py-4 sm:px-5 sm:py-5 border-b ${isDark ? 'border-white/10' : 'border-slate-200'}`}
               >
-                <div>
+                <div className="min-w-0 space-y-1.5">
                   <h3 className={`text-sm font-bold ${textPrimary(theme)}`}>2. 勾选可 invoke 资源（智能体与 MCP）</h3>
-                  <p className={`text-xs mt-0.5 ${textMuted(theme)}`}>
+                  <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
                     下方两列可同时勾选；<strong className={textPrimary(theme)}>不包含 Skill</strong>（Skill 为 Context，请用{' '}
                     <span className="font-mono">POST /catalog/resolve</span>）。「可调用」来自{' '}
                     <span className="font-mono text-[11px]">POST …/invoke-eligibility</span>（<span className="font-mono">published</span> 粗判）。点击行查看绑定预览。
                   </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-4 sm:gap-y-2">
                   <label
-                    className={`inline-flex items-center gap-2 text-xs cursor-pointer select-none ${
+                    className={`inline-flex items-center gap-2 text-xs cursor-pointer select-none shrink-0 ${
                       isDark ? 'text-slate-300' : 'text-slate-600'
                     }`}
                   >
@@ -760,12 +769,14 @@ export const GatewayPlaygroundToolsSection: React.FC<GatewayPlaygroundToolsSecti
                     />
                     仅显示健康可调用
                   </label>
-                  <button type="button" className={btnSecondary(theme)} onClick={selectAllExport}>
-                    全选导出
-                  </button>
-                  <button type="button" className={btnSecondary(theme)} onClick={clearExportSelection}>
-                    清空选择
-                  </button>
+                  <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                    <button type="button" className={btnSecondary(theme)} onClick={selectAllExport}>
+                      全选导出
+                    </button>
+                    <button type="button" className={btnSecondary(theme)} onClick={clearExportSelection}>
+                      清空选择
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -997,7 +1008,7 @@ export const GatewayPlaygroundToolsSection: React.FC<GatewayPlaygroundToolsSecti
               )}
             </div>
           </>
-        )}
-    </div>
+      )}
+    </section>
   );
 };

@@ -13,6 +13,11 @@ import {
   AlertCircle,
   Info,
   ExternalLink,
+  CheckCircle,
+  Clock,
+  Circle,
+  XCircle,
+  Activity,
 } from 'lucide-react';
 import { Theme } from '../../types';
 import { notificationService } from '../../api/services/notification.service';
@@ -22,7 +27,9 @@ import {
   formatNotificationTimeValue,
   humanizeNotificationType,
   notificationListPreviewBody,
+  parseNotificationStepsJson,
   parseStructuredNotificationBody,
+  type NotificationFlowStep,
 } from '../../utils/notificationDetailFormat';
 import { normalizePaginated } from '../../utils/normalizeApiPayload';
 import { LantuDateTimePicker } from '../common/LantuDateTimePicker';
@@ -31,17 +38,28 @@ import { mainScrollCompositorClass } from '../../utils/uiClasses';
 import { buildPath } from '../../constants/consoleRoutes';
 import { parseResourceType, resourceTypeLabel } from '../../constants/resourceTypes';
 import type { ResourceType } from '../../types/dto/catalog';
+import { isNotificationMessage, subscribeRealtimePush } from '../../lib/realtimePush';
 
 export interface MessageItem {
   id: string;
   type: 'system' | 'notice' | 'alert';
   rawType: string;
+  category: string;
+  severity: string;
   title: string;
   body: string;
   time: string;
   read: boolean;
   sourceType?: string | null;
   sourceId?: string | null;
+  aggregateKey?: string | null;
+  flowStatus?: string | null;
+  currentStep?: number | null;
+  totalSteps?: number | null;
+  steps: NotificationFlowStep[];
+  actionLabel?: string | null;
+  actionUrl?: string | null;
+  lastEventTimeRaw?: string | null;
   /** 原始 createTime，用于详情内统一格式化（覆盖 body 内嵌的原始时间串） */
   createTimeRaw?: string | null;
 }
@@ -50,6 +68,14 @@ const typeConfig = {
   system: { icon: Info, label: '系统', light: 'bg-slate-100 text-slate-700', dark: 'bg-white/10 text-slate-300' },
   notice: { icon: Bell, label: '通知', light: 'bg-blue-100 text-blue-700', dark: 'bg-blue-500/20 text-blue-300' },
   alert: { icon: AlertCircle, label: '告警', light: 'bg-amber-100 text-amber-700', dark: 'bg-amber-500/20 text-amber-300' },
+};
+
+const categoryLabel: Record<string, string> = {
+  workflow: '流程',
+  notice: '通知',
+  alert: '告警',
+  system: '系统',
+  security: '安全',
 };
 
 type MessageKind = keyof typeof typeConfig;
@@ -80,27 +106,53 @@ const USER_RESOURCE_DETAIL_PAGE: Record<ResourceType, string> = {
 };
 
 function mapNotification(n: Notification): MessageItem {
+  const category = String(n.category ?? normalizeMessageType(n.type));
   return {
     id: String(n.id),
     type: normalizeMessageType(n.type),
     rawType: String(n.type ?? 'system'),
+    category,
+    severity: String(n.severity ?? 'info'),
     title: n.title ?? '',
     body: n.body ?? '',
-    time: formatDateTime(n.createTime),
+    time: formatDateTime(n.lastEventTime ?? n.createTime),
     read: Boolean(n.isRead),
     sourceType: n.sourceType,
     sourceId: n.sourceId,
+    aggregateKey: n.aggregateKey,
+    flowStatus: n.flowStatus,
+    currentStep: n.currentStep ?? null,
+    totalSteps: n.totalSteps ?? null,
+    steps: parseNotificationStepsJson(n.stepsJson),
+    actionLabel: n.actionLabel,
+    actionUrl: n.actionUrl,
+    lastEventTimeRaw: n.lastEventTime,
     createTimeRaw: n.createTime,
   };
 }
 
 function resolveNotificationPrimaryAction(item: MessageItem): { label: string; path: string } | null {
+  const configuredPath = item.actionUrl?.trim();
+  if (configuredPath) return { label: item.actionLabel?.trim() || '查看详情', path: configuredPath };
   const sid = item.sourceId?.trim();
+  const source = item.sourceType?.trim().toLowerCase();
+  if (source === 'developer_application') {
+    return { label: item.actionLabel?.trim() || '查看入驻申请', path: buildPath('admin', 'developer-applications') };
+  }
+  if (source === 'api_key') {
+    return { label: item.actionLabel?.trim() || '查看 API Key', path: buildPath('user', 'my-api-keys') };
+  }
+  if (source === 'system-config') {
+    return { label: item.actionLabel?.trim() || '查看审计日志', path: buildPath('admin', 'audit-log') };
+  }
   if (!sid) return null;
+  if (source === 'resource') {
+    return { label: item.actionLabel?.trim() || '处理审核', path: buildPath('admin', 'resource-audit') };
+  }
   const rt = parseResourceType(item.sourceType);
   if (rt) {
     const page = USER_RESOURCE_DETAIL_PAGE[rt];
-    return { label: `查看${resourceTypeLabel(rt)}`, path: buildPath('user', page, sid) };
+    return { label: item.actionLabel?.trim() || `查看${resourceTypeLabel(rt)}`, path: buildPath('user', page, sid) };
   }
   return null;
 }
@@ -157,9 +209,103 @@ function formatResourceRefDisplay(raw: string): string {
   return s;
 }
 
+function flowStatusText(status: string | null | undefined): string {
+  const s = String(status ?? '').toLowerCase();
+  if (s === 'success') return '已完成';
+  if (s === 'failed') return '已中止';
+  if (s === 'warning') return '需关注';
+  return '进行中';
+}
+
+function flowStatusClass(status: string | null | undefined, isDark: boolean): string {
+  const s = String(status ?? '').toLowerCase();
+  if (s === 'success') return isDark ? 'bg-emerald-500/15 text-emerald-200 border-emerald-400/20' : 'bg-emerald-50 text-emerald-700 border-emerald-200';
+  if (s === 'failed') return isDark ? 'bg-rose-500/15 text-rose-200 border-rose-400/20' : 'bg-rose-50 text-rose-700 border-rose-200';
+  if (s === 'warning') return isDark ? 'bg-amber-500/15 text-amber-200 border-amber-400/20' : 'bg-amber-50 text-amber-700 border-amber-200';
+  return isDark ? 'bg-blue-500/15 text-blue-200 border-blue-400/20' : 'bg-blue-50 text-blue-700 border-blue-200';
+}
+
+function stepIcon(step: NotificationFlowStep, isDark: boolean) {
+  const s = String(step.status ?? '').toLowerCase();
+  const cls = isDark ? 'text-slate-200' : 'text-slate-700';
+  if (s === 'done' || s === 'success') return <CheckCircle size={15} className="text-emerald-500" />;
+  if (s === 'failed' || s === 'error') return <XCircle size={15} className="text-rose-500" />;
+  if (s === 'warning') return <AlertCircle size={15} className="text-amber-500" />;
+  if (s === 'running') return <Activity size={15} className="text-blue-500" />;
+  return <Circle size={15} className={cls} />;
+}
+
+function FlowProgress({ item, isDark, compact = false }: { item: MessageItem; isDark: boolean; compact?: boolean }) {
+  const total = Math.max(0, Number(item.totalSteps ?? item.steps.length ?? 0));
+  const current = Math.max(0, Math.min(total || 0, Number(item.currentStep ?? item.steps.length ?? 0)));
+  const pct = total > 0 ? Math.max(8, Math.min(100, Math.round((current / total) * 100))) : 0;
+  const latest = item.steps[item.steps.length - 1];
+  return (
+    <div className={compact ? 'mt-2' : 'space-y-3'}>
+      <div className="flex items-center justify-between gap-2">
+        <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${flowStatusClass(item.flowStatus, isDark)}`}>
+          <Clock size={12} />
+          {flowStatusText(item.flowStatus)}
+        </span>
+        {total > 0 ? (
+          <span className={`text-[11px] tabular-nums ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+            {current}/{total} 步
+          </span>
+        ) : null}
+      </div>
+      {total > 0 ? (
+        <div className={`h-1.5 overflow-hidden rounded-full ${isDark ? 'bg-white/10' : 'bg-slate-200'}`} aria-hidden>
+          <div className="h-full rounded-full bg-gradient-to-r from-blue-500 via-cyan-400 to-emerald-400" style={{ width: `${pct}%` }} />
+        </div>
+      ) : null}
+      {latest && (
+        <div className={`flex items-start gap-2 text-[12px] ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+          <span className="mt-0.5 shrink-0">{stepIcon(latest, isDark)}</span>
+          <span className="min-w-0 line-clamp-2">
+            <span className="font-semibold">{latest.title}</span>
+            {latest.summary ? <span className={isDark ? 'text-slate-400' : 'text-slate-500'}> · {latest.summary}</span> : null}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FlowTimeline({ steps, isDark }: { steps: NotificationFlowStep[]; isDark: boolean }) {
+  if (steps.length === 0) return null;
+  return (
+    <ol className="space-y-3">
+      {steps.map((step, idx) => (
+        <li key={`${step.key}-${idx}`} className="relative flex gap-3">
+          {idx < steps.length - 1 && (
+            <span
+              className={`absolute left-[7px] top-6 h-[calc(100%+0.5rem)] w-px ${isDark ? 'bg-white/10' : 'bg-slate-200'}`}
+              aria-hidden
+            />
+          )}
+          <span className="relative z-10 mt-0.5 shrink-0">{stepIcon(step, isDark)}</span>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span className={`text-sm font-semibold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{step.title}</span>
+              {step.time ? (
+                <time className={`text-[11px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`} dateTime={step.time}>
+                  {formatNotificationTimeValue(step.time)}
+                </time>
+              ) : null}
+            </div>
+            {step.summary ? (
+              <p className={`mt-0.5 text-sm leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{step.summary}</p>
+            ) : null}
+          </div>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 export const INITIAL_MESSAGE_UNREAD_COUNT = 0;
 
-type TabId = 'all' | 'unread';
+type TabId = 'all' | 'workflow' | 'unread';
 
 interface MessagePanelProps {
   theme: Theme;
@@ -195,13 +341,13 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
   const [activeDatePicker, setActiveDatePicker] = useState<'start' | 'end' | null>(null);
   const listScrollRef = useRef<HTMLDivElement>(null);
   type FilterState = {
-    type: string;
+    category: string;
     isRead: 'all' | 'read' | 'unread';
     startTime: string;
     endTime: string;
   };
   const defaultFilters: FilterState = {
-    type: 'all',
+    category: 'all',
     isRead: 'all',
     startTime: '',
     endTime: '',
@@ -230,7 +376,7 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
     };
   }, [usePortal, anchorRef]);
 
-  const appliedFilterKey = `${appliedFilters.type}|${appliedFilters.isRead}|${appliedFilters.startTime}|${appliedFilters.endTime}`;
+  const appliedFilterKey = `${appliedFilters.category}|${appliedFilters.isRead}|${appliedFilters.startTime}|${appliedFilters.endTime}`;
 
   const refreshServerUnread = useCallback(async () => {
     try {
@@ -250,6 +396,19 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
     void refreshServerUnread();
   }, [refreshServerUnread]);
 
+  useEffect(() => subscribeRealtimePush((msg) => {
+    if (!isNotificationMessage(msg)) return;
+    setReloadToken((n) => n + 1);
+    const raw = msg.unreadCount;
+    if (typeof raw === 'number' && Number.isFinite(raw)) {
+      const next = raw > 0 ? Math.min(9999, Math.floor(raw)) : 0;
+      setServerUnreadCount(next);
+      onUnreadChange?.(next);
+      return;
+    }
+    void refreshServerUnread();
+  }), [onUnreadChange, refreshServerUnread]);
+
   useEffect(() => {
     setListPage(1);
   }, [tab, appliedFilterKey]);
@@ -262,12 +421,14 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
         page: number;
         pageSize: number;
         type?: string;
+        category?: string;
         isRead?: boolean;
         startTime?: string;
         endTime?: string;
       } = { page: listPage, pageSize: PAGE_SIZE };
       const af = appliedFilters;
-      if (af.type !== 'all') params.type = af.type;
+      if (tab === 'workflow') params.category = 'workflow';
+      else if (af.category !== 'all') params.category = af.category;
       if (tab === 'unread') {
         params.isRead = false;
       } else {
@@ -359,7 +520,7 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
   };
 
   const resetFilters = () => {
-    const reset: FilterState = { type: 'all', isRead: 'all', startTime: '', endTime: '' };
+    const reset: FilterState = { category: 'all', isRead: 'all', startTime: '', endTime: '' };
     setFilters(reset);
     setAppliedFilters(reset);
     setActiveDatePicker(null);
@@ -428,6 +589,21 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
           </button>
           <button
             type="button"
+            onClick={() => setTab('workflow')}
+            className={`flex-1 px-4 py-2.5 text-sm font-medium transition-colors ${
+              tab === 'workflow'
+                ? isDark
+                  ? 'text-cyan-300 border-b-2 border-cyan-300'
+                  : 'text-cyan-700 border-b-2 border-cyan-600'
+                : isDark
+                  ? 'text-slate-500 hover:text-slate-300'
+                  : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            流程
+          </button>
+          <button
+            type="button"
             onClick={() => setTab('unread')}
             className={`flex-1 px-4 py-2.5 text-sm font-medium transition-colors ${
               tab === 'unread'
@@ -450,10 +626,12 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
           <div className="grid grid-cols-2 gap-2">
             <LantuSelect
               theme={theme}
-              value={filters.type}
-              onChange={(next) => setFilters((prev) => ({ ...prev, type: next }))}
+              value={filters.category}
+              onChange={(next) => setFilters((prev) => ({ ...prev, category: next }))}
               options={[
-                { value: 'all', label: '类型：全部' },
+                { value: 'all', label: '分类：全部' },
+                { value: 'workflow', label: '流程' },
+                { value: 'security', label: '安全' },
                 { value: 'system', label: '系统' },
                 { value: 'notice', label: '通知' },
                 { value: 'alert', label: '告警' },
@@ -525,7 +703,7 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
           {!listLoading && items.length === 0 ? (
             <div className={`flex flex-col items-center justify-center py-12 px-4 ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
               <Mail size={32} className="opacity-50 mb-3" />
-              <p className="text-sm">暂无{tab === 'unread' ? '未读' : ''}消息</p>
+              <p className="text-sm">暂无{tab === 'unread' ? '未读' : tab === 'workflow' ? '流程' : ''}消息</p>
             </div>
           ) : listLoading && items.length === 0 ? (
             <div className={`flex flex-col items-center justify-center py-12 px-4 text-sm ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
@@ -536,35 +714,85 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
               {items.map((m) => {
                 const cfg = typeConfig[m.type] ?? typeConfig.system;
                 const Icon = cfg.icon;
+                const isFlow = m.category === 'workflow' || m.steps.length > 0 || m.aggregateKey;
                 return (
                   <li key={m.id}>
                     <button
                       type="button"
                       onClick={(e) => openDetail(m, e)}
-                      className={`w-full text-left px-4 py-3 flex items-start gap-3 transition-colors ${
-                        !m.read ? (isDark ? 'bg-blue-500/10' : 'bg-blue-50/80') : isDark ? 'hover:bg-white/[0.04]' : 'hover:bg-slate-50'
+                      className={`w-full text-left px-4 py-3 transition-colors ${
+                        isFlow
+                          ? !m.read
+                            ? isDark
+                              ? 'bg-cyan-500/10'
+                              : 'bg-cyan-50/90'
+                            : isDark
+                              ? 'hover:bg-white/[0.04]'
+                              : 'hover:bg-slate-50'
+                          : !m.read
+                            ? isDark
+                              ? 'bg-blue-500/10'
+                              : 'bg-blue-50/80'
+                            : isDark
+                              ? 'hover:bg-white/[0.04]'
+                              : 'hover:bg-slate-50'
                       }`}
                     >
-                      <span
-                        className={`shrink-0 w-9 h-9 rounded-xl flex items-center justify-center ${isDark ? cfg.dark : cfg.light}`}
-                      >
-                        <Icon size={16} className="shrink-0" />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`font-semibold text-sm truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                            {m.title}
-                          </span>
-                          {!m.read && (
-                            <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" aria-hidden />
-                          )}
+                      {isFlow ? (
+                        <div className={`rounded-2xl border p-3 ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200/80 bg-white/80 shadow-sm'}`}>
+                          <div className="flex items-start gap-3">
+                            <span className={`shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center ${isDark ? 'bg-cyan-400/15 text-cyan-200' : 'bg-cyan-100 text-cyan-700'}`}>
+                              <Activity size={18} />
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className={`font-semibold text-sm truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                                      {m.title}
+                                    </span>
+                                    {!m.read && <span className="w-2 h-2 rounded-full bg-cyan-500 shrink-0" aria-hidden />}
+                                  </div>
+                                  <p className={`mt-0.5 text-[11px] ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
+                                    {categoryLabel[m.category] ?? '流程'} · {humanizeNotificationType(m.rawType) || m.rawType}
+                                  </p>
+                                </div>
+                                <ChevronRight size={16} className="mt-1 shrink-0 text-slate-400" />
+                              </div>
+                              <FlowProgress item={m} isDark={isDark} compact />
+                              <p className={`mt-2 text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{m.time}</p>
+                            </div>
+                          </div>
                         </div>
-                        <p className={`text-[12px] mt-0.5 line-clamp-2 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                          {notificationListPreviewBody(m.body)}
-                        </p>
-                        <p className={`text-xs mt-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{m.time}</p>
-                      </div>
-                      <ChevronRight size={16} className="mt-0.5 shrink-0 self-start text-slate-400" />
+                      ) : (
+                        <div className="flex items-start gap-3">
+                          <span
+                            className={`shrink-0 w-9 h-9 rounded-xl flex items-center justify-center ${isDark ? cfg.dark : cfg.light}`}
+                          >
+                            <Icon size={16} className="shrink-0" />
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className={`font-semibold text-sm truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                                {m.title}
+                              </span>
+                              {!m.read && (
+                                <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" aria-hidden />
+                              )}
+                              {m.category && m.category !== m.type ? (
+                                <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${isDark ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
+                                  {categoryLabel[m.category] ?? m.category}
+                                </span>
+                              ) : null}
+                            </div>
+                            <p className={`text-[12px] mt-0.5 line-clamp-2 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                              {notificationListPreviewBody(m.body)}
+                            </p>
+                            <p className={`text-xs mt-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{m.time}</p>
+                          </div>
+                          <ChevronRight size={16} className="mt-0.5 shrink-0 self-start text-slate-400" />
+                        </div>
+                      )}
                     </button>
                   </li>
                 );
@@ -707,6 +935,15 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
                         <p className={`text-sm ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>正在加载详情…</p>
                       ) : parsed ? (
                         <div className="space-y-4">
+                          {(detailMessage.category === 'workflow' || detailMessage.steps.length > 0) ? (
+                            <div className={`rounded-2xl border p-4 ${isDark ? 'border-cyan-400/20 bg-cyan-400/[0.06]' : 'border-cyan-200 bg-cyan-50/70'}`}>
+                              <FlowProgress item={detailMessage} isDark={isDark} />
+                              <div className={`mt-4 rounded-xl border px-4 py-3.5 ${isDark ? 'border-white/10 bg-slate-950/20' : 'border-white/80 bg-white/80'}`}>
+                                <p className={`mb-3 text-xs font-semibold ${isDark ? 'text-cyan-200' : 'text-cyan-800'}`}>流程步骤</p>
+                                <FlowTimeline steps={detailMessage.steps} isDark={isDark} />
+                              </div>
+                            </div>
+                          ) : null}
                           <dl className="divide-y divide-dashed rounded-xl border overflow-hidden bg-slate-50/80 dark:bg-white/[0.04] border-slate-200/80 dark:border-white/10">
                             {headerRows.map((row, hIdx) => {
                               const isTime = row.key === '时间';

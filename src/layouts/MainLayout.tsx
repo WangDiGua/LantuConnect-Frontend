@@ -962,7 +962,31 @@ const MainLayoutContent: React.FC<{
 
   useEffect(() => {
     if (!authUser?.id) return;
-    return subscribeRealtimePush((msg) => {
+    let digestTimer: ReturnType<typeof setTimeout> | null = null;
+    let digestCount = 0;
+    const digestKinds = new Set<string>();
+    let latestDigestText = '';
+    const flushDigest = () => {
+      if (digestCount <= 0) return;
+      const kinds = Array.from(digestKinds).slice(0, 3).join('、');
+      const text = digestCount === 1
+        ? latestDigestText
+        : `收到 ${digestCount} 条实时状态更新${kinds ? `（${kinds}）` : ''}，可在消息中心查看`;
+      showMessage(text, 'info', 3600);
+      setRealtimeLiveText(text);
+      digestTimer = null;
+      digestCount = 0;
+      digestKinds.clear();
+      latestDigestText = '';
+    };
+    const queueDigest = (kind: string, text: string) => {
+      digestCount += 1;
+      digestKinds.add(kind);
+      latestDigestText = text;
+      if (digestTimer != null) return;
+      digestTimer = setTimeout(flushDigest, 1600);
+    };
+    const unsubscribe = subscribeRealtimePush((msg) => {
       if (isAlertFiring(msg)) {
         const name = String((msg.payload?.ruleName as string) || '告警规则');
         const t = `告警已触发：${name}`;
@@ -971,35 +995,44 @@ const MainLayoutContent: React.FC<{
       } else if (isAuditPendingChanged(msg)) {
         const n = Number(msg.payload?.pendingCount ?? 0);
         const t = `待审核队列已更新，当前 ${n} 条待审`;
-        showMessage(t, 'info', 3500);
-        setRealtimeLiveText(t);
+        queueDigest('待审队列', t);
       } else if (isHealthConfigUpdated(msg)) {
         const label = String((msg.payload?.displayName as string) || msg.payload?.resourceCode || '资源');
         const st = String((msg.payload?.healthStatus as string) || '');
         const t = `健康检查配置已更新：${label}${st ? `，状态 ${st}` : ''}`;
-        showMessage(t, 'info', 3800);
-        setRealtimeLiveText(t);
+        queueDigest('健康配置', t);
       } else if (isHealthProbeStatusChanged(msg)) {
         const label = String((msg.payload?.displayName as string) || msg.payload?.resourceCode || '资源');
         const st = String((msg.payload?.healthStatus as string) || '');
         const t = `健康状态已变化：${label}${st ? ` → ${st}` : ''}`;
-        showMessage(t, st === 'down' ? 'error' : 'info', 3800);
-        setRealtimeLiveText(t);
+        if (st === 'down') {
+          showMessage(t, 'error', 4200);
+          setRealtimeLiveText(t);
+        } else {
+          queueDigest('健康状态', t);
+        }
       } else if (isCircuitStateChanged(msg)) {
         const label = String((msg.payload?.displayName as string) || msg.payload?.resourceCode || '资源');
         const ns = String((msg.payload?.newState as string) || '');
         const t = `熔断状态已变化：${label}${ns ? ` → ${ns}` : ''}`;
-        showMessage(t, ns.toUpperCase().includes('OPEN') ? 'warning' : 'info', 3800);
-        setRealtimeLiveText(t);
+        if (ns.toUpperCase().includes('OPEN')) {
+          showMessage(t, 'warning', 4200);
+          setRealtimeLiveText(t);
+        } else {
+          queueDigest('熔断状态', t);
+        }
       } else if (isMonitoringKpiDigest(msg)) {
         const summary =
           (msg.payload?.summary as string) ||
           (typeof msg.payload?.message === 'string' ? (msg.payload.message as string) : '') ||
           '监控指标已更新';
-        showMessage(summary, 'info', 3500);
-        setRealtimeLiveText(summary);
+        queueDigest('监控指标', summary);
       }
     });
+    return () => {
+      unsubscribe();
+      if (digestTimer != null) clearTimeout(digestTimer);
+    };
   }, [authUser?.id, showMessage]);
 
   useEffect(() => {

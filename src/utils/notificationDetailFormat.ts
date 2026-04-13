@@ -8,6 +8,14 @@ export interface ParsedNotificationBody {
   suggestion: string | null;
 }
 
+export interface NotificationFlowStep {
+  key: string;
+  title: string;
+  status: 'pending' | 'running' | 'done' | 'failed' | 'warning' | string;
+  summary?: string;
+  time?: string;
+}
+
 /**
  * 解析站内通知 body（事件/结果/时间/详情/建议）；无法识别时返回 null 由调用方按纯文本展示。
  */
@@ -54,10 +62,41 @@ export function formatNotificationTimeValue(raw: string | null | undefined): str
   return formatDateTime(withT);
 }
 
+export function parseNotificationStepsJson(raw: string | null | undefined): NotificationFlowStep[] {
+  if (raw == null || !String(raw).trim()) return [];
+  try {
+    const parsed = JSON.parse(String(raw)) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((item): NotificationFlowStep | null => {
+        if (!item || typeof item !== 'object') return null;
+        const row = item as Record<string, unknown>;
+        const key = String(row.key ?? '').trim();
+        const title = String(row.title ?? '').trim();
+        if (!key || !title) return null;
+        return {
+          key,
+          title,
+          status: String(row.status ?? 'done') as NotificationFlowStep['status'],
+          summary: row.summary != null ? String(row.summary) : undefined,
+          time: row.time != null ? String(row.time) : undefined,
+        };
+      })
+      .filter((item): item is NotificationFlowStep => item != null);
+  } catch {
+    return [];
+  }
+}
+
 const TYPE_LABEL_ZH: Record<string, string> = {
   audit_approved: '审核通过',
   audit_rejected: '审核驳回',
   audit_pending: '待审核',
+  resource_submitted: '资源提审',
+  resource_published: '资源上线',
+  resource_deprecated: '资源下架',
+  resource_withdrawn: '资源撤回',
+  resource_version_switched: '版本切换',
   alert: '告警触发',
   onboarding_submitted: '入驻待审',
   onboarding_approved: '入驻通过',

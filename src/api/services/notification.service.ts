@@ -8,6 +8,9 @@ export const notificationService = {
     page?: number;
     pageSize?: number;
     type?: string;
+    category?: string;
+    severity?: string;
+    flowStatus?: string;
     isRead?: boolean;
     startTime?: string;
     endTime?: string;

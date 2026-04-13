@@ -1,6 +1,7 @@
 import { http } from '../../lib/http';
 import { extractArray } from '../../utils/normalizeApiPayload';
 import type { HealthConfigItem, CircuitBreakerItem } from '../../types/dto/health';
+import type { ResourceHealthSnapshotVO } from '../../types/dto/resource-center';
 
 function toNum(v: unknown, fallback: number): number {
   const n = Number(v);
@@ -85,6 +86,52 @@ export const healthService = {
     const raw = await http.get<unknown>('/health/circuit-breakers');
     return extractArray<Partial<CircuitBreakerItem>>(raw).map(normalizeCircuitItem);
   },
+
+  listResourceHealth: async (params?: { resourceType?: string; healthStatus?: string; callabilityState?: string }) => {
+    const raw = await http.get<unknown>('/health/resources', { params });
+    return extractArray<Partial<ResourceHealthSnapshotVO>>(raw).map((item) => ({
+      resourceId: toNum(item.resourceId, 0),
+      resourceType: String(item.resourceType ?? 'agent') as ResourceHealthSnapshotVO['resourceType'],
+      resourceCode: String(item.resourceCode ?? ''),
+      displayName: String(item.displayName ?? ''),
+      resourceStatus: String(item.resourceStatus ?? ''),
+      probeStrategy: item.probeStrategy ? String(item.probeStrategy) : undefined,
+      checkType: item.checkType ? String(item.checkType) : undefined,
+      checkUrl: item.checkUrl ? String(item.checkUrl) : undefined,
+      healthStatus: String(item.healthStatus ?? 'unknown'),
+      circuitState: String(item.circuitState ?? 'unknown'),
+      callabilityState: String(item.callabilityState ?? 'unknown'),
+      callabilityReason: item.callabilityReason ? String(item.callabilityReason) : undefined,
+      callable: typeof item.callable === 'boolean' ? item.callable : undefined,
+      resourceEnabled: typeof item.resourceEnabled === 'boolean' ? item.resourceEnabled : undefined,
+      lastProbeAt: item.lastProbeAt ? String(item.lastProbeAt) : undefined,
+      lastSuccessAt: item.lastSuccessAt ? String(item.lastSuccessAt) : undefined,
+      lastFailureAt: item.lastFailureAt ? String(item.lastFailureAt) : undefined,
+      lastFailureReason: item.lastFailureReason ? String(item.lastFailureReason) : undefined,
+      consecutiveSuccess: toNum(item.consecutiveSuccess, 0),
+      consecutiveFailure: toNum(item.consecutiveFailure, 0),
+      probeLatencyMs: item.probeLatencyMs == null ? undefined : toNum(item.probeLatencyMs, 0),
+      probePayloadSummary: item.probePayloadSummary ? String(item.probePayloadSummary) : undefined,
+      intervalSec: item.intervalSec == null ? undefined : toNum(item.intervalSec, 0),
+      healthyThreshold: item.healthyThreshold == null ? undefined : toNum(item.healthyThreshold, 0),
+      timeoutSec: item.timeoutSec == null ? undefined : toNum(item.timeoutSec, 0),
+      probeEvidence: item.probeEvidence && typeof item.probeEvidence === 'object' ? item.probeEvidence : undefined,
+    }));
+  },
+
+  getResourceHealth: (resourceId: number) =>
+    http.get<ResourceHealthSnapshotVO>(`/health/resources/${resourceId}`),
+
+  probeResourceHealth: (resourceId: number) =>
+    http.post<ResourceHealthSnapshotVO>(`/health/resources/${resourceId}/probe`),
+
+  manualBreakResource: (resourceId: number, openDurationSeconds?: number) =>
+    http.post<ResourceHealthSnapshotVO>(`/health/resources/${resourceId}/break`, undefined, {
+      params: openDurationSeconds ? { openDurationSeconds } : undefined,
+    }),
+
+  manualRecoverResource: (resourceId: number) =>
+    http.post<ResourceHealthSnapshotVO>(`/health/resources/${resourceId}/recover`),
 
   updateCircuitBreaker: (id: number, config: Partial<CircuitBreakerItem>) =>
     http.put<void>(`/health/circuit-breakers/${id}`, config),

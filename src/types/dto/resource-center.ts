@@ -227,6 +227,21 @@ export interface ResourceCenterItemVO {
   pendingPublishedUpdate?: boolean;
   healthStatus?: string;
   circuitState?: string;
+  observability?: Record<string, unknown>;
+  quality?: Record<string, unknown>;
+  callabilityState?: string;
+  callabilityReason?: string;
+  callable?: boolean;
+  resourceEnabled?: boolean;
+  probeStrategy?: string;
+  lastProbeAt?: string;
+  lastSuccessAt?: string;
+  lastFailureAt?: string;
+  lastFailureReason?: string;
+  consecutiveSuccess?: number;
+  consecutiveFailure?: number;
+  probeLatencyMs?: number;
+  probePayloadSummary?: string;
   degradationCode?: string;
   degradationHint?: string;
   qualityScore?: number;
@@ -334,8 +349,39 @@ export interface ObservabilitySummaryVO {
   displayName: string;
   healthStatus: string;
   circuitState: string;
+  callabilityState?: string;
+  callabilityReason?: string;
   qualityScore: number;
   qualityFactors?: Record<string, unknown>;
   degradationHint?: DegradationHintVO;
   generatedAt?: string;
+}
+
+export interface ResourceHealthSnapshotVO {
+  resourceId: number;
+  resourceType: ResourceType;
+  resourceCode: string;
+  displayName: string;
+  resourceStatus: string;
+  probeStrategy?: string;
+  checkType?: string;
+  checkUrl?: string;
+  healthStatus: string;
+  circuitState: string;
+  callabilityState: string;
+  callabilityReason?: string;
+  callable?: boolean;
+  resourceEnabled?: boolean;
+  lastProbeAt?: string;
+  lastSuccessAt?: string;
+  lastFailureAt?: string;
+  lastFailureReason?: string;
+  consecutiveSuccess?: number;
+  consecutiveFailure?: number;
+  probeLatencyMs?: number;
+  probePayloadSummary?: string;
+  intervalSec?: number;
+  healthyThreshold?: number;
+  timeoutSec?: number;
+  probeEvidence?: Record<string, unknown>;
 }

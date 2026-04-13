@@ -7,6 +7,7 @@ import type {
   LifecycleTimelineVO,
   ObservabilitySummaryVO,
   ResourceCenterItemVO,
+  ResourceHealthSnapshotVO,
   ResourceStatus,
   ResourceVersionVO,
 } from '../../types/dto/resource-center';
@@ -50,11 +51,13 @@ import {
   resourceHealthLabelZh,
   resourceVersionSnapshotLabelZh,
 } from '../../utils/backendEnumLabels';
+import { resourceCallabilityBadgeClass, resourceCallabilityLabelZh } from '../../utils/resourceCallability';
 import { nullDisplay } from '../../utils/errorHandler';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { lifecycleTimelineEventTitleZh } from '../../utils/lifecycleTimelineLabels';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
+import { healthService } from '../../api/services/health.service';
 
 /** 生命周期时间轴节点颜色（按 status / eventType 粗分） */
 function lifecycleTimelineNodeClass(ev: LifecycleTimelineEventVO): string {
@@ -258,6 +261,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
   const [timelineLoading, setTimelineLoading] = useState(false);
   const [timelineData, setTimelineData] = useState<LifecycleTimelineVO | null>(null);
   const [observabilityData, setObservabilityData] = useState<ObservabilitySummaryVO | null>(null);
+  const [resourceHealthSnapshot, setResourceHealthSnapshot] = useState<ResourceHealthSnapshotVO | null>(null);
   const [selectedRcIds, setSelectedRcIds] = useState<Set<string>>(new Set());
   const [batchWithdrawOpen, setBatchWithdrawOpen] = useState(false);
   const [batchRcBusy, setBatchRcBusy] = useState(false);
@@ -295,6 +299,28 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
   useEffect(() => {
     void fetchData();
   }, [fetchData]);
+
+  useEffect(() => {
+    if (!timelineTarget) {
+      setResourceHealthSnapshot(null);
+      return;
+    }
+    let cancelled = false;
+    healthService.getResourceHealth(timelineTarget.id)
+      .then((snapshot) => {
+        if (!cancelled) {
+          setResourceHealthSnapshot(snapshot);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setResourceHealthSnapshot(null);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [timelineTarget]);
 
   const clearRcSelection = useCallback(() => setSelectedRcIds(new Set()), []);
 
@@ -471,6 +497,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
     setTimelineLoading(true);
     setTimelineData(null);
     setObservabilityData(null);
+    setResourceHealthSnapshot(null);
     try {
       const [timelineResult, observabilityResult] = await Promise.allSettled([
         resourceCenterService.getLifecycleTimeline(item.id),
@@ -829,6 +856,13 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                         }
                       >
                         {resourceHealthLabelZh(item.healthStatus)}
+                      </span>
+                      <span>可调用</span>
+                      <span
+                        className={`inline-flex items-center rounded-lg px-2 py-0.5 text-xs font-semibold ${resourceCallabilityBadgeClass(theme, item.callabilityState)}`}
+                        title={item.callabilityReason ? `最终裁决原因：${item.callabilityReason}` : undefined}
+                      >
+                        {resourceCallabilityLabelZh(item.callabilityState)}
                       </span>
                       {item.circuitState && item.circuitState !== 'unknown' ? (
                         <span className="opacity-80" title="熔断状态">
@@ -1316,6 +1350,94 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                 {observabilityData.degradationHint?.userFacingHint ? (
                   <div className={`mt-1.5 ${textSecondary(theme)}`}>提示: {observabilityData.degradationHint.userFacingHint}</div>
                 ) : null}
+              </div>
+            )}
+            {resourceHealthSnapshot && (
+              <div className={`rounded-xl border p-3 text-xs ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-white'}`}>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={textSecondary(theme)}>资源健康</span>
+                  <span className={`inline-flex items-center rounded-lg px-2 py-0.5 text-xs font-semibold ${resourceHealthBadgeClass(theme, resourceHealthSnapshot.healthStatus)}`}>
+                    {resourceHealthLabelZh(resourceHealthSnapshot.healthStatus)}
+                  </span>
+                  <span className={textSecondary(theme)}>可调用</span>
+                  <span className={`inline-flex items-center rounded-lg px-2 py-0.5 text-xs font-semibold ${resourceCallabilityBadgeClass(theme, resourceHealthSnapshot.callabilityState)}`}>
+                    {resourceCallabilityLabelZh(resourceHealthSnapshot.callabilityState)}
+                  </span>
+                  <span className={textSecondary(theme)}>熔断</span>
+                  <span className={`inline-flex items-center rounded-lg px-2 py-0.5 text-xs font-semibold ${circuitBreakerBadgeClass(theme, resourceHealthSnapshot.circuitState)}`}>
+                    {circuitBreakerLabelZh(resourceHealthSnapshot.circuitState)}
+                  </span>
+                </div>
+                <div className={`mt-1.5 ${textPrimary(theme)}`}>原因: {nullDisplay(resourceHealthSnapshot.callabilityReason || resourceHealthSnapshot.lastFailureReason, '暂无')}</div>
+                <div className={`mt-1 ${textSecondary(theme)}`}>
+                  最近探测: {nullDisplay(formatDateTime(resourceHealthSnapshot.lastProbeAt))}
+                  {' · '}
+                  连续失败: {nullDisplay(resourceHealthSnapshot.consecutiveFailure)}
+                  {' · '}
+                  延迟: {nullDisplay(resourceHealthSnapshot.probeLatencyMs)}ms
+                </div>
+                {resourceHealthSnapshot.probePayloadSummary ? (
+                  <div className={`mt-1 ${textSecondary(theme)}`}>探测摘要: {resourceHealthSnapshot.probePayloadSummary}</div>
+                ) : null}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className={btnSecondary(theme)}
+                    onClick={async () => {
+                      if (!timelineTarget) return;
+                      setTimelineLoading(true);
+                      try {
+                        const snapshot = await healthService.probeResourceHealth(timelineTarget.id);
+                        setResourceHealthSnapshot(snapshot);
+                        showMessage('资源健康已重新探测', 'success');
+                      } catch (e) {
+                        showMessage(e instanceof Error ? e.message : '重新探测失败', 'error');
+                      } finally {
+                        setTimelineLoading(false);
+                      }
+                    }}
+                  >
+                    立即探测
+                  </button>
+                  <button
+                    type="button"
+                    className={btnSecondary(theme)}
+                    onClick={async () => {
+                      if (!timelineTarget) return;
+                      setTimelineLoading(true);
+                      try {
+                        const snapshot = await healthService.manualBreakResource(timelineTarget.id);
+                        setResourceHealthSnapshot(snapshot);
+                        showMessage('资源已手动熔断', 'success');
+                      } catch (e) {
+                        showMessage(e instanceof Error ? e.message : '手动熔断失败', 'error');
+                      } finally {
+                        setTimelineLoading(false);
+                      }
+                    }}
+                  >
+                    手动熔断
+                  </button>
+                  <button
+                    type="button"
+                    className={btnPrimary}
+                    onClick={async () => {
+                      if (!timelineTarget) return;
+                      setTimelineLoading(true);
+                      try {
+                        const snapshot = await healthService.manualRecoverResource(timelineTarget.id);
+                        setResourceHealthSnapshot(snapshot);
+                        showMessage('资源已恢复可用', 'success');
+                      } catch (e) {
+                        showMessage(e instanceof Error ? e.message : '手动恢复失败', 'error');
+                      } finally {
+                        setTimelineLoading(false);
+                      }
+                    }}
+                  >
+                    手动恢复
+                  </button>
+                </div>
               </div>
             )}
             {timelineData ? (

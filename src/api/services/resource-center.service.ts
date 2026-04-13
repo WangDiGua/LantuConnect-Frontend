@@ -270,6 +270,90 @@ function toResourceItem(raw: unknown): ResourceCenterItemVO {
     degradationHint: r?.degradationHint != null ? String(r.degradationHint) : undefined,
     qualityScore: r?.qualityScore != null && Number.isFinite(Number(r.qualityScore)) ? Number(r.qualityScore) : undefined,
     qualityFactors: asRecordObject(r?.qualityFactors),
+    observability: asRecordObject(r?.observability ?? r?.observability_summary),
+    quality: asRecordObject(r?.quality ?? r?.quality_summary),
+    callabilityState:
+      r?.callabilityState != null && String(r.callabilityState).trim() !== ''
+        ? String(r.callabilityState)
+        : r?.callability_state != null && String(r.callability_state).trim() !== ''
+          ? String(r.callability_state)
+          : undefined,
+    callabilityReason:
+      r?.callabilityReason != null && String(r.callabilityReason).trim() !== ''
+        ? String(r.callabilityReason)
+        : r?.callability_reason != null && String(r.callability_reason).trim() !== ''
+          ? String(r.callability_reason)
+          : undefined,
+    callable:
+      typeof r?.callable === 'boolean'
+        ? r.callable
+        : r?.callable === 1 || r?.callable === '1'
+          ? true
+          : r?.callable === 0 || r?.callable === '0'
+            ? false
+            : undefined,
+    resourceEnabled:
+      typeof r?.resourceEnabled === 'boolean'
+        ? r.resourceEnabled
+        : r?.resourceEnabled === 1 || r?.resourceEnabled === '1'
+          ? true
+          : r?.resourceEnabled === 0 || r?.resourceEnabled === '0'
+            ? false
+            : undefined,
+    probeStrategy:
+      r?.probeStrategy != null && String(r.probeStrategy).trim() !== ''
+        ? String(r.probeStrategy)
+        : r?.probe_strategy != null && String(r.probe_strategy).trim() !== ''
+          ? String(r.probe_strategy)
+          : undefined,
+    lastProbeAt:
+      r?.lastProbeAt != null && String(r.lastProbeAt).trim() !== ''
+        ? String(r.lastProbeAt)
+        : r?.last_probe_at != null && String(r.last_probe_at).trim() !== ''
+          ? String(r.last_probe_at)
+          : undefined,
+    lastSuccessAt:
+      r?.lastSuccessAt != null && String(r.lastSuccessAt).trim() !== ''
+        ? String(r.lastSuccessAt)
+        : r?.last_success_at != null && String(r.last_success_at).trim() !== ''
+          ? String(r.last_success_at)
+          : undefined,
+    lastFailureAt:
+      r?.lastFailureAt != null && String(r.lastFailureAt).trim() !== ''
+        ? String(r.lastFailureAt)
+        : r?.last_failure_at != null && String(r.last_failure_at).trim() !== ''
+          ? String(r.last_failure_at)
+          : undefined,
+    lastFailureReason:
+      r?.lastFailureReason != null && String(r.lastFailureReason).trim() !== ''
+        ? String(r.lastFailureReason)
+        : r?.last_failure_reason != null && String(r.last_failure_reason).trim() !== ''
+          ? String(r.last_failure_reason)
+          : undefined,
+    consecutiveSuccess:
+      r?.consecutiveSuccess != null && Number.isFinite(Number(r.consecutiveSuccess))
+        ? Number(r.consecutiveSuccess)
+        : r?.consecutive_success != null && Number.isFinite(Number(r.consecutive_success))
+          ? Number(r.consecutive_success)
+          : undefined,
+    consecutiveFailure:
+      r?.consecutiveFailure != null && Number.isFinite(Number(r.consecutiveFailure))
+        ? Number(r.consecutiveFailure)
+        : r?.consecutive_failure != null && Number.isFinite(Number(r.consecutive_failure))
+          ? Number(r.consecutive_failure)
+          : undefined,
+    probeLatencyMs:
+      r?.probeLatencyMs != null && Number.isFinite(Number(r.probeLatencyMs))
+        ? Number(r.probeLatencyMs)
+        : r?.probe_latency_ms != null && Number.isFinite(Number(r.probe_latency_ms))
+          ? Number(r.probe_latency_ms)
+          : undefined,
+    probePayloadSummary:
+      r?.probePayloadSummary != null && String(r.probePayloadSummary).trim() !== ''
+        ? String(r.probePayloadSummary)
+        : r?.probe_payload_summary != null && String(r.probe_payload_summary).trim() !== ''
+          ? String(r.probe_payload_summary)
+          : undefined,
   };
 }
 

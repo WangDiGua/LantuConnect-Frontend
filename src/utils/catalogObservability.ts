@@ -15,6 +15,16 @@ function obsString(o: Record<string, unknown> | undefined, camel: string, snake:
   return s || undefined;
 }
 
+function obsBool(o: Record<string, unknown> | undefined, camel: string, snake: string): boolean | undefined {
+  if (!o) return undefined;
+  const v = o[camel] ?? o[snake];
+  if (v == null || v === '') return undefined;
+  if (typeof v === 'boolean') return v;
+  if (v === 1 || v === '1') return true;
+  if (v === 0 || v === '0') return false;
+  return undefined;
+}
+
 /** 目录/详情 `observability.healthStatus` */
 export function catalogItemHealthStatus(item: Pick<ResourceCatalogItemVO, 'observability'>): string | undefined {
   return obsString(item.observability, 'healthStatus', 'health_status');
@@ -22,6 +32,18 @@ export function catalogItemHealthStatus(item: Pick<ResourceCatalogItemVO, 'obser
 
 export function catalogItemCircuitState(item: Pick<ResourceCatalogItemVO, 'observability'>): string | undefined {
   return obsString(item.observability, 'circuitState', 'circuit_state');
+}
+
+export function catalogItemCallabilityState(item: Pick<ResourceCatalogItemVO, 'observability'>): string | undefined {
+  return obsString(item.observability, 'callabilityState', 'callability_state');
+}
+
+export function catalogItemCallabilityReason(item: Pick<ResourceCatalogItemVO, 'observability'>): string | undefined {
+  return obsString(item.observability, 'callabilityReason', 'callability_reason');
+}
+
+export function catalogItemCallable(item: Pick<ResourceCatalogItemVO, 'observability'>): boolean | undefined {
+  return obsBool(item.observability, 'callable', 'callable');
 }
 
 export function catalogItemDegradationHint(item: Pick<ResourceCatalogItemVO, 'observability'>): string | undefined {
@@ -59,6 +81,9 @@ export function catalogItemDegradationHint(item: Pick<ResourceCatalogItemVO, 'ob
  * 若据此禁用列表，会导致换账号后同一 MCP「忽而不可用、忽而可用」，与广场「运行状态」预期不符。
  */
 export function isCatalogMcpCallable(item: Pick<ResourceCatalogItemVO, 'observability'>): boolean {
+  const callability = norm(catalogItemCallabilityState(item));
+  if (callability === 'callable') return true;
+  if (callability && callability !== 'unknown') return false;
   const h = norm(catalogItemHealthStatus(item));
   const c = norm(catalogItemCircuitState(item));
   if (c === 'open' || c === 'forced_open') return false;
@@ -72,6 +97,9 @@ export function isCatalogMcpCallable(item: Pick<ResourceCatalogItemVO, 'observab
  * 列表/详情「运行 *」徽章用 key：半开/全断/健康 down 时勿仅用 healthStatus（否则仍显示「健康」）。
  */
 export function catalogRunBadgeHealthKeyForDisplay(item: Pick<ResourceCatalogItemVO, 'observability'>): string {
+  const callability = norm(catalogItemCallabilityState(item));
+  if (callability === 'circuit_half_open') return 'circuit_half_open';
+  if (callability && callability !== 'callable' && callability !== 'unknown') return 'gateway_blocked';
   const c = norm(catalogItemCircuitState(item));
   if (c === 'half_open') return 'circuit_half_open';
   if (!isCatalogMcpCallable(item)) return 'gateway_blocked';
@@ -84,6 +112,11 @@ export function catalogInvokeSupplementHint(item: Pick<ResourceCatalogItemVO, 'o
 }
 
 export function mcpInvokeBlockedReason(item: Pick<ResourceCatalogItemVO, 'observability'>): string {
+  const callability = norm(catalogItemCallabilityState(item));
+  const reason = catalogItemCallabilityReason(item);
+  if (callability && callability !== 'callable' && callability !== 'unknown') {
+    return reason ?? `当前资源不可调用：${callability}`;
+  }
   const c = norm(catalogItemCircuitState(item));
   if (c === 'open' || c === 'forced_open') {
     return '熔断已断开，网关暂不放行调用。探活恢复后后端会自动合闸；亦可稍后再试。';

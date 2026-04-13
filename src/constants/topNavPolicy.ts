@@ -6,10 +6,10 @@ import type { ConsoleSidebarRow } from './consoleNavModel';
 /** 应用端顶栏保留的一级侧栏 id（工作台等入口见探索首页左侧树与侧栏抽屉） */
 export const USER_TOP_NAV_SIDEBAR_IDS = [
   'hub',
-  'skills-center',
-  'mcp-center',
-  'dataset-center',
   'agents-center',
+  'mcp-center',
+  'skills-center',
+  'dataset-center',
   'apps-center',
 ] as const;
 

@@ -114,10 +114,10 @@ export const ADMIN_SIDEBAR_ITEMS = [
 
 export const USER_SIDEBAR_ITEMS = [
   { id: 'hub', icon: Compass, label: '探索发现' },
-  { id: 'skills-center', icon: Braces, label: 'Skills 中心' },
-  { id: 'mcp-center', icon: Puzzle, label: 'MCP 广场' },
-  { id: 'dataset-center', icon: Database, label: '数据集' },
   { id: 'agents-center', icon: Bot, label: 'Agent 广场' },
+  { id: 'mcp-center', icon: Puzzle, label: 'MCP 广场' },
+  { id: 'skills-center', icon: Braces, label: 'Skills 中心' },
+  { id: 'dataset-center', icon: Database, label: '数据集' },
   { id: 'apps-center', icon: AppWindow, label: '应用集' },
   { id: 'workspace', icon: LayoutGrid, label: '个人工作台' },
   { id: 'developer-portal', icon: Code2, label: '开发者中心' },

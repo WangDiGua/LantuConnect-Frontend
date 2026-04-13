@@ -100,6 +100,13 @@ export interface ResourceAgentUpsertRequest extends ResourceBaseUpsertRequest {
   hidden?: boolean;
   maxSteps?: number;
   temperature?: number;
+  registrationProtocol?: 'bailian_compatible' | 'openai_compatible' | 'anthropic_messages' | 'gemini_generatecontent';
+  upstreamEndpoint?: string;
+  upstreamAgentId?: string;
+  credentialRef?: string;
+  transformProfile?: string;
+  modelAlias?: string;
+  enabled?: boolean;
   /** agent_depends_mcp */
   relatedMcpResourceIds?: number[];
 }
@@ -184,6 +191,13 @@ export interface ResourceCenterItemVO {
   agentType?: string;
   spec?: Record<string, unknown>;
   systemPrompt?: string;
+  registrationProtocol?: string;
+  upstreamEndpoint?: string;
+  upstreamAgentId?: string;
+  credentialRef?: string;
+  transformProfile?: string;
+  modelAlias?: string;
+  enabled?: boolean;
   hidden?: boolean;
   maxSteps?: number;
   temperature?: number;
@@ -235,6 +249,23 @@ export interface ResourceVersionVO {
   status?: string;
   createTime?: string;
   updateTime?: string;
+}
+
+export interface AgentKeyMetaVO {
+  id: number;
+  maskedKey: string;
+  status: string;
+  scopes: string[];
+  createTime?: string;
+  lastUsedAt?: string;
+}
+
+export interface AgentKeyRotateVO {
+  id: number;
+  name?: string;
+  scopes: string[];
+  secretPlain: string;
+  revoked?: boolean;
 }
 
 export interface ResourceAuditItemVO {

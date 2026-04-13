@@ -4,6 +4,8 @@ import { runWithConcurrency } from '../../utils/runWithConcurrency';
 import { normalizeAccessPolicy } from '../../utils/accessPolicy';
 import type { ResourceType } from '../../types/dto/catalog';
 import type {
+  AgentKeyMetaVO,
+  AgentKeyRotateVO,
   LifecycleTimelineVO,
   ObservabilitySummaryVO,
   ResourceCenterItemVO,
@@ -124,6 +126,50 @@ function toResourceItem(raw: unknown): ResourceCenterItemVO {
         : r?.system_prompt != null && String(r.system_prompt).trim() !== ''
           ? String(r.system_prompt)
           : undefined,
+    registrationProtocol:
+      r?.registrationProtocol != null && String(r.registrationProtocol).trim() !== ''
+        ? String(r.registrationProtocol)
+        : r?.registration_protocol != null && String(r.registration_protocol).trim() !== ''
+          ? String(r.registration_protocol)
+          : undefined,
+    upstreamEndpoint:
+      r?.upstreamEndpoint != null && String(r.upstreamEndpoint).trim() !== ''
+        ? String(r.upstreamEndpoint)
+        : r?.upstream_endpoint != null && String(r.upstream_endpoint).trim() !== ''
+          ? String(r.upstream_endpoint)
+          : undefined,
+    upstreamAgentId:
+      r?.upstreamAgentId != null && String(r.upstreamAgentId).trim() !== ''
+        ? String(r.upstreamAgentId)
+        : r?.upstream_agent_id != null && String(r.upstream_agent_id).trim() !== ''
+          ? String(r.upstream_agent_id)
+          : undefined,
+    credentialRef:
+      r?.credentialRef != null && String(r.credentialRef).trim() !== ''
+        ? String(r.credentialRef)
+        : r?.credential_ref != null && String(r.credential_ref).trim() !== ''
+          ? String(r.credential_ref)
+          : undefined,
+    transformProfile:
+      r?.transformProfile != null && String(r.transformProfile).trim() !== ''
+        ? String(r.transformProfile)
+        : r?.transform_profile != null && String(r.transform_profile).trim() !== ''
+          ? String(r.transform_profile)
+          : undefined,
+    modelAlias:
+      r?.modelAlias != null && String(r.modelAlias).trim() !== ''
+        ? String(r.modelAlias)
+        : r?.model_alias != null && String(r.model_alias).trim() !== ''
+          ? String(r.model_alias)
+          : undefined,
+    enabled:
+      typeof r?.enabled === 'boolean'
+        ? r.enabled
+        : r?.enabled === 1 || r?.enabled === '1'
+          ? true
+          : r?.enabled === 0 || r?.enabled === '0'
+            ? false
+            : undefined,
     maxSteps:
       r?.maxSteps != null && Number.isFinite(Number(r.maxSteps))
         ? Number(r.maxSteps)
@@ -385,6 +431,38 @@ export const resourceCenterService = {
 
   getObservabilitySummary: (resourceType: string, id: number): Promise<ObservabilitySummaryVO> =>
     http.get<ObservabilitySummaryVO>(`/resource-center/resources/${resourceType}/${id}/observability-summary`),
+
+  rotateAgentKey: async (id: number): Promise<AgentKeyRotateVO> => {
+    const raw = await http.post<unknown>(`/resource-center/resources/${id}/agent-key/rotate`);
+    const o = raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
+    const secretPlain = String(o.secretPlain ?? '');
+    return {
+      id: Number(o.id ?? 0) || 0,
+      name: o.name != null ? String(o.name) : undefined,
+      scopes: Array.isArray(o.scopes) ? (o.scopes as unknown[]).map((x) => String(x)) : [],
+      secretPlain,
+      revoked: o.revoked === true || o.revoked === 1 || o.revoked === '1',
+    };
+  },
+
+  revokeAgentKey: async (id: number): Promise<void> =>
+    http.post<void>(`/resource-center/resources/${id}/agent-key/revoke`),
+
+  listAgentKeys: async (id: number): Promise<AgentKeyMetaVO[]> => {
+    const raw = await http.get<unknown>(`/resource-center/resources/${id}/agent-key/meta`);
+    const list = Array.isArray(raw) ? raw : [];
+    return list.map((it) => {
+      const o = it && typeof it === 'object' && !Array.isArray(it) ? (it as Record<string, unknown>) : {};
+      return {
+        id: Number(o.id ?? 0) || 0,
+        maskedKey: String(o.maskedKey ?? ''),
+        status: String(o.status ?? ''),
+        scopes: Array.isArray(o.scopes) ? (o.scopes as unknown[]).map((x) => String(x)) : [],
+        createTime: o.createTime != null ? String(o.createTime) : undefined,
+        lastUsedAt: o.lastUsedAt != null ? String(o.lastUsedAt) : undefined,
+      };
+    });
+  },
 
   listVersions: async (id: number): Promise<ResourceVersionVO[]> => {
     const raw = await http.get<unknown>(`/resource-center/resources/${id}/versions`);

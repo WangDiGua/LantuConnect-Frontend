@@ -1,9 +1,9 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, BookOpen, ChevronDown, Loader2, Save, Send, FileText } from 'lucide-react';
+import { ArrowLeft, BookOpen, ChevronDown, Loader2, Save, Send, FileText, Copy } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { ResourceType } from '../../types/dto/catalog';
-import type { ResourceCenterItemVO, ResourceUpsertRequest } from '../../types/dto/resource-center';
+import type { AgentKeyMetaVO, ResourceCenterItemVO, ResourceUpsertRequest } from '../../types/dto/resource-center';
 import { resourceCenterService } from '../../api/services/resource-center.service';
 import { tagService } from '../../api/services/tag.service';
 import { useAuthStore } from '../../stores/authStore';
@@ -30,6 +30,7 @@ import { workingDraftAuditTierLabelZh } from '../../utils/backendEnumLabels';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 import { parseMcpConfigPaste } from '../../utils/mcpConfigImport';
+import { parseAgentConfigPaste } from '../../utils/agentConfigImport';
 import { lantuCheckboxPrimaryClass } from '../../utils/formFieldClasses';
 import { ReviewMarkdownEditor } from '../../components/common/ReviewMarkdownEditor';
 
@@ -89,6 +90,12 @@ const AGENT_MODE_OPTIONS = [
   { value: 'SUBAGENT', label: 'SUBAGENT' },
   { value: 'ALL', label: 'ALL' },
   { value: 'TOOL', label: 'TOOL' },
+];
+const AGENT_REG_PROTOCOL_OPTIONS = [
+  { value: 'openai_compatible', label: 'OpenAI Compatible' },
+  { value: 'bailian_compatible', label: '百炼 Compatible' },
+  { value: 'anthropic_messages', label: 'Anthropic Messages' },
+  { value: 'gemini_generatecontent', label: 'Gemini generateContent' },
 ];
 function isValidUrl(value: string): boolean {
   try {
@@ -183,6 +190,10 @@ type ResourceRegisterFieldKey =
   | 'protocol'
   | 'authConfigJson'
   | 'agentType'
+  | 'registrationProtocol'
+  | 'upstreamEndpoint'
+  | 'modelAlias'
+  | 'credentialRef'
   | 'specJson'
   | 'maxConcurrency'
   | 'relatedResourceIds'
@@ -211,6 +222,10 @@ const RR_FIELD_FOCUS_ORDER: ResourceRegisterFieldKey[] = [
   'protocol',
   'authConfigJson',
   'agentType',
+  'registrationProtocol',
+  'upstreamEndpoint',
+  'modelAlias',
+  'credentialRef',
   'specJson',
   'maxConcurrency',
   'relatedResourceIds',
@@ -240,6 +255,13 @@ function computeResourceRegisterFieldErrors(
     authType: string;
     authConfigJson: string;
     agentType: string;
+    registrationProtocol: string;
+    upstreamEndpoint: string;
+    modelAlias: string;
+    credentialRef: string;
+    upstreamAgentId: string;
+    transformProfile: string;
+    agentEnabled: boolean;
     specJson: string;
     maxConcurrency: number;
     relatedResourceIds: string;
@@ -325,15 +347,21 @@ function computeResourceRegisterFieldErrors(
     if (!form.agentType.trim()) {
       e.agentType = '请填写智能体类型';
     }
-    const specParsed = parseJsonObject(form.specJson, '规格 JSON');
-    if (!specParsed.ok) {
-      e.specJson = specParsed.message;
-    } else {
-      const specUrl = typeof specParsed.data?.url === 'string' ? specParsed.data.url.trim() : '';
-      if (!specUrl) {
-        e.specJson = e.specJson ?? '智能体规格 JSON 中必须包含 url';
-      } else if (!isValidUrl(specUrl)) {
-        e.specJson = e.specJson ?? '智能体规格配置中的 url 须为有效的 http/https URL';
+    if (!form.registrationProtocol.trim()) {
+      e.registrationProtocol = '请选择注册协议';
+    }
+    if (!form.upstreamEndpoint.trim()) {
+      e.upstreamEndpoint = '请填写上游 endpoint';
+    } else if (!isValidUrl(form.upstreamEndpoint.trim())) {
+      e.upstreamEndpoint = '上游 endpoint 必须是 http:// 或 https:// URL';
+    }
+    if (!form.modelAlias.trim()) {
+      e.modelAlias = '请填写对外 modelAlias';
+    }
+    if (form.specJson.trim()) {
+      const specParsed = parseJsonObject(form.specJson, '规格 JSON');
+      if (!specParsed.ok) {
+        e.specJson = specParsed.message;
       }
     }
     const mcpRel = parseRelatedIds(form.relatedMcpResourceIds);
@@ -681,12 +709,19 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     skillType: 'context_v1',
     mode: resourceType === 'agent' ? 'SUBAGENT' : 'TOOL',
     agentType: 'http_api',
+    registrationProtocol: 'openai_compatible',
+    upstreamEndpoint: '',
+    upstreamAgentId: '',
+    credentialRef: '',
+    transformProfile: '',
+    modelAlias: '',
+    agentEnabled: true,
     maxConcurrency: 10,
     systemPrompt: '',
     agentHidden: false,
     agentMaxSteps: '',
     agentTemperature: '',
-    specJson: resourceType === 'agent' ? DEFAULT_AGENT_SPEC_JSON : resourceType === 'skill' ? DEFAULT_SKILL_SPEC_JSON : '{}',
+    specJson: resourceType === 'skill' ? DEFAULT_SKILL_SPEC_JSON : '{}',
     paramsSchemaJson: DEFAULT_SKILL_PARAMS_SCHEMA_JSON,
     relatedResourceIds: '',
     serviceDetailMd: '',
@@ -695,7 +730,11 @@ export const ResourceRegisterPage: React.FC<Props> = ({
   });
   const bindingSnapshotRef = useRef({ relatedMcpResourceIds: '' });
   const [mcpImportPaste, setMcpImportPaste] = useState('');
+  const [agentImportPaste, setAgentImportPaste] = useState('');
   const [mcpProbeLoading, setMcpProbeLoading] = useState(false);
+  const [agentKeyLoading, setAgentKeyLoading] = useState(false);
+  const [agentKeys, setAgentKeys] = useState<AgentKeyMetaVO[]>([]);
+  const [latestAgentSecret, setLatestAgentSecret] = useState('');
   /** 已发布资源双轨编辑：用于提示线上版本 vs 草稿 */
   const [loadedResourceMeta, setLoadedResourceMeta] = useState<{
     status: string;
@@ -852,6 +891,13 @@ export const ResourceRegisterPage: React.FC<Props> = ({
             ? {
                 agentType: item.agentType || prev.agentType,
                 mode: item.mode || prev.mode,
+                registrationProtocol: item.registrationProtocol || prev.registrationProtocol,
+                upstreamEndpoint: item.upstreamEndpoint || prev.upstreamEndpoint,
+                upstreamAgentId: item.upstreamAgentId || '',
+                credentialRef: item.credentialRef || '',
+                transformProfile: item.transformProfile || '',
+                modelAlias: item.modelAlias || prev.modelAlias || item.resourceCode || prev.resourceCode,
+                agentEnabled: item.enabled ?? true,
                 specJson:
                   item.spec && typeof item.spec === 'object'
                     ? JSON.stringify(item.spec, null, 2)
@@ -911,10 +957,19 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     [resourceType],
   );
 
+  const openAiBaseUrl = useMemo(() => {
+    if (typeof window === 'undefined') return '/regis/openai/v1';
+    return `${window.location.origin}/regis/openai/v1`;
+  }, []);
+
   const fieldErrors = useMemo((): Partial<Record<ResourceRegisterFieldKey, string>> =>
     computeResourceRegisterFieldErrors(resourceType, form),
     [
       form.agentType,
+      form.registrationProtocol,
+      form.upstreamEndpoint,
+      form.modelAlias,
+      form.credentialRef,
       form.agentMaxSteps,
       form.agentTemperature,
       form.appIcon,
@@ -946,6 +1001,15 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     setMcpProbeExtra({});
   }, [form.endpoint, form.authConfigJson, form.authType, form.mcpRegisterMode]);
 
+  useEffect(() => {
+    if (resourceType !== 'agent' || !resourceId) {
+      setAgentKeys([]);
+      setLatestAgentSecret('');
+      return;
+    }
+    void refreshAgentKeys();
+  }, [resourceType, resourceId]);
+
   const mcpEndpointMerged = fieldErrors.endpoint ?? mcpProbeExtra.endpoint;
   const mcpAuthJsonMerged = fieldErrors.authConfigJson ?? mcpProbeExtra.authConfigJson;
   const handleMcpConfigImport = () => {
@@ -968,6 +1032,81 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       return;
     }
     showMessage(r.hint ?? '未能解析', 'warning');
+  };
+
+  const handleAgentConfigImport = () => {
+    const r = parseAgentConfigPaste(agentImportPaste);
+    if (r.hint && !r.upstreamEndpoint && !r.modelAlias && !r.upstreamAgentId) {
+      showMessage(r.hint, 'warning');
+      return;
+    }
+    setForm((p) => ({
+      ...p,
+      registrationProtocol: r.registrationProtocol ?? p.registrationProtocol,
+      upstreamEndpoint: r.upstreamEndpoint ?? p.upstreamEndpoint,
+      upstreamAgentId: r.upstreamAgentId ?? p.upstreamAgentId,
+      credentialRef: r.credentialRef ?? p.credentialRef,
+      transformProfile: r.transformProfile ?? p.transformProfile,
+      modelAlias: r.modelAlias ?? p.modelAlias,
+      agentEnabled: typeof r.enabled === 'boolean' ? r.enabled : p.agentEnabled,
+    }));
+    showMessage(
+      r.hint ? `${r.hint} 已尽量填入 Agent 字段，请核对后保存。` : '已从配置填充 Agent 字段，请核对后保存。',
+      r.hint ? 'warning' : 'success',
+    );
+  };
+
+  const copyText = async (text: string, successMessage: string) => {
+    if (!text.trim()) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      showMessage(successMessage, 'success');
+    } catch {
+      showMessage('复制失败，请手动复制', 'warning');
+    }
+  };
+
+  const refreshAgentKeys = async () => {
+    if (resourceType !== 'agent' || !resourceId) return;
+    setAgentKeyLoading(true);
+    try {
+      const rows = await resourceCenterService.listAgentKeys(resourceId);
+      setAgentKeys(rows);
+    } catch (e) {
+      showMessage(e instanceof Error ? e.message : '加载 Agent Key 信息失败', 'error');
+    } finally {
+      setAgentKeyLoading(false);
+    }
+  };
+
+  const rotateAgentKey = async () => {
+    if (resourceType !== 'agent' || !resourceId) return;
+    setAgentKeyLoading(true);
+    try {
+      const rotated = await resourceCenterService.rotateAgentKey(resourceId);
+      setLatestAgentSecret(rotated.secretPlain ?? '');
+      await refreshAgentKeys();
+      showMessage('已轮换 nx-sk（明文仅展示本次）', 'success');
+    } catch (e) {
+      showMessage(e instanceof Error ? e.message : '轮换失败', 'error');
+    } finally {
+      setAgentKeyLoading(false);
+    }
+  };
+
+  const revokeAgentKey = async () => {
+    if (resourceType !== 'agent' || !resourceId) return;
+    setAgentKeyLoading(true);
+    try {
+      await resourceCenterService.revokeAgentKey(resourceId);
+      setLatestAgentSecret('');
+      await refreshAgentKeys();
+      showMessage('已吊销 Agent 现有 Key', 'success');
+    } catch (e) {
+      showMessage(e instanceof Error ? e.message : '吊销失败', 'error');
+    } finally {
+      setAgentKeyLoading(false);
+    }
   };
 
   const handleMcpConnectivityProbe = async () => {
@@ -1086,6 +1225,17 @@ export const ResourceRegisterPage: React.FC<Props> = ({
         agentType: form.agentType.trim(),
         mode: form.mode,
         spec: parsedSpec.data || {},
+        registrationProtocol: form.registrationProtocol as
+          | 'openai_compatible'
+          | 'bailian_compatible'
+          | 'anthropic_messages'
+          | 'gemini_generatecontent',
+        upstreamEndpoint: form.upstreamEndpoint.trim(),
+        upstreamAgentId: form.upstreamAgentId.trim() || undefined,
+        credentialRef: form.credentialRef.trim() || undefined,
+        transformProfile: form.transformProfile.trim() || undefined,
+        modelAlias: form.modelAlias.trim(),
+        enabled: form.agentEnabled,
         maxConcurrency: Number(form.maxConcurrency) || 10,
         systemPrompt: form.systemPrompt.trim() ? form.systemPrompt.trim() : undefined,
         isPublic: true,
@@ -1382,7 +1532,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     minRows={4}
                     maxRows={22}
                     className={`${inputClass(isDark)} font-mono text-xs resize-none`}
-                    placeholder='例如：{ "mcpServers": { "demo": { "url": "https://example.com/mcp" } } }'
+                    placeholder={'支持直接粘贴 URL 或 JSON，例如：https://example.com/mcp 或 { "mcpServers": { "demo": { "url": "https://example.com/mcp" } } }'}
                   />
                   <div className="mt-2 flex flex-wrap gap-2">
                     <button type="button" className={btnSecondary(theme)} onClick={handleMcpConfigImport}>
@@ -1566,6 +1716,26 @@ export const ResourceRegisterPage: React.FC<Props> = ({
 
             {resourceType === 'agent' && (
               <>
+                <Field label="粘贴配置导入" full theme={theme}>
+                  <p className={`mb-2 text-xs ${textMuted(theme)}`}>
+                    支持直接粘贴 URL 或 JSON（OpenAI / 百炼 / Anthropic / Gemini），系统会自动识别并回填 Agent 字段。
+                  </p>
+                  <AutoHeightTextarea
+                    value={agentImportPaste}
+                    onChange={(e) => setAgentImportPaste(e.target.value)}
+                    minRows={4}
+                    maxRows={22}
+                    className={`${inputClass(isDark)} font-mono text-xs resize-none`}
+                    placeholder={
+                      '支持 URL 或 JSON，例如：https://api.openai.com/v1/chat/completions 或 { "provider": "bailian", "baseUrl": "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions", "appId": "app-xxx", "apiKeyRef": "vault:agent/chef" }'
+                    }
+                  />
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <button type="button" className={btnSecondary(theme)} onClick={handleAgentConfigImport}>
+                      解析并填充 Agent
+                    </button>
+                  </div>
+                </Field>
                 <Field label="智能体类型" theme={theme} error={fieldErrors.agentType}>
                   <ThemedSelect
                     isDark={isDark}
@@ -1582,10 +1752,154 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     options={AGENT_MODE_OPTIONS}
                   />
                 </Field>
-                <Field label="规格（JSON，须含 url）" full theme={theme} error={fieldErrors.specJson} fieldId={rrFieldId('specJson')}>
+                <Field label="注册协议 *" theme={theme} error={fieldErrors.registrationProtocol}>
+                  <ThemedSelect
+                    isDark={isDark}
+                    value={form.registrationProtocol}
+                    onChange={(value) => setForm((p) => ({ ...p, registrationProtocol: value }))}
+                    options={AGENT_REG_PROTOCOL_OPTIONS}
+                  />
+                </Field>
+                <Field label="上游 Endpoint *" theme={theme} error={fieldErrors.upstreamEndpoint} fieldId={rrFieldId('upstreamEndpoint')}>
+                  <input
+                    id={rrFieldId('upstreamEndpoint')}
+                    value={form.upstreamEndpoint}
+                    onChange={(e) => setForm((p) => ({ ...p, upstreamEndpoint: e.target.value }))}
+                    className={inputClass(isDark, !!fieldErrors.upstreamEndpoint)}
+                    aria-invalid={!!fieldErrors.upstreamEndpoint}
+                    aria-describedby={fieldErrors.upstreamEndpoint ? `${rrFieldId('upstreamEndpoint')}-err` : undefined}
+                    placeholder="https://api.example.com/v1/chat/completions"
+                  />
+                </Field>
+                <Field label="对外 Model Alias *" theme={theme} error={fieldErrors.modelAlias} fieldId={rrFieldId('modelAlias')}>
+                  <input
+                    id={rrFieldId('modelAlias')}
+                    value={form.modelAlias}
+                    onChange={(e) => setForm((p) => ({ ...p, modelAlias: e.target.value }))}
+                    className={inputClass(isDark, !!fieldErrors.modelAlias)}
+                    aria-invalid={!!fieldErrors.modelAlias}
+                    aria-describedby={fieldErrors.modelAlias ? `${rrFieldId('modelAlias')}-err` : undefined}
+                    placeholder="chef_agent_01"
+                  />
+                </Field>
+                <Field label="上游 Agent/App ID（选填）" theme={theme}>
+                  <input
+                    value={form.upstreamAgentId}
+                    onChange={(e) => setForm((p) => ({ ...p, upstreamAgentId: e.target.value }))}
+                    className={inputClass(isDark)}
+                    placeholder="app-xxxx"
+                  />
+                </Field>
+                <Field label="凭据引用（选填）" theme={theme} error={fieldErrors.credentialRef} fieldId={rrFieldId('credentialRef')}>
+                  <input
+                    id={rrFieldId('credentialRef')}
+                    value={form.credentialRef}
+                    onChange={(e) => setForm((p) => ({ ...p, credentialRef: e.target.value }))}
+                    className={inputClass(isDark, !!fieldErrors.credentialRef)}
+                    aria-invalid={!!fieldErrors.credentialRef}
+                    aria-describedby={fieldErrors.credentialRef ? `${rrFieldId('credentialRef')}-err` : undefined}
+                    placeholder="env:OPENAI_API_KEY / vault:agent/chef"
+                  />
+                </Field>
+                <Field label="转换档案（选填）" theme={theme}>
+                  <input
+                    value={form.transformProfile}
+                    onChange={(e) => setForm((p) => ({ ...p, transformProfile: e.target.value }))}
+                    className={inputClass(isDark)}
+                    placeholder="default"
+                  />
+                </Field>
+                <Field label="启用状态" theme={theme}>
+                  <label className="flex cursor-pointer items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={form.agentEnabled}
+                      onChange={(e) => setForm((p) => ({ ...p, agentEnabled: e.target.checked }))}
+                      className={lantuCheckboxPrimaryClass}
+                    />
+                    <span className={textMuted(theme)}>发布后可被 /openai/v1 发现与调用</span>
+                  </label>
+                </Field>
+                {resourceId ? (
+                  <div
+                    className={`md:col-span-2 rounded-xl border px-3 py-3 text-xs ${
+                      isDark ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-100/90' : 'border-emerald-200 bg-emerald-50 text-emerald-900'
+                    }`}
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="font-medium">对外接入信息（OpenAI 兼容）</p>
+                      <div className="flex flex-wrap gap-2">
+                        <button type="button" className={btnSecondary(theme)} disabled={agentKeyLoading} onClick={() => void refreshAgentKeys()}>
+                          {agentKeyLoading ? '刷新中...' : '刷新 Key'}
+                        </button>
+                        <button type="button" className={btnSecondary(theme)} disabled={agentKeyLoading} onClick={() => void rotateAgentKey()}>
+                          轮换 nx-sk
+                        </button>
+                        <button type="button" className={btnSecondary(theme)} disabled={agentKeyLoading} onClick={() => void revokeAgentKey()}>
+                          吊销 Key
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="mt-2 grid gap-2 md:grid-cols-2">
+                      <div className={`rounded-lg border px-2 py-2 ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-emerald-200/60 bg-white/80'}`}>
+                        <div className={`mb-1 ${textMuted(theme)}`}>Base URL</div>
+                        <div className="flex items-center gap-2">
+                          <code className="flex-1 break-all">{openAiBaseUrl}</code>
+                          <button type="button" className={btnSecondary(theme)} onClick={() => void copyText(openAiBaseUrl, 'Base URL 已复制')}>
+                            <Copy size={14} />
+                          </button>
+                        </div>
+                      </div>
+                      <div className={`rounded-lg border px-2 py-2 ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-emerald-200/60 bg-white/80'}`}>
+                        <div className={`mb-1 ${textMuted(theme)}`}>Model Alias</div>
+                        <div className="flex items-center gap-2">
+                          <code className="flex-1 break-all">{form.modelAlias || '（请先填写）'}</code>
+                          <button
+                            type="button"
+                            className={btnSecondary(theme)}
+                            onClick={() => void copyText(form.modelAlias || '', 'Model Alias 已复制')}
+                            disabled={!form.modelAlias}
+                          >
+                            <Copy size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {latestAgentSecret ? (
+                      <div className={`mt-2 rounded-lg border px-2 py-2 ${isDark ? 'border-amber-400/30 bg-amber-500/10' : 'border-amber-300 bg-amber-100/70'}`}>
+                        <div className="mb-1 font-medium">新 nx-sk（仅本次展示）</div>
+                        <div className="flex items-center gap-2">
+                          <code className="flex-1 break-all">{latestAgentSecret}</code>
+                          <button type="button" className={btnSecondary(theme)} onClick={() => void copyText(latestAgentSecret, 'nx-sk 已复制')}>
+                            <Copy size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <div className="mt-2">
+                      <div className={`mb-1 ${textMuted(theme)}`}>当前 Key 列表</div>
+                      {agentKeys.length === 0 ? (
+                        <p className={textMuted(theme)}>暂无可用 Key，点击「轮换 nx-sk」即可生成。</p>
+                      ) : (
+                        <div className="space-y-1">
+                          {agentKeys.map((k) => (
+                            <div key={k.id} className={`rounded-lg border px-2 py-1 ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-emerald-200/60 bg-white/80'}`}>
+                              <span className="font-mono">{k.maskedKey || `#${k.id}`}</span>
+                              <span className={`ml-2 ${textMuted(theme)}`}>状态：{k.status || 'unknown'}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : null}
+                <Field label="附加 Spec JSON（选填）" full theme={theme} error={fieldErrors.specJson} fieldId={rrFieldId('specJson')}>
                   <div className="mb-2 flex flex-wrap gap-2">
-                    <button type="button" className={btnSecondary(theme)} onClick={() => setForm((p) => ({ ...p, specJson: DEFAULT_AGENT_SPEC_JSON }))}>
-                      填入示例
+                    <button type="button" className={btnSecondary(theme)} onClick={() => setForm((p) => ({ ...p, specJson: '{}' }))}>
+                      置为 {}
                     </button>
                   </div>
                   <AutoHeightTextarea
@@ -1597,7 +1911,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     className={`${inputClass(isDark, !!fieldErrors.specJson)} font-mono text-xs resize-none`}
                     aria-invalid={!!fieldErrors.specJson}
                     aria-describedby={fieldErrors.specJson ? `${rrFieldId('specJson')}-err` : undefined}
-                    placeholder='{"url":"https://…","timeout":30}'
+                    placeholder='{"timeout":30}'
                   />
                 </Field>
                 <Field label="最大并发" theme={theme} error={fieldErrors.maxConcurrency} fieldId={rrFieldId('maxConcurrency')}>

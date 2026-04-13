@@ -1,9 +1,12 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import type { Plugin } from 'vite';
 import { defineConfig, loadEnv } from 'vite';
-import { DEFAULT_API_BASE_PATH, STATIC_DEPLOY_PATH_PREFIX } from './src/config/defaultApiBase';
+import { DEFAULT_API_BASE_PATH, STATIC_DEPLOY_PATH_PREFIX } from './src/config/defaultApiBase.ts';
+
+const projectRootDir = path.dirname(fileURLToPath(import.meta.url));
 
 /** 静态资源 `base`（须以 / 结尾）；与 API 根路径无关 */
 function normalizeAppBase(raw: string | undefined, useProdStaticSubpath: boolean): string {
@@ -67,8 +70,9 @@ export default defineConfig(({ mode }) => {
     base,
     plugins: [react(), tailwindcss(), contentSecurityPolicyPlugin(mode, env)],
     resolve: {
+      preserveSymlinks: true,
       alias: {
-        '@': path.resolve(__dirname, 'src'),
+        '@': path.resolve(projectRootDir, 'src'),
       },
     },
     server: {

@@ -1809,7 +1809,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     placeholder="default"
                   />
                 </Field>
-                <Field label="启用状态" theme={theme}>
+                <Field label="启用状态（调用开关）" theme={theme}>
                   <label className="flex cursor-pointer items-center gap-2 text-sm">
                     <input
                       type="checkbox"
@@ -1817,7 +1817,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                       onChange={(e) => setForm((p) => ({ ...p, agentEnabled: e.target.checked }))}
                       className={lantuCheckboxPrimaryClass}
                     />
-                    <span className={textMuted(theme)}>发布后可被 /openai/v1 发现与调用</span>
+                    <span className={textMuted(theme)}>仅控制已发布后是否可被 /openai/v1 发现与调用；不影响是否上架市场</span>
                   </label>
                 </Field>
                 {resourceId ? (
@@ -1896,7 +1896,10 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     </div>
                   </div>
                 ) : null}
-                <Field label="附加 Spec JSON（选填）" full theme={theme} error={fieldErrors.specJson} fieldId={rrFieldId('specJson')}>
+                <Field label="附加 Spec JSON（必填，可填 {}）" full theme={theme} error={fieldErrors.specJson} fieldId={rrFieldId('specJson')}>
+                  <p className={`mb-2 text-xs ${textMuted(theme)}`}>
+                    后端要求 agent spec 不能为 null（可传空对象）；最小可用值为 <code className="font-mono">{'{}'}</code>。
+                  </p>
                   <div className="mb-2 flex flex-wrap gap-2">
                     <button type="button" className={btnSecondary(theme)} onClick={() => setForm((p) => ({ ...p, specJson: '{}' }))}>
                       置为 {}

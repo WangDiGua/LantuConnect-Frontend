@@ -99,21 +99,29 @@ export const MyResourcePublishListPage: React.FC<Props> = ({ theme, fontSize, re
     fetchData();
   }, [fetchData]);
 
+  const canWithdrawAudit = useCallback(
+    (item: MyPublishItem) =>
+      item.status === 'pending_review'
+      || item.status === 'testing'
+      || (item.status === 'published' && Boolean(item.pendingPublishedUpdate)),
+    [],
+  );
+
   const showBatchWithdrawSelect = useMemo(
-    () => items.some((i) => i.status === 'pending_review'),
-    [items],
+    () => items.some((i) => canWithdrawAudit(i)),
+    [items, canWithdrawAudit],
   );
 
   useEffect(() => {
     setSelectedWithdrawIds((prev) => {
-      const pending = new Set(items.filter((i) => i.status === 'pending_review').map((i) => i.id));
+      const pending = new Set(items.filter((i) => canWithdrawAudit(i)).map((i) => i.id));
       const next = new Set<number>();
       prev.forEach((id) => {
         if (pending.has(id)) next.add(id);
       });
       return next;
     });
-  }, [items]);
+  }, [items, canWithdrawAudit]);
 
   const toggleWithdrawSelect = useCallback((id: number) => {
     setSelectedWithdrawIds((prev) => {
@@ -213,8 +221,9 @@ export const MyResourcePublishListPage: React.FC<Props> = ({ theme, fontSize, re
                     item={row}
                     callCountLabel={config.callCountLabel}
                     onView={() => setViewTarget(row)}
-                    onWithdraw={row.status === 'pending_review' ? () => setWithdrawTarget(row) : undefined}
+                    onWithdraw={canWithdrawAudit(row) ? () => setWithdrawTarget(row) : undefined}
                     batchSelectMode={showBatchWithdrawSelect}
+                    withdrawSelectable={canWithdrawAudit(row)}
                     selected={selectedWithdrawIds.has(row.id)}
                     onToggleSelected={() => toggleWithdrawSelect(row.id)}
                     {...publishCardAuditProps}
@@ -277,7 +286,7 @@ export const MyResourcePublishListPage: React.FC<Props> = ({ theme, fontSize, re
       <ConfirmDialog
         open={batchWithdrawOpen}
         title="批量撤回审核"
-        message={`确定撤回已选 ${selectedWithdrawIds.size} 个待审核资源的审核申请吗？撤回后状态将恢复为草稿。`}
+        message={`确定撤回已选 ${selectedWithdrawIds.size} 个可撤回资源的审核申请吗？撤回后状态将恢复为草稿。`}
         confirmText="确认撤回"
         variant="warning"
         loading={batchWithdrawBusy}

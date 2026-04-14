@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Rocket, Star, Heart } from 'lucide-react';
+import { Play, Star, Heart } from 'lucide-react';
 import type { Theme, FontSize, ThemeColor } from '../../types';
 import { ResourceMarketDetailShell } from '../../components/market';
 import { AgentReviews } from './AgentReviews';
 import { buildPath } from '../../constants/consoleRoutes';
 import { agentService } from '../../api/services/agent.service';
 import { resourceCatalogService } from '../../api/services/resource-catalog.service';
+import { invokeService } from '../../api/services/invoke.service';
 import type { Agent } from '../../types/dto/agent';
 import type { ResourceBindingSummaryVO } from '../../types/dto/catalog';
 import { BindingClosureSection } from '../../components/business/BindingClosureSection';
@@ -14,6 +15,11 @@ import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { btnPrimary, btnSecondary, textPrimary, textSecondary, textMuted, techBadge } from '../../utils/uiClasses';
 import { MarkdownView } from '../../components/common/MarkdownView';
+import { mapInvokeFlowError } from '../../utils/invokeError';
+import { usePersistedGatewayApiKey } from '../../hooks/usePersistedGatewayApiKey';
+import { nativeInputClass } from '../../utils/formFieldClasses';
+import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
+import { env } from '../../config/env';
 
 export interface AgentMarketDetailPageProps {
   resourceId: string;
@@ -23,6 +29,9 @@ export interface AgentMarketDetailPageProps {
   showMessage: (content: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
   onNavigateToList: () => void;
 }
+
+type AgentTestMode = 'gateway' | 'native';
+type NativeAuthMode = 'bearer' | 'x_api_key';
 
 function agentTrailingIcon(agent: Agent, isDark: boolean): React.ReactNode {
   const raw = agent.icon?.trim() || '';
@@ -43,6 +52,20 @@ function agentTrailingIcon(agent: Agent, isDark: boolean): React.ReactNode {
   );
 }
 
+function tryParseObject(
+  text: string,
+): { ok: true; data: Record<string, unknown>; message: '' } | { ok: false; data?: undefined; message: string } {
+  try {
+    const parsed = JSON.parse(text);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return { ok: false, message: 'JSON 必须是对象。' };
+    }
+    return { ok: true, data: parsed as Record<string, unknown>, message: '' };
+  } catch {
+    return { ok: false, message: 'JSON 格式不合法。' };
+  }
+}
+
 export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
   resourceId,
   theme,
@@ -60,6 +83,20 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
   const [tab, setTab] = useState<'intro' | 'capability' | 'reviews'>('intro');
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [adding, setAdding] = useState(false);
+
+  const [gatewayApiKeyDraft, setGatewayApiKeyDraft] = usePersistedGatewayApiKey();
+  const [testMode, setTestMode] = useState<AgentTestMode>('gateway');
+  const [nativeAuthMode, setNativeAuthMode] = useState<NativeAuthMode>('bearer');
+  const [nativeKey, setNativeKey] = useState('');
+  const [gatewayPayloadText, setGatewayPayloadText] = useState('{\n  "input": "hello"\n}');
+  const [gatewayTimeoutSec, setGatewayTimeoutSec] = useState(30);
+  const [gatewayTraceId, setGatewayTraceId] = useState(() => `agent-${Date.now()}`);
+  const [nativeBodyText, setNativeBodyText] = useState('{\n  "input": "hello"\n}');
+  const [testingNow, setTestingNow] = useState(false);
+  const [testResultText, setTestResultText] = useState('');
+  const [testErrorText, setTestErrorText] = useState('');
+  const [testStatusCode, setTestStatusCode] = useState<number | null>(null);
+  const [testLatencyMs, setTestLatencyMs] = useState<number | null>(null);
 
   const WS_KEY = 'lantu_workspace_agents';
   const [workspaceAgents, setWorkspaceAgents] = useState<string[]>(() => {
@@ -118,7 +155,7 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
     return '—';
   }, [agent]);
 
-  const installsLabel = useMemo(() => {
+  const usageLabel = useMemo(() => {
     if (!agent) return '0';
     return agent.callCount > 1000 ? `${(agent.callCount / 1000).toFixed(1)}K` : String(agent.callCount);
   }, [agent]);
@@ -132,20 +169,185 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
         : [agent.agentType];
   }, [agent]);
 
+  const registrationProtocol = useMemo(() => {
+    if (!agent) return '';
+    const raw = agent.specJson?.registrationProtocol;
+    return typeof raw === 'string' ? raw.trim().toLowerCase() : '';
+  }, [agent]);
+
+  const modelAlias = useMemo(() => {
+    if (!agent) return '';
+    const raw = agent.specJson?.modelAlias;
+    if (typeof raw === 'string' && raw.trim()) return raw.trim();
+    return agent.agentName?.trim() || String(agent.id);
+  }, [agent]);
+
+  const supportsNativeResponses = registrationProtocol === 'openai_compatible'
+    || registrationProtocol === 'bailian_compatible';
+
+  const openAiResponsesPath = `${env.VITE_API_BASE_URL.replace(/\/$/, '')}/openai/v1/responses`;
+
+  useEffect(() => {
+    if (!agent) return;
+    setNativeBodyText(JSON.stringify({
+      model: modelAlias,
+      input: [
+        {
+          type: 'message',
+          role: 'user',
+          content: [
+            {
+              type: 'input_text',
+              text: 'hello',
+            },
+          ],
+        },
+      ],
+      stream: false,
+    }, null, 2));
+  }, [agent, modelAlias]);
+
+  useEffect(() => {
+    if (supportsNativeResponses) return;
+    setTestMode('gateway');
+  }, [supportsNativeResponses]);
+
+  const runGatewayInvokeTest = useCallback(async () => {
+    if (!agent) return;
+    const apiKey = gatewayApiKeyDraft.trim();
+    if (!apiKey) {
+      setTestErrorText('请先输入有效 X-Api-Key（需要 resolve + invoke scope）。');
+      return;
+    }
+    const parsedPayload = tryParseObject(gatewayPayloadText);
+    if (!parsedPayload.ok) {
+      setTestErrorText(`统一 invoke payload 错误：${parsedPayload.message}`);
+      return;
+    }
+
+    const timeout = Math.max(1, Math.min(120, Number(gatewayTimeoutSec) || 30));
+    const traceId = gatewayTraceId.trim() || `agent-${Date.now()}`;
+    const startedAt = Date.now();
+    let stage: 'resolve' | 'invoke' = 'resolve';
+
+    try {
+      const resolved = await resourceCatalogService.resolve(
+        { resourceType: 'agent', resourceId: String(agent.id) },
+        { headers: { 'X-Api-Key': apiKey } },
+      );
+      stage = 'invoke';
+      const invokeRes = await invokeService.invoke(
+        {
+          resourceType: 'agent',
+          resourceId: String(agent.id),
+          version: resolved.version || undefined,
+          timeoutSec: timeout,
+          payload: parsedPayload.data,
+        },
+        apiKey,
+        traceId,
+      );
+      setTestStatusCode(Number(invokeRes.statusCode) || null);
+      setTestLatencyMs(Number(invokeRes.latencyMs) || (Date.now() - startedAt));
+      setTestResultText(invokeRes.body || '');
+      showMessage('统一 invoke 调用完成', 'success');
+    } catch (err) {
+      setTestErrorText(mapInvokeFlowError(err, stage));
+    }
+  }, [agent, gatewayApiKeyDraft, gatewayPayloadText, gatewayTimeoutSec, gatewayTraceId, showMessage]);
+
+  const runNativeResponsesTest = useCallback(async () => {
+    if (!agent) return;
+    const parsedBody = tryParseObject(nativeBodyText);
+    if (!parsedBody.ok) {
+      setTestErrorText(`协议原生请求体错误：${parsedBody.message}`);
+      return;
+    }
+
+    const bodyObj = { ...parsedBody.data };
+    if (!bodyObj.model && modelAlias) {
+      bodyObj.model = modelAlias;
+    }
+
+    const keyValue = nativeKey.trim() || gatewayApiKeyDraft.trim();
+    if (!keyValue) {
+      setTestErrorText('请先输入 Bearer Token 或 X-Api-Key。');
+      return;
+    }
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (nativeAuthMode === 'bearer') {
+      headers.Authorization = keyValue.startsWith('Bearer ') ? keyValue : `Bearer ${keyValue}`;
+    } else {
+      headers['X-Api-Key'] = keyValue;
+    }
+
+    const startedAt = Date.now();
+    try {
+      const res = await fetch(openAiResponsesPath, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(bodyObj),
+      });
+      const rawText = await res.text();
+      let pretty = rawText;
+      try {
+        pretty = JSON.stringify(JSON.parse(rawText), null, 2);
+      } catch {
+        // keep raw text
+      }
+      setTestStatusCode(res.status);
+      setTestLatencyMs(Date.now() - startedAt);
+      if (!res.ok) {
+        setTestErrorText(`协议原生请求失败（HTTP ${res.status}）`);
+        setTestResultText(pretty);
+        return;
+      }
+      setTestResultText(pretty);
+      showMessage('协议原生请求完成', 'success');
+    } catch (err) {
+      setTestErrorText(err instanceof Error ? err.message : '协议原生请求失败');
+    }
+  }, [agent, nativeBodyText, modelAlias, nativeKey, gatewayApiKeyDraft, nativeAuthMode, openAiResponsesPath, showMessage]);
+
+  const runInlineTest = useCallback(async () => {
+    setTestingNow(true);
+    setTestErrorText('');
+    setTestResultText('');
+    setTestStatusCode(null);
+    setTestLatencyMs(null);
+    try {
+      if (testMode === 'native' && supportsNativeResponses) {
+        await runNativeResponsesTest();
+      } else {
+        await runGatewayInvokeTest();
+      }
+    } finally {
+      setTestingNow(false);
+    }
+  }, [testMode, supportsNativeResponses, runNativeResponsesTest, runGatewayInvokeTest]);
+
   const addToWorkspace = async () => {
     if (!agent || isInWorkspace(String(agent.id))) return;
     setAdding(true);
     try {
       const { userActivityService } = await import('../../api/services/user-activity.service');
       await userActivityService.addFavorite('agent', Number(agent.id));
-      setWorkspaceAgents((prev) => [...prev, String(agent.id)]);
-      try {
-        localStorage.setItem(WS_KEY, JSON.stringify([...workspaceAgents, String(agent.id)]));
-      } catch {}
-      showMessage(`已将「${agent.displayName}」添加到工作区`, 'success');
+      setWorkspaceAgents((prev) => {
+        const next = [...prev, String(agent.id)];
+        try {
+          localStorage.setItem(WS_KEY, JSON.stringify(next));
+        } catch {
+          // ignore
+        }
+        return next;
+      });
+      showMessage(`已收藏「${agent.displayName}」`, 'success');
       setConfirmOpen(false);
     } catch (e) {
-      showMessage(e instanceof Error ? e.message : '添加失败', 'error');
+      showMessage(e instanceof Error ? e.message : '收藏失败', 'error');
     } finally {
       setAdding(false);
     }
@@ -185,7 +387,7 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
                   {ratingStr}
                 </span>
                 <span>{Math.max(0, Math.floor(Number(agent.reviewCount ?? 0)) || 0)} 条评价</span>
-                <span>{installsLabel} 次安装</span>
+                <span>{usageLabel} 次调用</span>
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {tags.map((t) => (
@@ -205,8 +407,8 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
               disabled={isInWorkspace(idStr)}
               onClick={() => !isInWorkspace(idStr) && setConfirmOpen(true)}
             >
-              <Rocket size={16} className="shrink-0" aria-hidden />
-              {isInWorkspace(idStr) ? '已添加' : '一键部署'}
+              <Heart size={16} className={`shrink-0 ${isInWorkspace(idStr) ? 'fill-current' : ''}`} aria-hidden />
+              {isInWorkspace(idStr) ? '已收藏' : '收藏'}
             </button>
           </>
         )}
@@ -258,10 +460,136 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
               isDark ? 'border-white/10 bg-lantu-elevated' : 'border-transparent bg-white'
             }`}
           >
-            <h3 className={`text-sm font-bold ${textPrimary(theme)}`}>快捷操作</h3>
+            <h3 className={`text-sm font-bold ${textPrimary(theme)}`}>内置测试</h3>
             <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
-              试用须具备有效 X-Api-Key 与 invoke 等 scope；资源上架后满足网关条件即可按目录调用。
+              详情页直接测试智能体。统一 invoke 需要 X-Api-Key；仅 openai/bailian 注册协议支持协议原生 responses。
             </p>
+
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                className={`${btnSecondary(theme)} ${testMode === 'gateway' ? 'ring-2 ring-sky-500/35' : ''}`}
+                onClick={() => setTestMode('gateway')}
+              >
+                统一 invoke
+              </button>
+              <button
+                type="button"
+                className={`${btnSecondary(theme)} ${testMode === 'native' ? 'ring-2 ring-sky-500/35' : ''}`}
+                onClick={() => supportsNativeResponses && setTestMode('native')}
+                disabled={!supportsNativeResponses}
+                title={supportsNativeResponses ? '协议原生 responses' : '仅 openai_compatible / bailian_compatible 支持协议原生'}
+              >
+                协议原生
+              </button>
+            </div>
+
+            {!supportsNativeResponses ? (
+              <p className={`rounded-xl border px-3 py-2 text-xs ${isDark ? 'border-amber-500/25 bg-amber-500/10 text-amber-100' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
+                当前注册协议：<code className="font-mono">{registrationProtocol || 'unknown'}</code>，仅支持统一 invoke 测试。
+              </p>
+            ) : null}
+
+            {testMode === 'gateway' ? (
+              <div className="space-y-2">
+                <label className={`block text-xs font-medium ${textSecondary(theme)}`}>X-Api-Key</label>
+                <input
+                  type="password"
+                  value={gatewayApiKeyDraft}
+                  onChange={(e) => setGatewayApiKeyDraft(e.target.value)}
+                  className={nativeInputClass(theme)}
+                  placeholder="nx-sk-..."
+                />
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className={`block text-xs font-medium ${textSecondary(theme)}`}>Timeout(s)</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={120}
+                      value={gatewayTimeoutSec}
+                      onChange={(e) => setGatewayTimeoutSec(Number(e.target.value) || 30)}
+                      className={nativeInputClass(theme)}
+                    />
+                  </div>
+                  <div>
+                    <label className={`block text-xs font-medium ${textSecondary(theme)}`}>TraceId</label>
+                    <input
+                      type="text"
+                      value={gatewayTraceId}
+                      onChange={(e) => setGatewayTraceId(e.target.value)}
+                      className={nativeInputClass(theme)}
+                    />
+                  </div>
+                </div>
+                <label className={`block text-xs font-medium ${textSecondary(theme)}`}>Payload(JSON)</label>
+                <AutoHeightTextarea
+                  value={gatewayPayloadText}
+                  onChange={(e) => setGatewayPayloadText(e.target.value)}
+                  minRows={6}
+                  maxRows={24}
+                  className={`${nativeInputClass(theme)} font-mono text-xs`}
+                />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <label className={`block text-xs font-medium ${textSecondary(theme)}`}>鉴权方式</label>
+                <select
+                  value={nativeAuthMode}
+                  onChange={(e) => setNativeAuthMode(e.target.value as NativeAuthMode)}
+                  className={nativeInputClass(theme)}
+                >
+                  <option value="bearer">Authorization: Bearer</option>
+                  <option value="x_api_key">X-Api-Key</option>
+                </select>
+                <label className={`block text-xs font-medium ${textSecondary(theme)}`}>Token / Key</label>
+                <input
+                  type="password"
+                  value={nativeKey}
+                  onChange={(e) => setNativeKey(e.target.value)}
+                  className={nativeInputClass(theme)}
+                  placeholder={nativeAuthMode === 'bearer' ? 'sk-... or nx-sk-...' : 'nx-sk-...'}
+                />
+                <p className={`text-xs ${textMuted(theme)}`}>
+                  请求地址：<code className="font-mono">{openAiResponsesPath}</code>，默认 model：<code className="font-mono">{modelAlias || '-'}</code>
+                </p>
+                <label className={`block text-xs font-medium ${textSecondary(theme)}`}>Request Body(JSON)</label>
+                <AutoHeightTextarea
+                  value={nativeBodyText}
+                  onChange={(e) => setNativeBodyText(e.target.value)}
+                  minRows={8}
+                  maxRows={26}
+                  className={`${nativeInputClass(theme)} font-mono text-xs`}
+                />
+              </div>
+            )}
+
+            <button
+              type="button"
+              className={`${btnPrimary} inline-flex w-full min-h-11 items-center justify-center gap-2`}
+              onClick={() => void runInlineTest()}
+              disabled={testingNow}
+            >
+              <Play size={14} aria-hidden />
+              {testingNow ? '测试中...' : '执行测试'}
+            </button>
+
+            {testErrorText ? (
+              <div className={`rounded-xl border px-3 py-2 text-xs ${isDark ? 'border-rose-500/25 bg-rose-500/10 text-rose-100' : 'border-rose-200 bg-rose-50 text-rose-900'}`}>
+                {testErrorText}
+              </div>
+            ) : null}
+
+            {testResultText ? (
+              <div className={`space-y-1 rounded-xl border px-3 py-2 ${isDark ? 'border-white/10 bg-black/20' : 'border-slate-200 bg-slate-50'}`}>
+                <div className={`text-xs ${textMuted(theme)}`}>
+                  {testStatusCode != null ? `HTTP ${testStatusCode}` : 'Response'}
+                  {testLatencyMs != null ? ` · ${testLatencyMs}ms` : ''}
+                </div>
+                <pre className={`max-h-64 overflow-auto whitespace-pre-wrap break-all text-xs ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{testResultText}</pre>
+              </div>
+            ) : null}
+
             <button
               type="button"
               className={`${btnSecondary(theme)} inline-flex w-full min-h-11 items-center justify-center gap-2`}
@@ -291,17 +619,17 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
             aria-labelledby="confirm-add-title"
           >
             <h2 id="confirm-add-title" className={`text-lg font-bold ${textPrimary(theme)}`}>
-              确认添加
+              确认收藏
             </h2>
             <p className={`mt-2 text-sm ${textSecondary(theme)}`}>
-              确认将「{agent.displayName}」添加到工作区？
+              确认收藏「{agent.displayName}」？
             </p>
             <div className="mt-6 flex justify-end gap-2">
               <button type="button" className={btnSecondary(theme)} onClick={() => setConfirmOpen(false)}>
                 取消
               </button>
               <button type="button" className={`${btnPrimary} disabled:opacity-50`} disabled={adding} onClick={() => void addToWorkspace()}>
-                {adding ? '添加中…' : '确认添加'}
+                {adding ? '处理中...' : '确认收藏'}
               </button>
             </div>
           </div>

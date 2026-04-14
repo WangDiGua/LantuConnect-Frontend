@@ -28,6 +28,13 @@ import { GatewayPlaygroundToolsSection } from './GatewayPlaygroundToolsSection';
 
 /** 与 `usePersistedGatewayApiKey`、axios 注入逻辑共用 */
 const GATEWAY_API_KEY_STORAGE_KEY = 'lantu_api_key';
+const PLAYGROUND_PREFILL_STORAGE_KEY = 'lantu_playground_prefill';
+
+type PlaygroundPrefill = {
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  path: string;
+  body?: string;
+};
 
 function readStoredGatewayApiKey(): string {
   return readBoundedLocalStorage(GATEWAY_API_KEY_STORAGE_KEY, MAX_STORED_API_KEY_LENGTH)?.trim() ?? '';
@@ -55,6 +62,25 @@ function effectivePlaygroundApiKey(headers: HeaderPair[]): string {
   const fromForm = getHeaderValue(headers, 'X-Api-Key').trim();
   if (fromForm) return fromForm;
   return readStoredGatewayApiKey();
+}
+
+function parsePlaygroundPrefill(raw: unknown): PlaygroundPrefill | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const x = raw as { method?: unknown; path?: unknown; url?: unknown; body?: unknown };
+  const methodRaw = String(x.method ?? '').trim().toUpperCase();
+  if (!['GET', 'POST', 'PUT', 'DELETE'].includes(methodRaw)) return null;
+  const pathRaw = typeof x.path === 'string' && x.path.trim()
+    ? x.path.trim()
+    : typeof x.url === 'string' && x.url.trim()
+      ? x.url.trim()
+      : '';
+  if (!pathRaw) return null;
+  const bodyRaw = typeof x.body === 'string' && x.body.trim() ? x.body : undefined;
+  return {
+    method: methodRaw as PlaygroundPrefill['method'],
+    path: pathRaw,
+    body: bodyRaw,
+  };
 }
 
 interface HeaderPair { key: string; value: string; }
@@ -146,6 +172,15 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme, fon
   const [showRespHeaders, setShowRespHeaders] = useState(false);
   const [executeKeyHint, setExecuteKeyHint] = useState<string | null>(null);
 
+  const applyPlaygroundPrefill = useCallback((prefill: PlaygroundPrefill) => {
+    setMethod(prefill.method);
+    setUrl(normalizeCatalogResourcesListPageSizeInUrl(prefill.path));
+    if (typeof prefill.body === 'string') {
+      setBody(prefill.body);
+    }
+    setExecuteKeyHint(null);
+  }, []);
+
   React.useEffect(() => {
     const stored = readStoredGatewayApiKey();
     if (!stored) return;
@@ -170,6 +205,31 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme, fon
   React.useEffect(() => {
     setExecuteKeyHint(null);
   }, [url, method]);
+
+  React.useEffect(() => {
+    try {
+      const raw = localStorage.getItem(PLAYGROUND_PREFILL_STORAGE_KEY);
+      if (raw) {
+        const parsed = parsePlaygroundPrefill(JSON.parse(raw));
+        if (parsed) {
+          applyPlaygroundPrefill(parsed);
+        }
+        localStorage.removeItem(PLAYGROUND_PREFILL_STORAGE_KEY);
+      }
+    } catch {
+      // ignore malformed prefill payload
+    }
+
+    const onNavigateToPlayground = (event: Event) => {
+      const parsed = parsePlaygroundPrefill((event as CustomEvent<unknown>).detail);
+      if (!parsed) return;
+      applyPlaygroundPrefill(parsed);
+    };
+    window.addEventListener('navigate-to-playground', onNavigateToPlayground as EventListener);
+    return () => {
+      window.removeEventListener('navigate-to-playground', onNavigateToPlayground as EventListener);
+    };
+  }, [applyPlaygroundPrefill]);
 
   /** 迁移本地「最近请求」与地址栏中仍带 pageSize=20 的旧目录列表 URL */
   React.useEffect(() => {

@@ -151,6 +151,27 @@ function normalizeCatalogDetail(raw: unknown): CatalogResourceDetailVO {
     launchToken: x.launchToken == null && x.launch_token == null ? undefined : String(x.launchToken ?? x.launch_token),
     launchUrl: x.launchUrl == null && x.launch_url == null ? undefined : String(x.launchUrl ?? x.launch_url),
     spec: x.spec && typeof x.spec === 'object' ? (x.spec as Record<string, unknown>) : undefined,
+    agentType:
+      x.agentType == null && x.agent_type == null
+        ? undefined
+        : String(x.agentType ?? x.agent_type),
+    mode:
+      x.mode == null && x.executionMode == null && x.execution_mode == null
+        ? undefined
+        : String(x.mode ?? x.executionMode ?? x.execution_mode),
+    maxConcurrency:
+      x.maxConcurrency == null && x.max_concurrency == null
+        ? undefined
+        : numStat(x.maxConcurrency ?? x.max_concurrency),
+    maxSteps:
+      x.maxSteps == null && x.max_steps == null
+        ? undefined
+        : numStat(x.maxSteps ?? x.max_steps),
+    temperature: x.temperature == null ? undefined : numStat(x.temperature),
+    systemPrompt:
+      x.systemPrompt == null && x.system_prompt == null
+        ? undefined
+        : String(x.systemPrompt ?? x.system_prompt),
     serviceDetailMd: (() => {
       const raw = x.serviceDetailMd ?? x.service_detail_md;
       if (raw == null || raw === '') return undefined;

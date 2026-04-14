@@ -9,6 +9,7 @@ export function resourceCenterItemToMyPublishItem(row: ResourceCenterItemVO): My
     description: row.description ?? '',
     icon: row.icon ?? null,
     status: row.status,
+    pendingPublishedUpdate: Boolean(row.pendingPublishedUpdate),
     callCount: 0,
     qualityScore: Number(row.qualityScore ?? 0) || 0,
     createTime: row.createTime ?? '—',

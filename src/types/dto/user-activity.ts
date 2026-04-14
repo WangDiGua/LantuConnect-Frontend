@@ -51,6 +51,8 @@ export interface MyPublishItem {
   description: string;
   icon: string | null;
   status: 'draft' | 'pending_review' | 'testing' | 'published' | 'rejected' | 'deprecated' | 'merged_live';
+  /** 发布态下是否存在待审变更（允许撤回审核） */
+  pendingPublishedUpdate?: boolean;
   callCount: number;
   qualityScore: number;
   createTime: string;

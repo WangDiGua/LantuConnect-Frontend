@@ -526,7 +526,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
               }`}
             >
               <FileText className="h-3.5 w-3.5 shrink-0 text-violet-500 dark:text-violet-400" aria-hidden />
-              接入与部署
+              接入与调用
             </button>
             <button
               type="button"

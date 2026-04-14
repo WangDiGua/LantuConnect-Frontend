@@ -95,6 +95,13 @@ export interface ResourceResolveVO {
   observability?: Record<string, unknown>;
   quality?: Record<string, unknown>;
   spec?: Record<string, unknown>;
+  /** agent 扩展字段（目录详情/resolve） */
+  agentType?: string;
+  mode?: string;
+  maxConcurrency?: number;
+  maxSteps?: number;
+  temperature?: number;
+  systemPrompt?: string;
   /** MCP 扩展：服务详情 Markdown */
   serviceDetailMd?: string;
   /** include=closure|bindings：绑定无向闭包 */

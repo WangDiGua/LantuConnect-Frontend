@@ -20,6 +20,7 @@ import { env } from '../../config/env';
 
 /** 后端 servlet context-path，与文档中的完整 URL 展示一致 */
 const API_CONTEXT_PREFIX = env.VITE_API_BASE_URL.replace(/\/$/, '');
+const PLAYGROUND_PREFILL_STORAGE_KEY = 'lantu_playground_prefill';
 
 interface ApiEndpoint {
   method: 'GET' | 'POST' | 'PUT' | 'DELETE';
@@ -221,6 +222,24 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({
       navigate(buildPath(consoleRole, page));
     },
     [navigate, consoleRole, platformRole],
+  );
+
+  const openInPlayground = useCallback(
+    (ep: ApiEndpoint) => {
+      const detail = {
+        method: ep.method,
+        path: `${API_CONTEXT_PREFIX}${ep.path}`,
+        createdAt: Date.now(),
+      };
+      try {
+        localStorage.setItem(PLAYGROUND_PREFILL_STORAGE_KEY, JSON.stringify(detail));
+      } catch {
+        // ignore storage failure and still navigate
+      }
+      window.dispatchEvent(new CustomEvent('navigate-to-playground', { detail }));
+      go('api-playground');
+    },
+    [go],
   );
 
   const scrollToId = useCallback((id: string) => {
@@ -886,7 +905,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({
                       </div>
 
                       <div className="flex justify-end mt-3">
-                        <button type="button" className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${isDark ? 'text-neutral-300 hover:text-neutral-300' : 'text-neutral-900 hover:text-neutral-800'}`} onClick={() => { window.dispatchEvent(new CustomEvent('navigate-to-playground', { detail: { method: ep.method, path: `${API_CONTEXT_PREFIX}${ep.path}` } })); }}>
+                        <button type="button" className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${isDark ? 'text-neutral-300 hover:text-neutral-300' : 'text-neutral-900 hover:text-neutral-800'}`} onClick={() => openInPlayground(ep)}>
                           <ExternalLink size={13} /> 在 Playground 中试用
                         </button>
                       </div>

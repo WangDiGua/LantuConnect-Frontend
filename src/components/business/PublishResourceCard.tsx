@@ -46,6 +46,7 @@ interface Props {
   onLifecycleMutated?: () => void;
   /** 列表页批量撤回：在待审核行左侧展示复选框 */
   batchSelectMode?: boolean;
+  withdrawSelectable?: boolean;
   selected?: boolean;
   onToggleSelected?: () => void;
 }
@@ -61,13 +62,14 @@ export const PublishResourceCard: React.FC<Props> = ({
   showMessage,
   onLifecycleMutated,
   batchSelectMode = false,
+  withdrawSelectable = false,
   selected = false,
   onToggleSelected,
 }) => {
   const isDark = theme === 'dark';
   const label = item.displayName || '—';
   const initial = label.trim().charAt(0) || '?';
-  const showWithdraw = item.status === 'pending_review' && onWithdraw;
+  const showWithdraw = Boolean(onWithdraw);
   const showAuditActions = item.status === 'pending_review' && canAuditPending;
   const showPublish = item.status === 'testing' && canPublishFromTesting;
   const [rejectOpen, setRejectOpen] = useState(false);
@@ -87,7 +89,7 @@ export const PublishResourceCard: React.FC<Props> = ({
     }
   };
 
-  const showBatchCheckbox = batchSelectMode && item.status === 'pending_review';
+  const showBatchCheckbox = batchSelectMode && withdrawSelectable;
 
   return (
     <>

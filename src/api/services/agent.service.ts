@@ -19,23 +19,29 @@ function toAgent(item: ResourceCatalogItemVO): Agent {
     agentName: item.resourceCode || `agent-${item.resourceId}`,
     displayName: item.displayName || item.resourceCode || String(item.resourceId),
     description: item.description || '',
-    agentType: 'builtin',
-    mode: 'SUBAGENT',
+    agentType: (detail.agentType as Agent['agentType']) || 'http_api',
+    mode: (detail.mode as Agent['mode']) || 'SUBAGENT',
     sourceType: (item.sourceType as Agent['sourceType']) || 'internal',
     providerId: null,
     categoryId: null,
     categoryName: item.categoryName,
     tags: item.tags,
     status: (item.status as Agent['status']) || 'draft',
-    specJson: {},
+    specJson: detail.spec ?? {},
     isPublic: true,
     icon: null,
     sortOrder: 0,
     hidden: false,
-    maxConcurrency: 1,
-    maxSteps: null,
-    temperature: null,
-    systemPrompt: null,
+    maxConcurrency: Number(detail.maxConcurrency ?? 1),
+    maxSteps:
+      detail.maxSteps != null && Number.isFinite(Number(detail.maxSteps))
+        ? Number(detail.maxSteps)
+        : null,
+    temperature:
+      detail.temperature != null && Number.isFinite(Number(detail.temperature))
+        ? Number(detail.temperature)
+        : null,
+    systemPrompt: detail.systemPrompt ?? null,
     qualityScore: 0,
     avgLatencyMs: 0,
     successRate: 0,

@@ -216,9 +216,9 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
         }
         return next;
       });
-      showMessage(`已将「${agent.name}」添加到工作区`, 'success');
+      showMessage(`已收藏「${agent.name}」`, 'success');
     } catch (e) {
-      showMessage(e instanceof Error ? e.message : '添加失败', 'error');
+      showMessage(e instanceof Error ? e.message : '收藏失败', 'error');
     } finally {
       setAddingAgent(false);
     }
@@ -323,7 +323,7 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
               }`}
             >
               <FileText className="h-3.5 w-3.5 shrink-0 text-violet-500 dark:text-violet-400" aria-hidden />
-              接入与部署
+              接入与调用
             </button>
             <button
               type="button"
@@ -495,7 +495,7 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
                               if (!isInWorkspace(a.id)) setConfirmAgent(a);
                             }}
                           >
-                            {isInWorkspace(a.id) ? '已添加' : '添加到工作区'}
+                            {isInWorkspace(a.id) ? '已收藏' : '收藏'}
                           </button>
                           <button
                             type="button"
@@ -505,7 +505,7 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
                               navigate(buildPath('user', 'agents-center', a.id));
                             }}
                           >
-                            查看与使用
+                            查看与测试
                           </button>
                         </>
                       )}
@@ -521,7 +521,7 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
       <Modal
         open={!!confirmAgent}
         onClose={() => setConfirmAgent(null)}
-        title="确认添加"
+        title="确认收藏"
         theme={theme}
         size="sm"
         footer={(
@@ -540,12 +540,12 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
                 }
               }}
             >
-              {addingAgent ? '添加中…' : '确认添加'}
+              {addingAgent ? '处理中…' : '确认收藏'}
             </button>
           </>
         )}
       >
-        {confirmAgent ? <p className={`text-sm ${textSecondary(theme)}`}>确认将「{confirmAgent.name}」添加到工作区？</p> : null}
+        {confirmAgent ? <p className={`text-sm ${textSecondary(theme)}`}>确认收藏「{confirmAgent.name}」？</p> : null}
       </Modal>
     </>
   );

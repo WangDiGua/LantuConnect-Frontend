@@ -1771,7 +1771,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     placeholder="https://api.example.com/v1/chat/completions"
                   />
                 </Field>
-                <Field label="对外 Model Alias *" theme={theme} error={fieldErrors.modelAlias} fieldId={rrFieldId('modelAlias')}>
+                <Field label="对外 Model Alias / customized_model_id *" theme={theme} error={fieldErrors.modelAlias} fieldId={rrFieldId('modelAlias')}>
                   <input
                     id={rrFieldId('modelAlias')}
                     value={form.modelAlias}
@@ -1852,7 +1852,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                         </div>
                       </div>
                       <div className={`rounded-lg border px-2 py-2 ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-emerald-200/60 bg-white/80'}`}>
-                        <div className={`mb-1 ${textMuted(theme)}`}>Model Alias</div>
+                          <div className={`mb-1 ${textMuted(theme)}`}>Model Alias / customized_model_id</div>
                         <div className="flex items-center gap-2">
                           <code className="flex-1 break-all">{form.modelAlias || '（请先填写）'}</code>
                           <button

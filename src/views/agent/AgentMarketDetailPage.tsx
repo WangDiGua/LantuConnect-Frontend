@@ -19,7 +19,6 @@ import { mapInvokeFlowError } from '../../utils/invokeError';
 import { usePersistedGatewayApiKey } from '../../hooks/usePersistedGatewayApiKey';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
-import { env } from '../../config/env';
 
 export interface AgentMarketDetailPageProps {
   resourceId: string;
@@ -31,7 +30,6 @@ export interface AgentMarketDetailPageProps {
 }
 
 type AgentTestMode = 'gateway' | 'native';
-type NativeAuthMode = 'bearer' | 'x_api_key';
 
 function agentTrailingIcon(agent: Agent, isDark: boolean): React.ReactNode {
   const raw = agent.icon?.trim() || '';
@@ -66,6 +64,76 @@ function tryParseObject(
   }
 }
 
+function buildNativePayload(registrationProtocol: string, modelAlias: string): Record<string, unknown> {
+  const prompt = 'hello';
+  const normalizedProtocol = registrationProtocol.trim().toLowerCase();
+  if (normalizedProtocol === 'bailian_compatible') {
+    return {
+      customized_model_id: modelAlias,
+      input: [
+        {
+          type: 'message',
+          role: 'user',
+          content: [
+            {
+              type: 'input_text',
+              text: prompt,
+            },
+          ],
+        },
+      ],
+      stream: false,
+    };
+  }
+  if (normalizedProtocol === 'anthropic_messages') {
+    return {
+      model: modelAlias,
+      max_tokens: 1024,
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+    };
+  }
+  if (normalizedProtocol === 'gemini_generatecontent') {
+    return {
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              text: prompt,
+            },
+          ],
+        },
+      ],
+    };
+  }
+  if (normalizedProtocol === 'openai_compatible') {
+    return {
+      model: modelAlias,
+      input: [
+        {
+          type: 'message',
+          role: 'user',
+          content: [
+            {
+              type: 'input_text',
+              text: prompt,
+            },
+          ],
+        },
+      ],
+      stream: false,
+    };
+  }
+  return {
+    input: prompt,
+  };
+}
+
 export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
   resourceId,
   theme,
@@ -86,8 +154,6 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
 
   const [gatewayApiKeyDraft, setGatewayApiKeyDraft] = usePersistedGatewayApiKey();
   const [testMode, setTestMode] = useState<AgentTestMode>('gateway');
-  const [nativeAuthMode, setNativeAuthMode] = useState<NativeAuthMode>('bearer');
-  const [nativeKey, setNativeKey] = useState('');
   const [gatewayPayloadText, setGatewayPayloadText] = useState('{\n  "input": "hello"\n}');
   const [gatewayTimeoutSec, setGatewayTimeoutSec] = useState(30);
   const [gatewayTraceId, setGatewayTraceId] = useState(() => `agent-${Date.now()}`);
@@ -182,35 +248,18 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
     return agent.agentName?.trim() || String(agent.id);
   }, [agent]);
 
-  const supportsNativeResponses = registrationProtocol === 'openai_compatible'
-    || registrationProtocol === 'bailian_compatible';
+  const upstreamEndpoint = useMemo(() => {
+    if (!agent) return '';
+    const raw = agent.endpoint || agent.specJson?.upstreamEndpoint || agent.specJson?.endpoint;
+    return typeof raw === 'string' ? raw.trim() : '';
+  }, [agent]);
 
-  const openAiResponsesPath = `${env.VITE_API_BASE_URL.replace(/\/$/, '')}/openai/v1/responses`;
+  const supportsNativeResponses = true;
 
   useEffect(() => {
     if (!agent) return;
-    setNativeBodyText(JSON.stringify({
-      model: modelAlias,
-      input: [
-        {
-          type: 'message',
-          role: 'user',
-          content: [
-            {
-              type: 'input_text',
-              text: 'hello',
-            },
-          ],
-        },
-      ],
-      stream: false,
-    }, null, 2));
-  }, [agent, modelAlias]);
-
-  useEffect(() => {
-    if (supportsNativeResponses) return;
-    setTestMode('gateway');
-  }, [supportsNativeResponses]);
+    setNativeBodyText(JSON.stringify(buildNativePayload(registrationProtocol, modelAlias), null, 2));
+  }, [agent, modelAlias, registrationProtocol]);
 
   const runGatewayInvokeTest = useCallback(async () => {
     if (!agent) return;
@@ -264,53 +313,49 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
       return;
     }
 
-    const bodyObj = { ...parsedBody.data };
-    if (!bodyObj.model && modelAlias) {
-      bodyObj.model = modelAlias;
-    }
-
-    const keyValue = nativeKey.trim() || gatewayApiKeyDraft.trim();
-    if (!keyValue) {
-      setTestErrorText('请先输入 Bearer Token 或 X-Api-Key。');
+    const apiKey = gatewayApiKeyDraft.trim();
+    if (!apiKey) {
+      setTestErrorText('请先输入有效 X-Api-Key（需要 resolve + invoke scope）');
       return;
     }
 
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-    if (nativeAuthMode === 'bearer') {
-      headers.Authorization = keyValue.startsWith('Bearer ') ? keyValue : `Bearer ${keyValue}`;
-    } else {
-      headers['X-Api-Key'] = keyValue;
+    const nativePayload = { ...parsedBody.data };
+    if (!nativePayload.model && modelAlias) {
+      nativePayload.model = modelAlias;
+    }
+    if (!nativePayload.customized_model_id && registrationProtocol === 'bailian_compatible' && modelAlias) {
+      nativePayload.customized_model_id = modelAlias;
     }
 
     const startedAt = Date.now();
     try {
-      const res = await fetch(openAiResponsesPath, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(bodyObj),
-      });
-      const rawText = await res.text();
-      let pretty = rawText;
-      try {
-        pretty = JSON.stringify(JSON.parse(rawText), null, 2);
-      } catch {
-        // keep raw text
-      }
-      setTestStatusCode(res.status);
+      const resolved = await resourceCatalogService.resolve(
+        { resourceType: 'agent', resourceId: String(agent.id) },
+        { headers: { 'X-Api-Key': apiKey } },
+      );
+      const invokeRes = await invokeService.invoke(
+        {
+          resourceType: 'agent',
+          resourceId: String(agent.id),
+          version: resolved.version || undefined,
+          timeoutSec: 30,
+          payload: nativePayload,
+        },
+        apiKey,
+        `native-${Date.now()}`,
+      );
+      setTestStatusCode(Number(invokeRes.statusCode) || null);
       setTestLatencyMs(Date.now() - startedAt);
-      if (!res.ok) {
-        setTestErrorText(`协议原生请求失败（HTTP ${res.status}）`);
-        setTestResultText(pretty);
+      setTestResultText(invokeRes.body || '');
+      if (Number(invokeRes.statusCode) >= 400) {
+        setTestErrorText(`协议原生请求失败（HTTP ${invokeRes.statusCode}）`);
         return;
       }
-      setTestResultText(pretty);
       showMessage('协议原生请求完成', 'success');
     } catch (err) {
       setTestErrorText(err instanceof Error ? err.message : '协议原生请求失败');
     }
-  }, [agent, nativeBodyText, modelAlias, nativeKey, gatewayApiKeyDraft, nativeAuthMode, openAiResponsesPath, showMessage]);
+  }, [agent, nativeBodyText, modelAlias, gatewayApiKeyDraft, registrationProtocol, showMessage]);
 
   const runInlineTest = useCallback(async () => {
     setTestingNow(true);
@@ -462,7 +507,7 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
           >
             <h3 className={`text-sm font-bold ${textPrimary(theme)}`}>内置测试</h3>
             <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
-              详情页直接测试智能体。统一 invoke 需要 X-Api-Key；仅 openai/bailian 注册协议支持协议原生 responses。
+              详情页直接测试智能体。统一 invoke 需要 X-Api-Key；协议原生模式会按注册协议生成请求体后再走网关。
             </p>
 
             <div className="grid grid-cols-2 gap-2">
@@ -476,19 +521,12 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
               <button
                 type="button"
                 className={`${btnSecondary(theme)} ${testMode === 'native' ? 'ring-2 ring-sky-500/35' : ''}`}
-                onClick={() => supportsNativeResponses && setTestMode('native')}
-                disabled={!supportsNativeResponses}
-                title={supportsNativeResponses ? '协议原生 responses' : '仅 openai_compatible / bailian_compatible 支持协议原生'}
+                onClick={() => setTestMode('native')}
+                title="协议原生"
               >
                 协议原生
               </button>
             </div>
-
-            {!supportsNativeResponses ? (
-              <p className={`rounded-xl border px-3 py-2 text-xs ${isDark ? 'border-amber-500/25 bg-amber-500/10 text-amber-100' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
-                当前注册协议：<code className="font-mono">{registrationProtocol || 'unknown'}</code>，仅支持统一 invoke 测试。
-              </p>
-            ) : null}
 
             {testMode === 'gateway' ? (
               <div className="space-y-2">
@@ -533,25 +571,10 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
               </div>
             ) : (
               <div className="space-y-2">
-                <label className={`block text-xs font-medium ${textSecondary(theme)}`}>鉴权方式</label>
-                <select
-                  value={nativeAuthMode}
-                  onChange={(e) => setNativeAuthMode(e.target.value as NativeAuthMode)}
-                  className={nativeInputClass(theme)}
-                >
-                  <option value="bearer">Authorization: Bearer</option>
-                  <option value="x_api_key">X-Api-Key</option>
-                </select>
-                <label className={`block text-xs font-medium ${textSecondary(theme)}`}>Token / Key</label>
-                <input
-                  type="password"
-                  value={nativeKey}
-                  onChange={(e) => setNativeKey(e.target.value)}
-                  className={nativeInputClass(theme)}
-                  placeholder={nativeAuthMode === 'bearer' ? 'sk-... or nx-sk-...' : 'nx-sk-...'}
-                />
                 <p className={`text-xs ${textMuted(theme)}`}>
-                  请求地址：<code className="font-mono">{openAiResponsesPath}</code>，默认 model：<code className="font-mono">{modelAlias || '-'}</code>
+                  协议：<code className="font-mono">{registrationProtocol || 'unknown'}</code>，
+                  上游：<code className="font-mono break-all">{upstreamEndpoint || '-'}</code>，
+                  默认模型：<code className="font-mono">{modelAlias || '-'}</code>
                 </p>
                 <label className={`block text-xs font-medium ${textSecondary(theme)}`}>Request Body(JSON)</label>
                 <AutoHeightTextarea

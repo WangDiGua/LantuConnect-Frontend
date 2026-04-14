@@ -82,12 +82,12 @@ function mapConfigObject(source: Record<string, unknown>): AgentImportResult {
     findUrl(JSON.stringify(root));
 
   const upstreamAgentId =
-    firstString(nested, ['upstreamAgentId', 'agentId', 'appId', 'assistantId', 'deployment', 'model']) ||
-    firstString(root, ['upstreamAgentId', 'agentId', 'appId', 'assistantId', 'deployment', 'model']);
+    firstString(nested, ['upstreamAgentId', 'customizedModelId', 'customized_model_id', 'agentId', 'appId', 'assistantId', 'deployment', 'model']) ||
+    firstString(root, ['upstreamAgentId', 'customizedModelId', 'customized_model_id', 'agentId', 'appId', 'assistantId', 'deployment', 'model']);
 
   const modelAliasRaw =
-    firstString(nested, ['modelAlias', 'alias', 'model', 'name']) ||
-    firstString(root, ['modelAlias', 'alias', 'model', 'name']) ||
+    firstString(nested, ['modelAlias', 'customizedModelId', 'customized_model_id', 'alias', 'model', 'name']) ||
+    firstString(root, ['modelAlias', 'customizedModelId', 'customized_model_id', 'alias', 'model', 'name']) ||
     upstreamAgentId;
 
   const transformProfile = firstString(nested, ['transformProfile', 'profile']) || firstString(root, ['transformProfile', 'profile']);
@@ -162,7 +162,7 @@ export function parseAgentConfigPaste(text: string): AgentImportResult {
 
   const mapped = mapConfigObject(root);
   if (!mapped.upstreamEndpoint && !mapped.modelAlias && !mapped.upstreamAgentId) {
-    return { hint: '未识别到 Agent 核心字段（endpoint/modelAlias/upstreamAgentId）。' };
+    return { hint: '未识别到 Agent 核心字段（endpoint/modelAlias/customizedModelId/upstreamAgentId）。' };
   }
   return {
     ...mapped,

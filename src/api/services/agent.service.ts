@@ -53,6 +53,8 @@ function toAgent(item: ResourceCatalogItemVO): Agent {
     ratingAvg: item.ratingAvg ?? undefined,
     reviewCount: item.reviewCount != null ? Number(item.reviewCount) : undefined,
     viewCount: Number(item.viewCount ?? 0),
+    endpoint: detail.endpoint ? String(detail.endpoint) : undefined,
+    invokeType: detail.invokeType ? String(detail.invokeType) : undefined,
     serviceDetailMd: detail.serviceDetailMd,
   };
 }

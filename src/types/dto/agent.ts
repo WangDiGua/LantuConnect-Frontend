@@ -47,6 +47,8 @@ export interface Agent {
   serviceDetailMd?: string;
   /** 目录项：详情页累计浏览（t_resource.view_count） */
   viewCount?: number;
+  endpoint?: string;
+  invokeType?: string;
 }
 
 export interface AgentCreatePayload {

@@ -42,7 +42,6 @@ export interface Skill {
   /** 目录/详情接口返回的扩展介绍 Markdown */
   serviceDetailMd?: string;
   /** 目录侧下载统计（后端下载事件表聚合） */
-  downloadCount?: number;
   viewCount?: number;
 }
 

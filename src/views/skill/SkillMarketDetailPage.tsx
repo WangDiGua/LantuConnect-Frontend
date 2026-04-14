@@ -32,7 +32,6 @@ const TYPE_BADGE: Record<AgentType, { label: string; cls: string }> = {
   mcp: { label: 'MCP', cls: 'text-neutral-900 bg-neutral-900/10' },
   http_api: { label: 'HTTP API', cls: 'text-neutral-800 bg-neutral-800/10' },
   builtin: { label: '内置', cls: 'text-neutral-700 bg-neutral-700/10' },
-  hosted_skill: { label: '托管技能', cls: 'text-fuchsia-900 bg-fuchsia-500/15 dark:text-fuchsia-200 dark:bg-fuchsia-500/20' },
   context_skill: { label: 'Context 技能', cls: 'text-fuchsia-900 bg-fuchsia-500/15 dark:text-fuchsia-200 dark:bg-fuchsia-500/20' },
 };
 const SOURCE_BADGE: Record<SourceType, { label: string; cls: string }> = {

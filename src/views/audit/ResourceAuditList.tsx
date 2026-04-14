@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ClipboardCheck } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { ResourceType } from '../../types/dto/catalog';
@@ -33,11 +33,26 @@ import { EmptyState } from '../../components/common/EmptyState';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { formatDateTime } from '../../utils/formatDateTime';
-import { nullDisplay } from '../../utils/errorHandler';
+import { getErrorMessage, isConflictError, nullDisplay } from '../../utils/errorHandler';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedContentToTop';
 import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
+import {
+  getNotificationType,
+  isAuditPendingChanged,
+  isNotificationMessage,
+  subscribeRealtimePush,
+} from '../../lib/realtimePush';
+
+const AUDIT_NOTIFICATION_TYPES = new Set([
+  'resource_submitted',
+  'audit_approved',
+  'audit_rejected',
+  'resource_published',
+  'resource_withdrawn',
+  'resource_deprecated',
+]);
 
 interface Props {
   theme: Theme;
@@ -92,6 +107,7 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
   const [detailResource, setDetailResource] = useState<ResourceCenterItemVO | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailFetchError, setDetailFetchError] = useState<string | null>(null);
+  const refreshTimerRef = useRef<number | null>(null);
   const PAGE_SIZE = 20;
 
   const openResourceDetail = useCallback((item: ResourceAuditItemVO) => {
@@ -185,6 +201,54 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
 
   const rows = useMemo(() => items, [items]);
 
+  const scheduleRefresh = useCallback(() => {
+    if (refreshTimerRef.current != null) {
+      window.clearTimeout(refreshTimerRef.current);
+    }
+    refreshTimerRef.current = window.setTimeout(() => {
+      void fetchData();
+      refreshTimerRef.current = null;
+    }, 250);
+  }, [fetchData]);
+
+  useEffect(() => () => {
+    if (refreshTimerRef.current != null) {
+      window.clearTimeout(refreshTimerRef.current);
+    }
+  }, []);
+
+  useEffect(() => {
+    return subscribeRealtimePush((msg) => {
+      if (isAuditPendingChanged(msg)) {
+        scheduleRefresh();
+        return;
+      }
+      if (!isNotificationMessage(msg)) return;
+      const type = getNotificationType(msg);
+      if (type && AUDIT_NOTIFICATION_TYPES.has(type)) {
+        scheduleRefresh();
+      }
+    });
+  }, [scheduleRefresh]);
+
+  const reportActionError = useCallback(
+    (err: unknown, fallbackMessage: string) => {
+      const message = getErrorMessage(err) || fallbackMessage;
+      if (
+        isConflictError(err) ||
+        message.includes('其他审核员') ||
+        message.includes('状态已变更') ||
+        message.includes('刷新列表')
+      ) {
+        scheduleRefresh();
+        showMessage('已被其他审核员处理，列表已自动刷新', 'warning');
+        return;
+      }
+      showMessage(message, 'error');
+    },
+    [scheduleRefresh, showMessage],
+  );
+
   const runAction = useCallback(
     async (actionKey: string, action: () => Promise<void>, okMsg: string) => {
       setRunningActionId(actionKey);
@@ -193,12 +257,12 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
         showMessage(okMsg, 'success');
         await fetchData();
       } catch (err) {
-        showMessage(err instanceof Error ? err.message : '操作失败', 'error');
+        reportActionError(err, '操作失败');
       } finally {
         setRunningActionId(null);
       }
     },
-    [fetchData, showMessage],
+    [fetchData, reportActionError, showMessage],
   );
 
   const runBatchApprove = useCallback(async () => {
@@ -214,11 +278,11 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
       clearSelection();
       await fetchData();
     } catch (err) {
-      showMessage(err instanceof Error ? err.message : '批量通过失败', 'error');
+      reportActionError(err, '批量通过失败');
     } finally {
       setBatchRunning(false);
     }
-  }, [pendingSelected, fetchData, showMessage, clearSelection]);
+  }, [pendingSelected, fetchData, showMessage, clearSelection, reportActionError]);
 
   const runBatchPublish = useCallback(async () => {
     const ids = testingSelected.map((i) => i.id);
@@ -233,11 +297,11 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
       clearSelection();
       await fetchData();
     } catch (err) {
-      showMessage(err instanceof Error ? err.message : '批量发布失败', 'error');
+      reportActionError(err, '批量发布失败');
     } finally {
       setBatchRunning(false);
     }
-  }, [testingSelected, fetchData, showMessage, clearSelection]);
+  }, [testingSelected, fetchData, showMessage, clearSelection, reportActionError]);
 
   const openBatchReject = useCallback(() => {
     const ids = pendingSelected.map((i) => i.id);
@@ -266,11 +330,11 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
       clearSelection();
       await fetchData();
     } catch (err) {
-      showMessage(err instanceof Error ? err.message : '批量驳回失败', 'error');
+      reportActionError(err, '批量驳回失败');
     } finally {
       setBatchRunning(false);
     }
-  }, [batchRejectIds, batchRejectReason, fetchData, showMessage, clearSelection]);
+  }, [batchRejectIds, batchRejectReason, fetchData, showMessage, clearSelection, reportActionError]);
 
   const auditColumns = useMemo<MgmtDataTableColumn<ResourceAuditItemVO>[]>(
     () => [
@@ -611,7 +675,7 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
                     setRejectTarget(null);
                     await fetchData();
                   } catch (err) {
-                    showMessage(err instanceof Error ? err.message : '驳回失败', 'error');
+                    reportActionError(err, '驳回失败');
                   } finally {
                     setRunningActionId(null);
                   }

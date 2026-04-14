@@ -68,7 +68,6 @@ function toSkill(item: ResourceCatalogItemVO): Skill {
     createdByName: item.createdByName ?? undefined,
     ratingAvg: item.ratingAvg ?? undefined,
     reviewCount: item.reviewCount != null ? Number(item.reviewCount) : undefined,
-    downloadCount: Number(item.downloadCount ?? 0),
     viewCount: Number(item.viewCount ?? 0),
     serviceDetailMd: detail.serviceDetailMd,
   };

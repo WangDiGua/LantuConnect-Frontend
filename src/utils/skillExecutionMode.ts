@@ -7,7 +7,6 @@ export function isContextSkill(
   if (!skill) return false;
   const at = String(skill.agentType ?? '').trim().toLowerCase();
   if (at === 'context_skill') return true;
-  if (at === 'hosted_skill') return false;
   if (skill.executionMode === 'context') return true;
   const spec = skill.specJson;
   if (spec && typeof spec === 'object' && !Array.isArray(spec)) {

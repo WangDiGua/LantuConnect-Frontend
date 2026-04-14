@@ -37,6 +37,19 @@ export function isNotificationMessage(msg: RealtimeServerMessage): boolean {
   return msg.type === 'notification';
 }
 
+export function getNotificationPayload(msg: RealtimeServerMessage): Record<string, unknown> | null {
+  if (!isNotificationMessage(msg) || msg.notification == null || typeof msg.notification !== 'object') {
+    return null;
+  }
+  return msg.notification as Record<string, unknown>;
+}
+
+export function getNotificationType(msg: RealtimeServerMessage): string | null {
+  const payload = getNotificationPayload(msg);
+  const raw = payload?.type;
+  return typeof raw === 'string' && raw.trim().length > 0 ? raw.trim().toLowerCase() : null;
+}
+
 /** 管理端保存健康配置（非探活结果） */
 export function isHealthConfigUpdated(msg: RealtimeServerMessage): boolean {
   return msg.type === 'health' && msg.action === 'config_updated';

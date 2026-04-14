@@ -4,7 +4,7 @@
  * New code should use ResourceCatalogItemVO / ResourceUpsertRequest from catalog.ts / resource-center.ts.
  */
 
-export type AgentType = 'mcp' | 'http_api' | 'builtin' | 'hosted_skill' | 'context_skill';
+export type AgentType = 'mcp' | 'http_api' | 'builtin' | 'context_skill';
 export type AgentMode = 'SUBAGENT' | 'TOOL' | 'ALL';
 export type SourceType = 'internal' | 'partner' | 'cloud';
 export type AgentStatus = 'draft' | 'pending_review' | 'testing' | 'published' | 'rejected' | 'deprecated';

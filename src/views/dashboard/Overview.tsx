@@ -19,6 +19,9 @@ import { formatDateTime } from '../../utils/formatDateTime';
 import { RESOURCE_TYPE_LABEL, RESOURCE_TYPE_ORDER } from '../../constants/resourceTypes';
 import { useMessage } from '../../components/common/Message';
 import {
+  isAuditPendingChanged,
+  isNotificationMessage,
+  getNotificationType,
   subscribeRealtimePush,
   isHealthConfigUpdated,
   isCircuitStateChanged,
@@ -93,15 +96,35 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
     }
   }, [showMessage]);
 
+  const refreshRealtimeQuiet = useCallback(async () => {
+    try {
+      const rt = await dashboardService.getAdminRealtime();
+      setRealtime(rt);
+    } catch {
+      /* silent */
+    }
+  }, []);
+
   useEffect(() => { fetchData(); }, [fetchData]);
 
   useEffect(() => {
     return subscribeRealtimePush((msg) => {
       if (isHealthConfigUpdated(msg) || isCircuitStateChanged(msg)) {
         void refreshHealthAndRealtimeQuiet();
+        return;
+      }
+      if (isAuditPendingChanged(msg)) {
+        void refreshRealtimeQuiet();
+        return;
+      }
+      if (isNotificationMessage(msg)) {
+        const type = getNotificationType(msg);
+        if (type === 'resource_submitted' || type === 'audit_approved' || type === 'audit_rejected') {
+          void refreshRealtimeQuiet();
+        }
       }
     });
-  }, [refreshHealthAndRealtimeQuiet]);
+  }, [refreshHealthAndRealtimeQuiet, refreshRealtimeQuiet]);
 
   const cardStatic = bentoCard(theme);
   const cardClick = `${bentoCardHover(theme)} cursor-pointer`;

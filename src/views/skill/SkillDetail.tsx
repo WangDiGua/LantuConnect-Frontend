@@ -23,7 +23,6 @@ const AGENT_TYPE_LABEL: Record<string, string> = {
   mcp: 'MCP 协议',
   http_api: 'HTTP API',
   builtin: '内置',
-  hosted_skill: '托管技能',
   context_skill: 'Context 技能',
 };
 const SOURCE_TYPE_LABEL: Record<string, string> = { internal: '内部', partner: '合作方', cloud: '云服务' };
@@ -160,8 +159,8 @@ export const SkillDetail: React.FC<Props> = ({ skillId, theme, fontSize: _fontSi
               <h3 className={`text-sm font-bold mb-4 flex items-center gap-2 ${textPrimary(theme)}`}><BarChart3 size={18} className="text-emerald-500" /> 运行指标</h3>
               <div className="space-y-5">
                 {[
-                  { label: '目录下载（统计）', value: formatCallCount(skill.downloadCount ?? 0), color: 'text-emerald-500' },
-                  { label: '目录浏览/热度', value: formatCallCount(skill.callCount), color: 'text-blue-500' },
+                  { label: '目录调用（统计）', value: formatCallCount(skill.callCount), color: 'text-emerald-500' },
+                  { label: '目录浏览/热度', value: formatCallCount(skill.viewCount ?? 0), color: 'text-blue-500' },
                   { label: '详情评分（若有）', value: skill.ratingAvg != null ? skill.ratingAvg.toFixed(1) : '—', color: 'text-amber-500' },
                 ].map((item) => (
                   <div key={item.label}>

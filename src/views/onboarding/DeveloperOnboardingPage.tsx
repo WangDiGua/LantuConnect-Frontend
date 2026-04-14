@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, LayoutDashboard, Send } from 'lucide-react';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
@@ -14,6 +14,7 @@ import type { Theme } from '../../types';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { btnPrimary, btnSecondary } from '../../utils/uiClasses';
 import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
+import { getNotificationType, isNotificationMessage, subscribeRealtimePush } from '../../lib/realtimePush';
 
 function statusLabel(status: DeveloperApplicationVO['status']): string {
   if (status === 'pending') return '审核中';
@@ -54,24 +55,31 @@ export const DeveloperOnboardingPage: React.FC<DeveloperOnboardingPageProps> = (
     applyReason: '',
   });
 
-  useEffect(() => {
-    let cancelled = false;
+  const loadMine = useCallback(async () => {
     setLoadingMine(true);
-    developerApplicationService
-      .getMine()
-      .then((data) => {
-        if (!cancelled) setMine(data);
-      })
-      .catch(() => {
-        if (!cancelled) setMine(null);
-      })
-      .finally(() => {
-        if (!cancelled) setLoadingMine(false);
-      });
-    return () => {
-      cancelled = true;
-    };
+    try {
+      const data = await developerApplicationService.getMine();
+      setMine(data);
+    } catch {
+      setMine(null);
+    } finally {
+      setLoadingMine(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void loadMine();
+  }, [loadMine]);
+
+  useEffect(() => {
+    return subscribeRealtimePush((msg) => {
+      if (!isNotificationMessage(msg)) return;
+      const type = getNotificationType(msg);
+      if (type === 'onboarding_submitted' || type === 'onboarding_approved' || type === 'onboarding_rejected') {
+        void loadMine();
+      }
+    });
+  }, [loadMine]);
 
   const canSubmit = useMemo(() => {
     if (!form.contactEmail.trim() || !form.applyReason.trim()) return false;
@@ -90,8 +98,7 @@ export const DeveloperOnboardingPage: React.FC<DeveloperOnboardingPageProps> = (
         companyName: form.companyName?.trim() || undefined,
         applyReason: form.applyReason.trim(),
       });
-      const latest = await developerApplicationService.getMine();
-      setMine(latest);
+      await loadMine();
       showMessage('入驻申请已提交，请等待审核', 'success');
     } catch (err) {
       showMessage(err instanceof Error ? err.message : '提交失败，请稍后重试', 'error');

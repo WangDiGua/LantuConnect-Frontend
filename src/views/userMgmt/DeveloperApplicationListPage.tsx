@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2, ClipboardList } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from './MgmtPageShell';
@@ -31,8 +31,16 @@ import {
   textMuted,
 } from '../../utils/uiClasses';
 import { formatDateTime } from '../../utils/formatDateTime';
+import { getErrorMessage, isConflictError } from '../../utils/errorHandler';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
 import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
+import { getNotificationType, isNotificationMessage, subscribeRealtimePush } from '../../lib/realtimePush';
+
+const ONBOARDING_NOTIFICATION_TYPES = new Set([
+  'onboarding_submitted',
+  'onboarding_approved',
+  'onboarding_rejected',
+]);
 
 interface Props {
   theme: Theme;
@@ -76,6 +84,7 @@ export const DeveloperApplicationListPage: React.FC<Props> = ({ theme, fontSize,
   const [batchRejectIds, setBatchRejectIds] = useState<number[] | null>(null);
   const [batchRejectComment, setBatchRejectComment] = useState('');
   const [batchRejectCommentError, setBatchRejectCommentError] = useState('');
+  const refreshTimerRef = useRef<number | null>(null);
 
   const clearSelection = useCallback(() => setSelectedKeys(new Set()), []);
 
@@ -115,6 +124,50 @@ export const DeveloperApplicationListPage: React.FC<Props> = ({ theme, fontSize,
     void fetchList(page);
   }, [page, fetchList]);
 
+  const scheduleRefresh = useCallback(() => {
+    if (refreshTimerRef.current != null) {
+      window.clearTimeout(refreshTimerRef.current);
+    }
+    refreshTimerRef.current = window.setTimeout(() => {
+      void fetchList(page);
+      refreshTimerRef.current = null;
+    }, 250);
+  }, [fetchList, page]);
+
+  useEffect(() => () => {
+    if (refreshTimerRef.current != null) {
+      window.clearTimeout(refreshTimerRef.current);
+    }
+  }, []);
+
+  useEffect(() => {
+    return subscribeRealtimePush((msg) => {
+      if (!isNotificationMessage(msg)) return;
+      const type = getNotificationType(msg);
+      if (type && ONBOARDING_NOTIFICATION_TYPES.has(type)) {
+        scheduleRefresh();
+      }
+    });
+  }, [scheduleRefresh]);
+
+  const handleReviewError = useCallback(
+    (error: unknown, fallbackMessage: string) => {
+      const message = getErrorMessage(error) || fallbackMessage;
+      if (
+        isConflictError(error) ||
+        message.includes('其他审核员') ||
+        message.includes('刷新列表') ||
+        message.includes('已被处理')
+      ) {
+        scheduleRefresh();
+        showMessage('该申请已被其他审核员处理，列表已自动刷新', 'info');
+        return;
+      }
+      showMessage(message, 'error');
+    },
+    [scheduleRefresh, showMessage],
+  );
+
   const handleAction = async () => {
     if (!actionTarget) return;
     setSubmitting(true);
@@ -136,7 +189,7 @@ export const DeveloperApplicationListPage: React.FC<Props> = ({ theme, fontSize,
       setRejectComment('');
       void fetchList(page);
     } catch (e) {
-      showMessage(e instanceof Error ? e.message : '操作失败', 'error');
+      handleReviewError(e, '操作失败');
     } finally {
       setSubmitting(false);
     }
@@ -167,11 +220,11 @@ export const DeveloperApplicationListPage: React.FC<Props> = ({ theme, fontSize,
       clearSelection();
       void fetchList(page);
     } catch (e) {
-      showMessage(e instanceof Error ? e.message : '批量通过失败', 'error');
+      handleReviewError(e, '批量通过失败');
     } finally {
       setBatchRunning(false);
     }
-  }, [pendingSelected, fetchList, page, showMessage, clearSelection]);
+  }, [pendingSelected, fetchList, page, showMessage, clearSelection, handleReviewError]);
 
   const openBatchReject = useCallback(() => {
     const ids = pendingSelected.map((a) => a.id);
@@ -200,11 +253,11 @@ export const DeveloperApplicationListPage: React.FC<Props> = ({ theme, fontSize,
       clearSelection();
       void fetchList(page);
     } catch (e) {
-      showMessage(e instanceof Error ? e.message : '批量驳回失败', 'error');
+      handleReviewError(e, '批量驳回失败');
     } finally {
       setBatchRunning(false);
     }
-  }, [batchRejectIds, batchRejectComment, fetchList, page, showMessage, clearSelection]);
+  }, [batchRejectIds, batchRejectComment, fetchList, page, showMessage, clearSelection, handleReviewError]);
 
   const columns = useMemo<MgmtDataTableColumn<DeveloperApplicationVO>[]>(
     () => [

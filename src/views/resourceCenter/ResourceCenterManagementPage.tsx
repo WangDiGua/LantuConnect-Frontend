@@ -528,7 +528,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
       {activeType === 'skill' ? (
         <button type="button" onClick={() => onNavigateRegister('skill')} className={btnPrimary}>
           <Plus size={15} aria-hidden />
-          注册托管技能
+          注册 Context 技能
         </button>
       ) : (
         <button type="button" onClick={() => onNavigateRegister(activeType)} className={btnPrimary}>

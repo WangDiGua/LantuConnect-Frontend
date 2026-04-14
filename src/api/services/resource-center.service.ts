@@ -205,11 +205,7 @@ function toResourceItem(raw: unknown): ResourceCenterItemVO {
         ? String(r.contextPrompt)
         : r?.context_prompt != null && String(r.context_prompt).trim() !== ''
           ? String(r.context_prompt)
-          : r?.hostedSystemPrompt != null && String(r.hostedSystemPrompt).trim() !== ''
-            ? String(r.hostedSystemPrompt)
-            : r?.hosted_system_prompt != null && String(r.hosted_system_prompt).trim() !== ''
-              ? String(r.hosted_system_prompt)
-              : undefined,
+          : undefined,
     dataType: r?.dataType ? String(r.dataType) : undefined,
     format: r?.format ? String(r.format) : undefined,
     recordCount: Number(r?.recordCount ?? 0) || 0,

@@ -348,7 +348,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({
                   {proseH2(theme, '控制台里开发者常去哪？')}
                   <ul className={`list-disc space-y-2 pl-5 text-[15px] leading-7 ${textSecondary(theme)}`}>
                     <li><strong className={textPrimary(theme)}>工作台 / 探索发现</strong>：逛已发布资源；对接 <span className="font-mono">/catalog/resources</span>、<span className="font-mono">/trending</span>、<span className="font-mono">/search-suggestions</span>。</li>
-                    <li><strong className={textPrimary(theme)}>我的发布 · 资源中心</strong>：草稿、提审、版本与托管技能维护；接口前缀 <span className="font-mono">/resource-center/resources</span>。</li>
+                    <li><strong className={textPrimary(theme)}>我的发布 · 资源中心</strong>：草稿、提审、版本与 Context 技能维护；接口前缀 <span className="font-mono">/resource-center/resources</span>。</li>
                     <li><strong className={textPrimary(theme)}>开发者中心</strong>：本页、SDK、API 调试、开发者统计。</li>
                     <li><strong className={textPrimary(theme)}>个人设置</strong>：个人资料（页内 Tab 含偏好设置）、<strong className={textPrimary(theme)}>密钥与集成套餐</strong>（API Key 与资源白名单套餐）；直达路由 <span className="font-mono">profile</span>、<span className="font-mono">my-api-keys</span>（可用 <span className="font-mono">?tab=packages</span> 打开集成套餐标签），偏好 Tab 亦可使用 <span className="font-mono">preferences</span>。</li>
                     <li><strong className={textPrimary(theme)}>管理台</strong>（有权限时）：全平台目录、审核队列、用户与组织、监控配额等——与开发者相关的多为代管发布与审批。</li>
@@ -386,7 +386,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({
                   </ul>
                   {prosePara(theme, (
                     <>
-                      独立打开「API Playground」路由时，行为与嵌入 Hub 时一致；目录类接口（如 <span className="font-mono">GET /catalog/resources</span>、<span className="font-mono">/reviews/page</span>、<span className="font-mono">/catalog/resources/{'{type}'}/{'{id}'}/stats</span>）通常需要 <span className="font-mono">X-User-Id</span> 或 <span className="font-mono">X-Api-Key</span> 至少其一；执行向（如 <span className="font-mono">POST /catalog/resolve</span>、<span className="font-mono">/invoke</span>、<span className="font-mono">/invoke-stream</span>）须携带有效的 <span className="font-mono">X-Api-Key</span>。平台内 <span className="font-mono">skill</span> 为托管资源，需通过 resolve 使用 <span className="font-mono">contextPrompt</span> 等路径；其他资源类型需满足已发布、Key 有效且 scope 覆盖等网关条件。更细的接口路径与参数见本页「接口参考」与「API Key」章节。
+                      独立打开「API Playground」路由时，行为与嵌入 Hub 时一致；目录类接口（如 <span className="font-mono">GET /catalog/resources</span>、<span className="font-mono">/reviews/page</span>、<span className="font-mono">/catalog/resources/{'{type}'}/{'{id}'}/stats</span>）通常需要 <span className="font-mono">X-User-Id</span> 或 <span className="font-mono">X-Api-Key</span> 至少其一；执行向（如 <span className="font-mono">POST /catalog/resolve</span>、<span className="font-mono">/invoke</span>、<span className="font-mono">/invoke-stream</span>）须携带有效的 <span className="font-mono">X-Api-Key</span>。平台内 <span className="font-mono">skill</span> 为 Context 规范资源，仅通过 resolve 使用 <span className="font-mono">contextPrompt</span> 等路径；其他资源类型需满足已发布、Key 有效且 scope 覆盖等网关条件。更细的接口路径与参数见本页「接口参考」与「API Key」章节。
                     </>
                   ))}
                   <div className="flex flex-wrap gap-2 pt-1">
@@ -809,7 +809,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({
               <div>
                 <h4 className={`text-xs font-semibold ${textPrimary(theme)}`}>3. 已发布资源</h4>
                 <ul className={`mt-1.5 list-disc pl-4 text-xs space-y-1 ${textSecondary(theme)}`}>
-                  <li>资源须为 <span className="font-mono">published</span> 才会按平台规则对目录消费者开放；仍须满足各资源类型的调用边界（如 skill 须为托管形态且 Key 具备 invoke scope）。</li>
+                  <li>资源须为 <span className="font-mono">published</span> 才会按平台规则对目录消费者开放；仍须满足各资源类型的调用边界（如 skill 仅需 resolve scope，且不支持 invoke）。</li>
                 </ul>
               </div>
               <div>

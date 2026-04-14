@@ -57,6 +57,9 @@ export const ResourceCenterManagementPage = lazy(() =>
 export const ResourceRegisterPage = lazy(() =>
   import('../views/resourceCenter/ResourceRegisterPage').then((m) => ({ default: m.ResourceRegisterPage })),
 );
+export const CapabilityRegisterPage = lazy(() =>
+  import('../views/resourceCenter/CapabilityRegisterPage').then((m) => ({ default: m.CapabilityRegisterPage })),
+);
 export const ResourceAuditList = lazy(() =>
   import('../views/audit/ResourceAuditList').then((m) => ({ default: m.ResourceAuditList })),
 );

@@ -23,6 +23,7 @@ import {
 import { useMcpGatewayInvoke, type RunInvokeResult } from '../../hooks/useMcpGatewayInvoke';
 import { AutoHeightTextarea } from '../common/AutoHeightTextarea';
 import { LantuSelect } from '../common/LantuSelect';
+import { CapabilityWorkbench } from '../capability/CapabilityWorkbench';
 import { McpInvokeProtocolPanel } from './McpInvokeProtocolPanel';
 import { McpInvokeResultSection } from './McpInvokeResultSection';
 import { McpToolArgsForm } from './McpToolArgsForm';
@@ -586,6 +587,17 @@ export const McpDetailInvokeTab: React.FC<McpDetailInvokeTabProps> = ({
         >
           {invokeDisabledReason || '当前资源不可通过网关调用。'}
         </div>
+      ) : null}
+
+      {!invokeDisabled ? (
+        <CapabilityWorkbench
+          theme={theme}
+          capabilityId={Number(detail.resourceId)}
+          capabilityType="mcp"
+          capabilityName={detail.displayName}
+          showMessage={showMessage}
+          defaultPayload={{ input: 'hello' }}
+        />
       ) : null}
 
       <div

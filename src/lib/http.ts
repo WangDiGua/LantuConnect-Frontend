@@ -149,6 +149,15 @@ function ensureRequiredHeaders(config: InternalAxiosRequestConfig): void {
   if (path === '/catalog/resolve' && !hasApiKey) {
     throw new ApiException({ code: 1001, status: 400, message: '调用 POST /catalog/resolve 必须提供 X-Api-Key' });
   }
+  if (path === '/v2/capabilities/import' && config.method?.toLowerCase() === 'post' && !hasUserId) {
+    throw new ApiException({ code: 1001, status: 400, message: '璋冪敤 POST /v2/capabilities/import 蹇呴』鎻愪緵 X-User-Id' });
+  }
+  if (path === '/v2/capabilities' && config.method?.toLowerCase() === 'post' && !hasUserId) {
+    throw new ApiException({ code: 1001, status: 400, message: '璋冪敤 POST /v2/capabilities 蹇呴』鎻愪緵 X-User-Id' });
+  }
+  if (/^\/v2\/capabilities\/[^/]+\/(resolve|invoke|tool-session)$/.test(path) && !hasUserId && !hasApiKey) {
+    throw new ApiException({ code: 1001, status: 400, message: '璋冪敤 Capability V2 鎵ц鎺ュ彛蹇呴』鎻愪緵 X-User-Id 鎴?X-Api-Key' });
+  }
   if (path === '/catalog/capabilities/tools' && !hasApiKey) {
     throw new ApiException({
       code: 1001,

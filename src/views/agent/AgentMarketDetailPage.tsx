@@ -19,6 +19,7 @@ import { mapInvokeFlowError } from '../../utils/invokeError';
 import { usePersistedGatewayApiKey } from '../../hooks/usePersistedGatewayApiKey';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
+import { CapabilityWorkbench } from '../../components/capability/CapabilityWorkbench';
 
 export interface AgentMarketDetailPageProps {
   resourceId: string;
@@ -500,12 +501,21 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
           </div>
         )}
         sidebarColumn={(
-          <div
-            className={`space-y-4 rounded-[28px] border p-5 shadow-[var(--shadow-card)] ${
-              isDark ? 'border-white/10 bg-lantu-elevated' : 'border-transparent bg-white'
-            }`}
-          >
-            <h3 className={`text-sm font-bold ${textPrimary(theme)}`}>内置测试</h3>
+          <div className="space-y-4">
+            <CapabilityWorkbench
+              theme={theme}
+              capabilityId={Number(agent.id)}
+              capabilityType="agent"
+              capabilityName={agent.displayName}
+              showMessage={showMessage}
+              defaultPayload={{ input: 'hello' }}
+            />
+            <div
+              className={`space-y-4 rounded-[28px] border p-5 shadow-[var(--shadow-card)] ${
+                isDark ? 'border-white/10 bg-lantu-elevated' : 'border-transparent bg-white'
+              }`}
+            >
+            <h3 className={`text-sm font-bold ${textPrimary(theme)}`}>高级协议调试</h3>
             <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
               详情页直接测试智能体。统一 invoke 需要 X-Api-Key；协议原生模式会按注册协议生成请求体后再走网关。
             </p>
@@ -629,6 +639,7 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
               打开 API 文档
             </button>
             <BindingClosureSection theme={theme} currentResourceId={idStr} items={bindingClosure} />
+          </div>
           </div>
         )}
       />

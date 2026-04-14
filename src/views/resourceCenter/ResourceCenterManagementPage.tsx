@@ -58,6 +58,7 @@ import { lifecycleTimelineEventTitleZh } from '../../utils/lifecycleTimelineLabe
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 import { healthService } from '../../api/services/health.service';
+import { buildPath } from '../../constants/consoleRoutes';
 
 /** 生命周期时间轴节点颜色（按 status / eventType 粗分） */
 function lifecycleTimelineNodeClass(ev: LifecycleTimelineEventVO): string {
@@ -228,6 +229,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
   const myUserId = authUser?.id ? Number(authUser.id) : NaN;
   const { platformRole, hasPermission } = useUserRole();
   const isAdminConsoleUser = canAccessAdminView(platformRole);
+  const consoleRole = isAdminConsoleUser ? 'admin' : 'user';
   /** 与 AuditController publish 一致：owner / 部门管理员 / 平台侧开发者账号 */
   const canPublishResource =
     platformRole === 'platform_admin' || platformRole === 'reviewer' || platformRole === 'developer';
@@ -525,6 +527,10 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
         <RefreshCw size={15} aria-hidden />
         刷新
       </button>
+      <a href={buildPath(consoleRole, 'capability-register')} className={btnSecondary(theme)}>
+        <Boxes size={15} aria-hidden />
+        智能注册能力
+      </a>
       {activeType === 'skill' ? (
         <button type="button" onClick={() => onNavigateRegister('skill')} className={btnPrimary}>
           <Plus size={15} aria-hidden />

@@ -28,6 +28,7 @@ import { formatDateTime } from '../../utils/formatDateTime';
 import { usePersistedGatewayApiKey } from '../../hooks/usePersistedGatewayApiKey';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
 import { MarkdownView } from '../../components/common/MarkdownView';
+import { CapabilityWorkbench } from '../../components/capability/CapabilityWorkbench';
 const TYPE_BADGE: Record<AgentType, { label: string; cls: string }> = {
   mcp: { label: 'MCP', cls: 'text-neutral-900 bg-neutral-900/10' },
   http_api: { label: 'HTTP API', cls: 'text-neutral-800 bg-neutral-800/10' },
@@ -343,11 +344,20 @@ export const SkillMarketDetailPage: React.FC<SkillMarketDetailPageProps> = ({
           </div>
         )}
         sidebarColumn={(
-          <div
-            className={`space-y-3 rounded-[28px] border p-5 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.02)] ${
-              isDark ? 'border-white/10 bg-lantu-elevated' : 'border-transparent bg-white'
-            }`}
-          >
+          <div className="space-y-4">
+            <CapabilityWorkbench
+              theme={theme}
+              capabilityId={Number(skill.id)}
+              capabilityType="skill"
+              capabilityName={skill.displayName}
+              showMessage={showMessage}
+              defaultPayload={{ input: 'hello' }}
+            />
+            <div
+              className={`space-y-3 rounded-[28px] border p-5 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.02)] ${
+                isDark ? 'border-white/10 bg-lantu-elevated' : 'border-transparent bg-white'
+              }`}
+            >
             <h3 className={`text-sm font-bold ${textPrimary(theme)}`}>resolve 预览</h3>
             <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
               使用 POST /catalog/resolve 拉取规范与绑定；须 X-Api-Key 含 resolve scope。也可点击顶部「预览 resolve」。
@@ -363,6 +373,7 @@ export const SkillMarketDetailPage: React.FC<SkillMarketDetailPageProps> = ({
               打开 resolve 对话框
             </button>
             <BindingClosureSection theme={theme} currentResourceId={String(skill.id)} items={bindingClosure} />
+            </div>
           </div>
         )}
       />

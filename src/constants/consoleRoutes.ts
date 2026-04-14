@@ -129,6 +129,7 @@ const USER_SIDEBAR_PAGES: Record<string, string[]> = {
     'my-publish-app',
     'my-publish-dataset',
     'resource-center',
+    'capability-register',
     'agent-list',
     'agent-register',
     'skill-list',

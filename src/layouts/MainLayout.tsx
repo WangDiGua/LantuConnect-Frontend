@@ -81,6 +81,7 @@ const MyFavoritesPage = lazy(() => import('../views/user/MyFavoritesPage').then(
 const UsageStatsPage = lazy(() => import('../views/user/UsageStatsPage').then(m => ({ default: m.UsageStatsPage })));
 const ResourceCenterManagementPage = lazy(() => import('../views/resourceCenter/ResourceCenterManagementPage').then(m => ({ default: m.ResourceCenterManagementPage })));
 const ResourceRegisterPage = lazy(() => import('../views/resourceCenter/ResourceRegisterPage').then(m => ({ default: m.ResourceRegisterPage })));
+const CapabilityRegisterPage = lazy(() => import('../views/resourceCenter/CapabilityRegisterPage').then(m => ({ default: m.CapabilityRegisterPage })));
 const ResourceAuditList = lazy(() => import('../views/audit/ResourceAuditList').then(m => ({ default: m.ResourceAuditList })));
 const DeveloperApplicationListPage = lazy(() => import('../views/userMgmt/DeveloperApplicationListPage').then(m => ({ default: m.DeveloperApplicationListPage })));
 const DeveloperDocsHubPage = lazy(() =>
@@ -336,6 +337,15 @@ const MainContent = React.memo<{
               onNavigateRegister={(type, id) => nav(RESOURCE_TYPE_REGISTER_PAGE[type], id)}
             />
           );
+        case 'capability-register':
+          return (
+            <CapabilityRegisterPage
+              theme={t}
+              fontSize={fs}
+              showMessage={msg}
+              onBack={() => nav('resource-center', typeQuery ?? 'agent')}
+            />
+          );
         case 'my-agents-pub':
           return <MyPublishHubPage theme={t} fontSize={fs} />;
         case 'my-publish-agent':
@@ -510,6 +520,15 @@ const MainContent = React.memo<{
             allowTypeSwitch
             onTypeChange={(nextType) => nav('resource-center', nextType)}
             onNavigateRegister={(type, id) => nav(RESOURCE_TYPE_REGISTER_PAGE[type], id)}
+          />
+        );
+      case 'capability-register':
+        return (
+          <CapabilityRegisterPage
+            theme={t}
+            fontSize={fs}
+            showMessage={msg}
+            onBack={() => nav('resource-center', typeQuery ?? 'agent')}
           />
         );
       case 'agent-list':
@@ -1331,6 +1350,7 @@ const MainLayoutContent: React.FC<{
       !layoutIsAdmin &&
       [
         'resource-center',
+        'capability-register',
         'my-publish-agent',
         'my-publish-skill',
         'my-publish-mcp',

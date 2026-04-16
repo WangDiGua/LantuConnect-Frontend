@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { GitBranch, ChevronDown, ChevronRight, RefreshCw } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import type { Theme, FontSize } from '../../types';
 import { BentoCard } from '../../components/common/BentoCard';
 import { GlassPanel } from '../../components/common/GlassPanel';
@@ -158,7 +159,8 @@ const PAGE_DESC = '数据源：GET /monitoring/traces。网关对 Agent / Skill 
 
 export const AgentTracePage: React.FC<AgentTracePageProps> = ({ theme, fontSize, showMessage }) => {
   const isDark = theme === 'dark';
-  const [q, setQ] = useState('');
+  const [searchParams] = useSearchParams();
+  const [q, setQ] = useState(() => searchParams.get('q') ?? '');
   const [groups, setGroups] = useState<TraceGroup[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());

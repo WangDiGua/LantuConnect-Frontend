@@ -689,7 +689,6 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     displayName: '',
     description: '',
     sourceType: 'internal',
-    providerId: '',
     catalogTagId: '',
     endpoint: '',
     mcpRegisterMode: 'http_json' as McpRegisterMode,
@@ -828,7 +827,6 @@ export const ResourceRegisterPage: React.FC<Props> = ({
           description: item.description || '',
           serviceDetailMd: item.serviceDetailMd ?? '',
           sourceType: item.sourceType || 'internal',
-          providerId: item.providerId ?? '',
           catalogTagId: item.tagIds?.length ? String(item.tagIds[0]) : '',
           endpoint: item.endpoint || '',
           mcpRegisterMode:
@@ -1150,8 +1148,6 @@ export const ResourceRegisterPage: React.FC<Props> = ({
   };
 
   const buildPayload = (): ResourceUpsertRequest => {
-    const providerIdRaw = resourceId ? (form.providerId.trim() || user?.id) : user?.id;
-    const providerIdNum = Number(providerIdRaw);
     const tagIdPick = Number(form.catalogTagId.trim());
     const baseFields = {
       resourceCode: form.resourceCode.trim(),
@@ -1159,7 +1155,6 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       description: form.description.trim() || undefined,
       sourceType: form.sourceType,
       accessPolicy: 'open_platform' as const,
-      ...(Number.isFinite(providerIdNum) && providerIdNum > 0 ? { providerId: providerIdNum } : {}),
       ...(form.catalogTagId.trim() && Number.isFinite(tagIdPick) && tagIdPick > 0 ? { tagIds: [tagIdPick] } : {}),
     };
     if (resourceType === 'mcp') {

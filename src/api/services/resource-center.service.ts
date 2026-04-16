@@ -61,7 +61,6 @@ function toResourceItem(raw: unknown): ResourceCenterItemVO {
     displayName: String(r?.displayName ?? r?.name ?? `资源-${id}`),
     description: r?.description ? String(r.description) : '',
     sourceType: r?.sourceType ? String(r.sourceType) : undefined,
-    providerId: r?.providerId != null && r?.providerId !== '' ? String(r.providerId) : undefined,
     tagIds: Array.isArray(r?.tagIds)
       ? (r.tagIds as unknown[])
           .map((x) => Number(x))

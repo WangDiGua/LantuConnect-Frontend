@@ -92,9 +92,9 @@
 |-----------|-------------------|
 | `overview` | `dashboard`, `health-check`, `usage-statistics`, `data-reports` |
 | `user-management` | `user-list`, `role-management`, `organization`, `api-key-management`, `developer-applications` |
-| `admin-resource-ops` | `resource-audit` 及旧 `*-audit`、`agent-monitoring`、`agent-trace`、`provider-list`、`provider-create` |
+| `admin-resource-ops` | `resource-audit` 及旧 `*-audit`、`agent-monitoring`、`agent-trace` |
 | `admin-workspace` | 与 `USER_SIDEBAR_PAGES.workspace` 一致，并含 `agent-detail`（个人工作台：我的资源中心等） |
-| `monitoring` | `monitoring-overview`, `call-logs`, `performance-analysis`, `alert-management`, `alert-rules`, `health-config`, `circuit-breaker` |
+| `monitoring` | `monitoring-overview`, `call-logs`, `performance-analysis`（兼容旧链接）, `alert-center`, `alert-management`（兼容旧链接）, `alert-rules`（兼容旧链接）, `health-governance`, `health-config`（兼容旧链接）, `circuit-breaker`（兼容旧链接） |
 | `system-config` | `tag-management`, `system-params`, `security-settings`, `network-config`, `rate-limit-policy`, `access-control`, `audit-log`, `sensitive-words`, `announcements` |
 
 子菜单树见 [`navigation.ts`](../../src/constants/navigation.ts)。`#/c/agent-list` 等旧 slug 在管理壳下会 replace 到 `resource-audit`；`findSidebarForPage` 仍依赖 `ADMIN_SIDEBAR_PAGES` 收录这些 slug。
@@ -142,10 +142,9 @@
 | `app-register` | `ResourceRegisterPage(app)` |
 | `dataset-register` | `ResourceRegisterPage(dataset)` |
 | `user-list` / `role-management` / `organization` / `api-key-management` / `resource-grant-management` | `UserManagementModule` |
-| `provider-list` / `provider-create` | `ProviderManagementPage` |
 | `grant-applications` | `GrantApplicationListPage` |
 | `developer-applications` | `DeveloperApplicationListPage` |
-| `monitoring-overview` / `call-logs` / `performance-analysis` / `alert-management` / `alert-rules` / `health-config` / `circuit-breaker` | `MonitoringModule` |
+| `monitoring-overview` / `call-logs` / `performance-analysis` / `alert-center` / `alert-management` / `alert-rules` / `health-governance` / `health-config` / `circuit-breaker` | `MonitoringModule` |
 | `category-management` / `tag-management` / … / `announcements` | `SystemConfigModule`（注：`category-management` 会先在 URL 层归一到 `tag-management`；~~`model-config`~~ 已移除） |
 | 其它已知 slug | `PlaceholderView` |
 
@@ -181,7 +180,7 @@
 
 以下 `page` 在管理端侧栏中可 **按权限隐藏**（见 `MainLayout`）：
 
-`provider-list`（`provider:view`）、`provider-create`（`provider:manage`）、`role-management`（`role:manage`）、`organization`（`org:manage`）、`api-key-management`（`api-key:manage`）、`resource-grant-management` / `grant-applications`（`resource-grant:manage`）、`developer-applications`（`developer-application:review`）、`alert-rules` / `health-config` / `circuit-breaker`（`system:config`）。  
+`role-management`（`role:manage`）、`organization`（`org:manage`）、`api-key-management`（`api-key:manage`）、`resource-grant-management` / `grant-applications`（`resource-grant:manage`）、`developer-applications`（`developer-application:review`）、`alert-rules` / `health-config` / `circuit-breaker`（`system:config`）。  
 审核类子项另有 `resourceType` 相关权限位（实现见 `MainLayout` 中 `filteredSubGroupsForSidebarId` 等相关逻辑）。
 
 ## 路由变更历史

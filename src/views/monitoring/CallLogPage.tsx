@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import type { Theme, FontSize } from '../../types';
 import { useCallLogs } from '../../hooks/queries/useMonitoring';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
@@ -38,11 +39,16 @@ function safeNumber(v: unknown): number {
 
 export const CallLogPage: React.FC<CallLogPageProps> = ({ theme, fontSize }) => {
   const isDark = theme === 'dark';
-  const [q, setQ] = useState('');
+  const [searchParams] = useSearchParams();
+  const [q, setQ] = useState(() => searchParams.get('q') ?? '');
   const [debouncedQ, setDebouncedQ] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [resourceTypeFilter, setResourceTypeFilter] = useState<string>('all');
-  const [page, setPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState<string>(() => searchParams.get('status') ?? 'all');
+  const [resourceTypeFilter, setResourceTypeFilter] = useState<string>(() => searchParams.get('resourceType') ?? 'all');
+  const [resourceIdFilter] = useState<number | undefined>(() => {
+    const raw = Number(searchParams.get('resourceId') ?? '');
+    return Number.isFinite(raw) && raw > 0 ? raw : undefined;
+  });
+  const [page, setPage] = useState(() => Number(searchParams.get('page') ?? '1') || 1);
   useScrollPaginatedContentToTop(page);
 
   useEffect(() => {
@@ -61,8 +67,9 @@ export const CallLogPage: React.FC<CallLogPageProps> = ({ theme, fontSize }) => 
       ...(debouncedQ ? { keyword: debouncedQ } : {}),
       ...(statusFilter !== 'all' ? { status: statusFilter } : {}),
       ...(resourceTypeFilter !== 'all' ? { resourceType: resourceTypeFilter } : {}),
+      ...(resourceIdFilter ? { resourceId: resourceIdFilter } : {}),
     }),
-    [page, debouncedQ, statusFilter, resourceTypeFilter],
+    [page, debouncedQ, resourceIdFilter, resourceTypeFilter, statusFilter],
   );
 
   const logsQ = useCallLogs(callLogParams);

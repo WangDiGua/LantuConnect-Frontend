@@ -1,149 +1,189 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Activity, RefreshCw, Search, Shield } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { Theme, FontSize } from '../../types';
 import { MonitoringOverviewCharts } from '../../components/charts/MonitoringOverviewCharts';
-import { useAlerts, useCallSummaryByResource, useMonitoringKpis, usePerformanceMetrics } from '../../hooks/queries/useMonitoring';
+import {
+  useAlertSummary,
+  useCallSummaryByResource,
+  useMonitoringKpis,
+  usePerformanceAnalysis,
+} from '../../hooks/queries/useMonitoring';
 import { buildPath } from '../../constants/consoleRoutes';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { PageError } from '../../components/common/PageError';
 import { EmptyState } from '../../components/common/EmptyState';
 import { KpiCard } from '../../components/common/KpiCard';
 import { BentoCard } from '../../components/common/BentoCard';
-import { btnGhost, kpiGridGap, pageBlockStack, textPrimary, textSecondary, textMuted } from '../../utils/uiClasses';
+import { PerformanceAnalysisPanel } from './PerformanceAnalysisPanel';
+import {
+  btnGhost,
+  kpiGridGap,
+  pageBlockStack,
+  textMuted,
+  textPrimary,
+} from '../../utils/uiClasses';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 
-const PAGE_DESC = '统一网关调用量、成功率、延迟与五类资源（智能体 / 技能 / MCP / 应用 / 数据集）分布汇总';
-const BREADCRUMB = ['监控中心', '监控概览'] as const;
+const PAGE_DESC = '统一承载平台监控总览与调用性能分析，总览看整体，性能分析看真实分位数、排行与下钻排障。';
+const BREADCRUMB = ['监控运维', '监控概览'] as const;
+const GLOW: Array<'indigo' | 'emerald' | 'amber' | 'rose'> = ['indigo', 'emerald', 'amber', 'rose'];
+
+type OverviewTab = 'overview' | 'performance';
 
 interface MonitoringOverviewPageProps {
   theme: Theme;
   fontSize: FontSize;
+  showMessage: (msg: string, type?: 'success' | 'error' | 'info') => void;
 }
 
-export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ theme, fontSize }) => {
-  const isDark = theme === 'dark';
+function normalizeTab(raw: string | null): OverviewTab {
+  return raw === 'performance' ? 'performance' : 'overview';
+}
+
+export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({
+  theme,
+  fontSize,
+  showMessage,
+}) => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [autoRefresh, setAutoRefresh] = useState(false);
-  const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
+  const activeTab = normalizeTab(searchParams.get('tab'));
+
   const kpisQ = useMonitoringKpis();
-  const performanceQ = usePerformanceMetrics();
+  const overviewPerfQ = usePerformanceAnalysis({ window: '24h' });
   const callMixQ = useCallSummaryByResource(24);
-  const alertsQ = useAlerts({ page: 1, pageSize: 20 });
+  const alertSummaryQ = useAlertSummary();
 
   useEffect(() => {
-    if (autoRefresh) {
-      const interval = setInterval(() => {
-        kpisQ.refetch();
-        performanceQ.refetch();
-        void callMixQ.refetch();
-      }, 5000);
-      setRefreshInterval(interval);
-      return () => clearInterval(interval);
-    } else if (refreshInterval) {
-      clearInterval(refreshInterval);
-      setRefreshInterval(null);
-    }
-  }, [autoRefresh, kpisQ, performanceQ, callMixQ]);
+    if (!autoRefresh) return undefined;
+    const timer = window.setInterval(() => {
+      void kpisQ.refetch();
+      void overviewPerfQ.refetch();
+      void callMixQ.refetch();
+      void alertSummaryQ.refetch();
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [alertSummaryQ, autoRefresh, callMixQ, kpisQ, overviewPerfQ]);
 
-  const toolbar =
-    !kpisQ.isLoading && !kpisQ.isError ? (
-      <div className="flex flex-wrap items-center gap-2 w-full justify-end">
-        <label className="flex items-center gap-2 cursor-pointer">
+  const setActiveTab = (nextTab: OverviewTab) => {
+    const next = new URLSearchParams(searchParams);
+    if (nextTab === 'performance') {
+      next.set('tab', 'performance');
+    } else {
+      next.delete('tab');
+    }
+    setSearchParams(next, { replace: true });
+  };
+
+  const refreshAll = () => {
+    void kpisQ.refetch();
+    void overviewPerfQ.refetch();
+    void callMixQ.refetch();
+    void alertSummaryQ.refetch();
+  };
+
+  const toolbar = (
+    <div className="flex w-full flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setActiveTab('overview')}
+          className={`${btnGhost(theme)} rounded-2xl px-4 py-2.5 ${activeTab === 'overview' ? 'bg-neutral-900 text-white hover:bg-neutral-900 hover:text-white' : ''}`}
+        >
+          总览
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('performance')}
+          className={`${btnGhost(theme)} rounded-2xl px-4 py-2.5 ${activeTab === 'performance' ? 'bg-neutral-900 text-white hover:bg-neutral-900 hover:text-white' : ''}`}
+        >
+          性能分析
+        </button>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="flex items-center gap-2 cursor-pointer text-xs font-medium">
           <input
             type="checkbox"
             checked={autoRefresh}
-            onChange={(e) => setAutoRefresh(e.target.checked)}
+            onChange={(event) => setAutoRefresh(event.target.checked)}
             className="toggle toggle-primary toggle-sm"
-            aria-label="每 5 秒自动刷新 KPI 与性能数据"
+            aria-label="每 5 秒自动刷新监控总览数据"
           />
-          <span className={`text-xs font-medium ${textSecondary(theme)}`}>自动刷新</span>
+          自动刷新
         </label>
-        <button
-          type="button"
-          onClick={() => {
-            void kpisQ.refetch();
-            void performanceQ.refetch();
-            void callMixQ.refetch();
-            void alertsQ.refetch();
-          }}
-          className={btnGhost(theme)}
-          aria-label="立即刷新监控数据"
-        >
+        <button type="button" onClick={refreshAll} className={btnGhost(theme)} aria-label="立即刷新监控数据">
           <RefreshCw size={15} aria-hidden />
           刷新
         </button>
       </div>
-    ) : undefined;
+    </div>
+  );
 
-  const body = (() => {
-    if (kpisQ.isLoading) {
+  const overviewBody = (() => {
+    if (kpisQ.isLoading || overviewPerfQ.isLoading) {
       return <PageSkeleton type="cards" />;
     }
     if (kpisQ.isError) {
       return <PageError error={kpisQ.error as Error} onRetry={() => kpisQ.refetch()} />;
     }
+    if (overviewPerfQ.isError) {
+      return <PageError error={overviewPerfQ.error as Error} onRetry={() => overviewPerfQ.refetch()} />;
+    }
 
     const kpis = kpisQ.data ?? [];
-    const alertList = alertsQ.data?.list ?? [];
-    const firingCount = alertList.filter((a) => a.status === 'firing').length;
-    const resolvedCount = alertList.filter((a) => a.status === 'resolved').length;
+    const firingCount = alertSummaryQ.data?.firing ?? 0;
+    const resolvedCount = alertSummaryQ.data?.resolvedToday ?? 0;
 
     if (kpis.length === 0) {
       return (
         <EmptyState
           title="暂无监控数据"
-          description="KPI 指标为空，请检查监控采集服务是否已启用。可点击页面右上角「刷新」重试加载。"
+          description="KPI 指标为空，请检查监控采集服务是否已经启用。"
         />
       );
     }
-
-    const GLOW: Array<'indigo' | 'emerald' | 'amber' | 'rose'> = ['indigo', 'emerald', 'amber', 'rose'];
 
     return (
       <div className={pageBlockStack}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
           <BentoCard theme={theme} hover glow="indigo">
             <div className="flex items-center gap-3">
-              <div className={`p-2.5 rounded-xl ${isDark ? 'bg-neutral-900/10' : 'bg-neutral-100'}`}>
-                <Search size={18} className={isDark ? 'text-neutral-300' : 'text-neutral-900'} aria-hidden />
+              <div className="p-2.5 rounded-xl bg-neutral-100">
+                <Search size={18} className="text-neutral-900" aria-hidden />
               </div>
               <div className="min-w-0">
                 <p className={`font-semibold text-sm ${textPrimary(theme)}`}>调用日志</p>
-                <p className={`text-xs mt-0.5 ${textMuted(theme)}`}>按资源类型、路径、状态码与延迟检索网关调用</p>
+                <p className={`text-xs mt-0.5 ${textMuted(theme)}`}>
+                  按资源类型、方法、状态码与延迟检索统一网关调用记录。
+                </p>
               </div>
             </div>
             <button
               type="button"
-              className="mt-3 text-xs text-neutral-800 hover:text-neutral-900 dark:text-neutral-200 dark:hover:text-white"
+              className="mt-3 text-xs text-neutral-800 hover:text-neutral-900"
               onClick={() => navigate(buildPath('admin', 'call-logs'))}
             >
               查看日志
             </button>
           </BentoCard>
+
           <BentoCard theme={theme} hover glow="emerald">
             <div className="flex items-center gap-3">
-              <div className={`p-2.5 rounded-xl ${isDark ? 'bg-emerald-500/15' : 'bg-emerald-50'}`}>
-                <Shield size={18} className={isDark ? 'text-emerald-400' : 'text-emerald-600'} aria-hidden />
+              <div className="p-2.5 rounded-xl bg-emerald-50">
+                <Shield size={18} className="text-emerald-600" aria-hidden />
               </div>
               <div className="min-w-0">
                 <p className={`font-semibold text-sm ${textPrimary(theme)}`}>告警中心</p>
                 <div className={`text-xs mt-0.5 ${textMuted(theme)}`}>
-                  {alertsQ.isLoading ? (
-                    <span
-                      className="inline-block h-3.5 w-44 max-w-full rounded-md animate-pulse bg-slate-200 dark:bg-white/10 align-middle"
-                      aria-busy="true"
-                      aria-label="加载告警摘要"
-                    />
-                  ) : (
-                    `进行中 ${firingCount} 条 · 已恢复 ${resolvedCount} 条`
-                  )}
+                  {alertSummaryQ.isLoading ? '加载告警摘要中…' : `进行中 ${firingCount} 条 · 今日已恢复 ${resolvedCount} 条`}
                 </div>
               </div>
             </div>
             <button
               type="button"
-              className="mt-3 text-xs text-emerald-500 hover:text-emerald-600"
+              className="mt-3 text-xs text-emerald-600 hover:text-emerald-700"
               onClick={() => navigate(buildPath('admin', 'alert-center'))}
             >
               进入告警中心
@@ -152,17 +192,17 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ 
         </div>
 
         <div className={`grid grid-cols-2 lg:grid-cols-4 ${kpiGridGap}`}>
-          {kpis.map((k, i) => (
+          {kpis.map((item, index) => (
             <KpiCard
-              key={k.name}
+              key={item.name}
               theme={theme}
-              label={k.label}
-              value={k.unit && !String(k.value).endsWith(k.unit) ? `${k.value} ${k.unit}` : k.value}
-              trend={k.trend}
-              trendType={k.changeType}
-              previousValue={k.previousValue}
-              glow={GLOW[i % 4]}
-              delay={i * 0.06}
+              label={item.label}
+              value={item.unit && !String(item.value).endsWith(item.unit) ? `${item.value} ${item.unit}` : item.value}
+              trend={item.trend}
+              trendType={item.changeType}
+              previousValue={item.previousValue}
+              glow={GLOW[index % 4]}
+              delay={index * 0.06}
             />
           ))}
         </div>
@@ -170,14 +210,14 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ 
         <BentoCard theme={theme}>
           <MonitoringOverviewCharts
             theme={theme}
-            performance={performanceQ.data ?? []}
+            performance={overviewPerfQ.data?.buckets ?? []}
             resourceMix={callMixQ.data ?? []}
           />
         </BentoCard>
 
         <p className={`text-xs ${textMuted(theme)}`}>
           <Activity size={12} className="inline mr-1 opacity-70" aria-hidden />
-          KPI 与图表来自调用日志聚合；资源类型分布覆盖智能体 / 技能 / MCP / 应用 / 数据集及未归类。
+          总览图表来自调用日志真实聚合，性能分析页会基于同一口径继续下钻到分位数、资源排行和慢方法。
         </p>
       </div>
     );
@@ -193,7 +233,9 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ 
       toolbar={toolbar}
       contentScroll="document"
     >
-      <div className="px-4 sm:px-6 pb-8">{body}</div>
+      <div className="px-4 sm:px-6 pb-8">
+        {activeTab === 'overview' ? overviewBody : <PerformanceAnalysisPanel theme={theme} showMessage={showMessage} />}
+      </div>
     </MgmtPageShell>
   );
 };

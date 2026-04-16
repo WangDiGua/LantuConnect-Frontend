@@ -19,13 +19,20 @@ import type {
   PerformanceMetric,
   QualityHistoryPoint,
   AlertSummary,
+  PerformanceAnalysis,
+  PerformanceAnalysisSummary,
+  PerformanceBucket,
   TraceSpan,
+  PerformanceWindow,
+  PerformanceResourceLeaderboardItem,
+  PerformanceSlowMethodItem,
 } from '../../types/dto/monitoring';
 
 export type CallLogListParams = PaginationParams & {
   keyword?: string;
   status?: string;
   resourceType?: string;
+  resourceId?: number;
 };
 
 export type AlertListParams = PaginationParams & {
@@ -45,6 +52,12 @@ export type AlertRuleListParams = PaginationParams & {
   scopeType?: string;
   resourceType?: string;
   enabled?: boolean;
+};
+
+export type PerformanceAnalysisParams = {
+  window?: PerformanceWindow;
+  resourceType?: string;
+  resourceId?: number;
 };
 
 function parseNum(value: unknown, fallback = 0): number {
@@ -329,6 +342,90 @@ function mapPerformanceMetric(raw: unknown, index: number): PerformanceMetric {
   };
 }
 
+function mapPerformanceSummary(raw: unknown): PerformanceAnalysisSummary {
+  const obj = asRecord(raw);
+  return {
+    requestCount: parseNum(obj.requestCount),
+    successCount: parseNum(obj.successCount),
+    errorCount: parseNum(obj.errorCount),
+    timeoutCount: parseNum(obj.timeoutCount),
+    successRate: parseNum(obj.successRate),
+    errorRate: parseNum(obj.errorRate),
+    timeoutRate: parseNum(obj.timeoutRate),
+    avgLatencyMs: parseNum(obj.avgLatencyMs),
+    p50LatencyMs: parseNum(obj.p50LatencyMs),
+    p95LatencyMs: parseNum(obj.p95LatencyMs),
+    p99LatencyMs: parseNum(obj.p99LatencyMs),
+  };
+}
+
+function mapPerformanceBucket(raw: unknown): PerformanceBucket {
+  const obj = asRecord(raw);
+  return {
+    bucket: String(obj.bucket ?? obj.timestamp ?? ''),
+    requestCount: parseNum(obj.requestCount),
+    successCount: parseNum(obj.successCount),
+    errorCount: parseNum(obj.errorCount),
+    timeoutCount: parseNum(obj.timeoutCount),
+    successRate: parseNum(obj.successRate),
+    errorRate: parseNum(obj.errorRate),
+    timeoutRate: parseNum(obj.timeoutRate),
+    avgLatencyMs: parseNum(obj.avgLatencyMs),
+    p50LatencyMs: parseNum(obj.p50LatencyMs ?? obj.p50Latency ?? obj.latencyP50),
+    p95LatencyMs: parseNum(obj.p95LatencyMs ?? obj.p95Latency ?? obj.latencyP95),
+    p99LatencyMs: parseNum(obj.p99LatencyMs ?? obj.p99Latency ?? obj.latencyP99),
+    throughput: parseNum(obj.throughput),
+  };
+}
+
+function mapPerformanceResourceLeaderboardItem(raw: unknown): PerformanceResourceLeaderboardItem {
+  const obj = asRecord(raw);
+  return {
+    resourceType: String(obj.resourceType ?? obj.resource_type ?? 'unknown').toLowerCase(),
+    resourceId: obj.resourceId == null && obj.resource_id == null
+      ? undefined
+      : parseNum(obj.resourceId ?? obj.resource_id),
+    resourceName: String(obj.resourceName ?? obj.resource_name ?? '--'),
+    requestCount: parseNum(obj.requestCount),
+    errorCount: parseNum(obj.errorCount),
+    timeoutCount: parseNum(obj.timeoutCount),
+    errorRate: parseNum(obj.errorRate),
+    timeoutRate: parseNum(obj.timeoutRate),
+    avgLatencyMs: parseNum(obj.avgLatencyMs),
+    p99LatencyMs: parseNum(obj.p99LatencyMs),
+    lowSample: Boolean(obj.lowSample ?? obj.low_sample),
+  };
+}
+
+function mapPerformanceSlowMethodItem(raw: unknown): PerformanceSlowMethodItem {
+  const obj = asRecord(raw);
+  return {
+    method: String(obj.method ?? 'UNKNOWN'),
+    requestCount: parseNum(obj.requestCount),
+    errorCount: parseNum(obj.errorCount),
+    errorRate: parseNum(obj.errorRate),
+    avgLatencyMs: parseNum(obj.avgLatencyMs),
+    p95LatencyMs: parseNum(obj.p95LatencyMs),
+    p99LatencyMs: parseNum(obj.p99LatencyMs),
+  };
+}
+
+function mapPerformanceAnalysis(raw: unknown): PerformanceAnalysis {
+  const obj = asRecord(raw);
+  return {
+    window: String(obj.window ?? '24h'),
+    resourceType: String(obj.resourceType ?? obj.resource_type ?? 'all').toLowerCase(),
+    resourceId: obj.resourceId == null && obj.resource_id == null
+      ? undefined
+      : parseNum(obj.resourceId ?? obj.resource_id),
+    summary: mapPerformanceSummary(obj.summary),
+    buckets: extractArray(obj.buckets).map(mapPerformanceBucket),
+    resourceLeaderboard: extractArray(obj.resourceLeaderboard ?? obj.resource_leaderboard)
+      .map(mapPerformanceResourceLeaderboardItem),
+    slowMethods: extractArray(obj.slowMethods ?? obj.slow_methods).map(mapPerformanceSlowMethodItem),
+  };
+}
+
 function mapMetricOption(raw: unknown): AlertRuleMetricOption {
   if (typeof raw === 'string') {
     return { value: raw, label: raw };
@@ -512,6 +609,17 @@ export const monitoringService = {
   listTraces: async (params?: PaginationParams) => {
     const raw = await http.get<unknown>('/monitoring/traces', { params });
     return normalizePaginated<TraceSpan>(raw, mapTraceSpan);
+  },
+
+  getPerformanceAnalysis: async (params?: PerformanceAnalysisParams) => {
+    const raw = await http.get<unknown>('/monitoring/performance-analysis', {
+      params: {
+        window: params?.window ?? '24h',
+        resourceType: params?.resourceType && params.resourceType !== 'all' ? params.resourceType : undefined,
+        resourceId: params?.resourceId,
+      },
+    });
+    return mapPerformanceAnalysis(raw);
   },
 
   getPerformanceMetrics: async (resourceType?: string) => {

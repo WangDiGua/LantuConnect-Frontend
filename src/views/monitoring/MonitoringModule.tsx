@@ -22,7 +22,7 @@ export const MonitoringModule: React.FC<MonitoringModuleProps> = ({
 }) => {
   switch (activeSubItem) {
     case 'monitoring-overview':
-      return <MonitoringOverviewPage theme={theme} fontSize={fontSize} />;
+      return <MonitoringOverviewPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
     case 'call-logs':
       return <CallLogPage theme={theme} fontSize={fontSize} />;
     case 'performance-analysis':

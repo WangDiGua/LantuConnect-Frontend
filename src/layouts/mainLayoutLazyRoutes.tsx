@@ -21,9 +21,6 @@ export const AgentMonitoringPage = lazy(() =>
 export const AgentTracePage = lazy(() =>
   import('../views/agent/AgentTracePage').then((m) => ({ default: m.AgentTracePage })),
 );
-export const ProviderManagementPage = lazy(() =>
-  import('../views/provider/ProviderManagementPage').then((m) => ({ default: m.ProviderManagementPage })),
-);
 export const UserManagementModule = lazy(() =>
   import('../views/userMgmt/UserManagementModule').then((m) => ({ default: m.UserManagementModule })),
 );

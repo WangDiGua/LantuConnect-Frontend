@@ -46,7 +46,6 @@ function toSkill(item: ResourceCatalogItemVO): Skill {
     mode: 'TOOL',
     parentId: null,
     sourceType: (item.sourceType as Skill['sourceType']) || 'internal',
-    providerId: null,
     categoryId: null,
     categoryName: item.categoryName,
     tags: item.tags,

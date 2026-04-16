@@ -162,7 +162,7 @@ flowchart TD
 - `displayName`（必填）：展示名
 - `description`（选填）：描述
 - `sourceType`（选填）：来源，如 `internal/cloud/department/...`
-- `providerId/categoryId`（选填）：归属信息
+- `categoryId`（选填）：目录归属信息
 
 ## 5.2 MCP 必填字段
 

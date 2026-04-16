@@ -139,27 +139,6 @@ export function resourceGrantActionsLabelZh(actions: string[] | null | undefined
   return actions.map((a) => GRANT_ACTION_LABEL[norm(a)] ?? String(a)).join('、');
 }
 
-const PROVIDER_TYPE_LABEL: Record<string, string> = {
-  internal: '内部',
-  partner: '合作方',
-  cloud: '云端',
-};
-
-const PROVIDER_STATUS_LABEL: Record<string, string> = {
-  active: '启用',
-  inactive: '停用',
-};
-
-export function providerTypeLabelZh(raw: string | null | undefined): string {
-  const k = norm(raw);
-  return PROVIDER_TYPE_LABEL[k] ?? (k ? String(raw).trim() : '—');
-}
-
-export function providerStatusLabelZh(raw: string | null | undefined): string {
-  const k = norm(raw);
-  return PROVIDER_STATUS_LABEL[k] ?? (k ? String(raw).trim() : '—');
-}
-
 const AUDIT_TIER_LABEL: Record<string, string> = {
   low: '低',
   medium: '中',

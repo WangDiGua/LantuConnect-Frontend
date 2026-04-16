@@ -16,7 +16,6 @@ import {
   BookOpen,
   Database,
   LineChart,
-  Server,
   AlertTriangle,
   BarChart3,
   Building2,
@@ -164,18 +163,10 @@ export const ADMIN_AUDIT_CENTER_GROUPS: NavSubGroup[] = [
   },
 ];
 
-export const ADMIN_PROVIDER_MANAGEMENT_GROUPS: NavSubGroup[] = [
-  {
-    title: 'Provider',
-    items: [{ id: 'provider-list', icon: Server, label: 'Provider' }],
-  },
-];
-
 /** 管理端合并项：资源目录与运维 → 审核 → Provider */
 export const ADMIN_RESOURCE_OPS_GROUPS: NavSubGroup[] = [
   ...ADMIN_RESOURCE_MANAGEMENT_GROUPS,
   ...ADMIN_AUDIT_CENTER_GROUPS,
-  ...ADMIN_PROVIDER_MANAGEMENT_GROUPS,
 ];
 
 export const ADMIN_USER_MANAGEMENT_GROUPS: NavSubGroup[] = [
@@ -197,7 +188,6 @@ export const ADMIN_MONITORING_GROUPS: NavSubGroup[] = [
     items: [
       { id: 'monitoring-overview', icon: LayoutDashboard, label: '监控概览' },
       { id: 'call-logs', icon: FileText, label: '调用日志' },
-      { id: 'performance-analysis', icon: TrendingUp, label: '性能分析' },
       { id: 'alert-center', icon: Bell, label: '告警中心' },
       { id: 'health-governance', icon: Wrench, label: '健康治理' },
     ],

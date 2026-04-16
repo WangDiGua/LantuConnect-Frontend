@@ -18,7 +18,6 @@ export interface Agent {
   agentType: AgentType;
   mode: AgentMode;
   sourceType: SourceType;
-  providerId: number | null;
   categoryId: number | null;
   categoryName?: string;
   tags?: string[];
@@ -57,7 +56,6 @@ export interface AgentCreatePayload {
   description: string;
   agentType: AgentType;
   sourceType: SourceType;
-  providerId?: number;
   categoryId?: number;
   specJson: Record<string, unknown>;
   isPublic?: boolean;

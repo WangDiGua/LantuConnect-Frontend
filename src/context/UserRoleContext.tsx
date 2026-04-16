@@ -50,7 +50,6 @@ const ROLE_PERMISSIONS: Record<PlatformRoleCode, string[]> = {
     'mcp:view', 'mcp:create', 'mcp:edit', 'mcp:delete', 'mcp:publish',
     'app:view', 'app:create', 'app:edit', 'app:delete',
     'dataset:view', 'dataset:create', 'dataset:edit', 'dataset:delete',
-    'provider:view', 'provider:manage',
     'user:manage', 'role:manage', 'org:manage', 'api-key:manage',
     'system:config', 'monitor:view', 'audit:manage', 'resource:audit',
     'developer:portal', 'developer-application:review',

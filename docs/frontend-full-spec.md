@@ -63,7 +63,7 @@
 
 ### A2.0 废弃页面重定向（normalizeDeprecatedPage）
 
-仅涉及 **URL slug 替换**（实现见 `MainLayout.tsx` 内 `normalizeDeprecatedPage`）。`provider-list` / `provider-create` **不在此表**，仍为正常管理端页面。
+仅涉及 **URL slug 替换**（实现见 `MainLayout.tsx` 内 `normalizeDeprecatedPage`），其中 `provider-list` / `provider-create` 已兼容重定向到 `resource-audit`。
 
 | 旧 page slug | 重定向目标 |
 |---|---|
@@ -117,8 +117,6 @@
 | admin-resource-ops | `mcp-audit` | `#/c/mcp-audit` | ResourceAuditList（replace 后生效） | redirect | `MainLayout` replace → `#/c/resource-audit?type=mcp`（若缺省 `type` 则用该默认值） |
 | admin-resource-ops | `app-audit` | `#/c/app-audit` | ResourceAuditList（replace 后生效） | redirect | `MainLayout` replace → `#/c/resource-audit?type=app`（若缺省 `type` 则用该默认值） |
 | admin-resource-ops | `dataset-audit` | `#/c/dataset-audit` | ResourceAuditList（replace 后生效） | redirect | `MainLayout` replace → `#/c/resource-audit?type=dataset`（若缺省 `type` 则用该默认值） |
-| admin-resource-ops | `provider-list` | `#/c/provider-list` | ProviderManagementPage | reachable | — |
-| admin-resource-ops | `provider-create` | `#/c/provider-create` | ProviderManagementPage | reachable | — |
 | user-management | `user-list` | `#/c/user-list` | AdminUserHubModule | reachable | — |
 | user-management | `role-management` | `#/c/role-management` | AdminUserHubModule | reachable | — |
 | user-management | `organization` | `#/c/organization` | AdminUserHubModule | reachable | — |
@@ -330,7 +328,6 @@
 
 | 入口 | 前端权限码 | 可见角色 | 备注 |
 |---|---|---|---|
-| `provider-management` | `provider:manage` | `platform_admin` | 一级菜单过滤 |
 | `user-management` | `user:manage` | `platform_admin`,`dept_admin` | 一级菜单过滤 |
 | `monitoring` | `monitor:view` | `platform_admin`,`dept_admin` | 一级菜单过滤 |
 | `system-config` | `system:config` | `platform_admin` | 一级菜单过滤 |

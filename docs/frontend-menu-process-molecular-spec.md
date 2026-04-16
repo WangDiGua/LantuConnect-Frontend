@@ -12,7 +12,7 @@
 
 1. 前端目前已经接入统一资源主链路（注册中心、审核中心、授权中心、目录/解析/调用）。
 2. **管理端**资源与审核在侧栏上归并为 **`resource-management`（统一资源中心 + 注册/运维）** 与 **`audit-center`（资源审核）**；不再使用多套并列的「Agent 管理 / Skill 管理 / MCP 管理」一级菜单（旧 slug 如 `agent-list` 仍可作 URL，会重定向到 `resource-catalog?type=`）。
-3. **`Provider`** 在 **`provider-management`** 下以 **`ProviderManagementPage`（列表/新建）** 呈现，并可跳转「资源授权管理」；**不是** `provider-authorization-guide` 页面（代码中无该 slug）。
+3. 资源与审核相关能力统一收敛在资源中心、审核中心与资源授权管理；已不再保留独立的 Provider 管理页面。
 4. 应用端含授权申请与用户侧「我的授权申请」等能力；市场侧流程以后端能力为准。
 5. **用户端**五类市场入口归属同一侧栏分组 **`marketplace`**；**开发者中心**仅挂在 **`user`** 路由下，从 `#/admin/...` 访问开发者页会被重定向到 `#/user/...`。
 
@@ -31,15 +31,15 @@
 - 无效 `page`（无法映射到已知侧栏）：`replace` 到当前 `role` 的默认页（`#/admin/dashboard` 或 `#/user/hub`）；非 `/:role/:page` 路径可走 `#/404`
 - 无管理端权限访问 `admin/*`：跳转 `user` 默认页
 - 用户端访问统一资源相关页且无发布权限：跳转 `hub` 并提示
-- `normalizeDeprecatedPage`：`agent-create`→`agent-register`、`category-management`→`tag-management`、`submit-*` / `my-agents` / `my-skills`→`my-agents-pub` 等（**不含** `provider-list`）
+- `normalizeDeprecatedPage`：`agent-create`→`agent-register`、`category-management`→`tag-management`、`submit-*` / `my-agents` / `my-skills`→`my-agents-pub` 等，并将 `provider-list` / `provider-create` 兼容跳转到 `resource-audit`
 - 管理端：`agent-list` 等 → `resource-catalog?type=`；`agent-audit` 等 → `resource-audit?type=`
 - 用户端：五类 `*-list` → `resource-center?type=`
 - `#/admin/api-docs` 等开发者页 → `#/user/api-docs` 等同路径
 
 ## 2.3 菜单权限裁剪规则
 
-- 一级菜单按权限裁剪：`provider:manage`、`user:manage`、`monitor:view`、`system:config`
-- 二级菜单按 `MainLayout` 中 `SUB_ITEM_PERM_MAP` 再裁剪（如 `provider-list`、`resource-grant-management`、`alert-rules` 等）
+- 一级菜单按权限裁剪：`user:manage`、`monitor:view`、`system:config`
+- 二级菜单按 `MainLayout` 中 `SUB_ITEM_PERM_MAP` 再裁剪（如 `resource-grant-management`、`alert-rules` 等）
 - 审核类子项另有按资源类型的权限位（见侧栏装配逻辑）
 - `my-publish` 是否可见取决于发布相关权限（与 `canPublishResources` 等一致）
 
@@ -58,7 +58,6 @@
 | 总览 `overview` | 总览 | `dashboard`、`health-check`、`usage-statistics`、`data-reports` |
 | 资源管理 `resource-management` | 资源目录 / Agent 运维 | **`resource-catalog`**（统一资源中心）；`agent-monitoring`、`agent-trace`；另 `agent-register`…`dataset-register`、`agent-detail` |
 | 审核中心 `audit-center` | 待审核资源 | **`resource-audit`**（兼容 `agent-audit` 等 URL） |
-| Provider 管理 `provider-management` | Provider | `provider-list`、`provider-create` |
 | 用户与权限 `user-management` | 用户 / 凭证 / 入驻 | `user-list`、`role-management`、`organization`、`api-key-management`、`resource-grant-management`、`grant-applications`、`developer-applications` |
 | 监控中心 `monitoring` | 观测 / 告警 / 治理 | `monitoring-overview`、`call-logs`、`performance-analysis`、`alert-management`、`alert-rules`、`health-config`、`circuit-breaker` |
 | 系统配置 `system-config` | 基础 / 策略 / 审计 / 内容治理 | `tag-management`、`security-settings`、`quota-management`、`rate-limit-policy`、`access-control`、`audit-log`、`sensitive-words`、`announcements` |
@@ -286,11 +285,10 @@ flowchart TD
 - 列表与注册共用 **`ResourceCenterManagementPage` / `ResourceRegisterPage`**，按 `type` 区分；审核共用 **`resource-audit`**，按 `type` 区分。
 - 不再使用并列的「Skill 管理 / MCP 管理」两个一级侧栏；侧栏上是一套 **资源管理 + 审核中心**。
 
-## 7.5 “Provider 与资源授权管理是什么关系？”
+## 7.5 “资源授权管理在哪里？”
 
-- **`provider-management`**：`ProviderManagementPage`（Provider 列表/新建），可从该页打开 **`resource-grant-management`**（见 `onOpenGrantManagement`）。
 - **`resource-grant-management`**：在 **`user-management`** 侧栏下，由 `UserManagementModule` 承载。
-- 二者为不同 `page` slug，非同一页面。
+- Provider 管理页已删除，不再作为资源授权管理的前置入口。
 
 ---
 

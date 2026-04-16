@@ -22,7 +22,6 @@ function toAgent(item: ResourceCatalogItemVO): Agent {
     agentType: (detail.agentType as Agent['agentType']) || 'http_api',
     mode: (detail.mode as Agent['mode']) || 'SUBAGENT',
     sourceType: (item.sourceType as Agent['sourceType']) || 'internal',
-    providerId: null,
     categoryId: null,
     categoryName: item.categoryName,
     tags: item.tags,

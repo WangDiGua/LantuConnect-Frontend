@@ -220,6 +220,72 @@ export interface TraceSpan {
   children?: TraceSpan[];
 }
 
+export type PerformanceWindow = '6h' | '24h' | '7d';
+
+export interface PerformanceAnalysisSummary {
+  requestCount: number;
+  successCount: number;
+  errorCount: number;
+  timeoutCount: number;
+  successRate: number;
+  errorRate: number;
+  timeoutRate: number;
+  avgLatencyMs: number;
+  p50LatencyMs: number;
+  p95LatencyMs: number;
+  p99LatencyMs: number;
+}
+
+export interface PerformanceBucket {
+  bucket: string;
+  requestCount: number;
+  successCount: number;
+  errorCount: number;
+  timeoutCount: number;
+  successRate: number;
+  errorRate: number;
+  timeoutRate: number;
+  avgLatencyMs: number;
+  p50LatencyMs: number;
+  p95LatencyMs: number;
+  p99LatencyMs: number;
+  throughput: number;
+}
+
+export interface PerformanceResourceLeaderboardItem {
+  resourceType: string;
+  resourceId?: number;
+  resourceName: string;
+  requestCount: number;
+  errorCount: number;
+  timeoutCount: number;
+  errorRate: number;
+  timeoutRate: number;
+  avgLatencyMs: number;
+  p99LatencyMs: number;
+  lowSample: boolean;
+}
+
+export interface PerformanceSlowMethodItem {
+  method: string;
+  requestCount: number;
+  errorCount: number;
+  errorRate: number;
+  avgLatencyMs: number;
+  p95LatencyMs: number;
+  p99LatencyMs: number;
+}
+
+export interface PerformanceAnalysis {
+  window: PerformanceWindow | string;
+  resourceType: string;
+  resourceId?: number;
+  summary: PerformanceAnalysisSummary;
+  buckets: PerformanceBucket[];
+  resourceLeaderboard: PerformanceResourceLeaderboardItem[];
+  slowMethods: PerformanceSlowMethodItem[];
+}
+
 export interface PerformanceMetric {
   service?: string;
   timestamp: string;

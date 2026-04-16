@@ -4,7 +4,7 @@ import { ApiException } from '../types/api';
 /**
  * 批量写操作约定（与 `runWithConcurrency(..., 4, ...)` 等搭配使用）：
  *
- * - 前端优先调用约定路径（如 `PUT /providers/batch`、`POST /tags/batch-delete`、
+ * - 前端优先调用约定路径（如 `POST /tags/batch-delete`、
  *   `POST /resource-center/resources/batch-withdraw`）；请求体常用 `{ ids: number[] }` 或与单条 PATCH 相同的字段外加 `ids`。
  * - 若网关/后端返回 **404 或 405**，`tryBatchPost/Put/Delete` 视为批量端点未上线，自动走 **fallback**（一般为逐条同源 API，**并发约 4**，避免压垮网关）。
  * - 后端落地批量接口时建议：**单次 ids 上限**、与单条接口 **一致权限**、**幂等**、**审计字段**；未实现时前端仍可依赖 fallback 完成功能。

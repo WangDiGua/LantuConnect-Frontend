@@ -37,7 +37,7 @@
 
 ### A2.0 废弃页面重定向（normalizeDeprecatedPage）
 
-仅 **slug 归一**（见 `MainLayout.tsx` `normalizeDeprecatedPage`）。`provider-list` / `provider-create` **不在此表**。
+仅 **slug 归一**（见 `MainLayout.tsx` `normalizeDeprecatedPage`），其中 `provider-list` / `provider-create` 已兼容重定向到 `resource-audit`。
 
 | 旧 page slug | 重定向目标 |
 |---|---|
@@ -84,8 +84,6 @@
 | admin-resource-ops | `dataset-audit` | `#/c/dataset-audit` | ResourceAuditList（replace 后生效） | redirect | `MainLayout` replace → `#/c/resource-audit?type=dataset`（若缺省 `type` 则用该默认值） |
 | admin-resource-ops | `agent-monitoring` | `#/c/agent-monitoring` | ResourceDiagnosticsModule | reachable | — |
 | admin-resource-ops | `agent-trace` | `#/c/agent-trace` | ResourceDiagnosticsModule | reachable | — |
-| admin-resource-ops | `provider-list` | `#/c/provider-list` | ProviderManagementPage | reachable | — |
-| admin-resource-ops | `provider-create` | `#/c/provider-create` | ProviderManagementPage | reachable | — |
 | admin-workspace | `agent-detail` | `#/c/agent-detail/{id}` | AgentDetail | direct-url-only | 菜单无直达子项；需 `/c/agent-detail/{id}` |
 | monitoring | `monitoring-overview` | `#/c/monitoring-overview` | AdminMonitoringHubModule | reachable | — |
 | monitoring | `call-logs` | `#/c/call-logs` | AdminMonitoringHubModule | reachable | — |
@@ -289,7 +287,6 @@
 
 | 入口 | 前端权限码 | 可见角色 | 备注 |
 |---|---|---|---|
-| `provider-management` | `provider:manage` | `platform_admin` | 一级菜单过滤 |
 | `user-management` | `user:manage` | `platform_admin`,`dept_admin` | 一级菜单过滤 |
 | `audit-center` | `agent:audit OR skill:audit OR resource:audit` | `platform_admin`,`dept_admin` | 审核中心入口过滤 |
 | `monitoring` | `monitor:view` | `platform_admin`,`dept_admin` | 一级菜单过滤 |

@@ -19,7 +19,6 @@ export interface Dataset {
   recordCount?: number;
   fileSize?: number;
   relatedAgentIds?: number[];
-  providerId: number | null;
   categoryId: number | null;
   categoryName?: string;
   status: DatasetStatus;
@@ -49,7 +48,6 @@ export interface DatasetCreatePayload {
   displayName?: string;
   code?: string;
   description?: string;
-  providerId?: number;
   categoryId?: number;
   sourceType?: DatasetSourceType;
   dataType?: DatasetDataType;
@@ -77,7 +75,6 @@ export interface DatasetListQuery {
   keyword?: string;
   name?: string;
   categoryId?: number;
-  providerId?: number;
   status?: DatasetStatus;
   sourceType?: DatasetSourceType;
   dataType?: DatasetDataType;

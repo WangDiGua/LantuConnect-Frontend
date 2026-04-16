@@ -71,7 +71,6 @@ function toDataset(item: ResourceCatalogItemVO): Dataset {
     name: item.displayName || item.resourceCode || String(item.resourceId),
     code: item.resourceCode || String(item.resourceId),
     description: item.description || '',
-    providerId: null,
     categoryId: null,
     categoryName: item.categoryName,
     tags: item.tags,

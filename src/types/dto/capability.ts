@@ -34,7 +34,6 @@ export interface CapabilityCreateRequest {
   resourceCode?: string;
   description?: string;
   sourceType?: string;
-  providerId?: number;
   runtimeMode?: string;
   inputSchema?: Record<string, unknown>;
   defaults?: Record<string, unknown>;

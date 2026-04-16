@@ -2,11 +2,17 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { monitoringService } from '../../api/services/monitoring.service';
 import type { AlertBatchActionRequest, CreateAlertRulePayload } from '../../types/dto/monitoring';
 import type { PaginationParams } from '../../types/api';
-import type { AlertListParams, AlertRuleListParams, CallLogListParams } from '../../api/services/monitoring.service';
+import type {
+  AlertListParams,
+  AlertRuleListParams,
+  CallLogListParams,
+  PerformanceAnalysisParams,
+} from '../../api/services/monitoring.service';
 
 export const monitoringKeys = {
   kpis: ['monitoring', 'kpis'] as const,
   performance: (resourceType?: string) => ['monitoring', 'performance', resourceType ?? 'all'] as const,
+  performanceAnalysis: (params?: PerformanceAnalysisParams) => ['monitoring', 'performanceAnalysis', params] as const,
   callSummary: (hours: number) => ['monitoring', 'callSummary', hours] as const,
   traces: (params?: PaginationParams) => ['monitoring', 'traces', params] as const,
   callLogs: (params?: CallLogListParams) => ['monitoring', 'callLogs', params] as const,
@@ -29,6 +35,13 @@ export function usePerformanceMetrics(resourceType?: string) {
   return useQuery({
     queryKey: monitoringKeys.performance(resourceType),
     queryFn: () => monitoringService.getPerformanceMetrics(resourceType),
+  });
+}
+
+export function usePerformanceAnalysis(params?: PerformanceAnalysisParams) {
+  return useQuery({
+    queryKey: monitoringKeys.performanceAnalysis(params),
+    queryFn: () => monitoringService.getPerformanceAnalysis(params),
   });
 }
 

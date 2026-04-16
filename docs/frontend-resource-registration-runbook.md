@@ -54,7 +54,6 @@
 | 显示名称 | `displayName` | 必填。面向业务与用户展示的短名称。 |
 | 来源类型 | `sourceType` | 如 `internal`、`cloud`、`partner`、`department`，用于来源归属与治理。 |
 | 资源描述 | `description` | 选填。用途、典型输入输出、适用场景。 |
-| 资源归属 | `providerId` | 提供方 ID。新建草稿时通常取当前登录用户；编辑时以服务端记录为准。 |
 | 目录标签 | `categoryId` | 选填。值为标签管理接口返回的标签 **id**（如对 MCP 类型筛选后的 `GET /tags` 结果）。 |
 | 服务地址 | `endpoint` | 必填。完整 URL：Streamable HTTP 为 `http://` 或 `https://`，WebSocket 为 `ws://` 或 `wss://`（与后端网关校验一致）。 |
 | 协议 | `protocol` | 与网关 MCP 对接一致时填 `mcp`；留空时前端可按约定默认 `mcp` 提交。 |

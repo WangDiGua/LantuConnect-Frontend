@@ -54,7 +54,6 @@ const UserWorkspaceOverview = lazy(() => import('../views/dashboard/UserWorkspac
 const DeveloperOnboardingPage = lazy(() => import('../views/onboarding/DeveloperOnboardingPage').then(m => ({ default: m.DeveloperOnboardingPage })));
 const PlaceholderView = lazy(() => import('../views/common/PlaceholderView').then(m => ({ default: m.PlaceholderView })));
 const AgentDetail = lazy(() => import('../views/agent/AgentDetail').then(m => ({ default: m.AgentDetail })));
-const ProviderManagementPage = lazy(() => import('../views/provider/ProviderManagementPage').then(m => ({ default: m.ProviderManagementPage })));
 const AdminOverviewModule = lazy(() =>
   import('../views/admin/AdminOverviewModule').then((m) => ({ default: m.AdminOverviewModule })),
 );
@@ -178,6 +177,9 @@ const springTransition = { type: 'spring' as const, stiffness: 300, damping: 30 
 
 function normalizeDeprecatedPage(page: string): string {
   switch (page) {
+    case 'provider-list':
+    case 'provider-create':
+      return 'resource-audit';
     case 'agent-create':
     case 'agent-versions':
       return 'agent-register';
@@ -215,8 +217,6 @@ function normalizeDeprecatedPage(page: string): string {
 }
 
 const SUB_ITEM_PERM_MAP: Record<string, string | string[]> = {
-  'provider-list': 'provider:view',
-  'provider-create': 'provider:manage',
   'dashboard': 'monitor:view',
   'health-check': 'monitor:view',
   'usage-statistics': 'monitor:view',
@@ -457,16 +457,6 @@ const MainContent = React.memo<{
         case 'api-key-management':
         case 'developer-applications':
           return <AdminUserHubModule activePage={p} theme={t} fontSize={fs} showMessage={msg} />;
-        case 'provider-list':
-        case 'provider-create':
-          return (
-            <ProviderManagementPage
-              theme={t}
-              fontSize={fs}
-              mode={p === 'provider-create' ? 'create' : 'list'}
-              showMessage={msg}
-            />
-          );
         case 'monitoring-overview':
         case 'call-logs':
         case 'performance-analysis':
@@ -1427,8 +1417,7 @@ const MainLayoutContent: React.FC<{
           hasPermission('agent:view') ||
           hasPermission('agent:audit') ||
           hasPermission('skill:audit') ||
-          hasPermission('resource:audit') ||
-          hasPermission('provider:manage')
+          hasPermission('resource:audit')
         );
       }
       if (item.id === 'user-management') {

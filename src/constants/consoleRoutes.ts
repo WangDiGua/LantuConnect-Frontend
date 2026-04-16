@@ -171,8 +171,6 @@ const ADMIN_SIDEBAR_PAGES: Record<string, string[]> = {
     'dataset-audit',
     'agent-monitoring',
     'agent-trace',
-    'provider-list',
-    'provider-create',
   ],
   'admin-workspace': [...USER_SIDEBAR_PAGES.workspace, 'agent-detail'],
   'monitoring': ['monitoring-overview', 'call-logs', 'performance-analysis', 'alert-center', 'alert-management', 'alert-rules', 'health-governance', 'health-config', 'circuit-breaker'],
@@ -262,6 +260,9 @@ export function subItemToPage(sidebarId: string, subItemId: string, isAdmin: boo
 
 /** URL page name → navigation group sub-item ID */
 export function pageToSubItem(page: string, sidebarId: string | null, isAdmin: boolean): string {
+  if (isAdmin && (page === 'provider-list' || page === 'provider-create')) {
+    return 'resource-audit';
+  }
   if (isAdmin && sidebarId === 'overview' && ['dashboard', 'health-check', 'usage-statistics', 'data-reports'].includes(page)) {
     return page;
   }
@@ -313,6 +314,7 @@ export function pageToSubItem(page: string, sidebarId: string | null, isAdmin: b
     return 'overview';
   }
   if (isAdmin && sidebarId === 'monitoring' && ADMIN_SIDEBAR_PAGES.monitoring.includes(page)) {
+    if (page === 'performance-analysis') return 'monitoring-overview';
     if (page === 'alert-management' || page === 'alert-rules') return 'alert-center';
     if (page === 'health-config' || page === 'circuit-breaker') return 'health-governance';
     return page;
@@ -322,9 +324,6 @@ export function pageToSubItem(page: string, sidebarId: string | null, isAdmin: b
   }
   if (isAdmin && sidebarId === 'user-management' && ADMIN_SIDEBAR_PAGES['user-management'].includes(page)) {
     return page;
-  }
-  if (isAdmin && sidebarId === 'admin-resource-ops' && page === 'provider-create') {
-    return 'provider-list';
   }
   /** 个人资料 / 偏好设置已从侧栏移除；仍高亮「工作台总览」以免无匹配子项 */
   if (!isAdmin && sidebarId === 'workspace' && (page === 'profile' || page === 'preferences')) {

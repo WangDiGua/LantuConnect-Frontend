@@ -3,7 +3,6 @@ export * from './agent';
 export * from './skill';
 export * from './smart-app';
 export * from './dataset';
-export * from './provider';
 export * from './category';
 export * from './user';
 export type { UserRecord, RoleRecord, ApiKeyRecord, CreateUserPayload, CreateApiKeyPayload } from './user-mgmt';

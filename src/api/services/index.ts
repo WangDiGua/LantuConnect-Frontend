@@ -3,7 +3,6 @@ export { agentService } from './agent.service';
 export { skillService } from './skill.service';
 export { smartAppService } from './smart-app.service';
 export { datasetService } from './dataset.service';
-export { providerService } from './provider.service';
 export { categoryService, buildCategoryTree } from './category.service';
 export { userMgmtService } from './user-mgmt.service';
 export { monitoringService } from './monitoring.service';

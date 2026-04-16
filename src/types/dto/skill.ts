@@ -17,7 +17,6 @@ export interface Skill {
   parentId: number | null;
   parentName?: string;
   sourceType: SourceType;
-  providerId: number | null;
   categoryId: number | null;
   categoryName?: string;
   tags?: string[];
@@ -52,7 +51,6 @@ export interface SkillCreatePayload {
   agentType: AgentType;
   parentId?: number;
   sourceType: SourceType;
-  providerId?: number;
   categoryId?: number;
   displayTemplate?: DisplayTemplate;
   specJson: Record<string, unknown>;

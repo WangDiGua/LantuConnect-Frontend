@@ -212,8 +212,6 @@
 | `app-create` | 下线 | 迁移到统一资源注册链路 |
 | `dataset-list` | 下线 | 迁移到 `/catalog/resources`（`resourceType=dataset`） |
 | `dataset-create` | 下线 | 迁移到统一资源注册链路 |
-| `provider-list` | 下线 | 旧 `/v1/providers/**` 已删除 |
-| `provider-create` | 下线 | 旧 `/v1/providers/**` 已删除 |
 | `user-list` | 保留 | `/user-mgmt/users*` |
 | `role-management` | 保留 | `/user-mgmt/roles*` |
 | `organization` | 保留 | `/user-mgmt/org-tree`,`/user-mgmt/orgs*` |
@@ -617,7 +615,7 @@
 | `resourceCode` | String | 是 | 同类型唯一编码 |
 | `displayName` | String | 是 | 展示名 |
 | `description` | String | 否 | 描述 |
-| `sourceType/providerId/categoryId` | String/Long | 否 | 来源与归属 |
+| `sourceType/categoryId` | String/Long | 否 | 来源与归属 |
 | `agentType/spec` | String/Object | agent 必填 | Agent 扩展 |
 | `skillType/spec` | String/Object | skill 必填 | Skill 扩展 |
 | `endpoint/protocol/authType/authConfig` | String/Object | mcp: endpoint 必填 | MCP 扩展；`protocol` 必须后端可调用 |

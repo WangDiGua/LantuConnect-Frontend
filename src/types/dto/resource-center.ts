@@ -34,8 +34,6 @@ export interface ResourceBaseUpsertRequest {
   displayName: string;
   description?: string;
   sourceType?: string;
-  /** 归属：提供方 ID（选填，与资源注册文档 5.1 节一致） */
-  providerId?: string | number;
   /** 目录标签 id（t_tag → t_resource_tag_rel；可多选时传数组） */
   tagIds?: number[];
   /** 历史：后端 access_policy；新建统一 open_platform，invoke 不据本字段做 Grant 拦截 */
@@ -150,7 +148,6 @@ export interface ResourceCenterItemVO {
   displayName: string;
   description?: string;
   sourceType?: string;
-  providerId?: string;
   /** 目录标签 id，与 catalogTagNames 同序（后端按标签名排序） */
   tagIds?: number[];
   authType?: string;

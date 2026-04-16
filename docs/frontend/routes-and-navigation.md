@@ -91,9 +91,9 @@
 | sidebarId | 包含的 `page` slug（真值见 `ADMIN_SIDEBAR_PAGES`） |
 |-----------|-------------------|
 | `overview` | `dashboard`, `health-check`, `usage-statistics`, `data-reports` |
-| `user-management` | `user-list`, `role-management`, `organization`, `api-key-management`, `developer-applications` |
-| `admin-resource-ops` | `resource-audit` 及旧 `*-audit`、`agent-monitoring`、`agent-trace` |
-| `admin-workspace` | 与 `USER_SIDEBAR_PAGES.workspace` 一致，并含 `agent-detail`（个人工作台：我的资源中心等） |
+| `user-management` | `user-list`, `role-management`, `organization`, `api-key-management` |
+| `admin-resource-ops` | `agent-monitoring`, `agent-trace` |
+| `admin-workspace` | 与 `USER_SIDEBAR_PAGES.workspace` 一致，并含 `agent-detail`、`resource-audit` 及旧 `*-audit`（个人工作台：我的资源中心、资源审核等） |
 | `monitoring` | `monitoring-overview`, `call-logs`, `performance-analysis`（兼容旧链接）, `alert-center`, `alert-management`（兼容旧链接）, `alert-rules`（兼容旧链接）, `health-governance`, `health-config`（兼容旧链接）, `circuit-breaker`（兼容旧链接） |
 | `system-config` | `tag-management`, `system-params`, `security-settings`, `network-config`, `rate-limit-policy`, `access-control`, `audit-log`, `sensitive-words`, `announcements` |
 
@@ -180,7 +180,7 @@
 
 以下 `page` 在管理端侧栏中可 **按权限隐藏**（见 `MainLayout`）：
 
-`role-management`（`role:manage`）、`organization`（`org:manage`）、`api-key-management`（`api-key:manage`）、`resource-grant-management` / `grant-applications`（`resource-grant:manage`）、`developer-applications`（`developer-application:review`）、`alert-rules` / `health-config` / `circuit-breaker`（`system:config`）。  
+`resource-audit`（`resource:audit`）、`role-management`（`role:manage`）、`organization`（`org:manage`）、`api-key-management`（`api-key:manage`）、`resource-grant-management` / `grant-applications`（`resource-grant:manage`）、`developer-applications`（`developer-application:review`）、`alert-rules` / `health-config` / `circuit-breaker`（`system:config`）。  
 审核类子项另有 `resourceType` 相关权限位（实现见 `MainLayout` 中 `filteredSubGroupsForSidebarId` 等相关逻辑）。
 
 ## 路由变更历史

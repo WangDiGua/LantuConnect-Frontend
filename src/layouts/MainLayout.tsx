@@ -226,6 +226,7 @@ const SUB_ITEM_PERM_MAP: Record<string, string | string[]> = {
   'performance-analysis': 'monitor:view',
   'alert-center': 'monitor:view',
   'alert-management': 'monitor:view',
+  'resource-audit': 'resource:audit',
   /** 超管 user:manage；审核员只读目录为 user:read（与后端 GET /user-mgmt/users 一致） */
   'user-list': ['user:manage', 'user:read'],
   'role-management': 'role:manage',
@@ -1423,8 +1424,7 @@ const MainLayoutContent: React.FC<{
       if (item.id === 'user-management') {
         return (
           hasPermission('user:manage') ||
-          hasPermission('user:read') ||
-          hasPermission('developer-application:review')
+          hasPermission('user:read')
         );
       }
       const requiredPerm = adminPermMap[item.id];

@@ -163,10 +163,9 @@ export const ADMIN_AUDIT_CENTER_GROUPS: NavSubGroup[] = [
   },
 ];
 
-/** 管理端合并项：资源目录与运维 → 审核 → Provider */
+/** 管理端「资源与运营」分组：仅保留资源目录与运维。 */
 export const ADMIN_RESOURCE_OPS_GROUPS: NavSubGroup[] = [
   ...ADMIN_RESOURCE_MANAGEMENT_GROUPS,
-  ...ADMIN_AUDIT_CENTER_GROUPS,
 ];
 
 export const ADMIN_USER_MANAGEMENT_GROUPS: NavSubGroup[] = [
@@ -177,7 +176,6 @@ export const ADMIN_USER_MANAGEMENT_GROUPS: NavSubGroup[] = [
       { id: 'role-management', icon: Shield, label: '角色权限' },
       { id: 'organization', icon: Building2, label: '组织管理' },
       { id: 'api-key-management', icon: Fingerprint, label: '密钥管理' },
-      { id: 'developer-applications', icon: ClipboardCheck, label: '入驻审批' },
     ],
   },
 ];
@@ -307,9 +305,12 @@ export const USER_RESOURCE_ASSETS_GROUPS: NavSubGroup[] = USER_MY_CONSOLE_GROUPS
 
 /**
  * 管理端「个人工作台」分组：与 {@link USER_MY_CONSOLE_GROUPS} 结构一致，
- * 供超管/审核员登记与维护**本人**资源（数据走 /resource-center/resources/mine）。
+ * 供超管/审核员登记与维护**本人**资源（数据走 /resource-center/resources/mine），并承载全站资源审核入口。
  */
-export const ADMIN_PERSONAL_WORKBENCH_GROUPS: NavSubGroup[] = USER_MY_CONSOLE_GROUPS;
+export const ADMIN_PERSONAL_WORKBENCH_GROUPS: NavSubGroup[] = [
+  ...USER_MY_CONSOLE_GROUPS,
+  ...ADMIN_AUDIT_CENTER_GROUPS,
+];
 
 // ==================== 子菜单分组路由 ====================
 

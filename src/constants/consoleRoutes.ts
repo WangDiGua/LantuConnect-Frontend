@@ -153,26 +153,20 @@ const USER_SIDEBAR_PAGES: Record<string, string[]> = {
 };
 
 /**
- * 管理端个人工作台路由白名单（与 workspace 对齐，并含登记详情 agent-detail）。
+ * 管理端个人工作台路由白名单（与 workspace 对齐，并含登记详情 agent-detail、资源审核）。
  * 书签 `resource-catalog` 不在此列，壳层会 replace 到 resource-audit。
  */
-export const ADMIN_WORKSPACE_PAGES = new Set<string>([...USER_SIDEBAR_PAGES.workspace, 'agent-detail']);
+export const ADMIN_WORKSPACE_PAGES = new Set<string>([...USER_SIDEBAR_PAGES.workspace, 'agent-detail', 'resource-audit']);
 
 const ADMIN_SIDEBAR_PAGES: Record<string, string[]> = {
   'overview': ['dashboard', 'health-check', 'usage-statistics', 'data-reports'],
-  /** 须先于 admin-workspace：与工作台共用的 slug（如 developer-applications）优先归入治理菜单 */
-  'user-management': ['user-list', 'role-management', 'organization', 'api-key-management', 'developer-applications'],
+  /** 用户与权限菜单：仅承载用户/角色/组织/密钥治理。 */
+  'user-management': ['user-list', 'role-management', 'organization', 'api-key-management'],
+  'admin-workspace': [...USER_SIDEBAR_PAGES.workspace, 'agent-detail', 'resource-audit', 'agent-audit', 'skill-audit', 'mcp-audit', 'app-audit', 'dataset-audit'],
   'admin-resource-ops': [
-    'resource-audit',
-    'agent-audit',
-    'skill-audit',
-    'mcp-audit',
-    'app-audit',
-    'dataset-audit',
     'agent-monitoring',
     'agent-trace',
   ],
-  'admin-workspace': [...USER_SIDEBAR_PAGES.workspace, 'agent-detail'],
   'monitoring': ['monitoring-overview', 'call-logs', 'performance-analysis', 'alert-center', 'alert-management', 'alert-rules', 'health-governance', 'health-config', 'circuit-breaker'],
   'system-config': [
     'tag-management',
@@ -270,15 +264,15 @@ export function pageToSubItem(page: string, sidebarId: string | null, isAdmin: b
   if (isAdmin && sidebarId === 'admin-workspace' && USER_WORKBENCH_SATELLITE_PAGES.has(page)) {
     return page;
   }
+  if (isAdmin && sidebarId === 'admin-workspace' && ADMIN_RESOURCE_AUDIT_PAGES.has(page)) {
+    return 'resource-audit';
+  }
   if (isAdmin && sidebarId === 'admin-workspace' && ADMIN_WORKSPACE_PAGES.has(page)) {
     return page;
   }
   if (!isAdmin && page === 'workspace' && sidebarId === 'workspace') return 'overview';
   if (!isAdmin && sidebarId === 'workspace' && USER_WORKBENCH_SATELLITE_PAGES.has(page)) {
     return page;
-  }
-  if (isAdmin && sidebarId === 'admin-resource-ops' && ADMIN_RESOURCE_AUDIT_PAGES.has(page)) {
-    return 'resource-audit';
   }
   if (isAdmin && sidebarId === 'admin-resource-ops' && (page === 'agent-monitoring' || page === 'agent-trace')) {
     return page;

@@ -198,10 +198,8 @@ export const ADMIN_MONITORING_GROUPS: NavSubGroup[] = [
       { id: 'monitoring-overview', icon: LayoutDashboard, label: '监控概览' },
       { id: 'call-logs', icon: FileText, label: '调用日志' },
       { id: 'performance-analysis', icon: TrendingUp, label: '性能分析' },
-      { id: 'alert-management', icon: Bell, label: '告警管理' },
-      { id: 'alert-rules', icon: Sliders, label: '告警规则' },
-      { id: 'health-config', icon: Wrench, label: '健康检查' },
-      { id: 'circuit-breaker', icon: Zap, label: '熔断降级' },
+      { id: 'alert-center', icon: Bell, label: '告警中心' },
+      { id: 'health-governance', icon: Wrench, label: '健康治理' },
     ],
   },
 ];

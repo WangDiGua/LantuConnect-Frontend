@@ -1,44 +1,70 @@
 import { http } from '../../lib/http';
 import type { PaginationParams } from '../../types/api';
+import { extractArray, normalizePaginated } from '../../utils/normalizeApiPayload';
+import type {
+  AlertBatchActionRequest,
+  AlertEventAction,
+  AlertEventDetail,
+  AlertNotification,
+  AlertRecord,
+  AlertRule,
+  AlertRuleDryRunRequest,
+  AlertRuleDryRunResult,
+  AlertRuleMetricOption,
+  AlertRuleScopeOptionResponse,
+  CallLogEntry,
+  CallSummaryByResourceRow,
+  CreateAlertRulePayload,
+  KpiMetric,
+  PerformanceMetric,
+  QualityHistoryPoint,
+  AlertSummary,
+  TraceSpan,
+} from '../../types/dto/monitoring';
 
 export type CallLogListParams = PaginationParams & {
   keyword?: string;
-  /** success | error | timeout；不传表示全部 */
   status?: string;
-  /** agent/skill/mcp/app/dataset；all 或不传为全部；unknown 为未分类调用 */
   resourceType?: string;
 };
 
 export type AlertListParams = PaginationParams & {
   keyword?: string;
   severity?: string;
-  /** firing | resolved | silenced；不传表示全部 */
   alertStatus?: string;
   resourceType?: string;
+  scopeType?: string;
+  assignee?: string;
+  ruleId?: string;
+  onlyMine?: boolean;
 };
-import { extractArray, normalizePaginated } from '../../utils/normalizeApiPayload';
-import type {
-  AlertRecord,
-  AlertRule,
-  AlertRuleDryRunRequest,
-  AlertRuleDryRunResult,
-  CallLogEntry,
-  CreateAlertRulePayload,
-  CallSummaryByResourceRow,
-  KpiMetric,
-  PerformanceMetric,
-  QualityHistoryPoint,
-  TraceSpan,
-} from '../../types/dto/monitoring';
 
-function numRule(v: unknown, fallback: number): number {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : fallback;
+export type AlertRuleListParams = PaginationParams & {
+  keyword?: string;
+  severity?: string;
+  scopeType?: string;
+  resourceType?: string;
+  enabled?: boolean;
+};
+
+function parseNum(value: unknown, fallback = 0): number {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : fallback;
 }
 
-function normalizeOperatorFromApi(raw: string): AlertRule['operator'] {
-  const s = raw.trim().toLowerCase();
-  switch (s) {
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function toLower(value: unknown, fallback = ''): string {
+  const text = String(value ?? fallback).trim().toLowerCase();
+  return text || fallback;
+}
+
+function mapOperator(raw: unknown): AlertRule['operator'] {
+  switch (toLower(raw, 'gte')) {
     case '>':
     case 'gt':
       return 'gt';
@@ -61,236 +87,353 @@ function normalizeOperatorFromApi(raw: string): AlertRule['operator'] {
   }
 }
 
-function mapAlertRuleRecord(raw: unknown): AlertRule {
-  if (raw == null || typeof raw !== 'object') {
-    return {
-      id: '',
-      name: '',
-      description: '',
-      metric: '',
-      condition: 'gt',
-      operator: 'gt',
-      threshold: 0,
-      duration: '',
-      severity: 'info',
-      enabled: true,
-      channels: [],
-      notifyChannels: [],
-      createdAt: '',
-      updatedAt: '',
-    };
-  }
-  const o = raw as Record<string, unknown>;
-  const opRaw = String(o.operator ?? o.condition ?? 'gte');
-  const operator = normalizeOperatorFromApi(opRaw);
-  const sevRaw = String(o.severity ?? 'info');
-  const severity = (['critical', 'warning', 'info'].includes(sevRaw) ? sevRaw : 'info') as AlertRule['severity'];
-  const channels = Array.isArray(o.channels) ? (o.channels as string[]) : [];
-  const notifyRaw = o.notifyChannels ?? (o as { notify_channels?: unknown }).notify_channels;
-  const notifyChannels = Array.isArray(notifyRaw) ? (notifyRaw as string[]) : channels;
+function mapSeverity(raw: unknown): AlertRecord['severity'] {
+  const value = toLower(raw, 'info');
+  return value === 'critical' || value === 'warning' || value === 'info' ? value : 'info';
+}
 
+function mapStatus(raw: unknown): AlertRecord['status'] {
+  const value = toLower(raw, 'firing');
+  return value === 'firing'
+    || value === 'acknowledged'
+    || value === 'silenced'
+    || value === 'resolved'
+    || value === 'reopened'
+    ? value
+    : 'firing';
+}
+
+function mapScopeType(raw: unknown): AlertRule['scopeType'] {
+  const value = toLower(raw, 'global');
+  return value === 'resource' || value === 'resource_type' || value === 'global' ? value : 'global';
+}
+
+function normalizeLabels(raw: unknown): Record<string, string> {
+  const obj = asRecord(raw);
+  return Object.fromEntries(Object.entries(obj).map(([key, value]) => [key, String(value ?? '')]));
+}
+
+function mapAlertRule(raw: unknown): AlertRule {
+  const obj = asRecord(raw);
+  const notifyChannelsRaw = obj.notifyChannels ?? obj.notify_channels;
   return {
-    id: String(o.id ?? (o as { ruleId?: unknown }).ruleId ?? ''),
-    name: String(o.name ?? ''),
-    description: String(o.description ?? ''),
-    metric: String(o.metric ?? ''),
-    condition: operator,
-    operator,
-    threshold: numRule(o.threshold, 0),
-    duration: String(o.duration ?? ''),
-    severity,
-    enabled: o.enabled === undefined ? true : Boolean(o.enabled),
-    channels,
-    notifyChannels,
-    createdAt: String(o.createdAt ?? (o as { created_at?: unknown }).created_at ?? ''),
-    updatedAt: String(o.updatedAt ?? (o as { updated_at?: unknown }).updated_at ?? ''),
+    id: String(obj.id ?? ''),
+    name: String(obj.name ?? ''),
+    description: String(obj.description ?? ''),
+    metric: String(obj.metric ?? ''),
+    condition: mapOperator(obj.operator ?? obj.condition),
+    operator: mapOperator(obj.operator ?? obj.condition),
+    threshold: parseNum(obj.threshold, 0),
+    duration: String(obj.duration ?? '5m'),
+    severity: mapSeverity(obj.severity),
+    enabled: obj.enabled === undefined ? true : Boolean(obj.enabled),
+    channels: Array.isArray(obj.channels) ? (obj.channels as string[]) : [],
+    notifyChannels: Array.isArray(notifyChannelsRaw) ? (notifyChannelsRaw as string[]) : [],
+    createdAt: String(obj.createdAt ?? obj.createTime ?? obj.create_time ?? ''),
+    updatedAt: String(obj.updatedAt ?? obj.updateTime ?? obj.update_time ?? ''),
+    scopeType: mapScopeType(obj.scopeType ?? obj.scope_type),
+    scopeResourceType: obj.scopeResourceType == null && obj.scope_resource_type == null
+      ? undefined
+      : String(obj.scopeResourceType ?? obj.scope_resource_type ?? '').toLowerCase(),
+    scopeResourceId: obj.scopeResourceId == null && obj.scope_resource_id == null
+      ? undefined
+      : parseNum(obj.scopeResourceId ?? obj.scope_resource_id),
+    labelFilters: normalizeLabels(obj.labelFilters ?? obj.label_filters_json),
   };
 }
 
-function mapPerformanceMetric(raw: unknown, index: number): PerformanceMetric {
-  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
-  const requestCount = parseNum(o.requestCount ?? o.request_rate ?? o.requests, 0);
-  const avgLatency = parseNum(o.avgLatencyMs ?? o.avg_latency_ms ?? o.latencyMs, 0);
-  const ts = String(o.timestamp ?? o.bucket ?? `bucket-${index}`);
+function mapAlertNotification(raw: unknown): AlertNotification {
+  const obj = asRecord(raw);
   return {
-    service: String(o.service ?? ''),
-    timestamp: ts,
-    cpu: parseNum(o.cpu, 0),
-    memory: parseNum(o.memory, 0),
-    disk: parseNum(o.disk, 0),
-    network: parseNum(o.network, 0),
-    requestRate: requestCount,
-    errorRate: parseNum(o.errorRate ?? o.error_rate, 0),
-    p50Latency: parseNum(o.p50Latency ?? o.latencyP50 ?? avgLatency, avgLatency),
-    p95Latency: parseNum(o.p95Latency ?? o.latencyP95 ?? avgLatency, avgLatency),
-    p99Latency: parseNum(o.p99Latency ?? o.latencyP99 ?? avgLatency, avgLatency),
-    latencyP50: parseNum(o.latencyP50 ?? o.p50Latency ?? avgLatency, avgLatency),
-    latencyP99: parseNum(o.latencyP99 ?? o.p99Latency ?? avgLatency, avgLatency),
-    throughput: parseNum(o.throughput ?? requestCount, requestCount),
+    id: parseNum(obj.id),
+    userId: obj.userId == null ? undefined : parseNum(obj.userId),
+    title: String(obj.title ?? ''),
+    body: String(obj.body ?? ''),
+    severity: obj.severity == null ? undefined : String(obj.severity),
+    read: obj.read == null ? undefined : Boolean(obj.read),
+    createTime: String(obj.createTime ?? obj.create_time ?? ''),
   };
 }
 
-/** 兼容裸数组、list/records/data/items 等分页包装 */
-function normalizeAlertRulesListPayload(raw: unknown): AlertRule[] {
-  if (raw == null) return [];
-  if (Array.isArray(raw)) return raw.map(mapAlertRuleRecord);
-  if (typeof raw === 'object') {
-    const o = raw as Record<string, unknown>;
-    const inner =
-      (Array.isArray(o.list) ? o.list : null)
-      ?? (Array.isArray(o.records) ? o.records : null)
-      ?? (Array.isArray(o.data) ? o.data : null)
-      ?? (Array.isArray(o.items) ? o.items : null);
-    if (!inner) return [];
-    return inner.map(mapAlertRuleRecord);
-  }
-  return [];
+function mapAlertAction(raw: unknown): AlertEventAction {
+  const obj = asRecord(raw);
+  return {
+    id: parseNum(obj.id),
+    actionType: String(obj.actionType ?? obj.action_type ?? ''),
+    operatorUserId: obj.operatorUserId == null && obj.operator_user_id == null
+      ? undefined
+      : parseNum(obj.operatorUserId ?? obj.operator_user_id),
+    operatorName: obj.operatorName == null && obj.operator_name == null
+      ? undefined
+      : String(obj.operatorName ?? obj.operator_name ?? ''),
+    note: obj.note == null ? undefined : String(obj.note),
+    previousStatus: obj.previousStatus == null && obj.previous_status == null
+      ? undefined
+      : String(obj.previousStatus ?? obj.previous_status ?? ''),
+    nextStatus: obj.nextStatus == null && obj.next_status == null
+      ? undefined
+      : String(obj.nextStatus ?? obj.next_status ?? ''),
+    extra: asRecord(obj.extra),
+    createTime: String(obj.createTime ?? obj.create_time ?? ''),
+  };
 }
 
-const DEFAULT_ALERT_RULE_METRICS = ['http_5xx_rate', 'latency_p99', 'error_rate'] as const;
-
-function toFixedText(value: number, fallback = '0'): string {
-  return Number.isFinite(value) ? String(value) : fallback;
+function mapAlertRecord(raw: unknown): AlertRecord {
+  const obj = asRecord(raw);
+  return {
+    id: String(obj.id ?? ''),
+    ruleId: String(obj.ruleId ?? obj.rule_id ?? ''),
+    ruleName: String(obj.ruleName ?? obj.rule_name ?? ''),
+    severity: mapSeverity(obj.severity),
+    status: mapStatus(obj.status),
+    message: String(obj.message ?? ''),
+    source: String(obj.source ?? ''),
+    labels: normalizeLabels(obj.labels),
+    firedAt: String(obj.firedAt ?? obj.fired_at ?? ''),
+    resolvedAt: obj.resolvedAt == null && obj.resolved_at == null ? undefined : String(obj.resolvedAt ?? obj.resolved_at ?? ''),
+    ackAt: obj.ackAt == null && obj.ack_at == null ? undefined : String(obj.ackAt ?? obj.ack_at ?? ''),
+    silencedAt: obj.silencedAt == null && obj.silenced_at == null ? undefined : String(obj.silencedAt ?? obj.silenced_at ?? ''),
+    reopenedAt: obj.reopenedAt == null && obj.reopened_at == null ? undefined : String(obj.reopenedAt ?? obj.reopened_at ?? ''),
+    assigneeUserId: obj.assigneeUserId == null && obj.assignee_user_id == null
+      ? undefined
+      : parseNum(obj.assigneeUserId ?? obj.assignee_user_id),
+    assigneeName: obj.assigneeName == null && obj.assignee_name == null
+      ? undefined
+      : String(obj.assigneeName ?? obj.assignee_name ?? ''),
+    lastSampleValue: obj.lastSampleValue == null && obj.last_sample_value == null
+      ? undefined
+      : parseNum(obj.lastSampleValue ?? obj.last_sample_value),
+    scopeType: obj.scopeType == null && obj.scope_type == null ? undefined : mapScopeType(obj.scopeType ?? obj.scope_type),
+    scopeLabel: obj.scopeLabel == null && obj.scope_label == null ? undefined : String(obj.scopeLabel ?? obj.scope_label ?? ''),
+    resourceType: obj.resourceType == null && obj.resource_type == null ? undefined : String(obj.resourceType ?? obj.resource_type ?? '').toLowerCase(),
+    resourceId: obj.resourceId == null && obj.resource_id == null ? undefined : parseNum(obj.resourceId ?? obj.resource_id),
+    resourceName: obj.resourceName == null && obj.resource_name == null ? undefined : String(obj.resourceName ?? obj.resource_name ?? ''),
+    ruleMetric: obj.ruleMetric == null && obj.rule_metric == null ? undefined : String(obj.ruleMetric ?? obj.rule_metric ?? ''),
+    ruleOperator: obj.ruleOperator == null && obj.rule_operator == null ? undefined : mapOperator(obj.ruleOperator ?? obj.rule_operator),
+    ruleThreshold: obj.ruleThreshold == null && obj.rule_threshold == null ? undefined : parseNum(obj.ruleThreshold ?? obj.rule_threshold),
+    ruleDuration: obj.ruleDuration == null && obj.rule_duration == null ? undefined : String(obj.ruleDuration ?? obj.rule_duration ?? ''),
+    ruleExpression: obj.ruleExpression == null && obj.rule_expression == null ? undefined : String(obj.ruleExpression ?? obj.rule_expression ?? ''),
+    triggerReason: obj.triggerReason == null && obj.trigger_reason == null ? undefined : String(obj.triggerReason ?? obj.trigger_reason ?? ''),
+    activeSeconds: obj.activeSeconds == null && obj.active_seconds == null ? undefined : parseNum(obj.activeSeconds ?? obj.active_seconds),
+    notificationCount: obj.notificationCount == null && obj.notification_count == null ? undefined : parseNum(obj.notificationCount ?? obj.notification_count),
+  };
 }
 
-function parseNum(value: unknown, fallback = 0): number {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
+function mapAlertDetail(raw: unknown): AlertEventDetail {
+  const obj = asRecord(raw);
+  return {
+    ...mapAlertRecord(raw),
+    duration: obj.duration == null ? undefined : String(obj.duration),
+    triggerSnapshot: asRecord(obj.triggerSnapshot ?? obj.trigger_snapshot),
+    ruleSnapshot: asRecord(obj.ruleSnapshot ?? obj.rule_snapshot),
+    actions: extractArray(obj.actions).map(mapAlertAction),
+    notifications: extractArray(obj.notifications).map(mapAlertNotification),
+  };
 }
 
 function mapKpiMetric(raw: unknown): KpiMetric {
-  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
-  const name = String(o.name ?? o.id ?? '');
-  const unit = String(o.unit ?? '');
-  const value = String(o.value ?? '0');
-  const previousValue = o.previousValue == null ? undefined : String(o.previousValue);
-  const changePercentText = o.changePercent == null ? undefined : String(o.changePercent);
-  const parsedTrend = parseNum(changePercentText, 0);
-  const rawChangeType = String(o.changeType ?? '').toLowerCase();
+  const obj = asRecord(raw);
+  const name = String(obj.name ?? obj.id ?? '');
+  const trend = parseNum(obj.changePercent, 0);
+  const changeTypeRaw = String(obj.changeType ?? '').toLowerCase();
   const changeType: KpiMetric['changeType'] =
-    rawChangeType === 'up' || rawChangeType === 'down' || rawChangeType === 'flat'
-      ? (rawChangeType as KpiMetric['changeType'])
-      : (parsedTrend > 0 ? 'up' : parsedTrend < 0 ? 'down' : 'flat');
+    changeTypeRaw === 'up' || changeTypeRaw === 'down' || changeTypeRaw === 'flat'
+      ? changeTypeRaw
+      : trend > 0
+        ? 'up'
+        : trend < 0
+          ? 'down'
+          : 'flat';
   return {
     name,
     label: name.replaceAll('_', ' ').toUpperCase(),
-    value: unit && String(value).endsWith(unit) ? value : value,
-    unit,
-    previousValue,
-    changePercent: changePercentText ?? toFixedText(parsedTrend),
+    value: String(obj.value ?? '0'),
+    unit: String(obj.unit ?? ''),
+    previousValue: obj.previousValue == null ? undefined : String(obj.previousValue),
+    changePercent: obj.changePercent == null ? undefined : String(obj.changePercent),
     changeType,
-    trend: parsedTrend,
+    trend,
     up: changeType === 'up',
-    sparkline: Array.isArray(o.sparkline) ? (o.sparkline as number[]) : undefined,
+    sparkline: Array.isArray(obj.sparkline) ? (obj.sparkline as number[]) : undefined,
   };
 }
 
 function mapCallLogStatus(raw: unknown): CallLogEntry['status'] {
-  const s = String(raw ?? 'success').toLowerCase();
-  if (s === 'error' || s === 'failure' || s === 'failed') return 'error';
-  if (s === 'timeout') return 'timeout';
+  const value = toLower(raw, 'success');
+  if (value === 'error' || value === 'failure' || value === 'failed') return 'error';
+  if (value === 'timeout') return 'timeout';
   return 'success';
 }
 
 function mapCallLogEntry(raw: unknown): CallLogEntry {
-  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
-  const rtRaw = o.resourceType ?? o.resource_type;
-  const resourceType = rtRaw == null || String(rtRaw).trim() === '' ? undefined : String(rtRaw).toLowerCase();
+  const obj = asRecord(raw);
   return {
-    id: String(o.id ?? ''),
-    traceId: String(o.traceId ?? o.trace_id ?? ''),
-    agentId: String(o.agentId ?? o.agent_id ?? ''),
-    agentName: String(o.agentName ?? o.agent_name ?? ''),
-    resourceType,
-    userId: String(o.userId ?? o.user_id ?? ''),
-    method: String(o.method ?? ''),
-    status: mapCallLogStatus(o.status),
-    statusCode: parseNum(o.statusCode ?? o.status_code, 0),
-    latencyMs: parseNum(o.latencyMs ?? o.latency_ms, 0),
-    errorMessage: o.errorMessage == null && o.error_message == null ? undefined : String(o.errorMessage ?? o.error_message),
-    ip: String(o.ip ?? ''),
-    createdAt: String(o.createdAt ?? o.createTime ?? o.create_time ?? o.created_at ?? ''),
+    id: String(obj.id ?? ''),
+    traceId: String(obj.traceId ?? obj.trace_id ?? ''),
+    agentId: String(obj.agentId ?? obj.agent_id ?? ''),
+    agentName: String(obj.agentName ?? obj.agent_name ?? ''),
+    resourceType: obj.resourceType == null && obj.resource_type == null ? undefined : String(obj.resourceType ?? obj.resource_type ?? '').toLowerCase(),
+    userId: String(obj.userId ?? obj.user_id ?? ''),
+    method: String(obj.method ?? ''),
+    status: mapCallLogStatus(obj.status),
+    statusCode: parseNum(obj.statusCode ?? obj.status_code),
+    latencyMs: parseNum(obj.latencyMs ?? obj.latency_ms),
+    errorMessage: obj.errorMessage == null && obj.error_message == null ? undefined : String(obj.errorMessage ?? obj.error_message ?? ''),
+    ip: String(obj.ip ?? ''),
+    createdAt: String(obj.createdAt ?? obj.createTime ?? obj.create_time ?? ''),
   };
 }
 
-function mapAlertSeverity(raw: unknown): AlertRecord['severity'] {
-  const s = String(raw ?? 'info').toLowerCase();
-  return s === 'critical' || s === 'warning' || s === 'info' ? s : 'info';
+function mapTraceSpan(raw: unknown): TraceSpan {
+  const obj = asRecord(raw);
+  return {
+    id: String(obj.id ?? ''),
+    traceId: String(obj.traceId ?? obj.trace_id ?? ''),
+    parentId: obj.parentId == null && obj.parent_id == null ? null : String(obj.parentId ?? obj.parent_id),
+    operationName: String(obj.operationName ?? obj.operation_name ?? ''),
+    service: String(obj.service ?? ''),
+    serviceName: String(obj.serviceName ?? obj.service_name ?? ''),
+    startTime: String(obj.startTime ?? obj.start_time ?? ''),
+    duration: parseNum(obj.duration),
+    status: toLower(obj.status, 'ok') === 'error' ? 'error' : 'ok',
+    tags: normalizeLabels(obj.tags),
+    logs: Array.isArray(obj.logs)
+      ? (obj.logs as Array<Record<string, unknown>>).map((item) => ({
+          timestamp: String(item.timestamp ?? item.time ?? ''),
+          message: String(item.message ?? ''),
+        }))
+      : [],
+    children: Array.isArray(obj.children) ? obj.children.map(mapTraceSpan) : undefined,
+  };
 }
 
-function mapAlertStatus(raw: unknown): AlertRecord['status'] {
-  const s = String(raw ?? 'firing').toLowerCase();
-  return s === 'resolved' || s === 'silenced' || s === 'firing' ? s : 'firing';
+function mapPerformanceMetric(raw: unknown, index: number): PerformanceMetric {
+  const obj = asRecord(raw);
+  const requestCount = parseNum(obj.requestCount ?? obj.request_rate ?? obj.requests, 0);
+  const avgLatency = parseNum(obj.avgLatencyMs ?? obj.avg_latency_ms ?? obj.latencyMs, 0);
+  return {
+    service: obj.service == null ? undefined : String(obj.service),
+    timestamp: String(obj.timestamp ?? obj.bucket ?? `bucket-${index}`),
+    cpu: parseNum(obj.cpu),
+    memory: parseNum(obj.memory),
+    disk: parseNum(obj.disk),
+    network: parseNum(obj.network),
+    requestRate: requestCount,
+    errorRate: parseNum(obj.errorRate ?? obj.error_rate),
+    p50Latency: parseNum(obj.p50Latency ?? obj.latencyP50, avgLatency),
+    p95Latency: parseNum(obj.p95Latency ?? obj.latencyP95, avgLatency),
+    p99Latency: parseNum(obj.p99Latency ?? obj.latencyP99, avgLatency),
+    latencyP50: parseNum(obj.latencyP50 ?? obj.p50Latency, avgLatency),
+    latencyP99: parseNum(obj.latencyP99 ?? obj.p99Latency, avgLatency),
+    throughput: parseNum(obj.throughput, requestCount),
+  };
 }
 
-function mapAlertRecordRow(raw: unknown): AlertRecord {
-  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
-  let labels: Record<string, string> = {};
-  const lr = o.labels;
-  if (lr && typeof lr === 'object' && !Array.isArray(lr)) {
-    for (const [k, v] of Object.entries(lr as Record<string, unknown>)) {
-      labels[k] = v == null ? '' : String(v);
-    }
+function mapMetricOption(raw: unknown): AlertRuleMetricOption {
+  if (typeof raw === 'string') {
+    return { value: raw, label: raw };
   }
+  const obj = asRecord(raw);
   return {
-    id: String(o.id ?? ''),
-    ruleId: String(o.ruleId ?? o.rule_id ?? ''),
-    ruleName: String(o.ruleName ?? o.rule_name ?? ''),
-    severity: mapAlertSeverity(o.severity),
-    status: mapAlertStatus(o.status),
-    message: String(o.message ?? ''),
-    source: String(o.source ?? ''),
-    labels,
-    firedAt: String(o.firedAt ?? o.fired_at ?? o.fire_time ?? ''),
-    resolvedAt:
-      o.resolvedAt == null && o.resolved_at == null ? undefined : String(o.resolvedAt ?? o.resolved_at ?? ''),
+    value: String(obj.value ?? ''),
+    label: String(obj.label ?? obj.value ?? ''),
+    description: obj.description == null ? undefined : String(obj.description),
+    unit: obj.unit == null ? undefined : String(obj.unit),
   };
 }
 
-function mapTraceSpanRow(raw: unknown): TraceSpan {
-  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
-  const parentRaw = o.parentId ?? o.parent_id;
-  const parentId =
-    parentRaw === null || parentRaw === undefined || parentRaw === '' ? null : String(parentRaw);
-  const st = String(o.status ?? 'ok').toLowerCase();
-  const status: TraceSpan['status'] = st === 'error' ? 'error' : 'ok';
-  const tags = o.tags && typeof o.tags === 'object' ? (o.tags as Record<string, string>) : {};
-  const logsRaw = o.logs;
-  const logs = Array.isArray(logsRaw)
-    ? (logsRaw as Record<string, unknown>[]).map((lg) => ({
-        timestamp: String(lg.timestamp ?? lg.time ?? ''),
-        message: String(lg.message ?? ''),
-      }))
-    : [];
-  const ch = o.children;
-  const children = Array.isArray(ch) ? ch.map(mapTraceSpanRow) : undefined;
+function mapScopeOptions(raw: unknown): AlertRuleScopeOptionResponse {
+  const obj = asRecord(raw);
   return {
-    id: String(o.id ?? ''),
-    traceId: String(o.traceId ?? o.trace_id ?? ''),
-    parentId,
-    operationName: String(o.operationName ?? o.operation_name ?? ''),
-    service: String(o.service ?? ''),
-    serviceName: String(o.serviceName ?? o.service_name ?? ''),
-    startTime: String(o.startTime ?? o.start_time ?? ''),
-    duration: parseNum(o.duration, 0),
-    status,
-    tags,
-    logs,
-    ...(children?.length ? { children } : {}),
+    resourceTypes: extractArray(obj.resourceTypes).map((item) => String(item)),
+    resources: extractArray(obj.resources).map((item) => {
+      const row = asRecord(item);
+      return {
+        id: parseNum(row.id),
+        resourceType: String(row.resourceType ?? row.resource_type ?? '').toLowerCase(),
+        displayName: String(row.displayName ?? row.display_name ?? ''),
+      };
+    }),
+  };
+}
+
+function normalizeAlertRulePayload(data: CreateAlertRulePayload): Record<string, unknown> {
+  return {
+    name: data.name,
+    conditionExpr: data.description ?? '',
+    metric: data.metric,
+    operator: data.operator ?? data.condition ?? 'gte',
+    threshold: data.threshold,
+    duration: data.duration ?? '5m',
+    severity: data.severity,
+    enabled: typeof data.enabled === 'boolean' ? (data.enabled ? 1 : 0) : data.enabled ?? 1,
+    notifyChannels: [],
+    scopeType: data.scopeType ?? 'global',
+    scopeResourceType: data.scopeResourceType,
+    scopeResourceId: data.scopeResourceId,
+    labelFilters: data.labelFilters ?? {},
   };
 }
 
 export const monitoringService = {
-  /** 与后端 `GET /monitoring/alert-rule-metrics` 对齐；失败时回退默认三项。 */
-  listAlertRuleMetrics: async (): Promise<string[]> => {
+  listAlertRuleMetrics: async (): Promise<AlertRuleMetricOption[]> => {
     try {
       const raw = await http.get<unknown>('/monitoring/alert-rule-metrics');
-      if (Array.isArray(raw) && raw.length > 0) return raw.map((x) => String(x));
+      return extractArray(raw).map(mapMetricOption);
     } catch {
-      /* fall back */
+      return [
+        { value: 'http_5xx_rate', label: '5xx 比率', unit: '%' },
+        { value: 'latency_p99', label: 'P99 延迟', unit: 'ms' },
+        { value: 'error_rate', label: '错误率', unit: '%' },
+      ];
     }
-    return [...DEFAULT_ALERT_RULE_METRICS];
   },
+
+  getAlertRuleScopeOptions: async (): Promise<AlertRuleScopeOptionResponse> => {
+    const raw = await http.get<unknown>('/monitoring/alert-rule-scopes/options');
+    return mapScopeOptions(raw);
+  },
+
+  getAlertSummary: async (): Promise<AlertSummary> => {
+    const raw = await http.get<unknown>('/monitoring/alerts/summary');
+    const obj = asRecord(raw);
+    return {
+      firing: parseNum(obj.firing),
+      acknowledged: parseNum(obj.acknowledged),
+      silenced: parseNum(obj.silenced),
+      resolvedToday: parseNum(obj.resolvedToday ?? obj.resolved_today),
+      mine: parseNum(obj.mine),
+      enabledRules: parseNum(obj.enabledRules ?? obj.enabled_rules),
+    };
+  },
+
+  getAlertDetail: async (id: string): Promise<AlertEventDetail> => {
+    const raw = await http.get<unknown>(`/monitoring/alerts/${id}`);
+    return mapAlertDetail(raw);
+  },
+
+  listAlertActions: async (id: string): Promise<AlertEventAction[]> => {
+    const raw = await http.get<unknown>(`/monitoring/alerts/${id}/actions`);
+    return extractArray(raw).map(mapAlertAction);
+  },
+
+  ackAlert: async (id: string, note?: string) =>
+    http.post<void>(`/monitoring/alerts/${id}/ack`, { note }),
+
+  assignAlert: async (id: string, assigneeUserId: number, note?: string) =>
+    http.post<void>(`/monitoring/alerts/${id}/assign`, { assigneeUserId, note }),
+
+  silenceAlert: async (id: string, note?: string) =>
+    http.post<void>(`/monitoring/alerts/${id}/silence`, { note }),
+
+  resolveAlert: async (id: string, note?: string) =>
+    http.post<void>(`/monitoring/alerts/${id}/resolve`, { note }),
+
+  reopenAlert: async (id: string, note?: string) =>
+    http.post<void>(`/monitoring/alerts/${id}/reopen`, { note }),
+
+  batchAlertAction: async (payload: AlertBatchActionRequest) =>
+    http.post<void>('/monitoring/alerts/batch-action', payload),
 
   getKpis: async () => {
     const raw = await http.get<unknown>('/monitoring/kpis');
@@ -298,76 +441,95 @@ export const monitoringService = {
   },
 
   listCallLogs: async (params?: CallLogListParams) => {
-    const { resourceType, ...rest } = params ?? {};
-    const raw = await http.get<unknown>('/monitoring/call-logs', {
-      params: {
-        ...rest,
-        ...(resourceType && resourceType !== 'all' ? { resourceType } : {}),
-      },
-    });
+    const raw = await http.get<unknown>('/monitoring/call-logs', { params });
     return normalizePaginated<CallLogEntry>(raw, mapCallLogEntry);
   },
 
   listAlerts: async (params?: AlertListParams) => {
-    const { alertStatus, resourceType, ...rest } = params ?? {};
-    const statusFilter = alertStatus && alertStatus !== 'all' ? alertStatus : undefined;
     const raw = await http.get<unknown>('/monitoring/alerts', {
       params: {
-        ...rest,
-        ...(statusFilter ? { status: statusFilter } : {}),
-        ...(resourceType && resourceType !== 'all' ? { resourceType } : {}),
+        ...params,
+        status: params?.alertStatus,
       },
     });
-    return normalizePaginated<AlertRecord>(raw, mapAlertRecordRow);
+    return normalizePaginated<AlertRecord>(raw, mapAlertRecord);
   },
 
-  listAlertRules: async () => {
+  listAlertRules: async (params?: AlertRuleListParams) => {
     const raw = await http.get<unknown>('/monitoring/alert-rules', {
-      params: { page: 1, pageSize: 200 },
+      params: {
+        page: params?.page ?? 1,
+        pageSize: params?.pageSize ?? 200,
+        keyword: params?.keyword,
+        scopeType: params?.scopeType,
+        resourceType: params?.resourceType,
+        enabled: params?.enabled,
+        severity: params?.severity,
+      },
     });
-    return normalizeAlertRulesListPayload(raw);
+    return normalizePaginated<AlertRule>(raw, mapAlertRule);
   },
 
-  createAlertRule: (data: CreateAlertRulePayload) =>
-    http.post<AlertRule>('/monitoring/alert-rules', data),
+  createAlertRule: async (data: CreateAlertRulePayload) => {
+    await http.post('/monitoring/alert-rules', normalizeAlertRulePayload(data));
+  },
 
-  updateAlertRule: (id: string, data: Partial<CreateAlertRulePayload>) =>
-    http.put<AlertRule>(`/monitoring/alert-rules/${id}`, data),
+  updateAlertRule: async (id: string, data: Partial<CreateAlertRulePayload>) => {
+    await http.put(`/monitoring/alert-rules/${id}`, normalizeAlertRulePayload({
+      name: data.name ?? '',
+      metric: data.metric ?? '',
+      threshold: data.threshold ?? 0,
+      severity: data.severity ?? 'warning',
+      ...data,
+    }));
+  },
 
-  deleteAlertRule: (id: string) =>
-    http.delete(`/monitoring/alert-rules/${id}`),
+  deleteAlertRule: async (id: string) => {
+    await http.delete(`/monitoring/alert-rules/${id}`);
+  },
 
-  getAlertRuleById: (id: string) =>
-    http.get<AlertRule>(`/monitoring/alert-rules/${id}`),
+  getAlertRuleById: async (id: string) => {
+    const raw = await http.get<unknown>(`/monitoring/alert-rules/${id}`);
+    return mapAlertRule(raw);
+  },
 
-  dryRunAlertRule: (id: string, data?: AlertRuleDryRunRequest) =>
-    http.post<AlertRuleDryRunResult>(
-      `/monitoring/alert-rules/${id}/dry-run`,
-      data ?? { sampleValue: 0 },
-    ),
+  dryRunAlertRule: async (id: string, data?: AlertRuleDryRunRequest) => {
+    const raw = await http.post<unknown>(`/monitoring/alert-rules/${id}/dry-run`, data ?? { mode: 'preview' });
+    const obj = asRecord(raw);
+    return {
+      wouldFire: Boolean(obj.wouldFire),
+      operator: String(obj.operator ?? ''),
+      threshold: parseNum(obj.threshold),
+      sampleValue: parseNum(obj.sampleValue),
+      detail: String(obj.detail ?? ''),
+      sampleSource: obj.sampleSource == null ? undefined : String(obj.sampleSource),
+      reason: obj.reason == null ? undefined : String(obj.reason),
+      recoveryCandidate: obj.recoveryCandidate == null ? undefined : Boolean(obj.recoveryCandidate),
+      snapshot: asRecord(obj.snapshot),
+    } satisfies AlertRuleDryRunResult;
+  },
 
   listTraces: async (params?: PaginationParams) => {
     const raw = await http.get<unknown>('/monitoring/traces', { params });
-    return normalizePaginated<TraceSpan>(raw, mapTraceSpanRow);
+    return normalizePaginated<TraceSpan>(raw, mapTraceSpan);
   },
 
   getPerformanceMetrics: async (resourceType?: string) => {
     const raw = await http.get<unknown>('/monitoring/performance', {
       params: resourceType && resourceType !== 'all' ? { resourceType } : {},
     });
-    return extractArray(raw).map((item, idx) => mapPerformanceMetric(item, idx));
+    return extractArray(raw).map((item, index) => mapPerformanceMetric(item, index));
   },
 
   getCallSummaryByResource: async (hours = 24): Promise<CallSummaryByResourceRow[]> => {
     const raw = await http.get<unknown>('/monitoring/call-summary-by-resource', { params: { hours } });
-    return extractArray(raw).map((item: unknown) => {
-      const x = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
-      const t = String(x.type ?? x.resource_type ?? '').toLowerCase();
+    return extractArray(raw).map((item) => {
+      const obj = asRecord(item);
       return {
-        type: t || 'unknown',
-        calls: parseNum(x.calls, 0),
-        errors: parseNum(x.errors, 0),
-        avgLatencyMs: parseNum(x.avgLatencyMs ?? x.avg_latency_ms, 0),
+        type: String(obj.type ?? obj.resource_type ?? 'unknown').toLowerCase(),
+        calls: parseNum(obj.calls),
+        errors: parseNum(obj.errors),
+        avgLatencyMs: parseNum(obj.avgLatencyMs ?? obj.avg_latency_ms),
       };
     });
   },
@@ -375,13 +537,13 @@ export const monitoringService = {
   getQualityHistory: async (resourceType: string, resourceId: number, params?: { from?: string; to?: string }) => {
     const raw = await http.get<unknown>(`/monitoring/resources/${resourceType}/${resourceId}/quality-history`, { params });
     return extractArray(raw).map((item) => {
-      const o = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+      const obj = asRecord(item);
       return {
-        bucketTime: String(o.bucketTime ?? ''),
-        callCount: parseNum(o.callCount),
-        successRate: parseNum(o.successRate),
-        avgLatencyMs: parseNum(o.avgLatencyMs),
-        qualityScore: parseNum(o.qualityScore),
+        bucketTime: String(obj.bucketTime ?? ''),
+        callCount: parseNum(obj.callCount),
+        successRate: parseNum(obj.successRate),
+        avgLatencyMs: parseNum(obj.avgLatencyMs),
+        qualityScore: parseNum(obj.qualityScore),
       } satisfies QualityHistoryPoint;
     });
   },

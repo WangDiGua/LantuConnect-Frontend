@@ -127,7 +127,7 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ 
                 <Shield size={18} className={isDark ? 'text-emerald-400' : 'text-emerald-600'} aria-hidden />
               </div>
               <div className="min-w-0">
-                <p className={`font-semibold text-sm ${textPrimary(theme)}`}>告警管理</p>
+                <p className={`font-semibold text-sm ${textPrimary(theme)}`}>告警中心</p>
                 <div className={`text-xs mt-0.5 ${textMuted(theme)}`}>
                   {alertsQ.isLoading ? (
                     <span
@@ -144,9 +144,9 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({ 
             <button
               type="button"
               className="mt-3 text-xs text-emerald-500 hover:text-emerald-600"
-              onClick={() => navigate(buildPath('admin', 'alert-management'))}
+              onClick={() => navigate(buildPath('admin', 'alert-center'))}
             >
-              进入告警管理
+              进入告警中心
             </button>
           </BentoCard>
         </div>

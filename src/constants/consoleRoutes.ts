@@ -175,7 +175,7 @@ const ADMIN_SIDEBAR_PAGES: Record<string, string[]> = {
     'provider-create',
   ],
   'admin-workspace': [...USER_SIDEBAR_PAGES.workspace, 'agent-detail'],
-  'monitoring': ['monitoring-overview', 'call-logs', 'performance-analysis', 'alert-management', 'alert-rules', 'health-config', 'circuit-breaker'],
+  'monitoring': ['monitoring-overview', 'call-logs', 'performance-analysis', 'alert-center', 'alert-management', 'alert-rules', 'health-governance', 'health-config', 'circuit-breaker'],
   'system-config': [
     'tag-management',
     'system-params',
@@ -313,6 +313,8 @@ export function pageToSubItem(page: string, sidebarId: string | null, isAdmin: b
     return 'overview';
   }
   if (isAdmin && sidebarId === 'monitoring' && ADMIN_SIDEBAR_PAGES.monitoring.includes(page)) {
+    if (page === 'alert-management' || page === 'alert-rules') return 'alert-center';
+    if (page === 'health-config' || page === 'circuit-breaker') return 'health-governance';
     return page;
   }
   if (isAdmin && sidebarId === 'system-config' && ADMIN_SIDEBAR_PAGES['system-config'].includes(page)) {

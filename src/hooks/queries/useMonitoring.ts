@@ -1,18 +1,22 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { monitoringService } from '../../api/services/monitoring.service';
+import type { AlertBatchActionRequest, CreateAlertRulePayload } from '../../types/dto/monitoring';
 import type { PaginationParams } from '../../types/api';
-import type { AlertListParams, CallLogListParams } from '../../api/services/monitoring.service';
-import type { CreateAlertRulePayload } from '../../types/dto/monitoring';
+import type { AlertListParams, AlertRuleListParams, CallLogListParams } from '../../api/services/monitoring.service';
 
 export const monitoringKeys = {
   kpis: ['monitoring', 'kpis'] as const,
   performance: (resourceType?: string) => ['monitoring', 'performance', resourceType ?? 'all'] as const,
   callSummary: (hours: number) => ['monitoring', 'callSummary', hours] as const,
-  traces: (p?: PaginationParams) => ['monitoring', 'traces', p] as const,
-  callLogs: (p?: CallLogListParams) => ['monitoring', 'callLogs', p] as const,
-  alerts: (p?: AlertListParams) => ['monitoring', 'alerts', p] as const,
-  alertRules: ['monitoring', 'alertRules'] as const,
+  traces: (params?: PaginationParams) => ['monitoring', 'traces', params] as const,
+  callLogs: (params?: CallLogListParams) => ['monitoring', 'callLogs', params] as const,
+  alerts: (params?: AlertListParams) => ['monitoring', 'alerts', params] as const,
+  alertSummary: ['monitoring', 'alertSummary'] as const,
+  alertDetail: (id?: string) => ['monitoring', 'alertDetail', id ?? ''] as const,
+  alertActions: (id?: string) => ['monitoring', 'alertActions', id ?? ''] as const,
+  alertRules: (params?: AlertRuleListParams) => ['monitoring', 'alertRules', params] as const,
   alertRuleMetrics: ['monitoring', 'alertRuleMetrics'] as const,
+  alertRuleScopeOptions: ['monitoring', 'alertRuleScopeOptions'] as const,
   qualityHistory: (resourceType: string, resourceId: number, from?: string, to?: string) =>
     ['monitoring', 'qualityHistory', resourceType, resourceId, from, to] as const,
 };
@@ -68,8 +72,36 @@ export function useAlerts(params?: AlertListParams) {
   });
 }
 
-export function useAlertRules() {
-  return useQuery({ queryKey: monitoringKeys.alertRules, queryFn: () => monitoringService.listAlertRules() });
+export function useAlertSummary() {
+  return useQuery({
+    queryKey: monitoringKeys.alertSummary,
+    queryFn: () => monitoringService.getAlertSummary(),
+  });
+}
+
+export function useAlertDetail(id?: string) {
+  return useQuery({
+    queryKey: monitoringKeys.alertDetail(id),
+    queryFn: () => monitoringService.getAlertDetail(id!),
+    enabled: Boolean(id),
+  });
+}
+
+export function useAlertRules(params?: AlertRuleListParams) {
+  return useQuery({
+    queryKey: monitoringKeys.alertRules(params),
+    queryFn: async () => {
+      const page = await monitoringService.listAlertRules(params);
+      return page.list;
+    },
+  });
+}
+
+export function useAlertRulesPage(params?: AlertRuleListParams) {
+  return useQuery({
+    queryKey: [...monitoringKeys.alertRules(params), 'page'] as const,
+    queryFn: () => monitoringService.listAlertRules(params),
+  });
 }
 
 export function useAlertRuleMetrics() {
@@ -80,27 +112,98 @@ export function useAlertRuleMetrics() {
   });
 }
 
+export function useAlertRuleScopeOptions() {
+  return useQuery({
+    queryKey: monitoringKeys.alertRuleScopeOptions,
+    queryFn: () => monitoringService.getAlertRuleScopeOptions(),
+    staleTime: 5 * 60_000,
+  });
+}
+
 export function useCreateAlertRule() {
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: CreateAlertRulePayload) => monitoringService.createAlertRule(data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: monitoringKeys.alertRules }); },
+    mutationFn: (payload: CreateAlertRulePayload) => monitoringService.createAlertRule(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['monitoring', 'alertRules'] });
+      queryClient.invalidateQueries({ queryKey: monitoringKeys.alertSummary });
+    },
   });
 }
 
 export function useUpdateAlertRule() {
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<CreateAlertRulePayload> }) =>
       monitoringService.updateAlertRule(id, data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: monitoringKeys.alertRules }); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['monitoring', 'alertRules'] });
+      queryClient.invalidateQueries({ queryKey: monitoringKeys.alertSummary });
+    },
   });
 }
 
 export function useDeleteAlertRule() {
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => monitoringService.deleteAlertRule(id),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: monitoringKeys.alertRules }); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['monitoring', 'alertRules'] });
+      queryClient.invalidateQueries({ queryKey: monitoringKeys.alertSummary });
+    },
+  });
+}
+
+function invalidateAlertQueries(queryClient: ReturnType<typeof useQueryClient>) {
+  queryClient.invalidateQueries({ queryKey: ['monitoring', 'alerts'] });
+  queryClient.invalidateQueries({ queryKey: monitoringKeys.alertSummary });
+}
+
+export function useAckAlert() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, note }: { id: string; note?: string }) => monitoringService.ackAlert(id, note),
+    onSuccess: () => invalidateAlertQueries(queryClient),
+  });
+}
+
+export function useAssignAlert() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, assigneeUserId, note }: { id: string; assigneeUserId: number; note?: string }) =>
+      monitoringService.assignAlert(id, assigneeUserId, note),
+    onSuccess: () => invalidateAlertQueries(queryClient),
+  });
+}
+
+export function useSilenceAlert() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, note }: { id: string; note?: string }) => monitoringService.silenceAlert(id, note),
+    onSuccess: () => invalidateAlertQueries(queryClient),
+  });
+}
+
+export function useResolveAlert() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, note }: { id: string; note?: string }) => monitoringService.resolveAlert(id, note),
+    onSuccess: () => invalidateAlertQueries(queryClient),
+  });
+}
+
+export function useReopenAlert() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, note }: { id: string; note?: string }) => monitoringService.reopenAlert(id, note),
+    onSuccess: () => invalidateAlertQueries(queryClient),
+  });
+}
+
+export function useBatchAlertAction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: AlertBatchActionRequest) => monitoringService.batchAlertAction(payload),
+    onSuccess: () => invalidateAlertQueries(queryClient),
   });
 }

@@ -19,7 +19,6 @@ export interface QualityHistoryPoint {
   qualityScore: number;
 }
 
-/** 与 GET /monitoring/call-summary-by-resource 单行一致 */
 export interface CallSummaryByResourceRow {
   type: string;
   calls: number;
@@ -32,7 +31,6 @@ export interface CallLogEntry {
   traceId: string;
   agentId: string;
   agentName: string;
-  /** 统一资源类型 agent/skill/mcp/app/dataset；缺省表示历史未写入 */
   resourceType?: string;
   userId: string;
   method: string;
@@ -44,17 +42,86 @@ export interface CallLogEntry {
   createdAt: string;
 }
 
+export type AlertSeverity = 'critical' | 'warning' | 'info';
+export type AlertEventStatus = 'firing' | 'acknowledged' | 'silenced' | 'resolved' | 'reopened';
+export type AlertScopeType = 'global' | 'resource_type' | 'resource';
+export type AlertOperator = 'gt' | 'gte' | 'lt' | 'lte' | 'eq';
+
 export interface AlertRecord {
   id: string;
   ruleId: string;
   ruleName: string;
-  severity: 'critical' | 'warning' | 'info';
-  status: 'firing' | 'resolved' | 'silenced';
+  severity: AlertSeverity;
+  status: AlertEventStatus;
   message: string;
   source: string;
   labels: Record<string, string>;
   firedAt: string;
   resolvedAt?: string;
+  ackAt?: string;
+  silencedAt?: string;
+  reopenedAt?: string;
+  assigneeUserId?: number;
+  assigneeName?: string;
+  lastSampleValue?: number;
+  scopeType?: AlertScopeType;
+  scopeLabel?: string;
+  resourceType?: string;
+  resourceId?: number;
+  resourceName?: string;
+  ruleMetric?: string;
+  ruleOperator?: AlertOperator;
+  ruleThreshold?: number;
+  ruleDuration?: string;
+  ruleExpression?: string;
+  triggerReason?: string;
+  activeSeconds?: number;
+  notificationCount?: number;
+}
+
+export interface AlertEventAction {
+  id: number;
+  actionType: string;
+  operatorUserId?: number;
+  operatorName?: string;
+  note?: string;
+  previousStatus?: string;
+  nextStatus?: string;
+  extra?: Record<string, unknown>;
+  createTime: string;
+}
+
+export interface AlertNotification {
+  id: number;
+  userId?: number;
+  title: string;
+  body: string;
+  severity?: string;
+  read?: boolean;
+  createTime: string;
+}
+
+export interface AlertEventDetail extends AlertRecord {
+  duration?: string;
+  triggerSnapshot?: Record<string, unknown>;
+  ruleSnapshot?: Record<string, unknown>;
+  actions: AlertEventAction[];
+  notifications: AlertNotification[];
+}
+
+export interface AlertSummary {
+  firing: number;
+  acknowledged: number;
+  silenced: number;
+  resolvedToday: number;
+  mine: number;
+  enabledRules: number;
+}
+
+export interface AlertRuleScope {
+  scopeType: AlertScopeType;
+  scopeResourceType?: string;
+  scopeResourceId?: number;
 }
 
 export interface AlertRule {
@@ -62,33 +129,61 @@ export interface AlertRule {
   name: string;
   description: string;
   metric: string;
-  condition: 'gt' | 'lt' | 'eq' | 'gte' | 'lte';
-  operator: 'gt' | 'lt' | 'eq' | 'gte' | 'lte';
+  condition: AlertOperator;
+  operator: AlertOperator;
   threshold: number;
   duration: string;
-  severity: 'critical' | 'warning' | 'info';
+  severity: AlertSeverity;
   enabled: boolean;
   channels: string[];
   notifyChannels: string[];
   createdAt: string;
   updatedAt: string;
+  scopeType: AlertScopeType;
+  scopeResourceType?: string;
+  scopeResourceId?: number;
+  labelFilters: Record<string, string>;
+}
+
+export interface AlertRuleMetricOption {
+  value: string;
+  label: string;
+  description?: string;
+  unit?: string;
+}
+
+export interface AlertRuleScopeResourceOption {
+  id: number;
+  resourceType: string;
+  displayName: string;
+}
+
+export interface AlertRuleScopeOptionResponse {
+  resourceTypes: string[];
+  resources: AlertRuleScopeResourceOption[];
 }
 
 export interface CreateAlertRulePayload {
   name: string;
   description?: string;
   metric: string;
-  condition?: AlertRule['condition'];
-  operator?: AlertRule['operator'];
+  condition?: AlertOperator;
+  operator?: AlertOperator;
   threshold: number;
   duration?: string;
-  severity: AlertRule['severity'];
+  severity: AlertSeverity;
   channels?: string[];
   notifyChannels?: string[];
+  enabled?: boolean | number;
+  scopeType?: AlertScopeType;
+  scopeResourceType?: string;
+  scopeResourceId?: number;
+  labelFilters?: Record<string, string>;
 }
 
 export interface AlertRuleDryRunRequest {
-  sampleValue: number;
+  sampleValue?: number;
+  mode?: 'sample' | 'preview';
 }
 
 export interface AlertRuleDryRunResult {
@@ -97,6 +192,17 @@ export interface AlertRuleDryRunResult {
   threshold: number;
   sampleValue: number;
   detail: string;
+  sampleSource?: string;
+  reason?: string;
+  recoveryCandidate?: boolean;
+  snapshot?: Record<string, unknown>;
+}
+
+export interface AlertBatchActionRequest {
+  ids: string[];
+  action: 'ack' | 'assign' | 'silence' | 'resolve' | 'reopen';
+  assigneeUserId?: number;
+  note?: string;
 }
 
 export interface TraceSpan {
@@ -115,7 +221,6 @@ export interface TraceSpan {
 }
 
 export interface PerformanceMetric {
-  /** 可选；与页签 gateway / inference / worker 对齐；缺省时前端按历史兼容逻辑分桶 */
   service?: string;
   timestamp: string;
   cpu: number;

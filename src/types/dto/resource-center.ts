@@ -357,6 +357,33 @@ export interface ObservabilitySummaryVO {
   generatedAt?: string;
 }
 
+export interface ResourceHealthDependencyVO {
+  resourceId: number;
+  resourceType: ResourceType;
+  resourceCode?: string;
+  displayName: string;
+  healthStatus?: string;
+  callabilityState?: string;
+  callabilityReason?: string;
+  callable?: boolean;
+}
+
+export interface ResourceHealthPolicyVO {
+  checkType?: string;
+  checkUrl?: string;
+  probeStrategy?: string;
+  intervalSec?: number;
+  healthyThreshold?: number;
+  timeoutSec?: number;
+  failureThreshold?: number;
+  openDurationSec?: number;
+  halfOpenMaxCalls?: number;
+  fallbackResourceCode?: string;
+  fallbackMessage?: string;
+  probeConfig?: Record<string, unknown>;
+  canaryPayload?: Record<string, unknown>;
+}
+
 export interface ResourceHealthSnapshotVO {
   resourceId: number;
   resourceType: ResourceType;
@@ -384,4 +411,7 @@ export interface ResourceHealthSnapshotVO {
   healthyThreshold?: number;
   timeoutSec?: number;
   probeEvidence?: Record<string, unknown>;
+  lastProbeEvidence?: Record<string, unknown>;
+  policy?: ResourceHealthPolicyVO;
+  dependencies?: ResourceHealthDependencyVO[];
 }

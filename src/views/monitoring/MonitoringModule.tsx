@@ -3,11 +3,9 @@ import { Theme, FontSize } from '../../types';
 import { PlaceholderView } from '../common/PlaceholderView';
 import { MonitoringOverviewPage } from './MonitoringOverviewPage';
 import { CallLogPage } from './CallLogPage';
-import { AlertMgmtPage } from './AlertMgmtPage';
 import { PerformanceAnalysisPage } from './PerformanceAnalysisPage';
-import { AlertRulesPage } from './AlertRulesPage';
-import { HealthConfigPage } from './HealthConfigPage';
-import { CircuitBreakerPage } from './CircuitBreakerPage';
+import { HealthGovernancePage } from './HealthGovernancePage';
+import { AlertCenterPage } from './AlertCenterPage';
 
 export interface MonitoringModuleProps {
   activeSubItem: string;
@@ -27,16 +25,19 @@ export const MonitoringModule: React.FC<MonitoringModuleProps> = ({
       return <MonitoringOverviewPage theme={theme} fontSize={fontSize} />;
     case 'call-logs':
       return <CallLogPage theme={theme} fontSize={fontSize} />;
-    case 'alert-management':
-      return <AlertMgmtPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
     case 'performance-analysis':
       return <PerformanceAnalysisPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
+    case 'alert-center':
+      return <AlertCenterPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
+    case 'alert-management':
     case 'alert-rules':
-      return <AlertRulesPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
+      return <AlertCenterPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
+    case 'health-governance':
+      return <HealthGovernancePage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
     case 'health-config':
-      return <HealthConfigPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
+      return <HealthGovernancePage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
     case 'circuit-breaker':
-      return <CircuitBreakerPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
+      return <HealthGovernancePage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
     default:
       return <PlaceholderView title={activeSubItem} theme={theme} fontSize={fontSize} />;
   }

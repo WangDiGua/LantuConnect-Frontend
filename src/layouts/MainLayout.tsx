@@ -224,6 +224,7 @@ const SUB_ITEM_PERM_MAP: Record<string, string | string[]> = {
   'monitoring-overview': 'monitor:view',
   'call-logs': 'monitor:view',
   'performance-analysis': 'monitor:view',
+  'alert-center': 'monitor:view',
   'alert-management': 'monitor:view',
   /** 超管 user:manage；审核员只读目录为 user:read（与后端 GET /user-mgmt/users 一致） */
   'user-list': ['user:manage', 'user:read'],
@@ -233,8 +234,9 @@ const SUB_ITEM_PERM_MAP: Record<string, string | string[]> = {
   'network-config': 'system:config',
   'developer-applications': 'developer-application:review',
   'alert-rules': 'system:config',
-  'health-config': 'system:config',
-  'circuit-breaker': 'system:config',
+  'health-governance': 'monitor:view',
+  'health-config': 'monitor:view',
+  'circuit-breaker': 'monitor:view',
 };
 
 function subItemMeetsPermission(itemId: string, hasPermission: (perm: string) => boolean): boolean {
@@ -468,8 +470,10 @@ const MainContent = React.memo<{
         case 'monitoring-overview':
         case 'call-logs':
         case 'performance-analysis':
+        case 'alert-center':
         case 'alert-management':
         case 'alert-rules':
+        case 'health-governance':
         case 'health-config':
         case 'circuit-breaker':
           return (

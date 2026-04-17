@@ -1450,7 +1450,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                 stripPreviewDeviceBar
                 placeholder={
                   resourceType === 'mcp'
-                    ? '支持 Markdown：能力说明、认证方式、配额与示例等；将在 MCP 市场详情页「服务详情」展示'
+                    ? '支持 Markdown：能力说明、认证方式、调用限制与示例等；将在 MCP 市场详情页「服务详情」展示'
                     : resourceType === 'skill'
                       ? '支持 Markdown：技能能力、依赖、使用示例等；将在技能市场「技能介绍」Tab 展示'
                       : resourceType === 'dataset'

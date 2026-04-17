@@ -272,8 +272,8 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
                 onClose={closeDropdown}
                 anchorEl={dropdownAnchor}
                 align="left"
-                className={`min-w-[12rem] overflow-y-auto rounded-lg border p-1.5 shadow-lg ${
-                  isDark ? 'border-white/10 bg-lantu-card' : 'border-slate-200 bg-white'
+                className={`min-w-[12rem] overflow-y-auto rounded-[22px] border p-1.5 shadow-2xl ${
+                  isDark ? 'border-white/[0.08] bg-lantu-card' : 'border-slate-200 bg-white'
                 }`}
               >
                 {visibleChildren.map((subItem) => (

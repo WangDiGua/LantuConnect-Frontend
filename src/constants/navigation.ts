@@ -106,6 +106,7 @@ export const ADMIN_SIDEBAR_ITEMS = [
   { id: 'user-management', icon: Users, label: '用户与权限' },
   { id: 'monitoring', icon: Activity, label: '监控运维' },
   { id: 'system-config', icon: Settings, label: '平台配置' },
+  { id: 'developer-portal', icon: Code2, label: '开发者中心' },
 ];
 
 // ==================== 用户菜单（师生使用视角）====================

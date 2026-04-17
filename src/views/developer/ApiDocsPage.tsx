@@ -360,7 +360,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({
                     <li><strong className={textPrimary(theme)}>我的发布 · 资源中心</strong>：草稿、提审、版本与 Context 技能维护；接口前缀 <span className="font-mono">/resource-center/resources</span>。</li>
                     <li><strong className={textPrimary(theme)}>开发者中心</strong>：本页、SDK、API 调试、开发者统计。</li>
                     <li><strong className={textPrimary(theme)}>个人设置</strong>：个人资料（页内 Tab 含偏好设置）、<strong className={textPrimary(theme)}>密钥与集成套餐</strong>（API Key 与资源白名单套餐）；直达路由 <span className="font-mono">profile</span>、<span className="font-mono">my-api-keys</span>（可用 <span className="font-mono">?tab=packages</span> 打开集成套餐标签），偏好 Tab 亦可使用 <span className="font-mono">preferences</span>。</li>
-                    <li><strong className={textPrimary(theme)}>管理台</strong>（有权限时）：全平台目录、审核队列、用户与组织、监控配额等——与开发者相关的多为代管发布与审批。</li>
+                    <li><strong className={textPrimary(theme)}>管理台</strong>（有权限时）：全平台目录、审核队列、用户与组织、监控与调用治理等——与开发者相关的多为代管发布与审批。</li>
                   </ul>
                   <div className="flex flex-wrap gap-2 pt-1">
                     <button type="button" onClick={() => go('hub')} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium ${btnSecondary(theme)}`}>
@@ -632,7 +632,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({
                   {proseH3(theme, '3. SDK 与沙箱')}
                   {prosePara(theme, (
                     <>
-                      集成方可固定使用 <span className="font-mono">/sdk/v1/*</span>（须 Key），语义与同路径根接口一致。<span className="font-mono">POST /sandbox/sessions</span> 创建隔离会话（<span className="font-mono">X-User-Id</span> + <span className="font-mono">X-Api-Key</span>，角色含 developer/reviewer/admin 等）；<span className="font-mono">POST /sandbox/invoke</span> 带 <span className="font-mono">X-Sandbox-Token</span> 做限量试调，不等同生产配额。
+                      集成方可固定使用 <span className="font-mono">/sdk/v1/*</span>（须 Key），语义与同路径根接口一致。<span className="font-mono">POST /sandbox/sessions</span> 创建隔离会话（<span className="font-mono">X-User-Id</span> + <span className="font-mono">X-Api-Key</span>，角色含 developer/reviewer/admin 等）；<span className="font-mono">POST /sandbox/invoke</span> 带 <span className="font-mono">X-Sandbox-Token</span> 做限量试调，不等同正式调用策略。
                     </>
                   ))}
                   <div className="flex flex-wrap gap-2 pt-1">

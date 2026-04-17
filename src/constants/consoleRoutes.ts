@@ -181,6 +181,7 @@ const ADMIN_SIDEBAR_PAGES: Record<string, string[]> = {
     'sensitive-words',
     'announcements',
   ],
+  'developer-portal': ['developer-docs', 'developer-tools', 'developer-statistics'],
 };
 
 function flatPageSet(map: Record<string, string[]>): Set<string> {

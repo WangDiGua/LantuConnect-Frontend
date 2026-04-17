@@ -192,10 +192,10 @@ function mapErrorMessage(status: number, code?: number, fallback?: string): stri
   if (code === 3001) {
     return fallback || '请求过于频繁，请稍后重试';
   }
-  if (code === 3002) return fallback || '今日调用额度已用尽，请明日再试';
-  if (code === 3003) return fallback || '本月调用额度已用尽，请下月再试';
+  if (code === 3002) return fallback || '今日调用次数已达上限，请明日再试';
+  if (code === 3003) return fallback || '本月调用次数已达上限，请下月再试';
   if (code === 3004) return fallback || '服务熔断中，请稍后重试';
-  if (code === 3005) return fallback || '配额已耗尽，请联系管理员调整';
+  if (code === 3005) return fallback || '当前调用已受平台策略限制，请联系管理员处理';
   if (code === 3006) return fallback || '资源健康检查未通过，暂不可调用';
   if (status === 429) {
     return fallback || '请求过于频繁，请稍后重试';

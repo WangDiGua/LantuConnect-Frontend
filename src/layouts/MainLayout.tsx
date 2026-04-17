@@ -1416,7 +1416,7 @@ const MainLayoutContent: React.FC<{
   const userSidebarItems = useMemo(
     () =>
       USER_SIDEBAR_ITEMS.filter((item) => {
-        if (canAccessAdminView(platformRole) && item.id === 'workspace') return false;
+        if (canAccessAdminView(platformRole) && (item.id === 'workspace' || item.id === 'developer-portal')) return false;
         if (item.id === 'developer-portal') return hasPermission('developer:portal');
         return true;
       }),
@@ -1428,6 +1428,7 @@ const MainLayoutContent: React.FC<{
     const adminPermMap: Record<string, string> = {
       'monitoring': 'monitor:view',
       'system-config': 'system:config',
+      'developer-portal': 'developer:portal',
     };
     return ADMIN_SIDEBAR_ITEMS.filter((item) => {
       if (item.id === 'admin-resource-ops') {
@@ -1535,6 +1536,9 @@ const MainLayoutContent: React.FC<{
       if (canAccessAdminView(platformRole) && parentId === 'workspace') {
         const groups = filteredSubGroupsForSidebarId('admin-workspace', 'admin');
         out.push(...buildHubPersonalNavModel('admin-workspace', 'admin', groups));
+        continue;
+      }
+      if (canAccessAdminView(platformRole) && parentId === 'developer-portal') {
         continue;
       }
       const groups = filteredSubGroupsForSidebarId(parentId, 'user');
@@ -1879,8 +1883,8 @@ const MainLayoutContent: React.FC<{
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -6, scale: 0.98 }}
                       transition={springTransition}
-                      className={`absolute right-0 top-full z-[60] mt-1.5 w-[min(22rem,calc(100vw-1.25rem))] sm:w-96 rounded-xl border p-2 shadow-xl ${
-                        isDark ? 'border-white/10 bg-lantu-card' : 'border-gray-200 bg-white'
+                      className={`absolute right-0 top-full z-[60] mt-1.5 w-[min(22rem,calc(100vw-1.25rem))] sm:w-96 rounded-[24px] border p-2 shadow-2xl ${
+                        isDark ? 'border-white/[0.08] bg-lantu-card' : 'border-slate-200 bg-white'
                       }`}
                     >
                       <div
@@ -2001,8 +2005,8 @@ const MainLayoutContent: React.FC<{
                       transition={springTransition}
                       role="menu"
                       aria-label="账户"
-                      className={`absolute right-0 top-full z-[60] mt-1.5 w-52 rounded-xl border p-1.5 shadow-xl ${
-                        isDark ? 'border-white/10 bg-lantu-card' : 'border-slate-200 bg-white'
+                      className={`absolute right-0 top-full z-[60] mt-1.5 w-52 rounded-[24px] border p-1.5 shadow-2xl ${
+                        isDark ? 'border-white/[0.08] bg-lantu-card' : 'border-slate-200 bg-white'
                       }`}
                     >
                       <button

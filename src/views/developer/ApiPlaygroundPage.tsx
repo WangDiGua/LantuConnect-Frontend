@@ -198,7 +198,7 @@ export const ApiPlaygroundPage: React.FC<ApiPlaygroundPageProps> = ({ theme, fon
     try {
       localStorage.setItem('lantu_playground_history', JSON.stringify(normalizePlaygroundHistory(history)));
     } catch {
-      /* 配额或其它写入失败：忽略，不打断调试 */
+      /* 存储超限或其它写入失败：忽略，不打断调试 */
     }
   }, [history]);
 

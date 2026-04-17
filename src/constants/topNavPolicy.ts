@@ -50,6 +50,7 @@ export const HUB_ADMIN_RAIL_PARENT_IDS = [
   'user-management',
   'monitoring',
   'system-config',
+  'developer-portal',
 ] as const;
 
 export type HubPersonalRailRow = {

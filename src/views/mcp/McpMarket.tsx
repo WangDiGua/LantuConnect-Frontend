@@ -396,7 +396,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                     isDark ? 'border-sky-500/30 bg-sky-500/10 text-sky-100' : 'border-sky-200 bg-sky-50 text-sky-950'
                   }`}
                 >
-                  <p className="font-semibold">网关提示（可能因账号或配额而异）</p>
+                  <p className="font-semibold">网关提示（可能因账号状态或调用策略而异）</p>
                   <p className={`mt-1 text-xs ${isDark ? 'text-sky-100/90' : 'text-sky-950/90'}`}>{mcpSupplementHint}</p>
                 </div>
               ) : null}
@@ -415,7 +415,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                     <MarkdownView value={detail.serviceDetailMd} className="text-sm" />
                   ) : (
                     <p className={`text-sm leading-relaxed ${textMuted(theme)}`}>
-                      尚未填写服务详情。发布者可在「资源注册 / 编辑 MCP」中的「服务详情」补充 Markdown 说明（接口能力、鉴权、配额与示例等）。
+                      尚未填写服务详情。发布者可在「资源注册 / 编辑 MCP」中的「服务详情」补充 Markdown 说明（接口能力、鉴权、调用限制与示例等）。
                     </p>
                   )}
                 </div>

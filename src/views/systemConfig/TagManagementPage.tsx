@@ -422,13 +422,13 @@ export const TagManagementPage: React.FC<Props> = ({ theme, fontSize, showMessag
                       <span className={`text-xs px-1.5 py-0.5 rounded-md ${isDark ? 'bg-white/10' : 'bg-white/70'}`}>{tag.usageCount}</span>
                     </button>
 
-                    <PortalDropdown
-                      open={isExpanded}
-                      onClose={() => setExpandedTagId(null)}
-                      anchorEl={tagTriggerRefs.current.get(tag.id) ?? null}
-                      align="left"
-                      className={`w-64 rounded-xl border p-3 shadow-xl ${isDark ? 'bg-lantu-card border-white/[0.06]' : 'bg-white border-slate-200'}`}
-                    >
+                      <PortalDropdown
+                        open={isExpanded}
+                        onClose={() => setExpandedTagId(null)}
+                        anchorEl={tagTriggerRefs.current.get(tag.id) ?? null}
+                        align="left"
+                        className={`w-64 rounded-[22px] border p-3 shadow-2xl ${isDark ? 'bg-lantu-card border-white/[0.08]' : 'bg-white border-slate-200'}`}
+                      >
                       <div className="flex items-center justify-between mb-2">
                         <span className={`font-bold text-sm ${textPrimary(theme)}`}>{tag.name}</span>
                         <div className="flex items-center gap-1">

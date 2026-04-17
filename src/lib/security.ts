@@ -28,7 +28,7 @@ export const tokenStorage = {
       try {
         localStorage.setItem(key, value);
       } catch {
-        /* 配额等 */
+        /* 容量超限等 */
       }
     }
   },
@@ -86,7 +86,7 @@ export function maskSensitive(value: string, visibleChars = 4): string {
   return value.slice(0, visibleChars) + '****' + value.slice(-visibleChars);
 }
 
-/** 加密/JSON 持久化单键上限（字符），避免配额炸弹 */
+/** 加密/JSON 持久化单键上限（字符），避免存储超限炸弹 */
 const MAX_ENCRYPTED_STORAGE_JSON_CHARS = 512_000;
 
 function safeJsonStringify(value: unknown): string | null {
@@ -117,7 +117,7 @@ export function encryptStorage(key: string, value: unknown): void {
       if (!jsonStr) return;
       localStorage.setItem(key, jsonStr);
     } catch {
-      // 忽略存储配额错误
+      // 忽略存储超限错误
     }
   }
 }

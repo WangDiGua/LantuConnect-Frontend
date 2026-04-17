@@ -24,7 +24,7 @@ import { authService } from '../../api/services/auth.service';
 import { UserSettingsPage } from './UserSettingsPage';
 import { MultiAvatar } from '../../components/common/MultiAvatar';
 import type { SessionItem } from '../../types/dto/explore';
-import { mainScrollPadBottom } from '../../utils/uiClasses';
+import { canvasBodyBg, mainScrollPadBottom } from '../../utils/uiClasses';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { Pagination } from '../../components/common/Pagination';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
@@ -285,9 +285,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({
     }
   };
 
-  const pageShell = isDark
-    ? 'min-h-full bg-slate-950 font-sans text-slate-200 p-6 lg:p-10'
-    : 'min-h-full bg-[#f8fafc] font-sans text-slate-700 p-6 lg:p-10';
+  const pageShell = `min-h-full font-sans p-6 lg:p-10 ${
+    isDark ? `text-slate-200 ${canvasBodyBg(theme)}` : `text-slate-700 ${canvasBodyBg(theme)}`
+  }`;
 
   const profileCard = isDark
     ? 'bg-slate-900/90 rounded-[2rem] shadow-sm border border-white/10 overflow-hidden flex flex-col md:flex-row'

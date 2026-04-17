@@ -56,9 +56,11 @@ export const AppearanceMenu: React.FC<AppearanceMenuProps> = ({
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 10, scale: 0.95 }}
       transition={{ duration: 0.2, ease: 'easeOut' }}
-      className={`rounded-xl min-w-0 ${
+      className={`min-w-0 ${
         embedded
-          ? `shadow-none border-0 w-full ${theme === 'light' ? 'bg-slate-50' : 'bg-black/20'} px-3 py-3 sm:px-4 sm:py-4`
+          ? `w-full rounded-[20px] border border-transparent shadow-none ${
+              theme === 'light' ? 'bg-slate-50/95' : 'bg-white/[0.04]'
+            } px-3 py-3 sm:px-4 sm:py-4`
           : `p-5 rounded-[24px] border shadow-2xl w-[min(22rem,calc(100vw-2rem))] ${theme === 'light' ? 'bg-white border-slate-200' : 'bg-lantu-card border-white/10'}`
       }`}
     >

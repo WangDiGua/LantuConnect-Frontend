@@ -96,6 +96,7 @@
 | `admin-workspace` | 与 `USER_SIDEBAR_PAGES.workspace` 一致，并含 `agent-detail`、`resource-audit` 及旧 `*-audit`（个人工作台：我的资源中心、资源审核等） |
 | `monitoring` | `monitoring-overview`, `call-logs`, `performance-analysis`（兼容旧链接）, `alert-center`, `alert-management`（兼容旧链接）, `alert-rules`（兼容旧链接）, `health-governance`, `health-config`（兼容旧链接）, `circuit-breaker`（兼容旧链接） |
 | `system-config` | `tag-management`, `system-params`, `security-settings`, `network-config`, `rate-limit-policy`, `access-control`, `audit-log`, `sensitive-words`, `announcements` |
+| `developer-portal` | `developer-docs`, `developer-tools`, `developer-statistics` |
 
 子菜单树见 [`navigation.ts`](../../src/constants/navigation.ts)。`#/c/agent-list` 等旧 slug 在管理壳下会 replace 到 `resource-audit`；`findSidebarForPage` 仍依赖 `ADMIN_SIDEBAR_PAGES` 收录这些 slug。
 

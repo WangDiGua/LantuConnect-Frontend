@@ -77,7 +77,7 @@ export function catalogItemDegradationHint(item: Pick<ResourceCatalogItemVO, 'ob
  *
  * `unknown`：未配置或未探测，仍允许进入工具测试（由网关最终拦截）。
  *
- * 注意：勿用 `degradationHint` 参与判定。后端可能按账号/租户/配额填入提示（与「资源全局故障」不等价），
+ * 注意：勿用 `degradationHint` 参与判定。后端可能按账号/租户/调用策略填入提示（与「资源全局故障」不等价），
  * 若据此禁用列表，会导致换账号后同一 MCP「忽而不可用、忽而可用」，与广场「运行状态」预期不符。
  */
 export function isCatalogMcpCallable(item: Pick<ResourceCatalogItemVO, 'observability'>): boolean {
@@ -106,7 +106,7 @@ export function catalogRunBadgeHealthKeyForDisplay(item: Pick<ResourceCatalogIte
   return catalogItemHealthStatus(item) ?? 'unknown';
 }
 
-/** 与网关拦截无关时的补充说明（如权限/配额），仅供文案展示，不参与 isCatalogMcpCallable */
+/** 与网关拦截无关时的补充说明（如权限/调用策略），仅供文案展示，不参与 isCatalogMcpCallable */
 export function catalogInvokeSupplementHint(item: Pick<ResourceCatalogItemVO, 'observability'>): string | undefined {
   return catalogItemDegradationHint(item);
 }

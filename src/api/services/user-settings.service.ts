@@ -7,6 +7,7 @@ import type {
   InvokeEligibilityRequest,
   InvokeEligibilityResponse,
   UserApiKey,
+  UserApiKeyDetail,
   UserApiKeyResourceGrant,
   UserIntegrationPackageOption,
   UserStats,
@@ -55,6 +56,16 @@ function mapUserApiKeyRecord(raw: unknown): UserApiKey {
   };
 }
 
+function mapUserApiKeyDetail(raw: unknown): UserApiKeyDetail {
+  const base = mapUserApiKeyRecord(raw);
+  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  return {
+    ...base,
+    secretPlain: o.secretPlain ? String(o.secretPlain) : undefined,
+    secretAvailable: Boolean(o.secretAvailable ?? o.secretPlain),
+  };
+}
+
 export const userSettingsService = {
   getWorkspace: () =>
     http.get<UserWorkspace>('/user-settings/workspace'),
@@ -88,6 +99,11 @@ export const userSettingsService = {
     return { ...base, plainKey: plain };
   },
 
+  getApiKeyDetail: async (id: string) => {
+    const raw = await http.get<unknown>(`/user-settings/api-keys/${encodeURIComponent(id)}`);
+    return mapUserApiKeyDetail(raw);
+  },
+
   deleteApiKey: (id: string) =>
     http.delete(`/user-settings/api-keys/${id}`),
 
@@ -103,18 +119,6 @@ export const userSettingsService = {
 
   revokeApiKey: (id: string, body: ApiKeyRevokePayload) =>
     http.post<void>(`/user-settings/api-keys/${encodeURIComponent(id)}/revoke`, body),
-
-  /** 验证登录密码后轮换明文；返回新 secretPlain（旧值立即失效） */
-  rotateApiKey: async (id: string, body: ApiKeyRevokePayload) => {
-    const raw = await http.post<UserApiKey & { plainKey?: string; secretPlain?: string }>(
-      `/user-settings/api-keys/${encodeURIComponent(id)}/rotate`,
-      body,
-    );
-    const plain =
-      (raw as { secretPlain?: string; plainKey?: string }).secretPlain ?? (raw as { plainKey?: string }).plainKey ?? '';
-    const base = mapUserApiKeyRecord(raw);
-    return { ...base, plainKey: plain };
-  },
 
   getStats: () => http.get<UserStats>('/user-settings/stats'),
 

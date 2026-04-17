@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import {
-  KeyRound, Loader2, Plus, Copy, Check, DownloadCloud, Info, RefreshCw, Eye, EyeOff,
+  KeyRound, Loader2, Plus, Copy, Check, DownloadCloud, Info, Eye, EyeOff,
 } from 'lucide-react';
 import type { Theme, ThemeColor } from '../../types';
 import { THEME_COLOR_CLASSES } from '../../constants/theme';
@@ -8,7 +8,7 @@ import { userSettingsService } from '../../api/services/user-settings.service';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { Modal } from '../../components/common/Modal';
 import { BentoCard } from '../../components/common/BentoCard';
-import type { UserApiKey, UserIntegrationPackageOption } from '../../types/dto/user-settings';
+import type { UserApiKey, UserApiKeyDetail, UserIntegrationPackageOption } from '../../types/dto/user-settings';
 import { LantuSelect } from '../../components/common/LantuSelect';
 import type { LantuSelectOption } from '../../components/common/LantuSelect';
 import { isServerErrorGloballyNotified } from '../../types/api';
@@ -95,11 +95,9 @@ export const UserPersonalApiKeysPage: React.FC<UserPersonalApiKeysPageProps> = (
   const [revokeSubmitting, setRevokeSubmitting] = useState(false);
   const [revokeFieldErrors, setRevokeFieldErrors] = useState<{ password?: string; form?: string }>({});
   const [detailKeyTarget, setDetailKeyTarget] = useState<UserApiKey | null>(null);
-  const [rotateKeyTarget, setRotateKeyTarget] = useState<UserApiKey | null>(null);
-  const [rotatePassword, setRotatePassword] = useState('');
-  const [rotateShowPassword, setRotateShowPassword] = useState(false);
-  const [rotateSubmitting, setRotateSubmitting] = useState(false);
-  const [rotateFieldErrors, setRotateFieldErrors] = useState<{ password?: string; form?: string }>({});
+  const [detailKeyData, setDetailKeyData] = useState<UserApiKeyDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailLoadError, setDetailLoadError] = useState<string | null>(null);
   const [newPlainKey, setNewPlainKey] = useState<string | null>(null);
   const createApiKeyInFlightRef = useRef(false);
 
@@ -164,6 +162,35 @@ export const UserPersonalApiKeysPage: React.FC<UserPersonalApiKeysPageProps> = (
     if (detailKeyTarget) {
       setDetailPackageDraft(detailKeyTarget.integrationPackageId?.trim() ?? '');
     }
+  }, [detailKeyTarget]);
+
+  useEffect(() => {
+    if (!detailKeyTarget?.id?.trim()) {
+      setDetailKeyData(null);
+      setDetailLoadError(null);
+      setDetailLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setDetailLoading(true);
+    setDetailLoadError(null);
+    void userSettingsService.getApiKeyDetail(detailKeyTarget.id)
+      .then((detail) => {
+        if (cancelled) return;
+        setDetailKeyData(detail);
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        setDetailLoadError(e instanceof Error ? e.message : '密钥详情加载失败');
+        setDetailKeyData(null);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setDetailLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [detailKeyTarget]);
 
   const [apiKeyNameError, setApiKeyNameError] = useState('');
@@ -235,57 +262,6 @@ export const UserPersonalApiKeysPage: React.FC<UserPersonalApiKeysPageProps> = (
     setRevokeFieldErrors({});
   }, []);
 
-  const openRotateApiKeyModal = useCallback((key: UserApiKey) => {
-    setRotateKeyTarget(key);
-    setRotatePassword('');
-    setRotateShowPassword(false);
-    setRotateFieldErrors({});
-  }, []);
-
-  const closeRotateApiKeyModal = useCallback(() => {
-    setRotateKeyTarget(null);
-    setRotatePassword('');
-    setRotateFieldErrors({});
-  }, []);
-
-  const handleConfirmRotateApiKey = useCallback(async () => {
-    if (!rotateKeyTarget?.id?.trim()) {
-      showMessage('无法轮换：缺少密钥', 'error');
-      return;
-    }
-    if (rotateSubmitting) return;
-    setRotateFieldErrors({});
-    setRotateSubmitting(true);
-    try {
-      const rotated = await userSettingsService.rotateApiKey(rotateKeyTarget.id, {
-        password: rotatePassword.trim() || undefined,
-      });
-      const plain = rotated.plainKey?.trim() || '';
-      setNewPlainKey(plain || null);
-      showMessage('已生成新密钥；旧密钥已失效，请立即更新所有引用。', 'success');
-      closeRotateApiKeyModal();
-      await loadApiKeys();
-    } catch (e) {
-      if (isServerErrorGloballyNotified(e)) return;
-      const msg = e instanceof Error ? e.message : '轮换失败';
-      if (/密码|password/i.test(msg)) {
-        setRotateFieldErrors({ password: msg });
-      } else {
-        setRotateFieldErrors({ form: msg });
-      }
-      pageErrorUnlessServerToast(e, 'API Key 轮换失败，请重试', showMessage);
-    } finally {
-      setRotateSubmitting(false);
-    }
-  }, [
-    rotateKeyTarget,
-    rotateSubmitting,
-    rotatePassword,
-    showMessage,
-    loadApiKeys,
-    closeRotateApiKeyModal,
-  ]);
-
   const handleConfirmRevokeApiKey = useCallback(async () => {
     if (!revokeKeyTarget?.id?.trim()) {
       showMessage('无法撤销：缺少密钥', 'error');
@@ -344,7 +320,7 @@ export const UserPersonalApiKeysPage: React.FC<UserPersonalApiKeysPageProps> = (
             <KeyRound size={18} className={tc.text} /> API Key（个人调用）
           </h2>
           <p className={`text-xs mb-3 ${textMuted(theme)}`}>
-            创建后<strong className={textSecondary(theme)}>只显示一次</strong>完整密钥；丢失可轮换。列表里只有掩码。
+            创建后会立即显示完整密钥；后续可在<strong className={textSecondary(theme)}>详情</strong>中再次查看。列表里仍只展示掩码。
             <button type="button" onClick={() => navigate(`${buildPath(consoleRole, 'developer-docs')}#doc-api-keys-console`)} className={`ml-1 underline font-medium ${tc.text}`}>
               接入指南
             </button>
@@ -424,9 +400,9 @@ export const UserPersonalApiKeysPage: React.FC<UserPersonalApiKeysPageProps> = (
             ) : null}
             {newPlainKey && (
               <div className={`rounded-xl p-3 border space-y-2 ${isDark ? 'bg-emerald-500/10 border-emerald-500/25' : 'bg-emerald-50 border-emerald-200'}`}>
-                <p className={`text-xs font-semibold ${isDark ? 'text-emerald-100' : 'text-emerald-950'}`}>密钥仅出现这一次</p>
+                <p className={`text-xs font-semibold ${isDark ? 'text-emerald-100' : 'text-emerald-950'}`}>密钥已生成</p>
                 <p className={`text-xs leading-relaxed ${textSecondary(theme)}`}>
-                  请立即复制保存；未备份可「轮换密钥」拿新串。下方可写入本机，供本站调试与 Playground 共用。
+                  请立即复制并安全保存；后续也可在「详情」里查看完整明文。下方可直接写入本机，供本站调试与 Playground 共用。
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <code className={`text-xs break-all flex-1 min-w-[12rem] rounded-lg px-2 py-1.5 ${isDark ? 'bg-black/30 text-emerald-300' : 'bg-white text-emerald-700'}`}>{newPlainKey}</code>
@@ -463,10 +439,10 @@ export const UserPersonalApiKeysPage: React.FC<UserPersonalApiKeysPageProps> = (
                     className={`${btnSecondary(theme)} !text-sm`}
                     onClick={() => {
                       setNewPlainKey(null);
-                      showMessage('明文已从本页隐藏。若尚未备份到安全位置，将无法再查看同一串密钥。', 'info');
+                      showMessage('明文已从本页收起；后续可在密钥详情中再次查看。', 'info');
                     }}
                   >
-                    <Check size={14} /> 我已保存，隐藏明文
+                    <Check size={14} /> 我已保存，收起明文
                   </button>
                 </div>
               </div>
@@ -510,14 +486,6 @@ export const UserPersonalApiKeysPage: React.FC<UserPersonalApiKeysPageProps> = (
                         className={`text-xs px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1 ${isDark ? 'bg-white/10 text-slate-200 hover:bg-white/15' : 'bg-slate-100 text-slate-800 hover:bg-slate-200'}`}
                       >
                         <Info size={14} aria-hidden /> 详情
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => openRotateApiKeyModal(key)}
-                        disabled={rotateSubmitting || revokeSubmitting}
-                        className={`text-xs px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1 ${isDark ? 'bg-sky-500/15 text-sky-200 hover:bg-sky-500/25' : 'bg-sky-50 text-sky-900 hover:bg-sky-100'} disabled:opacity-50`}
-                      >
-                        <RefreshCw size={14} aria-hidden /> 轮换密钥
                       </button>
                       <button
                         type="button"
@@ -704,86 +672,45 @@ export const UserPersonalApiKeysPage: React.FC<UserPersonalApiKeysPageProps> = (
               <span className={`font-semibold ${textSecondary(theme)}`}>调用次数：</span>
               {detailKeyTarget.callCount ?? '—'}
             </p>
-            <p className={`pt-2 border-t ${isDark ? 'border-white/10' : 'border-slate-200'} ${textMuted(theme)} leading-relaxed`}>
-              完整 <span className="font-mono">secretPlain</span> 不由列表接口返回。若遗失，请使用「轮换密钥」在验证身份后获取<strong className={textPrimary(theme)}>新的</strong>可调用串（旧串立即失效）。
-            </p>
-          </div>
-        ) : null}
-      </Modal>
-
-      <Modal
-        open={!!rotateKeyTarget}
-        onClose={closeRotateApiKeyModal}
-        title="轮换 API Key（生成新明文）"
-        theme={theme}
-        size="sm"
-        footer={
-          <>
-            <button type="button" className={btnSecondary(theme)} onClick={closeRotateApiKeyModal}>
-              取消
-            </button>
-            <button
-              type="button"
-              className={`${btnPrimary} disabled:opacity-50 border border-sky-600/40 bg-sky-600 hover:bg-sky-700 text-white`}
-              disabled={rotateSubmitting}
-              onClick={() => void handleConfirmRotateApiKey()}
-              aria-label="确认轮换 API Key"
-            >
-              {rotateSubmitting ? (
+            <div className={`pt-2 border-t ${isDark ? 'border-white/10' : 'border-slate-200'} space-y-2`}>
+              <p className={`font-semibold ${textSecondary(theme)}`}>完整密钥</p>
+              {detailLoading ? (
+                <div className={`inline-flex items-center gap-2 ${textMuted(theme)}`}>
+                  <Loader2 size={14} className="animate-spin" aria-hidden />
+                  正在加载完整明文…
+                </div>
+              ) : detailLoadError ? (
+                <p className="text-rose-500">{detailLoadError}</p>
+              ) : detailKeyData?.secretAvailable && detailKeyData.secretPlain ? (
                 <>
-                  <Loader2 size={14} className="animate-spin inline mr-1" aria-hidden />
-                  处理中…
+                  <code className={`block break-all rounded-lg px-2 py-2 ${isDark ? 'bg-white/5 text-emerald-300' : 'bg-slate-100 text-emerald-700'}`}>
+                    {detailKeyData.secretPlain}
+                  </code>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className={btnSecondary(theme)}
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(detailKeyData.secretPlain ?? '');
+                          showMessage('已复制完整密钥', 'success');
+                        } catch {
+                          showMessage('复制失败，请手动复制', 'error');
+                        }
+                      }}
+                    >
+                      <Copy size={14} /> 复制完整密钥
+                    </button>
+                  </div>
                 </>
               ) : (
-                '确认轮换'
+                <p className={`${textMuted(theme)} leading-relaxed`}>
+                  这把密钥是旧数据，创建时未保存可回显明文，因此现在无法展示完整 <span className="font-mono">secretPlain</span>。如需可查看明文，请新建一把新密钥替换。
+                </p>
               )}
-            </button>
-          </>
-        }
-      >
-        <div className="space-y-3">
-          <p className={`text-xs ${textSecondary(theme)}`}>
-            密钥：<span className="font-mono">{rotateKeyTarget?.name}</span>。验证规则与撤销相同。轮换成功后<strong className={textPrimary(theme)}>仅当次响应</strong>展示新完整密钥；<strong className={textPrimary(theme)}>旧密钥立刻无法调用</strong>，请同步更新环境变量与集成配置。
-          </p>
-          <div>
-            <label htmlFor="rotate-pwd" className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>
-              登录密码
-            </label>
-            <div className="relative">
-              <input
-                id="rotate-pwd"
-                type={rotateShowPassword ? 'text' : 'password'}
-                autoComplete="current-password"
-                value={rotatePassword}
-                onChange={(e) => {
-                  setRotatePassword(e.target.value);
-                  setRotateFieldErrors((x) => ({ ...x, password: undefined }));
-                }}
-                className={`${nativeInputClass(theme)} pr-10${rotateFieldErrors.password ? ` ${inputBaseError()}` : ''}`}
-                aria-invalid={!!rotateFieldErrors.password}
-                aria-describedby={rotateFieldErrors.password ? 'rotate-pwd-err' : undefined}
-              />
-              <button
-                type="button"
-                className={`absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md ${isDark ? 'text-slate-400 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100'}`}
-                onClick={() => setRotateShowPassword((v) => !v)}
-                aria-label={rotateShowPassword ? '隐藏密码' : '显示密码'}
-              >
-                {rotateShowPassword ? <EyeOff size={16} aria-hidden /> : <Eye size={16} aria-hidden />}
-              </button>
             </div>
-            {rotateFieldErrors.password ? (
-              <p id="rotate-pwd-err" className={`mt-1 ${fieldErrorText()} text-xs`} role="alert">
-                {rotateFieldErrors.password}
-              </p>
-            ) : null}
           </div>
-          {rotateFieldErrors.form ? (
-            <p className={`${fieldErrorText()} text-xs`} role="alert">
-              {rotateFieldErrors.form}
-            </p>
-          ) : null}
-        </div>
+        ) : null}
       </Modal>
     </div>
   );

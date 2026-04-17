@@ -37,6 +37,11 @@ export interface UserApiKey {
   integrationPackageId?: string | null;
 }
 
+export interface UserApiKeyDetail extends UserApiKey {
+  secretPlain?: string;
+  secretAvailable: boolean;
+}
+
 /** GET /user-settings/integration-packages 下拉用 */
 export interface UserIntegrationPackageOption {
   id: string;

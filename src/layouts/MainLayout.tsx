@@ -363,6 +363,18 @@ const MainContent = React.memo<{
           return <MyFavoritesPage theme={t} fontSize={fs} />;
         case 'usage-stats':
           return <UsageStatsPage theme={t} fontSize={fs} />;
+        case 'profile':
+        case 'preferences':
+          return (
+            <UserSettingsHubPage
+              theme={t}
+              fontSize={fs}
+              themePreference={tpref}
+              themeColor={tc}
+              showMessage={msg}
+              onOpenAppearance={() => { setMenu(true); setAppMenu(true); }}
+            />
+          );
         case 'resource-market':
           return <UserResourceMarketHub theme={t} fontSize={fs} themeColor={tc} showMessage={msg} />;
         case 'agent-list':
@@ -452,6 +464,8 @@ const MainContent = React.memo<{
             />
           );
 
+        case 'my-api-keys':
+          return <UserApiKeysIntegrationHubPage theme={t} themeColor={tc} fontSize={fs} showMessage={msg} />;
         case 'user-list':
         case 'role-management':
         case 'organization':
@@ -639,7 +653,7 @@ const MainContent = React.memo<{
           />
         );
       case 'my-api-keys':
-        return <UserApiKeysIntegrationHubPage theme={t} themeColor={tc} showMessage={msg} />;
+        return <UserApiKeysIntegrationHubPage theme={t} themeColor={tc} fontSize={fs} showMessage={msg} />;
 
       case 'developer-docs':
         return <DeveloperDocsHubPage theme={t} fontSize={fs} />;
@@ -835,6 +849,9 @@ const MainLayoutContent: React.FC<{
 
   /** 旧独立路由「集成套餐」已并入 my-api-keys；侧栏与主内容按 my-api-keys 处理 */
   if (page === 'my-integration-packages') {
+    page = 'my-api-keys';
+  }
+  if (layoutIsAdmin && (page === 'api-key-management' || page === 'token-management')) {
     page = 'my-api-keys';
   }
 
@@ -1282,8 +1299,8 @@ const MainLayoutContent: React.FC<{
       navigate(`${buildPath('user', 'resource-center')}?type=agent`, { replace: true });
       return;
     }
-    if (layoutIsAdmin && normalizedRoutePage === 'token-management') {
-      navigate(buildPath('user', 'api-key-management'), { replace: true });
+    if (layoutIsAdmin && (normalizedRoutePage === 'token-management' || normalizedRoutePage === 'api-key-management')) {
+      navigate(`${buildPath('user', 'my-api-keys')}?tab=platform`, { replace: true });
       return;
     }
     if (layoutIsAdmin && (normalizedRoutePage === 'resource-grant-management' || normalizedRoutePage === 'grant-applications')) {
@@ -1993,8 +2010,7 @@ const MainLayoutContent: React.FC<{
                         role="menuitem"
                         onClick={() => {
                           setShowUserMenu(false);
-                          navigate(buildPath('user', 'profile'));
-                          if (layoutIsAdmin) setRole('user');
+                          navigate(buildPath(consoleRole, 'profile'));
                           setMobileNavOpen(false);
                         }}
                         className={`flex min-h-11 w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 focus-visible:ring-inset ${

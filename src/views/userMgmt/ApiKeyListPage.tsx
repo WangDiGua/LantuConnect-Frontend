@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
-import { Plus, Copy, Check, Ban, Zap } from 'lucide-react';
+import { Plus, Copy, Check, Ban, Zap, Info, Loader2 } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
@@ -9,7 +9,7 @@ import { MgmtDataTable } from '../../components/management/MgmtDataTable';
 import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
 import { MgmtBatchToolbar } from '../../components/management/MgmtBatchToolbar';
 import { userMgmtService } from '../../api/services/user-mgmt.service';
-import type { ApiKeyRecord } from '../../types/dto/user-mgmt';
+import type { ApiKeyDetailRecord, ApiKeyRecord } from '../../types/dto/user-mgmt';
 import {
   btnPrimary, btnSecondary, btnGhost,
   fieldErrorText, inputBaseError,
@@ -29,13 +29,25 @@ import {
   type ApiKeyExpiryPreset,
 } from '../../utils/apiKeyExpiryPresets';
 
-interface ApiKeyListPageProps { theme: Theme; fontSize: FontSize; showMessage: (msg: string, type?: 'success' | 'error' | 'info') => void; breadcrumbSegments: string[]; }
+interface ApiKeyListPageProps {
+  theme: Theme;
+  fontSize: FontSize;
+  showMessage: (msg: string, type?: 'success' | 'error' | 'info') => void;
+  breadcrumbSegments: string[];
+  embeddedInHub?: boolean;
+}
 
 const PAGE_SIZE = 20;
 
-const API_KEY_DESC = '完整密钥仅在创建时显示一次';
+const API_KEY_DESC = '创建后立即显示完整密钥，后续可在详情中再次查看';
 
-export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize, showMessage, breadcrumbSegments }) => {
+export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({
+  theme,
+  fontSize,
+  showMessage,
+  breadcrumbSegments,
+  embeddedInHub = false,
+}) => {
   const isDark = theme === 'dark';
   const [keys, setKeys] = useState<ApiKeyRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,6 +60,10 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize,
   const [page, setPage] = useState(1);
   useScrollPaginatedContentToTop(page);
   const [revokeTarget, setRevokeTarget] = useState<string | null>(null);
+  const [detailTarget, setDetailTarget] = useState<ApiKeyRecord | null>(null);
+  const [detailData, setDetailData] = useState<ApiKeyDetailRecord | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
   const [batchRevokeConfirm, setBatchRevokeConfirm] = useState(false);
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [batchBusy, setBatchBusy] = useState(false);
@@ -128,6 +144,35 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize,
   }, [newName, expiryPreset, showMessage, fetchKeys]);
 
   const copyFull = useCallback(async () => { if (!revealedOnce) return; try { await navigator.clipboard.writeText(revealedOnce.full); setCopied(true); showMessage('已复制到剪贴板', 'success'); } catch { showMessage('复制失败', 'error'); } }, [revealedOnce, showMessage]);
+
+  useEffect(() => {
+    if (!detailTarget?.id?.trim()) {
+      setDetailData(null);
+      setDetailError(null);
+      setDetailLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setDetailLoading(true);
+    setDetailError(null);
+    void userMgmtService.getApiKeyDetail(detailTarget.id)
+      .then((detail) => {
+        if (cancelled) return;
+        setDetailData(detail);
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        setDetailError(e instanceof Error ? e.message : '密钥详情加载失败');
+        setDetailData(null);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setDetailLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [detailTarget]);
 
   const handleRevoke = useCallback(async () => { if (!revokeTarget) return; try { await userMgmtService.revokeApiKey(revokeTarget); showMessage('API Key 已撤销', 'info'); setRevokeTarget(null); setPage(1); await fetchKeys(); } catch { showMessage('撤销失败', 'error'); } }, [revokeTarget, showMessage, fetchKeys]);
 
@@ -250,12 +295,23 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize,
         headerClassName: 'text-right',
         cellClassName: 'text-right',
         cellNowrap: true,
-        cell: (k) =>
-          k.status === 'active' ? (
-            <button type="button" onClick={() => setRevokeTarget(k.id)} className={`${btnGhost(theme)} text-amber-600 dark:text-amber-400`} aria-label={`撤销 API Key：${k.name}`}>
-              <Ban size={14} aria-hidden /> 撤销
+        cell: (k) => (
+          <div className="inline-flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setDetailTarget(k)}
+              className={btnGhost(theme)}
+              aria-label={`查看 API Key 详情：${k.name}`}
+            >
+              <Info size={14} aria-hidden /> 详情
             </button>
-          ) : null,
+            {k.status === 'active' ? (
+              <button type="button" onClick={() => setRevokeTarget(k.id)} className={`${btnGhost(theme)} text-amber-600 dark:text-amber-400`} aria-label={`撤销 API Key：${k.name}`}>
+                <Ban size={14} aria-hidden /> 撤销
+              </button>
+            ) : null}
+          </div>
+        ),
       },
     ],
     [theme, isDark],
@@ -300,7 +356,7 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize,
           >
             <p className="font-semibold">管理员 · API Key（/user-mgmt/api-keys）</p>
             <p className={`mt-1 ${textMuted(theme)}`}>
-              创建响应中的完整明文字段用于 <span className="font-mono">X-Api-Key</span>；列表字段不可充当密钥。个人用户请用偏好设置创建。细则见开发者 <span className="font-mono">API 文档</span> 页。
+              创建响应中的完整明文字段用于 <span className="font-mono">X-Api-Key</span>；列表字段不可充当密钥。平台管理员可在「详情」中再次查看完整明文。个人用户请用偏好设置创建。细则见开发者 <span className="font-mono">API 文档</span> 页。
             </p>
           </div>
           <div className="min-h-0 flex-1 overflow-x-auto">
@@ -352,12 +408,12 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize,
       }>
         {revealedOnce ? (
           <>
-            <p className="text-xs text-amber-500 font-medium mb-3">关闭后无法再次查看。请立即复制保存；请求头用法见 API 文档。</p>
+            <p className="text-xs text-amber-500 font-medium mb-3">请立即复制并安全保存；后续也可在该 Key 的详情中再次查看完整明文。</p>
             <div className={`rounded-xl border p-3 font-mono text-xs break-all ${isDark ? 'bg-white/[0.03] border-white/[0.06] text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>{revealedOnce.full}</div>
           </>
         ) : (
           <>
-            <p className={`text-xs mb-3 ${textMuted(theme)}`}>完整密钥仅在此次响应返回一次，请保存好。</p>
+            <p className={`text-xs mb-3 ${textMuted(theme)}`}>创建后会立即返回完整密钥，详情页也可再次查看。</p>
             <label className={`text-xs font-semibold block mb-1 ${textSecondary(theme)}`}>名称</label>
             <input
               className={`${nativeInputClass(theme)}${newNameError ? ` ${inputBaseError()}` : ''}`}
@@ -404,6 +460,69 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({ theme, fontSize,
             </p>
           </>
         )}
+      </Modal>
+
+      <Modal
+        open={!!detailTarget}
+        onClose={() => setDetailTarget(null)}
+        title="API Key 详情"
+        theme={theme}
+        size="sm"
+        footer={
+          <button type="button" className={btnSecondary(theme)} onClick={() => setDetailTarget(null)}>
+            关闭
+          </button>
+        }
+      >
+        {detailTarget ? (
+          <div className={`space-y-2 text-xs ${textSecondary(theme)}`}>
+            <p><span className={`font-semibold ${textSecondary(theme)}`}>名称：</span>{detailTarget.name}</p>
+            <p className="font-mono break-all"><span className={`font-semibold ${textSecondary(theme)}`}>id：</span>{detailTarget.id}</p>
+            <p><span className={`font-semibold ${textSecondary(theme)}`}>状态：</span>{detailTarget.status}</p>
+            <p className="font-mono"><span className={`font-semibold ${textSecondary(theme)}`}>scope：</span>{detailTarget.scopes?.length ? detailTarget.scopes.join(', ') : '—'}</p>
+            <p><span className={`font-semibold ${textSecondary(theme)}`}>创建者：</span>{resolvePersonDisplay({ names: [detailTarget.createdByName], usernames: [detailTarget.createdBy] })}</p>
+            <p><span className={`font-semibold ${textSecondary(theme)}`}>掩码 / 前缀：</span>{detailTarget.maskedKey || detailTarget.prefix || '—'}</p>
+            {detailTarget.createdAt ? <p><span className={`font-semibold ${textSecondary(theme)}`}>创建时间：</span>{formatDateTime(detailTarget.createdAt)}</p> : null}
+            {detailTarget.expiresAt ? <p><span className={`font-semibold ${textSecondary(theme)}`}>过期时间：</span>{formatDateTime(detailTarget.expiresAt)}</p> : null}
+            {detailTarget.lastUsedAt ? <p><span className={`font-semibold ${textSecondary(theme)}`}>最近使用：</span>{formatDateTime(detailTarget.lastUsedAt)}</p> : null}
+            <p><span className={`font-semibold ${textSecondary(theme)}`}>调用次数：</span>{detailTarget.callCount ?? 0}</p>
+            <div className={`pt-2 border-t ${isDark ? 'border-white/10' : 'border-slate-200'} space-y-2`}>
+              <p className={`font-semibold ${textSecondary(theme)}`}>完整密钥</p>
+              {detailLoading ? (
+                <div className={`inline-flex items-center gap-2 ${textMuted(theme)}`}>
+                  <Loader2 size={14} className="animate-spin" aria-hidden />
+                  正在加载完整明文…
+                </div>
+              ) : detailError ? (
+                <p className="text-rose-500">{detailError}</p>
+              ) : detailData?.secretAvailable && detailData.secretPlain ? (
+                <>
+                  <code className={`block break-all rounded-lg px-2 py-2 ${isDark ? 'bg-white/[0.03] border-white/[0.06] text-emerald-300' : 'bg-slate-50 text-emerald-700'}`}>
+                    {detailData.secretPlain}
+                  </code>
+                  <button
+                    type="button"
+                    className={btnSecondary(theme)}
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(detailData.secretPlain ?? '');
+                        showMessage('已复制完整密钥', 'success');
+                      } catch {
+                        showMessage('复制失败，请手动复制', 'error');
+                      }
+                    }}
+                  >
+                    <Copy size={14} /> 复制完整密钥
+                  </button>
+                </>
+              ) : (
+                <p className={`${textMuted(theme)} leading-relaxed`}>
+                  这把密钥是旧数据，创建时未保存可回显明文，因此现在无法展示完整 <span className="font-mono">secretPlain</span>。如需可查看明文，请新建一把新密钥替换。
+                </p>
+              )}
+            </div>
+          </div>
+        ) : null}
       </Modal>
 
       <ConfirmDialog open={!!revokeTarget} title="撤销 API Key" message="撤销后该 Key 将不可用，确定继续？" confirmText="撤销" variant="warning" onConfirm={handleRevoke} onCancel={() => setRevokeTarget(null)} />

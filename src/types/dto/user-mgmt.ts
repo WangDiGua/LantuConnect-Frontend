@@ -55,6 +55,11 @@ export interface ApiKeyRecord {
   createdAt: string;
 }
 
+export interface ApiKeyDetailRecord extends ApiKeyRecord {
+  secretPlain?: string;
+  secretAvailable: boolean;
+}
+
 export interface OrgNode {
   id: string;
   name: string;

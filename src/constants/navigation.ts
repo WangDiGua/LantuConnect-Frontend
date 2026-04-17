@@ -12,7 +12,6 @@ import {
   Shield,
   Sliders,
   History,
-  Fingerprint,
   BookOpen,
   Database,
   LineChart,
@@ -175,7 +174,6 @@ export const ADMIN_USER_MANAGEMENT_GROUPS: NavSubGroup[] = [
       { id: 'user-list', icon: Users, label: '用户管理' },
       { id: 'role-management', icon: Shield, label: '角色权限' },
       { id: 'organization', icon: Building2, label: '组织管理' },
-      { id: 'api-key-management', icon: Fingerprint, label: '密钥管理' },
     ],
   },
 ];

@@ -156,13 +156,15 @@ const USER_SIDEBAR_PAGES: Record<string, string[]> = {
  * 管理端个人工作台路由白名单（与 workspace 对齐，并含登记详情 agent-detail、资源审核）。
  * 书签 `resource-catalog` 不在此列，壳层会 replace 到 resource-audit。
  */
-export const ADMIN_WORKSPACE_PAGES = new Set<string>([...USER_SIDEBAR_PAGES.workspace, 'agent-detail', 'resource-audit']);
+const ADMIN_WORKSPACE_ROUTE_PAGES = USER_SIDEBAR_PAGES.workspace.filter((page) => page !== 'skill-market');
+
+export const ADMIN_WORKSPACE_PAGES = new Set<string>([...ADMIN_WORKSPACE_ROUTE_PAGES, 'agent-detail', 'resource-audit']);
 
 const ADMIN_SIDEBAR_PAGES: Record<string, string[]> = {
   'overview': ['dashboard', 'health-check', 'usage-statistics', 'data-reports'],
   /** 用户与权限菜单：仅承载用户/角色/组织/密钥治理。 */
-  'user-management': ['user-list', 'role-management', 'organization', 'api-key-management'],
-  'admin-workspace': [...USER_SIDEBAR_PAGES.workspace, 'agent-detail', 'resource-audit', 'agent-audit', 'skill-audit', 'mcp-audit', 'app-audit', 'dataset-audit'],
+  'user-management': ['user-list', 'role-management', 'organization'],
+  'admin-workspace': [...ADMIN_WORKSPACE_ROUTE_PAGES, 'agent-detail', 'resource-audit', 'agent-audit', 'skill-audit', 'mcp-audit', 'app-audit', 'dataset-audit'],
   'admin-resource-ops': [
     'agent-monitoring',
     'agent-trace',
@@ -266,6 +268,9 @@ export function pageToSubItem(page: string, sidebarId: string | null, isAdmin: b
   }
   if (isAdmin && sidebarId === 'admin-workspace' && ADMIN_RESOURCE_AUDIT_PAGES.has(page)) {
     return 'resource-audit';
+  }
+  if (isAdmin && sidebarId === 'admin-workspace' && (page === 'profile' || page === 'preferences')) {
+    return 'overview';
   }
   if (isAdmin && sidebarId === 'admin-workspace' && ADMIN_WORKSPACE_PAGES.has(page)) {
     return page;

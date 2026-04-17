@@ -5,6 +5,7 @@ import type { PaginatedData, PaginationParams } from '../../types/api';
 import { extractArray, normalizePaginated } from '../../utils/normalizeApiPayload';
 import type {
   ApiKeyRecord,
+  ApiKeyDetailRecord,
   CreateApiKeyPayload,
   CreateUserPayload,
   OrgNode,
@@ -120,6 +121,16 @@ function mapApiKeyRecord(raw: unknown): ApiKeyRecord {
     createdBy: String(o.createdBy ?? o.creator ?? ''),
     createdByName: o.createdByName ? String(o.createdByName) : undefined,
     createdAt,
+  };
+}
+
+function mapApiKeyDetailRecord(raw: unknown): ApiKeyDetailRecord {
+  const base = mapApiKeyRecord(raw);
+  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  return {
+    ...base,
+    secretPlain: o.secretPlain ? String(o.secretPlain) : undefined,
+    secretAvailable: Boolean(o.secretAvailable ?? o.secretPlain),
   };
 }
 
@@ -346,6 +357,11 @@ export const userMgmtService = {
   listApiKeys: async (params?: PaginationParams) => {
     const raw = await http.get<unknown>('/user-mgmt/api-keys', { params });
     return normalizeApiKeyListPayload(raw);
+  },
+
+  getApiKeyDetail: async (id: string) => {
+    const raw = await http.get<unknown>(`/user-mgmt/api-keys/${encodeURIComponent(id)}`);
+    return mapApiKeyDetailRecord(raw);
   },
 
   createApiKey: async (data: CreateApiKeyPayload) => {

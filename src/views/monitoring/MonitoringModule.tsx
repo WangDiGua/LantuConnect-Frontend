@@ -1,7 +1,8 @@
-import React from 'react';
+﻿import React from 'react';
 import { Theme, FontSize } from '../../types';
 import { PlaceholderView } from '../common/PlaceholderView';
 import { MonitoringOverviewPage } from './MonitoringOverviewPage';
+import { PerformanceAnalysisPage } from './PerformanceAnalysisPage';
 import { CallLogPage } from './CallLogPage';
 import { HealthGovernancePage } from './HealthGovernancePage';
 import { AlertCenterPage } from './AlertCenterPage';
@@ -23,6 +24,8 @@ export const MonitoringModule: React.FC<MonitoringModuleProps> = ({
   switch (activeSubItem) {
     case 'monitoring-overview':
       return <MonitoringOverviewPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
+    case 'performance-center':
+      return <PerformanceAnalysisPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
     case 'call-logs':
       return <CallLogPage theme={theme} fontSize={fontSize} />;
     case 'trace-center':

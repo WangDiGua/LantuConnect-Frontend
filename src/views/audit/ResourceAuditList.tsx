@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ClipboardCheck } from 'lucide-react';
+import { Ban, CheckCircle2, ClipboardCheck, Eye, XCircle } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { ResourceType } from '../../types/dto/catalog';
 import type { ResourceAuditItemVO, ResourceCenterItemVO } from '../../types/dto/resource-center';
@@ -12,9 +12,7 @@ import {
   btnPrimary,
   btnSecondary,
   mgmtTableActionDanger,
-  mgmtTableActionGhost,
   mgmtTableActionPositive,
-  mgmtTableRowActions,
   statusBadgeClass,
   statusDot,
   statusLabel,
@@ -35,6 +33,7 @@ import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { getErrorMessage, isConflictError, nullDisplay } from '../../utils/errorHandler';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
+import { RowActionGroup } from '../../components/management/RowActionGroup';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedContentToTop';
 import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
@@ -343,14 +342,9 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
         header: '资源名称',
         cellClassName: 'font-medium max-w-[12rem]',
         cell: (item) => (
-          <button
-            type="button"
-            className={`block w-full max-w-full truncate text-left font-medium hover:underline ${textPrimary(theme)}`}
-            title={`${item.displayName}（点击查看详情）`}
-            onClick={() => openResourceDetail(item)}
-          >
+          <span className={`block w-full max-w-full truncate font-medium ${textPrimary(theme)}`} title={item.displayName}>
             {item.displayName}
-          </button>
+          </span>
         ),
       },
       { id: 'type', header: '类型', cell: (item) => <span className={textSecondary(theme)}>{item.resourceType}</span> },
@@ -387,66 +381,70 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
         cellClassName: 'text-right',
         cellNowrap: true,
         cell: (item) => (
-          <div className={mgmtTableRowActions}>
-            <button type="button" className={mgmtTableActionGhost(theme)} onClick={() => openResourceDetail(item)}>
-              详情
-            </button>
-            {item.status === 'pending_review' && (
-              <>
-                <button
-                  type="button"
-                  className={mgmtTableActionPositive(theme)}
-                  disabled={runningActionId === `approve-${item.id}`}
-                  onClick={() => void runAction(`approve-${item.id}`, () => resourceAuditService.approve(item.id), '已通过审核，资源已进入测试中')}
-                >
-                  {runningActionId === `approve-${item.id}` ? '处理中…' : '通过'}
-                </button>
-                <button type="button" className={mgmtTableActionDanger} disabled={!!runningActionId} onClick={() => {
+          <RowActionGroup
+            theme={theme}
+            actions={[
+              {
+                key: 'detail',
+                label: '详情',
+                icon: Eye,
+                onClick: () => openResourceDetail(item),
+              },
+              {
+                key: 'approve',
+                label: runningActionId === `approve-${item.id}` ? '处理中' : '通过',
+                icon: CheckCircle2,
+                tone: 'positive',
+                hidden: item.status !== 'pending_review',
+                disabled: !!runningActionId && runningActionId !== `approve-${item.id}`,
+                onClick: () =>
+                  void runAction(
+                    `approve-${item.id}`,
+                    () => resourceAuditService.approve(item.id),
+                    '已通过审核，资源已进入测试中',
+                  ),
+              },
+              {
+                key: 'publish',
+                label: runningActionId === `publish-${item.id}` ? '发布中' : '发布',
+                icon: CheckCircle2,
+                tone: 'positive',
+                hidden: item.status !== 'testing' || !canPublishResource,
+                disabled: !!runningActionId && runningActionId !== `publish-${item.id}`,
+                onClick: () =>
+                  void runAction(
+                    `publish-${item.id}`,
+                    () => resourceAuditService.publish(item.id),
+                    '已发布，资源已进入已发布状态',
+                  ),
+              },
+              {
+                key: 'reject',
+                label: '驳回',
+                icon: XCircle,
+                tone: 'danger',
+                hidden: item.status !== 'pending_review' && item.status !== 'testing',
+                disabled: !!runningActionId,
+                onClick: () => {
                   setRejectTarget(item);
                   setRejectReason('');
                   setRejectReasonError('');
-                }}>
-                  驳回
-                </button>
-              </>
-            )}
-            {item.status === 'testing' && (
-              <>
-                {canPublishResource ? (
-                  <button
-                    type="button"
-                    className={mgmtTableActionPositive(theme)}
-                    disabled={runningActionId === `publish-${item.id}`}
-                    onClick={() => void runAction(`publish-${item.id}`, () => resourceAuditService.publish(item.id), '已发布，资源已进入已发布状态')}
-                  >
-                    {runningActionId === `publish-${item.id}` ? '发布中…' : '发布'}
-                  </button>
-                ) : (
-                  <span className={`text-xs ${textMuted(theme)}`}>无发布权限</span>
-                )}
-                <button type="button" className={mgmtTableActionDanger} disabled={!!runningActionId} onClick={() => {
-                  setRejectTarget(item);
-                  setRejectReason('');
-                  setRejectReasonError('');
-                }}>
-                  驳回
-                </button>
-              </>
-            )}
-            {item.status === 'published' && canPlatformForceDeprecate && (
-              <button
-                type="button"
-                className={mgmtTableActionDanger}
-                disabled={!!runningActionId}
-                onClick={() => {
+                },
+              },
+              {
+                key: 'force-deprecate',
+                label: '强制下架',
+                icon: Ban,
+                tone: 'danger',
+                hidden: item.status !== 'published' || !canPlatformForceDeprecate,
+                disabled: !!runningActionId,
+                onClick: () => {
                   setForceDeprecateTarget(item);
                   setForceDeprecateReason('');
-                }}
-              >
-                平台强制下架
-              </button>
-            )}
-          </div>
+                },
+              },
+            ]}
+          />
         ),
       },
     ],

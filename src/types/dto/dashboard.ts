@@ -65,6 +65,9 @@ export interface UsageStatsData {
   activeUsers: number;
   /** 来自 UsageStatsVO.breakdown.callsByResourceType */
   callsByResourceType?: { type: string; calls: number; successRate: number }[];
+  departmentUsage?: { department: string; calls: number; users: number }[];
+  ownerUsage?: { ownerUserId?: number; ownerName: string; calls: number; successRate: number; resourceCount: number }[];
+  topResources?: DataReportResourceRow[];
 }
 
 export interface DataReportResourceRow {

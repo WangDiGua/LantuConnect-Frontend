@@ -67,14 +67,11 @@
 | 目录 | 页面 slug | 页面骨架 | 主动作 | 后端能力 |
 |---|---|---|---|---|
 | `overview` | `dashboard` | KPI + Trend + Realtime | 切换时间范围 | `/dashboard/admin-overview`、`/dashboard/admin-realtime` |
-| `overview` | `health-check` | Summary + Config入口 | 查看异常项 | `/dashboard/health-summary`、`/health/*` |
 | `overview` | `usage-statistics` | 图表 + TopN + 导出区 | 切换维度 | `/dashboard/usage-stats` |
 | `overview` | `data-reports` | 报表卡片 + 明细表 | 导出/筛选 | `/dashboard/data-reports` |
 | `agent-management` | `agent-list` | Filter + Table | 新建/编辑/提审/下线 | `/resource-center/resources*` |
 | `agent-management` | `agent-register` | 分步表单 + 粘底操作栏 | 保存草稿/提交审核 | `/resource-center/resources` |
 | `agent-management` | `agent-detail` | 详情 + 版本 + 评价 | 切换版本/查看调用信息 | `/catalog/resources/{type}/{id}` |
-| `agent-management` | `agent-monitoring` | 指标图 + 日志表 | 刷新/筛选 | `/monitoring/kpis`、`/monitoring/call-logs` |
-| `agent-management` | `agent-trace` | Trace 查询 + Span 详情 | 按 traceId 检索 | `/monitoring/traces` |
 | `skill-management` | `skill-list` | Filter + Table | 新建/编辑/提审/下线 | `/resource-center/resources*` |
 | `skill-management` | `skill-register` | 分步表单 + 粘底操作栏 | 保存草稿/提交审核 | `/resource-center/resources` |
 | `mcp-management` | `mcp-server-list` | Filter + Table | 新建/编辑/提审/下线 | `/resource-center/resources*` |
@@ -98,11 +95,11 @@
 | `user-management` | `developer-applications` | 入驻申请表 + 审批弹窗 | 通过/驳回申请 | `/developer/applications*` |
 | `monitoring` | `monitoring-overview` | KPI + 告警摘要 + 热点 | 切换时间窗 | `/monitoring/kpis`、`/monitoring/alerts` |
 | `monitoring` | `call-logs` | 筛选 + 调用日志表 | 按条件检索 | `/monitoring/call-logs` |
-| `monitoring` | `performance-analysis` | 趋势图 + 维度下钻 | 切换资源/时间 | `/monitoring/performance` |
-| `monitoring` | `alert-management` | 告警表 + 处理状态 | 标记处理/筛选 | `/monitoring/alerts` |
+| `monitoring` | `performance-center` | 趋势图 + 维度下钻 + 最近调用 | 切换资源/时间 | `/monitoring/performance`、`/monitoring/call-logs` |
+| `monitoring` | `trace-center` | Trace 查询 + Span 详情 + 证据区 | 按 traceId 检索 | `/monitoring/traces`、`/monitoring/traces/{traceId}` |
+| `monitoring` | `alert-center` | 告警表 + 处理状态 | 标记处理/筛选 | `/monitoring/alerts` |
 | `monitoring` | `alert-rules` | 规则表 + 编辑弹窗 | 新增/编辑/删除/试跑 | `/monitoring/alert-rules*` |
-| `monitoring` | `health-config` | 探针配置表单 | 新增/更新/删除探针 | `/health/configs*` |
-| `monitoring` | `circuit-breaker` | 熔断列表 + 操作弹窗 | 打开/恢复熔断 | `/health/circuit-breakers*` |
+| `monitoring` | `health-governance` | 健康总览 + 治理动作 + 证据区 | 新增/更新/删除探针，打开/恢复熔断 | `/health/configs*`、`/health/circuit-breakers*` |
 | `system-config` | `tag-management` | 标签表 + 表单 | 新增/批量导入/删除 | `/tags*` |
 | `system-config` | ~~`model-config`~~（已移除） | — | — | — |
 | `system-config` | `security-settings` | 安全配置表单 | 保存安全策略 | `/system-config/security` |

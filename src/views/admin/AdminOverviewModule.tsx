@@ -1,22 +1,20 @@
-import React, { useEffect, useMemo } from 'react';
+﻿import React, { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Theme, FontSize } from '../../types';
 import { buildPath, defaultPath } from '../../constants/consoleRoutes';
 import { useUserRole } from '../../context/UserRoleContext';
 import { Overview } from '../dashboard/Overview';
-import { HealthCheckOverview } from '../dashboard/HealthCheckOverview';
 import { UsageStatsOverview } from '../dashboard/UsageStatsOverview';
 import { DataReportsPage } from '../dashboard/DataReportsPage';
 
-export type AdminOverviewTab = 'dashboard' | 'health-check' | 'usage-statistics' | 'data-reports';
+export type AdminOverviewTab = 'dashboard' | 'usage-statistics' | 'data-reports';
 
 const OVERVIEW_TAB_PERM = 'monitor:view';
 
 const ALL_TABS: { id: AdminOverviewTab; label: string; perm: string }[] = [
-  { id: 'dashboard', label: '数据概览', perm: OVERVIEW_TAB_PERM },
-  { id: 'health-check', label: '健康状态', perm: OVERVIEW_TAB_PERM },
-  { id: 'usage-statistics', label: '使用统计', perm: OVERVIEW_TAB_PERM },
-  { id: 'data-reports', label: '数据报表', perm: OVERVIEW_TAB_PERM },
+  { id: 'dashboard', label: '经营驾驶舱', perm: OVERVIEW_TAB_PERM },
+  { id: 'usage-statistics', label: '用量分析', perm: OVERVIEW_TAB_PERM },
+  { id: 'data-reports', label: '经营报表中心', perm: OVERVIEW_TAB_PERM },
 ];
 
 export interface AdminOverviewModuleProps {
@@ -56,7 +54,6 @@ export const AdminOverviewModule: React.FC<AdminOverviewModuleProps> = ({ active
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
       <div className="min-h-0 min-w-0 flex-1">
         {tab === 'dashboard' ? <Overview theme={theme} fontSize={fontSize} /> : null}
-        {tab === 'health-check' ? <HealthCheckOverview theme={theme} fontSize={fontSize} /> : null}
         {tab === 'usage-statistics' ? <UsageStatsOverview theme={theme} fontSize={fontSize} /> : null}
         {tab === 'data-reports' ? <DataReportsPage theme={theme} fontSize={fontSize} /> : null}
       </div>

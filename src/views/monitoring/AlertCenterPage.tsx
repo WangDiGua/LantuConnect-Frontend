@@ -1,19 +1,27 @@
-import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Bell,
+  BellOff,
+  CheckCircle2,
   BellRing,
   ClipboardList,
+  Eye,
+  PencilLine,
   Plus,
   RefreshCw,
   Search,
   ShieldAlert,
   SlidersHorizontal,
+  Trash2,
+  UserPlus,
   UserRoundCheck,
 } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import { userMgmtService } from '../../api/services/user-mgmt.service';
 import { monitoringService } from '../../api/services/monitoring.service';
+import { buildPath } from '../../constants/consoleRoutes';
 import {
   useAckAlert,
   useAlertDetail,
@@ -45,6 +53,7 @@ import { PageError } from '../../components/common/PageError';
 import { EmptyState } from '../../components/common/EmptyState';
 import { Pagination, SearchInput, FilterSelect, Modal, ConfirmDialog } from '../../components/common';
 import { BentoCard } from '../../components/common/BentoCard';
+import { RowActionGroup } from '../../components/management/RowActionGroup';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { nativeInputClass } from '../../utils/formFieldClasses';
@@ -243,6 +252,7 @@ function alertActionLabel(type: EventActionKind): string {
 }
 
 export const AlertCenterPage: React.FC<Props> = ({ theme, fontSize, showMessage }) => {
+  const [searchParams] = useSearchParams();
   const [tab, setTab] = useState<TabKey>('events');
   const [eventPage, setEventPage] = useState(1);
   const [rulePage, setRulePage] = useState(1);
@@ -262,7 +272,7 @@ export const AlertCenterPage: React.FC<Props> = ({ theme, fontSize, showMessage 
     enabled: 'all',
   });
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [detailId, setDetailId] = useState<string | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(() => searchParams.get('detailId'));
   const [actionModal, setActionModal] = useState<ActionModalState | null>(null);
   const [actionNote, setActionNote] = useState('');
   const [assigneeId, setAssigneeId] = useState('');
@@ -747,35 +757,67 @@ export const AlertCenterPage: React.FC<Props> = ({ theme, fontSize, showMessage 
                               <div className={`text-sm ${textSecondary(theme)}`}>{item.assigneeName || '未分配'}</div>
                             </td>
                             <td className={tableCell()}>
-                              <div className="flex flex-wrap items-center gap-2">
-                                <button type="button" className={btnGhost(theme)} onClick={() => setDetailId(item.id)}>详情</button>
-                                <button type="button" className={btnGhost(theme)} onClick={() => {
-                                  setActionModal({ type: 'ack', ids: [item.id], record: item });
-                                  setActionNote('');
-                                }}>认领</button>
-                                <button type="button" className={btnGhost(theme)} onClick={() => {
-                                  setActionModal({ type: 'assign', ids: [item.id], record: item });
-                                  setActionNote('');
-                                  setAssigneeId(item.assigneeUserId ? String(item.assigneeUserId) : '');
-                                }}>分配</button>
-                                {item.status === 'resolved' ? (
-                                  <button type="button" className={btnGhost(theme)} onClick={() => {
-                                    setActionModal({ type: 'reopen', ids: [item.id], record: item });
-                                    setActionNote('');
-                                  }}>重开</button>
-                                ) : (
-                                  <>
-                                    <button type="button" className={btnGhost(theme)} onClick={() => {
+                              <RowActionGroup
+                                theme={theme}
+                                actions={[
+                                  {
+                                    key: 'detail',
+                                    label: '详情',
+                                    icon: Eye,
+                                    onClick: () => setDetailId(item.id),
+                                  },
+                                  {
+                                    key: 'ack',
+                                    label: '认领',
+                                    icon: UserRoundCheck,
+                                    onClick: () => {
+                                      setActionModal({ type: 'ack', ids: [item.id], record: item });
+                                      setActionNote('');
+                                    },
+                                  },
+                                  {
+                                    key: 'assign',
+                                    label: '分配',
+                                    icon: UserPlus,
+                                    onClick: () => {
+                                      setActionModal({ type: 'assign', ids: [item.id], record: item });
+                                      setActionNote('');
+                                      setAssigneeId(item.assigneeUserId ? String(item.assigneeUserId) : '');
+                                    },
+                                  },
+                                  {
+                                    key: 'reopen',
+                                    label: '重开',
+                                    icon: RefreshCw,
+                                    hidden: item.status !== 'resolved',
+                                    onClick: () => {
+                                      setActionModal({ type: 'reopen', ids: [item.id], record: item });
+                                      setActionNote('');
+                                    },
+                                  },
+                                  {
+                                    key: 'silence',
+                                    label: '静默',
+                                    icon: BellOff,
+                                    hidden: item.status === 'resolved',
+                                    onClick: () => {
                                       setActionModal({ type: 'silence', ids: [item.id], record: item });
                                       setActionNote('');
-                                    }}>静默</button>
-                                    <button type="button" className={btnGhost(theme)} onClick={() => {
+                                    },
+                                  },
+                                  {
+                                    key: 'resolve',
+                                    label: '恢复',
+                                    icon: CheckCircle2,
+                                    tone: 'positive',
+                                    hidden: item.status === 'resolved',
+                                    onClick: () => {
                                       setActionModal({ type: 'resolve', ids: [item.id], record: item });
                                       setActionNote('');
-                                    }}>恢复</button>
-                                  </>
-                                )}
-                              </div>
+                                    },
+                                  },
+                                ]}
+                              />
                             </td>
                           </tr>
                         ))}
@@ -864,21 +906,36 @@ export const AlertCenterPage: React.FC<Props> = ({ theme, fontSize, showMessage 
                               <div className={`text-sm ${textSecondary(theme)}`}>{formatDateTime(rule.updatedAt)}</div>
                             </td>
                             <td className={tableCell()}>
-                              <div className="flex flex-wrap items-center gap-2">
-                                <button
-                                  type="button"
-                                  className={btnGhost(theme)}
-                                  onClick={() => {
-                                    setRuleDraft(draftFromRule(rule));
-                                    setRuleError('');
-                                    setRuleModalOpen(true);
-                                  }}
-                                >
-                                  编辑
-                                </button>
-                                <button type="button" className={btnGhost(theme)} onClick={() => { void runDryRun(rule); }}>试跑</button>
-                                <button type="button" className={btnDanger} onClick={() => setDeleteTarget(rule)}>删除</button>
-                              </div>
+                              <RowActionGroup
+                                theme={theme}
+                                actions={[
+                                  {
+                                    key: 'edit',
+                                    label: '编辑',
+                                    icon: PencilLine,
+                                    onClick: () => {
+                                      setRuleDraft(draftFromRule(rule));
+                                      setRuleError('');
+                                      setRuleModalOpen(true);
+                                    },
+                                  },
+                                  {
+                                    key: 'dry-run',
+                                    label: '试跑',
+                                    icon: RefreshCw,
+                                    onClick: () => {
+                                      void runDryRun(rule);
+                                    },
+                                  },
+                                  {
+                                    key: 'delete',
+                                    label: '删除',
+                                    icon: Trash2,
+                                    tone: 'danger',
+                                    onClick: () => setDeleteTarget(rule),
+                                  },
+                                ]}
+                              />
                             </td>
                           </tr>
                         ))}
@@ -1222,6 +1279,8 @@ export const AlertCenterPage: React.FC<Props> = ({ theme, fontSize, showMessage 
 };
 
 const AlertDetailContent: React.FC<{ theme: Theme; detail: AlertEventDetail }> = ({ theme, detail }) => {
+  const navigate = useNavigate();
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -1258,6 +1317,73 @@ const AlertDetailContent: React.FC<{ theme: Theme; detail: AlertEventDetail }> =
         </div>
       </div>
 
+      <div className="grid gap-4 xl:grid-cols-2">
+        <div className={`${bentoCard(theme)} space-y-3 p-4`}>
+          <div className={`text-sm font-semibold ${textPrimary(theme)}`}>关联 Trace</div>
+          {detail.trace ? (
+            <>
+              <div className={`text-sm ${textSecondary(theme)}`}>{detail.trace.rootDisplayName || detail.trace.rootResourceCode || detail.trace.rootOperation}</div>
+              <div className={`text-xs ${textMuted(theme)}`}>TraceId: {detail.trace.traceId}</div>
+              <div className={`text-xs ${textMuted(theme)}`}>首个错误: {detail.trace.firstErrorMessage || '--'}</div>
+              <button
+                type="button"
+                className="text-sm text-sky-600 hover:underline"
+                onClick={() => navigate(`${buildPath('admin', 'trace-center')}?traceId=${encodeURIComponent(detail.trace!.traceId)}`)}
+              >
+                打开链路追踪中心
+              </button>
+            </>
+          ) : (
+            <div className={`text-sm ${textMuted(theme)}`}>当前告警没有关联 Trace 摘要。</div>
+          )}
+        </div>
+
+        <div className={`${bentoCard(theme)} space-y-3 p-4`}>
+          <div className={`text-sm font-semibold ${textPrimary(theme)}`}>关联健康快照</div>
+          {detail.resourceHealth ? (
+            <>
+              <div className={`text-sm ${textSecondary(theme)}`}>{detail.resourceHealth.displayName || detail.resourceHealth.resourceCode || '--'}</div>
+              <div className={`text-xs ${textMuted(theme)}`}>{detail.resourceHealth.healthStatus} / {detail.resourceHealth.circuitState} / {detail.resourceHealth.callabilityState}</div>
+              <div className={`text-sm ${textSecondary(theme)}`}>{detail.resourceHealth.callabilityReason || detail.resourceHealth.lastFailureReason || '暂无额外健康说明。'}</div>
+              <button
+                type="button"
+                className="text-sm text-sky-600 hover:underline"
+                onClick={() => navigate(`${buildPath('admin', 'health-governance')}?resourceId=${detail.resourceHealth!.resourceId}`)}
+              >
+                打开健康治理中心
+              </button>
+            </>
+          ) : (
+            <div className={`text-sm ${textMuted(theme)}`}>当前告警没有关联健康快照。</div>
+          )}
+        </div>
+      </div>
+
+      <div className={`${bentoCard(theme)} space-y-3 p-4`}>
+        <div className={`text-sm font-semibold ${textPrimary(theme)}`}>关联调用日志</div>
+        {detail.relatedCallLogs.length === 0 ? (
+          <div className={`text-sm ${textMuted(theme)}`}>当前告警没有关联调用日志。</div>
+        ) : (
+          <div className="space-y-3">
+            {detail.relatedCallLogs.map((log) => (
+              <button
+                key={log.id}
+                type="button"
+                onClick={() => navigate(`${buildPath('admin', 'call-logs')}?q=${encodeURIComponent(log.traceId || log.id)}`)}
+                className="w-full rounded-2xl bg-neutral-50 px-4 py-3 text-left"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className={`text-sm font-medium ${textSecondary(theme)}`}>{log.resourceName || log.method || '--'}</div>
+                  <div className={`text-xs ${textMuted(theme)}`}>{formatDateTime(log.createdAt)}</div>
+                </div>
+                <div className={`mt-1 text-xs font-mono ${textMuted(theme)}`}>{log.method} / {log.statusCode} / {log.status}</div>
+                {log.errorMessage ? <div className={`mt-2 text-sm ${textMuted(theme)}`}>{log.errorMessage}</div> : null}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className={`${bentoCard(theme)} space-y-3 p-4`}>
         <div className={`text-sm font-semibold ${textPrimary(theme)}`}>处置时间线</div>
         {detail.actions.length === 0 ? (
@@ -1271,7 +1397,7 @@ const AlertDetailContent: React.FC<{ theme: Theme; detail: AlertEventDetail }> =
                   <div className={`text-xs ${textMuted(theme)}`}>{formatDateTime(action.createTime)}</div>
                 </div>
                 <div className={`mt-1 text-sm ${textMuted(theme)}`}>
-                  {action.operatorName || '系统'} · {action.previousStatus || '--'} → {action.nextStatus || '--'}
+                  {action.operatorName || '系统'} 路 {action.previousStatus || '--'} 到 {action.nextStatus || '--'}
                 </div>
                 {action.note ? <div className={`mt-2 text-sm ${textSecondary(theme)}`}>{action.note}</div> : null}
               </div>
@@ -1308,3 +1434,4 @@ const DetailLine: React.FC<{ theme: Theme; label: string; value: string }> = ({ 
     <div className={`mt-1 text-sm ${textSecondary(theme)}`}>{value}</div>
   </div>
 );
+

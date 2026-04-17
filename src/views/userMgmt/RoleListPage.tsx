@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, ArrowLeft, Save, Fingerprint, Loader2 } from 'lucide-react';
+import { ArrowLeft, Fingerprint, Loader2, PencilLine, Plus, Save, Trash2 } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import { PERMISSION_PRESETS } from '../../constants/userMgmt';
 import { nativeInputClass } from '../../utils/formFieldClasses';
@@ -13,7 +13,6 @@ import { userMgmtService } from '../../api/services/user-mgmt.service';
 import type { RoleRecord } from '../../types/dto/user-mgmt';
 import {
   btnPrimary, btnSecondary,
-  mgmtTableActionDanger, mgmtTableActionGhost, mgmtTableRowActions,
   textPrimary, textSecondary, textMuted,
 } from '../../utils/uiClasses';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
@@ -21,6 +20,7 @@ import { formatDateTime } from '../../utils/formatDateTime';
 import { MgmtPageShell } from './MgmtPageShell';
 import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedContentToTop';
 import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
+import { RowActionGroup } from '../../components/management/RowActionGroup';
 
 interface RoleListPageProps { theme: Theme; fontSize: FontSize; breadcrumbBase: string[]; }
 type ViewMode = 'list' | 'create' | 'edit';
@@ -154,26 +154,28 @@ export const RoleListPage: React.FC<RoleListPageProps> = ({ theme, fontSize, bre
         cellClassName: 'text-right',
         cellNowrap: true,
         cell: (r) => (
-          <div className={mgmtTableRowActions}>
-            <button
-              type="button"
-              onClick={() => openEdit(r)}
-              disabled={r.isSystem}
-              className={`${mgmtTableActionGhost(theme)} disabled:opacity-40 disabled:pointer-events-none`}
-              aria-label={r.isSystem ? '系统内置角色不可编辑' : `编辑角色 ${r.name}`}
-            >
-              编辑
-            </button>
-            <button
-              type="button"
-              onClick={() => setDeleteTarget(r.id)}
-              disabled={r.isSystem}
-              className={`${mgmtTableActionDanger} disabled:opacity-40 disabled:pointer-events-none`}
-              aria-label={r.isSystem ? '系统内置角色不可删除' : `删除角色 ${r.name}`}
-            >
-              删除
-            </button>
-          </div>
+          <RowActionGroup
+            theme={theme}
+            actions={[
+              {
+                key: 'edit',
+                label: '编辑',
+                icon: PencilLine,
+                disabled: r.isSystem,
+                onClick: () => openEdit(r),
+                ariaLabel: r.isSystem ? '系统角色不支持编辑' : `编辑角色 ${r.name}`,
+              },
+              {
+                key: 'delete',
+                label: '删除',
+                icon: Trash2,
+                tone: 'danger',
+                disabled: r.isSystem,
+                onClick: () => setDeleteTarget(r.id),
+                ariaLabel: r.isSystem ? '系统角色不支持删除' : `删除角色 ${r.name}`,
+              },
+            ]}
+          />
         ),
       },
     ],
@@ -330,3 +332,5 @@ export const RoleListPage: React.FC<RoleListPageProps> = ({ theme, fontSize, bre
     </>
   );
 };
+
+

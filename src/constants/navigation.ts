@@ -1,4 +1,4 @@
-import {
+﻿import {
   LayoutDashboard,
   LayoutGrid,
   Users,
@@ -41,7 +41,6 @@ import {
   Compass,
   Braces,
   ScrollText,
-  HeartPulse,
   GitBranch,
   Gauge,
 } from 'lucide-react';
@@ -129,10 +128,9 @@ export const ADMIN_OVERVIEW_GROUPS: NavSubGroup[] = [
   {
     title: '运营总览',
     items: [
-      { id: 'dashboard', icon: LayoutDashboard, label: '数据概览' },
-      { id: 'health-check', icon: HeartPulse, label: '健康状态' },
-      { id: 'usage-statistics', icon: BarChart3, label: '使用统计' },
-      { id: 'data-reports', icon: ScrollText, label: '数据报表' },
+      { id: 'dashboard', icon: LayoutDashboard, label: '经营驾驶舱' },
+      { id: 'usage-statistics', icon: BarChart3, label: '用量分析' },
+      { id: 'data-reports', icon: ScrollText, label: '经营报表中心' },
     ],
   },
 ];
@@ -157,13 +155,14 @@ export const ADMIN_USER_MANAGEMENT_GROUPS: NavSubGroup[] = [
 
 export const ADMIN_MONITORING_GROUPS: NavSubGroup[] = [
   {
-    title: '运维',
+    title: '监控运维',
     items: [
-      { id: 'monitoring-overview', icon: LayoutDashboard, label: '监控概览' },
-      { id: 'call-logs', icon: FileText, label: '调用日志' },
-      { id: 'trace-center', icon: GitBranch, label: '链路追踪' },
-      { id: 'alert-center', icon: Bell, label: '告警中心' },
-      { id: 'health-governance', icon: Wrench, label: '健康治理' },
+      { id: 'monitoring-overview', icon: LayoutDashboard, label: '实时态势' },
+      { id: 'performance-center', icon: BarChart3, label: '性能分析中心' },
+      { id: 'call-logs', icon: FileText, label: '调用日志中心' },
+      { id: 'trace-center', icon: GitBranch, label: '链路追踪中心' },
+      { id: 'alert-center', icon: Bell, label: '告警处置中心' },
+      { id: 'health-governance', icon: Wrench, label: '健康治理中心' },
     ],
   },
 ];
@@ -337,3 +336,8 @@ export const MONITORING_GROUPS = ADMIN_MONITORING_GROUPS;
 export const SYSTEM_CONFIG_GROUPS = ADMIN_SYSTEM_CONFIG_GROUPS;
 export const USER_MANAGEMENT_GROUPS = ADMIN_USER_MANAGEMENT_GROUPS;
 export const MODEL_SERVICE_GROUPS = [] as any[];
+
+
+
+
+

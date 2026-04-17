@@ -16,6 +16,7 @@ export const monitoringKeys = {
   traces: (params?: TraceQueryParams) => ['monitoring', 'traces', params] as const,
   traceDetail: (traceId?: string) => ['monitoring', 'traceDetail', traceId ?? ''] as const,
   callLogs: (params?: CallLogListParams) => ['monitoring', 'callLogs', params] as const,
+  callLogDetail: (id?: string) => ['monitoring', 'callLogDetail', id ?? ''] as const,
   alerts: (params?: AlertListParams) => ['monitoring', 'alerts', params] as const,
   alertSummary: ['monitoring', 'alertSummary'] as const,
   alertDetail: (id?: string) => ['monitoring', 'alertDetail', id ?? ''] as const,
@@ -80,6 +81,14 @@ export function useCallLogs(params?: CallLogListParams) {
   return useQuery({
     queryKey: monitoringKeys.callLogs(params),
     queryFn: () => monitoringService.listCallLogs(params),
+  });
+}
+
+export function useCallLogDetail(id?: string) {
+  return useQuery({
+    queryKey: monitoringKeys.callLogDetail(id),
+    queryFn: () => monitoringService.getCallLogDetail(id!),
+    enabled: Boolean(id),
   });
 }
 

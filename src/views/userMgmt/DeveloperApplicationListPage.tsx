@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Loader2, ClipboardList } from 'lucide-react';
+import { CheckCircle2, ClipboardList, Loader2, XCircle } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from './MgmtPageShell';
 import { developerApplicationService } from '../../api/services/developer-application.service';
@@ -23,9 +23,7 @@ import {
   btnGhost,
   fieldErrorText,
   inputBaseError,
-  mgmtTableActionDanger,
   mgmtTableActionPositive,
-  mgmtTableRowActions,
   textPrimary,
   textSecondary,
   textMuted,
@@ -35,6 +33,7 @@ import { getErrorMessage, isConflictError } from '../../utils/errorHandler';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
 import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 import { getNotificationType, isNotificationMessage, subscribeRealtimePush } from '../../lib/realtimePush';
+import { RowActionGroup } from '../../components/management/RowActionGroup';
 
 const ONBOARDING_NOTIFICATION_TYPES = new Set([
   'onboarding_submitted',
@@ -326,22 +325,25 @@ export const DeveloperApplicationListPage: React.FC<Props> = ({ theme, fontSize,
         cellNowrap: true,
         cell: (app) =>
           app.status === 'pending' ? (
-            <div className={`${mgmtTableRowActions} h-8`}>
-              <button
-                type="button"
-                className={mgmtTableActionPositive(theme)}
-                onClick={() => setActionTarget({ app, action: 'approve' })}
-              >
-                通过
-              </button>
-              <button
-                type="button"
-                className={mgmtTableActionDanger}
-                onClick={() => setActionTarget({ app, action: 'reject' })}
-              >
-                驳回
-              </button>
-            </div>
+            <RowActionGroup
+              theme={theme}
+              actions={[
+                {
+                  key: 'approve',
+                  label: '通过',
+                  icon: CheckCircle2,
+                  tone: 'positive',
+                  onClick: () => setActionTarget({ app, action: "approve" }),
+                },
+                {
+                  key: 'reject',
+                  label: '驳回',
+                  icon: XCircle,
+                  tone: 'danger',
+                  onClick: () => setActionTarget({ app, action: "reject" }),
+                },
+              ]}
+            />
           ) : (
             <span className={`text-xs ${textMuted(theme)}`}>—</span>
           ),
@@ -554,3 +556,5 @@ export const DeveloperApplicationListPage: React.FC<Props> = ({ theme, fontSize,
     </MgmtPageShell>
   );
 };
+
+

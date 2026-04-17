@@ -2,6 +2,7 @@ import { http } from '../../lib/http';
 import type { PaginationParams } from '../../types/api';
 import { extractArray, normalizePaginated } from '../../utils/normalizeApiPayload';
 import type {
+  AlertEvidence,
   AlertBatchActionRequest,
   AlertEventAction,
   AlertEventDetail,
@@ -12,6 +13,8 @@ import type {
   AlertRuleDryRunResult,
   AlertRuleMetricOption,
   AlertRuleScopeOptionResponse,
+  CallLogDetail,
+  CallLogEvidence,
   CallLogEntry,
   CallSummaryByResourceRow,
   CreateAlertRulePayload,
@@ -25,8 +28,10 @@ import type {
   PerformanceWindow,
   PerformanceResourceLeaderboardItem,
   PerformanceSlowMethodItem,
+  ResourceHealthEvidence,
   TraceDetail,
   TraceListItem,
+  TraceSummary,
   TraceQueryParams,
   TraceRootCause,
   TraceSpanDetail,
@@ -240,6 +245,65 @@ function mapAlertRecord(raw: unknown): AlertRecord {
   };
 }
 
+function mapAlertEvidence(raw: unknown): AlertEvidence {
+  const obj = asRecord(raw);
+  return {
+    id: String(obj.id ?? ''),
+    ruleId: String(obj.ruleId ?? obj.rule_id ?? ''),
+    ruleName: String(obj.ruleName ?? obj.rule_name ?? ''),
+    severity: mapSeverity(obj.severity),
+    status: mapStatus(obj.status),
+    message: String(obj.message ?? ''),
+    firedAt: String(obj.firedAt ?? obj.fired_at ?? ''),
+  };
+}
+
+function mapCallLogEvidence(raw: unknown): CallLogEvidence {
+  const obj = asRecord(raw);
+  return {
+    id: String(obj.id ?? ''),
+    traceId: String(obj.traceId ?? obj.trace_id ?? ''),
+    resourceType: obj.resourceType == null && obj.resource_type == null
+      ? undefined
+      : String(obj.resourceType ?? obj.resource_type ?? '').toLowerCase(),
+    resourceName: String(obj.resourceName ?? obj.resource_name ?? ''),
+    method: String(obj.method ?? ''),
+    status: mapCallLogStatus(obj.status),
+    statusCode: parseNum(obj.statusCode ?? obj.status_code),
+    latencyMs: parseNum(obj.latencyMs ?? obj.latency_ms),
+    errorMessage: obj.errorMessage == null && obj.error_message == null
+      ? undefined
+      : String(obj.errorMessage ?? obj.error_message ?? ''),
+    createdAt: String(obj.createdAt ?? obj.createTime ?? obj.create_time ?? ''),
+  };
+}
+
+function mapResourceHealthEvidence(raw: unknown): ResourceHealthEvidence | undefined {
+  const obj = asRecord(raw);
+  const resourceId = obj.resourceId ?? obj.resource_id;
+  if (resourceId == null) {
+    return undefined;
+  }
+  return {
+    resourceId: parseNum(resourceId),
+    resourceType: String(obj.resourceType ?? obj.resource_type ?? 'unknown').toLowerCase(),
+    resourceCode: String(obj.resourceCode ?? obj.resource_code ?? ''),
+    displayName: String(obj.displayName ?? obj.display_name ?? ''),
+    healthStatus: String(obj.healthStatus ?? obj.health_status ?? ''),
+    circuitState: String(obj.circuitState ?? obj.circuit_state ?? ''),
+    callabilityState: String(obj.callabilityState ?? obj.callability_state ?? ''),
+    callabilityReason: obj.callabilityReason == null && obj.callability_reason == null
+      ? undefined
+      : String(obj.callabilityReason ?? obj.callability_reason ?? ''),
+    lastFailureReason: obj.lastFailureReason == null && obj.last_failure_reason == null
+      ? undefined
+      : String(obj.lastFailureReason ?? obj.last_failure_reason ?? ''),
+    lastFailureAt: obj.lastFailureAt == null && obj.last_failure_at == null
+      ? undefined
+      : String(obj.lastFailureAt ?? obj.last_failure_at ?? ''),
+  };
+}
+
 function mapAlertDetail(raw: unknown): AlertEventDetail {
   const obj = asRecord(raw);
   return {
@@ -249,6 +313,10 @@ function mapAlertDetail(raw: unknown): AlertEventDetail {
     ruleSnapshot: asRecord(obj.ruleSnapshot ?? obj.rule_snapshot),
     actions: extractArray(obj.actions).map(mapAlertAction),
     notifications: extractArray(obj.notifications).map(mapAlertNotification),
+    traceId: obj.traceId == null && obj.trace_id == null ? undefined : String(obj.traceId ?? obj.trace_id ?? ''),
+    trace: obj.trace == null ? undefined : mapTraceListItem(obj.trace) as TraceSummary,
+    resourceHealth: mapResourceHealthEvidence(obj.resourceHealth ?? obj.resource_health),
+    relatedCallLogs: extractArray(obj.relatedCallLogs ?? obj.related_call_logs).map(mapCallLogEvidence),
   };
 }
 
@@ -385,6 +453,18 @@ function mapTraceDetail(raw: unknown): TraceDetail {
     rootCause: mapTraceRootCause(obj.rootCause ?? obj.root_cause),
     spans: extractArray(obj.spans).map(mapTraceSpanDetail),
     callLogs: extractArray(obj.callLogs ?? obj.call_logs).map(mapCallLogEntry),
+    relatedAlerts: extractArray(obj.relatedAlerts ?? obj.related_alerts).map(mapAlertEvidence),
+    resourceHealth: mapResourceHealthEvidence(obj.resourceHealth ?? obj.resource_health),
+  };
+}
+
+function mapCallLogDetail(raw: unknown): CallLogDetail {
+  const obj = asRecord(raw);
+  return {
+    log: mapCallLogEntry(obj.log),
+    trace: obj.trace == null ? undefined : mapTraceListItem(obj.trace) as TraceSummary,
+    relatedAlerts: extractArray(obj.relatedAlerts ?? obj.related_alerts).map(mapAlertEvidence),
+    resourceHealth: mapResourceHealthEvidence(obj.resourceHealth ?? obj.resource_health),
   };
 }
 
@@ -491,6 +571,14 @@ function mapPerformanceAnalysis(raw: unknown): PerformanceAnalysis {
     resourceLeaderboard: extractArray(obj.resourceLeaderboard ?? obj.resource_leaderboard)
       .map(mapPerformanceResourceLeaderboardItem),
     slowMethods: extractArray(obj.slowMethods ?? obj.slow_methods).map(mapPerformanceSlowMethodItem),
+    compareWindow: obj.compareWindow == null && obj.compare_window == null
+      ? undefined
+      : String(obj.compareWindow ?? obj.compare_window ?? ''),
+    compareSummary: obj.compareSummary == null && obj.compare_summary == null
+      ? undefined
+      : mapPerformanceSummary(obj.compareSummary ?? obj.compare_summary),
+    methodLeaderboard: extractArray(obj.methodLeaderboard ?? obj.method_leaderboard)
+      .map(mapPerformanceSlowMethodItem),
   };
 }
 
@@ -608,6 +696,11 @@ export const monitoringService = {
   listCallLogs: async (params?: CallLogListParams) => {
     const raw = await http.get<unknown>('/monitoring/call-logs', { params });
     return normalizePaginated<CallLogEntry>(raw, mapCallLogEntry);
+  },
+
+  getCallLogDetail: async (id: string) => {
+    const raw = await http.get<unknown>(`/monitoring/call-logs/${id}`);
+    return mapCallLogDetail(raw);
   },
 
   listAlerts: async (params?: AlertListParams) => {

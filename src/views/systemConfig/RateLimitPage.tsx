@@ -11,7 +11,7 @@ import {
   RATE_LIMIT_WINDOW_MS,
 } from '../../utils/numericFormPresets';
 import { TOOLBAR_ROW_LIST, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
-import { Search, Plus, Save, Sliders, Loader2 } from 'lucide-react';
+import { Loader2, PencilLine, Plus, Save, Search, Sliders, Trash2 } from 'lucide-react';
 import { useRateLimits, useCreateRateLimit, useUpdateRateLimit, useDeleteRateLimit } from '../../hooks/queries/useSystemConfig';
 import { ContentLoader } from '../../components/common/ContentLoader';
 import { PageError } from '../../components/common/PageError';
@@ -29,13 +29,12 @@ import {
   iconMuted,
   inputBaseError,
   mgmtTableActionDanger,
-  mgmtTableActionGhost,
-  mgmtTableRowActions,
   textPrimary,
   textSecondary,
   textMuted,
 } from '../../utils/uiClasses';
 import type { RateLimitRule, CreateRateLimitDTO } from '../../types/dto/system-config';
+import { RowActionGroup } from '../../components/management/RowActionGroup';
 
 interface RateLimitPageProps {
   theme: Theme;
@@ -471,14 +470,24 @@ export const RateLimitPage: React.FC<RateLimitPageProps> = ({
                   cellClassName: 'text-right align-middle',
                   cellNowrap: true,
                   cell: (r) => (
-                    <div className={mgmtTableRowActions}>
-                      <button type="button" onClick={() => startEdit(r)} className={mgmtTableActionGhost(theme)}>
-                        编辑
-                      </button>
-                      <button type="button" onClick={() => setDeleteTarget(r)} className={mgmtTableActionDanger}>
-                        删除
-                      </button>
-                    </div>
+                    <RowActionGroup
+                      theme={theme}
+                      actions={[
+                        {
+                          key: 'edit',
+                          label: '编辑',
+                          icon: PencilLine,
+                          onClick: () => startEdit(r),
+                        },
+                        {
+                          key: 'delete',
+                          label: '删除',
+                          icon: Trash2,
+                          tone: 'danger',
+                          onClick: () => setDeleteTarget(r),
+                        },
+                      ]}
+                    />
                   ),
                 },
               ];
@@ -552,3 +561,5 @@ export const RateLimitPage: React.FC<RateLimitPageProps> = ({
     </MgmtPageShell>
   );
 };
+
+

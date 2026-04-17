@@ -90,10 +90,10 @@
 
 | sidebarId | 包含的 `page` slug（真值见 `ADMIN_SIDEBAR_PAGES`） |
 |-----------|-------------------|
-| `overview` | `dashboard`, `health-check`, `usage-statistics`, `data-reports` |
+| `overview` | `dashboard`, `usage-statistics`, `data-reports` |
 | `user-management` | `user-list`, `role-management`, `organization` |
 | `admin-workspace` | 与 `USER_SIDEBAR_PAGES.workspace` 一致，并含 `agent-detail`、`resource-audit` 及旧 `*-audit`（个人工作台：我的资源中心、资源审核等） |
-| `monitoring` | `monitoring-overview`, `call-logs`, `trace-center`, `alert-center`, `health-governance` |
+| `monitoring` | `monitoring-overview`, `performance-center`, `call-logs`, `trace-center`, `alert-center`, `health-governance` |
 | `system-config` | `tag-management`, `system-params`, `security-settings`, `network-config`, `rate-limit-policy`, `access-control`, `audit-log`, `sensitive-words`, `announcements` |
 | `developer-portal` | `developer-docs`, `developer-tools`, `developer-statistics` |
 
@@ -128,7 +128,6 @@
 | page slug | 渲染组件（概要） |
 |-----------|------------------|
 | `dashboard` | `Overview` |
-| `health-check` | `HealthCheckOverview` |
 | `usage-statistics` | `UsageStatsOverview` |
 | `data-reports` | `DataReportsPage` |
 | `workspace` / `resource-center` / `my-agents-pub` / `usage-*` / `my-favorites` / `resource-market` / `my-publish-*` 等 | 与使用端工作台相同组件族（`UserWorkspaceOverview`、`ResourceCenterManagementPage`…） |
@@ -143,7 +142,7 @@
 | `my-api-keys` | `UserApiKeysIntegrationHubPage`（管理员额外包含“平台密钥管理”标签；旧 `api-key-management` / `token-management` 自动跳转到 `my-api-keys?tab=platform`） |
 | `grant-applications` | `GrantApplicationListPage` |
 | `developer-applications` | `DeveloperApplicationListPage` |
-| `monitoring-overview` / `call-logs` / `trace-center` / `alert-center` / `health-governance` | `MonitoringModule` |
+| `monitoring-overview` / `performance-center` / `call-logs` / `trace-center` / `alert-center` / `health-governance` | `MonitoringModule` |
 | `category-management` / `tag-management` / … / `announcements` | `SystemConfigModule`（注：`category-management` 会先在 URL 层归一到 `tag-management`；~~`model-config`~~ 已移除） |
 | 其它已知 slug | `PlaceholderView` |
 

@@ -1,9 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Eye, PencilLine, RefreshCcw, Search, ShieldCheck } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { healthService } from '../../api/services/health.service';
 import type { ResourceHealthSnapshotVO } from '../../types/dto/resource-center';
+import { buildPath } from '../../constants/consoleRoutes';
 import { LantuSelect } from '../../components/common/LantuSelect';
 import { TOOLBAR_ROW_LIST, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
 import { nativeInputClass } from '../../utils/formFieldClasses';
@@ -12,7 +14,6 @@ import {
   btnSecondary,
   cardHeading,
   iconMuted,
-  mgmtTableActionGhost,
   pageBlockStack,
   tableBodyRow,
   tableCell,
@@ -24,6 +25,7 @@ import {
 import { BentoCard } from '../../components/common/BentoCard';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { Modal } from '../../components/common/Modal';
+import { RowActionGroup } from '../../components/management/RowActionGroup';
 import { resourceTypeLabel } from '../../constants/resourceTypes';
 import { formatDateTime } from '../../utils/formatDateTime';
 import {
@@ -165,6 +167,8 @@ function buildDraft(item: ResourceHealthSnapshotVO): PolicyDraft {
 export const HealthGovernancePage: React.FC<Props> = ({ theme, fontSize, showMessage }) => {
   const isDark = theme === 'dark';
   const inputCls = `${nativeInputClass(theme)} ${INPUT_FOCUS}`;
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [items, setItems] = useState<ResourceHealthSnapshotVO[]>([]);
   const [loading, setLoading] = useState(true);
@@ -173,7 +177,12 @@ export const HealthGovernancePage: React.FC<Props> = ({ theme, fontSize, showMes
   const [healthFilter, setHealthFilter] = useState<HealthFilter>('all');
   const [callabilityFilter, setCallabilityFilter] = useState<CallabilityFilter>('all');
   const [strategyFilter, setStrategyFilter] = useState<StrategyFilter>('all');
-  const [detailResourceId, setDetailResourceId] = useState<number | null>(null);
+  const [detailResourceId, setDetailResourceId] = useState<number | null>(() => {
+    const raw = Number(searchParams.get('resourceId') ?? '');
+    return Number.isFinite(raw) && raw > 0 ? raw : null;
+  });
+  const [detailSnapshot, setDetailSnapshot] = useState<ResourceHealthSnapshotVO | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [policyResourceId, setPolicyResourceId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [actionLoading, setActionLoading] = useState<'probe' | 'break' | 'recover' | null>(null);
@@ -212,12 +221,14 @@ export const HealthGovernancePage: React.FC<Props> = ({ theme, fontSize, showMes
       || strategyBrief(item).toLowerCase().includes(term));
   }, [items, query]);
 
-  const detailItem = useMemo(
-    () => filtered.find((item) => item.resourceId === detailResourceId)
+  const detailItem = useMemo(() => {
+    if (detailSnapshot && detailSnapshot.resourceId === detailResourceId) {
+      return detailSnapshot;
+    }
+    return filtered.find((item) => item.resourceId === detailResourceId)
       ?? items.find((item) => item.resourceId === detailResourceId)
-      ?? null,
-    [detailResourceId, filtered, items],
-  );
+      ?? null;
+  }, [detailResourceId, detailSnapshot, filtered, items]);
 
   const policyItem = useMemo(
     () => items.find((item) => item.resourceId === policyResourceId) ?? null,
@@ -242,8 +253,28 @@ export const HealthGovernancePage: React.FC<Props> = ({ theme, fontSize, showMes
 
   const closeDetail = () => {
     setDetailResourceId(null);
+    setDetailSnapshot(null);
     setEvidenceViewer(null);
   };
+
+  useEffect(() => {
+    if (!detailResourceId) {
+      setDetailSnapshot(null);
+      return;
+    }
+    setDetailLoading(true);
+    healthService
+      .getResourceHealth(detailResourceId)
+      .then((snapshot) => {
+        setDetailSnapshot(snapshot);
+        updateSnapshot(snapshot);
+      })
+      .catch((error) => {
+        console.error(error);
+        showMessage('加载健康详情失败', 'error');
+      })
+      .finally(() => setDetailLoading(false));
+  }, [detailResourceId, showMessage]);
 
   const savePolicy = async () => {
     if (!policyItem) return;
@@ -458,24 +489,23 @@ export const HealthGovernancePage: React.FC<Props> = ({ theme, fontSize, showMes
                           <div className="mt-1">{item.probeLatencyMs != null ? `${item.probeLatencyMs}ms` : '--'}</div>
                         </td>
                         <td className={tableCell()}>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <button
-                              type="button"
-                              className={mgmtTableActionGhost(theme)}
-                              onClick={() => setDetailResourceId(item.resourceId)}
-                            >
-                              <Eye size={14} />
-                              详情
-                            </button>
-                            <button
-                              type="button"
-                              className={mgmtTableActionGhost(theme)}
-                              onClick={() => openPolicyEditor(item)}
-                            >
-                              <PencilLine size={14} />
-                              策略
-                            </button>
-                          </div>
+                          <RowActionGroup
+                            theme={theme}
+                            actions={[
+                              {
+                                key: 'detail',
+                                label: '详情',
+                                icon: Eye,
+                                onClick: () => setDetailResourceId(item.resourceId),
+                              },
+                              {
+                                key: 'policy',
+                                label: '策略',
+                                icon: PencilLine,
+                                onClick: () => openPolicyEditor(item),
+                              },
+                            ]}
+                          />
                         </td>
                       </tr>
                     ))}
@@ -496,6 +526,11 @@ export const HealthGovernancePage: React.FC<Props> = ({ theme, fontSize, showMes
       >
         {detailItem ? (
           <div className="space-y-4">
+            {detailLoading ? (
+              <div className={`rounded-[1.1rem] border px-4 py-3 text-sm ${isDark ? 'border-white/10 bg-white/[0.03] text-slate-300' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>
+                正在同步这条资源的最新健康快照与证据链…
+              </div>
+            ) : null}
             <BentoCard theme={theme} padding="sm">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
@@ -648,6 +683,95 @@ export const HealthGovernancePage: React.FC<Props> = ({ theme, fontSize, showMes
                 </div>
               )}
             </BentoCard>
+
+            <BentoCard theme={theme} padding="sm">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className={cardHeading(theme)}>最近失败证据</div>
+                  <div className={`mt-1 text-xs ${textSecondary(theme)}`}>
+                    从健康治理直接回到调用日志、链路追踪和告警处置，形成治理闭环。
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className={btnSecondary(theme)}
+                  onClick={() => navigate(`${buildPath('admin', 'call-logs')}?resourceId=${detailItem.resourceId}`)}
+                >
+                  查看该资源调用日志
+                </button>
+              </div>
+
+              <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
+                <div className={`rounded-xl border p-4 ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200 bg-slate-50'}`}>
+                  <div className={`text-sm font-semibold ${textPrimary(theme)}`}>最近调用</div>
+                  {(detailItem.recentCallLogs?.length ?? 0) === 0 ? (
+                    <div className={`mt-3 text-xs ${textMuted(theme)}`}>暂无最近调用证据。</div>
+                  ) : (
+                    <div className="mt-3 space-y-3">
+                      {detailItem.recentCallLogs?.map((entry) => (
+                        <button
+                          key={`${entry.id}-${entry.createdAt}`}
+                          type="button"
+                          onClick={() => navigate(`${buildPath('admin', 'call-logs')}?q=${encodeURIComponent(entry.traceId || entry.id)}`)}
+                          className={`w-full rounded-xl border px-3 py-3 text-left ${isDark ? 'border-white/10 bg-slate-950/40' : 'border-slate-200 bg-white'}`}
+                        >
+                          <div className={`text-sm font-medium ${textPrimary(theme)}`}>{entry.resourceName || detailItem.displayName}</div>
+                          <div className={`mt-1 text-xs ${textMuted(theme)}`}>{entry.method || '--'} · {formatDateTime(entry.createdAt)}</div>
+                          <div className={`mt-2 text-xs ${textSecondary(theme)}`}>{entry.statusCode} · {entry.latencyMs}ms</div>
+                          {entry.errorMessage ? <div className={`mt-2 text-xs ${textSecondary(theme)}`}>{entry.errorMessage}</div> : null}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className={`rounded-xl border p-4 ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200 bg-slate-50'}`}>
+                  <div className={`text-sm font-semibold ${textPrimary(theme)}`}>最近 Trace</div>
+                  {(detailItem.recentTraces?.length ?? 0) === 0 ? (
+                    <div className={`mt-3 text-xs ${textMuted(theme)}`}>暂无最近链路证据。</div>
+                  ) : (
+                    <div className="mt-3 space-y-3">
+                      {detailItem.recentTraces?.map((entry) => (
+                        <button
+                          key={entry.traceId}
+                          type="button"
+                          onClick={() => navigate(`${buildPath('admin', 'trace-center')}?traceId=${encodeURIComponent(entry.traceId)}`)}
+                          className={`w-full rounded-xl border px-3 py-3 text-left ${isDark ? 'border-white/10 bg-slate-950/40' : 'border-slate-200 bg-white'}`}
+                        >
+                          <div className={`text-sm font-medium ${textPrimary(theme)}`}>{entry.rootDisplayName || entry.rootResourceCode || entry.rootOperation}</div>
+                          <div className={`mt-1 text-xs font-mono ${textMuted(theme)}`}>{entry.traceId}</div>
+                          <div className={`mt-2 text-xs ${textSecondary(theme)}`}>{entry.spanCount} spans · {entry.durationMs}ms</div>
+                          {entry.firstErrorMessage ? <div className={`mt-2 text-xs ${textSecondary(theme)}`}>{entry.firstErrorMessage}</div> : null}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className={`rounded-xl border p-4 ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200 bg-slate-50'}`}>
+                  <div className={`text-sm font-semibold ${textPrimary(theme)}`}>最近告警</div>
+                  {(detailItem.recentAlerts?.length ?? 0) === 0 ? (
+                    <div className={`mt-3 text-xs ${textMuted(theme)}`}>暂无最近告警证据。</div>
+                  ) : (
+                    <div className="mt-3 space-y-3">
+                      {detailItem.recentAlerts?.map((entry) => (
+                        <button
+                          key={entry.id}
+                          type="button"
+                          onClick={() => navigate(`${buildPath('admin', 'alert-center')}?detailId=${encodeURIComponent(entry.id)}`)}
+                          className={`w-full rounded-xl border px-3 py-3 text-left ${isDark ? 'border-white/10 bg-slate-950/40' : 'border-slate-200 bg-white'}`}
+                        >
+                          <div className={`text-sm font-medium ${textPrimary(theme)}`}>{entry.ruleName || '--'}</div>
+                          <div className={`mt-1 text-xs ${textMuted(theme)}`}>{entry.severity} / {entry.status}</div>
+                          <div className={`mt-2 text-xs ${textSecondary(theme)}`}>{entry.message || '--'}</div>
+                          <div className={`mt-2 text-xs ${textMuted(theme)}`}>{formatDateTime(entry.firedAt)}</div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </BentoCard>
           </div>
         ) : null}
       </Modal>
@@ -730,3 +854,4 @@ export const HealthGovernancePage: React.FC<Props> = ({ theme, fontSize, showMes
     </MgmtPageShell>
   );
 };
+

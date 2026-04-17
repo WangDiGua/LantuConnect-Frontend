@@ -42,6 +42,9 @@ export const UsageStatsOverview: React.FC<Props> = ({ theme }) => {
 
   const points = data?.points ?? [];
   const maxDailyCall = Math.max(...points.map(d => d.calls), 1);
+  const departmentUsage = data?.departmentUsage ?? [];
+  const ownerUsage = data?.ownerUsage ?? [];
+  const topResources = data?.topResources ?? [];
 
   const kpis: { label: string; value: string; icon: React.ReactNode; glow: 'indigo' | 'emerald' | 'amber' }[] = [
     { label: '今日调用', value: points.length > 0 ? points[points.length - 1].calls.toLocaleString() : '0', icon: <Zap size={16} />, glow: 'indigo' },
@@ -161,6 +164,132 @@ export const UsageStatsOverview: React.FC<Props> = ({ theme }) => {
                 </BentoCard>
               </motion.div>
             )}
+
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+              {departmentUsage.length > 0 ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.22 }}
+                >
+                  <BentoCard theme={theme} padding="sm" className="!p-0 overflow-hidden">
+                    <div className={`px-5 py-3.5 border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+                      <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400">部门用量分布</h3>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-sm">
+                        <thead>
+                          <tr>
+                            <th className={tableHeadCell(theme)}>部门</th>
+                            <th className={`${tableHeadCell(theme)} text-right`}>调用</th>
+                            <th className={`${tableHeadCell(theme)} text-right`}>用户</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {departmentUsage.slice(0, 8).map((row, i) => (
+                            <tr key={`${row.department}-${i}`} className={tableBodyRow(theme, i)}>
+                              <td className={tableCell()}>
+                                <span className={`font-medium ${textPrimary(theme)}`}>{row.department || '--'}</span>
+                              </td>
+                              <td className={`${tableCell()} text-right tabular-nums ${textSecondary(theme)}`}>
+                                {row.calls.toLocaleString()}
+                              </td>
+                              <td className={`${tableCell()} text-right tabular-nums ${textMuted(theme)}`}>
+                                {row.users.toLocaleString()}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </BentoCard>
+                </motion.div>
+              ) : null}
+
+              {ownerUsage.length > 0 ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.24 }}
+                >
+                  <BentoCard theme={theme} padding="sm" className="!p-0 overflow-hidden">
+                    <div className={`px-5 py-3.5 border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+                      <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Owner 成效排行</h3>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-sm">
+                        <thead>
+                          <tr>
+                            <th className={tableHeadCell(theme)}>Owner</th>
+                            <th className={`${tableHeadCell(theme)} text-right`}>资源数</th>
+                            <th className={`${tableHeadCell(theme)} text-right`}>成功率</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {ownerUsage.slice(0, 8).map((row, i) => (
+                            <tr key={`${row.ownerName}-${i}`} className={tableBodyRow(theme, i)}>
+                              <td className={tableCell()}>
+                                <div className={`font-medium ${textPrimary(theme)}`}>{row.ownerName || '--'}</div>
+                                <div className={`mt-1 text-xs ${textMuted(theme)}`}>{row.calls.toLocaleString()} 次调用</div>
+                              </td>
+                              <td className={`${tableCell()} text-right tabular-nums ${textSecondary(theme)}`}>
+                                {row.resourceCount.toLocaleString()}
+                              </td>
+                              <td className={`${tableCell()} text-right tabular-nums ${textMuted(theme)}`}>
+                                {row.successRate.toFixed(1)}%
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </BentoCard>
+                </motion.div>
+              ) : null}
+
+              {topResources.length > 0 ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.26 }}
+                >
+                  <BentoCard theme={theme} padding="sm" className="!p-0 overflow-hidden">
+                    <div className={`px-5 py-3.5 border-b ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
+                      <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400">热门资源 Top</h3>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-sm">
+                        <thead>
+                          <tr>
+                            <th className={tableHeadCell(theme)}>资源</th>
+                            <th className={`${tableHeadCell(theme)} text-right`}>调用</th>
+                            <th className={`${tableHeadCell(theme)} text-right`}>成功率</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {topResources.slice(0, 8).map((row, i) => (
+                            <tr key={`${row.name}-${i}`} className={tableBodyRow(theme, i)}>
+                              <td className={tableCell()}>
+                                <div className={`font-medium ${textPrimary(theme)}`}>{row.name || '--'}</div>
+                                <div className={`mt-1 text-xs ${textMuted(theme)}`}>
+                                  {row.resourceType ? (RESOURCE_TYPE_LABEL[row.resourceType] ?? row.resourceType) : '--'}
+                                </div>
+                              </td>
+                              <td className={`${tableCell()} text-right tabular-nums ${textSecondary(theme)}`}>
+                                {row.calls.toLocaleString()}
+                              </td>
+                              <td className={`${tableCell()} text-right tabular-nums ${textMuted(theme)}`}>
+                                {row.successRate.toFixed(1)}%
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </BentoCard>
+                </motion.div>
+              ) : null}
+            </div>
 
             <motion.div
               initial={{ opacity: 0, y: 16 }}

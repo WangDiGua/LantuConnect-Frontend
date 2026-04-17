@@ -42,6 +42,49 @@ export interface CallLogEntry {
   createdAt: string;
 }
 
+export interface AlertEvidence {
+  id: string;
+  ruleId: string;
+  ruleName: string;
+  severity: AlertSeverity;
+  status: AlertEventStatus;
+  message: string;
+  firedAt: string;
+}
+
+export interface CallLogEvidence {
+  id: string;
+  traceId: string;
+  resourceType?: string;
+  resourceName: string;
+  method: string;
+  status: CallLogEntry['status'];
+  statusCode: number;
+  latencyMs: number;
+  errorMessage?: string;
+  createdAt: string;
+}
+
+export interface ResourceHealthEvidence {
+  resourceId: number;
+  resourceType: string;
+  resourceCode: string;
+  displayName: string;
+  healthStatus: string;
+  circuitState: string;
+  callabilityState: string;
+  callabilityReason?: string;
+  lastFailureReason?: string;
+  lastFailureAt?: string;
+}
+
+export interface CallLogDetail {
+  log: CallLogEntry;
+  trace?: TraceSummary;
+  relatedAlerts: AlertEvidence[];
+  resourceHealth?: ResourceHealthEvidence;
+}
+
 export type AlertSeverity = 'critical' | 'warning' | 'info';
 export type AlertEventStatus = 'firing' | 'acknowledged' | 'silenced' | 'resolved' | 'reopened';
 export type AlertScopeType = 'global' | 'resource_type' | 'resource';
@@ -107,6 +150,10 @@ export interface AlertEventDetail extends AlertRecord {
   ruleSnapshot?: Record<string, unknown>;
   actions: AlertEventAction[];
   notifications: AlertNotification[];
+  traceId?: string;
+  trace?: TraceSummary;
+  resourceHealth?: ResourceHealthEvidence;
+  relatedCallLogs: CallLogEvidence[];
 }
 
 export interface AlertSummary {
@@ -276,6 +323,8 @@ export interface TraceDetail {
   rootCause?: TraceRootCause;
   spans: TraceSpanDetail[];
   callLogs: CallLogEntry[];
+  relatedAlerts: AlertEvidence[];
+  resourceHealth?: ResourceHealthEvidence;
 }
 
 export type PerformanceWindow = '6h' | '24h' | '7d';
@@ -342,6 +391,9 @@ export interface PerformanceAnalysis {
   buckets: PerformanceBucket[];
   resourceLeaderboard: PerformanceResourceLeaderboardItem[];
   slowMethods: PerformanceSlowMethodItem[];
+  compareWindow?: string;
+  compareSummary?: PerformanceAnalysisSummary;
+  methodLeaderboard: PerformanceSlowMethodItem[];
 }
 
 export interface PerformanceMetric {

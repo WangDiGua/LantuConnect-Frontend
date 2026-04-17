@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { EChartsOption } from 'echarts';
-import { Activity, BarChart3, Download, ExternalLink, GitBranch, ListFilter, Timer } from 'lucide-react';
+import { Activity, BarChart3, Download, ExternalLink, Eye, GitBranch, ListFilter, Timer } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { Theme } from '../../types';
 import { monitoringService } from '../../api/services/monitoring.service';
@@ -29,6 +29,7 @@ import {
 } from '../../components/charts/echartsTheme';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
+import { RowActionButton, RowActionGroup } from '../../components/management/RowActionGroup';
 import { formatDateTime } from '../../utils/formatDateTime';
 import {
   bentoCard,
@@ -342,17 +343,19 @@ const ResourceDetailModal: React.FC<{
                         <td className={tableCell()}>{formatLatency(log.latencyMs)}</td>
                         <td className={tableCell()}>
                           {log.traceId ? (
-                            <button
-                              type="button"
-                              className="text-sky-600 hover:text-sky-700 underline-offset-2 hover:underline"
-                              onClick={() => {
-                                openTrace(log.traceId, { resourceType: item.resourceType, resourceId: item.resourceId });
-                                showMessage('已跳转到调用追踪页', 'info');
+                            <RowActionButton
+                              theme={theme}
+                              item={{
+                                key: `trace-${log.id}`,
+                                label: '链路',
+                                icon: GitBranch,
+                                onClick: () => {
+                                  openTrace(log.traceId, { resourceType: item.resourceType, resourceId: item.resourceId });
+                                  showMessage('已跳转到调用追踪页', 'info');
+                                },
                               }}
-                            >
-                              {log.traceId.slice(0, 12)}
-                            </button>
-                          ) : '—'}
+                            />
+                          ) : '?'}
                         </td>
                       </tr>
                     ))}
@@ -549,13 +552,17 @@ export const PerformanceAnalysisPanel: React.FC<PerformanceAnalysisPanelProps> =
                         <td className={tableCell()}>{formatLatency(item.p99LatencyMs)}</td>
                         <td className={tableCell()}>{formatLatency(item.avgLatencyMs)}</td>
                         <td className={tableCell()}>
-                          <button
-                            type="button"
-                            className="text-sky-600 hover:text-sky-700 underline-offset-2 hover:underline"
-                            onClick={() => setSelectedResource(item)}
-                          >
-                            查看详情
-                          </button>
+                          <RowActionGroup
+                            theme={theme}
+                            actions={[
+                              {
+                                key: `detail-${item.resourceType}-${item.resourceId ?? item.resourceName}`,
+                                label: '详情',
+                                icon: Eye,
+                                onClick: () => setSelectedResource(item),
+                              },
+                            ]}
+                          />
                         </td>
                       </tr>
                     ))}

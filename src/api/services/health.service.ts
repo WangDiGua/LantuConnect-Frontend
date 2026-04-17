@@ -79,6 +79,60 @@ function normalizeResourceHealthDependency(
   };
 }
 
+function normalizeResourceHealthAlertEvidence(
+  item: ResourceHealthSnapshotVO['recentAlerts'] extends Array<infer T> ? T : never,
+): NonNullable<ResourceHealthSnapshotVO['recentAlerts']>[number] {
+  return {
+    id: String(item?.id ?? ''),
+    ruleId: String(item?.ruleId ?? ''),
+    ruleName: String(item?.ruleName ?? ''),
+    severity: String(item?.severity ?? ''),
+    status: String(item?.status ?? ''),
+    message: String(item?.message ?? ''),
+    firedAt: String(item?.firedAt ?? ''),
+  };
+}
+
+function normalizeResourceHealthCallLogEvidence(
+  item: ResourceHealthSnapshotVO['recentCallLogs'] extends Array<infer T> ? T : never,
+): NonNullable<ResourceHealthSnapshotVO['recentCallLogs']>[number] {
+  return {
+    id: String(item?.id ?? ''),
+    traceId: String(item?.traceId ?? ''),
+    resourceType: item?.resourceType ? String(item.resourceType) : undefined,
+    resourceName: String(item?.resourceName ?? ''),
+    method: String(item?.method ?? ''),
+    status: String(item?.status ?? ''),
+    statusCode: toNum(item?.statusCode, 0),
+    latencyMs: toNum(item?.latencyMs, 0),
+    errorMessage: item?.errorMessage ? String(item.errorMessage) : undefined,
+    createdAt: String(item?.createdAt ?? ''),
+  };
+}
+
+function normalizeResourceHealthTraceEvidence(
+  item: ResourceHealthSnapshotVO['recentTraces'] extends Array<infer T> ? T : never,
+): NonNullable<ResourceHealthSnapshotVO['recentTraces']>[number] {
+  return {
+    traceId: String(item?.traceId ?? ''),
+    requestId: String(item?.requestId ?? ''),
+    rootOperation: String(item?.rootOperation ?? ''),
+    entryService: String(item?.entryService ?? ''),
+    rootResourceType: String(item?.rootResourceType ?? 'unknown'),
+    rootResourceId: item?.rootResourceId == null ? undefined : toNum(item.rootResourceId, 0),
+    rootResourceCode: String(item?.rootResourceCode ?? ''),
+    rootDisplayName: String(item?.rootDisplayName ?? ''),
+    status: String(item?.status ?? 'success'),
+    startedAt: String(item?.startedAt ?? ''),
+    durationMs: toNum(item?.durationMs, 0),
+    spanCount: toNum(item?.spanCount, 0),
+    errorSpanCount: toNum(item?.errorSpanCount, 0),
+    firstErrorMessage: item?.firstErrorMessage ? String(item.firstErrorMessage) : undefined,
+    userId: item?.userId == null ? undefined : toNum(item.userId, 0),
+    ip: item?.ip ? String(item.ip) : undefined,
+  };
+}
+
 function normalizeResourceHealthSnapshot(item: Partial<ResourceHealthSnapshotVO>): ResourceHealthSnapshotVO {
   return {
     resourceId: toNum(item.resourceId, 0),
@@ -111,6 +165,15 @@ function normalizeResourceHealthSnapshot(item: Partial<ResourceHealthSnapshotVO>
     policy: item.policy && typeof item.policy === 'object' ? item.policy as ResourceHealthPolicyVO : undefined,
     dependencies: Array.isArray(item.dependencies)
       ? item.dependencies.map((dependency) => normalizeResourceHealthDependency(dependency))
+      : undefined,
+    recentCallLogs: Array.isArray(item.recentCallLogs)
+      ? item.recentCallLogs.map((entry) => normalizeResourceHealthCallLogEvidence(entry))
+      : undefined,
+    recentTraces: Array.isArray(item.recentTraces)
+      ? item.recentTraces.map((entry) => normalizeResourceHealthTraceEvidence(entry))
+      : undefined,
+    recentAlerts: Array.isArray(item.recentAlerts)
+      ? item.recentAlerts.map((entry) => normalizeResourceHealthAlertEvidence(entry))
       : undefined,
   };
 }

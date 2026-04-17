@@ -194,14 +194,14 @@
 | page slug | 后端结论 | 对齐接口 |
 |---|---|---|
 | `dashboard` | 保留 | `/dashboard/admin-overview` |
-| `health-check` | 保留 | `/dashboard/health-summary`,`/health/configs` |
+| `health-check` | 下线（旧地址跳转 `health-governance`） | `/health/configs`,`/health/circuit-breakers` |
 | `usage-statistics` | 保留 | `/dashboard/usage-stats` |
 | `data-reports` | 保留 | `/dashboard/data-reports` |
 | `agent-list` | 下线 | 迁移到 `/catalog/resources`（`resourceType=agent`） |
 | `agent-create` | 下线 | 迁移到统一资源注册链路（目录+解析） |
 | `agent-audit` | 迁移 | 过渡可用 `/audit/agents`，目标是统一资源审核 |
 | `agent-versions` | 下线 | 旧版本接口已删 |
-| `agent-monitoring` | 下线 | 能力收拢到 `monitoring-overview` 页内的「性能分析」tab |
+| `agent-monitoring` | 下线 | 能力收拢到 `monitoring-overview` 与 `performance-center` |
 | `agent-trace` | 下线 | 能力收拢到 `trace-center`，改为 trace 级列表 + `/monitoring/traces/{traceId}` 详情 |
 | `agent-detail` | 下线 | 迁移到 `/catalog/resources/{type}/{id}` |
 | `skill-list` | 下线 | 迁移到 `/catalog/resources`（`resourceType=skill`） |
@@ -218,6 +218,7 @@
 | `api-key-management` | 保留 | `/user-mgmt/api-keys*` |
 | `resource-grant-management` | ~~保留（新增）~~ **已下线** | ~~`/resource-grants*`（资源授权他人调用）~~ **替代方案**：使用 `/resource-center/resources` 管理资源 |
 | `monitoring-overview` | 保留 | `/monitoring/kpis` |
+| `performance-center` | 保留 | `/monitoring/performance`,`/monitoring/call-logs`,`/monitoring/traces` |
 | `call-logs` | 保留 | `/monitoring/call-logs` |
 | `trace-center` | 保留 | `/monitoring/traces`,`/monitoring/traces/{traceId}` |
 | `alert-center` | 保留 | `/monitoring/alerts`,`/monitoring/alert-rules*` |

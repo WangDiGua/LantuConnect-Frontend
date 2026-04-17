@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Boxes, Pencil, Plus, RefreshCw } from 'lucide-react';
+import { Ban, Boxes, CheckCircle2, Clock3, GitBranch, Pencil, Plus, RefreshCw, Trash2, Undo2, XCircle } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { ResourceType } from '../../types/dto/catalog';
 import type {
@@ -58,6 +58,7 @@ import { lifecycleTimelineEventTitleZh } from '../../utils/lifecycleTimelineLabe
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 import { healthService } from '../../api/services/health.service';
+import { RowActionGroup } from '../../components/management/RowActionGroup';
 import { buildPath } from '../../constants/consoleRoutes';
 
 /** 生命周期时间轴节点颜色（按 status / eventType 粗分） */
@@ -731,120 +732,121 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                         </div>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
-                        {isActionAllowed(item, 'update') && (
-                          <button type="button" onClick={() => onNavigateRegister(item.resourceType, item.id)} className={mgmtTableActionGhost(theme)}>
-                            编辑
-                          </button>
-                        )}
-                        {isActionAllowed(item, 'createVersion') && (
-                          <button type="button" onClick={() => void openVersions(item)} className={mgmtTableActionGhost(theme)}>
-                            版本
-                          </button>
-                        )}
-                        <button type="button" onClick={() => void openLifecycleModal(item)} className={mgmtTableActionGhost(theme)}>
-                          生命周期
-                        </button>
-                        {isActionAllowed(item, 'submit') && (
-                          <button
-                            type="button"
-                            disabled={runningActionKey === `submit-${item.id}` || skillSubmitBlocked(item)}
-                            title={
-                              skillSubmitBlocked(item) && item.resourceType === 'skill'
-                                ? 'Context 技能须填写规范 Markdown（contextPrompt）后再提交审核'
-                                : undefined
-                            }
-                            onClick={() => void runMutationAction(`submit-${item.id}`, () => resourceCenterService.submit(item.id), '已提交审核')}
-                            className={mgmtTableActionPositive(theme)}
-                          >
-                            {runningActionKey === `submit-${item.id}` ? '提交中…' : '提交审核'}
-                          </button>
-                        )}
-                        {item.status === 'pending_review' && canAuditPendingInCatalog && (
-                          <>
-                            <button
-                              type="button"
-                              disabled={runningActionKey === `audit-approve-${item.id}`}
-                              title="与「资源审核」台一致：通过后进入测试中"
-                              onClick={() =>
+                        <RowActionGroup
+                          theme={theme}
+                          actions={[
+                            {
+                              key: 'edit',
+                              label: '编辑',
+                              icon: Pencil,
+                              hidden: !isActionAllowed(item, 'update'),
+                              onClick: () => onNavigateRegister(item.resourceType, item.id),
+                            },
+                            {
+                              key: 'version',
+                              label: '版本',
+                              icon: GitBranch,
+                              hidden: !isActionAllowed(item, 'createVersion'),
+                              onClick: () => void openVersions(item),
+                            },
+                            {
+                              key: 'lifecycle',
+                              label: '生命周期',
+                              icon: Clock3,
+                              onClick: () => void openLifecycleModal(item),
+                            },
+                            {
+                              key: 'submit',
+                              label: runningActionKey === `submit-${item.id}` ? '提交中' : '提交审核',
+                              icon: CheckCircle2,
+                              tone: 'positive',
+                              hidden: !isActionAllowed(item, 'submit'),
+                              disabled: runningActionKey === `submit-${item.id}` || skillSubmitBlocked(item),
+                              title:
+                                skillSubmitBlocked(item) && item.resourceType === 'skill'
+                                  ? 'Context 技能须填写规范 Markdown（contextPrompt）后再提交审核'
+                                  : undefined,
+                              onClick: () =>
+                                void runMutationAction(`submit-${item.id}`, () => resourceCenterService.submit(item.id), '已提交审核'),
+                            },
+                            {
+                              key: 'approve',
+                              label: runningActionKey === `audit-approve-${item.id}` ? '处理中' : '通过审核',
+                              icon: CheckCircle2,
+                              tone: 'positive',
+                              hidden: item.status !== 'pending_review' || !canAuditPendingInCatalog,
+                              disabled: !!runningActionKey && runningActionKey !== `audit-approve-${item.id}`,
+                              title: '与“资源审核”台一致：通过后进入测试中',
+                              onClick: () =>
                                 void runAction(
                                   `audit-approve-${item.id}`,
                                   () => resourceAuditService.approve(item.id),
                                   '已通过审核，资源进入测试中',
-                                )
-                              }
-                              className={mgmtTableActionPositive(theme)}
-                            >
-                              {runningActionKey === `audit-approve-${item.id}` ? '处理中…' : '通过审核'}
-                            </button>
-                            <button
-                              type="button"
-                              className={mgmtTableActionDanger}
-                              disabled={!!runningActionKey}
-                              onClick={() => {
+                                ),
+                            },
+                            {
+                              key: 'reject',
+                              label: '驳回',
+                              icon: XCircle,
+                              tone: 'danger',
+                              hidden: item.status !== 'pending_review' || !canAuditPendingInCatalog,
+                              disabled: !!runningActionKey,
+                              onClick: () => {
                                 setAuditRejectTarget(item);
                                 setAuditRejectReason('');
                                 setAuditRejectReasonError('');
-                              }}
-                            >
-                              驳回
-                            </button>
-                          </>
-                        )}
-                        {isActionAllowed(item, 'withdraw') && isCatalogItemOwner(item, myUserId) && (
-                          <button
-                            type="button"
-                            disabled={runningActionKey === `withdraw-${item.id}`}
-                            onClick={() => setConfirmAction({ id: item.id, type: 'withdraw' })}
-                            className={mgmtTableActionGhost(theme)}
-                          >
-                            {runningActionKey === `withdraw-${item.id}` ? '撤回中…' : '撤回审核'}
-                          </button>
-                        )}
-                        {isActionAllowed(item, 'deprecate') && (
-                          <button
-                            type="button"
-                            disabled={runningActionKey === `deprecate-${item.id}`}
-                            onClick={() => setConfirmAction({ id: item.id, type: 'deprecate' })}
-                            className={mgmtTableActionGhost(theme)}
-                          >
-                            {runningActionKey === `deprecate-${item.id}` ? '处理中…' : '暂停对外'}
-                          </button>
-                        )}
-                        {isActionAllowed(item, 'delete') && (
-                          <button
-                            type="button"
-                            disabled={runningActionKey === `remove-${item.id}`}
-                            onClick={() => setConfirmAction({ id: item.id, type: 'remove' })}
-                            className={mgmtTableActionDanger}
-                          >
-                            {runningActionKey === `remove-${item.id}` ? '删除中…' : '删除'}
-                          </button>
-                        )}
-                        {item.status === 'testing' && canPublishResource && (
-                          <button
-                            type="button"
-                            disabled={runningActionKey === `publish-${item.id}`}
-                            onClick={() => void runAction(`publish-${item.id}`, () => resourceAuditService.publish(item.id), '已发布上架')}
-                            className={mgmtTableActionPositive(theme)}
-                          >
-                            {runningActionKey === `publish-${item.id}` ? '发布中…' : '发布上架'}
-                          </button>
-                        )}
+                              },
+                            },
+                            {
+                              key: 'withdraw',
+                              label: runningActionKey === `withdraw-${item.id}` ? '撤回中' : '撤回审核',
+                              icon: Undo2,
+                              hidden: !isActionAllowed(item, 'withdraw') || !isCatalogItemOwner(item, myUserId),
+                              disabled: runningActionKey === `withdraw-${item.id}`,
+                              onClick: () => setConfirmAction({ id: item.id, type: 'withdraw' }),
+                            },
+                            {
+                              key: 'deprecate',
+                              label: runningActionKey === `deprecate-${item.id}` ? '处理中' : '暂停对外',
+                              icon: Ban,
+                              hidden: !isActionAllowed(item, 'deprecate'),
+                              disabled: runningActionKey === `deprecate-${item.id}`,
+                              onClick: () => setConfirmAction({ id: item.id, type: 'deprecate' }),
+                            },
+                            {
+                              key: 'delete',
+                              label: runningActionKey === `remove-${item.id}` ? '删除中' : '删除',
+                              icon: Trash2,
+                              tone: 'danger',
+                              hidden: !isActionAllowed(item, 'delete'),
+                              disabled: runningActionKey === `remove-${item.id}`,
+                              onClick: () => setConfirmAction({ id: item.id, type: 'remove' }),
+                            },
+                            {
+                              key: 'publish',
+                              label: runningActionKey === `publish-${item.id}` ? '发布中' : '发布上架',
+                              icon: CheckCircle2,
+                              tone: 'positive',
+                              hidden: item.status !== 'testing' || !canPublishResource,
+                              disabled: runningActionKey === `publish-${item.id}`,
+                              onClick: () => void runAction(`publish-${item.id}`, () => resourceAuditService.publish(item.id), '已发布上架'),
+                            },
+                            {
+                              key: 'force-deprecate',
+                              label: '强制下架',
+                              icon: Ban,
+                              tone: 'danger',
+                              hidden: item.status !== 'published' || !isPlatformAdmin,
+                              disabled: runningActionKey === `pfdep-${item.id}`,
+                              onClick: () => {
+                                setPlatformForceTarget(item);
+                                setPlatformForceReason('');
+                              },
+                            },
+                          ]}
+                        />
                         {item.status === 'testing' && !canPublishResource && (
                           <span className={`text-xs ${textMuted(theme)}`}>无发布权限（须为资源负责人或部门/平台管理员）</span>
-                        )}
-                        {item.status === 'published' && isPlatformAdmin && (
-                          <button
-                            type="button"
-                            disabled={runningActionKey === `pfdep-${item.id}`}
-                            onClick={() => {
-                              setPlatformForceTarget(item);
-                              setPlatformForceReason('');
-                            }}
-                            className={mgmtTableActionDanger}
-                          >
-                            平台强制下架
-                          </button>
                         )}
                       </div>
                     </div>

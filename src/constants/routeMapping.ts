@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 路由映射：中文显示名称 <-> 英文路由路径
  * 用于在URL中使用英文路径，但在UI中显示中文标签
  */
@@ -20,8 +20,8 @@ export const ADMIN_ROUTE_MAPPING: Record<string, string> = {
   // Sub-routes (系统概览的子路由)
   // 注意：'系统概览' 作为子路由也映射到 'overview'，与sidebar共享
   '资源监控': 'resource-monitoring',
-  '使用统计': 'usage-statistics',
-  '健康检查': 'health-check',
+  '用量分析': 'usage-statistics',
+  '健康治理中心': 'health-governance',
   '系统参数': 'system-params',
   '安全设置': 'security-settings',
   '网络配置': 'network-config',
@@ -72,7 +72,7 @@ export const USER_ROUTE_MAPPING: Record<string, string> = {
   '模型测试': 'model-test',
   '推理路由': 'inference-routing',
   'API Key': 'api-key',
-  '使用统计': 'usage-statistics',
+  '用量分析': 'usage-statistics',
 };
 
 // 反向映射：英文路由 -> 中文显示名称
@@ -99,3 +99,5 @@ export function toChineseLabel(englishRoute: string, isAdmin: boolean): string {
   const mapping = isAdmin ? ADMIN_ROUTE_REVERSE_MAPPING : USER_ROUTE_REVERSE_MAPPING;
   return mapping[englishRoute] || englishRoute;
 }
+
+

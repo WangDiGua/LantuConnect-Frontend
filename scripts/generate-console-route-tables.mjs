@@ -103,14 +103,11 @@ const LEGACY_USER_LIST = new Set([
 /** 与 MainLayout AdminOverviewModule / 懒导出命名对齐 */
 const ADMIN_COMPONENT = {
   dashboard: 'AdminOverviewModule',
-  'health-check': 'AdminOverviewModule',
   'usage-statistics': 'AdminOverviewModule',
   'data-reports': 'AdminOverviewModule',
   'resource-catalog': 'ResourceCenterManagementPage',
   'agent-register': 'ResourceRegisterPage(agent)',
   'agent-detail': 'AgentDetail',
-  'agent-monitoring': 'ResourceDiagnosticsModule',
-  'agent-trace': 'ResourceDiagnosticsModule',
   'skill-register': 'ResourceRegisterPage(skill)',
   'mcp-register': 'ResourceRegisterPage(mcp)',
   'app-register': 'ResourceRegisterPage(app)',
@@ -124,6 +121,7 @@ const ADMIN_COMPONENT = {
   'provider-list': 'ProviderManagementPage',
   'provider-create': 'ProviderManagementPage',
   'monitoring-overview': 'AdminMonitoringHubModule',
+  'performance-center': 'AdminMonitoringHubModule',
   'call-logs': 'AdminMonitoringHubModule',
   'trace-center': 'AdminMonitoringHubModule',
   'alert-center': 'AdminMonitoringHubModule',

@@ -381,6 +381,48 @@ export interface ResourceHealthPolicyVO {
   canaryPayload?: Record<string, unknown>;
 }
 
+export interface ResourceHealthAlertEvidenceVO {
+  id: string;
+  ruleId: string;
+  ruleName: string;
+  severity: string;
+  status: string;
+  message: string;
+  firedAt: string;
+}
+
+export interface ResourceHealthCallLogEvidenceVO {
+  id: string;
+  traceId: string;
+  resourceType?: string;
+  resourceName: string;
+  method: string;
+  status: string;
+  statusCode: number;
+  latencyMs: number;
+  errorMessage?: string;
+  createdAt: string;
+}
+
+export interface ResourceHealthTraceEvidenceVO {
+  traceId: string;
+  requestId: string;
+  rootOperation: string;
+  entryService: string;
+  rootResourceType: string;
+  rootResourceId?: number;
+  rootResourceCode: string;
+  rootDisplayName: string;
+  status: string;
+  startedAt: string;
+  durationMs: number;
+  spanCount: number;
+  errorSpanCount: number;
+  firstErrorMessage?: string;
+  userId?: number;
+  ip?: string;
+}
+
 export interface ResourceHealthSnapshotVO {
   resourceId: number;
   resourceType: ResourceType;
@@ -411,4 +453,7 @@ export interface ResourceHealthSnapshotVO {
   lastProbeEvidence?: Record<string, unknown>;
   policy?: ResourceHealthPolicyVO;
   dependencies?: ResourceHealthDependencyVO[];
+  recentCallLogs?: ResourceHealthCallLogEvidenceVO[];
+  recentTraces?: ResourceHealthTraceEvidenceVO[];
+  recentAlerts?: ResourceHealthAlertEvidenceVO[];
 }

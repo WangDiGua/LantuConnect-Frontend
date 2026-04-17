@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Loader2, Plus, ShieldAlert, Braces, Upload } from 'lucide-react';
+import { CheckCircle2, Loader2, PencilLine, Plus, Power, ShieldAlert, Trash2, Braces, Upload } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { sensitiveWordService } from '../../api/services/sensitive-word.service';
@@ -39,7 +39,6 @@ import {
   mgmtTableActionDanger,
   mgmtTableActionGhost,
   mgmtTableActionPositive,
-  mgmtTableRowActions,
   textPrimary,
   textSecondary,
   textMuted,
@@ -48,6 +47,7 @@ import { TOOLBAR_ROW_LIST } from '../../utils/toolbarFieldClasses';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
 import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedContentToTop';
+import { RowActionGroup } from '../../components/management/RowActionGroup';
 
 interface Props {
   theme: Theme;
@@ -477,23 +477,31 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
         cell: (item) => {
           const on = item.enabled !== false;
           return (
-            <div className={`${mgmtTableRowActions} min-h-8`}>
-              <button type="button" className={mgmtTableActionGhost(theme)} onClick={() => openEditModal(item)}>
-                编辑
-              </button>
-              {on ? (
-                <button type="button" className={mgmtTableActionGhost(theme)} onClick={() => void handleToggle(item)}>
-                  禁用
-                </button>
-              ) : (
-                <button type="button" className={mgmtTableActionPositive(theme)} onClick={() => void handleToggle(item)}>
-                  启用
-                </button>
-              )}
-              <button type="button" className={mgmtTableActionDanger} onClick={() => setDeleteTarget(item)}>
-                删除
-              </button>
-            </div>
+            <RowActionGroup
+              theme={theme}
+              actions={[
+                {
+                  key: 'edit',
+                  label: '编辑',
+                  icon: PencilLine,
+                  onClick: () => openEditModal(item),
+                },
+                {
+                  key: 'toggle',
+                  label: on ? '停用' : '启用',
+                  icon: on ? Power : CheckCircle2,
+                  tone: on ? 'neutral' : 'positive',
+                  onClick: () => void handleToggle(item),
+                },
+                {
+                  key: 'delete',
+                  label: '删除',
+                  icon: Trash2,
+                  tone: 'danger',
+                  onClick: () => setDeleteTarget(item),
+                },
+              ]}
+            />
           );
         },
       },
@@ -1018,3 +1026,5 @@ export const SensitiveWordPage: React.FC<Props> = ({ theme, fontSize, showMessag
     </MgmtPageShell>
   );
 };
+
+

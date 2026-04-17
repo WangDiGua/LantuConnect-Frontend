@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { AlertTriangle, Zap, RotateCcw, Search } from 'lucide-react';
+import { AlertTriangle, PencilLine, RotateCcw, Search, Zap } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import {
-  btnPrimary, btnSecondary, btnGhost, iconMuted, mgmtTableActionGhost,
+  btnPrimary, btnSecondary, btnGhost, iconMuted,
   pageBlockStack, tableHeadCell, tableBodyRow, tableCell, textPrimary, textSecondary, textMuted,
 } from '../../utils/uiClasses';
 import { TOOLBAR_ROW_LIST, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
@@ -19,6 +19,7 @@ import { formatDateTime } from '../../utils/formatDateTime';
 import { RESOURCE_TYPE_LABEL, resourceTypeLabel } from '../../constants/resourceTypes';
 import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 import { PresetOrCustomNumberField } from '../../components/common/PresetOrCustomNumberField';
+import { RowActionGroup } from '../../components/management/RowActionGroup';
 import {
   CIRCUIT_FAILURE_THRESHOLD,
   CIRCUIT_HALF_OPEN_MAX,
@@ -219,18 +220,32 @@ export const CircuitBreakerPage: React.FC<Props> = ({ theme, fontSize, showMessa
                             </div>
                           </td>
                           <td className={tableCell()}>
-                            <div className="flex items-center gap-2">
-                              <button type="button" onClick={() => openEdit(r)} className={mgmtTableActionGhost(theme)}>编辑</button>
-                              {r.currentState !== 'OPEN' ? (
-                                <button type="button" onClick={() => setConfirmAction({ id: r.id, action: 'trip' })} className="p-1.5 rounded-xl text-red-500 hover:bg-red-500/10 transition-colors" title="手动熔断">
-                                  <Zap size={15} />
-                                </button>
-                              ) : (
-                                <button type="button" onClick={() => setConfirmAction({ id: r.id, action: 'reset' })} className="p-1.5 rounded-xl text-emerald-500 hover:bg-emerald-500/10 transition-colors" title="手动恢复">
-                                  <RotateCcw size={15} />
-                                </button>
-                              )}
-                            </div>
+                            <RowActionGroup
+                              theme={theme}
+                              actions={[
+                                {
+                                  key: 'edit',
+                                  label: '编辑',
+                                  icon: PencilLine,
+                                  onClick: () => openEdit(r),
+                                },
+                                r.currentState !== 'OPEN'
+                                  ? {
+                                      key: 'trip',
+                                      label: '熔断',
+                                      icon: Zap,
+                                      tone: 'danger' as const,
+                                      onClick: () => setConfirmAction({ id: r.id, action: 'trip' }),
+                                    }
+                                  : {
+                                      key: 'reset',
+                                      label: '恢复',
+                                      icon: RotateCcw,
+                                      tone: 'positive' as const,
+                                      onClick: () => setConfirmAction({ id: r.id, action: 'reset' }),
+                                    },
+                              ]}
+                            />
                           </td>
                         </tr>
                       );

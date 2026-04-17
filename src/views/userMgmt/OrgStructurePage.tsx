@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Building2, Users } from 'lucide-react';
+import { Building2, PencilLine, Trash2, Users } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { OrgNode } from '../../types/dto/user-mgmt';
 import { useOrgTree } from '../../hooks/queries/useUserMgmt';
@@ -15,6 +15,7 @@ import {
   textPrimary, textSecondary, textMuted, btnPrimary, btnSecondary, fieldErrorText, inputBaseError,
 } from '../../utils/uiClasses';
 import { userMgmtService } from '../../api/services/user-mgmt.service';
+import { RowActionGroup } from '../../components/management/RowActionGroup';
 import { MgmtPageShell } from './MgmtPageShell';
 
 interface OrgStructurePageProps {
@@ -209,15 +210,26 @@ export const OrgStructurePage: React.FC<OrgStructurePageProps> = ({ theme, fontS
                           <span className={`text-xs ${textMuted(theme)}`}>—</span>
                         )}
                       </div>
-                      <button type="button" onClick={() => openEdit(d.id, d.name)} className={`text-xs ${textMuted(theme)} hover:text-neutral-800 dark:hover:text-slate-200`} aria-label={`编辑部门 ${d.name}`}>编辑</button>
-                      <button
-                        type="button"
-                        onClick={() => setOrgDeleteTarget({ id: d.id, name: d.name })}
-                        className="text-xs text-rose-500 hover:text-rose-600"
-                        aria-label={`删除部门 ${d.name}`}
-                      >
-                        删除
-                      </button>
+                      <RowActionGroup
+                        theme={theme}
+                        actions={[
+                          {
+                            key: 'edit',
+                            label: '编辑',
+                            icon: PencilLine,
+                            ariaLabel: `编辑部门 ${d.name}`,
+                            onClick: () => openEdit(d.id, d.name),
+                          },
+                          {
+                            key: 'delete',
+                            label: '删除',
+                            icon: Trash2,
+                            tone: 'danger',
+                            ariaLabel: `删除部门 ${d.name}`,
+                            onClick: () => setOrgDeleteTarget({ id: d.id, name: d.name }),
+                          },
+                        ]}
+                      />
                     </div>
                   </li>
                 ))}

@@ -1,4 +1,4 @@
-import React, {
+﻿import React, {
   useState,
   useEffect,
   useLayoutEffect,
@@ -208,6 +208,15 @@ function normalizeDeprecatedPage(page: string): string {
     case 'api-playground':
     case 'mcp-integration':
       return 'developer-tools';
+    case 'health-check':
+    case 'health-config':
+    case 'circuit-breaker':
+      return 'health-governance';
+    case 'performance-analysis':
+      return 'performance-center';
+    case 'alert-management':
+    case 'alert-rules':
+      return 'alert-center';
     default:
       return page;
   }
@@ -215,10 +224,10 @@ function normalizeDeprecatedPage(page: string): string {
 
 const SUB_ITEM_PERM_MAP: Record<string, string | string[]> = {
   'dashboard': 'monitor:view',
-  'health-check': 'monitor:view',
   'usage-statistics': 'monitor:view',
   'data-reports': 'monitor:view',
   'monitoring-overview': 'monitor:view',
+  'performance-center': 'monitor:view',
   'call-logs': 'monitor:view',
   'trace-center': 'monitor:view',
   'alert-center': 'monitor:view',
@@ -312,7 +321,6 @@ const MainContent = React.memo<{
     if (isAdmin) {
       switch (p) {
         case 'dashboard':
-        case 'health-check':
         case 'usage-statistics':
         case 'data-reports':
           return <AdminOverviewModule activePage={p} theme={t} fontSize={fs} />;
@@ -460,6 +468,7 @@ const MainContent = React.memo<{
         case 'developer-applications':
           return <AdminUserHubModule activePage={p} theme={t} fontSize={fs} showMessage={msg} />;
         case 'monitoring-overview':
+        case 'performance-center':
         case 'call-logs':
         case 'trace-center':
         case 'alert-center':
@@ -715,6 +724,22 @@ const RouteContentMotion: React.FC<{
   );
 };
 
+function subscribeHashPath(onStoreChange: () => void): () => void {
+  window.addEventListener('hashchange', onStoreChange);
+  return () => window.removeEventListener('hashchange', onStoreChange);
+}
+
+function getHashPathSnapshot(): string {
+  if (typeof window === 'undefined') return '';
+  const raw = window.location.hash.replace(/^#/, '');
+  if (!raw) return '';
+  return raw.split(/[?#]/, 1)[0] || '';
+}
+
+function getHashPathServerSnapshot(): string {
+  return '';
+}
+
 /** 兼容旧书签 `#/user/*`、`#/admin/*` → `#/c/*` */
 const LegacyConsoleRedirect: React.FC<{ prefix: 'user' | 'admin' }> = ({ prefix }) => {
   const { pathname, search } = useLocation();
@@ -794,8 +819,13 @@ const MainLayoutContent: React.FC<{
   const { showMessage } = useMessage();
   const { isAdmin: ctxAdmin, role, setRole, platformRole, hasPermission } = useUserRole();
   const isDark = theme === 'dark';
+  const hashPath = useSyncExternalStore(
+    subscribeHashPath,
+    getHashPathSnapshot,
+    getHashPathServerSnapshot,
+  );
 
-  const route = parseRoute(location.pathname);
+  const route = parseRoute(hashPath || location.pathname);
   const routePage = route?.page;
   const routeId = route?.id;
   const normalizedRoutePage = routePage ? normalizeDeprecatedPage(routePage) : undefined;
@@ -2287,3 +2317,6 @@ const MainLayoutContent: React.FC<{
     </LayoutChromeProvider>
   );
 };
+
+
+

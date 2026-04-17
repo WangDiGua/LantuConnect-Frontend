@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, ArrowLeft, Save, Users } from 'lucide-react';
+import { Ban, PencilLine, Plus, ArrowLeft, Save, Trash2, Users } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
@@ -14,7 +14,7 @@ import { userMgmtService } from '../../api/services/user-mgmt.service';
 import type { UserRecord, RoleRecord } from '../../types/dto/user-mgmt';
 import {
   btnPrimary, btnSecondary,
-  mgmtTableActionDanger, mgmtTableActionGhost, mgmtTableActionPositive, mgmtTableRowActions,
+  mgmtTableActionPositive,
   tableCellActionChipsRow,
   textPrimary, textSecondary, textMuted,
 } from '../../utils/uiClasses';
@@ -26,6 +26,7 @@ import { useUserRole } from '../../context/UserRoleContext';
 import { useMessage } from '../../components/common/Message';
 import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedContentToTop';
 import { isBootstrapSuperAdminUsername } from '../../utils/bootstrapSuperAdmin';
+import { RowActionGroup } from '../../components/management/RowActionGroup';
 
 interface UserListPageProps {
   theme: Theme;
@@ -321,35 +322,35 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
               —
             </span>
           ) : (
-            <div className={mgmtTableRowActions}>
-              <button type="button" onClick={() => openEdit(u)} className={mgmtTableActionGhost(theme)} aria-label={`编辑用户 ${u.username}`}>
-                编辑
-              </button>
-              {u.status !== 'locked' ? (
-                u.status === 'active' ? (
-                  <button
-                    type="button"
-                    className={mgmtTableActionGhost(theme)}
-                    onClick={() => void patchUserStatus(u, 'disabled')}
-                    aria-label={`停用用户 ${u.username}`}
-                  >
-                    停用
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className={mgmtTableActionPositive(theme)}
-                    onClick={() => void patchUserStatus(u, 'active')}
-                    aria-label={`启用用户 ${u.username}`}
-                  >
-                    启用
-                  </button>
-                )
-              ) : null}
-              <button type="button" onClick={() => setDeleteTarget(u.id)} className={mgmtTableActionDanger} aria-label={`删除用户 ${u.username}`}>
-                删除
-              </button>
-            </div>
+            <RowActionGroup
+              theme={theme}
+              actions={[
+                {
+                  key: 'edit',
+                  label: '编辑',
+                  icon: PencilLine,
+                  onClick: () => openEdit(u),
+                  ariaLabel: `编辑用户 ${u.username}`,
+                },
+                {
+                  key: 'toggle-status',
+                  label: u.status === 'active' ? '禁用' : '启用',
+                  icon: Ban,
+                  tone: u.status === 'active' ? 'neutral' : 'positive',
+                  hidden: u.status === 'locked',
+                  onClick: () => void patchUserStatus(u, u.status === 'active' ? 'disabled' : 'active'),
+                  ariaLabel: `${u.status === 'active' ? '禁用' : '启用'}用户 ${u.username}`,
+                },
+                {
+                  key: 'delete',
+                  label: '删除',
+                  icon: Trash2,
+                  tone: 'danger',
+                  onClick: () => setDeleteTarget(u.id),
+                  ariaLabel: `删除用户 ${u.username}`,
+                },
+              ]}
+            />
           )
         ),
       },
@@ -669,3 +670,5 @@ export const UserListPage: React.FC<UserListPageProps> = ({ theme, fontSize, bre
     </>
   );
 };
+
+

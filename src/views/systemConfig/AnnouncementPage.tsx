@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Loader2, Plus, Megaphone } from 'lucide-react';
+import { CheckCircle2, Eye, Loader2, Megaphone, PencilLine, Plus, Power, Trash2 } from 'lucide-react';
 import './announcement-editor.css';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
@@ -20,9 +20,6 @@ import {
   fieldErrorText,
   inputBaseError,
   mgmtTableActionDanger,
-  mgmtTableActionGhost,
-  mgmtTableActionPositive,
-  mgmtTableRowActions,
   textPrimary,
   textSecondary,
   textMuted,
@@ -35,6 +32,7 @@ import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedCo
 import { formatDateTime } from '../../utils/formatDateTime';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
 import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
+import { RowActionGroup } from '../../components/management/RowActionGroup';
 
 interface Props { theme: Theme; fontSize: FontSize; showMessage: (msg: string, type?: 'success' | 'error' | 'info') => void; }
 
@@ -328,34 +326,37 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
         cell: (a: AnnouncementItem) => {
           const pubOn = a.enabled !== false;
           return (
-            <div className={mgmtTableRowActions}>
-              <button type="button" onClick={() => setDetailAnnouncement(a)} className={mgmtTableActionGhost(theme)}>
-                查看
-              </button>
-              <button type="button" onClick={() => openEditModal(a)} className={mgmtTableActionGhost(theme)}>
-                编辑
-              </button>
-              {!pubOn ? (
-                <button
-                  type="button"
-                  onClick={() => void patchAnnouncementEnabled(a, true)}
-                  className={mgmtTableActionPositive(theme)}
-                >
-                  启用
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => void patchAnnouncementEnabled(a, false)}
-                  className={mgmtTableActionGhost(theme)}
-                >
-                  禁用
-                </button>
-              )}
-              <button type="button" onClick={() => setDeleteTarget(a)} className={mgmtTableActionDanger}>
-                删除
-              </button>
-            </div>
+            <RowActionGroup
+              theme={theme}
+              actions={[
+                {
+                  key: 'detail',
+                  label: '详情',
+                  icon: Eye,
+                  onClick: () => setDetailAnnouncement(a),
+                },
+                {
+                  key: 'edit',
+                  label: '编辑',
+                  icon: PencilLine,
+                  onClick: () => openEditModal(a),
+                },
+                {
+                  key: pubOn ? 'disable' : 'enable',
+                  label: pubOn ? '停用' : '启用',
+                  icon: pubOn ? Power : CheckCircle2,
+                  tone: pubOn ? 'neutral' : 'positive',
+                  onClick: () => void patchAnnouncementEnabled(a, !pubOn),
+                },
+                {
+                  key: 'delete',
+                  label: '删除',
+                  icon: Trash2,
+                  tone: 'danger',
+                  onClick: () => setDeleteTarget(a),
+                },
+              ]}
+            />
           );
         },
       },
@@ -634,3 +635,5 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
     </MgmtPageShell>
   );
 };
+
+

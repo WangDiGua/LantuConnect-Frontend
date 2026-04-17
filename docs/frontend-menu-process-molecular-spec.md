@@ -55,11 +55,11 @@
 
 | 一级菜单（sidebarId） | 二级分组（示意） | 二级菜单项 / page |
 |---|---|---|
-| 总览 `overview` | 总览 | `dashboard`、`health-check`、`usage-statistics`、`data-reports` |
-| 资源管理 `resource-management` | 资源目录 / Agent 运维 | **`resource-catalog`**（统一资源中心）；`agent-monitoring`、`agent-trace`；另 `agent-register`…`dataset-register`、`agent-detail` |
+| 总览 `overview` | 经营分析 | `dashboard`、`usage-statistics`、`data-reports` |
+| 资源管理 `resource-management` | 资源目录 / 注册中心 | **`resource-catalog`**（统一资源中心）；另 `agent-register`…`dataset-register`、`agent-detail` |
 | 审核中心 `audit-center` | 待审核资源 | **`resource-audit`**（兼容 `agent-audit` 等 URL） |
 | 用户与权限 `user-management` | 用户 / 凭证 / 入驻 | `user-list`、`role-management`、`organization`、`api-key-management`、`resource-grant-management`、`grant-applications`、`developer-applications` |
-| 监控中心 `monitoring` | 观测 / 告警 / 治理 | `monitoring-overview`、`call-logs`、`performance-analysis`、`alert-management`、`alert-rules`、`health-config`、`circuit-breaker` |
+| 监控中心 `monitoring` | 观测 / 告警 / 治理 | `monitoring-overview`、`performance-center`、`call-logs`、`trace-center`、`alert-center`、`health-governance` |
 | 系统配置 `system-config` | 基础 / 策略 / 审计 / 内容治理 | `tag-management`、`security-settings`、`quota-management`、`rate-limit-policy`、`access-control`、`audit-log`、`sensitive-words`、`announcements` |
 
 **开发者中心**不挂在管理端 URL；页面仅在 `#/user/developer-portal/...` 下提供。

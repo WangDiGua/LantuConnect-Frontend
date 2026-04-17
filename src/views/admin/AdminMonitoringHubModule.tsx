@@ -17,7 +17,7 @@ export const AdminMonitoringHubModule: React.FC<AdminMonitoringHubModuleProps> =
 }) => (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
       <div className="min-h-0 min-w-0 flex-1">
-        <MonitoringModule activeSubItem={activePage} theme={theme} fontSize={fontSize} showMessage={showMessage} />
+        <MonitoringModule key={activePage} activeSubItem={activePage} theme={theme} fontSize={fontSize} showMessage={showMessage} />
       </div>
     </div>
   );

@@ -76,14 +76,14 @@
 ### 3.1 admin 侧
 
 - `dashboard` -> `/dashboard/admin-overview`：已完成
-- `health-check` -> `/dashboard/health-summary`,`/health/configs`：已完成
+- `health-check`（下线，旧地址跳 `health-governance`）-> `/health/configs`,`/health/circuit-breakers`：已完成
 - `usage-statistics` -> `/dashboard/usage-stats`：已完成
 - `data-reports` -> `/dashboard/data-reports`：已完成
 - `agent-list` -> `/catalog/resources?resourceType=agent`：已完成
 - `agent-create`（下线）-> 归并 `agent-register`：已完成（旧 slug 自动重定向）
 - `agent-audit`（迁移）-> `/audit/agents`（过渡）：过渡
 - `agent-versions`（下线）-> 归并 `agent-list`：已完成（旧 slug 自动重定向）
-- `agent-monitoring`（下线）-> 收拢到 `monitoring-overview` 页内的「性能分析」tab：已完成
+- `agent-monitoring`（下线）-> 收拢到 `monitoring-overview` 与 `performance-center`：已完成
 - `agent-trace`（下线）-> 收拢到 `trace-center`，并新增 `/monitoring/traces/{traceId}`：已完成
 - `agent-detail`（下线）-> `/catalog/resources/{type}/{id}`：已完成
 - `skill-list` -> `/catalog/resources?resourceType=skill`：已完成
@@ -102,6 +102,7 @@
 - `api-key-management` -> `/user-mgmt/api-keys*`：已完成
 - `resource-grant-management` -> ~~`/resource-grants*`~~（已废弃）：**已下线**（替代方案：使用 `/resource-center/resources` 管理资源）
 - `monitoring-overview` -> `/monitoring/kpis`：已完成
+- `performance-center` -> `/monitoring/performance` + `/monitoring/call-logs` + `/monitoring/traces`：已完成
 - `call-logs` -> `/monitoring/call-logs`：已完成
 - `trace-center` -> `/monitoring/traces` + `/monitoring/traces/{traceId}`：已完成
 - `alert-center` -> `/monitoring/alerts` + `/monitoring/alert-rules*`：已完成

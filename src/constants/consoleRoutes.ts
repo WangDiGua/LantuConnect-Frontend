@@ -1,4 +1,4 @@
-import type { ResourceType } from '../types/dto/catalog';
+﻿import type { ResourceType } from '../types/dto/catalog';
 import type { PlatformRoleCode } from '../types/dto/auth';
 import { canAccessAdminView } from '../context/UserRoleContext';
 import { parseResourceType } from './resourceTypes';
@@ -161,11 +161,11 @@ const ADMIN_WORKSPACE_ROUTE_PAGES = USER_SIDEBAR_PAGES.workspace.filter((page) =
 export const ADMIN_WORKSPACE_PAGES = new Set<string>([...ADMIN_WORKSPACE_ROUTE_PAGES, 'agent-detail', 'resource-audit']);
 
 const ADMIN_SIDEBAR_PAGES: Record<string, string[]> = {
-  'overview': ['dashboard', 'health-check', 'usage-statistics', 'data-reports'],
+  'overview': ['dashboard', 'usage-statistics', 'data-reports'],
   /** 用户与权限菜单：仅承载用户/角色/组织/密钥治理。 */
   'user-management': ['user-list', 'role-management', 'organization'],
   'admin-workspace': [...ADMIN_WORKSPACE_ROUTE_PAGES, 'agent-detail', 'resource-audit', 'agent-audit', 'skill-audit', 'mcp-audit', 'app-audit', 'dataset-audit'],
-  'monitoring': ['monitoring-overview', 'call-logs', 'trace-center', 'alert-center', 'health-governance'],
+  'monitoring': ['monitoring-overview', 'performance-center', 'call-logs', 'trace-center', 'alert-center', 'health-governance'],
   'system-config': [
     'tag-management',
     'system-params',
@@ -256,7 +256,7 @@ export function pageToSubItem(page: string, sidebarId: string | null, isAdmin: b
   if (isAdmin && (page === 'provider-list' || page === 'provider-create')) {
     return 'resource-audit';
   }
-  if (isAdmin && sidebarId === 'overview' && ['dashboard', 'health-check', 'usage-statistics', 'data-reports'].includes(page)) {
+  if (isAdmin && sidebarId === 'overview' && ['dashboard', 'usage-statistics', 'data-reports'].includes(page)) {
     return page;
   }
   if (isAdmin && page === 'workspace' && sidebarId === 'admin-workspace') return 'overview';
@@ -321,3 +321,4 @@ export function pageToSubItem(page: string, sidebarId: string | null, isAdmin: b
   }
   return page;
 }
+

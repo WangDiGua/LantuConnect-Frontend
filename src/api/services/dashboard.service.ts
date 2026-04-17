@@ -121,6 +121,25 @@ function normalizeUsageStatsData(raw: unknown): UsageStatsData {
       successRate: num(x.successRate ?? x.success_rate),
     };
   });
+  const departmentUsage = extractArray(breakdown.departmentUsage).map((item: unknown) => {
+    const x = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+    return {
+      department: String(x.department ?? x.dept ?? ''),
+      calls: num(x.calls ?? x.cnt),
+      users: num(x.users ?? x.userCount),
+    };
+  });
+  const ownerUsage = extractArray(breakdown.ownerUsage).map((item: unknown) => {
+    const x = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+    return {
+      ownerUserId: x.ownerUserId == null ? undefined : num(x.ownerUserId),
+      ownerName: String(x.ownerName ?? '--'),
+      calls: num(x.calls ?? x.cnt),
+      successRate: num(x.successRate ?? x.success_rate),
+      resourceCount: num(x.resourceCount ?? x.resource_count),
+    };
+  });
+  const topResources = extractArray(breakdown.topResources).map(mapDataReportResourceRow);
   return {
     range: String(o.range ?? agg.range ?? '7d'),
     points,
@@ -129,6 +148,9 @@ function normalizeUsageStatsData(raw: unknown): UsageStatsData {
     ),
     activeUsers: num(o.activeUsers ?? o.active_users ?? agg.activeUsers),
     callsByResourceType: callsByResourceType.length > 0 ? callsByResourceType : undefined,
+    departmentUsage: departmentUsage.length > 0 ? departmentUsage : undefined,
+    ownerUsage: ownerUsage.length > 0 ? ownerUsage : undefined,
+    topResources: topResources.length > 0 ? topResources : undefined,
   };
 }
 

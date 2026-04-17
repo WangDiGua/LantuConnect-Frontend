@@ -1,10 +1,11 @@
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
-import { Plus, Copy, Check, Ban, Zap, Info, Loader2 } from 'lucide-react';
+import { Ban, Check, Copy, Eye, Loader2, Plus, Zap } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { Modal } from '../../components/common/Modal';
 import { SearchInput, Pagination, TableCellEllipsis } from '../../components/common';
+import { RowActionGroup } from '../../components/management/RowActionGroup';
 import { MgmtDataTable } from '../../components/management/MgmtDataTable';
 import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
 import { MgmtBatchToolbar } from '../../components/management/MgmtBatchToolbar';
@@ -296,21 +297,26 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({
         cellClassName: 'text-right',
         cellNowrap: true,
         cell: (k) => (
-          <div className="inline-flex items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setDetailTarget(k)}
-              className={btnGhost(theme)}
-              aria-label={`查看 API Key 详情：${k.name}`}
-            >
-              <Info size={14} aria-hidden /> 详情
-            </button>
-            {k.status === 'active' ? (
-              <button type="button" onClick={() => setRevokeTarget(k.id)} className={`${btnGhost(theme)} text-amber-600 dark:text-amber-400`} aria-label={`撤销 API Key：${k.name}`}>
-                <Ban size={14} aria-hidden /> 撤销
-              </button>
-            ) : null}
-          </div>
+          <RowActionGroup
+            theme={theme}
+            actions={[
+              {
+                key: 'detail',
+                label: '详情',
+                icon: Eye,
+                onClick: () => setDetailTarget(k),
+                ariaLabel: `查看 API Key 详情 ${k.name}`,
+              },
+              {
+                key: 'revoke',
+                label: '吊销',
+                icon: Ban,
+                hidden: k.status !== 'active',
+                onClick: () => setRevokeTarget(k.id),
+                ariaLabel: `吊销 API Key ${k.name}`,
+              },
+            ]}
+          />
         ),
       },
     ],
@@ -539,3 +545,5 @@ export const ApiKeyListPage: React.FC<ApiKeyListPageProps> = ({
     </>
   );
 };
+
+

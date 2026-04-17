@@ -15,6 +15,8 @@ import { buildPath } from '../../constants/consoleRoutes';
 import { RESOURCE_TYPES, resourceTypeLabel } from '../../constants/resourceTypes';
 import { useAlertRuleScopeOptions, useTraceDetail, useTraceList } from '../../hooks/queries/useMonitoring';
 import type {
+  TraceDetail,
+  TraceListItem,
   TraceQueryParams,
   TraceSpanDetail,
   TraceSpanNode,
@@ -154,6 +156,23 @@ function buildTraceTree(spans: TraceSpanDetail[]): TraceTreeModel {
     ordered,
     byId,
     totalDurationMs,
+  };
+}
+
+function buildFallbackTraceDetail(item: TraceListItem): TraceDetail {
+  return {
+    summary: item,
+    rootCause: item.firstErrorMessage
+      ? {
+          message: item.firstErrorMessage,
+          operationName: item.rootOperation,
+          serviceName: item.entryService,
+        }
+      : undefined,
+    spans: [],
+    callLogs: [],
+    relatedAlerts: [],
+    resourceHealth: undefined,
   };
 }
 
@@ -370,6 +389,11 @@ export const TraceCenterPage: React.FC<TraceCenterPageProps> = ({
   const traceDetailQ = useTraceDetail(traceId || undefined);
   const traces = traceListQ.data?.list ?? [];
   const total = traceListQ.data?.total ?? 0;
+  const selectedTraceSummary = useMemo(
+    () => traces.find((item) => item.traceId === traceId) ?? null,
+    [traceId, traces],
+  );
+  const resolvedTraceDetail = traceDetailQ.data ?? (selectedTraceSummary ? buildFallbackTraceDetail(selectedTraceSummary) : null);
 
   useEffect(() => {
     if (!traceId && traces.length > 0) {
@@ -378,22 +402,22 @@ export const TraceCenterPage: React.FC<TraceCenterPageProps> = ({
   }, [commitParams, traceId, traces]);
 
   const treeModel = useMemo(
-    () => buildTraceTree(traceDetailQ.data?.spans ?? []),
-    [traceDetailQ.data?.spans],
+    () => buildTraceTree(resolvedTraceDetail?.spans ?? []),
+    [resolvedTraceDetail?.spans],
   );
 
   useEffect(() => {
-    if (!traceDetailQ.data) {
+    if (!resolvedTraceDetail) {
       setActiveSpanId(null);
       setExpandedSpanIds(new Set());
       return;
     }
-    const preferredSpanId = traceDetailQ.data.rootCause?.spanId && treeModel.byId.has(traceDetailQ.data.rootCause.spanId)
-      ? traceDetailQ.data.rootCause.spanId
+    const preferredSpanId = resolvedTraceDetail.rootCause?.spanId && treeModel.byId.has(resolvedTraceDetail.rootCause.spanId)
+      ? resolvedTraceDetail.rootCause.spanId
       : treeModel.roots[0]?.id ?? null;
     setActiveSpanId((prev) => (prev && treeModel.byId.has(prev) ? prev : preferredSpanId));
     setExpandedSpanIds(collectExpandedIds(preferredSpanId, treeModel));
-  }, [traceDetailQ.data, treeModel]);
+  }, [resolvedTraceDetail, treeModel]);
 
   const selectedSpan = useMemo(
     () => (activeSpanId ? treeModel.byId.get(activeSpanId) ?? null : treeModel.roots[0] ?? null),
@@ -496,8 +520,8 @@ export const TraceCenterPage: React.FC<TraceCenterPageProps> = ({
   })();
 
   const detailJson = useMemo(
-    () => (traceDetailQ.data ? JSON.stringify(traceDetailQ.data, null, 2) : ''),
-    [traceDetailQ.data],
+    () => (resolvedTraceDetail ? JSON.stringify(resolvedTraceDetail, null, 2) : ''),
+    [resolvedTraceDetail],
   );
 
   const activeSpanJson = useMemo(
@@ -517,17 +541,25 @@ export const TraceCenterPage: React.FC<TraceCenterPageProps> = ({
     if (traceDetailQ.isLoading) {
       return <PageSkeleton type="detail" rows={6} />;
     }
-    if (traceDetailQ.isError) {
+    if (traceDetailQ.isError && !resolvedTraceDetail) {
       return <PageError error={traceDetailQ.error as Error} onRetry={() => traceDetailQ.refetch()} />;
     }
-    if (!traceDetailQ.data) {
+    if (!resolvedTraceDetail) {
       return <EmptyState title="当前 Trace 暂无详情" description="后端尚未返回 summary / spans / callLogs 数据。" />;
     }
 
-    const { summary, rootCause, callLogs } = traceDetailQ.data;
+    const { summary, rootCause, callLogs, relatedAlerts, resourceHealth } = resolvedTraceDetail;
 
     return (
       <div className={pageBlockStack}>
+        {traceDetailQ.isError ? (
+          <div className={`rounded-[1.25rem] border px-4 py-3 text-sm ${theme === 'dark' ? 'border-amber-400/20 bg-amber-500/10 text-amber-200' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
+            Trace 明细接口暂时不可用，当前先用列表摘要继续排查。你仍然可以复制 TraceId，并继续跳转到调用日志、告警处置和健康治理。
+            <button type="button" className="ml-2 font-semibold underline" onClick={() => traceDetailQ.refetch()}>
+              重试明细
+            </button>
+          </div>
+        ) : null}
         <BentoCard
           theme={theme}
           className={`overflow-hidden border ${
@@ -882,6 +914,80 @@ export const TraceCenterPage: React.FC<TraceCenterPageProps> = ({
             </div>
           )}
         </BentoCard>
+
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <BentoCard theme={theme}>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h4 className={`text-sm font-semibold ${textPrimary(theme)}`}>关联告警</h4>
+                <p className={`mt-1 text-xs ${textMuted(theme)}`}>把 trace 根因和活跃告警串起来，直接回到告警处置中心继续认领与恢复。</p>
+              </div>
+            </div>
+            {(relatedAlerts.length ?? 0) === 0 ? (
+              <div className={`mt-4 text-sm ${textMuted(theme)}`}>当前 Trace 没有关联告警。</div>
+            ) : (
+              <div className="mt-4 space-y-3">
+                {relatedAlerts.map((alert) => (
+                  <button
+                    key={alert.id}
+                    type="button"
+                    onClick={() => navigate(`${buildPath('admin', 'alert-center')}?detailId=${encodeURIComponent(alert.id)}`)}
+                    className={`w-full rounded-[1.15rem] border px-4 py-3 text-left ${theme === 'dark' ? 'border-white/8 bg-white/[0.03]' : 'border-slate-100 bg-slate-50/90'}`}
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className={`text-sm font-semibold ${textPrimary(theme)}`}>{alert.ruleName || '--'}</div>
+                      <div className={`text-xs ${textMuted(theme)}`}>{formatDateTime(alert.firedAt)}</div>
+                    </div>
+                    <div className={`mt-1 text-xs ${textMuted(theme)}`}>{alert.severity} / {alert.status}</div>
+                    <div className={`mt-2 text-sm ${textSecondary(theme)}`}>{alert.message || '--'}</div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </BentoCard>
+
+          <BentoCard theme={theme}>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h4 className={`text-sm font-semibold ${textPrimary(theme)}`}>关联健康快照</h4>
+                <p className={`mt-1 text-xs ${textMuted(theme)}`}>把当前链路失败和资源健康状态放在同一页，便于判断是入口故障还是资源治理问题。</p>
+              </div>
+              {resourceHealth ? (
+                <button
+                  type="button"
+                  className={btnSecondary(theme)}
+                  onClick={() => navigate(`${buildPath('admin', 'health-governance')}?resourceId=${resourceHealth.resourceId}`)}
+                >
+                  <ExternalLink size={15} aria-hidden />
+                  打开健康治理
+                </button>
+              ) : null}
+            </div>
+            {resourceHealth ? (
+              <div className="mt-4 space-y-3">
+                <div className={`rounded-[1.15rem] border px-4 py-3 ${theme === 'dark' ? 'border-white/8 bg-white/[0.03]' : 'border-slate-100 bg-slate-50/90'}`}>
+                  <div className={`text-sm font-semibold ${textPrimary(theme)}`}>{resourceHealth.displayName || resourceHealth.resourceCode || '--'}</div>
+                  <div className={`mt-1 text-xs ${textMuted(theme)}`}>{resourceTypeLabel(resourceHealth.resourceType)} · #{resourceHealth.resourceId}</div>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className={`rounded-[1rem] border px-3 py-3 ${theme === 'dark' ? 'border-white/8 bg-slate-950/40' : 'border-slate-100 bg-white'}`}>
+                    <div className={`text-[11px] uppercase tracking-wide ${textMuted(theme)}`}>健康状态</div>
+                    <div className={`mt-2 text-sm ${textPrimary(theme)}`}>{resourceHealth.healthStatus || '--'}</div>
+                  </div>
+                  <div className={`rounded-[1rem] border px-3 py-3 ${theme === 'dark' ? 'border-white/8 bg-slate-950/40' : 'border-slate-100 bg-white'}`}>
+                    <div className={`text-[11px] uppercase tracking-wide ${textMuted(theme)}`}>可调用状态</div>
+                    <div className={`mt-2 text-sm ${textPrimary(theme)}`}>{resourceHealth.callabilityState || '--'}</div>
+                  </div>
+                </div>
+                <div className={`rounded-[1rem] border px-3 py-3 text-sm ${theme === 'dark' ? 'border-white/8 bg-slate-950/40 text-slate-200' : 'border-slate-100 bg-white text-slate-700'}`}>
+                  {resourceHealth.callabilityReason || resourceHealth.lastFailureReason || '暂无额外健康说明。'}
+                </div>
+              </div>
+            ) : (
+              <div className={`mt-4 text-sm ${textMuted(theme)}`}>当前 Trace 没有关联的健康快照。</div>
+            )}
+          </BentoCard>
+        </div>
       </div>
     );
   })();

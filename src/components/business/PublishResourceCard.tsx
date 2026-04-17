@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, Undo2 } from 'lucide-react';
+import { CheckCircle2, Eye, Undo2, XCircle } from 'lucide-react';
 import type { Theme } from '../../types';
 import type { MyPublishItem } from '../../types/dto/user-activity';
 import { resourceAuditService } from '../../api/services/resource-audit.service';
@@ -8,8 +8,6 @@ import {
   bentoCardHover,
   btnGhost,
   btnPrimary,
-  mgmtTableActionDanger,
-  mgmtTableActionPositive,
   statusBadgeClass,
   statusDot,
   statusLabel,
@@ -18,6 +16,7 @@ import {
   textSecondary,
 } from '../../utils/uiClasses';
 import type { DomainStatus } from '../../utils/uiClasses';
+import { RowActionGroup } from '../management/RowActionGroup';
 import { PublishStatusStepper } from './PublishStatusStepper';
 import { AutoHeightTextarea } from '../common/AutoHeightTextarea';
 import { descriptionClampMinHeightPx } from '../../utils/pretextTypography';
@@ -161,59 +160,60 @@ export const PublishResourceCard: React.FC<Props> = ({
           </div>
         </dl>
 
-        <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={onView} className={`${btnGhost(theme)} gap-1.5 px-3 py-2`}>
-            <Eye size={16} />
-            详情
-          </button>
-          {showAuditActions && (
-            <>
-              <button
-                type="button"
-                disabled={!!runningKey}
-                onClick={() =>
-                  void runAuditAction(
-                    `audit-approve-${item.id}`,
-                    () => resourceAuditService.approve(item.id),
-                    '已通过审核，资源进入测试中',
-                  )
-                }
-                className={mgmtTableActionPositive(theme)}
-              >
-                {runningKey === `audit-approve-${item.id}` ? '处理中…' : '通过审核'}
-              </button>
-              <button
-                type="button"
-                disabled={!!runningKey}
-                onClick={() => {
-                  setRejectReason('');
-                  setRejectOpen(true);
-                }}
-                className={mgmtTableActionDanger}
-              >
-                驳回
-              </button>
-            </>
-          )}
-          {showPublish && (
-            <button
-              type="button"
-              disabled={!!runningKey}
-              onClick={() =>
-                void runAuditAction(`publish-${item.id}`, () => resourceAuditService.publish(item.id), '已发布上架')
-              }
-              className={mgmtTableActionPositive(theme)}
-            >
-              {runningKey === `publish-${item.id}` ? '发布中…' : '发布上架'}
-            </button>
-          )}
-          {showWithdraw && (
-            <button type="button" onClick={onWithdraw} className={`${btnGhost(theme)} gap-1.5 px-3 py-2 text-amber-600 dark:text-amber-400`}>
-              <Undo2 size={16} />
-              撤回审核
-            </button>
-          )}
-        </div>
+        <RowActionGroup
+          theme={theme}
+          actions={[
+            {
+              key: 'detail',
+              label: '详情',
+              icon: Eye,
+              onClick: onView,
+            },
+            {
+              key: 'approve',
+              label: runningKey === `audit-approve-${item.id}` ? '处理中' : '通过审核',
+              icon: CheckCircle2,
+              tone: 'positive',
+              hidden: !showAuditActions,
+              disabled: !!runningKey,
+              onClick: () =>
+                void runAuditAction(
+                  `audit-approve-${item.id}`,
+                  () => resourceAuditService.approve(item.id),
+                  '已通过审核，资源进入测试中',
+                ),
+            },
+            {
+              key: 'reject',
+              label: '驳回',
+              icon: XCircle,
+              tone: 'danger',
+              hidden: !showAuditActions,
+              disabled: !!runningKey,
+              onClick: () => {
+                setRejectReason('');
+                setRejectOpen(true);
+              },
+            },
+            {
+              key: 'publish',
+              label: runningKey === `publish-${item.id}` ? '发布中' : '发布上架',
+              icon: CheckCircle2,
+              tone: 'positive',
+              hidden: !showPublish,
+              disabled: !!runningKey,
+              onClick: () =>
+                void runAuditAction(`publish-${item.id}`, () => resourceAuditService.publish(item.id), '已发布上架'),
+            },
+            {
+              key: 'withdraw',
+              label: '撤回审核',
+              icon: Undo2,
+              hidden: !showWithdraw,
+              onClick: () => onWithdraw?.(),
+            },
+          ]}
+        />
       </div>
     </div>
     {rejectOpen && (

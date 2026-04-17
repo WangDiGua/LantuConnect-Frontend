@@ -79,15 +79,12 @@
 | 页面 slug | 验收动作 |
 |---|---|
 | `dashboard` | 概览卡刷新 + 时间筛选 + 错误重试 |
-| `health-check` | 健康摘要展示 + 跳转健康配置 |
 | `usage-statistics` | 统计维度切换 + 图表回显 |
 | `data-reports` | 筛选报表 + 明细加载 |
 | `agent-list` | 列表筛选 + 行操作可用性 |
 | `agent-register` | 保存草稿 + 提交审核 |
 | `agent-detail` (`direct-url-only`) | 仅直链访问；详情/版本/评价可正常加载 |
 | `agent-audit` | 通过/驳回/发布三动作完整 |
-| `agent-monitoring` | 指标查询 + 日志联动 |
-| `agent-trace` | traceId 查询 + 明细展开 |
 | `skill-list` | 列表筛选 + 行操作可用性 |
 | `skill-register` | 保存草稿 + 提交审核 |
 | `skill-audit` | 通过/驳回/发布三动作完整 |
@@ -110,11 +107,11 @@
 | `developer-applications` | 入驻申请审批（通过/驳回） |
 | `monitoring-overview` | KPI + 告警摘要展示 |
 | `call-logs` | 日志检索 + 分页 + 重试 |
-| `performance-analysis` | 性能趋势筛选 + 维度切换 |
-| `alert-management` | 告警筛选 + 状态更新 |
+| `performance-center` | 性能趋势筛选 + 方法排行 + trace 下钻 |
+| `trace-center` | traceId 查询 + 明细展开 + 证据链查看 |
+| `alert-center` | 告警筛选 + 状态更新 |
 | `alert-rules` | 规则增改删 + dry-run |
-| `health-config` | 探针配置增改删 |
-| `circuit-breaker` | 熔断打开/恢复操作 |
+| `health-governance` | 探针配置增改删 + 熔断打开/恢复 + 最近证据查看 |
 | `tag-management` | 标签增改删 + 批量导入 |
 | ~~`model-config`~~ | **已移除**（大模型配置全栈下线） |
 | `security-settings` | 安全策略保存与回显 |

@@ -94,7 +94,6 @@
 | sidebarId | page slug | Hash 路径 | 渲染组件 | 状态 | 说明 |
 |---|---|---|---|---|---|
 | overview | `dashboard` | `#/c/dashboard` | AdminOverviewModule | reachable | — |
-| overview | `health-check` | `#/c/health-check` | AdminOverviewModule | reachable | — |
 | overview | `usage-statistics` | `#/c/usage-statistics` | AdminOverviewModule | reachable | — |
 | overview | `data-reports` | `#/c/data-reports` | AdminOverviewModule | reachable | — |
 | user-management | `user-list` | `#/c/user-list` | AdminUserHubModule | reachable | — |
@@ -108,6 +107,7 @@
 | admin-workspace | `app-audit` | `#/c/app-audit` | ResourceAuditList（replace 后生效） | redirect | `MainLayout` replace → `#/c/resource-audit?type=app`（若缺省 `type` 则用该默认值） |
 | admin-workspace | `dataset-audit` | `#/c/dataset-audit` | ResourceAuditList（replace 后生效） | redirect | `MainLayout` replace → `#/c/resource-audit?type=dataset`（若缺省 `type` 则用该默认值） |
 | monitoring | `monitoring-overview` | `#/c/monitoring-overview` | AdminMonitoringHubModule | reachable | — |
+| monitoring | `performance-center` | `#/c/performance-center` | AdminMonitoringHubModule | reachable | — |
 | monitoring | `call-logs` | `#/c/call-logs` | AdminMonitoringHubModule | reachable | — |
 | monitoring | `trace-center` | `#/c/trace-center` | AdminMonitoringHubModule | reachable | — |
 | monitoring | `alert-center` | `#/c/alert-center` | AdminMonitoringHubModule | reachable | — |

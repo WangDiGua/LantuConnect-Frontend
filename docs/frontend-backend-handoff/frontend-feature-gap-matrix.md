@@ -20,7 +20,6 @@
 | 路由 page | 主要组件 | 列表/数据 API | 数据流 | 备注 |
 |-----------|----------|---------------|--------|------|
 | dashboard | Overview 等 | `dashboard.service` | 混合 | 视卡片而定 |
-| health-check | 健康看板 | 多种 | serverPaged | — |
 | usage-statistics | 用量统计 | `user-activity` / `dashboard` | 混合 | — |
 | data-reports | 数据报表 | `dashboard` 等 | 混合 | — |
 | agent-list / skill-list / mcp-server-list / app-list / dataset-list | 资源列表 | `agent` / `skill` / `smart-app` / `dataset` + `keyword` | serverPaged | 行内操作图标风见审计文档 |
@@ -47,11 +46,11 @@
 |-----------|----------|---------------|--------|------|
 | monitoring-overview | MonitoringOverviewPage | `monitoringService.getKpis` 等 | serverPaged | — |
 | call-logs | CallLogPage | `listCallLogs` + **keyword/status** | serverPaged | 筛选项透传 query |
-| performance-analysis | PerformanceAnalysisPage | `getPerformanceMetrics` | serverPaged | `PerformanceMetric.service` 优先分桶 |
-| alert-management | AlertMgmtPage | `listAlerts` + **keyword/severity/status** | serverPaged | 同上 |
+| performance-center | PerformanceAnalysisPage | `getPerformanceMetrics` | serverPaged | 支持直接下钻调用日志与 trace |
+| alert-center | AlertCenterPage | `listAlerts` + **keyword/severity/status** | serverPaged | 同上 |
 | alert-rules | AlertRulesPage | `listAlertRules` + **create / update / delete** | clientFilter | 列表关键词+级别筛为客户端；编辑/删除已接线 |
-| health-config | HealthConfigPage | `healthService` | CRUD | — |
-| circuit-breaker | CircuitBreakerPage | `healthService` | CRUD | 工具栏检索+状态筛（客户端） |
+| trace-center | TraceCenterPage | `listTraces` + `getTraceDetail` | serverPaged | 失败优先列表 + 详情工作区 |
+| health-governance | HealthGovernancePage | `healthService` | CRUD | 详情补齐 trace/log/alert 证据链 |
 
 ---
 

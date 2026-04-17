@@ -221,16 +221,16 @@ export function tableCellActionChipsRow() {
 
 /** 管理列表行内「查看 / 编辑」等：胶囊、纯文字、浅灰底 */
 export function mgmtTableActionGhost(theme: Theme) {
-  return `inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${
+  return `inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all duration-200 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/20 disabled:opacity-45 disabled:pointer-events-none ${
     D(theme)
-      ? 'bg-white/[0.08] text-lantu-text-primary hover:bg-white/12'
+      ? 'bg-white/[0.08] text-lantu-text-primary hover:bg-white/12 focus-visible:ring-sky-400/35'
       : 'bg-slate-100 text-slate-700 hover:bg-slate-200/90'
   }`;
 }
 
 /** 行内正向操作（通过等）：胶囊、浅绿底 */
 export function mgmtTableActionPositive(theme: Theme) {
-  return `inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${
+  return `inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all duration-200 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/25 disabled:opacity-45 disabled:pointer-events-none ${
     D(theme)
       ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25'
       : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
@@ -239,7 +239,7 @@ export function mgmtTableActionPositive(theme: Theme) {
 
 /** 行内危险操作（删除、驳回、撤销）：胶囊、淡粉底 + 红字，纯文字 */
 export const mgmtTableActionDanger =
-  'inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors bg-rose-50 text-rose-600 hover:bg-rose-100 dark:bg-rose-500/15 dark:text-rose-400 dark:hover:bg-rose-500/25';
+  'inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all duration-200 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/25 disabled:opacity-45 disabled:pointer-events-none bg-rose-50 text-rose-600 hover:bg-rose-100 dark:bg-rose-500/15 dark:text-rose-400 dark:hover:bg-rose-500/25';
 
 /** 管理端表格「操作」列内按钮容器：单行排列；表格外层需 overflow-x-auto（如 MgmtDataTable） */
 export const mgmtTableRowActions =

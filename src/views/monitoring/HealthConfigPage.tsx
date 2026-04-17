@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ShieldCheck, Search } from 'lucide-react';
+import { PencilLine, Search, ShieldCheck } from 'lucide-react';
 import { Theme, FontSize } from '../../types';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import { LantuSelect } from '../../components/common/LantuSelect';
 import { TOOLBAR_ROW_LIST, toolbarSearchInputClass } from '../../utils/toolbarFieldClasses';
 import {
-  btnPrimary, btnSecondary, iconMuted, mgmtTableActionGhost, pageBlockStack,
+  btnPrimary, btnSecondary, iconMuted, pageBlockStack,
   tableHeadCell, tableBodyRow, tableCell, textPrimary, textSecondary, textMuted,
 } from '../../utils/uiClasses';
 import { Modal } from '../../components/common/Modal';
@@ -19,6 +19,7 @@ import {
 import { TableCellEllipsis } from '../../components/common/TableCellEllipsis';
 import { BentoCard } from '../../components/common/BentoCard';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
+import { RowActionGroup } from '../../components/management/RowActionGroup';
 import { healthService } from '../../api/services/health.service';
 import type { HealthConfigItem } from '../../types/dto/health';
 import { RESOURCE_TYPE_LABEL } from '../../constants/resourceTypes';
@@ -202,7 +203,17 @@ export const HealthConfigPage: React.FC<Props> = ({ theme, fontSize, showMessage
                           </td>
                           <td className={`${tableCell()} text-xs whitespace-nowrap ${textMuted(theme)}`}>{r.lastCheckTime?.slice(11) ?? '—'}</td>
                           <td className={tableCell()}>
-                            <button type="button" onClick={() => openEdit(r)} className={mgmtTableActionGhost(theme)}>编辑</button>
+                            <RowActionGroup
+                              theme={theme}
+                              actions={[
+                                {
+                                  key: 'edit',
+                                  label: '编辑',
+                                  icon: PencilLine,
+                                  onClick: () => openEdit(r),
+                                },
+                              ]}
+                            />
                           </td>
                         </tr>
                       );

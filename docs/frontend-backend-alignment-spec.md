@@ -201,8 +201,8 @@
 | `agent-create` | 下线 | 迁移到统一资源注册链路（目录+解析） |
 | `agent-audit` | 迁移 | 过渡可用 `/audit/agents`，目标是统一资源审核 |
 | `agent-versions` | 下线 | 旧版本接口已删 |
-| `agent-monitoring` | 迁移 | 用 `/monitoring/*` + `/invoke` 调用日志替代 |
-| `agent-trace` | 迁移 | `/monitoring/traces` |
+| `agent-monitoring` | 下线 | 能力收拢到 `monitoring-overview` 页内的「性能分析」tab |
+| `agent-trace` | 下线 | 能力收拢到 `trace-center`，改为 trace 级列表 + `/monitoring/traces/{traceId}` 详情 |
 | `agent-detail` | 下线 | 迁移到 `/catalog/resources/{type}/{id}` |
 | `skill-list` | 下线 | 迁移到 `/catalog/resources`（`resourceType=skill`） |
 | `skill-create` | 下线 | 迁移到统一资源注册链路 |
@@ -219,11 +219,9 @@
 | `resource-grant-management` | ~~保留（新增）~~ **已下线** | ~~`/resource-grants*`（资源授权他人调用）~~ **替代方案**：使用 `/resource-center/resources` 管理资源 |
 | `monitoring-overview` | 保留 | `/monitoring/kpis` |
 | `call-logs` | 保留 | `/monitoring/call-logs` |
-| `performance-analysis` | 保留 | `/monitoring/performance` |
-| `alert-management` | 保留 | `/monitoring/alerts` |
-| `alert-rules` | 保留 | `/monitoring/alert-rules*` |
-| `health-config` | 保留 | `/health/configs*` |
-| `circuit-breaker` | 保留 | `/health/circuit-breakers*` |
+| `trace-center` | 保留 | `/monitoring/traces`,`/monitoring/traces/{traceId}` |
+| `alert-center` | 保留 | `/monitoring/alerts`,`/monitoring/alert-rules*` |
+| `health-governance` | 保留 | `/health/configs*`,`/health/circuit-breakers*` |
 | `category-management` | 下线 | 旧 `/v1/categories/**` 已删除 |
 | `tag-management` | 保留 | `/tags*` |
 | `model-config` | **已移除** | 产品不提供大模型配置；后端 API/表已删 |
@@ -782,7 +780,7 @@ revokeGrant --> invoke
 | UserMgmt | `/user-mgmt/org*` | `usermgmt/dto/OrgCreateRequest`,`OrgUpdateRequest`,`OrgNodeVO` |
 | UserMgmt | `/user-mgmt/users/{id}/org` | `usermgmt/dto/UserOrgBindRequest`,`UserOrgVO` |
 | UserMgmt | `/user-mgmt/users/{id}/roles*` | `usermgmt/dto/UserRoleBindRequest`,`UserRoleReplaceRequest` |
-| Monitoring | `/monitoring/call-logs`,`/alerts`,`/traces` | `monitoring/dto/PageQuery`,`monitoring/entity/CallLog`,`AlertRecord`,`TraceSpan` |
+| Monitoring | `/monitoring/call-logs`,`/alerts`,`/traces`,`/monitoring/traces/{traceId}` | `monitoring/dto/PageQuery`,`monitoring/entity/CallLog`,`AlertRecord`,`TraceListItemVO`,`TraceDetailVO`,`TraceSpanVO` |
 | Monitoring | `/monitoring/alert-rules*` | `monitoring/dto/AlertRuleCreateRequest`,`AlertRuleUpdateRequest`,`AlertRuleDryRunRequest` |
 | Health | `/health/configs*` | `monitoring/dto/HealthConfigUpsertRequest`,`monitoring/entity/HealthConfig` |
 | Health | `/health/circuit-breakers*` | `monitoring/dto/CircuitBreakerUpdateRequest`,`CircuitBreakerManualRequest`,`monitoring/entity/CircuitBreaker` |

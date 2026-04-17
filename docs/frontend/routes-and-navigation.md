@@ -92,9 +92,8 @@
 |-----------|-------------------|
 | `overview` | `dashboard`, `health-check`, `usage-statistics`, `data-reports` |
 | `user-management` | `user-list`, `role-management`, `organization` |
-| `admin-resource-ops` | `agent-monitoring`, `agent-trace` |
 | `admin-workspace` | 与 `USER_SIDEBAR_PAGES.workspace` 一致，并含 `agent-detail`、`resource-audit` 及旧 `*-audit`（个人工作台：我的资源中心、资源审核等） |
-| `monitoring` | `monitoring-overview`, `call-logs`, `performance-analysis`（兼容旧链接）, `alert-center`, `alert-management`（兼容旧链接）, `alert-rules`（兼容旧链接）, `health-governance`, `health-config`（兼容旧链接）, `circuit-breaker`（兼容旧链接） |
+| `monitoring` | `monitoring-overview`, `call-logs`, `trace-center`, `alert-center`, `health-governance` |
 | `system-config` | `tag-management`, `system-params`, `security-settings`, `network-config`, `rate-limit-policy`, `access-control`, `audit-log`, `sensitive-words`, `announcements` |
 | `developer-portal` | `developer-docs`, `developer-tools`, `developer-statistics` |
 
@@ -135,8 +134,6 @@
 | `workspace` / `resource-center` / `my-agents-pub` / `usage-*` / `my-favorites` / `resource-market` / `my-publish-*` 等 | 与使用端工作台相同组件族（`UserWorkspaceOverview`、`ResourceCenterManagementPage`…） |
 | `agent-register` | `ResourceRegisterPage(agent)` |
 | `agent-detail` | `AgentDetail` |
-| `agent-monitoring` | `AgentMonitoringPage` |
-| `agent-trace` | `AgentTracePage` |
 | `skill-register` | `ResourceRegisterPage(skill)` |
 | `mcp-register` | `ResourceRegisterPage(mcp)` |
 | `resource-audit` | `ResourceAuditList`（`defaultType` 来自 query） |
@@ -146,7 +143,7 @@
 | `my-api-keys` | `UserApiKeysIntegrationHubPage`（管理员额外包含“平台密钥管理”标签；旧 `api-key-management` / `token-management` 自动跳转到 `my-api-keys?tab=platform`） |
 | `grant-applications` | `GrantApplicationListPage` |
 | `developer-applications` | `DeveloperApplicationListPage` |
-| `monitoring-overview` / `call-logs` / `performance-analysis` / `alert-center` / `alert-management` / `alert-rules` / `health-governance` / `health-config` / `circuit-breaker` | `MonitoringModule` |
+| `monitoring-overview` / `call-logs` / `trace-center` / `alert-center` / `health-governance` | `MonitoringModule` |
 | `category-management` / `tag-management` / … / `announcements` | `SystemConfigModule`（注：`category-management` 会先在 URL 层归一到 `tag-management`；~~`model-config`~~ 已移除） |
 | 其它已知 slug | `PlaceholderView` |
 
@@ -182,7 +179,7 @@
 
 以下 `page` 在管理端侧栏中可 **按权限隐藏**（见 `MainLayout`）：
 
-`resource-audit`（`resource:audit`）、`role-management`（`role:manage`）、`organization`（`org:manage`）、`api-key-management`（旧兼容 slug，跳转到 `my-api-keys?tab=platform`，权限 `api-key:manage`）、`resource-grant-management` / `grant-applications`（`resource-grant:manage`）、`developer-applications`（`developer-application:review`）、`alert-rules` / `health-config` / `circuit-breaker`（`system:config`）。  
+`resource-audit`（`resource:audit`）、`role-management`（`role:manage`）、`organization`（`org:manage`）、`api-key-management`（旧兼容 slug，跳转到 `my-api-keys?tab=platform`，权限 `api-key:manage`）、`resource-grant-management` / `grant-applications`（`resource-grant:manage`）、`developer-applications`（`developer-application:review`）。  
 审核类子项另有 `resourceType` 相关权限位（实现见 `MainLayout` 中 `filteredSubGroupsForSidebarId` 等相关逻辑）。
 
 ## 路由变更历史

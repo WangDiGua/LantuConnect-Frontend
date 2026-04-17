@@ -165,11 +165,7 @@ const ADMIN_SIDEBAR_PAGES: Record<string, string[]> = {
   /** 用户与权限菜单：仅承载用户/角色/组织/密钥治理。 */
   'user-management': ['user-list', 'role-management', 'organization'],
   'admin-workspace': [...ADMIN_WORKSPACE_ROUTE_PAGES, 'agent-detail', 'resource-audit', 'agent-audit', 'skill-audit', 'mcp-audit', 'app-audit', 'dataset-audit'],
-  'admin-resource-ops': [
-    'agent-monitoring',
-    'agent-trace',
-  ],
-  'monitoring': ['monitoring-overview', 'call-logs', 'performance-analysis', 'alert-center', 'alert-management', 'alert-rules', 'health-governance', 'health-config', 'circuit-breaker'],
+  'monitoring': ['monitoring-overview', 'call-logs', 'trace-center', 'alert-center', 'health-governance'],
   'system-config': [
     'tag-management',
     'system-params',
@@ -221,7 +217,7 @@ export function parseRoute(pathname: string): ParsedConsoleRoute | null {
 
 export function findSidebarForPage(role: ConsoleRole, page: string): string | null {
   if (role === 'admin' && page === 'resource-catalog') {
-    return 'admin-resource-ops';
+    return 'admin-workspace';
   }
   if (role === 'user' && page === 'resource-center') {
     return 'workspace';
@@ -280,9 +276,6 @@ export function pageToSubItem(page: string, sidebarId: string | null, isAdmin: b
   if (!isAdmin && sidebarId === 'workspace' && USER_WORKBENCH_SATELLITE_PAGES.has(page)) {
     return page;
   }
-  if (isAdmin && sidebarId === 'admin-resource-ops' && (page === 'agent-monitoring' || page === 'agent-trace')) {
-    return page;
-  }
   if (
     !isAdmin &&
     sidebarId === 'skills-center' &&
@@ -314,9 +307,6 @@ export function pageToSubItem(page: string, sidebarId: string | null, isAdmin: b
     return 'overview';
   }
   if (isAdmin && sidebarId === 'monitoring' && ADMIN_SIDEBAR_PAGES.monitoring.includes(page)) {
-    if (page === 'performance-analysis') return 'monitoring-overview';
-    if (page === 'alert-management' || page === 'alert-rules') return 'alert-center';
-    if (page === 'health-config' || page === 'circuit-breaker') return 'health-governance';
     return page;
   }
   if (isAdmin && sidebarId === 'system-config' && ADMIN_SIDEBAR_PAGES['system-config'].includes(page)) {

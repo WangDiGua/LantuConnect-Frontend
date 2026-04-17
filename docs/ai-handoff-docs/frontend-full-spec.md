@@ -74,24 +74,18 @@
 | user-management | `user-list` | `#/c/user-list` | AdminUserHubModule | reachable | — |
 | user-management | `role-management` | `#/c/role-management` | AdminUserHubModule | reachable | — |
 | user-management | `organization` | `#/c/organization` | AdminUserHubModule | reachable | — |
-| user-management | `api-key-management` | `#/c/api-key-management` | AdminUserHubModule | reachable | — |
-| user-management | `developer-applications` | `#/c/developer-applications` | AdminUserHubModule | reachable | — |
-| admin-resource-ops | `resource-audit` | `#/c/resource-audit?type=…` | ResourceAuditList | reachable | — |
-| admin-resource-ops | `agent-audit` | `#/c/agent-audit` | ResourceAuditList（replace 后生效） | redirect | `MainLayout` replace → `#/c/resource-audit?type=agent`（若缺省 `type` 则用该默认值） |
-| admin-resource-ops | `skill-audit` | `#/c/skill-audit` | ResourceAuditList（replace 后生效） | redirect | `MainLayout` replace → `#/c/resource-audit?type=skill`（若缺省 `type` 则用该默认值） |
-| admin-resource-ops | `mcp-audit` | `#/c/mcp-audit` | ResourceAuditList（replace 后生效） | redirect | `MainLayout` replace → `#/c/resource-audit?type=mcp`（若缺省 `type` 则用该默认值） |
-| admin-resource-ops | `app-audit` | `#/c/app-audit` | ResourceAuditList（replace 后生效） | redirect | `MainLayout` replace → `#/c/resource-audit?type=app`（若缺省 `type` 则用该默认值） |
-| admin-resource-ops | `dataset-audit` | `#/c/dataset-audit` | ResourceAuditList（replace 后生效） | redirect | `MainLayout` replace → `#/c/resource-audit?type=dataset`（若缺省 `type` 则用该默认值） |
-| admin-resource-ops | `agent-monitoring` | `#/c/agent-monitoring` | ResourceDiagnosticsModule | reachable | — |
-| admin-resource-ops | `agent-trace` | `#/c/agent-trace` | ResourceDiagnosticsModule | reachable | — |
 | admin-workspace | `agent-detail` | `#/c/agent-detail/{id}` | AgentDetail | direct-url-only | 菜单无直达子项；需 `/c/agent-detail/{id}` |
+| admin-workspace | `resource-audit` | `#/c/resource-audit?type=…` | ResourceAuditList | reachable | — |
+| admin-workspace | `agent-audit` | `#/c/agent-audit` | ResourceAuditList（replace 后生效） | redirect | `MainLayout` replace → `#/c/resource-audit?type=agent`（若缺省 `type` 则用该默认值） |
+| admin-workspace | `skill-audit` | `#/c/skill-audit` | ResourceAuditList（replace 后生效） | redirect | `MainLayout` replace → `#/c/resource-audit?type=skill`（若缺省 `type` 则用该默认值） |
+| admin-workspace | `mcp-audit` | `#/c/mcp-audit` | ResourceAuditList（replace 后生效） | redirect | `MainLayout` replace → `#/c/resource-audit?type=mcp`（若缺省 `type` 则用该默认值） |
+| admin-workspace | `app-audit` | `#/c/app-audit` | ResourceAuditList（replace 后生效） | redirect | `MainLayout` replace → `#/c/resource-audit?type=app`（若缺省 `type` 则用该默认值） |
+| admin-workspace | `dataset-audit` | `#/c/dataset-audit` | ResourceAuditList（replace 后生效） | redirect | `MainLayout` replace → `#/c/resource-audit?type=dataset`（若缺省 `type` 则用该默认值） |
 | monitoring | `monitoring-overview` | `#/c/monitoring-overview` | AdminMonitoringHubModule | reachable | — |
 | monitoring | `call-logs` | `#/c/call-logs` | AdminMonitoringHubModule | reachable | — |
-| monitoring | `performance-analysis` | `#/c/performance-analysis` | AdminMonitoringHubModule | reachable | — |
-| monitoring | `alert-management` | `#/c/alert-management` | AdminMonitoringHubModule | reachable | — |
-| monitoring | `alert-rules` | `#/c/alert-rules` | AdminMonitoringHubModule | reachable | — |
-| monitoring | `health-config` | `#/c/health-config` | AdminMonitoringHubModule | reachable | — |
-| monitoring | `circuit-breaker` | `#/c/circuit-breaker` | AdminMonitoringHubModule | reachable | — |
+| monitoring | `trace-center` | `#/c/trace-center` | AdminMonitoringHubModule | reachable | — |
+| monitoring | `alert-center` | `#/c/alert-center` | AdminMonitoringHubModule | reachable | — |
+| monitoring | `health-governance` | `#/c/health-governance` | AdminMonitoringHubModule | reachable | — |
 | system-config | `tag-management` | `#/c/tag-management` | AdminSystemConfigHubModule | reachable | — |
 | system-config | `system-params` | `#/c/system-params` | AdminSystemConfigHubModule | reachable | — |
 | system-config | `security-settings` | `#/c/security-settings` | AdminSystemConfigHubModule | reachable | — |
@@ -101,6 +95,9 @@
 | system-config | `audit-log` | `#/c/audit-log` | AdminSystemConfigHubModule | reachable | — |
 | system-config | `sensitive-words` | `#/c/sensitive-words` | AdminSystemConfigHubModule | reachable | — |
 | system-config | `announcements` | `#/c/announcements` | AdminSystemConfigHubModule | reachable | — |
+| developer-portal | `developer-docs` | `#/c/developer-docs` | PlaceholderView | reachable | — |
+| developer-portal | `developer-tools` | `#/c/developer-tools` | PlaceholderView | reachable | — |
+| developer-portal | `developer-statistics` | `#/c/developer-statistics` | PlaceholderView | reachable | — |
 
 <!-- AUTO-GENERATED A2.1:END -->
 
@@ -116,6 +113,9 @@
 |---|---|---|---|---|---|
 | hub | `hub` | `#/c/hub` | ExploreHub | reachable | — |
 | workspace | `workspace` | `#/c/workspace` | UserWorkspaceOverview | reachable | — |
+| workspace | `profile` | `#/c/profile` | UserSettingsHubPage | reachable | — |
+| workspace | `my-api-keys` | `#/c/my-api-keys` | PlaceholderView | reachable | — |
+| workspace | `preferences` | `#/c/preferences` | UserSettingsHubPage | reachable | — |
 | workspace | `developer-onboarding` | `#/c/developer-onboarding` | DeveloperOnboardingPage | reachable | — |
 | workspace | `my-favorites` | `#/c/my-favorites` | MyFavoritesPage | reachable | — |
 | workspace | `my-agents-pub` | `#/c/my-agents-pub` | MyPublishHubPage | reachable | — |
@@ -127,6 +127,7 @@
 | workspace | `my-publish-app` | `#/c/my-publish-app` | MyPublishListRoute | reachable | — |
 | workspace | `my-publish-dataset` | `#/c/my-publish-dataset` | MyPublishListRoute | reachable | — |
 | workspace | `resource-center` | `#/c/resource-center?type=…` | ResourceCenterManagementPage | reachable | — |
+| workspace | `capability-register` | `#/c/capability-register` | PlaceholderView | reachable | — |
 | workspace | `agent-list` | `#/c/agent-list` | ResourceCenterManagementPage（replace 后生效） | redirect | `unifiedResourceCenterPath(role,type)` replace（管理视角走 `resource-catalog`，否则 `resource-center`） |
 | workspace | `agent-register` | `#/c/agent-register` | ResourceRegisterPage(agent) | reachable | — |
 | workspace | `skill-list` | `#/c/skill-list` | ResourceCenterManagementPage（replace 后生效） | redirect | `unifiedResourceCenterPath(role,type)` replace（管理视角走 `resource-catalog`，否则 `resource-center`） |
@@ -149,14 +150,9 @@
 | agents-center | `agent-market` | `#/c/agent-market` | —（replace 后生效） | redirect | replace → 对应广场路由或 `resource-market?tab=`（见 `USER_LEGACY_MARKET_PAGE_TO_TAB`） |
 | apps-center | `apps-center` | `#/c/apps-center` | AppMarket / AppMarketDetailPage | reachable | — |
 | apps-center | `app-market` | `#/c/app-market` | —（replace 后生效） | redirect | replace → 对应广场路由或 `resource-market?tab=`（见 `USER_LEGACY_MARKET_PAGE_TO_TAB`） |
-| developer-portal | `api-docs` | `#/c/api-docs` | ApiDocsPage | reachable | — |
-| developer-portal | `sdk-download` | `#/c/sdk-download` | SdkDownloadPage | reachable | — |
-| developer-portal | `api-playground` | `#/c/api-playground` | ApiPlaygroundPage | reachable | — |
-| developer-portal | `mcp-integration` | `#/c/mcp-integration` | GatewayIntegrationPage | reachable | — |
+| developer-portal | `developer-docs` | `#/c/developer-docs` | PlaceholderView | reachable | — |
+| developer-portal | `developer-tools` | `#/c/developer-tools` | PlaceholderView | reachable | — |
 | developer-portal | `developer-statistics` | `#/c/developer-statistics` | DeveloperStatsPage | reachable | — |
-| user-settings | `profile` | `#/c/profile` | UserSettingsHubPage | reachable | — |
-| user-settings | `my-api-keys` | `#/c/my-api-keys` | PlaceholderView | reachable | — |
-| user-settings | `preferences` | `#/c/preferences` | UserSettingsHubPage | reachable | — |
 
 <!-- AUTO-GENERATED A2.2:END -->
 
@@ -304,9 +300,6 @@
 | `dataset-audit` | `resource:audit` |
 | `resource-grant-management` | `user:manage` |
 | `developer-applications` | `user:manage` |
-| `alert-rules` | `system:config` |
-| `health-config` | `system:config` |
-| `circuit-breaker` | `system:config` |
 
 ## B3. 全接口真值总表（全部 services）
 

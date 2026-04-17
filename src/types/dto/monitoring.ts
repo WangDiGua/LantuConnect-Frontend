@@ -205,19 +205,77 @@ export interface AlertBatchActionRequest {
   note?: string;
 }
 
-export interface TraceSpan {
+export type TraceStatus = 'success' | 'error';
+
+export interface TraceQueryParams {
+  page?: number;
+  pageSize?: number;
+  keyword?: string;
+  status?: 'all' | TraceStatus;
+  resourceType?: string;
+  resourceId?: number;
+  from?: string;
+  to?: string;
+}
+
+export interface TraceListItem {
+  traceId: string;
+  requestId: string;
+  rootOperation: string;
+  entryService: string;
+  rootResourceType: string;
+  rootResourceId?: number;
+  rootResourceCode: string;
+  rootDisplayName: string;
+  status: TraceStatus;
+  startedAt: string;
+  durationMs: number;
+  spanCount: number;
+  errorSpanCount: number;
+  firstErrorMessage?: string;
+  userId?: number;
+  ip?: string;
+}
+
+export interface TraceSummary extends TraceListItem {}
+
+export interface TraceRootCause {
+  spanId?: string;
+  operationName?: string;
+  serviceName?: string;
+  message: string;
+}
+
+export interface TraceSpanLog {
+  timestamp: string;
+  message: string;
+  context: Record<string, unknown>;
+}
+
+export interface TraceSpanDetail {
   id: string;
   traceId: string;
   parentId: string | null;
   operationName: string;
-  service: string;
   serviceName: string;
   startTime: string;
   duration: number;
-  status: 'ok' | 'error';
-  tags: Record<string, string>;
-  logs: { timestamp: string; message: string }[];
-  children?: TraceSpan[];
+  status: TraceStatus;
+  tags: Record<string, unknown>;
+  logs: TraceSpanLog[];
+}
+
+export interface TraceSpanNode extends TraceSpanDetail {
+  depth: number;
+  relativeStartMs: number;
+  children: TraceSpanNode[];
+}
+
+export interface TraceDetail {
+  summary: TraceSummary;
+  rootCause?: TraceRootCause;
+  spans: TraceSpanDetail[];
+  callLogs: CallLogEntry[];
 }
 
 export type PerformanceWindow = '6h' | '24h' | '7d';

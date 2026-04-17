@@ -83,8 +83,8 @@
 - `agent-create`（下线）-> 归并 `agent-register`：已完成（旧 slug 自动重定向）
 - `agent-audit`（迁移）-> `/audit/agents`（过渡）：过渡
 - `agent-versions`（下线）-> 归并 `agent-list`：已完成（旧 slug 自动重定向）
-- `agent-monitoring`（迁移）-> `/monitoring/*`：已完成
-- `agent-trace`（迁移）-> `/monitoring/traces`：已完成
+- `agent-monitoring`（下线）-> 收拢到 `monitoring-overview` 页内的「性能分析」tab：已完成
+- `agent-trace`（下线）-> 收拢到 `trace-center`，并新增 `/monitoring/traces/{traceId}`：已完成
 - `agent-detail`（下线）-> `/catalog/resources/{type}/{id}`：已完成
 - `skill-list` -> `/catalog/resources?resourceType=skill`：已完成
 - `skill-create`（下线）-> 归并 `skill-register`：已完成（旧 slug 自动重定向）
@@ -103,11 +103,9 @@
 - `resource-grant-management` -> ~~`/resource-grants*`~~（已废弃）：**已下线**（替代方案：使用 `/resource-center/resources` 管理资源）
 - `monitoring-overview` -> `/monitoring/kpis`：已完成
 - `call-logs` -> `/monitoring/call-logs`：已完成
-- `performance-analysis` -> `/monitoring/performance`：已完成
-- `alert-management` -> `/monitoring/alerts`：已完成
-- `alert-rules` -> `/monitoring/alert-rules*`：已完成
-- `health-config` -> `/health/configs*`：已完成
-- `circuit-breaker` -> `/health/circuit-breakers*`：已完成
+- `trace-center` -> `/monitoring/traces` + `/monitoring/traces/{traceId}`：已完成
+- `alert-center` -> `/monitoring/alerts` + `/monitoring/alert-rules*`：已完成
+- `health-governance` -> `/health/configs*` + `/health/circuit-breakers*`：已完成
 - `category-management`（下线）-> 归并 `tag-management`：已完成（旧 slug 自动重定向）
 - `tag-management` -> `/tags*`：已完成
 - ~~`model-config` -> `/system-config/model-configs*`~~：**已移除**（全栈下线，勿再集成该路径）

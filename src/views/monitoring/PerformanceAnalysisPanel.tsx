@@ -239,10 +239,16 @@ const ResourceDetailModal: React.FC<{
     navigate(`${buildPath('admin', 'call-logs')}?${params.toString()}`);
   };
 
-  const openTrace = (traceId?: string) => {
+  const openTrace = (traceId?: string, filters?: { resourceType?: string; resourceId?: number }) => {
     const params = new URLSearchParams();
-    if (traceId) params.set('q', traceId);
-    navigate(`${buildPath('admin', 'agent-trace')}${params.toString() ? `?${params.toString()}` : ''}`);
+    if (traceId) {
+      params.set('traceId', traceId);
+    } else {
+      params.set('status', 'error');
+    }
+    if (filters?.resourceType) params.set('resourceType', filters.resourceType);
+    if (filters?.resourceId) params.set('resourceId', String(filters.resourceId));
+    navigate(`${buildPath('admin', 'trace-center')}${params.toString() ? `?${params.toString()}` : ''}`);
   };
 
   return (
@@ -284,7 +290,7 @@ const ResourceDetailModal: React.FC<{
               <ExternalLink size={15} aria-hidden />
               查看调用日志
             </button>
-            <button type="button" className={btnSecondary(theme)} onClick={() => openTrace()}>
+            <button type="button" className={btnSecondary(theme)} onClick={() => openTrace(undefined, { resourceType: item.resourceType, resourceId: item.resourceId })}>
               <GitBranch size={15} aria-hidden />
               打开追踪页
             </button>
@@ -340,7 +346,7 @@ const ResourceDetailModal: React.FC<{
                               type="button"
                               className="text-sky-600 hover:text-sky-700 underline-offset-2 hover:underline"
                               onClick={() => {
-                                openTrace(log.traceId);
+                                openTrace(log.traceId, { resourceType: item.resourceType, resourceId: item.resourceId });
                                 showMessage('已跳转到调用追踪页', 'info');
                               }}
                             >

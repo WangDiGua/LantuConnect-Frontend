@@ -243,7 +243,7 @@ export const Overview: React.FC<OverviewProps> = ({ theme, fontSize: _fontSize }
           {[
             { label: '待审核', value: rt?.pendingAudits ?? 0, icon: CheckCircle2, page: 'resource-audit', color: 'amber' },
             { label: '活跃告警', value: rt?.activeAlerts ?? 0, icon: Bell, page: 'alert-center', color: 'rose' },
-            { label: '健康检查', value: `${healthSummary?.healthy ?? overview?.healthSummary?.healthy ?? 0} 正常`, icon: Shield, page: 'health-config', color: 'emerald' },
+            { label: '健康检查', value: `${healthSummary?.healthy ?? overview?.healthSummary?.healthy ?? 0} 正常`, icon: Shield, page: 'health-governance', color: 'emerald' },
             { label: '用户管理', value: `${rt?.activeUsers ?? 0} 活跃`, icon: Users, page: 'user-list', color: 'blue' },
           ].map((action, i) => (
             <motion.div key={action.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ ...spring, delay: 0.12 + i * 0.03 }}

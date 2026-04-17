@@ -14,7 +14,6 @@ import {
   History,
   BookOpen,
   Database,
-  LineChart,
   AlertTriangle,
   BarChart3,
   Building2,
@@ -102,7 +101,6 @@ export const ADMIN_SIDEBAR_ITEMS = [
   { id: 'overview', icon: LayoutDashboard, label: '运营总览' },
   /** 与开发者一致的「我的」资源登记入口；全站资源在「资源审核」 */
   { id: 'admin-workspace', icon: LayoutGrid, label: '个人工作台' },
-  { id: 'admin-resource-ops', icon: Boxes, label: '资源与运营' },
   { id: 'user-management', icon: Users, label: '用户与权限' },
   { id: 'monitoring', icon: Activity, label: '监控运维' },
   { id: 'system-config', icon: Settings, label: '平台配置' },
@@ -139,33 +137,11 @@ export const ADMIN_OVERVIEW_GROUPS: NavSubGroup[] = [
   },
 ];
 
-export const ADMIN_RESOURCE_MANAGEMENT_GROUPS: NavSubGroup[] = [
-  {
-    title: '运行诊断',
-    items: [
-      { id: 'agent-monitoring', icon: LineChart, label: '运行监控' },
-      { id: 'agent-trace', icon: GitBranch, label: '链路追踪' },
-    ],
-  },
-];
-
-// Legacy aliases for any external references
-export const ADMIN_AGENT_MANAGEMENT_GROUPS = ADMIN_RESOURCE_MANAGEMENT_GROUPS;
-export const ADMIN_SKILL_MANAGEMENT_GROUPS = ADMIN_RESOURCE_MANAGEMENT_GROUPS;
-export const ADMIN_MCP_MANAGEMENT_GROUPS = ADMIN_RESOURCE_MANAGEMENT_GROUPS;
-export const ADMIN_APP_MANAGEMENT_GROUPS = ADMIN_RESOURCE_MANAGEMENT_GROUPS;
-export const ADMIN_DATASET_MANAGEMENT_GROUPS = ADMIN_RESOURCE_MANAGEMENT_GROUPS;
-
 export const ADMIN_AUDIT_CENTER_GROUPS: NavSubGroup[] = [
   {
     title: '待审核资源',
     items: [{ id: 'resource-audit', icon: ClipboardCheck, label: '资源审核', tag: '全站' }],
   },
-];
-
-/** 管理端「资源与运营」分组：仅保留资源目录与运维。 */
-export const ADMIN_RESOURCE_OPS_GROUPS: NavSubGroup[] = [
-  ...ADMIN_RESOURCE_MANAGEMENT_GROUPS,
 ];
 
 export const ADMIN_USER_MANAGEMENT_GROUPS: NavSubGroup[] = [
@@ -185,6 +161,7 @@ export const ADMIN_MONITORING_GROUPS: NavSubGroup[] = [
     items: [
       { id: 'monitoring-overview', icon: LayoutDashboard, label: '监控概览' },
       { id: 'call-logs', icon: FileText, label: '调用日志' },
+      { id: 'trace-center', icon: GitBranch, label: '链路追踪' },
       { id: 'alert-center', icon: Bell, label: '告警中心' },
       { id: 'health-governance', icon: Wrench, label: '健康治理' },
     ],
@@ -320,8 +297,6 @@ export function getNavSubGroups(sidebarId: string, isAdminRole: boolean): NavSub
         return ADMIN_OVERVIEW_GROUPS;
       case 'admin-workspace':
         return ADMIN_PERSONAL_WORKBENCH_GROUPS;
-      case 'admin-resource-ops':
-        return ADMIN_RESOURCE_OPS_GROUPS;
       case 'user-management':
         return ADMIN_USER_MANAGEMENT_GROUPS;
       case 'monitoring':
@@ -356,8 +331,8 @@ export function getNavSubGroups(sidebarId: string, isAdminRole: boolean): NavSub
 
 // 兼容导出
 export const AGENT_WORKSPACE_SUBITEM_ID = 'agent-list';
-export const TOOL_SQUARE_GROUPS = ADMIN_RESOURCE_MANAGEMENT_GROUPS;
-export const AGENT_MANAGEMENT_GROUPS = ADMIN_RESOURCE_MANAGEMENT_GROUPS;
+export const TOOL_SQUARE_GROUPS: NavSubGroup[] = [];
+export const AGENT_MANAGEMENT_GROUPS: NavSubGroup[] = [];
 export const MONITORING_GROUPS = ADMIN_MONITORING_GROUPS;
 export const SYSTEM_CONFIG_GROUPS = ADMIN_SYSTEM_CONFIG_GROUPS;
 export const USER_MANAGEMENT_GROUPS = ADMIN_USER_MANAGEMENT_GROUPS;

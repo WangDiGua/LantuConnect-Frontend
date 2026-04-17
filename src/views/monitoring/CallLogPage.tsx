@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { Theme, FontSize } from '../../types';
 import { useCallLogs } from '../../hooks/queries/useMonitoring';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
@@ -15,6 +15,7 @@ import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedCo
 import { MgmtDataTable } from '../../components/management/MgmtDataTable';
 import type { MgmtDataTableColumn } from '../../components/management/MgmtDataTable';
 import { RESOURCE_TYPE_LABEL } from '../../constants/resourceTypes';
+import { buildPath } from '../../constants/consoleRoutes';
 
 interface CallLogPageProps {
   theme: Theme;
@@ -39,6 +40,7 @@ function safeNumber(v: unknown): number {
 
 export const CallLogPage: React.FC<CallLogPageProps> = ({ theme, fontSize }) => {
   const isDark = theme === 'dark';
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [q, setQ] = useState(() => searchParams.get('q') ?? '');
   const [debouncedQ, setDebouncedQ] = useState('');
@@ -131,9 +133,20 @@ export const CallLogPage: React.FC<CallLogPageProps> = ({ theme, fontSize }) => 
         id: 'trace',
         header: 'TraceId',
         cellClassName: 'max-w-[180px]',
-        cell: (r) => (
-          <TableCellEllipsis text={safeText(r.traceId)} mono className={textMuted(theme)} emptyLabel="—" />
-        ),
+        cell: (r) => {
+          if (!safeText(r.traceId)) {
+            return <TableCellEllipsis text="" mono className={textMuted(theme)} emptyLabel="—" />;
+          }
+          return (
+            <button
+              type="button"
+              className={`max-w-full text-left underline-offset-2 hover:underline ${textMuted(theme)}`}
+              onClick={() => navigate(`${buildPath('admin', 'trace-center')}?traceId=${encodeURIComponent(r.traceId)}`)}
+            >
+              <TableCellEllipsis text={safeText(r.traceId)} mono className={textMuted(theme)} emptyLabel="—" />
+            </button>
+          );
+        },
       },
       {
         id: 'status',
@@ -191,7 +204,7 @@ export const CallLogPage: React.FC<CallLogPageProps> = ({ theme, fontSize }) => 
         ),
       },
     ],
-    [isDark, theme],
+    [isDark, navigate, theme],
   );
 
   const toolbar = (

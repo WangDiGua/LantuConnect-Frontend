@@ -22,10 +22,16 @@ import type {
   PerformanceAnalysis,
   PerformanceAnalysisSummary,
   PerformanceBucket,
-  TraceSpan,
   PerformanceWindow,
   PerformanceResourceLeaderboardItem,
   PerformanceSlowMethodItem,
+  TraceDetail,
+  TraceListItem,
+  TraceQueryParams,
+  TraceRootCause,
+  TraceSpanDetail,
+  TraceSpanLog,
+  TraceStatus,
 } from '../../types/dto/monitoring';
 
 export type CallLogListParams = PaginationParams & {
@@ -59,6 +65,8 @@ export type PerformanceAnalysisParams = {
   resourceType?: string;
   resourceId?: number;
 };
+
+export type TraceListParams = TraceQueryParams;
 
 function parseNum(value: unknown, fallback = 0): number {
   const num = Number(value);
@@ -278,6 +286,10 @@ function mapCallLogStatus(raw: unknown): CallLogEntry['status'] {
   return 'success';
 }
 
+function mapTraceStatus(raw: unknown): TraceStatus {
+  return toLower(raw, 'success') === 'error' ? 'error' : 'success';
+}
+
 function mapCallLogEntry(raw: unknown): CallLogEntry {
   const obj = asRecord(raw);
   return {
@@ -297,26 +309,82 @@ function mapCallLogEntry(raw: unknown): CallLogEntry {
   };
 }
 
-function mapTraceSpan(raw: unknown): TraceSpan {
+function mapTraceListItem(raw: unknown): TraceListItem {
+  const obj = asRecord(raw);
+  return {
+    traceId: String(obj.traceId ?? obj.trace_id ?? ''),
+    requestId: String(obj.requestId ?? obj.request_id ?? ''),
+    rootOperation: String(obj.rootOperation ?? obj.root_operation ?? ''),
+    entryService: String(obj.entryService ?? obj.entry_service ?? ''),
+    rootResourceType: String(obj.rootResourceType ?? obj.root_resource_type ?? 'unknown').toLowerCase(),
+    rootResourceId: obj.rootResourceId == null && obj.root_resource_id == null
+      ? undefined
+      : parseNum(obj.rootResourceId ?? obj.root_resource_id),
+    rootResourceCode: String(obj.rootResourceCode ?? obj.root_resource_code ?? ''),
+    rootDisplayName: String(obj.rootDisplayName ?? obj.root_display_name ?? ''),
+    status: mapTraceStatus(obj.status),
+    startedAt: String(obj.startedAt ?? obj.started_at ?? ''),
+    durationMs: parseNum(obj.durationMs ?? obj.duration_ms),
+    spanCount: parseNum(obj.spanCount ?? obj.span_count),
+    errorSpanCount: parseNum(obj.errorSpanCount ?? obj.error_span_count),
+    firstErrorMessage: obj.firstErrorMessage == null && obj.first_error_message == null
+      ? undefined
+      : String(obj.firstErrorMessage ?? obj.first_error_message ?? ''),
+    userId: obj.userId == null && obj.user_id == null ? undefined : parseNum(obj.userId ?? obj.user_id),
+    ip: obj.ip == null ? undefined : String(obj.ip),
+  };
+}
+
+function mapTraceRootCause(raw: unknown): TraceRootCause | undefined {
+  const obj = asRecord(raw);
+  const message = String(obj.message ?? '').trim();
+  if (!message) {
+    return undefined;
+  }
+  return {
+    spanId: obj.spanId == null && obj.span_id == null ? undefined : String(obj.spanId ?? obj.span_id ?? ''),
+    operationName: obj.operationName == null && obj.operation_name == null
+      ? undefined
+      : String(obj.operationName ?? obj.operation_name ?? ''),
+    serviceName: obj.serviceName == null && obj.service_name == null
+      ? undefined
+      : String(obj.serviceName ?? obj.service_name ?? ''),
+    message,
+  };
+}
+
+function mapTraceSpanLog(raw: unknown): TraceSpanLog {
+  const obj = asRecord(raw);
+  return {
+    timestamp: String(obj.timestamp ?? obj.time ?? ''),
+    message: String(obj.message ?? ''),
+    context: asRecord(obj.context),
+  };
+}
+
+function mapTraceSpanDetail(raw: unknown): TraceSpanDetail {
   const obj = asRecord(raw);
   return {
     id: String(obj.id ?? ''),
     traceId: String(obj.traceId ?? obj.trace_id ?? ''),
     parentId: obj.parentId == null && obj.parent_id == null ? null : String(obj.parentId ?? obj.parent_id),
     operationName: String(obj.operationName ?? obj.operation_name ?? ''),
-    service: String(obj.service ?? ''),
     serviceName: String(obj.serviceName ?? obj.service_name ?? ''),
     startTime: String(obj.startTime ?? obj.start_time ?? ''),
     duration: parseNum(obj.duration),
-    status: toLower(obj.status, 'ok') === 'error' ? 'error' : 'ok',
-    tags: normalizeLabels(obj.tags),
-    logs: Array.isArray(obj.logs)
-      ? (obj.logs as Array<Record<string, unknown>>).map((item) => ({
-          timestamp: String(item.timestamp ?? item.time ?? ''),
-          message: String(item.message ?? ''),
-        }))
-      : [],
-    children: Array.isArray(obj.children) ? obj.children.map(mapTraceSpan) : undefined,
+    status: mapTraceStatus(obj.status),
+    tags: asRecord(obj.tags),
+    logs: extractArray(obj.logs).map(mapTraceSpanLog),
+  };
+}
+
+function mapTraceDetail(raw: unknown): TraceDetail {
+  const obj = asRecord(raw);
+  return {
+    summary: mapTraceListItem(obj.summary),
+    rootCause: mapTraceRootCause(obj.rootCause ?? obj.root_cause),
+    spans: extractArray(obj.spans).map(mapTraceSpanDetail),
+    callLogs: extractArray(obj.callLogs ?? obj.call_logs).map(mapCallLogEntry),
   };
 }
 
@@ -606,9 +674,14 @@ export const monitoringService = {
     } satisfies AlertRuleDryRunResult;
   },
 
-  listTraces: async (params?: PaginationParams) => {
+  listTraces: async (params?: TraceListParams) => {
     const raw = await http.get<unknown>('/monitoring/traces', { params });
-    return normalizePaginated<TraceSpan>(raw, mapTraceSpan);
+    return normalizePaginated<TraceListItem>(raw, mapTraceListItem);
+  },
+
+  getTraceDetail: async (traceId: string) => {
+    const raw = await http.get<unknown>(`/monitoring/traces/${traceId}`);
+    return mapTraceDetail(raw);
   },
 
   getPerformanceAnalysis: async (params?: PerformanceAnalysisParams) => {

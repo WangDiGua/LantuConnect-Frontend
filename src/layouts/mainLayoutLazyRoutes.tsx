@@ -15,12 +15,6 @@ export const PlaceholderView = lazy(() =>
   import('../views/common/PlaceholderView').then((m) => ({ default: m.PlaceholderView })),
 );
 export const AgentDetail = lazy(() => import('../views/agent/AgentDetail').then((m) => ({ default: m.AgentDetail })));
-export const AgentMonitoringPage = lazy(() =>
-  import('../views/agent/AgentMonitoringPage').then((m) => ({ default: m.AgentMonitoringPage })),
-);
-export const AgentTracePage = lazy(() =>
-  import('../views/agent/AgentTracePage').then((m) => ({ default: m.AgentTracePage })),
-);
 export const UserManagementModule = lazy(() =>
   import('../views/userMgmt/UserManagementModule').then((m) => ({ default: m.UserManagementModule })),
 );
@@ -29,6 +23,9 @@ export const SystemConfigModule = lazy(() =>
 );
 export const MonitoringModule = lazy(() =>
   import('../views/monitoring/MonitoringModule').then((m) => ({ default: m.MonitoringModule })),
+);
+export const TraceCenterPage = lazy(() =>
+  import('../views/monitoring/TraceCenterPage').then((m) => ({ default: m.TraceCenterPage })),
 );
 export const MyPublishHubPage = lazy(() =>
   import('../views/publish/MyPublishHubPage').then((m) => ({ default: m.MyPublishHubPage })),

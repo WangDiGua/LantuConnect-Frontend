@@ -2,14 +2,12 @@ import type { LucideIcon } from 'lucide-react';
 import {
   LayoutDashboard,
   Activity,
-  Bot,
   Settings,
   Code2,
 } from 'lucide-react';
 
 import {
   ADMIN_OVERVIEW_GROUPS,
-  ADMIN_RESOURCE_OPS_GROUPS,
   ADMIN_USER_MANAGEMENT_GROUPS,
   ADMIN_MONITORING_GROUPS,
   ADMIN_SYSTEM_CONFIG_GROUPS,
@@ -106,14 +104,6 @@ export const ADMIN_SPACES: Space[] = [
     accentFrom: '#3B82F6',
     accentTo: '#6366F1',
     sections: [...fromGroups('overview', ADMIN_OVERVIEW_GROUPS as NavGroup[])],
-  },
-  {
-    id: 'admin-modules',
-    label: '资源与运营',
-    icon: Bot,
-    accentFrom: '#8B5CF6',
-    accentTo: '#A855F7',
-    sections: [...fromGroups('admin-resource-ops', ADMIN_RESOURCE_OPS_GROUPS as NavGroup[])],
   },
   {
     id: 'admin-ops',

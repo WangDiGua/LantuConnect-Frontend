@@ -57,9 +57,6 @@ const AgentDetail = lazy(() => import('../views/agent/AgentDetail').then(m => ({
 const AdminOverviewModule = lazy(() =>
   import('../views/admin/AdminOverviewModule').then((m) => ({ default: m.AdminOverviewModule })),
 );
-const ResourceDiagnosticsModule = lazy(() =>
-  import('../views/admin/ResourceDiagnosticsModule').then((m) => ({ default: m.ResourceDiagnosticsModule })),
-);
 const AdminMonitoringHubModule = lazy(() =>
   import('../views/admin/AdminMonitoringHubModule').then((m) => ({ default: m.AdminMonitoringHubModule })),
 );
@@ -223,9 +220,8 @@ const SUB_ITEM_PERM_MAP: Record<string, string | string[]> = {
   'data-reports': 'monitor:view',
   'monitoring-overview': 'monitor:view',
   'call-logs': 'monitor:view',
-  'performance-analysis': 'monitor:view',
+  'trace-center': 'monitor:view',
   'alert-center': 'monitor:view',
-  'alert-management': 'monitor:view',
   'resource-audit': 'resource:audit',
   /** 超管 user:manage；审核员只读目录为 user:read（与后端 GET /user-mgmt/users 一致） */
   'user-list': ['user:manage', 'user:read'],
@@ -234,10 +230,7 @@ const SUB_ITEM_PERM_MAP: Record<string, string | string[]> = {
   'api-key-management': 'api-key:manage',
   'network-config': 'system:config',
   'developer-applications': 'developer-application:review',
-  'alert-rules': 'system:config',
   'health-governance': 'monitor:view',
-  'health-config': 'monitor:view',
-  'circuit-breaker': 'monitor:view',
 };
 
 function subItemMeetsPermission(itemId: string, hasPermission: (perm: string) => boolean): boolean {
@@ -407,12 +400,6 @@ const MainContent = React.memo<{
               onBack={() => nav('resource-center', typeQuery ?? 'agent')}
             />
           );
-        case 'agent-monitoring':
-        case 'agent-trace':
-          return (
-            <ResourceDiagnosticsModule activePage={p} theme={t} fontSize={fs} showMessage={msg} />
-          );
-
         case 'skill-register':
           return (
             <ResourceRegisterPage
@@ -474,13 +461,9 @@ const MainContent = React.memo<{
           return <AdminUserHubModule activePage={p} theme={t} fontSize={fs} showMessage={msg} />;
         case 'monitoring-overview':
         case 'call-logs':
-        case 'performance-analysis':
+        case 'trace-center':
         case 'alert-center':
-        case 'alert-management':
-        case 'alert-rules':
         case 'health-governance':
-        case 'health-config':
-        case 'circuit-breaker':
           return (
             <AdminMonitoringHubModule activePage={p} theme={t} fontSize={fs} showMessage={msg} />
           );
@@ -680,7 +663,7 @@ const MainContent = React.memo<{
       p === 'apps-center'
     )
       return 'cards' as const;
-    if (p.includes('monitoring') || p === 'performance-analysis' || p === 'data-reports' || p === 'usage-statistics') return 'chart' as const;
+    if (p.includes('monitoring') || p === 'trace-center' || p === 'data-reports' || p === 'usage-statistics') return 'chart' as const;
     return 'table' as const;
   })();
 
@@ -1431,14 +1414,6 @@ const MainLayoutContent: React.FC<{
       'developer-portal': 'developer:portal',
     };
     return ADMIN_SIDEBAR_ITEMS.filter((item) => {
-      if (item.id === 'admin-resource-ops') {
-        return (
-          hasPermission('agent:view') ||
-          hasPermission('agent:audit') ||
-          hasPermission('skill:audit') ||
-          hasPermission('resource:audit')
-        );
-      }
       if (item.id === 'user-management') {
         return (
           hasPermission('user:manage') ||

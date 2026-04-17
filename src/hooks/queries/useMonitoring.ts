@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { monitoringService } from '../../api/services/monitoring.service';
-import type { AlertBatchActionRequest, CreateAlertRulePayload } from '../../types/dto/monitoring';
-import type { PaginationParams } from '../../types/api';
+import type { AlertBatchActionRequest, CreateAlertRulePayload, TraceQueryParams } from '../../types/dto/monitoring';
 import type {
   AlertListParams,
   AlertRuleListParams,
@@ -14,7 +13,8 @@ export const monitoringKeys = {
   performance: (resourceType?: string) => ['monitoring', 'performance', resourceType ?? 'all'] as const,
   performanceAnalysis: (params?: PerformanceAnalysisParams) => ['monitoring', 'performanceAnalysis', params] as const,
   callSummary: (hours: number) => ['monitoring', 'callSummary', hours] as const,
-  traces: (params?: PaginationParams) => ['monitoring', 'traces', params] as const,
+  traces: (params?: TraceQueryParams) => ['monitoring', 'traces', params] as const,
+  traceDetail: (traceId?: string) => ['monitoring', 'traceDetail', traceId ?? ''] as const,
   callLogs: (params?: CallLogListParams) => ['monitoring', 'callLogs', params] as const,
   alerts: (params?: AlertListParams) => ['monitoring', 'alerts', params] as const,
   alertSummary: ['monitoring', 'alertSummary'] as const,
@@ -61,13 +61,18 @@ export function useQualityHistory(resourceType: string, resourceId: number, from
   });
 }
 
-export function useTraces(params?: PaginationParams) {
+export function useTraceList(params?: TraceQueryParams) {
   return useQuery({
     queryKey: monitoringKeys.traces(params),
-    queryFn: async () => {
-      const page = await monitoringService.listTraces(params);
-      return page.list;
-    },
+    queryFn: () => monitoringService.listTraces(params),
+  });
+}
+
+export function useTraceDetail(traceId?: string) {
+  return useQuery({
+    queryKey: monitoringKeys.traceDetail(traceId),
+    queryFn: () => monitoringService.getTraceDetail(traceId!),
+    enabled: Boolean(traceId),
   });
 }
 

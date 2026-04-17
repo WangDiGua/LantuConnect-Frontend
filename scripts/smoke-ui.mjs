@@ -35,6 +35,25 @@ const checks = [
     patterns: ['ResourceReviewsSection', 'targetType="mcp"', '评分与评论'],
   },
   {
+    file: 'src/views/agent/AgentMarketDetailPage.tsx',
+    patterns: ['服务详情', '试用测试', '能力说明', 'AgentQuickTestPanel', 'MarketDetailSidebarCard'],
+    forbiddenPatterns: ['CapabilityWorkbench', "title=\"快速试用\""],
+  },
+  {
+    file: 'src/views/skill/SkillMarketDetailPage.tsx',
+    patterns: ['技能详情', '试用验证', '参数 Schema', 'SkillQuickTestPanel', 'MarketDetailSidebarCard'],
+    forbiddenPatterns: ['CapabilityWorkbench', 'GatewayApiKeyInput'],
+  },
+  {
+    file: 'src/views/mcp/McpMarket.tsx',
+    patterns: ['服务详情', '工具测试', 'MarketDetailSectionCard', 'MarketDetailSidebarCard', 'MarketDetailStatusNotice'],
+  },
+  {
+    file: 'src/components/mcp/McpDetailInvokeTab.tsx',
+    patterns: ['MCP 专属测试链路', '连接并加载工具', 'buildMcpTestingProfile'],
+    forbiddenPatterns: ['CapabilityWorkbench'],
+  },
+  {
     file: 'src/views/resourceCenter/ResourceCenterManagementPage.tsx',
     patterns: [
       'ConfirmDialog',

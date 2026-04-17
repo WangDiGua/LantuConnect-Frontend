@@ -57,7 +57,7 @@ type CallabilityFilter =
   | 'disabled'
   | 'not_published'
   | 'not_configured';
-type StrategyFilter = 'all' | 'agent_provider' | 'skill_canary' | 'mcp_jsonrpc' | 'mcp_stdio';
+type StrategyFilter = 'all' | 'agent_provider' | 'skill_canary' | 'mcp_jsonrpc';
 
 type PolicyDraft = {
   intervalSec: string;
@@ -120,7 +120,6 @@ function strategyLabel(value?: string | null): string {
   if (key === 'agent_provider') return 'Agent provider canary';
   if (key === 'skill_canary') return 'Skill synthetic canary';
   if (key === 'mcp_jsonrpc') return 'MCP initialize + tools/list';
-  if (key === 'mcp_stdio') return 'MCP stdio sidecar';
   return key || '--';
 }
 
@@ -403,7 +402,6 @@ export const HealthGovernancePage: React.FC<Props> = ({ theme, fontSize, showMes
           { value: 'agent_provider', label: 'Agent provider' },
           { value: 'skill_canary', label: 'Skill canary' },
           { value: 'mcp_jsonrpc', label: 'MCP JSON-RPC' },
-          { value: 'mcp_stdio', label: 'MCP stdio' },
         ]}
       />
       <button type="button" className={btnSecondary(theme)} onClick={() => void fetchData()}>

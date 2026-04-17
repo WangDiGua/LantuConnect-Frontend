@@ -1,5 +1,6 @@
 import React from 'react';
 import { ArrowLeft } from 'lucide-react';
+
 import type { Theme } from '../../types';
 import { canvasBodyBg, mainScrollPadBottom, textMuted, textPrimary, textSecondary } from '../../utils/uiClasses';
 
@@ -13,25 +14,36 @@ export interface ResourceMarketDetailShellProps {
   theme: Theme;
   onBack: () => void;
   backLabel?: string;
-  /** 顶栏左侧主标题区（含 h1） */
   titleBlock: React.ReactNode;
-  /** 顶栏右侧操作按钮组 */
   headerActions?: React.ReactNode;
-  /**
-   * true：顶栏标题与操作在同一整行内两端对齐（文档站 / 市场里常见的「基本信息 + 右上操作」）。
-   * false：沿用 8+4 分栏顶栏。
-   */
   compactHeaderRow?: boolean;
-  /** 主内容 lg 列宽，默认 8；与 sidebarLgColSpan 之和须为 12 */
   mainLgColSpan?: 7 | 8 | 9;
   tabs: ResourceMarketDetailTabItem[];
   activeTabId: string;
   onTabChange: (id: string) => void;
-  /** 桌面端主文档列；移动端全宽置于上方 */
   mainColumn: React.ReactNode;
-  /** 桌面端右侧栏；移动端全宽置于主列下方 */
   sidebarColumn?: React.ReactNode;
 }
+
+type MarketDetailCardProps = {
+  theme: Theme;
+  title?: React.ReactNode;
+  description?: React.ReactNode;
+  actions?: React.ReactNode;
+  children?: React.ReactNode;
+  className?: string;
+};
+
+type MarketDetailNoticeTone = 'info' | 'warning' | 'danger' | 'success';
+
+type MarketDetailStatusNoticeProps = {
+  theme: Theme;
+  tone?: MarketDetailNoticeTone;
+  title: React.ReactNode;
+  description?: React.ReactNode;
+  children?: React.ReactNode;
+  className?: string;
+};
 
 function gridSpansForMain(mainLgColSpan: 7 | 8 | 9): { main: string; side: string } {
   switch (mainLgColSpan) {
@@ -44,9 +56,106 @@ function gridSpansForMain(mainLgColSpan: 7 | 8 | 9): { main: string; side: strin
   }
 }
 
-/**
- * 用户资源市场全页详情四段式壳：返回、顶栏（左信息 / 右操作）、Tab、主栏 + 侧栏。
- */
+function sectionCardClass(theme: Theme): string {
+  return theme === 'dark'
+    ? 'rounded-[28px] border border-white/10 bg-lantu-elevated p-6 shadow-[var(--shadow-card)]'
+    : 'rounded-[28px] border border-transparent bg-white p-6 shadow-[var(--shadow-card)]';
+}
+
+function sidebarCardClass(theme: Theme): string {
+  return theme === 'dark'
+    ? 'rounded-2xl border border-white/10 bg-white/[0.03] p-4'
+    : 'rounded-2xl border border-slate-200 bg-slate-50/70 p-4';
+}
+
+function noticeToneClass(theme: Theme, tone: MarketDetailNoticeTone): string {
+  if (tone === 'danger') {
+    return theme === 'dark'
+      ? 'border-rose-500/35 bg-rose-500/10 text-rose-100'
+      : 'border-rose-200 bg-rose-50 text-rose-950';
+  }
+  if (tone === 'warning') {
+    return theme === 'dark'
+      ? 'border-amber-500/30 bg-amber-500/10 text-amber-100'
+      : 'border-amber-200 bg-amber-50 text-amber-950';
+  }
+  if (tone === 'success') {
+    return theme === 'dark'
+      ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-100'
+      : 'border-emerald-200 bg-emerald-50 text-emerald-950';
+  }
+  return theme === 'dark'
+    ? 'border-sky-500/30 bg-sky-500/10 text-sky-100'
+    : 'border-sky-200 bg-sky-50 text-sky-950';
+}
+
+export function MarketDetailSectionCard({
+  theme,
+  title,
+  description,
+  actions,
+  children,
+  className = '',
+}: MarketDetailCardProps) {
+  return (
+    <section className={`${sectionCardClass(theme)} ${className}`.trim()}>
+      {title || description || actions ? (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0 space-y-1.5">
+            {title ? <h2 className={`text-base font-bold ${textPrimary(theme)}`}>{title}</h2> : null}
+            {description ? <p className={`text-sm leading-relaxed ${textSecondary(theme)}`}>{description}</p> : null}
+          </div>
+          {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
+        </div>
+      ) : null}
+      {children ? <div className={title || description || actions ? 'mt-5' : ''}>{children}</div> : null}
+    </section>
+  );
+}
+
+export function MarketDetailSidebarCard({
+  theme,
+  title,
+  description,
+  actions,
+  children,
+  className = '',
+}: MarketDetailCardProps) {
+  return (
+    <section className={`${sidebarCardClass(theme)} ${className}`.trim()}>
+      {title || description || actions ? (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 space-y-1">
+              {title ? <h3 className={`text-sm font-bold ${textPrimary(theme)}`}>{title}</h3> : null}
+              {description ? <p className={`text-xs leading-relaxed ${textSecondary(theme)}`}>{description}</p> : null}
+            </div>
+            {actions ? <div className="shrink-0">{actions}</div> : null}
+          </div>
+        </div>
+      ) : null}
+      {children ? <div className={title || description || actions ? 'mt-3' : ''}>{children}</div> : null}
+    </section>
+  );
+}
+
+export function MarketDetailStatusNotice({
+  theme,
+  tone = 'info',
+  title,
+  description,
+  children,
+  className = '',
+}: MarketDetailStatusNoticeProps) {
+  return (
+    <div className={`rounded-2xl border px-4 py-3 text-sm leading-relaxed ${noticeToneClass(theme, tone)} ${className}`.trim()}>
+      <p className="font-semibold">{title}</p>
+      {description ? <p className="mt-1 text-xs opacity-90">{description}</p> : null}
+      {children ? <div className="mt-2">{children}</div> : null}
+    </div>
+  );
+}
+
 export function ResourceMarketDetailShell({
   theme,
   onBack,
@@ -63,6 +172,7 @@ export function ResourceMarketDetailShell({
 }: ResourceMarketDetailShellProps) {
   const isDark = theme === 'dark';
   const grid = gridSpansForMain(mainLgColSpan);
+
   return (
     <div className={`w-full min-h-0 ${canvasBodyBg(theme)}`}>
       <div className={`${mainScrollPadBottom} space-y-6`}>
@@ -91,9 +201,7 @@ export function ResourceMarketDetailShell({
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-start lg:gap-8">
             <div className={`min-w-0 space-y-4 ${grid.main}`}>{titleBlock}</div>
             {headerActions ? (
-              <div
-                className={`flex min-w-0 flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:justify-end ${grid.side}`}
-              >
+              <div className={`flex min-w-0 flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:justify-end ${grid.side}`}>
                 {headerActions}
               </div>
             ) : null}
@@ -144,7 +252,7 @@ export function ResourceMarketDetailShell({
             {mainColumn}
           </div>
           {sidebarColumn ? (
-            <aside className={`min-w-0 space-y-4 ${grid.side}`} aria-label="配置与快捷操作">
+            <aside className={`min-w-0 space-y-4 ${grid.side}`} aria-label="配置与快捷说明">
               {sidebarColumn}
             </aside>
           ) : null}

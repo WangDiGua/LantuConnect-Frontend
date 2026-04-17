@@ -1,11 +1,15 @@
-export type AgentImportProtocol =
-  | 'openai_compatible'
-  | 'bailian_compatible'
-  | 'anthropic_messages'
-  | 'gemini_generatecontent';
+import {
+  protocolForAgentProviderPreset,
+  resolveAgentProviderPreset,
+  type AgentProviderPreset,
+  type AgentRegistrationProtocol,
+} from '../views/resourceCenter/resourceRegisterProfiles';
+
+export type AgentImportProtocol = AgentRegistrationProtocol;
 
 export type AgentImportResult = {
   registrationProtocol?: AgentImportProtocol;
+  providerPreset?: AgentProviderPreset;
   upstreamEndpoint?: string;
   upstreamAgentId?: string;
   credentialRef?: string;
@@ -38,19 +42,13 @@ function normalizeProtocol(raw: string): AgentImportProtocol | undefined {
   if (s.includes('bailian') || s.includes('dashscope') || s.includes('qwen')) return 'bailian_compatible';
   if (s.includes('anthropic') || s.includes('claude') || s.includes('messages')) return 'anthropic_messages';
   if (s.includes('gemini') || s.includes('google') || s.includes('generatecontent')) return 'gemini_generatecontent';
-  if (s.includes('openai') || s.includes('chat_completions') || s.includes('chat/completions')) return 'openai_compatible';
+  if (s.includes('openai') || s.includes('deepseek') || s.includes('openrouter') || s.includes('ollama')) {
+    return 'openai_compatible';
+  }
   if (s === 'openai_compatible' || s === 'bailian_compatible' || s === 'anthropic_messages' || s === 'gemini_generatecontent') {
     return s as AgentImportProtocol;
   }
   return undefined;
-}
-
-function inferProtocolByEndpoint(endpoint: string): AgentImportProtocol {
-  const e = endpoint.toLowerCase();
-  if (e.includes('dashscope') || e.includes('bailian')) return 'bailian_compatible';
-  if (e.includes('anthropic')) return 'anthropic_messages';
-  if (e.includes('generativelanguage.googleapis.com') || e.includes('gemini')) return 'gemini_generatecontent';
-  return 'openai_compatible';
 }
 
 function normalizeModelAlias(raw: string): string {
@@ -73,8 +71,8 @@ function mapConfigObject(source: Record<string, unknown>): AgentImportResult {
     root;
 
   const providerRaw =
-    firstString(root, ['registrationProtocol', 'protocol', 'provider', 'type']) ||
-    firstString(nested, ['registrationProtocol', 'protocol', 'provider', 'type']);
+    firstString(root, ['providerPreset', 'registrationProtocol', 'protocol', 'provider', 'type']) ||
+    firstString(nested, ['providerPreset', 'registrationProtocol', 'protocol', 'provider', 'type']);
 
   const endpoint =
     firstString(nested, ['upstreamEndpoint', 'endpoint', 'url', 'baseUrl', 'baseURL', 'apiBase', 'api_base']) ||
@@ -108,12 +106,17 @@ function mapConfigObject(source: Record<string, unknown>): AgentImportResult {
         String(enabledRaw).trim() === '1';
 
   const protocolFromRaw = normalizeProtocol(providerRaw);
-  const finalProtocol = protocolFromRaw ?? (endpoint ? inferProtocolByEndpoint(endpoint) : 'openai_compatible');
+  const providerPreset = resolveAgentProviderPreset({
+    providerPreset: providerRaw,
+    registrationProtocol: protocolFromRaw,
+    upstreamEndpoint: endpoint,
+  });
 
   const modelAlias = normalizeModelAlias(modelAliasRaw || '');
 
   return {
-    registrationProtocol: finalProtocol,
+    registrationProtocol: protocolFromRaw ?? protocolForAgentProviderPreset(providerPreset),
+    providerPreset,
     upstreamEndpoint: endpoint || undefined,
     upstreamAgentId: upstreamAgentId || undefined,
     credentialRef: credentialRef || undefined,
@@ -123,21 +126,17 @@ function mapConfigObject(source: Record<string, unknown>): AgentImportResult {
   };
 }
 
-/**
- * Agent 配置粘贴解析：
- * - 支持 URL 直贴
- * - 支持常见 JSON 配置对象（含嵌套）
- * - 自动推断协议与核心字段
- */
 export function parseAgentConfigPaste(text: string): AgentImportResult {
   const trimmed = text.trim();
   if (!trimmed) return { hint: '内容为空' };
 
   if (/^(https?:\/\/)/i.test(trimmed)) {
+    const providerPreset = resolveAgentProviderPreset({ upstreamEndpoint: trimmed });
     return {
-      registrationProtocol: inferProtocolByEndpoint(trimmed),
+      registrationProtocol: protocolForAgentProviderPreset(providerPreset),
+      providerPreset,
       upstreamEndpoint: trimmed,
-      hint: '已识别为 URL，其他字段请按需补充。',
+      hint: '已识别为 URL，其它字段请按需补充。',
     };
   }
 
@@ -147,8 +146,10 @@ export function parseAgentConfigPaste(text: string): AgentImportResult {
   } catch {
     const url = findUrl(trimmed);
     if (url) {
+      const providerPreset = resolveAgentProviderPreset({ upstreamEndpoint: url });
       return {
-        registrationProtocol: inferProtocolByEndpoint(url),
+        registrationProtocol: protocolForAgentProviderPreset(providerPreset),
+        providerPreset,
         upstreamEndpoint: url,
         hint: 'JSON 解析失败，但已从文本提取 URL 并填入。',
       };

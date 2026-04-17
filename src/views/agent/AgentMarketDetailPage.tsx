@@ -1,25 +1,36 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, Star, Heart } from 'lucide-react';
+import { FileText, Heart, Star } from 'lucide-react';
+
 import type { Theme, FontSize, ThemeColor } from '../../types';
-import { ResourceMarketDetailShell } from '../../components/market';
+import type { Agent } from '../../types/dto/agent';
+import type { ResourceBindingSummaryVO } from '../../types/dto/catalog';
+import {
+  MarketDetailSectionCard,
+  MarketDetailSidebarCard,
+  MarketDetailStatusNotice,
+  ResourceMarketDetailShell,
+} from '../../components/market';
 import { AgentReviews } from './AgentReviews';
 import { buildPath } from '../../constants/consoleRoutes';
 import { agentService } from '../../api/services/agent.service';
 import { resourceCatalogService } from '../../api/services/resource-catalog.service';
-import { invokeService } from '../../api/services/invoke.service';
-import type { Agent } from '../../types/dto/agent';
-import type { ResourceBindingSummaryVO } from '../../types/dto/catalog';
 import { BindingClosureSection } from '../../components/business/BindingClosureSection';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
-import { btnPrimary, btnSecondary, textPrimary, textSecondary, textMuted, techBadge } from '../../utils/uiClasses';
+import {
+  btnPrimary,
+  btnSecondary,
+  statusBadgeClass,
+  statusDot,
+  statusLabel,
+  techBadge,
+  textMuted,
+  textPrimary,
+  textSecondary,
+} from '../../utils/uiClasses';
 import { MarkdownView } from '../../components/common/MarkdownView';
-import { mapInvokeFlowError } from '../../utils/invokeError';
-import { usePersistedGatewayApiKey } from '../../hooks/usePersistedGatewayApiKey';
-import { nativeInputClass } from '../../utils/formFieldClasses';
-import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
-import { CapabilityWorkbench } from '../../components/capability/CapabilityWorkbench';
+import { AgentQuickTestPanel } from '../../components/market/testing/AgentQuickTestPanel';
 
 export interface AgentMarketDetailPageProps {
   resourceId: string;
@@ -30,7 +41,7 @@ export interface AgentMarketDetailPageProps {
   onNavigateToList: () => void;
 }
 
-type AgentTestMode = 'gateway' | 'native';
+type AgentDetailTab = 'service' | 'testing' | 'capability' | 'reviews';
 
 function agentTrailingIcon(agent: Agent, isDark: boolean): React.ReactNode {
   const raw = agent.icon?.trim() || '';
@@ -51,90 +62,6 @@ function agentTrailingIcon(agent: Agent, isDark: boolean): React.ReactNode {
   );
 }
 
-function tryParseObject(
-  text: string,
-): { ok: true; data: Record<string, unknown>; message: '' } | { ok: false; data?: undefined; message: string } {
-  try {
-    const parsed = JSON.parse(text);
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      return { ok: false, message: 'JSON 必须是对象。' };
-    }
-    return { ok: true, data: parsed as Record<string, unknown>, message: '' };
-  } catch {
-    return { ok: false, message: 'JSON 格式不合法。' };
-  }
-}
-
-function buildNativePayload(registrationProtocol: string, modelAlias: string): Record<string, unknown> {
-  const prompt = 'hello';
-  const normalizedProtocol = registrationProtocol.trim().toLowerCase();
-  if (normalizedProtocol === 'bailian_compatible') {
-    return {
-      customized_model_id: modelAlias,
-      input: [
-        {
-          type: 'message',
-          role: 'user',
-          content: [
-            {
-              type: 'input_text',
-              text: prompt,
-            },
-          ],
-        },
-      ],
-      stream: false,
-    };
-  }
-  if (normalizedProtocol === 'anthropic_messages') {
-    return {
-      model: modelAlias,
-      max_tokens: 1024,
-      messages: [
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-    };
-  }
-  if (normalizedProtocol === 'gemini_generatecontent') {
-    return {
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            {
-              text: prompt,
-            },
-          ],
-        },
-      ],
-    };
-  }
-  if (normalizedProtocol === 'openai_compatible') {
-    return {
-      model: modelAlias,
-      input: [
-        {
-          type: 'message',
-          role: 'user',
-          content: [
-            {
-              type: 'input_text',
-              text: prompt,
-            },
-          ],
-        },
-      ],
-      stream: false,
-    };
-  }
-  return {
-    input: prompt,
-  };
-}
-
 export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
   resourceId,
   theme,
@@ -149,26 +76,14 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
   const [bindingClosure, setBindingClosure] = useState<ResourceBindingSummaryVO[] | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const [tab, setTab] = useState<'intro' | 'capability' | 'reviews'>('intro');
+  const [tab, setTab] = useState<AgentDetailTab>('service');
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [adding, setAdding] = useState(false);
 
-  const [gatewayApiKeyDraft, setGatewayApiKeyDraft] = usePersistedGatewayApiKey();
-  const [testMode, setTestMode] = useState<AgentTestMode>('gateway');
-  const [gatewayPayloadText, setGatewayPayloadText] = useState('{\n  "input": "hello"\n}');
-  const [gatewayTimeoutSec, setGatewayTimeoutSec] = useState(30);
-  const [gatewayTraceId, setGatewayTraceId] = useState(() => `agent-${Date.now()}`);
-  const [nativeBodyText, setNativeBodyText] = useState('{\n  "input": "hello"\n}');
-  const [testingNow, setTestingNow] = useState(false);
-  const [testResultText, setTestResultText] = useState('');
-  const [testErrorText, setTestErrorText] = useState('');
-  const [testStatusCode, setTestStatusCode] = useState<number | null>(null);
-  const [testLatencyMs, setTestLatencyMs] = useState<number | null>(null);
-
-  const WS_KEY = 'lantu_workspace_agents';
+  const workspaceKey = 'lantu_workspace_agents';
   const [workspaceAgents, setWorkspaceAgents] = useState<string[]>(() => {
     try {
-      const stored = localStorage.getItem(WS_KEY);
+      const stored = localStorage.getItem(workspaceKey);
       return stored ? JSON.parse(stored) : [];
     } catch {
       return [];
@@ -193,10 +108,10 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
       ]);
       setAgent(data);
       setBindingClosure(detail?.bindingClosure);
-    } catch (e) {
+    } catch (reason) {
       setAgent(null);
       setBindingClosure(undefined);
-      setError(e instanceof Error ? e : new Error('加载失败'));
+      setError(reason instanceof Error ? reason : new Error('加载失败'));
     } finally {
       setLoading(false);
     }
@@ -213,6 +128,13 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
       || (agent.createdBy != null ? `用户 #${agent.createdBy}` : '')
       || (agent.sourceType === 'internal' ? '校内团队' : agent.sourceType === 'partner' ? '合作伙伴' : '云服务')
     );
+  }, [agent]);
+
+  const sourceLabel = useMemo(() => {
+    if (!agent) return '未知来源';
+    if (agent.sourceType === 'internal') return '校内团队';
+    if (agent.sourceType === 'partner') return '合作伙伴';
+    return '云服务';
   }, [agent]);
 
   const ratingStr = useMemo(() => {
@@ -255,136 +177,16 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
     return typeof raw === 'string' ? raw.trim() : '';
   }, [agent]);
 
-  const supportsNativeResponses = true;
-
-  useEffect(() => {
-    if (!agent) return;
-    setNativeBodyText(JSON.stringify(buildNativePayload(registrationProtocol, modelAlias), null, 2));
-  }, [agent, modelAlias, registrationProtocol]);
-
-  const runGatewayInvokeTest = useCallback(async () => {
-    if (!agent) return;
-    const apiKey = gatewayApiKeyDraft.trim();
-    if (!apiKey) {
-      setTestErrorText('请先输入有效 X-Api-Key（需要 resolve + invoke scope）。');
-      return;
-    }
-    const parsedPayload = tryParseObject(gatewayPayloadText);
-    if (!parsedPayload.ok) {
-      setTestErrorText(`统一 invoke payload 错误：${parsedPayload.message}`);
-      return;
-    }
-
-    const timeout = Math.max(1, Math.min(120, Number(gatewayTimeoutSec) || 30));
-    const traceId = gatewayTraceId.trim() || `agent-${Date.now()}`;
-    const startedAt = Date.now();
-    let stage: 'resolve' | 'invoke' = 'resolve';
-
-    try {
-      const resolved = await resourceCatalogService.resolve(
-        { resourceType: 'agent', resourceId: String(agent.id) },
-        { headers: { 'X-Api-Key': apiKey } },
-      );
-      stage = 'invoke';
-      const invokeRes = await invokeService.invoke(
-        {
-          resourceType: 'agent',
-          resourceId: String(agent.id),
-          version: resolved.version || undefined,
-          timeoutSec: timeout,
-          payload: parsedPayload.data,
-        },
-        apiKey,
-        traceId,
-      );
-      setTestStatusCode(Number(invokeRes.statusCode) || null);
-      setTestLatencyMs(Number(invokeRes.latencyMs) || (Date.now() - startedAt));
-      setTestResultText(invokeRes.body || '');
-      showMessage('统一 invoke 调用完成', 'success');
-    } catch (err) {
-      setTestErrorText(mapInvokeFlowError(err, stage));
-    }
-  }, [agent, gatewayApiKeyDraft, gatewayPayloadText, gatewayTimeoutSec, gatewayTraceId, showMessage]);
-
-  const runNativeResponsesTest = useCallback(async () => {
-    if (!agent) return;
-    const parsedBody = tryParseObject(nativeBodyText);
-    if (!parsedBody.ok) {
-      setTestErrorText(`协议原生请求体错误：${parsedBody.message}`);
-      return;
-    }
-
-    const apiKey = gatewayApiKeyDraft.trim();
-    if (!apiKey) {
-      setTestErrorText('请先输入有效 X-Api-Key（需要 resolve + invoke scope）');
-      return;
-    }
-
-    const nativePayload = { ...parsedBody.data };
-    if (!nativePayload.model && modelAlias) {
-      nativePayload.model = modelAlias;
-    }
-    if (!nativePayload.customized_model_id && registrationProtocol === 'bailian_compatible' && modelAlias) {
-      nativePayload.customized_model_id = modelAlias;
-    }
-
-    const startedAt = Date.now();
-    try {
-      const resolved = await resourceCatalogService.resolve(
-        { resourceType: 'agent', resourceId: String(agent.id) },
-        { headers: { 'X-Api-Key': apiKey } },
-      );
-      const invokeRes = await invokeService.invoke(
-        {
-          resourceType: 'agent',
-          resourceId: String(agent.id),
-          version: resolved.version || undefined,
-          timeoutSec: 30,
-          payload: nativePayload,
-        },
-        apiKey,
-        `native-${Date.now()}`,
-      );
-      setTestStatusCode(Number(invokeRes.statusCode) || null);
-      setTestLatencyMs(Date.now() - startedAt);
-      setTestResultText(invokeRes.body || '');
-      if (Number(invokeRes.statusCode) >= 400) {
-        setTestErrorText(`协议原生请求失败（HTTP ${invokeRes.statusCode}）`);
-        return;
-      }
-      showMessage('协议原生请求完成', 'success');
-    } catch (err) {
-      setTestErrorText(err instanceof Error ? err.message : '协议原生请求失败');
-    }
-  }, [agent, nativeBodyText, modelAlias, gatewayApiKeyDraft, registrationProtocol, showMessage]);
-
-  const runInlineTest = useCallback(async () => {
-    setTestingNow(true);
-    setTestErrorText('');
-    setTestResultText('');
-    setTestStatusCode(null);
-    setTestLatencyMs(null);
-    try {
-      if (testMode === 'native' && supportsNativeResponses) {
-        await runNativeResponsesTest();
-      } else {
-        await runGatewayInvokeTest();
-      }
-    } finally {
-      setTestingNow(false);
-    }
-  }, [testMode, supportsNativeResponses, runNativeResponsesTest, runGatewayInvokeTest]);
-
   const addToWorkspace = async () => {
     if (!agent || isInWorkspace(String(agent.id))) return;
     setAdding(true);
     try {
       const { userActivityService } = await import('../../api/services/user-activity.service');
       await userActivityService.addFavorite('agent', Number(agent.id));
-      setWorkspaceAgents((prev) => {
-        const next = [...prev, String(agent.id)];
+      setWorkspaceAgents((previous) => {
+        const next = [...previous, String(agent.id)];
         try {
-          localStorage.setItem(WS_KEY, JSON.stringify(next));
+          localStorage.setItem(workspaceKey, JSON.stringify(next));
         } catch {
           // ignore
         }
@@ -392,8 +194,8 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
       });
       showMessage(`已收藏「${agent.displayName}」`, 'success');
       setConfirmOpen(false);
-    } catch (e) {
-      showMessage(e instanceof Error ? e.message : '收藏失败', 'error');
+    } catch (reason) {
+      showMessage(reason instanceof Error ? reason.message : '收藏失败', 'error');
     } finally {
       setAdding(false);
     }
@@ -414,6 +216,29 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
   }
 
   const idStr = String(agent.id);
+  const reviewCount = Math.max(0, Math.floor(Number(agent.reviewCount ?? 0)) || 0);
+  const successRateLabel = Number.isFinite(agent.successRate) && agent.successRate > 0 ? `${agent.successRate}%` : '—';
+  const latencyLabel = Number.isFinite(agent.avgLatencyMs) && agent.avgLatencyMs > 0 ? `${agent.avgLatencyMs} ms` : '—';
+  const testingNotice =
+    tab === 'service'
+      ? {
+          title: '服务详情聚焦业务价值与使用边界',
+          description: '这里保留对外说明、标签、作者和市场指标，帮助你先判断这个智能体是否适合当前场景。',
+        }
+      : tab === 'testing'
+        ? {
+            title: '试用测试集中在主内容区完成',
+            description: '快速试用和高级协议调试都在同一页，避免信息散落在右侧栏里来回切换。',
+          }
+        : tab === 'capability'
+          ? {
+              title: '能力说明聚焦接入与运行信息',
+              description: '这里集中展示系统提示词、注册协议、模型别名、上游地址和并发配置，便于做接入评估。',
+            }
+          : {
+              title: '评分评论独立成页',
+              description: '把市场反馈单独抽离，避免和服务介绍混写，阅读路径会更清晰。',
+            };
 
   return (
     <>
@@ -424,21 +249,28 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
         titleBlock={(
           <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start">
             {agentTrailingIcon(agent, isDark)}
-            <div className="min-w-0 flex-1 space-y-2">
-              <h1 className={`text-2xl font-bold tracking-tight sm:text-3xl ${textPrimary(theme)}`}>{agent.displayName}</h1>
+            <div className="min-w-0 flex-1 space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className={`min-w-0 text-2xl font-bold tracking-tight sm:text-3xl ${textPrimary(theme)}`}>{agent.displayName}</h1>
+                <span className={statusBadgeClass(agent.status ?? 'unknown', theme)}>
+                  <span className={statusDot(agent.status ?? 'unknown')} />
+                  {statusLabel(agent.status)}
+                </span>
+              </div>
               <div className={`flex flex-wrap items-center gap-2 text-xs ${textMuted(theme)}`}>
-                <span>{author}</span>
+                <span>{author || '未知作者'}</span>
+                <span className="font-mono">@{agent.agentName || agent.id}</span>
                 <span className="inline-flex items-center gap-0.5">
                   <Star size={12} className="fill-amber-500 text-amber-500" aria-hidden />
                   {ratingStr}
                 </span>
-                <span>{Math.max(0, Math.floor(Number(agent.reviewCount ?? 0)) || 0)} 条评价</span>
+                <span>{reviewCount} 条评论</span>
                 <span>{usageLabel} 次调用</span>
               </div>
               <div className="flex flex-wrap gap-1.5">
-                {tags.map((t) => (
-                  <span key={t} className={techBadge(theme)}>
-                    {t}
+                {tags.map((tag) => (
+                  <span key={tag} className={techBadge(theme)}>
+                    {tag}
                   </span>
                 ))}
               </div>
@@ -446,200 +278,222 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
           </div>
         )}
         headerActions={(
-          <>
-            <button
-              type="button"
-              className={`${btnPrimary} min-h-11 ${isInWorkspace(idStr) ? 'cursor-not-allowed opacity-50' : ''}`}
-              disabled={isInWorkspace(idStr)}
-              onClick={() => !isInWorkspace(idStr) && setConfirmOpen(true)}
-            >
-              <Heart size={16} className={`shrink-0 ${isInWorkspace(idStr) ? 'fill-current' : ''}`} aria-hidden />
-              {isInWorkspace(idStr) ? '已收藏' : '收藏'}
-            </button>
-          </>
+          <button
+            type="button"
+            className={`${btnPrimary} min-h-11 ${isInWorkspace(idStr) ? 'cursor-not-allowed opacity-50' : ''}`}
+            disabled={isInWorkspace(idStr)}
+            onClick={() => !isInWorkspace(idStr) && setConfirmOpen(true)}
+          >
+            <Heart size={16} className={`shrink-0 ${isInWorkspace(idStr) ? 'fill-current' : ''}`} aria-hidden />
+            {isInWorkspace(idStr) ? '已收藏' : '收藏'}
+          </button>
         )}
         tabs={[
-          { id: 'intro', label: '智能体介绍' },
+          { id: 'service', label: '服务详情' },
+          { id: 'testing', label: '试用测试' },
           { id: 'capability', label: '能力说明' },
-          { id: 'reviews', label: '评分评论', badge: Math.max(0, Math.floor(Number(agent.reviewCount ?? 0)) || 0) },
+          { id: 'reviews', label: '评分评论', badge: reviewCount },
         ]}
         activeTabId={tab}
-        onTabChange={(id) => setTab(id as 'intro' | 'capability' | 'reviews')}
+        onTabChange={(id) => setTab(id as AgentDetailTab)}
         mainColumn={(
-          <div
-            className={`rounded-[28px] border p-6 shadow-[var(--shadow-card)] ${
-              isDark ? 'border-white/10 bg-lantu-elevated' : 'border-transparent bg-white'
-            }`}
-          >
-            {tab === 'intro' ? (
-              <div className="space-y-4">
-                {agent.serviceDetailMd?.trim() ? (
-                  <MarkdownView value={agent.serviceDetailMd} className="text-sm" />
-                ) : (
-                  <p className={`text-sm ${textMuted(theme)}`}>
-                    暂无详细介绍；资源所有方可在「资源注册」中填写「智能体介绍」，正文支持 Markdown。
-                  </p>
-                )}
-                <p className={`text-sm leading-relaxed ${textSecondary(theme)}`}>{agent.description || '暂无描述'}</p>
-              </div>
-            ) : tab === 'capability' ? (
-              <div className="space-y-4">
-                <p className={`text-sm leading-relaxed ${textSecondary(theme)}`}>
-                  {agent.systemPrompt
-                    ? (
-                      <>
-                        <span className={`font-semibold ${textPrimary(theme)}`}>系统提示（节选）</span>
-                        <span className="mt-2 block whitespace-pre-wrap">{agent.systemPrompt}</span>
-                      </>
-                    )
-                    : '该智能体未公开系统提示；接入与调用说明见 API 文档或资源详情。'}
-                </p>
-              </div>
-            ) : (
-              <AgentReviews agentId={Number(agent.id)} theme={theme} fontSize={fontSize} showMessage={showMessage} />
-            )}
+          <div className="space-y-5">
+            <MarketDetailStatusNotice theme={theme} title={testingNotice.title} description={testingNotice.description} />
+
+            {tab === 'service' ? (
+              <>
+                <MarketDetailSectionCard
+                  theme={theme}
+                  title="服务详情"
+                  description="这里集中展示发布者整理的智能体介绍、能力边界和业务背景，阅读路径和 MCP 服务详情保持一致。"
+                >
+                  {agent.serviceDetailMd?.trim() ? (
+                    <MarkdownView value={agent.serviceDetailMd} className="text-sm" />
+                  ) : (
+                    <p className={`text-sm leading-relaxed ${textMuted(theme)}`}>
+                      暂无详细介绍。资源所有方可以在资源注册页补充 Markdown 版的服务说明，用来说明用途、适用场景、限制条件和示例输入。
+                    </p>
+                  )}
+                  <div className={`mt-4 border-t pt-4 text-sm leading-relaxed ${textSecondary(theme)}`}>
+                    {agent.description || '暂无补充描述。'}
+                  </div>
+                </MarketDetailSectionCard>
+
+                <MarketDetailSectionCard
+                  theme={theme}
+                  title="资源概览"
+                  description="把市场指标、运行画像和基础接入信息拆到单独区块里，避免和服务正文混成一整片长文本。"
+                >
+                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    <div className={`rounded-2xl border px-4 py-3 ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200 bg-slate-50'}`}>
+                      <div className={`text-xs ${textMuted(theme)}`}>资源编码</div>
+                      <div className={`mt-1 font-mono text-sm ${textPrimary(theme)}`}>{agent.agentName || agent.id}</div>
+                    </div>
+                    <div className={`rounded-2xl border px-4 py-3 ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200 bg-slate-50'}`}>
+                      <div className={`text-xs ${textMuted(theme)}`}>来源</div>
+                      <div className={`mt-1 text-sm font-semibold ${textPrimary(theme)}`}>{sourceLabel}</div>
+                    </div>
+                    <div className={`rounded-2xl border px-4 py-3 ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200 bg-slate-50'}`}>
+                      <div className={`text-xs ${textMuted(theme)}`}>平均延迟</div>
+                      <div className={`mt-1 text-sm font-semibold ${textPrimary(theme)}`}>{latencyLabel}</div>
+                    </div>
+                    <div className={`rounded-2xl border px-4 py-3 ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200 bg-slate-50'}`}>
+                      <div className={`text-xs ${textMuted(theme)}`}>成功率</div>
+                      <div className={`mt-1 text-sm font-semibold ${textPrimary(theme)}`}>{successRateLabel}</div>
+                    </div>
+                  </div>
+
+                  <dl className="mt-5 grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <dt className={`text-xs ${textMuted(theme)}`}>智能体类型</dt>
+                      <dd className={`mt-1 text-sm ${textPrimary(theme)}`}>{agent.agentType}</dd>
+                    </div>
+                    <div>
+                      <dt className={`text-xs ${textMuted(theme)}`}>运行模式</dt>
+                      <dd className={`mt-1 text-sm ${textPrimary(theme)}`}>{agent.mode}</dd>
+                    </div>
+                    <div>
+                      <dt className={`text-xs ${textMuted(theme)}`}>质量分</dt>
+                      <dd className={`mt-1 text-sm ${textPrimary(theme)}`}>{agent.qualityScore > 0 ? agent.qualityScore : '—'}</dd>
+                    </div>
+                    <div>
+                      <dt className={`text-xs ${textMuted(theme)}`}>最近更新时间</dt>
+                      <dd className={`mt-1 text-sm ${textPrimary(theme)}`}>{agent.updateTime || '—'}</dd>
+                    </div>
+                  </dl>
+                </MarketDetailSectionCard>
+              </>
+            ) : null}
+
+            {tab === 'testing' ? (
+              <AgentQuickTestPanel theme={theme} agent={agent} showMessage={showMessage} />
+            ) : null}
+
+            {tab === 'capability' ? (
+              <>
+                <MarketDetailSectionCard
+                  theme={theme}
+                  title="能力说明"
+                  description="先看提示词和能力边界，再看接入参数和模型别名，避免把业务介绍和接入说明混在同一块长文里。"
+                >
+                  {agent.systemPrompt?.trim() ? (
+                    <pre
+                      className={`overflow-auto whitespace-pre-wrap rounded-2xl border px-4 py-3 text-sm leading-relaxed ${
+                        isDark ? 'border-white/10 bg-black/20 text-slate-100' : 'border-slate-200 bg-slate-50 text-slate-800'
+                      }`}
+                    >
+                      {agent.systemPrompt}
+                    </pre>
+                  ) : (
+                    <p className={`text-sm leading-relaxed ${textMuted(theme)}`}>
+                      当前资源没有公开的系统提示词。通常这意味着平台只对外开放调用能力，而不在市场页透出完整 Prompt。
+                    </p>
+                  )}
+                </MarketDetailSectionCard>
+
+                <MarketDetailSectionCard
+                  theme={theme}
+                  title="运行信息"
+                  description="这些字段用于做接入评估：注册协议、模型别名、上游地址、并发与步数约束都会直接影响调试方式。"
+                >
+                  <dl className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <dt className={`text-xs ${textMuted(theme)}`}>注册协议</dt>
+                      <dd className={`mt-1 text-sm font-medium ${textPrimary(theme)}`}>{registrationProtocol || '未声明'}</dd>
+                    </div>
+                    <div>
+                      <dt className={`text-xs ${textMuted(theme)}`}>模型别名</dt>
+                      <dd className={`mt-1 text-sm font-medium ${textPrimary(theme)}`}>{modelAlias || '—'}</dd>
+                    </div>
+                    <div>
+                      <dt className={`text-xs ${textMuted(theme)}`}>上游地址</dt>
+                      <dd className={`mt-1 break-all text-sm font-medium ${textPrimary(theme)}`}>{upstreamEndpoint || '—'}</dd>
+                    </div>
+                    <div>
+                      <dt className={`text-xs ${textMuted(theme)}`}>调用模式</dt>
+                      <dd className={`mt-1 text-sm font-medium ${textPrimary(theme)}`}>{agent.mode || '—'}</dd>
+                    </div>
+                    <div>
+                      <dt className={`text-xs ${textMuted(theme)}`}>最大并发</dt>
+                      <dd className={`mt-1 text-sm font-medium ${textPrimary(theme)}`}>{agent.maxConcurrency || '—'}</dd>
+                    </div>
+                    <div>
+                      <dt className={`text-xs ${textMuted(theme)}`}>最大步骤</dt>
+                      <dd className={`mt-1 text-sm font-medium ${textPrimary(theme)}`}>{agent.maxSteps ?? '—'}</dd>
+                    </div>
+                    <div>
+                      <dt className={`text-xs ${textMuted(theme)}`}>温度</dt>
+                      <dd className={`mt-1 text-sm font-medium ${textPrimary(theme)}`}>{agent.temperature ?? '—'}</dd>
+                    </div>
+                    <div>
+                      <dt className={`text-xs ${textMuted(theme)}`}>调用类型</dt>
+                      <dd className={`mt-1 text-sm font-medium ${textPrimary(theme)}`}>{agent.invokeType || '统一 invoke'}</dd>
+                    </div>
+                  </dl>
+                </MarketDetailSectionCard>
+              </>
+            ) : null}
+
+            {tab === 'reviews' ? (
+              <MarketDetailSectionCard
+                theme={theme}
+                title="评分评论"
+                description="真实评分和评论单独成页，避免和说明文字挤在一起，让市场反馈可以独立阅读。"
+              >
+                <AgentReviews agentId={Number(agent.id)} theme={theme} fontSize={fontSize} showMessage={showMessage} />
+              </MarketDetailSectionCard>
+            ) : null}
           </div>
         )}
         sidebarColumn={(
           <div className="space-y-4">
-            <CapabilityWorkbench
+            <MarketDetailSidebarCard
               theme={theme}
-              capabilityId={Number(agent.id)}
-              capabilityType="agent"
-              capabilityName={agent.displayName}
-              showMessage={showMessage}
-              defaultPayload={{ input: 'hello' }}
-            />
-            <div
-              className={`space-y-4 rounded-[28px] border p-5 shadow-[var(--shadow-card)] ${
-                isDark ? 'border-white/10 bg-lantu-elevated' : 'border-transparent bg-white'
-              }`}
+              title="资源摘要"
+              description="右侧栏只保留静态信息，帮助你快速确认资源身份和接入线索。"
             >
-            <h3 className={`text-sm font-bold ${textPrimary(theme)}`}>高级协议调试</h3>
-            <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
-              详情页直接测试智能体。统一 invoke 需要 X-Api-Key；协议原生模式会按注册协议生成请求体后再走网关。
-            </p>
-
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                className={`${btnSecondary(theme)} ${testMode === 'gateway' ? 'ring-2 ring-sky-500/35' : ''}`}
-                onClick={() => setTestMode('gateway')}
-              >
-                统一 invoke
-              </button>
-              <button
-                type="button"
-                className={`${btnSecondary(theme)} ${testMode === 'native' ? 'ring-2 ring-sky-500/35' : ''}`}
-                onClick={() => setTestMode('native')}
-                title="协议原生"
-              >
-                协议原生
-              </button>
-            </div>
-
-            {testMode === 'gateway' ? (
-              <div className="space-y-2">
-                <label className={`block text-xs font-medium ${textSecondary(theme)}`}>X-Api-Key</label>
-                <input
-                  type="password"
-                  value={gatewayApiKeyDraft}
-                  onChange={(e) => setGatewayApiKeyDraft(e.target.value)}
-                  className={nativeInputClass(theme)}
-                  placeholder="nx-sk-..."
-                />
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className={`block text-xs font-medium ${textSecondary(theme)}`}>Timeout(s)</label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={120}
-                      value={gatewayTimeoutSec}
-                      onChange={(e) => setGatewayTimeoutSec(Number(e.target.value) || 30)}
-                      className={nativeInputClass(theme)}
-                    />
-                  </div>
-                  <div>
-                    <label className={`block text-xs font-medium ${textSecondary(theme)}`}>TraceId</label>
-                    <input
-                      type="text"
-                      value={gatewayTraceId}
-                      onChange={(e) => setGatewayTraceId(e.target.value)}
-                      className={nativeInputClass(theme)}
-                    />
-                  </div>
+              <dl className="space-y-3 text-sm">
+                <div>
+                  <dt className={`text-xs ${textMuted(theme)}`}>资源编码</dt>
+                  <dd className={`mt-1 font-mono ${textPrimary(theme)}`}>{agent.agentName || idStr}</dd>
                 </div>
-                <label className={`block text-xs font-medium ${textSecondary(theme)}`}>Payload(JSON)</label>
-                <AutoHeightTextarea
-                  value={gatewayPayloadText}
-                  onChange={(e) => setGatewayPayloadText(e.target.value)}
-                  minRows={6}
-                  maxRows={24}
-                  className={`${nativeInputClass(theme)} font-mono text-xs`}
-                />
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <p className={`text-xs ${textMuted(theme)}`}>
-                  协议：<code className="font-mono">{registrationProtocol || 'unknown'}</code>，
-                  上游：<code className="font-mono break-all">{upstreamEndpoint || '-'}</code>，
-                  默认模型：<code className="font-mono">{modelAlias || '-'}</code>
-                </p>
-                <label className={`block text-xs font-medium ${textSecondary(theme)}`}>Request Body(JSON)</label>
-                <AutoHeightTextarea
-                  value={nativeBodyText}
-                  onChange={(e) => setNativeBodyText(e.target.value)}
-                  minRows={8}
-                  maxRows={26}
-                  className={`${nativeInputClass(theme)} font-mono text-xs`}
-                />
-              </div>
-            )}
-
-            <button
-              type="button"
-              className={`${btnPrimary} inline-flex w-full min-h-11 items-center justify-center gap-2`}
-              onClick={() => void runInlineTest()}
-              disabled={testingNow}
-            >
-              <Play size={14} aria-hidden />
-              {testingNow ? '测试中...' : '执行测试'}
-            </button>
-
-            {testErrorText ? (
-              <div className={`rounded-xl border px-3 py-2 text-xs ${isDark ? 'border-rose-500/25 bg-rose-500/10 text-rose-100' : 'border-rose-200 bg-rose-50 text-rose-900'}`}>
-                {testErrorText}
-              </div>
-            ) : null}
-
-            {testResultText ? (
-              <div className={`space-y-1 rounded-xl border px-3 py-2 ${isDark ? 'border-white/10 bg-black/20' : 'border-slate-200 bg-slate-50'}`}>
-                <div className={`text-xs ${textMuted(theme)}`}>
-                  {testStatusCode != null ? `HTTP ${testStatusCode}` : 'Response'}
-                  {testLatencyMs != null ? ` · ${testLatencyMs}ms` : ''}
+                <div>
+                  <dt className={`text-xs ${textMuted(theme)}`}>作者</dt>
+                  <dd className={`mt-1 ${textPrimary(theme)}`}>{author || '—'}</dd>
                 </div>
-                <pre className={`max-h-64 overflow-auto whitespace-pre-wrap break-all text-xs ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{testResultText}</pre>
-              </div>
-            ) : null}
+                <div>
+                  <dt className={`text-xs ${textMuted(theme)}`}>智能体类型</dt>
+                  <dd className={`mt-1 ${textPrimary(theme)}`}>{agent.agentType}</dd>
+                </div>
+                <div>
+                  <dt className={`text-xs ${textMuted(theme)}`}>描述</dt>
+                  <dd className={`mt-1 leading-relaxed ${textSecondary(theme)}`}>{agent.description || '暂无描述'}</dd>
+                </div>
+              </dl>
+            </MarketDetailSidebarCard>
 
-            <button
-              type="button"
-              className={`${btnSecondary(theme)} inline-flex w-full min-h-11 items-center justify-center gap-2`}
-              onClick={() => navigate(buildPath('user', 'my-favorites'))}
-            >
-              <Heart size={14} aria-hidden />
-              我的收藏
-            </button>
-            <button
-              type="button"
-              className={`${btnPrimary} inline-flex w-full min-h-11 items-center justify-center`}
-              onClick={() => navigate(buildPath('user', 'developer-docs'))}
-            >
-              打开 API 文档
-            </button>
             <BindingClosureSection theme={theme} currentResourceId={idStr} items={bindingClosure} />
-          </div>
+
+            <MarketDetailSidebarCard
+              theme={theme}
+              title="调用方式说明"
+              description="统一 invoke 适合快速试用，协议原生适合排查注册协议和上游兼容性。"
+              className={isDark ? 'border-sky-500/20 bg-sky-500/[0.08]' : 'border-sky-200 bg-sky-50'}
+            >
+              <p className={`text-xs leading-relaxed ${isDark ? 'text-sky-100/85' : 'text-sky-950/80'}`}>
+                右侧栏不再承载交互表单。需要试用或调试时，直接切到「试用测试」主区即可完成快速试用、统一 invoke 和协议原生调试。
+              </p>
+              <button
+                type="button"
+                className={`mt-3 inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold ${
+                  isDark ? 'bg-white/10 text-sky-100 hover:bg-white/[0.14]' : 'bg-white text-sky-900 hover:bg-sky-100'
+                }`}
+                onClick={() => navigate(buildPath('user', 'developer-docs'))}
+              >
+                <FileText size={14} aria-hidden />
+                查看接入与 API 文档
+              </button>
+            </MarketDetailSidebarCard>
           </div>
         )}
       />
@@ -656,7 +510,7 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
               确认收藏
             </h2>
             <p className={`mt-2 text-sm ${textSecondary(theme)}`}>
-              确认收藏「{agent.displayName}」？
+              确认将「{agent.displayName}」加入我的收藏吗？
             </p>
             <div className="mt-6 flex justify-end gap-2">
               <button type="button" className={btnSecondary(theme)} onClick={() => setConfirmOpen(false)}>

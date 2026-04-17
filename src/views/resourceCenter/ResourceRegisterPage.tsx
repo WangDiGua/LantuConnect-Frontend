@@ -1,5 +1,5 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, BookOpen, ChevronDown, Loader2, Save, Send, FileText, Copy } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { ResourceType } from '../../types/dto/catalog';
@@ -33,6 +33,19 @@ import { parseMcpConfigPaste } from '../../utils/mcpConfigImport';
 import { parseAgentConfigPaste } from '../../utils/agentConfigImport';
 import { lantuCheckboxPrimaryClass } from '../../utils/formFieldClasses';
 import { ReviewMarkdownEditor } from '../../components/common/ReviewMarkdownEditor';
+import {
+  AGENT_PROVIDER_PRESET_OPTIONS,
+  coerceMcpRegisterMode,
+  createStructuredParamField,
+  defaultEndpointForAgentProviderPreset,
+  protocolForAgentProviderPreset,
+  resolveAgentProviderPreset,
+  schemaToStructuredParamFields,
+  structuredParamFieldsToSchema,
+  type AgentProviderPreset,
+  type StructuredParamField,
+  type SupportedMcpRegisterMode,
+} from './resourceRegisterProfiles';
 
 interface Props {
   theme: Theme;
@@ -51,18 +64,18 @@ const TYPE_LABEL: Record<ResourceType, string> = {
   dataset: '数据集',
 };
 
-const DEFAULT_MCP_AUTH_CONFIG_JSON = '{\n  "method": "tools/call"\n}';
-type McpRegisterMode = 'http_json' | 'http_sse' | 'websocket' | 'stdio_sidecar';
+const DEFAULT_MCP_AUTH_CONFIG_JSON = '{}';
+type McpRegisterMode = SupportedMcpRegisterMode;
 const DEFAULT_AGENT_SPEC_JSON = '{\n  "url": "http://localhost:8000/agent/invoke",\n  "timeout": 30\n}';
 const DEFAULT_SKILL_SPEC_JSON = '{}';
 const DEFAULT_SKILL_PARAMS_SCHEMA_JSON = '{\n  "type": "object",\n  "properties": {\n    "city": { "type": "string" }\n  },\n  "required": ["city"]\n}';
 
 const TYPE_GUIDE_ONE_LINE: Record<ResourceType, string> = {
-  agent: '填写基础信息与运行地址后即可保存。',
-  skill: '填写规范 Markdown（context）与可选参数 Schema；可绑定已发布的 MCP。技能仅通过目录/resolve 消费，不可 invoke。',
-  mcp: '填写接入地址与鉴权即可。',
-  app: '填写可访问 URL 与打开方式。',
-  dataset: '填写类型与格式等元数据。',
+  agent: '先填写供应商预设、上游地址与模型别名，再按需展开高级配置。',
+  skill: '先写上下文正文，再通过结构化参数编辑器补全可选输入。',
+  mcp: '登记远程可调用的 MCP 地址与鉴权方式即可。',
+  app: '填写可访问 URL 与打开方式即可保存。',
+  dataset: '填写数据类型、格式和基础元数据即可保存。',
 };
 
 const DATASET_DATA_TYPE_OPTIONS = [
@@ -80,22 +93,6 @@ const DATASET_FORMAT_OPTIONS = [
   { value: 'pdf', label: 'PDF' },
   { value: 'docx', label: 'DOCX' },
   { value: 'xlsx', label: 'XLSX' },
-];
-const AGENT_TYPE_OPTIONS = [
-  { value: 'http_api', label: 'HTTP API' },
-  { value: 'mcp', label: 'MCP' },
-  { value: 'builtin', label: '内置' },
-];
-const AGENT_MODE_OPTIONS = [
-  { value: 'SUBAGENT', label: 'SUBAGENT' },
-  { value: 'ALL', label: 'ALL' },
-  { value: 'TOOL', label: 'TOOL' },
-];
-const AGENT_REG_PROTOCOL_OPTIONS = [
-  { value: 'openai_compatible', label: 'OpenAI Compatible' },
-  { value: 'bailian_compatible', label: '百炼 Compatible' },
-  { value: 'anthropic_messages', label: 'Anthropic Messages' },
-  { value: 'gemini_generatecontent', label: 'Gemini generateContent' },
 ];
 function isValidUrl(value: string): boolean {
   try {
@@ -115,24 +112,21 @@ function isValidWsUrl(value: string): boolean {
   }
 }
 
-function inferMcpTransport(endpoint: string, authConfig?: Record<string, unknown>): 'http' | 'websocket' | 'stdio' {
+function inferMcpTransport(endpoint: string, authConfig?: Record<string, unknown>): 'http' | 'websocket' {
   const transport = typeof authConfig?.transport === 'string' ? authConfig.transport.toLowerCase() : '';
-  if (transport === 'stdio') return 'stdio';
   if (transport === 'websocket') return 'websocket';
   const ep = endpoint.trim().toLowerCase();
   if (ep.startsWith('ws://') || ep.startsWith('wss://')) return 'websocket';
   return 'http';
 }
 
-function modeToTransport(mode: McpRegisterMode): 'http' | 'websocket' | 'stdio' {
+function modeToTransport(mode: McpRegisterMode): 'http' | 'websocket' {
   if (mode === 'websocket') return 'websocket';
-  if (mode === 'stdio_sidecar') return 'stdio';
   return 'http';
 }
 
-function registerModeFromTransport(tr: 'http' | 'websocket' | 'stdio', prevMode: McpRegisterMode): McpRegisterMode {
+function registerModeFromTransport(tr: 'http' | 'websocket', prevMode: McpRegisterMode): McpRegisterMode {
   if (tr === 'websocket') return 'websocket';
-  if (tr === 'stdio') return 'stdio_sidecar';
   return prevMode === 'http_sse' ? 'http_sse' : 'http_json';
 }
 
@@ -171,7 +165,7 @@ function relationIdsFingerprint(raw: string): string {
   return [...ids].sort((a, b) => a - b).join(',');
 }
 
-/** 创建：仅有值时带回；更新：与加载快照一致则省略（后端 null=不修改），否则带回列表（含 [] 表示清空） */
+/** 创建时仅在有值时回传；更新时若与加载快照一致则省略（后端 null 表示不修改），否则带回完整列表，空数组表示清空。 */
 function mergeRelationIdsForUpsert(isUpdate: boolean, formValue: string, snapshot: string): number[] | undefined {
   const ids = parseRelatedIds(formValue).ids;
   if (!isUpdate) {
@@ -183,13 +177,100 @@ function mergeRelationIdsForUpsert(isUpdate: boolean, formValue: string, snapsho
   return ids;
 }
 
+function buildMcpAuthConfigFromForm(form: {
+  authType: string;
+  mcpAdvancedJson: string;
+  mcpApiKeyHeader: string;
+  mcpApiKeyValue: string;
+  mcpBearerToken: string;
+  mcpBasicUsername: string;
+  mcpBasicPassword: string;
+  mcpOauthTokenUrl: string;
+  mcpOauthClientId: string;
+  mcpOauthClientSecret: string;
+  mcpOauthScope: string;
+  mcpRegisterMode: McpRegisterMode;
+}): { ok: true; data: Record<string, unknown> } | { ok: false; message: string } {
+  const parsed = parseJsonObject(form.mcpAdvancedJson, '楂樼骇閴存潈 JSON');
+  if (!parsed.ok) return { ok: false, message: parsed.message };
+  const config: Record<string, unknown> = {
+    ...(parsed.data || {}),
+    method: 'tools/call',
+    transport: modeToTransport(form.mcpRegisterMode),
+  };
+
+  if (form.authType === 'api_key') {
+    config.headerName = form.mcpApiKeyHeader.trim() || 'X-Api-Key';
+    config.apiKey = form.mcpApiKeyValue.trim();
+  } else if (form.authType === 'bearer') {
+    config.token = form.mcpBearerToken.trim();
+  } else if (form.authType === 'basic') {
+    config.username = form.mcpBasicUsername.trim();
+    config.password = form.mcpBasicPassword.trim();
+  } else if (form.authType === 'oauth2_client') {
+    config.tokenUrl = form.mcpOauthTokenUrl.trim();
+    config.clientId = form.mcpOauthClientId.trim();
+    config.clientSecret = form.mcpOauthClientSecret.trim();
+    if (form.mcpOauthScope.trim()) config.scope = form.mcpOauthScope.trim();
+  }
+
+  return { ok: true, data: config };
+}
+
+function deriveMcpAuthForm(authType: string, authConfig?: Record<string, unknown>): Partial<{
+  mcpApiKeyHeader: string;
+  mcpApiKeyValue: string;
+  mcpBearerToken: string;
+  mcpBasicUsername: string;
+  mcpBasicPassword: string;
+  mcpOauthTokenUrl: string;
+  mcpOauthClientId: string;
+  mcpOauthClientSecret: string;
+  mcpOauthScope: string;
+  mcpAdvancedJson: string;
+}> {
+  const config = authConfig ?? {};
+  return {
+    mcpApiKeyHeader: String(config.headerName ?? 'X-Api-Key'),
+    mcpApiKeyValue: String(config.apiKey ?? ''),
+    mcpBearerToken: String(config.token ?? ''),
+    mcpBasicUsername: String(config.username ?? ''),
+    mcpBasicPassword: String(config.password ?? ''),
+    mcpOauthTokenUrl: String(config.tokenUrl ?? ''),
+    mcpOauthClientId: String(config.clientId ?? ''),
+    mcpOauthClientSecret: String(config.clientSecret ?? ''),
+    mcpOauthScope: String(config.scope ?? ''),
+    mcpAdvancedJson:
+      Object.keys(config).length > 0
+        ? JSON.stringify(
+            Object.fromEntries(
+              Object.entries(config).filter(([key]) =>
+                ![
+                  'headerName',
+                  'apiKey',
+                  'token',
+                  'username',
+                  'password',
+                  'tokenUrl',
+                  'clientId',
+                  'clientSecret',
+                  'scope',
+                ].includes(key),
+              ),
+            ),
+            null,
+            2,
+          )
+        : DEFAULT_MCP_AUTH_CONFIG_JSON,
+  };
+}
+
 type ResourceRegisterFieldKey =
   | 'resourceCode'
   | 'displayName'
   | 'endpoint'
   | 'protocol'
   | 'authConfigJson'
-  | 'agentType'
   | 'registrationProtocol'
   | 'upstreamEndpoint'
   | 'modelAlias'
@@ -200,7 +281,6 @@ type ResourceRegisterFieldKey =
   | 'relatedMcpResourceIds'
   | 'agentMaxSteps'
   | 'agentTemperature'
-  | 'skillType'
   | 'paramsSchemaJson'
   | 'contextPrompt'
   | 'appUrl'
@@ -221,7 +301,6 @@ const RR_FIELD_FOCUS_ORDER: ResourceRegisterFieldKey[] = [
   'endpoint',
   'protocol',
   'authConfigJson',
-  'agentType',
   'registrationProtocol',
   'upstreamEndpoint',
   'modelAlias',
@@ -232,7 +311,6 @@ const RR_FIELD_FOCUS_ORDER: ResourceRegisterFieldKey[] = [
   'relatedMcpResourceIds',
   'agentMaxSteps',
   'agentTemperature',
-  'skillType',
   'paramsSchemaJson',
   'contextPrompt',
   'appUrl',
@@ -254,7 +332,16 @@ function computeResourceRegisterFieldErrors(
     protocol: string;
     authType: string;
     authConfigJson: string;
-    agentType: string;
+    mcpAdvancedJson: string;
+    mcpApiKeyHeader: string;
+    mcpApiKeyValue: string;
+    mcpBearerToken: string;
+    mcpBasicUsername: string;
+    mcpBasicPassword: string;
+    mcpOauthTokenUrl: string;
+    mcpOauthClientId: string;
+    mcpOauthClientSecret: string;
+    mcpOauthScope: string;
     registrationProtocol: string;
     upstreamEndpoint: string;
     modelAlias: string;
@@ -269,7 +356,6 @@ function computeResourceRegisterFieldErrors(
     contextPrompt: string;
     agentMaxSteps: string;
     agentTemperature: string;
-    skillType: string;
     paramsSchemaJson: string;
     appUrl: string;
     embedType: string;
@@ -285,7 +371,7 @@ function computeResourceRegisterFieldErrors(
   if (!form.resourceCode.trim()) {
     e.resourceCode = '请填写资源编码';
   } else if (!/^[a-zA-Z0-9_-]{3,64}$/.test(form.resourceCode.trim())) {
-    e.resourceCode = '资源编码须为 3–64 位，仅支持字母、数字、下划线和短横线';
+    e.resourceCode = '资源编码需为 3-64 位，仅支持字母、数字、下划线和短横线';
   }
   if (!form.displayName.trim()) {
     e.displayName = '请填写显示名称';
@@ -298,18 +384,14 @@ function computeResourceRegisterFieldErrors(
       const activeTransport = modeToTransport(form.mcpRegisterMode);
       if (activeTransport === 'websocket') {
         if (!isValidWsUrl(form.endpoint.trim())) {
-          e.endpoint = '选择 WebSocket 传输时，服务地址须为 ws:// 或 wss:// URL';
-        }
-      } else if (activeTransport === 'stdio') {
-        if (!isValidUrl(form.endpoint.trim())) {
-          e.endpoint = 'stdio 边车须将本机 HTTP 转发地址填入服务地址，且须为 http:// 或 https:// URL';
+          e.endpoint = '选择 WebSocket 传输时，服务地址必须是 ws:// 或 wss:// URL';
         }
       } else if (!isValidUrl(form.endpoint.trim())) {
-        e.endpoint = '选择 HTTP / SSE 时，服务地址须为 http:// 或 https:// URL';
+        e.endpoint = '选择 HTTP / SSE 时，服务地址必须是 http:// 或 https:// URL';
       }
     }
     if (form.protocol.trim() && form.protocol.trim().toLowerCase() !== 'mcp') {
-      e.protocol = 'MCP 资源 protocol 建议固定为 mcp';
+      e.protocol = 'MCP 资源的 protocol 固定为 mcp';
     }
     const authParsed = parseJsonObject(form.authConfigJson, '鉴权 JSON 配置');
     if (form.authConfigJson.trim() && !authParsed.ok) {
@@ -317,36 +399,33 @@ function computeResourceRegisterFieldErrors(
     }
     if (form.authType === 'oauth2_client') {
       if (!authParsed.ok || !authParsed.data) {
-        e.authConfigJson = e.authConfigJson ?? 'OAuth2 须填写合法的鉴权 JSON';
+        e.authConfigJson = e.authConfigJson ?? 'OAuth2 需要填写合法的鉴权 JSON';
       } else {
         const d = authParsed.data;
         const tokenUrl = String(d.tokenUrl ?? d.token_url ?? '').trim();
         const clientId = String(d.clientId ?? d.client_id ?? '').trim();
         const secret = String(d.clientSecret ?? d.client_secret ?? '').trim();
         const secretRef = String(d.clientSecretRef ?? '').trim();
-        if (!tokenUrl) e.authConfigJson = e.authConfigJson ?? 'OAuth2 须在 JSON 中填写 tokenUrl';
-        if (!clientId) e.authConfigJson = e.authConfigJson ?? 'OAuth2 须在 JSON 中填写 clientId';
-        if (!secret && !secretRef) e.authConfigJson = e.authConfigJson ?? 'OAuth2 须填写 clientSecret 或 clientSecretRef';
+        if (!tokenUrl) e.authConfigJson = e.authConfigJson ?? 'OAuth2 需要在 JSON 中填写 tokenUrl';
+        if (!clientId) e.authConfigJson = e.authConfigJson ?? 'OAuth2 需要在 JSON 中填写 clientId';
+        if (!secret && !secretRef) e.authConfigJson = e.authConfigJson ?? 'OAuth2 需要填写 clientSecret 或 clientSecretRef';
       }
     }
     if (form.authType === 'basic') {
       if (!authParsed.ok || !authParsed.data) {
-        e.authConfigJson = e.authConfigJson ?? 'Basic 须填写合法的鉴权 JSON';
+        e.authConfigJson = e.authConfigJson ?? 'Basic 需要填写合法的鉴权 JSON';
       } else {
         const d = authParsed.data;
         const u = String(d.username ?? '').trim();
         const password = String(d.password ?? '').trim();
         const passwordRef = String(d.passwordSecretRef ?? '').trim();
-        if (!u) e.authConfigJson = e.authConfigJson ?? 'Basic 须在 JSON 中填写 username';
-        if (!password && !passwordRef) e.authConfigJson = e.authConfigJson ?? 'Basic 须填写 password 或 passwordSecretRef';
+        if (!u) e.authConfigJson = e.authConfigJson ?? 'Basic 需要在 JSON 中填写 username';
+        if (!password && !passwordRef) e.authConfigJson = e.authConfigJson ?? 'Basic 需要填写 password 或 passwordSecretRef';
       }
     }
   }
 
   if (resourceType === 'agent') {
-    if (!form.agentType.trim()) {
-      e.agentType = '请填写智能体类型';
-    }
     if (!form.registrationProtocol.trim()) {
       e.registrationProtocol = '请选择注册协议';
     }
@@ -356,7 +435,7 @@ function computeResourceRegisterFieldErrors(
       e.upstreamEndpoint = '上游 endpoint 必须是 http:// 或 https:// URL';
     }
     if (!form.modelAlias.trim()) {
-      e.modelAlias = '请填写对外 modelAlias';
+      e.modelAlias = '请填写对外 model alias';
     }
     if (form.specJson.trim()) {
       const specParsed = parseJsonObject(form.specJson, '规格 JSON');
@@ -364,38 +443,26 @@ function computeResourceRegisterFieldErrors(
         e.specJson = specParsed.message;
       }
     }
-    const mcpRel = parseRelatedIds(form.relatedMcpResourceIds);
-    if (mcpRel.invalidTokens.length > 0) {
-      e.relatedMcpResourceIds = `绑定的 MCP ID 仅支持正整数（逗号分隔），非法值：${mcpRel.invalidTokens.join(', ')}`;
-    }
     if (!Number.isFinite(Number(form.maxConcurrency)) || Number(form.maxConcurrency) < 1 || Number(form.maxConcurrency) > 1000) {
-      e.maxConcurrency = '最大并发须在 1~1000 之间';
+      e.maxConcurrency = '最大并发需在 1 到 1000 之间';
     }
     if (form.agentMaxSteps.trim()) {
       const n = Number(form.agentMaxSteps.trim());
       if (!Number.isInteger(n) || n < 1) {
-        e.agentMaxSteps = '最大步数须为正整数或留空';
+        e.agentMaxSteps = '最大步数需为正整数或留空';
       }
     }
     if (form.agentTemperature.trim()) {
       const t = Number(form.agentTemperature.trim());
       if (!Number.isFinite(t)) {
-        e.agentTemperature = '采样温度须为有效数字或留空';
+        e.agentTemperature = '采样温度需为有效数字或留空';
       }
     }
   }
 
   if (resourceType === 'skill') {
     if (!form.contextPrompt.trim()) {
-      e.contextPrompt = '请填写规范 Markdown（context）';
-    }
-    const st = form.skillType.trim().toLowerCase();
-    if (st && st !== 'context_v1') {
-      e.skillType = '技能类型须为 context_v1';
-    }
-    const skillMcpRel = parseRelatedIds(form.relatedMcpResourceIds);
-    if (skillMcpRel.invalidTokens.length > 0) {
-      e.relatedMcpResourceIds = `绑定的 MCP ID 仅支持正整数（逗号分隔），非法值：${skillMcpRel.invalidTokens.join(', ')}`;
+      e.contextPrompt = '请填写规范 Markdown / Context 正文';
     }
     const specParsed = parseJsonObject(form.specJson, '附加元数据 JSON（可为空对象）');
     if (!specParsed.ok) {
@@ -411,22 +478,22 @@ function computeResourceRegisterFieldErrors(
     if (!form.appUrl.trim()) {
       e.appUrl = '请填写应用地址';
     } else if (!isValidUrl(form.appUrl.trim())) {
-      e.appUrl = '应用地址须为有效的 http/https URL';
+      e.appUrl = '应用地址必须是有效的 http/https URL';
     }
     if (!form.embedType.trim()) {
       e.embedType = '请选择嵌入方式';
     } else {
       const appEt = form.embedType.trim().toLowerCase();
       if (!['iframe', 'redirect', 'micro_frontend'].includes(appEt)) {
-        e.embedType = '嵌入方式须为 iframe、redirect 或 micro_frontend（与后端一致）';
+        e.embedType = '嵌入方式必须是 iframe、redirect 或 micro_frontend';
       }
     }
     if (form.appIcon.trim() && !isValidUrl(form.appIcon.trim())) {
-      e.appIcon = '图标 URL 须为有效的 http/https URL';
+      e.appIcon = '图标 URL 必须是有效的 http/https URL';
     }
     const related = parseRelatedIds(form.relatedResourceIds);
     if (related.invalidTokens.length > 0) {
-      e.relatedResourceIds = `关联资源 ID 仅支持正整数（逗号分隔），非法值：${related.invalidTokens.join(', ')}`;
+      e.relatedResourceIds = `关联资源 ID 仅支持正整数并用逗号分隔，非法值：${related.invalidTokens.join(', ')}`;
     }
   }
 
@@ -456,16 +523,12 @@ function collectMcpProbeFieldIssues(form: {
 }): Partial<Record<'endpoint' | 'authConfigJson', string>> {
   const e: Partial<Record<'endpoint' | 'authConfigJson', string>> = {};
   if (!form.endpoint.trim()) {
-    e.endpoint = '请填写服务地址后再探测';
+    e.endpoint = '请先填写服务地址再探测';
   } else {
     const activeTransport = modeToTransport(form.mcpRegisterMode);
     if (activeTransport === 'websocket') {
       if (!isValidWsUrl(form.endpoint.trim())) {
         e.endpoint = 'WebSocket 探测需要 ws:// 或 wss:// URL';
-      }
-    } else if (activeTransport === 'stdio') {
-      if (!isValidUrl(form.endpoint.trim())) {
-        e.endpoint = 'stdio 边车须为 http:// 或 https:// URL';
       }
     } else if (!isValidUrl(form.endpoint.trim())) {
       e.endpoint = 'HTTP 探测需要 http(s) URL';
@@ -477,34 +540,34 @@ function collectMcpProbeFieldIssues(form: {
   }
   if (form.authType === 'oauth2_client') {
     if (!authParsed.ok || !authParsed.data) {
-      e.authConfigJson = e.authConfigJson ?? 'OAuth2 须填写合法的鉴权 JSON';
+      e.authConfigJson = e.authConfigJson ?? 'OAuth2 需要填写合法的鉴权 JSON';
     } else {
       const d = authParsed.data;
       const tokenUrl = String(d.tokenUrl ?? d.token_url ?? '').trim();
       const clientId = String(d.clientId ?? d.client_id ?? '').trim();
       const secret = String(d.clientSecret ?? d.client_secret ?? '').trim();
       const secretRef = String(d.clientSecretRef ?? '').trim();
-      if (!tokenUrl) e.authConfigJson = e.authConfigJson ?? 'OAuth2 须在 JSON 中填写 tokenUrl';
-      if (!clientId) e.authConfigJson = e.authConfigJson ?? 'OAuth2 须在 JSON 中填写 clientId';
-      if (!secret && !secretRef) e.authConfigJson = e.authConfigJson ?? 'OAuth2 须填写 clientSecret 或 clientSecretRef';
+      if (!tokenUrl) e.authConfigJson = e.authConfigJson ?? 'OAuth2 需要在 JSON 中填写 tokenUrl';
+      if (!clientId) e.authConfigJson = e.authConfigJson ?? 'OAuth2 需要在 JSON 中填写 clientId';
+      if (!secret && !secretRef) e.authConfigJson = e.authConfigJson ?? 'OAuth2 需要填写 clientSecret 或 clientSecretRef';
     }
   }
   if (form.authType === 'basic') {
     if (!authParsed.ok || !authParsed.data) {
-      e.authConfigJson = e.authConfigJson ?? 'Basic 须填写合法的鉴权 JSON';
+      e.authConfigJson = e.authConfigJson ?? 'Basic 需要填写合法的鉴权 JSON';
     } else {
       const d = authParsed.data;
       const u = String(d.username ?? '').trim();
       const password = String(d.password ?? '').trim();
       const passwordRef = String(d.passwordSecretRef ?? '').trim();
-      if (!u) e.authConfigJson = e.authConfigJson ?? 'Basic 须在 JSON 中填写 username';
-      if (!password && !passwordRef) e.authConfigJson = e.authConfigJson ?? 'Basic 须填写 password 或 passwordSecretRef';
+      if (!u) e.authConfigJson = e.authConfigJson ?? 'Basic 需要在 JSON 中填写 username';
+      if (!password && !passwordRef) e.authConfigJson = e.authConfigJson ?? 'Basic 需要填写 password 或 passwordSecretRef';
     }
   }
   return e;
 }
 
-/** 保持用户在表单中的顺序，并去掉重复 token（仅合法正整数） */
+/** 保持用户在表单中的顺序，并去掉重复 token（仅合法正整数）。 */
 function parseOrderedRelatedIds(value: string): number[] {
   const tokens = value
     .split(',')
@@ -526,7 +589,7 @@ function parseOrderedRelatedIds(value: string): number[] {
 function formatBindingOptionLabel(item: ResourceCenterItemVO): string {
   const code = item.resourceCode?.trim();
   const name = item.displayName?.trim() || `资源 #${item.id}`;
-  if (code) return `${name}（${code} · #${item.id}）`;
+  if (code) return `${name}（${code} / #${item.id}）`;
   return `${name}（#${item.id}）`;
 }
 
@@ -595,13 +658,13 @@ const OrderedRelatedResourcePicker: React.FC<{
       {loadError ? <p className={`text-xs ${fieldErrorText()}`}>加载可选资源失败，请稍后重试。</p> : null}
       {loading ? (
         <div className={`flex items-center gap-2 text-xs ${textMuted(theme)}`}>
-          <Loader2 className="animate-spin" size={14} /> 加载我的资源…
+          <Loader2 className="animate-spin" size={14} /> 正在加载我的资源…
         </div>
       ) : null}
       <div className={orderedPickerPanelClass(isDark, errorStyle)}>
-        <p className={`mb-2 px-1 text-xs font-medium ${textMuted(theme)}`}>已选顺序（先 → 后）</p>
+        <p className={`mb-2 px-1 text-xs font-medium ${textMuted(theme)}`}>已选顺序（前 → 后）</p>
         {selectedIds.length === 0 ? (
-          <p className={`px-2 py-1 text-xs ${textMuted(theme)}`}>未选择</p>
+          <p className={`px-2 py-1 text-xs ${textMuted(theme)}`}>尚未选择</p>
         ) : (
           <ul className="space-y-1">
             {selectedIds.map((id, idx) => {
@@ -641,10 +704,10 @@ const OrderedRelatedResourcePicker: React.FC<{
         )}
       </div>
       <div className={orderedPickerPanelClass(isDark, false)}>
-        <p className={`mb-2 px-1 text-xs font-medium ${textMuted(theme)}`}>候选（勾选加入队尾）</p>
+        <p className={`mb-2 px-1 text-xs font-medium ${textMuted(theme)}`}>候选资源（勾选后加入尾部）</p>
         {poolAvailable.length === 0 ? (
           <p className={`px-2 py-1 text-xs ${textMuted(theme)}`}>
-            {poolItems.length === 0 && !loading && !loadError ? '当前没有可绑定的资源' : '暂无更多候选'}
+            {poolItems.length === 0 && !loading && !loadError ? '当前没有可绑定的资源' : '暂无更多候选资源'}
           </p>
         ) : (
           <ul className="max-h-44 space-y-1 overflow-y-auto pr-1">
@@ -667,6 +730,42 @@ const OrderedRelatedResourcePicker: React.FC<{
   );
 };
 
+const SectionCard: React.FC<{
+  theme: Theme;
+  isDark: boolean;
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+  full?: boolean;
+}> = ({ theme, isDark, title, description, children, full = true }) => (
+  <div
+    className={`${full ? 'md:col-span-2' : ''} rounded-2xl border p-4 ${
+      isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200 bg-slate-50/80'
+    }`}
+  >
+    <div className="mb-3">
+      <h3 className={`text-sm font-semibold ${textPrimary(theme)}`}>{title}</h3>
+      {description ? <p className={`mt-1 text-xs leading-relaxed ${textMuted(theme)}`}>{description}</p> : null}
+    </div>
+    <div className="space-y-3">{children}</div>
+  </div>
+);
+
+const NoticeCard: React.FC<{
+  isDark: boolean;
+  title: string;
+  children: React.ReactNode;
+}> = ({ isDark, title, children }) => (
+  <div
+    className={`md:col-span-2 rounded-2xl border px-4 py-3 text-sm leading-relaxed ${
+      isDark ? 'border-sky-500/30 bg-sky-500/10 text-sky-100' : 'border-sky-200 bg-sky-50 text-sky-950'
+    }`}
+  >
+    <p className="font-medium">{title}</p>
+    <div className={`mt-1.5 space-y-1 ${isDark ? 'text-sky-100/85' : 'text-sky-900/85'}`}>{children}</div>
+  </div>
+);
+
 export const ResourceRegisterPage: React.FC<Props> = ({
   theme,
   fontSize,
@@ -677,13 +776,18 @@ export const ResourceRegisterPage: React.FC<Props> = ({
 }) => {
   const isDark = theme === 'dark';
   const navigate = useNavigate();
-  const location = useLocation();
   const user = useAuthStore((s) => s.user);
   const [tagOptions, setTagOptions] = useState<{ value: string; label: string }[]>([{ value: '', label: '不选' }]);
   const [loading, setLoading] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [mcpAdvancedOpen, setMcpAdvancedOpen] = useState(false);
+  const [skillAdvancedOpen, setSkillAdvancedOpen] = useState(false);
   const [mcpProbeExtra, setMcpProbeExtra] = useState<Partial<Record<'endpoint' | 'authConfigJson', string>>>({});
   const [agentAdvancedOpen, setAgentAdvancedOpen] = useState(false);
+  const [agentProviderPreset, setAgentProviderPreset] = useState<AgentProviderPreset>('openai');
+  const [skillParamFields, setSkillParamFields] = useState<StructuredParamField[]>(
+    schemaToStructuredParamFields(JSON.parse(DEFAULT_SKILL_PARAMS_SCHEMA_JSON)),
+  );
   const [form, setForm] = useState({
     resourceCode: '',
     displayName: '',
@@ -692,10 +796,20 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     catalogTagId: '',
     endpoint: '',
     mcpRegisterMode: 'http_json' as McpRegisterMode,
-    mcpTransport: 'http' as 'http' | 'websocket' | 'stdio',
+    mcpTransport: 'http' as 'http' | 'websocket',
     protocol: 'mcp',
     authType: 'none',
     authConfigJson: DEFAULT_MCP_AUTH_CONFIG_JSON,
+    mcpAdvancedJson: DEFAULT_MCP_AUTH_CONFIG_JSON,
+    mcpApiKeyHeader: 'X-Api-Key',
+    mcpApiKeyValue: '',
+    mcpBearerToken: '',
+    mcpBasicUsername: '',
+    mcpBasicPassword: '',
+    mcpOauthTokenUrl: '',
+    mcpOauthClientId: '',
+    mcpOauthClientSecret: '',
+    mcpOauthScope: '',
     appUrl: '',
     embedType: 'iframe',
     appIcon: '',
@@ -705,9 +819,6 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     recordCount: 0,
     fileSize: 0,
     tags: '',
-    skillType: 'context_v1',
-    mode: resourceType === 'agent' ? 'SUBAGENT' : 'TOOL',
-    agentType: 'http_api',
     registrationProtocol: 'openai_compatible',
     upstreamEndpoint: '',
     upstreamAgentId: '',
@@ -734,7 +845,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
   const [agentKeyLoading, setAgentKeyLoading] = useState(false);
   const [agentKeys, setAgentKeys] = useState<AgentKeyMetaVO[]>([]);
   const [latestAgentSecret, setLatestAgentSecret] = useState('');
-  /** 已发布资源双轨编辑：用于提示线上版本 vs 草稿 */
+  /** 已发布资源双轨编辑：用于提示线上版本与当前草稿的关系。 */
   const [loadedResourceMeta, setLoadedResourceMeta] = useState<{
     status: string;
     currentVersion?: string;
@@ -795,6 +906,8 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     if (!resourceId) {
       setLoadedResourceMeta(null);
       bindingSnapshotRef.current = { relatedMcpResourceIds: '' };
+      setAgentProviderPreset('openai');
+      setSkillParamFields(schemaToStructuredParamFields(JSON.parse(DEFAULT_SKILL_PARAMS_SCHEMA_JSON)));
     }
   }, [resourceId]);
 
@@ -831,17 +944,13 @@ export const ResourceRegisterPage: React.FC<Props> = ({
           endpoint: item.endpoint || '',
           mcpRegisterMode:
             resourceType === 'mcp'
-              ? (() => {
-                  const tr = inferMcpTransport(
-                    item.endpoint || '',
+              ? coerceMcpRegisterMode({
+                  endpoint: item.endpoint || '',
+                  transportHint:
                     item.authConfig && typeof item.authConfig === 'object' && !Array.isArray(item.authConfig)
-                      ? (item.authConfig as Record<string, unknown>)
-                      : undefined,
-                  );
-                  if (tr === 'websocket') return 'websocket';
-                  if (tr === 'stdio') return 'stdio_sidecar';
-                  return 'http_json';
-                })()
+                      ? String((item.authConfig as Record<string, unknown>).transport ?? '')
+                      : '',
+                })
               : prev.mcpRegisterMode,
           mcpTransport:
             resourceType === 'mcp'
@@ -856,10 +965,12 @@ export const ResourceRegisterPage: React.FC<Props> = ({
           ...(resourceType === 'mcp'
             ? {
                 authType: item.authType || 'none',
-                authConfigJson:
+                ...deriveMcpAuthForm(
+                  item.authType || 'none',
                   item.authConfig && typeof item.authConfig === 'object'
-                    ? JSON.stringify(item.authConfig, null, 2)
-                    : DEFAULT_MCP_AUTH_CONFIG_JSON,
+                    ? (item.authConfig as Record<string, unknown>)
+                    : undefined,
+                ),
               }
             : {}),
           ...(resourceType === 'app'
@@ -887,8 +998,6 @@ export const ResourceRegisterPage: React.FC<Props> = ({
             : {}),
           ...(resourceType === 'agent'
             ? {
-                agentType: item.agentType || prev.agentType,
-                mode: item.mode || prev.mode,
                 registrationProtocol: item.registrationProtocol || prev.registrationProtocol,
                 upstreamEndpoint: item.upstreamEndpoint || prev.upstreamEndpoint,
                 upstreamAgentId: item.upstreamAgentId || '',
@@ -912,7 +1021,6 @@ export const ResourceRegisterPage: React.FC<Props> = ({
             : {}),
           ...(resourceType === 'skill'
             ? {
-                skillType: item.skillType || 'context_v1',
                 contextPrompt: item.contextPrompt ?? '',
                 relatedMcpResourceIds: Array.isArray(item.relatedMcpResourceIds)
                   ? item.relatedMcpResourceIds.join(', ')
@@ -935,9 +1043,22 @@ export const ResourceRegisterPage: React.FC<Props> = ({
           pendingPublishedUpdate: item.pendingPublishedUpdate,
           workingDraftAuditTier: item.workingDraftAuditTier,
         });
+        if (resourceType === 'agent') {
+          setAgentProviderPreset(
+            resolveAgentProviderPreset({
+              registrationProtocol: item.registrationProtocol,
+              upstreamEndpoint: item.upstreamEndpoint,
+            }),
+          );
+        }
+        if (resourceType === 'skill') {
+          setSkillParamFields(
+            schemaToStructuredParamFields(item.parametersSchema ?? JSON.parse(DEFAULT_SKILL_PARAMS_SCHEMA_JSON)),
+          );
+        }
       })
       .catch(() => {
-        showMessage('加载资源详情失败，已进入空白表单', 'warning');
+        showMessage('加载资源详情失败，已退回空白表单。', 'warning');
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -947,23 +1068,46 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     };
   }, [resourceId, resourceType, showMessage]);
 
-  const registerGuideLine = useMemo(
-    () =>
-      resourceType === 'skill'
-        ? 'Context 技能：填写规范 Markdown 与参数 Schema；可选绑定已发布 MCP。对外仅通过目录/resolve 获取正文，不可 invoke。'
-        : TYPE_GUIDE_ONE_LINE[resourceType],
-    [resourceType],
-  );
-
+  const registerGuideLine = useMemo(() => {
+    if (resourceType === 'agent') {
+      return 'Agent 注册优先走供应商预设和最少必填项，复杂运行细节统一收进高级配置。';
+    }
+    if (resourceType === 'skill') {
+      return 'Skill 固定为 Context 能力注册：先写正文和结构化参数，绑定 MCP 放到注册成功后。';
+    }
+    if (resourceType === 'mcp') {
+      return 'MCP 只支持平台可远程调用的 HTTP / SSE / WebSocket 接入，不再提供 stdio 注册。';
+    }
+    return TYPE_GUIDE_ONE_LINE[resourceType];
+  }, [resourceType]);
   const openAiBaseUrl = useMemo(() => {
     if (typeof window === 'undefined') return '/regis/openai/v1';
     return `${window.location.origin}/regis/openai/v1`;
   }, []);
+  const agentPresetMeta = AGENT_PROVIDER_PRESET_OPTIONS.find((item) => item.value === agentProviderPreset);
 
-  const fieldErrors = useMemo((): Partial<Record<ResourceRegisterFieldKey, string>> =>
-    computeResourceRegisterFieldErrors(resourceType, form),
-    [
-      form.agentType,
+  const addSkillParam = () => {
+    setSkillParamFields((prev) => [...prev, createStructuredParamField()]);
+  };
+
+  const updateSkillParam = (id: string, patch: Partial<StructuredParamField>) => {
+    setSkillParamFields((prev) => prev.map((item) => (item.id === id ? { ...item, ...patch } : item)));
+  };
+
+  const removeSkillParam = (id: string) => {
+    setSkillParamFields((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const fieldErrors = useMemo((): Partial<Record<ResourceRegisterFieldKey, string>> => {
+    const next = computeResourceRegisterFieldErrors(resourceType, form);
+    if (resourceType === 'mcp') {
+      const built = buildMcpAuthConfigFromForm(form);
+      if (built.ok === false) {
+        next.authConfigJson = built.message;
+      }
+    }
+    return next;
+  }, [
       form.registrationProtocol,
       form.upstreamEndpoint,
       form.modelAlias,
@@ -973,6 +1117,16 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       form.appIcon,
       form.appUrl,
       form.authConfigJson,
+      form.mcpAdvancedJson,
+      form.mcpApiKeyHeader,
+      form.mcpApiKeyValue,
+      form.mcpBearerToken,
+      form.mcpBasicUsername,
+      form.mcpBasicPassword,
+      form.mcpOauthTokenUrl,
+      form.mcpOauthClientId,
+      form.mcpOauthClientSecret,
+      form.mcpOauthScope,
       form.authType,
       form.dataType,
       form.displayName,
@@ -987,13 +1141,55 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       form.recordCount,
       form.relatedResourceIds,
       form.resourceCode,
-      form.skillType,
       form.specJson,
       form.relatedMcpResourceIds,
       form.contextPrompt,
       resourceType,
-    ],
-  );
+    ]);
+
+  useEffect(() => {
+    const nextSchemaJson = JSON.stringify(structuredParamFieldsToSchema(skillParamFields), null, 2);
+    setForm((prev) => (prev.paramsSchemaJson === nextSchemaJson ? prev : { ...prev, paramsSchemaJson: nextSchemaJson }));
+  }, [skillParamFields]);
+
+  useEffect(() => {
+    if (resourceType !== 'agent') return;
+    const nextProtocol = protocolForAgentProviderPreset(agentProviderPreset);
+    setForm((prev) => (prev.registrationProtocol === nextProtocol ? prev : { ...prev, registrationProtocol: nextProtocol }));
+  }, [agentProviderPreset, resourceType]);
+
+  useEffect(() => {
+    if (resourceType !== 'agent') return;
+    if (!form.upstreamEndpoint.trim()) return;
+    const resolved = resolveAgentProviderPreset({
+      providerPreset: agentProviderPreset,
+      registrationProtocol: form.registrationProtocol,
+      upstreamEndpoint: form.upstreamEndpoint,
+    });
+    if (resolved !== agentProviderPreset) {
+      setAgentProviderPreset(resolved);
+    }
+  }, [agentProviderPreset, form.registrationProtocol, form.upstreamEndpoint, resourceType]);
+
+  useEffect(() => {
+    const built = buildMcpAuthConfigFromForm(form);
+    if (!built.ok) return;
+    const nextJson = JSON.stringify(built.data, null, 2);
+    setForm((prev) => (prev.authConfigJson === nextJson ? prev : { ...prev, authConfigJson: nextJson }));
+  }, [
+    form.authType,
+    form.mcpAdvancedJson,
+    form.mcpApiKeyHeader,
+    form.mcpApiKeyValue,
+    form.mcpBearerToken,
+    form.mcpBasicUsername,
+    form.mcpBasicPassword,
+    form.mcpOauthTokenUrl,
+    form.mcpOauthClientId,
+    form.mcpOauthClientSecret,
+    form.mcpOauthScope,
+    form.mcpRegisterMode,
+  ]);
 
   useEffect(() => {
     setMcpProbeExtra({});
@@ -1024,12 +1220,15 @@ export const ResourceRegisterPage: React.FC<Props> = ({
         mcpRegisterMode: mode,
         mcpTransport: modeToTransport(mode),
         authType: r.authType ?? p.authType,
-        authConfigJson: r.authConfig ? JSON.stringify(r.authConfig, null, 2) : p.authConfigJson,
+        ...(r.authConfig ? deriveMcpAuthForm(r.authType ?? p.authType, r.authConfig) : {}),
       }));
-      showMessage(r.hint ? `${r.hint} 已尽量填入表单，请核对。` : '已从配置填充，请核对后保存。', r.hint ? 'warning' : 'success');
+      showMessage(
+        r.hint ? `${r.hint} 已尽量回填表单，请核对后再保存。` : '已从配置中回填 MCP 表单，请核对后保存。',
+        r.hint ? 'warning' : 'success',
+      );
       return;
     }
-    showMessage(r.hint ?? '未能解析', 'warning');
+    showMessage(r.hint ?? '未能解析导入内容。', 'warning');
   };
 
   const handleAgentConfigImport = () => {
@@ -1048,8 +1247,11 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       modelAlias: r.modelAlias ?? p.modelAlias,
       agentEnabled: typeof r.enabled === 'boolean' ? r.enabled : p.agentEnabled,
     }));
+    if (r.providerPreset) {
+      setAgentProviderPreset(r.providerPreset);
+    }
     showMessage(
-      r.hint ? `${r.hint} 已尽量填入 Agent 字段，请核对后保存。` : '已从配置填充 Agent 字段，请核对后保存。',
+      r.hint ? `${r.hint} 已尽量回填 Agent 字段，请核对后保存。` : '已从配置中回填 Agent 字段，请核对后保存。',
       r.hint ? 'warning' : 'success',
     );
   };
@@ -1060,7 +1262,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       await navigator.clipboard.writeText(text);
       showMessage(successMessage, 'success');
     } catch {
-      showMessage('复制失败，请手动复制', 'warning');
+      showMessage('复制失败，请手动复制。', 'warning');
     }
   };
 
@@ -1071,7 +1273,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       const rows = await resourceCenterService.listAgentKeys(resourceId);
       setAgentKeys(rows);
     } catch (e) {
-      showMessage(e instanceof Error ? e.message : '加载 Agent Key 信息失败', 'error');
+      showMessage(e instanceof Error ? e.message : '加载 Agent Key 信息失败。', 'error');
     } finally {
       setAgentKeyLoading(false);
     }
@@ -1084,9 +1286,9 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       const rotated = await resourceCenterService.rotateAgentKey(resourceId);
       setLatestAgentSecret(rotated.secretPlain ?? '');
       await refreshAgentKeys();
-      showMessage('已轮换 nx-sk（明文仅展示本次）', 'success');
+      showMessage('已轮换 nx-sk Key，明文只在本次展示。', 'success');
     } catch (e) {
-      showMessage(e instanceof Error ? e.message : '轮换失败', 'error');
+      showMessage(e instanceof Error ? e.message : '轮换失败。', 'error');
     } finally {
       setAgentKeyLoading(false);
     }
@@ -1099,9 +1301,9 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       await resourceCenterService.revokeAgentKey(resourceId);
       setLatestAgentSecret('');
       await refreshAgentKeys();
-      showMessage('已吊销 Agent 现有 Key', 'success');
+      showMessage('已吊销 Agent 当前 Key。', 'success');
     } catch (e) {
-      showMessage(e instanceof Error ? e.message : '吊销失败', 'error');
+      showMessage(e instanceof Error ? e.message : '吊销失败。', 'error');
     } finally {
       setAgentKeyLoading(false);
     }
@@ -1120,25 +1322,20 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     setMcpProbeExtra({});
     setMcpProbeLoading(true);
     try {
-      const acTrim = form.authConfigJson.trim();
-      let authConfig: Record<string, unknown> = {};
-      if (acTrim) {
-        const parsed = parseJsonObject(form.authConfigJson, '鉴权 JSON 配置');
-        if (!parsed.ok || !parsed.data) {
-          setMcpProbeExtra({ authConfigJson: parsed.message });
-          return;
-        }
-        authConfig = { ...parsed.data };
+      const builtAuth = buildMcpAuthConfigFromForm(form);
+      if (builtAuth.ok === false) {
+        setMcpProbeExtra({ authConfigJson: builtAuth.message });
+        return;
       }
       const res = await resourceCenterService.probeMcpConnectivity({
         endpoint: form.endpoint.trim(),
         authType: form.authType || 'none',
-        authConfig,
+        authConfig: builtAuth.data,
         transport: modeToTransport(form.mcpRegisterMode),
       });
       showMessage(res.message, res.ok ? 'success' : 'warning');
       if (res.bodyPreview) {
-        console.info('[MCP 探测响应片段]', res.bodyPreview);
+        console.info('[MCP probe preview]', res.bodyPreview);
       }
     } catch (e) {
       showMessage(e instanceof Error ? e.message : '探测失败', 'error');
@@ -1146,7 +1343,6 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       setMcpProbeLoading(false);
     }
   };
-
   const buildPayload = (): ResourceUpsertRequest => {
     const tagIdPick = Number(form.catalogTagId.trim());
     const baseFields = {
@@ -1158,21 +1354,15 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       ...(form.catalogTagId.trim() && Number.isFinite(tagIdPick) && tagIdPick > 0 ? { tagIds: [tagIdPick] } : {}),
     };
     if (resourceType === 'mcp') {
-      const acTrim = form.authConfigJson.trim();
-      let authConfig: Record<string, unknown> = {};
-      if (acTrim) {
-        const parsed = parseJsonObject(form.authConfigJson, '鉴权 JSON 配置');
-        if (!parsed.ok) throw new Error(parsed.message);
-        authConfig = parsed.data || {};
-      }
-      authConfig = { ...authConfig, transport: modeToTransport(form.mcpRegisterMode) };
+      const builtAuth = buildMcpAuthConfigFromForm(form);
+      if (builtAuth.ok === false) throw new Error(builtAuth.message);
       return {
         ...baseFields,
         resourceType: 'mcp',
         endpoint: form.endpoint.trim(),
         protocol: 'mcp',
         authType: form.authType || 'none',
-        authConfig,
+        authConfig: builtAuth.data,
         serviceDetailMd: form.serviceDetailMd.trim(),
       };
     }
@@ -1193,7 +1383,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
         resourceType: 'skill',
         executionMode: 'context',
         serviceDetailMd: form.serviceDetailMd.trim(),
-        skillType: form.skillType.trim().toLowerCase() === 'context_v1' ? form.skillType.trim() : 'context_v1',
+        skillType: 'context_v1',
         contextPrompt: form.contextPrompt.trim(),
         spec: Object.keys(specObj).length > 0 ? specObj : {},
         parametersSchema: parsedSchema.data || {},
@@ -1217,10 +1407,10 @@ export const ResourceRegisterPage: React.FC<Props> = ({
         ...baseFields,
         resourceType: 'agent',
         serviceDetailMd: form.serviceDetailMd.trim(),
-        agentType: form.agentType.trim(),
-        mode: form.mode,
+        agentType: 'http_api',
+        mode: 'SUBAGENT',
         spec: parsedSpec.data || {},
-        registrationProtocol: form.registrationProtocol as
+        registrationProtocol: protocolForAgentProviderPreset(agentProviderPreset) as
           | 'openai_compatible'
           | 'bailian_compatible'
           | 'anthropic_messages'
@@ -1270,10 +1460,9 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       isPublic: true,
     };
   };
-
   const save = async (submitAfterSave: boolean) => {
     if (!resourceId && !user?.id) {
-      showMessage('请先登录后再注册资源', 'error');
+      showMessage('请先登录后再注册资源。', 'error');
       return;
     }
     const errs = fieldErrors;
@@ -1304,7 +1493,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
           pendingPublishedUpdate: lastItem.pendingPublishedUpdate,
           workingDraftAuditTier: lastItem.workingDraftAuditTier,
         });
-        showMessage(lastItem.statusHint || (lastItem.status === 'published' ? '已处理提交（详见提示）' : '保存并提审成功'), 'success');
+        showMessage(lastItem.statusHint || (lastItem.status === 'published' ? '提交已处理，请留意状态提示。' : '保存并提审成功。'), 'success');
       } else {
         setLoadedResourceMeta({
           status: lastItem.status,
@@ -1315,14 +1504,18 @@ export const ResourceRegisterPage: React.FC<Props> = ({
         });
         showMessage(
           resourceId && lastItem.status === 'published'
-            ? '草稿已保存：线上默认解析版本尚未合并，请稍后「保存并提审」。'
-            : '保存成功',
+            ? '草稿已保存：线上默认解析版本尚未合并，请稍后再执行“保存并提审”。'
+            : '保存成功。',
           'success',
         );
       }
+      if (!resourceId && !submitAfterSave && lastItem.id && (resourceType === 'agent' || resourceType === 'skill')) {
+        navigate(buildPath('user', resourceType === 'agent' ? 'agent-register' : 'skill-register', lastItem.id));
+        return;
+      }
       onBack();
     } catch (err) {
-      showMessage(err instanceof Error ? err.message : '保存失败', 'error');
+      showMessage(err instanceof Error ? err.message : '保存失败。', 'error');
     } finally {
       setLoading(false);
     }
@@ -1374,19 +1567,20 @@ export const ResourceRegisterPage: React.FC<Props> = ({
             }`}
           >
             <p>
-              <span className="font-medium">双轨编辑：</span>线上默认解析版本为{' '}
-              <span className="font-mono">{loadedResourceMeta.currentVersion ?? '—'}</span>。本页保存的是<strong>登记草稿</strong>
-              ，不会立即改变网关对外的解析配置；完成后请使用「保存并提审」，审核通过后合并上线。
+              <span className="font-medium">双轨编辑：</span>
+              线上默认解析版本为 <span className="font-mono">{loadedResourceMeta.currentVersion ?? '—'}</span>。
+              本页保存的是 <strong>登记草稿</strong>，不会立刻改变网关对外解析配置；完成后请使用“保存并提审”，审核通过后再合并上线。
             </p>
             {loadedResourceMeta.pendingPublishedUpdate ? (
               <p className={`mt-1.5 ${isDark ? 'text-amber-100' : 'text-amber-900'}`}>
-                当前有一条已发布变更正在审核；可先到资源列表撤回后再继续改草稿。
+                当前有一条已发布变更正在审核；可先到资源列表撤回后再继续修改草稿。
               </p>
             ) : null}
             {loadedResourceMeta.workingDraftAuditTier ? (
               <p className={`mt-1 text-xs ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                后端估算风险分级：{workingDraftAuditTierLabelZh(loadedResourceMeta.workingDraftAuditTier) || loadedResourceMeta.workingDraftAuditTier}
-                （低风险且具备部门/平台管理员权限时可能免审直合）
+                后端估算风险等级：
+                {workingDraftAuditTierLabelZh(loadedResourceMeta.workingDraftAuditTier) || loadedResourceMeta.workingDraftAuditTier}
+                （低风险且具备部门 / 平台管理员权限时，可能免审直合。）
               </p>
             ) : null}
           </div>
@@ -1401,8 +1595,8 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                 className={inputClass(isDark, !!fieldErrors.resourceCode)}
                 aria-invalid={!!fieldErrors.resourceCode}
                 aria-describedby={fieldErrors.resourceCode ? `${rrFieldId('resourceCode')}-err` : undefined}
-                title="3–64 位，字母数字下划线或短横线"
-                placeholder="唯一标识，如 weather-tool"
+                title="3-64 位，允许字母、数字、下划线和短横线"
+                placeholder="唯一标识，例如 weather-tool"
               />
             </Field>
             <Field label="显示名称 *" theme={theme} error={fieldErrors.displayName} fieldId={rrFieldId('displayName')}>
@@ -1413,7 +1607,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                 className={inputClass(isDark, !!fieldErrors.displayName)}
                 aria-invalid={!!fieldErrors.displayName}
                 aria-describedby={fieldErrors.displayName ? `${rrFieldId('displayName')}-err` : undefined}
-                placeholder="列表与详情中展示的名称"
+                placeholder="列表与详情页中展示的名称"
               />
             </Field>
             <Field label="描述（选填）" full theme={theme}>
@@ -1423,7 +1617,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                 minRows={3}
                 maxRows={12}
                 className={`${inputClass(isDark)} resize-none`}
-                placeholder="用途与场景简述（选填）"
+                placeholder="简要描述用途与适用场景"
               />
             </Field>
             <Field
@@ -1450,14 +1644,14 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                 stripPreviewDeviceBar
                 placeholder={
                   resourceType === 'mcp'
-                    ? '支持 Markdown：能力说明、认证方式、调用限制与示例等；将在 MCP 市场详情页「服务详情」展示'
+                    ? '支持 Markdown：填写能力说明、认证方式、调用限制和示例，将展示在 MCP 市场详情的“服务详情”中。'
                     : resourceType === 'skill'
-                      ? '支持 Markdown：技能能力、依赖、使用示例等；将在技能市场「技能介绍」Tab 展示'
+                      ? '支持 Markdown：填写技能能力、依赖和使用示例，将展示在技能市场的“技能详情”中。'
                       : resourceType === 'dataset'
-                        ? '支持 Markdown：数据来源、字段说明、使用限制等；将在数据集市场「数据集介绍」Tab 展示'
+                        ? '支持 Markdown：填写数据来源、字段说明和使用限制，将展示在数据集市场的“数据集介绍”中。'
                         : resourceType === 'agent'
-                          ? '支持 Markdown：适用场景、能力边界、调用说明等；将在智能体市场「智能体介绍」Tab 展示'
-                          : '支持 Markdown：功能说明、嵌入方式、权限与示例等；将在应用集「应用介绍」Tab 展示'
+                          ? '支持 Markdown：填写适用场景、能力边界和调用说明，将展示在智能体市场的“服务详情”中。'
+                          : '支持 Markdown：填写功能说明、嵌入方式、权限和示例，将展示在应用集的“应用介绍”中。'
                 }
               />
             </Field>
@@ -1502,480 +1696,493 @@ export const ResourceRegisterPage: React.FC<Props> = ({
 
             {resourceType === 'mcp' && (
               <>
-                <div
-                  className={`md:col-span-2 rounded-xl border px-3 py-3 text-xs leading-relaxed ${
-                    isDark ? 'border-amber-500/30 bg-amber-500/5 text-amber-100/90' : 'border-amber-200 bg-amber-50 text-amber-950'
-                  }`}
+                <NoticeCard isDark={isDark} title="只保留真正可远程调用的 MCP 接入">
+                  <p>平台不会托管本地 stdio 进程。请提供 HTTP JSON-RPC、HTTP SSE 或 WebSocket 地址。</p>
+                  <p>如果当前只有 command/stdio，请先在你侧暴露成远程 URL，再回到这里登记。</p>
+                </NoticeCard>
+
+                <SectionCard
+                  theme={theme}
+                  isDark={isDark}
+                  title="快速导入"
+                  description="支持直接粘贴 URL、mcpServers JSON 或单个 server 配置。导入器会自动识别 transport 与鉴权方式。"
                 >
-                  <p className="font-medium">注册中心只做「登记目录」</p>
-                  <p className={`mt-1 ${isDark ? 'text-amber-100/80' : 'text-amber-900/85'}`}>
-                    MCP 进程须由您自行部署运维；本平台不代跑服务。请提供可从网络访问的 <strong>http(s)</strong> 或{' '}
-                    <strong>ws(s)</strong> 地址。若仅有本机 command/stdio，需先在您侧用边车或隧道暴露为 URL 后再登记。
-                  </p>
-                  <p className={`mt-1.5 ${isDark ? 'text-amber-100/70' : 'text-amber-900/75'}`}>
-                    「MCP over HTTP（JSON）」与「HTTP + SSE」在登记表单里都对应远程 HTTP；网关会按上游实际响应处理，请按服务商文档填写地址即可。
-                  </p>
-                </div>
-                <Field label="粘贴配置导入" full theme={theme}>
-                  <p className={`mb-2 text-xs ${textMuted(theme)}`}>
-                    支持含 <span className="font-mono">mcpServers</span> 的 JSON（如 Claude/Cursor 导出），或单个含{' '}
-                    <span className="font-mono">url</span> 的条目。仅解析远程 URL 类；stdio 会提示须自备边车。
-                  </p>
                   <AutoHeightTextarea
                     value={mcpImportPaste}
                     onChange={(e) => setMcpImportPaste(e.target.value)}
                     minRows={4}
-                    maxRows={22}
+                    maxRows={18}
                     className={`${inputClass(isDark)} font-mono text-xs resize-none`}
-                    placeholder={'支持直接粘贴 URL 或 JSON，例如：https://example.com/mcp 或 { "mcpServers": { "demo": { "url": "https://example.com/mcp" } } }'}
+                    placeholder={'支持粘贴 URL 或 JSON，例如：https://example.com/mcp 或 { "mcpServers": { "demo": { "url": "https://example.com/mcp" } } }'}
                   />
-                  <div className="mt-2 flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <button type="button" className={btnSecondary(theme)} onClick={handleMcpConfigImport}>
-                      解析并填入表单
+                      解析并回填
                     </button>
                   </div>
-                </Field>
-                <Field label="注册方式" theme={theme}>
-                  <ThemedSelect
-                    isDark={isDark}
-                    value={form.mcpRegisterMode}
-                    onChange={(value) => {
-                      const nextMode = value as McpRegisterMode;
-                      setForm((p) => ({
-                        ...p,
-                        mcpRegisterMode: nextMode,
-                        mcpTransport: modeToTransport(nextMode),
-                      }));
-                    }}
-                    options={[
-                      { value: 'http_json', label: 'MCP over HTTP（JSON）' },
-                      { value: 'http_sse', label: 'MCP over HTTP + SSE' },
-                      { value: 'websocket', label: 'MCP over WebSocket' },
-                      { value: 'stdio_sidecar', label: 'stdio 边车（HTTP 转发）' },
-                    ]}
-                  />
-                </Field>
-                <Field label="传输方式" theme={theme}>
-                  <ThemedSelect
-                    isDark={isDark}
-                    value={modeToTransport(form.mcpRegisterMode)}
-                    onChange={(value) => {
-                      const v = value as 'http' | 'websocket' | 'stdio';
-                      setForm((p) => ({
-                        ...p,
-                        mcpTransport: v,
-                        mcpRegisterMode: registerModeFromTransport(v, p.mcpRegisterMode),
-                      }));
-                    }}
-                    options={[
-                      { value: 'http', label: 'HTTP / SSE' },
-                      { value: 'websocket', label: 'WebSocket' },
-                      { value: 'stdio', label: 'stdio 边车' },
-                    ]}
-                  />
-                </Field>
-                <Field label="服务地址 *" full theme={theme} error={mcpEndpointMerged} fieldId={rrFieldId('endpoint')}>
-                  <input
-                    id={rrFieldId('endpoint')}
-                    value={form.endpoint}
-                    onChange={(e) => setForm((p) => ({ ...p, endpoint: e.target.value }))}
-                    className={inputClass(isDark, !!mcpEndpointMerged)}
-                    aria-invalid={!!mcpEndpointMerged}
-                    aria-describedby={mcpEndpointMerged ? `${rrFieldId('endpoint')}-err` : undefined}
-                    placeholder={
-                      modeToTransport(form.mcpRegisterMode) === 'websocket'
-                        ? 'ws://localhost:5001/mcp'
-                        : modeToTransport(form.mcpRegisterMode) === 'stdio'
-                          ? 'https://127.0.0.1:9847/mcp 或内网边车地址'
-                          : 'http://localhost:5000/mcp'
-                    }
-                  />
-                </Field>
-                <Field label="协议" theme={theme} error={fieldErrors.protocol} fieldId={rrFieldId('protocol')}>
-                  <input
-                    id={rrFieldId('protocol')}
-                    value="mcp"
-                    readOnly
-                    className={inputClass(isDark, !!fieldErrors.protocol)}
-                    aria-invalid={!!fieldErrors.protocol}
-                    aria-describedby={fieldErrors.protocol ? `${rrFieldId('protocol')}-err` : undefined}
-                  />
-                </Field>
-                <Field label="鉴权方式" theme={theme}>
-                  <ThemedSelect
-                    isDark={isDark}
-                    value={form.authType}
-                    onChange={(value) => setForm((p) => ({ ...p, authType: value }))}
-                    options={[
-                      { value: 'none', label: '无鉴权' },
-                      { value: 'api_key', label: 'API Key' },
-                      { value: 'bearer', label: 'Bearer Token' },
-                      { value: 'basic', label: 'HTTP Basic' },
-                      { value: 'oauth2_client', label: 'OAuth2 Client Credentials' },
-                    ]}
-                  />
-                </Field>
-                <Field label="鉴权 JSON 配置" full theme={theme} error={mcpAuthJsonMerged} fieldId={rrFieldId('authConfigJson')}>
-                  <p className={`mb-2 text-xs ${textMuted(theme)}`}>详见到接入指南；可点击下方模板快速填入。</p>
-                  <div className="mb-2 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      className={btnSecondary(theme)}
-                      onClick={() =>
-                        setForm((p) => ({
-                          ...p,
-                          authConfigJson:
-                            modeToTransport(p.mcpRegisterMode) === 'websocket'
-                              ? '{\n  "transport": "websocket",\n  "method": "tools/call"\n}'
-                              : modeToTransport(p.mcpRegisterMode) === 'stdio'
-                                ? '{\n  "method": "tools/call"\n}'
-                                : '{\n  "method": "tools/call"\n}'
-                        }))
-                      }
-                    >
-                      一键填入推荐示例
-                    </button>
-                    <button
-                      type="button"
-                      className={btnSecondary(theme)}
-                      onClick={() =>
-                        setForm((p) => ({
-                          ...p,
-                          authType: 'oauth2_client',
-                          authConfigJson: `{\n  "method": "tools/call",\n  "tokenUrl": "https://id.example.com/oauth/token",\n  "clientId": "your-client-id",\n  "clientSecret": "your-secret",\n  "scope": "mcp.read"\n}`,
-                        }))
-                      }
-                    >
-                      OAuth2 模板
-                    </button>
-                    <button
-                      type="button"
-                      className={btnSecondary(theme)}
-                      onClick={() =>
-                        setForm((p) => ({
-                          ...p,
-                          authType: 'basic',
-                          authConfigJson: `{\n  "method": "tools/call",\n  "username": "user",\n  "password": "pass"\n}`,
-                        }))
-                      }
-                    >
-                      Basic 模板
-                    </button>
-                    <button
-                      type="button"
-                      className={btnSecondary(theme)}
-                      onClick={() =>
-                        setForm((p) => ({
-                          ...p,
-                          authType: 'api_key',
-                          authConfigJson: `{\n  "method": "tools/call",\n  "headerName": "X-Api-Key",\n  "apiKey": "sk_xxx"\n}`,
-                        }))
-                      }
-                    >
-                      Api Key 模板
-                    </button>
+                </SectionCard>
+
+                <SectionCard
+                  theme={theme}
+                  isDark={isDark}
+                  title="手动配置"
+                  description="首屏只保留远程地址、transport 与鉴权方式。原始 authConfig JSON 放进高级配置。"
+                >
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <Field label="远程地址 *" full theme={theme} error={mcpEndpointMerged} fieldId={rrFieldId('endpoint')}>
+                      <input
+                        id={rrFieldId('endpoint')}
+                        value={form.endpoint}
+                        onChange={(e) => setForm((p) => ({ ...p, endpoint: e.target.value }))}
+                        className={inputClass(isDark, !!mcpEndpointMerged)}
+                        aria-invalid={!!mcpEndpointMerged}
+                        aria-describedby={mcpEndpointMerged ? `${rrFieldId('endpoint')}-err` : undefined}
+                        placeholder={form.mcpRegisterMode === 'websocket' ? 'wss://example.com/mcp' : 'https://example.com/mcp'}
+                      />
+                    </Field>
+                    <Field label="Transport *" theme={theme}>
+                      <ThemedSelect
+                        isDark={isDark}
+                        value={form.mcpRegisterMode}
+                        onChange={(value) => {
+                          const nextMode = value as McpRegisterMode;
+                          setForm((p) => ({
+                            ...p,
+                            mcpRegisterMode: nextMode,
+                            mcpTransport: modeToTransport(nextMode),
+                          }));
+                        }}
+                        options={[
+                          { value: 'http_json', label: 'HTTP JSON-RPC' },
+                          { value: 'http_sse', label: 'HTTP SSE' },
+                          { value: 'websocket', label: 'WebSocket' },
+                        ]}
+                      />
+                    </Field>
+                    <Field label="协议" theme={theme} error={fieldErrors.protocol} fieldId={rrFieldId('protocol')}>
+                      <input
+                        id={rrFieldId('protocol')}
+                        value="mcp"
+                        readOnly
+                        className={inputClass(isDark, !!fieldErrors.protocol)}
+                        aria-invalid={!!fieldErrors.protocol}
+                        aria-describedby={fieldErrors.protocol ? `${rrFieldId('protocol')}-err` : undefined}
+                      />
+                    </Field>
+                    <Field label="鉴权方式" theme={theme}>
+                      <ThemedSelect
+                        isDark={isDark}
+                        value={form.authType}
+                        onChange={(value) => setForm((p) => ({ ...p, authType: value }))}
+                        options={[
+                          { value: 'none', label: '无需鉴权' },
+                          { value: 'api_key', label: 'API Key' },
+                          { value: 'bearer', label: 'Bearer Token' },
+                          { value: 'basic', label: 'HTTP Basic' },
+                          { value: 'oauth2_client', label: 'OAuth2 Client Credentials' },
+                        ]}
+                      />
+                    </Field>
                   </div>
-                  <AutoHeightTextarea
-                    id={rrFieldId('authConfigJson')}
-                    value={form.authConfigJson}
-                    onChange={(e) => setForm((p) => ({ ...p, authConfigJson: e.target.value }))}
-                    minRows={5}
-                    maxRows={30}
-                    className={`${inputClass(isDark, !!mcpAuthJsonMerged)} font-mono text-xs resize-none`}
-                    aria-invalid={!!mcpAuthJsonMerged}
-                    aria-describedby={mcpAuthJsonMerged ? `${rrFieldId('authConfigJson')}-err` : undefined}
-                    placeholder={DEFAULT_MCP_AUTH_CONFIG_JSON}
-                  />
-                </Field>
-                <div className="md:col-span-2 flex flex-wrap items-center gap-2">
+
+                  {form.authType === 'api_key' ? (
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <Field label="Header 名称" theme={theme}>
+                        <input
+                          value={form.mcpApiKeyHeader}
+                          onChange={(e) => setForm((p) => ({ ...p, mcpApiKeyHeader: e.target.value }))}
+                          className={inputClass(isDark)}
+                          placeholder="X-Api-Key"
+                        />
+                      </Field>
+                      <Field label="API Key" theme={theme}>
+                        <input
+                          value={form.mcpApiKeyValue}
+                          onChange={(e) => setForm((p) => ({ ...p, mcpApiKeyValue: e.target.value }))}
+                          className={inputClass(isDark)}
+                          placeholder="sk-..."
+                        />
+                      </Field>
+                    </div>
+                  ) : null}
+
+                  {form.authType === 'bearer' ? (
+                    <Field label="Bearer Token" full theme={theme}>
+                      <input
+                        value={form.mcpBearerToken}
+                        onChange={(e) => setForm((p) => ({ ...p, mcpBearerToken: e.target.value }))}
+                        className={inputClass(isDark)}
+                        placeholder="eyJ..."
+                      />
+                    </Field>
+                  ) : null}
+
+                  {form.authType === 'basic' ? (
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <Field label="用户名" theme={theme}>
+                        <input
+                          value={form.mcpBasicUsername}
+                          onChange={(e) => setForm((p) => ({ ...p, mcpBasicUsername: e.target.value }))}
+                          className={inputClass(isDark)}
+                          placeholder="user"
+                        />
+                      </Field>
+                      <Field label="密码" theme={theme}>
+                        <input
+                          type="password"
+                          value={form.mcpBasicPassword}
+                          onChange={(e) => setForm((p) => ({ ...p, mcpBasicPassword: e.target.value }))}
+                          className={inputClass(isDark)}
+                          placeholder="password"
+                        />
+                      </Field>
+                    </div>
+                  ) : null}
+
+                  {form.authType === 'oauth2_client' ? (
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <Field label="Token URL" full theme={theme}>
+                        <input
+                          value={form.mcpOauthTokenUrl}
+                          onChange={(e) => setForm((p) => ({ ...p, mcpOauthTokenUrl: e.target.value }))}
+                          className={inputClass(isDark)}
+                          placeholder="https://id.example.com/oauth/token"
+                        />
+                      </Field>
+                      <Field label="Client ID" theme={theme}>
+                        <input
+                          value={form.mcpOauthClientId}
+                          onChange={(e) => setForm((p) => ({ ...p, mcpOauthClientId: e.target.value }))}
+                          className={inputClass(isDark)}
+                          placeholder="client-id"
+                        />
+                      </Field>
+                      <Field label="Client Secret" theme={theme}>
+                        <input
+                          type="password"
+                          value={form.mcpOauthClientSecret}
+                          onChange={(e) => setForm((p) => ({ ...p, mcpOauthClientSecret: e.target.value }))}
+                          className={inputClass(isDark)}
+                          placeholder="client-secret"
+                        />
+                      </Field>
+                      <Field label="Scope（选填）" theme={theme}>
+                        <input
+                          value={form.mcpOauthScope}
+                          onChange={(e) => setForm((p) => ({ ...p, mcpOauthScope: e.target.value }))}
+                          className={inputClass(isDark)}
+                          placeholder="mcp.read"
+                        />
+                      </Field>
+                    </div>
+                  ) : null}
+
+                  {form.authType === 'none' ? (
+                    <p className={`text-xs ${textMuted(theme)}`}>当前资源无需鉴权，平台将直接使用远程地址做握手与调用。</p>
+                  ) : null}
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      className={btnPrimary}
+                      disabled={mcpProbeLoading}
+                      onClick={() => void handleMcpConnectivityProbe()}
+                    >
+                      {mcpProbeLoading ? (
+                        <span className="flex items-center gap-2">
+                          <Loader2 className="animate-spin" size={16} /> 连通性检测中
+                        </span>
+                      ) : (
+                        '探测连通性'
+                      )}
+                    </button>
+                    <span className={`text-xs ${textMuted(theme)}`}>平台会代发一次 initialize / tools/list，不会托管你的 MCP 服务。</span>
+                  </div>
+                </SectionCard>
+
+                <SectionCard
+                  theme={theme}
+                  isDark={isDark}
+                  title="高级配置"
+                  description="仅当你需要补充额外 headers 或协议细节时再展开。"
+                >
                   <button
                     type="button"
-                    className={btnPrimary}
-                    disabled={mcpProbeLoading}
-                    onClick={() => void handleMcpConnectivityProbe()}
+                    className={`flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left text-xs font-medium ${
+                      isDark ? 'border-white/10 bg-white/[0.03] text-slate-200' : 'border-slate-200 bg-white text-slate-800'
+                    }`}
+                    onClick={() => setMcpAdvancedOpen((open) => !open)}
                   >
-                    {mcpProbeLoading ? (
-                      <span className="flex items-center gap-2">
-                        <Loader2 className="animate-spin" size={16} /> 探测中…
-                      </span>
-                    ) : (
-                      '探测连通性'
-                    )}
+                    <span>查看原始 authConfig JSON</span>
+                    <ChevronDown size={16} className={mcpAdvancedOpen ? 'rotate-180 transition-transform' : 'transition-transform'} />
                   </button>
-                  <span className={`text-xs ${textMuted(theme)}`}>
-                    由平台代发一次 JSON-RPC initialize，不创建资源、不托管您的 MCP。
-                  </span>
-                </div>
+                  {mcpAdvancedOpen ? (
+                    <Field label="原始 authConfig JSON" full theme={theme} error={mcpAuthJsonMerged} fieldId={rrFieldId('authConfigJson')}>
+                      <AutoHeightTextarea
+                        id={rrFieldId('authConfigJson')}
+                        value={form.mcpAdvancedJson}
+                        onChange={(e) => setForm((p) => ({ ...p, mcpAdvancedJson: e.target.value }))}
+                        minRows={6}
+                        maxRows={24}
+                        className={`${inputClass(isDark, !!mcpAuthJsonMerged)} font-mono text-xs resize-none`}
+                        aria-invalid={!!mcpAuthJsonMerged}
+                        aria-describedby={mcpAuthJsonMerged ? `${rrFieldId('authConfigJson')}-err` : undefined}
+                        placeholder={DEFAULT_MCP_AUTH_CONFIG_JSON}
+                      />
+                    </Field>
+                  ) : null}
+                </SectionCard>
               </>
             )}
-
             {resourceType === 'agent' && (
               <>
-                <Field label="粘贴配置导入" full theme={theme}>
-                  <p className={`mb-2 text-xs ${textMuted(theme)}`}>
-                    支持直接粘贴 URL 或 JSON（OpenAI / 百炼 / Anthropic / Gemini），系统会自动识别并回填 Agent 字段。
-                  </p>
+                <NoticeCard isDark={isDark} title="先注册成功，再补充绑定增强">
+                  <p>Agent 首屏只保留供应商预设、上游地址、对外 model alias 和凭证引用。</p>
+                  <p>运行模式、并发、Spec、采样温度等内部旋钮统一移到高级配置。</p>
+                </NoticeCard>
+
+                <SectionCard
+                  theme={theme}
+                  isDark={isDark}
+                  title="快速导入"
+                  description="支持粘贴 URL、JSON 或配置片段。系统会自动识别协议族与供应商预设，并回填最少字段。"
+                >
                   <AutoHeightTextarea
                     value={agentImportPaste}
                     onChange={(e) => setAgentImportPaste(e.target.value)}
                     minRows={4}
-                    maxRows={22}
+                    maxRows={18}
                     className={`${inputClass(isDark)} font-mono text-xs resize-none`}
-                    placeholder={
-                      '支持 URL 或 JSON，例如：https://api.openai.com/v1/chat/completions 或 { "provider": "bailian", "baseUrl": "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions", "appId": "app-xxx", "apiKeyRef": "vault:agent/chef" }'
-                    }
+                    placeholder={'支持 URL 或 JSON，例如：https://api.openai.com/v1/chat/completions 或 { "provider": "deepseek", "baseUrl": "https://api.deepseek.com/v1/chat/completions" }'}
                   />
-                  <div className="mt-2 flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <button type="button" className={btnSecondary(theme)} onClick={handleAgentConfigImport}>
-                      解析并填充 Agent
+                      解析并回填
                     </button>
                   </div>
-                </Field>
-                <Field label="智能体类型" theme={theme} error={fieldErrors.agentType}>
-                  <ThemedSelect
-                    isDark={isDark}
-                    value={form.agentType}
-                    onChange={(value) => setForm((p) => ({ ...p, agentType: value }))}
-                    options={AGENT_TYPE_OPTIONS}
-                  />
-                </Field>
-                <Field label="运行模式" theme={theme}>
-                  <ThemedSelect
-                    isDark={isDark}
-                    value={form.mode}
-                    onChange={(value) => setForm((p) => ({ ...p, mode: value }))}
-                    options={AGENT_MODE_OPTIONS}
-                  />
-                </Field>
-                <Field label="注册协议 *" theme={theme} error={fieldErrors.registrationProtocol}>
-                  <ThemedSelect
-                    isDark={isDark}
-                    value={form.registrationProtocol}
-                    onChange={(value) => setForm((p) => ({ ...p, registrationProtocol: value }))}
-                    options={AGENT_REG_PROTOCOL_OPTIONS}
-                  />
-                </Field>
-                <Field label="上游 Endpoint *" theme={theme} error={fieldErrors.upstreamEndpoint} fieldId={rrFieldId('upstreamEndpoint')}>
-                  <input
-                    id={rrFieldId('upstreamEndpoint')}
-                    value={form.upstreamEndpoint}
-                    onChange={(e) => setForm((p) => ({ ...p, upstreamEndpoint: e.target.value }))}
-                    className={inputClass(isDark, !!fieldErrors.upstreamEndpoint)}
-                    aria-invalid={!!fieldErrors.upstreamEndpoint}
-                    aria-describedby={fieldErrors.upstreamEndpoint ? `${rrFieldId('upstreamEndpoint')}-err` : undefined}
-                    placeholder="https://api.example.com/v1/chat/completions"
-                  />
-                </Field>
-                <Field label="对外 Model Alias / customized_model_id *" theme={theme} error={fieldErrors.modelAlias} fieldId={rrFieldId('modelAlias')}>
-                  <input
-                    id={rrFieldId('modelAlias')}
-                    value={form.modelAlias}
-                    onChange={(e) => setForm((p) => ({ ...p, modelAlias: e.target.value }))}
-                    className={inputClass(isDark, !!fieldErrors.modelAlias)}
-                    aria-invalid={!!fieldErrors.modelAlias}
-                    aria-describedby={fieldErrors.modelAlias ? `${rrFieldId('modelAlias')}-err` : undefined}
-                    placeholder="chef_agent_01"
-                  />
-                </Field>
-                <Field label="上游 Agent/App ID（选填）" theme={theme}>
-                  <input
-                    value={form.upstreamAgentId}
-                    onChange={(e) => setForm((p) => ({ ...p, upstreamAgentId: e.target.value }))}
-                    className={inputClass(isDark)}
-                    placeholder="app-xxxx"
-                  />
-                </Field>
-                <Field label="凭据引用（选填）" theme={theme} error={fieldErrors.credentialRef} fieldId={rrFieldId('credentialRef')}>
-                  <input
-                    id={rrFieldId('credentialRef')}
-                    value={form.credentialRef}
-                    onChange={(e) => setForm((p) => ({ ...p, credentialRef: e.target.value }))}
-                    className={inputClass(isDark, !!fieldErrors.credentialRef)}
-                    aria-invalid={!!fieldErrors.credentialRef}
-                    aria-describedby={fieldErrors.credentialRef ? `${rrFieldId('credentialRef')}-err` : undefined}
-                    placeholder="env:OPENAI_API_KEY / vault:agent/chef"
-                  />
-                </Field>
-                <Field label="转换档案（选填）" theme={theme}>
-                  <input
-                    value={form.transformProfile}
-                    onChange={(e) => setForm((p) => ({ ...p, transformProfile: e.target.value }))}
-                    className={inputClass(isDark)}
-                    placeholder="default"
-                  />
-                </Field>
-                <Field label="启用状态（调用开关）" theme={theme}>
-                  <label className="flex cursor-pointer items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={form.agentEnabled}
-                      onChange={(e) => setForm((p) => ({ ...p, agentEnabled: e.target.checked }))}
-                      className={lantuCheckboxPrimaryClass}
-                    />
-                    <span className={textMuted(theme)}>仅控制已发布后是否可被 /openai/v1 发现与调用；不影响是否上架市场</span>
-                  </label>
-                </Field>
-                {resourceId ? (
-                  <div
-                    className={`md:col-span-2 rounded-xl border px-3 py-3 text-xs ${
-                      isDark ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-100/90' : 'border-emerald-200 bg-emerald-50 text-emerald-900'
-                    }`}
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="font-medium">对外接入信息（OpenAI 兼容）</p>
-                      <div className="flex flex-wrap gap-2">
-                        <button type="button" className={btnSecondary(theme)} disabled={agentKeyLoading} onClick={() => void refreshAgentKeys()}>
-                          {agentKeyLoading ? '刷新中...' : '刷新 Key'}
-                        </button>
-                        <button type="button" className={btnSecondary(theme)} disabled={agentKeyLoading} onClick={() => void rotateAgentKey()}>
-                          轮换 nx-sk
-                        </button>
-                        <button type="button" className={btnSecondary(theme)} disabled={agentKeyLoading} onClick={() => void revokeAgentKey()}>
-                          吊销 Key
-                        </button>
-                      </div>
-                    </div>
+                </SectionCard>
 
-                    <div className="mt-2 grid gap-2 md:grid-cols-2">
-                      <div className={`rounded-lg border px-2 py-2 ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-emerald-200/60 bg-white/80'}`}>
-                        <div className={`mb-1 ${textMuted(theme)}`}>Base URL</div>
+                <SectionCard
+                  theme={theme}
+                  isDark={isDark}
+                  title="手动配置"
+                  description="底层按协议族收口，前端按供应商预设展开。首屏不再暴露 agentType / mode 等内部字段。"
+                >
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <Field label="供应商预设 *" theme={theme}>
+                      <ThemedSelect
+                        isDark={isDark}
+                        value={agentProviderPreset}
+                        onChange={(value) => {
+                          const nextPreset = value as AgentProviderPreset;
+                          const prevDefault = defaultEndpointForAgentProviderPreset(agentProviderPreset);
+                          const nextDefault = defaultEndpointForAgentProviderPreset(nextPreset);
+                          setAgentProviderPreset(nextPreset);
+                          setForm((p) => ({
+                            ...p,
+                            registrationProtocol: protocolForAgentProviderPreset(nextPreset),
+                            upstreamEndpoint: !p.upstreamEndpoint.trim() || p.upstreamEndpoint === prevDefault ? nextDefault : p.upstreamEndpoint,
+                          }));
+                        }}
+                        options={AGENT_PROVIDER_PRESET_OPTIONS.map((item) => ({ value: item.value, label: item.label }))}
+                      />
+                    </Field>
+                    <Field label="协议族" theme={theme}>
+                      <input value={form.registrationProtocol} readOnly className={inputClass(isDark)} />
+                    </Field>
+                    <Field label="上游地址 *" theme={theme} error={fieldErrors.upstreamEndpoint} fieldId={rrFieldId('upstreamEndpoint')}>
+                      <input
+                        id={rrFieldId('upstreamEndpoint')}
+                        value={form.upstreamEndpoint}
+                        onChange={(e) => setForm((p) => ({ ...p, upstreamEndpoint: e.target.value }))}
+                        className={inputClass(isDark, !!fieldErrors.upstreamEndpoint)}
+                        aria-invalid={!!fieldErrors.upstreamEndpoint}
+                        aria-describedby={fieldErrors.upstreamEndpoint ? `${rrFieldId('upstreamEndpoint')}-err` : undefined}
+                        placeholder={defaultEndpointForAgentProviderPreset(agentProviderPreset) || 'https://api.example.com/v1/chat/completions'}
+                      />
+                    </Field>
+                    <Field label="对外 Model Alias *" theme={theme} error={fieldErrors.modelAlias} fieldId={rrFieldId('modelAlias')}>
+                      <input
+                        id={rrFieldId('modelAlias')}
+                        value={form.modelAlias}
+                        onChange={(e) => setForm((p) => ({ ...p, modelAlias: e.target.value }))}
+                        className={inputClass(isDark, !!fieldErrors.modelAlias)}
+                        aria-invalid={!!fieldErrors.modelAlias}
+                        aria-describedby={fieldErrors.modelAlias ? `${rrFieldId('modelAlias')}-err` : undefined}
+                        placeholder="chef_agent_01"
+                      />
+                    </Field>
+                    <Field label="凭证引用（选填）" full theme={theme} error={fieldErrors.credentialRef} fieldId={rrFieldId('credentialRef')}>
+                      <input
+                        id={rrFieldId('credentialRef')}
+                        value={form.credentialRef}
+                        onChange={(e) => setForm((p) => ({ ...p, credentialRef: e.target.value }))}
+                        className={inputClass(isDark, !!fieldErrors.credentialRef)}
+                        aria-invalid={!!fieldErrors.credentialRef}
+                        aria-describedby={fieldErrors.credentialRef ? `${rrFieldId('credentialRef')}-err` : undefined}
+                        placeholder="env:OPENAI_API_KEY / vault:agent/chef"
+                      />
+                    </Field>
+                  </div>
+                  <p className={`text-xs ${textMuted(theme)}`}>
+                    当前预设：{agentPresetMeta?.label ?? agentProviderPreset}。{agentPresetMeta?.hint ?? '系统会按供应商预设自动推断最合适的协议族。'}
+                  </p>
+                </SectionCard>
+
+                {resourceId ? (
+                  <SectionCard
+                    theme={theme}
+                    isDark={isDark}
+                    title="对外接入与凭证"
+                    description="注册成功后，这里会成为后续绑定与调试的锚点。"
+                  >
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <div className={`rounded-xl border px-3 py-3 ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200 bg-white'}`}>
+                        <div className={`mb-1 text-xs ${textMuted(theme)}`}>统一网关 Base URL</div>
                         <div className="flex items-center gap-2">
-                          <code className="flex-1 break-all">{openAiBaseUrl}</code>
+                          <code className="min-w-0 flex-1 break-all text-xs">{openAiBaseUrl}</code>
                           <button type="button" className={btnSecondary(theme)} onClick={() => void copyText(openAiBaseUrl, 'Base URL 已复制')}>
                             <Copy size={14} />
                           </button>
                         </div>
                       </div>
-                      <div className={`rounded-lg border px-2 py-2 ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-emerald-200/60 bg-white/80'}`}>
-                          <div className={`mb-1 ${textMuted(theme)}`}>Model Alias / customized_model_id</div>
+                      <div className={`rounded-xl border px-3 py-3 ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200 bg-white'}`}>
+                        <div className={`mb-1 text-xs ${textMuted(theme)}`}>Model Alias</div>
                         <div className="flex items-center gap-2">
-                          <code className="flex-1 break-all">{form.modelAlias || '（请先填写）'}</code>
-                          <button
-                            type="button"
-                            className={btnSecondary(theme)}
-                            onClick={() => void copyText(form.modelAlias || '', 'Model Alias 已复制')}
-                            disabled={!form.modelAlias}
-                          >
+                          <code className="min-w-0 flex-1 break-all text-xs">{form.modelAlias || '请先填写'}</code>
+                          <button type="button" className={btnSecondary(theme)} onClick={() => void copyText(form.modelAlias || '', 'Model Alias 已复制')} disabled={!form.modelAlias}>
                             <Copy size={14} />
                           </button>
                         </div>
                       </div>
                     </div>
-
+                    <div className="flex flex-wrap gap-2">
+                      <button type="button" className={btnSecondary(theme)} disabled={agentKeyLoading} onClick={() => void refreshAgentKeys()}>
+                        {agentKeyLoading ? '刷新中...' : '刷新 Key'}
+                      </button>
+                      <button type="button" className={btnSecondary(theme)} disabled={agentKeyLoading} onClick={() => void rotateAgentKey()}>
+                        轮换 nx-sk
+                      </button>
+                      <button type="button" className={btnSecondary(theme)} disabled={agentKeyLoading} onClick={() => void revokeAgentKey()}>
+                        吊销 Key
+                      </button>
+                    </div>
                     {latestAgentSecret ? (
-                      <div className={`mt-2 rounded-lg border px-2 py-2 ${isDark ? 'border-amber-400/30 bg-amber-500/10' : 'border-amber-300 bg-amber-100/70'}`}>
-                        <div className="mb-1 font-medium">新 nx-sk（仅本次展示）</div>
+                      <div className={`rounded-xl border px-3 py-3 ${isDark ? 'border-emerald-500/30 bg-emerald-500/10' : 'border-emerald-200 bg-emerald-50'}`}>
+                        <div className={`mb-1 text-xs ${textMuted(theme)}`}>本次新生成的明文 Key</div>
                         <div className="flex items-center gap-2">
-                          <code className="flex-1 break-all">{latestAgentSecret}</code>
+                          <code className="min-w-0 flex-1 break-all text-xs">{latestAgentSecret}</code>
                           <button type="button" className={btnSecondary(theme)} onClick={() => void copyText(latestAgentSecret, 'nx-sk 已复制')}>
                             <Copy size={14} />
                           </button>
                         </div>
                       </div>
                     ) : null}
-
-                    <div className="mt-2">
-                      <div className={`mb-1 ${textMuted(theme)}`}>当前 Key 列表</div>
+                    <div>
+                      <div className={`mb-1 text-xs ${textMuted(theme)}`}>当前 Key 列表</div>
                       {agentKeys.length === 0 ? (
-                        <p className={textMuted(theme)}>暂无可用 Key，点击「轮换 nx-sk」即可生成。</p>
+                        <p className={`text-xs ${textMuted(theme)}`}>当前还没有可用 Key，点“轮换 nx-sk”即可生成。</p>
                       ) : (
                         <div className="space-y-1">
-                          {agentKeys.map((k) => (
-                            <div key={k.id} className={`rounded-lg border px-2 py-1 ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-emerald-200/60 bg-white/80'}`}>
-                              <span className="font-mono">{k.maskedKey || `#${k.id}`}</span>
-                              <span className={`ml-2 ${textMuted(theme)}`}>状态：{k.status || 'unknown'}</span>
+                          {agentKeys.map((keyRow) => (
+                            <div key={keyRow.id} className={`rounded-xl border px-3 py-2 text-xs ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200 bg-white'}`}>
+                              <span className="font-mono">{keyRow.maskedKey || `#${keyRow.id}`}</span>
+                              <span className={`ml-2 ${textMuted(theme)}`}>状态：{keyRow.status || 'unknown'}</span>
                             </div>
                           ))}
                         </div>
                       )}
                     </div>
-                  </div>
+                  </SectionCard>
                 ) : null}
-                <Field label="附加 Spec JSON（必填，可填 {}）" full theme={theme} error={fieldErrors.specJson} fieldId={rrFieldId('specJson')}>
-                  <p className={`mb-2 text-xs ${textMuted(theme)}`}>
-                    后端要求 agent spec 不能为 null（可传空对象）；最小可用值为 <code className="font-mono">{'{}'}</code>。
-                  </p>
-                  <div className="mb-2 flex flex-wrap gap-2">
-                    <button type="button" className={btnSecondary(theme)} onClick={() => setForm((p) => ({ ...p, specJson: '{}' }))}>
-                      置为 {}
-                    </button>
-                  </div>
-                  <AutoHeightTextarea
-                    id={rrFieldId('specJson')}
-                    value={form.specJson}
-                    onChange={(e) => setForm((p) => ({ ...p, specJson: e.target.value }))}
-                    minRows={4}
-                    maxRows={28}
-                    className={`${inputClass(isDark, !!fieldErrors.specJson)} font-mono text-xs resize-none`}
-                    aria-invalid={!!fieldErrors.specJson}
-                    aria-describedby={fieldErrors.specJson ? `${rrFieldId('specJson')}-err` : undefined}
-                    placeholder='{"timeout":30}'
-                  />
-                </Field>
-                <Field label="最大并发" theme={theme} error={fieldErrors.maxConcurrency} fieldId={rrFieldId('maxConcurrency')}>
-                  <div id={rrFieldId('maxConcurrency')}>
-                    <PresetOrCustomNumberField
-                      theme={theme}
-                      value={form.maxConcurrency}
-                      onChange={(n) => setForm((p) => ({ ...p, maxConcurrency: n }))}
-                      presets={RESOURCE_MAX_CONCURRENCY.presets}
-                      customMin={RESOURCE_MAX_CONCURRENCY.customMin}
-                      customMax={RESOURCE_MAX_CONCURRENCY.customMax}
-                      customSeed={RESOURCE_MAX_CONCURRENCY.customSeed}
-                      inputClassName={inputClass(isDark, !!fieldErrors.maxConcurrency)}
-                      ariaLabel="Agent 最大并发"
-                    />
-                  </div>
-                </Field>
-                <Field label="系统提示词（选填）" full theme={theme}>
-                  <AutoHeightTextarea
-                    value={form.systemPrompt}
-                    onChange={(e) => setForm((p) => ({ ...p, systemPrompt: e.target.value }))}
-                    minRows={3}
-                    maxRows={20}
-                    className={`${inputClass(isDark)} resize-none`}
-                    placeholder="角色与回答约束（选填）"
-                  />
-                </Field>
-                <Field
-                  label="绑定的 MCP（选填）"
-                  theme={theme}
-                  error={fieldErrors.relatedMcpResourceIds}
-                  fieldId={rrFieldId('relatedMcpResourceIds')}
-                >
-                  <p className={`mb-1 text-xs ${textMuted(theme)}`}>
-                    agent_depends_mcp：仅可选择您名下「已发布 / 测试中」的 MCP 资源。更新时若集合与加载时一致（顺序无关）则不提交该字段。调用方仅 invoke 本 Agent 时，网关可将绑定 MCP 的工具聚合写入上游请求体{' '}
-                    <span className="font-mono">_lantu.bindingExpansion</span>（须 Key 对各 MCP 具备 invoke）。
-                  </p>
-                  <OrderedRelatedResourcePicker
+
+                {resourceId ? (
+                  <SectionCard
                     theme={theme}
                     isDark={isDark}
-                    fieldId={rrFieldId('relatedMcpResourceIds')}
-                    value={form.relatedMcpResourceIds}
-                    onChangeValue={(next) => setForm((p) => ({ ...p, relatedMcpResourceIds: next }))}
-                    poolItems={mcpBindPickPool}
-                    loading={relationPicklistLoading}
-                    loadError={relationPicklistError}
-                    errorStyle={!!fieldErrors.relatedMcpResourceIds}
-                    aria-describedby={
-                      fieldErrors.relatedMcpResourceIds ? `${rrFieldId('relatedMcpResourceIds')}-err` : undefined
-                    }
-                    orphanHint="不在当前可选列表；可移除或保留"
-                  />
-                </Field>
-                <div className="md:col-span-2">
+                    title="后置增强：绑定 MCP"
+                    description="资源先注册成功，再补充绑定关系。这里只展示你名下已发布/测试中的 MCP。"
+                  >
+                    <OrderedRelatedResourcePicker
+                      theme={theme}
+                      isDark={isDark}
+                      fieldId={rrFieldId('relatedMcpResourceIds')}
+                      value={form.relatedMcpResourceIds}
+                      onChangeValue={(next) => setForm((p) => ({ ...p, relatedMcpResourceIds: next }))}
+                      poolItems={mcpBindPickPool}
+                      loading={relationPicklistLoading}
+                      loadError={relationPicklistError}
+                      errorStyle={!!fieldErrors.relatedMcpResourceIds}
+                      aria-describedby={fieldErrors.relatedMcpResourceIds ? `${rrFieldId('relatedMcpResourceIds')}-err` : undefined}
+                      orphanHint="不在当前可选列表；可移除或保留"
+                    />
+                  </SectionCard>
+                ) : (
+                  <NoticeCard isDark={isDark} title="MCP 绑定在注册成功后开启">
+                    <p>先保存 Agent。成功后页面会停留在编辑态，你可以继续补充绑定关系。</p>
+                  </NoticeCard>
+                )}
+
+                <SectionCard
+                  theme={theme}
+                  isDark={isDark}
+                  title="高级配置"
+                  description="仅当你需要调运行参数或协议细节时再展开。普通用户首屏不需要理解这些字段。"
+                >
                   <button
                     type="button"
                     className={`flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left text-xs font-medium ${
-                      isDark ? 'border-white/10 bg-white/[0.03] text-slate-200' : 'border-slate-200 bg-slate-50 text-slate-800'
+                      isDark ? 'border-white/10 bg-white/[0.03] text-slate-200' : 'border-slate-200 bg-white text-slate-800'
                     }`}
-                    onClick={() => setAgentAdvancedOpen((o) => !o)}
+                    onClick={() => setAgentAdvancedOpen((open) => !open)}
                   >
-                    <span>高级：目录外隐藏、最大步数与采样温度（与后端一致）</span>
+                    <span>查看运行参数与协议细节</span>
                     <ChevronDown size={16} className={agentAdvancedOpen ? 'rotate-180 transition-transform' : 'transition-transform'} />
                   </button>
                   {agentAdvancedOpen ? (
-                    <div className="mt-2 space-y-3 md:grid md:grid-cols-2 md:gap-3 md:space-y-0">
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <Field label="上游 Agent / App ID（选填）" theme={theme}>
+                        <input
+                          value={form.upstreamAgentId}
+                          onChange={(e) => setForm((p) => ({ ...p, upstreamAgentId: e.target.value }))}
+                          className={inputClass(isDark)}
+                          placeholder="app-xxxx"
+                        />
+                      </Field>
+                      <Field label="Transform Profile（选填）" theme={theme}>
+                        <input
+                          value={form.transformProfile}
+                          onChange={(e) => setForm((p) => ({ ...p, transformProfile: e.target.value }))}
+                          className={inputClass(isDark)}
+                          placeholder="default"
+                        />
+                      </Field>
+                      <Field label="最大并发" theme={theme} error={fieldErrors.maxConcurrency} fieldId={rrFieldId('maxConcurrency')}>
+                        <div id={rrFieldId('maxConcurrency')}>
+                          <PresetOrCustomNumberField
+                            theme={theme}
+                            value={form.maxConcurrency}
+                            onChange={(n) => setForm((p) => ({ ...p, maxConcurrency: n }))}
+                            presets={RESOURCE_MAX_CONCURRENCY.presets}
+                            customMin={RESOURCE_MAX_CONCURRENCY.customMin}
+                            customMax={RESOURCE_MAX_CONCURRENCY.customMax}
+                            customSeed={RESOURCE_MAX_CONCURRENCY.customSeed}
+                            inputClassName={inputClass(isDark, !!fieldErrors.maxConcurrency)}
+                            ariaLabel="Agent 最大并发"
+                          />
+                        </div>
+                      </Field>
+                      <Field label="调用开关" theme={theme}>
+                        <label className="flex cursor-pointer items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={form.agentEnabled}
+                            onChange={(e) => setForm((p) => ({ ...p, agentEnabled: e.target.checked }))}
+                            className={lantuCheckboxPrimaryClass}
+                          />
+                          <span className={textMuted(theme)}>控制统一网关是否允许继续发现与调用</span>
+                        </label>
+                      </Field>
                       <Field label="目录外隐藏" theme={theme}>
                         <label className="flex cursor-pointer items-center gap-2 text-sm">
                           <input
@@ -1984,7 +2191,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                             onChange={(e) => setForm((p) => ({ ...p, agentHidden: e.target.checked }))}
                             className={lantuCheckboxPrimaryClass}
                           />
-                          <span className={textMuted(theme)}>与后端 hidden 一致</span>
+                          <span className={textMuted(theme)}>仅影响市场可见性，不影响资源本身的注册状态</span>
                         </label>
                       </Field>
                       <Field label="最大步数（选填）" theme={theme} error={fieldErrors.agentMaxSteps} fieldId={rrFieldId('agentMaxSteps')}>
@@ -1995,7 +2202,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                           className={inputClass(isDark, !!fieldErrors.agentMaxSteps)}
                           aria-invalid={!!fieldErrors.agentMaxSteps}
                           aria-describedby={fieldErrors.agentMaxSteps ? `${rrFieldId('agentMaxSteps')}-err` : undefined}
-                          placeholder="正整数，留空表示不限制"
+                          placeholder="正整数"
                           inputMode="numeric"
                         />
                       </Field>
@@ -2011,102 +2218,244 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                           inputMode="decimal"
                         />
                       </Field>
+                      <Field label="系统提示词（选填）" full theme={theme}>
+                        <AutoHeightTextarea
+                          value={form.systemPrompt}
+                          onChange={(e) => setForm((p) => ({ ...p, systemPrompt: e.target.value }))}
+                          minRows={3}
+                          maxRows={12}
+                          className={`${inputClass(isDark)} resize-none`}
+                          placeholder="角色说明、回答约束等"
+                        />
+                      </Field>
+                      <Field label="Spec JSON" full theme={theme} error={fieldErrors.specJson} fieldId={rrFieldId('specJson')}>
+                        <AutoHeightTextarea
+                          id={rrFieldId('specJson')}
+                          value={form.specJson}
+                          onChange={(e) => setForm((p) => ({ ...p, specJson: e.target.value }))}
+                          minRows={4}
+                          maxRows={24}
+                          className={`${inputClass(isDark, !!fieldErrors.specJson)} font-mono text-xs resize-none`}
+                          aria-invalid={!!fieldErrors.specJson}
+                          aria-describedby={fieldErrors.specJson ? `${rrFieldId('specJson')}-err` : undefined}
+                          placeholder={DEFAULT_AGENT_SPEC_JSON}
+                        />
+                      </Field>
                     </div>
                   ) : null}
-                </div>
+                </SectionCard>
               </>
             )}
-
             {resourceType === 'skill' && (
               <>
-                <div className="md:col-span-2 space-y-3 rounded-xl border p-4 text-sm border-violet-500/25 bg-violet-500/[0.04]">
-                  <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
-                    技能为 <span className={textPrimary(theme)}>Context</span> 规范文档：通过目录与 resolve 拉取正文与绑定 MCP；不可通过{' '}
-                    <span className="font-mono">POST /invoke</span> 执行。类型固定为{' '}
-                    <code className="rounded bg-black/5 px-1 dark:bg-white/10">context_v1</code>。需要远程工具时请注册 MCP 并在下方可选绑定。
-                  </p>
-                    <Field label="规范 Markdown（context）*" full theme={theme} error={fieldErrors.contextPrompt} fieldId={rrFieldId('contextPrompt')}>
-                      <AutoHeightTextarea
-                        id={rrFieldId('contextPrompt')}
-                        value={form.contextPrompt}
-                        onChange={(e) => setForm((p) => ({ ...p, contextPrompt: e.target.value }))}
-                        minRows={4}
-                        maxRows={24}
-                        className={`${inputClass(isDark, !!fieldErrors.contextPrompt)} resize-none`}
-                        aria-invalid={!!fieldErrors.contextPrompt}
-                        aria-describedby={
-                          fieldErrors.contextPrompt ? `${rrFieldId('contextPrompt')}-err` : undefined
-                        }
-                        placeholder="角色、输出约束、调用约定等（Markdown）"
-                      />
-                    </Field>
-                    <Field label="规格 JSON（选填）" full theme={theme} error={fieldErrors.specJson} fieldId={rrFieldId('specJson')}>
-                      <div className="mb-2 flex flex-wrap gap-2">
-                        <button type="button" className={btnSecondary(theme)} onClick={() => setForm((p) => ({ ...p, specJson: DEFAULT_SKILL_SPEC_JSON }))}>
-                          置为 {'{}'}
-                        </button>
-                      </div>
-                      <AutoHeightTextarea
-                        id={rrFieldId('specJson')}
-                        value={form.specJson}
-                        onChange={(e) => setForm((p) => ({ ...p, specJson: e.target.value }))}
-                        minRows={3}
-                        maxRows={28}
-                        className={`${inputClass(isDark, !!fieldErrors.specJson)} font-mono text-xs resize-none`}
-                        aria-invalid={!!fieldErrors.specJson}
-                        aria-describedby={fieldErrors.specJson ? `${rrFieldId('specJson')}-err` : undefined}
-                      />
-                    </Field>
-                    <Field label="参数 Schema JSON *" full theme={theme} error={fieldErrors.paramsSchemaJson} fieldId={rrFieldId('paramsSchemaJson')}>
-                      <div className="mb-2 flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          className={btnSecondary(theme)}
-                          onClick={() => setForm((p) => ({ ...p, paramsSchemaJson: DEFAULT_SKILL_PARAMS_SCHEMA_JSON }))}
-                        >
-                          示例模板
-                        </button>
-                      </div>
-                      <AutoHeightTextarea
-                        id={rrFieldId('paramsSchemaJson')}
-                        value={form.paramsSchemaJson}
-                        onChange={(e) => setForm((p) => ({ ...p, paramsSchemaJson: e.target.value }))}
-                        minRows={4}
-                        maxRows={30}
-                        className={`${inputClass(isDark, !!fieldErrors.paramsSchemaJson)} font-mono text-xs resize-none`}
-                        aria-invalid={!!fieldErrors.paramsSchemaJson}
-                        aria-describedby={fieldErrors.paramsSchemaJson ? `${rrFieldId('paramsSchemaJson')}-err` : undefined}
-                      />
-                    </Field>
-                  </div>
-                <Field
-                  label="绑定的 MCP（选填）"
+                <NoticeCard isDark={isDark} title="Skill 固定为 Context 能力">
+                  <p>Skill 对外通过目录 resolve 消费，不走普通 invoke 注册心智。</p>
+                  <p>首屏只保留正文和结构化参数编辑器；绑定 MCP 是注册成功后的增强步骤。</p>
+                </NoticeCard>
+
+                <SectionCard
                   theme={theme}
-                  error={fieldErrors.relatedMcpResourceIds}
-                  fieldId={rrFieldId('relatedMcpResourceIds')}
+                  isDark={isDark}
+                  title="上下文正文"
+                  description="这里填写 Context Skill 的规范 Markdown、角色说明和调用约束。"
                 >
-                  <p className={`mb-1 text-xs ${textMuted(theme)}`}>
-                    skill_depends_mcp：仅可选择您名下「已发布 / 测试中」的 MCP。更新草稿时若集合与加载时一致（顺序无关）则不提交该字段。resolve 时会在返回的规范中列出绑定 MCP。
-                  </p>
-                  <OrderedRelatedResourcePicker
+                  <Field label="规范 Markdown / 上下文正文 *" full theme={theme} error={fieldErrors.contextPrompt} fieldId={rrFieldId('contextPrompt')}>
+                    <AutoHeightTextarea
+                      id={rrFieldId('contextPrompt')}
+                      value={form.contextPrompt}
+                      onChange={(e) => setForm((p) => ({ ...p, contextPrompt: e.target.value }))}
+                      minRows={8}
+                      maxRows={28}
+                      className={`${inputClass(isDark, !!fieldErrors.contextPrompt)} resize-none`}
+                      aria-invalid={!!fieldErrors.contextPrompt}
+                      aria-describedby={fieldErrors.contextPrompt ? `${rrFieldId('contextPrompt')}-err` : undefined}
+                      placeholder={'# 角色\n你是一名...\n\n# 输出约束\n...'}
+                    />
+                  </Field>
+                </SectionCard>
+
+                <SectionCard
+                  theme={theme}
+                  isDark={isDark}
+                  title="结构化参数编辑器"
+                  description="用字段列表生成 parametersSchema。普通注册流程不再要求你直接手写 JSON。"
+                >
+                  {skillParamFields.length === 0 ? (
+                    <div className={`rounded-xl border border-dashed px-4 py-4 text-sm ${isDark ? 'border-white/10 text-slate-300' : 'border-slate-200 text-slate-600'}`}>
+                      当前还没有参数字段。你可以直接注册一个“纯正文” Skill，也可以先添加字段描述输入要求。
+                    </div>
+                  ) : null}
+                  <div className="space-y-3">
+                    {skillParamFields.map((field, index) => (
+                      <div key={field.id} className={`rounded-xl border p-3 ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200 bg-white'}`}>
+                        <div className="mb-2 flex items-center justify-between gap-2">
+                          <div className={`text-sm font-medium ${textPrimary(theme)}`}>参数 {index + 1}</div>
+                          <button type="button" className={btnSecondary(theme)} onClick={() => removeSkillParam(field.id)}>
+                            删除字段
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+                          <Field label="参数 key *" theme={theme}>
+                            <input
+                              value={field.key}
+                              onChange={(e) => updateSkillParam(field.id, { key: e.target.value })}
+                              className={inputClass(isDark)}
+                              placeholder="city"
+                            />
+                          </Field>
+                          <Field label="显示名称" theme={theme}>
+                            <input
+                              value={field.label}
+                              onChange={(e) => updateSkillParam(field.id, { label: e.target.value })}
+                              className={inputClass(isDark)}
+                              placeholder="城市"
+                            />
+                          </Field>
+                          <Field label="类型" theme={theme}>
+                            <ThemedSelect
+                              isDark={isDark}
+                              value={field.type}
+                              onChange={(value) => updateSkillParam(field.id, { type: value as StructuredParamField['type'] })}
+                              options={[
+                                { value: 'string', label: '字符串' },
+                                { value: 'integer', label: '整数' },
+                                { value: 'number', label: '数字' },
+                                { value: 'boolean', label: '布尔值' },
+                              ]}
+                            />
+                          </Field>
+                          <Field label="默认值" theme={theme}>
+                            {field.type === 'boolean' ? (
+                              <ThemedSelect
+                                isDark={isDark}
+                                value={String(Boolean(field.defaultValue))}
+                                onChange={(value) => updateSkillParam(field.id, { defaultValue: value === 'true' })}
+                                options={[
+                                  { value: 'false', label: 'false' },
+                                  { value: 'true', label: 'true' },
+                                ]}
+                              />
+                            ) : (
+                              <input
+                                value={String(field.defaultValue ?? '')}
+                                onChange={(e) =>
+                                  updateSkillParam(field.id, {
+                                    defaultValue:
+                                      field.type === 'integer' || field.type === 'number'
+                                        ? e.target.value === ''
+                                          ? ''
+                                          : Number(e.target.value)
+                                        : e.target.value,
+                                  })
+                                }
+                                className={inputClass(isDark)}
+                                placeholder={field.type === 'integer' || field.type === 'number' ? '10' : '默认值'}
+                              />
+                            )}
+                          </Field>
+                          <Field label="说明" full theme={theme}>
+                            <input
+                              value={field.description ?? ''}
+                              onChange={(e) => updateSkillParam(field.id, { description: e.target.value })}
+                              className={inputClass(isDark)}
+                              placeholder="告诉使用者这个参数是做什么的"
+                            />
+                          </Field>
+                        </div>
+                        <label className="mt-3 flex cursor-pointer items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={field.required}
+                            onChange={(e) => updateSkillParam(field.id, { required: e.target.checked })}
+                            className={lantuCheckboxPrimaryClass}
+                          />
+                          <span className={textMuted(theme)}>必填参数</span>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button type="button" className={btnSecondary(theme)} onClick={addSkillParam}>
+                      新增参数字段
+                    </button>
+                  </div>
+                </SectionCard>
+
+                {resourceId ? (
+                  <SectionCard
                     theme={theme}
                     isDark={isDark}
-                    fieldId={rrFieldId('relatedMcpResourceIds')}
-                    value={form.relatedMcpResourceIds}
-                    onChangeValue={(next) => setForm((p) => ({ ...p, relatedMcpResourceIds: next }))}
-                    poolItems={mcpBindPickPool}
-                    loading={relationPicklistLoading}
-                    loadError={relationPicklistError}
-                    errorStyle={!!fieldErrors.relatedMcpResourceIds}
-                    aria-describedby={
-                      fieldErrors.relatedMcpResourceIds ? `${rrFieldId('relatedMcpResourceIds')}-err` : undefined
-                    }
-                    orphanHint="不在当前可选列表；可移除或保留"
-                  />
-                </Field>
+                    title="后置增强：绑定 MCP"
+                    description="Skill 注册成功后，再补充绑定的 MCP 工具来源。"
+                  >
+                    <OrderedRelatedResourcePicker
+                      theme={theme}
+                      isDark={isDark}
+                      fieldId={rrFieldId('relatedMcpResourceIds')}
+                      value={form.relatedMcpResourceIds}
+                      onChangeValue={(next) => setForm((p) => ({ ...p, relatedMcpResourceIds: next }))}
+                      poolItems={mcpBindPickPool}
+                      loading={relationPicklistLoading}
+                      loadError={relationPicklistError}
+                      errorStyle={!!fieldErrors.relatedMcpResourceIds}
+                      aria-describedby={fieldErrors.relatedMcpResourceIds ? `${rrFieldId('relatedMcpResourceIds')}-err` : undefined}
+                      orphanHint="不在当前可选列表；可移除或保留"
+                    />
+                  </SectionCard>
+                ) : (
+                  <NoticeCard isDark={isDark} title="MCP 绑定在注册成功后开启">
+                    <p>先保存 Skill。进入编辑态后，再把相关 MCP 工具绑定进来。</p>
+                  </NoticeCard>
+                )}
+
+                <SectionCard
+                  theme={theme}
+                  isDark={isDark}
+                  title="高级配置"
+                  description="给专家用户保留原始 JSON 入口；普通用户不用先理解这层。"
+                >
+                  <button
+                    type="button"
+                    className={`flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left text-xs font-medium ${
+                      isDark ? 'border-white/10 bg-white/[0.03] text-slate-200' : 'border-slate-200 bg-white text-slate-800'
+                    }`}
+                    onClick={() => setSkillAdvancedOpen((open) => !open)}
+                  >
+                    <span>查看 Spec / Parameters Schema JSON</span>
+                    <ChevronDown size={16} className={skillAdvancedOpen ? 'rotate-180 transition-transform' : 'transition-transform'} />
+                  </button>
+                  {skillAdvancedOpen ? (
+                    <div className="grid grid-cols-1 gap-3">
+                      <Field label="Spec JSON" full theme={theme} error={fieldErrors.specJson} fieldId={rrFieldId('specJson')}>
+                        <AutoHeightTextarea
+                          id={rrFieldId('specJson')}
+                          value={form.specJson}
+                          onChange={(e) => setForm((p) => ({ ...p, specJson: e.target.value }))}
+                          minRows={4}
+                          maxRows={18}
+                          className={`${inputClass(isDark, !!fieldErrors.specJson)} font-mono text-xs resize-none`}
+                          aria-invalid={!!fieldErrors.specJson}
+                          aria-describedby={fieldErrors.specJson ? `${rrFieldId('specJson')}-err` : undefined}
+                          placeholder={DEFAULT_SKILL_SPEC_JSON}
+                        />
+                      </Field>
+                      <Field label="Parameters Schema JSON" full theme={theme} error={fieldErrors.paramsSchemaJson} fieldId={rrFieldId('paramsSchemaJson')}>
+                        <AutoHeightTextarea
+                          id={rrFieldId('paramsSchemaJson')}
+                          value={form.paramsSchemaJson}
+                          onChange={(e) => setForm((p) => ({ ...p, paramsSchemaJson: e.target.value }))}
+                          minRows={6}
+                          maxRows={24}
+                          className={`${inputClass(isDark, !!fieldErrors.paramsSchemaJson)} font-mono text-xs resize-none`}
+                          aria-invalid={!!fieldErrors.paramsSchemaJson}
+                          aria-describedby={fieldErrors.paramsSchemaJson ? `${rrFieldId('paramsSchemaJson')}-err` : undefined}
+                        />
+                      </Field>
+                    </div>
+                  ) : null}
+                </SectionCard>
               </>
             )}
-
             {resourceType === 'app' && (
               <>
                 <Field label="应用地址 *" theme={theme} error={fieldErrors.appUrl} fieldId={rrFieldId('appUrl')}>
@@ -2117,7 +2466,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     className={inputClass(isDark, !!fieldErrors.appUrl)}
                     aria-invalid={!!fieldErrors.appUrl}
                     aria-describedby={fieldErrors.appUrl ? `${rrFieldId('appUrl')}-err` : undefined}
-                    placeholder="https://…"
+                    placeholder="https://example.com/app"
                   />
                 </Field>
                 <Field label="打开方式" theme={theme} error={fieldErrors.embedType}>
@@ -2140,7 +2489,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     className={inputClass(isDark, !!fieldErrors.appIcon)}
                     aria-invalid={!!fieldErrors.appIcon}
                     aria-describedby={fieldErrors.appIcon ? `${rrFieldId('appIcon')}-err` : undefined}
-                    placeholder="https://…"
+                    placeholder="https://example.com/icon.png"
                   />
                 </Field>
                 <Field label="截图 URL（选填，每行一条）" full theme={theme}>
@@ -2160,7 +2509,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     className={inputClass(isDark, !!fieldErrors.relatedResourceIds)}
                     aria-invalid={!!fieldErrors.relatedResourceIds}
                     aria-describedby={fieldErrors.relatedResourceIds ? `${rrFieldId('relatedResourceIds')}-err` : undefined}
-                    placeholder="如 12, 34"
+                    placeholder="例如 12, 34"
                   />
                 </Field>
               </>
@@ -2199,7 +2548,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     />
                   </div>
                 </Field>
-                <Field label="体积（与后端一致的数值，见接入指南）" theme={theme} error={fieldErrors.fileSize} fieldId={rrFieldId('fileSize')}>
+                <Field label="体积（字节）" theme={theme} error={fieldErrors.fileSize} fieldId={rrFieldId('fileSize')}>
                   <div id={rrFieldId('fileSize')}>
                     <PresetOrCustomNumberField
                       theme={theme}
@@ -2210,7 +2559,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                       customMax={DATASET_FILE_SIZE_BYTES.customMax}
                       customSeed={DATASET_FILE_SIZE_BYTES.customSeed}
                       inputClassName={inputClass(isDark, !!fieldErrors.fileSize)}
-                      ariaLabel="数据集体积字节"
+                      ariaLabel="数据集体积字节数"
                     />
                   </div>
                 </Field>
@@ -2219,7 +2568,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     value={form.tags}
                     onChange={(e) => setForm((p) => ({ ...p, tags: e.target.value }))}
                     className={inputClass(isDark)}
-                    placeholder="如 教务, 公开数据"
+                    placeholder="例如 教务, 公开数据"
                   />
                 </Field>
               </>

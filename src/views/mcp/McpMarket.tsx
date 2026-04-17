@@ -22,7 +22,13 @@ import { resourceCatalogService } from '../../api/services/resource-catalog.serv
 import { userActivityService } from '../../api/services/user-activity.service';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
 import { BentoCard } from '../../components/common/BentoCard';
-import { MarketplaceListingCard, MarketplaceStatItem } from '../../components/market';
+import {
+  MarketplaceListingCard,
+  MarketplaceStatItem,
+  MarketDetailSectionCard,
+  MarketDetailSidebarCard,
+  MarketDetailStatusNotice,
+} from '../../components/market';
 import { ResourceReviewsSection } from '../../components/business/ResourceReviewsSection';
 import { ResourceMarketDetailShell } from '../../components/market';
 import { McpDetailInvokeTab } from '../../components/mcp/McpDetailInvokeTab';
@@ -400,6 +406,23 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                   <p className={`mt-1 text-xs ${isDark ? 'text-sky-100/90' : 'text-sky-950/90'}`}>{mcpSupplementHint}</p>
                 </div>
               ) : null}
+              <MarketDetailStatusNotice
+                theme={theme}
+                title={
+                  detailTab === 'service'
+                    ? '当前：服务详情'
+                    : detailTab === 'invoke'
+                      ? '当前：工具测试'
+                      : '当前：评分评论'
+                }
+                description={
+                  detailTab === 'service'
+                    ? '查看发布者整理的 MCP 服务说明、使用边界与能力摘要。'
+                    : detailTab === 'invoke'
+                      ? '优先使用快速试用，再按需展开协议与流式调试。'
+                      : '查看其他用户对当前 MCP 的真实评分反馈。'
+                }
+              />
               <p className={`text-xs ${textMuted(theme)}`}>
                 {detailTab === 'service'
                   ? '当前：服务详情'
@@ -408,8 +431,10 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                     : '当前：资源评论区'}
               </p>
               {detailTab === 'service' ? (
-                <div
-                  className={`rounded-2xl border p-4 ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-slate-50/60'}`}
+                <MarketDetailSectionCard
+                  theme={theme}
+                  title="服务详情"
+                  description="这里集中展示发布者整理的 MCP 服务说明、使用边界和能力摘要。"
                 >
                   {detail.serviceDetailMd?.trim() ? (
                     <MarkdownView value={detail.serviceDetailMd} className="text-sm" />
@@ -418,7 +443,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                       尚未填写服务详情。发布者可在「资源注册 / 编辑 MCP」中的「服务详情」补充 Markdown 说明（接口能力、鉴权、调用限制与示例等）。
                     </p>
                   )}
-                </div>
+                </MarketDetailSectionCard>
               ) : detailTab === 'invoke' ? (
                 <McpDetailInvokeTab
                   theme={theme}
@@ -431,7 +456,11 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                   invokeDisabledReason={mcpBlockReason}
                 />
               ) : detailTab === 'reviews' ? (
-                <div className={`rounded-2xl border p-4 ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-slate-50/60'}`}>
+                <MarketDetailSectionCard
+                  theme={theme}
+                  title="评分评论"
+                  description="查看其他用户对当前 MCP 的评分反馈，并继续沉淀真实使用体验。"
+                >
                   <h4 className={`mb-3 flex items-center gap-2 text-sm font-semibold ${textPrimary(theme)}`}>
                     <MessageSquare size={16} className="text-neutral-800" />
                     评分与评论
@@ -443,23 +472,31 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                     appearance="airy"
                     showMessage={showMessage}
                   />
-                </div>
+                </MarketDetailSectionCard>
               ) : null}
             </div>
           )}
           sidebarColumn={(
             <div className="space-y-4">
-              <div className={`rounded-2xl border p-4 ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200 bg-slate-50/70'}`}>
+              <MarketDetailSidebarCard
+                theme={theme}
+                title="资源摘要"
+                description="快速确认当前 MCP 的资源编码、调用目标和简介。"
+              >
                 <p className={`text-xs ${textMuted(theme)}`}>资源编码：{detail.resourceCode || detail.resourceId}</p>
                 <p className={`mt-2 text-xs ${textMuted(theme)}`}>
                   调用目标：mcp{' / '}
                   <span className="font-mono">{detail.resourceId}</span>
                 </p>
                 <p className={`mt-2 text-sm leading-relaxed ${textSecondary(theme)}`}>{detail.description || '暂无描述'}</p>
-              </div>
+              </MarketDetailSidebarCard>
               <BindingClosureSection theme={theme} currentResourceId={detail.resourceId} items={detail.bindingClosure} />
-              <div className={`rounded-xl border p-3 text-xs leading-relaxed ${isDark ? 'border-amber-500/25 bg-amber-500/[0.07] text-amber-100/90' : 'border-amber-200 bg-amber-50 text-amber-950/85'}`}>
-                <p className="font-semibold">统一网关 MCP 试用说明</p>
+              <MarketDetailSidebarCard
+                theme={theme}
+                title="统一网关 MCP 试用说明"
+                description="工具测试页提供快速试用，协议调试与流式细节仍在主内容区展开。"
+                className={isDark ? 'border-amber-500/25 bg-amber-500/[0.07]' : 'border-amber-200 bg-amber-50'}
+              >
                 <p className={`mt-1.5 ${isDark ? 'text-amber-100/75' : 'text-amber-950/70'}`}>
                   在「工具测试」中使用<strong className="font-semibold">快速试用</strong>可自动完成握手并拉取工具列表；需要手动 JSON-RPC、Trace 或流式时，展开主栏底部的
                   <strong className="font-semibold">协议与网关调试</strong>。
@@ -478,7 +515,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                   <FileText className="h-3.5 w-3.5 shrink-0" aria-hidden />
                   查看接入与 API 文档
                 </button>
-              </div>
+              </MarketDetailSidebarCard>
             </div>
           )}
         />

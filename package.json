@@ -11,6 +11,7 @@
     "preview": "vite preview --host",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
+    "check:mojibake": "node scripts/check-mojibake.mjs",
     "smoke:ui": "node scripts/smoke-ui.mjs",
     "docs:gen-console-routes": "node scripts/generate-console-route-tables.mjs"
   },

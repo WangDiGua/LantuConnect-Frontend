@@ -1,12 +1,20 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Bot, Loader2, Sparkles, Wand2, Wrench } from 'lucide-react';
+
 import { capabilityService } from '../../api/services/capability.service';
 import { usePersistedGatewayApiKey } from '../../hooks/usePersistedGatewayApiKey';
 import type { Theme } from '../../types';
 import type { CapabilityType } from '../../types/dto/capability';
 import { nativeInputClass } from '../../utils/formFieldClasses';
-import { AutoHeightTextarea } from '../common/AutoHeightTextarea';
 import { btnPrimary, btnSecondary, textMuted, textPrimary, textSecondary } from '../../utils/uiClasses';
+import { AutoHeightTextarea } from '../common/AutoHeightTextarea';
+import {
+  createCapabilityWorkbenchInitialStateFromPayloadText,
+  createCapabilityWorkbenchPayloadText,
+  createCapabilityWorkbenchToolState,
+  type CapabilityWorkbenchLoadingAction,
+  type CapabilityWorkbenchToolOption,
+} from './capabilityWorkbenchState';
 
 type Props = {
   theme: Theme;
@@ -38,19 +46,38 @@ export const CapabilityWorkbench: React.FC<Props> = ({
   defaultPayload,
 }) => {
   const isDark = theme === 'dark';
+  const defaultPayloadText = createCapabilityWorkbenchPayloadText(defaultPayload);
+  const initialState = createCapabilityWorkbenchInitialStateFromPayloadText(defaultPayloadText);
+
   const [apiKey, setApiKey] = usePersistedGatewayApiKey();
-  const [payloadText, setPayloadText] = useState(
-    JSON.stringify(defaultPayload ?? { input: 'hello' }, null, 2),
-  );
-  const [toolArgsText, setToolArgsText] = useState('{\n  "input": "hello"\n}');
-  const [selectedTool, setSelectedTool] = useState('');
-  const [resolveOutput, setResolveOutput] = useState('');
-  const [invokeOutput, setInvokeOutput] = useState('');
-  const [toolOutput, setToolOutput] = useState('');
-  const [warnings, setWarnings] = useState<string[]>([]);
-  const [tools, setTools] = useState<Array<{ name: string; description?: string }>>([]);
-  const [loadingAction, setLoadingAction] = useState<'resolve' | 'invoke' | 'tools' | 'tool-call' | null>(null);
-  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [payloadText, setPayloadText] = useState(initialState.payloadText);
+  const [toolArgsText, setToolArgsText] = useState(initialState.toolArgsText);
+  const [selectedTool, setSelectedTool] = useState(initialState.selectedTool);
+  const [resolveOutput, setResolveOutput] = useState(initialState.resolveOutput);
+  const [invokeOutput, setInvokeOutput] = useState(initialState.invokeOutput);
+  const [toolOutput, setToolOutput] = useState(initialState.toolOutput);
+  const [warnings, setWarnings] = useState<string[]>(initialState.warnings);
+  const [tools, setTools] = useState<CapabilityWorkbenchToolOption[]>(initialState.tools);
+  const [loadingAction, setLoadingAction] = useState<CapabilityWorkbenchLoadingAction>(initialState.loadingAction);
+  const [advancedOpen, setAdvancedOpen] = useState(initialState.advancedOpen);
+
+  const applyToolState = useCallback((nextState: ReturnType<typeof createCapabilityWorkbenchToolState>) => {
+    setTools(nextState.tools);
+    setWarnings(nextState.warnings);
+    setSelectedTool(nextState.selectedTool);
+  }, []);
+
+  useEffect(() => {
+    const nextState = createCapabilityWorkbenchInitialStateFromPayloadText(defaultPayloadText);
+    setPayloadText(nextState.payloadText);
+    setToolArgsText(nextState.toolArgsText);
+    setResolveOutput(nextState.resolveOutput);
+    setInvokeOutput(nextState.invokeOutput);
+    setToolOutput(nextState.toolOutput);
+    applyToolState(createCapabilityWorkbenchToolState([], []));
+    setLoadingAction(nextState.loadingAction);
+    setAdvancedOpen(nextState.advancedOpen);
+  }, [applyToolState, capabilityId, defaultPayloadText]);
 
   const toolSummary = useMemo(
     () =>
@@ -85,7 +112,7 @@ export const CapabilityWorkbench: React.FC<Props> = ({
       setResolveOutput(JSON.stringify(res, null, 2));
       if (hydratePayload && res.suggestedPayload) {
         setPayloadText(JSON.stringify(res.suggestedPayload, null, 2));
-        showMessage?.('已生成最小测试输入', 'success');
+        showMessage?.('已生成当前资源的最小测试输入', 'success');
       } else {
         showMessage?.('能力解析完成', 'success');
       }
@@ -126,6 +153,7 @@ export const CapabilityWorkbench: React.FC<Props> = ({
   const runListTools = async () => {
     setLoadingAction('tools');
     setToolOutput('');
+    applyToolState(createCapabilityWorkbenchToolState([], []));
     try {
       const res = await capabilityService.toolSession(
         capabilityId,
@@ -133,15 +161,12 @@ export const CapabilityWorkbench: React.FC<Props> = ({
         apiKey.trim() ? { headers: { 'X-Api-Key': apiKey.trim() } } : undefined,
       );
       const nextTools = (res.tools ?? []).map((tool) => ({ name: tool.name, description: tool.description }));
-      setTools(nextTools);
-      setWarnings(res.warnings ?? []);
-      if (nextTools[0]?.name) {
-        setSelectedTool((prev) => prev || nextTools[0]!.name);
-      }
+      applyToolState(createCapabilityWorkbenchToolState(nextTools, res.warnings ?? []));
       setToolOutput(JSON.stringify(res, null, 2));
       showMessage?.(nextTools.length ? '工具列表已加载' : '当前能力没有可用工具', 'success');
     } catch (error) {
       const message = error instanceof Error ? error.message : '工具列表加载失败';
+      applyToolState(createCapabilityWorkbenchToolState([], []));
       setToolOutput(message);
       showMessage?.(message, 'error');
     } finally {
@@ -171,11 +196,7 @@ export const CapabilityWorkbench: React.FC<Props> = ({
         },
         apiKey.trim() ? { headers: { 'X-Api-Key': apiKey.trim() } } : undefined,
       );
-      setToolOutput(
-        res.toolCallResponse?.body
-          ? res.toolCallResponse.body
-          : JSON.stringify(res, null, 2),
-      );
+      setToolOutput(res.toolCallResponse?.body ? res.toolCallResponse.body : JSON.stringify(res, null, 2));
       setWarnings(res.warnings ?? []);
       showMessage?.('工具调用完成', 'success');
     } catch (error) {
@@ -197,10 +218,10 @@ export const CapabilityWorkbench: React.FC<Props> = ({
         <div>
           <p className={`text-xs uppercase tracking-[0.22em] ${textMuted(theme)}`}>Capability V2</p>
           <h3 className={`mt-1 text-sm font-bold ${textPrimary(theme)}`}>
-            {capabilityName ? `${capabilityName} · 一键试用` : '统一试用台'}
+            {capabilityName ? `${capabilityName} · 一键试用台` : '统一试用台'}
           </h3>
           <p className={`mt-1 text-xs leading-relaxed ${textSecondary(theme)}`}>
-            默认隐藏协议细节，先解析能力，再生成最小输入，一键试用；需要时再展开高级调试。
+            先解析能力，再生成当前资源的最小测试输入；需要工具测试时再列出工具并调用，避免不同资源之间的状态串页。
           </p>
         </div>
         <div
@@ -258,7 +279,7 @@ export const CapabilityWorkbench: React.FC<Props> = ({
         >
           <p className={`text-xs font-semibold uppercase tracking-wide ${textMuted(theme)}`}>集成输出</p>
           <pre className={`mt-2 whitespace-pre-wrap break-all text-xs ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
-            {invokeOutput || resolveOutput || toolOutput || '这里会展示解析结果、试用结果或工具调用结果。'}
+            {invokeOutput || resolveOutput || toolOutput || '这里会显示解析结果、试用结果或工具调用结果。'}
           </pre>
         </div>
       </div>

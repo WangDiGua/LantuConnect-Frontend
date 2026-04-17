@@ -23,7 +23,7 @@ import {
 import { useMcpGatewayInvoke, type RunInvokeResult } from '../../hooks/useMcpGatewayInvoke';
 import { AutoHeightTextarea } from '../common/AutoHeightTextarea';
 import { LantuSelect } from '../common/LantuSelect';
-import { CapabilityWorkbench } from '../capability/CapabilityWorkbench';
+import { buildMcpTestingProfile } from '../market/testing/resourceTestingProfiles';
 import { McpInvokeProtocolPanel } from './McpInvokeProtocolPanel';
 import { McpInvokeResultSection } from './McpInvokeResultSection';
 import { McpToolArgsForm } from './McpToolArgsForm';
@@ -539,6 +539,7 @@ export const McpDetailInvokeTab: React.FC<McpDetailInvokeTabProps> = ({
       })),
     [filteredTools],
   );
+  const mcpTestingProfile = useMemo(() => buildMcpTestingProfile(listedTools.length), [listedTools.length]);
 
   const stepIndicator = useMemo(() => {
     const labels = connectSteps.map((s) => s.label);
@@ -575,7 +576,7 @@ export const McpDetailInvokeTab: React.FC<McpDetailInvokeTabProps> = ({
   return (
     <div className="space-y-5">
       <p className={`text-xs ${textMuted(theme)}`} id="mcp-invoke-intro">
-        当前：快速试用（自动握手 + 工具列表）与协议调试。建议使用同一 TraceId 贯穿调试。
+        当前页只保留 MCP 专属测试链路：连接、获取工具、运行工具，以及必要的协议调试。不再混入 Agent / Skill 的试用方式。
       </p>
 
       {invokeDisabled ? (
@@ -587,17 +588,6 @@ export const McpDetailInvokeTab: React.FC<McpDetailInvokeTabProps> = ({
         >
           {invokeDisabledReason || '当前资源不可通过网关调用。'}
         </div>
-      ) : null}
-
-      {!invokeDisabled ? (
-        <CapabilityWorkbench
-          theme={theme}
-          capabilityId={Number(detail.resourceId)}
-          capabilityType="mcp"
-          capabilityName={detail.displayName}
-          showMessage={showMessage}
-          defaultPayload={{ input: 'hello' }}
-        />
       ) : null}
 
       <div
@@ -664,7 +654,7 @@ export const McpDetailInvokeTab: React.FC<McpDetailInvokeTabProps> = ({
       <div className={`rounded-2xl border p-4 ${isDark ? 'border-violet-500/20 bg-violet-500/[0.06]' : 'border-violet-200/80 bg-violet-50/50'}`}>
         <h3 className={`text-sm font-bold ${textPrimary(theme)}`}>快速试用</h3>
         <p className={`mt-1 text-xs leading-relaxed ${textSecondary(theme)}`}>
-          一键完成 initialize →（可选）notifications/initialized → tools/list，然后选择工具并填写参数调用。须关闭流式。
+          先自动完成 initialize →（可选）notifications/initialized → tools/list，再直接进入工具选择与运行。首屏只保留 MCP 真正需要的那条主路径。
         </p>
 
         <label className={`mt-3 flex cursor-pointer items-start gap-2 text-xs ${textMuted(theme)}`}>
@@ -740,6 +730,9 @@ export const McpDetailInvokeTab: React.FC<McpDetailInvokeTabProps> = ({
             {toolListMessage ? (
               <p className={`text-xs font-medium ${textMuted(theme)}`}>{toolListMessage}</p>
             ) : null}
+            {mcpTestingProfile.autoSelectSingleTool ? (
+              <p className={`text-xs ${textMuted(theme)}`}>当前仅发现一个工具，系统已自动帮你选中，可直接运行。</p>
+            ) : null}
             <div>
               <label className={`mb-1.5 block text-xs font-semibold ${textSecondary(theme)}`}>筛选工具</label>
               <div className="relative">
@@ -807,7 +800,7 @@ export const McpDetailInvokeTab: React.FC<McpDetailInvokeTabProps> = ({
                   调用中…
                 </>
               ) : (
-                <>调用当前工具</>
+                <>{mcpTestingProfile.primaryActionLabel}</>
               )}
             </button>
           </div>

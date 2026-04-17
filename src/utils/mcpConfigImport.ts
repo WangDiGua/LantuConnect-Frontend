@@ -1,13 +1,16 @@
+import { coerceMcpRegisterMode, type SupportedMcpRegisterMode } from '../views/resourceCenter/resourceRegisterProfiles';
+
 /**
  * MCP 粘贴导入工具：
  * 1) 支持 mcpServers / servers / server / 单对象
  * 2) 支持直接粘贴 URL 或从文本中提取 URL
- * 3) 尽量自动识别鉴权并回填表单
+ * 3) 自动识别远程 transport 与鉴权并回填表单
+ * 4) command / stdio 只提示先远程暴露，不再作为可提交注册方式
  */
 
 export type McpImportResult = {
   endpoint?: string;
-  mcpRegisterMode?: 'http_json' | 'http_sse' | 'websocket' | 'stdio_sidecar';
+  mcpRegisterMode?: SupportedMcpRegisterMode;
   authType?: string;
   authConfig?: Record<string, unknown>;
   hint?: string;
@@ -32,15 +35,12 @@ function extractUrlFromText(text: string): string {
   return m?.[1]?.trim() ?? '';
 }
 
-function detectMode(url: string, transportHint: string): McpImportResult['mcpRegisterMode'] {
-  const lowerUrl = url.toLowerCase();
-  const lowerHint = transportHint.toLowerCase();
-  if (lowerHint.includes('stdio')) return 'stdio_sidecar';
-  if (lowerHint.includes('ws') || lowerHint.includes('websocket')) return 'websocket';
-  if (lowerHint.includes('sse')) return 'http_sse';
-  if (lowerUrl.startsWith('ws://') || lowerUrl.startsWith('wss://')) return 'websocket';
-  if (lowerUrl.includes('/sse')) return 'http_sse';
-  return 'http_json';
+function detectMode(url: string, transportHint: string): SupportedMcpRegisterMode {
+  return coerceMcpRegisterMode({
+    endpoint: url,
+    transportHint,
+    hintedMode: transportHint,
+  });
 }
 
 function parseAuth(entry: Record<string, unknown>): Pick<McpImportResult, 'authType' | 'authConfig'> {
@@ -125,7 +125,7 @@ function mapRemoteEntry(entry: Record<string, unknown>, name?: string): McpImpor
 
   if (!url && command) {
     return {
-      hint: `检测到 ${name ?? 'server'} 为 command/stdio。平台不托管进程，请先将 MCP 暴露为 http(s)/ws(s) 地址后再登记。`,
+      hint: `检测到 ${name ?? 'server'} 为 command/stdio。平台注册只接受远程可调用的 MCP，请先将服务暴露成 http(s)/ws(s) 地址后再登记。`,
     };
   }
   if (!url) {
@@ -185,16 +185,10 @@ function collectCandidates(root: Record<string, unknown>): Candidate[] {
   return out;
 }
 
-/**
- * 粘贴整块配置并自动解析：
- * - 优先 JSON
- * - JSON 失败时尝试从文本提取 URL
- */
 export function parseMcpConfigPaste(text: string): McpImportResult {
   const trimmed = text.trim();
   if (!trimmed) return { hint: '内容为空' };
 
-  // 直接粘贴 URL
   if (/^(https?:\/\/|wss?:\/\/)/i.test(trimmed)) {
     return mapRemoteEntry({ url: trimmed }, 'URL');
   }
@@ -207,10 +201,10 @@ export function parseMcpConfigPaste(text: string): McpImportResult {
     if (url) {
       return {
         ...mapRemoteEntry({ url }, '文本片段'),
-        hint: 'JSON 解析失败，但已从文本中提取 URL 并填充。',
+        hint: 'JSON 解析失败，但已从文本中提取 URL 并填入。',
       };
     }
-    return { hint: '不是合法 JSON，且未识别到可用的 MCP 地址。' };
+    return { hint: '不是合法 JSON，且未识别到可用 MCP 地址。' };
   }
 
   if (!isObject(root)) {
@@ -223,7 +217,7 @@ export function parseMcpConfigPaste(text: string): McpImportResult {
     if (url) {
       return {
         ...mapRemoteEntry({ url }, 'JSON 文本'),
-        hint: '已从 JSON 文本中提取 URL 并填充。',
+        hint: '已从 JSON 文本中提取 URL 并填入。',
       };
     }
     return { hint: '未找到可解析的 server（mcpServers/servers/server/url）。' };
@@ -234,7 +228,7 @@ export function parseMcpConfigPaste(text: string): McpImportResult {
     const r = mapRemoteEntry(c.entry, c.name);
     if (r.endpoint) {
       if (candidates.length > 1) {
-        r.hint = `${r.hint ?? '已自动解析'} 当前共识别到 ${candidates.length} 个 server，默认使用第一项。`;
+        r.hint = `${r.hint ?? '已自动解析。'} 当前共识别到 ${candidates.length} 个 server，默认使用第一项。`;
       }
       return r;
     }

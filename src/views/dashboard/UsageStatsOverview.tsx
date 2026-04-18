@@ -27,6 +27,7 @@ import { RESOURCE_TYPE_LABEL } from '../../constants/resourceTypes';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import {
+  bentoCard,
   canvasBodyBg,
   mainScrollCompositorClass,
   pageBlockStack,
@@ -65,12 +66,8 @@ function shortDate(value: string): string {
 }
 
 function reportCardClass(theme: Theme, extra = ''): string {
-  const isDark = theme === 'dark';
   return [
-    'rounded-[24px] border',
-    isDark
-      ? 'border-white/[0.08] bg-[#101722] shadow-[0_18px_40px_rgba(0,0,0,0.22)]'
-      : 'border-slate-200/80 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.06)]',
+    bentoCard(theme),
     extra,
   ].join(' ');
 }
@@ -79,7 +76,7 @@ function subtlePanelClass(theme: Theme, extra = ''): string {
   const isDark = theme === 'dark';
   return [
     'rounded-[20px] border',
-    isDark ? 'border-white/[0.08] bg-white/[0.03]' : 'border-slate-200/80 bg-slate-50/70',
+    isDark ? 'border-white/[0.06] bg-lantu-subtle' : 'border-slate-200/80 bg-slate-50/80',
     extra,
   ].join(' ');
 }

@@ -184,7 +184,7 @@ export const Overview: React.FC<OverviewProps> = ({ theme }) => {
 
   const registrations = overview?.recentRegistrations ?? [];
   const callTrend = realtime?.callTrend ?? [];
-  const maxTrend = Math.max(...callTrend.map((point) => point.calls), 1);
+  const maxTrend = callTrend.reduce((max, point) => Math.max(max, point.calls), 0);
   const topResources = realtime?.topResourcesByCall ?? [];
   const callMix = realtime?.callsByResourceType7d ?? [];
   const maxCallMix = Math.max(...callMix.map((item) => item.calls), 1);
@@ -352,18 +352,22 @@ export const Overview: React.FC<OverviewProps> = ({ theme }) => {
               <BarChart3 size={16} className={tm} />
             </div>
             {callTrend.length > 0 ? (
-              <div className="flex h-32 items-end gap-1">
+              <div className="flex h-40 items-end gap-1.5">
                 {callTrend.map((point, index) => {
-                  const height = Math.max((point.calls / maxTrend) * 100, 2);
+                  const height = point.calls > 0 && maxTrend > 0 ? Math.max((point.calls / maxTrend) * 100, 6) : 0;
                   const axisLabel = formatTrendAxisLabel(point.hour);
                   return (
-                    <div key={`${point.hour}-${index}`} className="flex flex-1 flex-col items-center gap-1">
+                    <div key={`${point.hour}-${index}`} className="flex h-full flex-1 flex-col justify-end gap-2">
                       <div
-                        className={`w-full rounded-t transition-all ${isDark ? 'bg-neutral-900/40' : 'bg-neutral-200'}`}
+                        className={`w-full rounded-t-[10px] transition-all ${isDark ? 'bg-gradient-to-t from-blue-600 via-sky-500 to-cyan-300 shadow-[0_0_18px_rgba(56,189,248,0.18)]' : 'bg-gradient-to-t from-blue-700 via-sky-600 to-cyan-400 shadow-[0_10px_22px_rgba(37,99,235,0.18)]'}`}
                         style={{ height: `${height}%` }}
                         title={`${axisLabel}: ${point.calls} 次调用`}
                       />
-                      {index % 4 === 0 ? <span className={`text-[9px] tabular-nums ${tm}`}>{axisLabel}</span> : null}
+                      {index % 4 === 0 ? (
+                        <span className={`text-center text-[9px] tabular-nums ${tm}`}>{axisLabel}</span>
+                      ) : (
+                        <span className="h-[14px]" aria-hidden />
+                      )}
                     </div>
                   );
                 })}

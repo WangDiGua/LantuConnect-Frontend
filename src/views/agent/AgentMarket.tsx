@@ -17,6 +17,7 @@ import {
   MarketPlazaPageShell,
   MarketplaceListingCard,
   MarketplaceStatItem,
+  ResourceMarketRuntimeBadges,
 } from '../../components/market';
 import { BentoCard } from '../../components/common/BentoCard';
 import { Modal } from '../../components/common/Modal';
@@ -33,6 +34,7 @@ import { filterTagsForResourceType } from '../../utils/marketTags';
 import type { TagItem } from '../../types/dto/tag';
 import type { ResourceCatalogItemVO } from '../../types/dto/catalog';
 import { resourceCatalogService } from '../../api/services/resource-catalog.service';
+import { buildResourceMarketRuntimeState } from '../../utils/resourceMarketRuntime';
 
 export interface AgentMarketProps {
   theme: Theme;
@@ -53,6 +55,7 @@ interface MarketCard {
   viewCount: number;
   rating: string;
   reviewCount: number;
+  observability?: Record<string, unknown>;
 }
 
 function agentCardTrailing(icon: string | null, isDark: boolean): React.ReactNode {
@@ -97,6 +100,7 @@ function agentToCard(agent: Agent): MarketCard {
     viewCount: Math.max(0, Math.floor(Number(agent.viewCount ?? 0)) || 0),
     rating: ratingStr,
     reviewCount: Math.max(0, Math.floor(Number(agent.reviewCount ?? 0)) || 0),
+    observability: agent.observability,
   };
 }
 
@@ -436,14 +440,19 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
               <div className={`py-16 text-center text-sm ${textMuted(theme)}`}>暂无可用智能体</div>
             ) : (
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {filtered.map((a) => (
+                {filtered.map((a) => {
+                  const runtime = buildResourceMarketRuntimeState({
+                    resourceType: 'agent',
+                    observability: a.observability,
+                  });
+                  return (
                   <BentoCard
                     key={a.id}
                     theme={theme}
                     hover
                     glow="indigo"
                     padding="md"
-                    className="flex h-full flex-col"
+                    className={`flex h-full flex-col ${runtime.interactionDisabled ? (isDark ? 'opacity-[0.92]' : 'opacity-95') : ''}`}
                     onClick={() => navigate(buildPath('user', 'agents-center', a.id))}
                   >
                     <MarketplaceListingCard
@@ -451,11 +460,20 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
                       title={a.name}
                       statusChip={{ label: statusLabel('published'), tone: 'published' }}
                       trailing={agentCardTrailing(a.icon, isDark)}
-                      metaRow={a.tags.slice(0, 6).map((t) => (
-                        <span key={t} className={techBadge(theme)}>
-                          {t}
-                        </span>
-                      ))}
+                      metaRow={(
+                        <>
+                          <ResourceMarketRuntimeBadges
+                            theme={theme}
+                            resourceType="agent"
+                            observability={a.observability}
+                          />
+                          {a.tags.slice(0, 6).map((t) => (
+                            <span key={t} className={techBadge(theme)}>
+                              {t}
+                            </span>
+                          ))}
+                        </>
+                      )}
                       description={a.description}
                       descriptionClamp={3}
                       footerLeft={(
@@ -499,9 +517,12 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
                           </button>
                           <button
                             type="button"
-                            className={`${btnPrimary} !px-3 !py-1.5 !text-xs`}
+                            className={`${btnPrimary} !px-3 !py-1.5 !text-xs disabled:cursor-not-allowed disabled:opacity-45`}
+                            disabled={runtime.interactionDisabled}
+                            title={runtime.interactionDisabled ? runtime.interactionHint : undefined}
                             onClick={(e) => {
                               e.stopPropagation();
+                              if (runtime.interactionDisabled) return;
                               navigate(buildPath('user', 'agents-center', a.id));
                             }}
                           >
@@ -511,7 +532,8 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
                       )}
                     />
                   </BentoCard>
-                ))}
+                  );
+                })}
               </div>
             )}
           </>

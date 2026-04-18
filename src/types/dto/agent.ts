@@ -46,6 +46,8 @@ export interface Agent {
   serviceDetailMd?: string;
   /** 目录项：详情页累计浏览（t_resource.view_count） */
   viewCount?: number;
+  /** 目录 include=observability 后的运行摘要 */
+  observability?: Record<string, unknown>;
   endpoint?: string;
   invokeType?: string;
 }

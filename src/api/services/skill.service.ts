@@ -20,7 +20,7 @@ function deprecatedWriteError<T>(): Promise<T> {
   );
 }
 
-function toSkill(item: ResourceCatalogItemVO): Skill {
+export function mapCatalogItemToSkill(item: ResourceCatalogItemVO): Skill {
   const detail = item as CatalogResourceDetailVO;
   const id = Number(item.resourceId) || 0;
   const createdBy =
@@ -68,6 +68,7 @@ function toSkill(item: ResourceCatalogItemVO): Skill {
     ratingAvg: item.ratingAvg ?? undefined,
     reviewCount: item.reviewCount != null ? Number(item.reviewCount) : undefined,
     viewCount: Number(item.viewCount ?? 0),
+    observability: item.observability,
     serviceDetailMd: detail.serviceDetailMd,
   };
 }
@@ -81,13 +82,14 @@ export const skillService = {
       status: params?.status,
       resourceType: 'skill',
       tags: params?.tags,
+      include: 'observability',
     });
-    return { ...page, list: page.list.map(toSkill) };
+    return { ...page, list: page.list.map(mapCatalogItemToSkill) };
   },
 
   getById: async (id: number): Promise<Skill> => {
-    const data = await resourceCatalogService.getByTypeAndId('skill', id);
-    return toSkill(data);
+    const data = await resourceCatalogService.getByTypeAndId('skill', id, 'observability');
+    return mapCatalogItemToSkill(data);
   },
 
   create: (_data: SkillCreatePayload): Promise<Skill> => deprecatedWriteError<Skill>(),

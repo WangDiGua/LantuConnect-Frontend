@@ -32,7 +32,7 @@ import {
 } from '../../utils/uiClasses';
 import { BentoCard } from '../../components/common/BentoCard';
 import { Modal } from '../../components/common/Modal';
-import { MarketplaceListingCard, MarketplaceStatItem, MarketPlazaPageShell } from '../../components/market';
+import { MarketplaceListingCard, MarketplaceStatItem, MarketPlazaPageShell, ResourceMarketRuntimeBadges } from '../../components/market';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
@@ -453,6 +453,12 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _the
                         )}
                         metaRow={(
                           <>
+                            <ResourceMarketRuntimeBadges
+                              theme={theme}
+                              resourceType="skill"
+                              executionMode={skill.executionMode}
+                              observability={skill.observability}
+                            />
                             <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold text-fuchsia-900 bg-fuchsia-500/15 dark:text-fuchsia-200 dark:bg-fuchsia-500/20">
                               {TYPE_BADGE.context_skill.label}
                             </span>

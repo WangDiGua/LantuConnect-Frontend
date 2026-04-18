@@ -25,7 +25,6 @@ function obsBool(o: Record<string, unknown> | undefined, camel: string, snake: s
   return undefined;
 }
 
-/** 目录/详情 `observability.healthStatus` */
 export function catalogItemHealthStatus(item: Pick<ResourceCatalogItemVO, 'observability'>): string | undefined {
   return obsString(item.observability, 'healthStatus', 'health_status');
 }
@@ -57,11 +56,13 @@ export function catalogItemDegradationHint(item: Pick<ResourceCatalogItemVO, 'ob
   }
   if (typeof raw === 'object' && raw !== null) {
     const rec = raw as Record<string, unknown>;
-    const u = rec.userFacingHint ?? rec.user_facing_hint;
-    if (u != null && String(u).trim() !== '') return String(u).trim();
+    const userFacing = rec.userFacingHint ?? rec.user_facing_hint;
+    if (userFacing != null && String(userFacing).trim() !== '') {
+      return String(userFacing).trim();
+    }
     try {
-      const j = JSON.stringify(raw);
-      return j === '{}' ? undefined : j;
+      const serialized = JSON.stringify(raw);
+      return serialized === '{}' ? undefined : serialized;
     } catch {
       return undefined;
     }
@@ -70,59 +71,55 @@ export function catalogItemDegradationHint(item: Pick<ResourceCatalogItemVO, 'ob
   return s || undefined;
 }
 
-/**
- * 与后端目录筛选 `callableOnly` / `UnifiedGatewayServiceImpl#isResourcePhysicallyCallable` 对齐：
- * - 健康：仅 `down`、`disabled` 视为不可调用（`degraded` / `unhealthy` / `offline` 等仍放行，由网关与探针提示风险）。
- * - 熔断：仅 `open`、`forced_open` 不可入目录；`half_open` 放行以便完成半开探测恢复。
- *
- * `unknown`：未配置或未探测，仍允许进入工具测试（由网关最终拦截）。
- *
- * 注意：勿用 `degradationHint` 参与判定。后端可能按账号/租户/调用策略填入提示（与「资源全局故障」不等价），
- * 若据此禁用列表，会导致换账号后同一 MCP「忽而不可用、忽而可用」，与广场「运行状态」预期不符。
- */
-export function isCatalogMcpCallable(item: Pick<ResourceCatalogItemVO, 'observability'>): boolean {
+export function isCatalogInvokeCallable(item: Pick<ResourceCatalogItemVO, 'observability'>): boolean {
   const callability = norm(catalogItemCallabilityState(item));
   if (callability === 'callable') return true;
   if (callability && callability !== 'unknown') return false;
-  const h = norm(catalogItemHealthStatus(item));
-  const c = norm(catalogItemCircuitState(item));
-  if (c === 'open' || c === 'forced_open') return false;
-  if (h === 'down' || h === 'disabled') {
-    return false;
-  }
+
+  const healthStatus = norm(catalogItemHealthStatus(item));
+  const circuitState = norm(catalogItemCircuitState(item));
+  if (circuitState === 'open' || circuitState === 'forced_open') return false;
+  if (healthStatus === 'down' || healthStatus === 'disabled') return false;
   return true;
 }
 
-/**
- * 列表/详情「运行 *」徽章用 key：半开/全断/健康 down 时勿仅用 healthStatus（否则仍显示「健康」）。
- */
+export function isCatalogMcpCallable(item: Pick<ResourceCatalogItemVO, 'observability'>): boolean {
+  return isCatalogInvokeCallable(item);
+}
+
 export function catalogRunBadgeHealthKeyForDisplay(item: Pick<ResourceCatalogItemVO, 'observability'>): string {
   const callability = norm(catalogItemCallabilityState(item));
   if (callability === 'circuit_half_open') return 'circuit_half_open';
   if (callability && callability !== 'callable' && callability !== 'unknown') return 'gateway_blocked';
-  const c = norm(catalogItemCircuitState(item));
-  if (c === 'half_open') return 'circuit_half_open';
-  if (!isCatalogMcpCallable(item)) return 'gateway_blocked';
+
+  const circuitState = norm(catalogItemCircuitState(item));
+  if (circuitState === 'half_open') return 'circuit_half_open';
+  if (!isCatalogInvokeCallable(item)) return 'gateway_blocked';
   return catalogItemHealthStatus(item) ?? 'unknown';
 }
 
-/** 与网关拦截无关时的补充说明（如权限/调用策略），仅供文案展示，不参与 isCatalogMcpCallable */
 export function catalogInvokeSupplementHint(item: Pick<ResourceCatalogItemVO, 'observability'>): string | undefined {
   return catalogItemDegradationHint(item);
 }
 
-export function mcpInvokeBlockedReason(item: Pick<ResourceCatalogItemVO, 'observability'>): string {
+export function catalogInvokeBlockedReason(item: Pick<ResourceCatalogItemVO, 'observability'>): string {
   const callability = norm(catalogItemCallabilityState(item));
   const reason = catalogItemCallabilityReason(item);
   if (callability && callability !== 'callable' && callability !== 'unknown') {
-    return reason ?? `当前资源不可调用：${callability}`;
+    return reason ?? `\u5f53\u524d\u8d44\u6e90\u4e0d\u53ef\u8c03\u7528\uff1a${callability}`;
   }
-  const c = norm(catalogItemCircuitState(item));
-  if (c === 'open' || c === 'forced_open') {
-    return '熔断已断开，网关暂不放行调用。探活恢复后后端会自动合闸；亦可稍后再试。';
+
+  const circuitState = norm(catalogItemCircuitState(item));
+  if (circuitState === 'open' || circuitState === 'forced_open') {
+    return '\u7194\u65ad\u5df2\u6253\u5f00\uff0c\u7f51\u5173\u6682\u4e0d\u653e\u884c\u8c03\u7528\u3002\u63a2\u6d3b\u6062\u590d\u540e\u4f1a\u81ea\u52a8\u95ed\u5408\uff0c\u4e5f\u53ef\u4ee5\u7a0d\u540e\u518d\u8bd5\u3002';
   }
-  const h = norm(catalogItemHealthStatus(item));
-  if (h === 'down') return '健康探测为故障，网关已禁止调用。';
-  if (h === 'disabled') return '健康检查未启用或已关闭，网关暂不可调用。';
-  return '当前不可调用。';
+
+  const healthStatus = norm(catalogItemHealthStatus(item));
+  if (healthStatus === 'down') return '\u5065\u5eb7\u63a2\u6d4b\u7ed3\u679c\u4e3a\u6545\u969c\uff0c\u7f51\u5173\u5df2\u7981\u6b62\u8c03\u7528\u3002';
+  if (healthStatus === 'disabled') return '\u5065\u5eb7\u68c0\u67e5\u672a\u542f\u7528\u6216\u5df2\u5173\u95ed\uff0c\u7f51\u5173\u6682\u4e0d\u53ef\u8c03\u7528\u3002';
+  return '\u5f53\u524d\u4e0d\u53ef\u8c03\u7528\u3002';
+}
+
+export function mcpInvokeBlockedReason(item: Pick<ResourceCatalogItemVO, 'observability'>): string {
+  return catalogInvokeBlockedReason(item);
 }

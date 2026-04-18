@@ -9,7 +9,7 @@ import type {
 import { resourceCatalogService } from './resource-catalog.service';
 import type { CatalogResourceDetailVO, ResourceCatalogItemVO, ResourceCatalogQueryRequest } from '../../types/dto/catalog';
 
-function toAgent(item: ResourceCatalogItemVO): Agent {
+export function mapCatalogItemToAgent(item: ResourceCatalogItemVO): Agent {
   const detail = item as CatalogResourceDetailVO;
   const id = Number(item.resourceId) || 0;
   const createdBy =
@@ -52,6 +52,7 @@ function toAgent(item: ResourceCatalogItemVO): Agent {
     ratingAvg: item.ratingAvg ?? undefined,
     reviewCount: item.reviewCount != null ? Number(item.reviewCount) : undefined,
     viewCount: Number(item.viewCount ?? 0),
+    observability: item.observability,
     endpoint: detail.endpoint ? String(detail.endpoint) : undefined,
     invokeType: detail.invokeType ? String(detail.invokeType) : undefined,
     serviceDetailMd: detail.serviceDetailMd,
@@ -84,16 +85,17 @@ export const agentService = {
       sortBy: catalogSortBy(query?.sortBy),
       sortOrder: query?.sortOrder,
       tags: query?.tags,
+      include: 'observability',
     });
     return {
       ...page,
-      list: page.list.map(toAgent),
+      list: page.list.map(mapCatalogItemToAgent),
     };
   },
 
   getById: async (id: number): Promise<Agent> => {
-    const data = await resourceCatalogService.getByTypeAndId('agent', id);
-    return toAgent(data);
+    const data = await resourceCatalogService.getByTypeAndId('agent', id, 'observability');
+    return mapCatalogItemToAgent(data);
   },
 
   create: (_payload: AgentCreatePayload): Promise<Agent> => deprecatedWriteError<Agent>(),

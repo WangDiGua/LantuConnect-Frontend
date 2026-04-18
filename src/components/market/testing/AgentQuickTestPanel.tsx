@@ -17,6 +17,8 @@ import { buildAgentTestingProfile } from './resourceTestingProfiles';
 type Props = {
   theme: Theme;
   agent: Agent;
+  invokeDisabled?: boolean;
+  invokeDisabledReason?: string;
   showMessage?: (msg: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
 };
 
@@ -38,7 +40,13 @@ function parseJsonObject(
   }
 }
 
-export const AgentQuickTestPanel: React.FC<Props> = ({ theme, agent, showMessage }) => {
+export const AgentQuickTestPanel: React.FC<Props> = ({
+  theme,
+  agent,
+  invokeDisabled = false,
+  invokeDisabledReason,
+  showMessage,
+}) => {
   const isDark = theme === 'dark';
   const [gatewayApiKeyDraft, setGatewayApiKeyDraft] = usePersistedGatewayApiKey();
   const baseProfile = useMemo(
@@ -86,6 +94,10 @@ export const AgentQuickTestPanel: React.FC<Props> = ({ theme, agent, showMessage
   }, [defaultPayloadText, showMessage]);
 
   const handleRun = useCallback(async () => {
+    if (invokeDisabled) {
+      setErrorText(invokeDisabledReason ?? '当前 Agent 暂不可调用。');
+      return;
+    }
     const apiKey = gatewayApiKeyDraft.trim();
     if (!apiKey) {
       setErrorText('请先填写有效的 X-Api-Key，且该密钥需要具备 resolve 与 invoke scope。');
@@ -160,6 +172,8 @@ export const AgentQuickTestPanel: React.FC<Props> = ({ theme, agent, showMessage
     showMessage,
     timeoutSec,
     traceId,
+    invokeDisabled,
+    invokeDisabledReason,
   ]);
 
   return (
@@ -169,7 +183,19 @@ export const AgentQuickTestPanel: React.FC<Props> = ({ theme, agent, showMessage
         title="一键试用"
         description={`前端会按当前 Agent 的 ${baseProfile.protocolLabel} 注册方式自动准备最小测试输入；你只需要补上 Key，点一次就能试。`}
       >
-        <div className="space-y-4">
+        {invokeDisabled ? (
+          <div
+            className={`mb-4 rounded-2xl border px-4 py-3 text-sm ${
+              isDark ? 'border-rose-500/35 bg-rose-500/10 text-rose-100' : 'border-rose-200 bg-rose-50 text-rose-900'
+            }`}
+          >
+            <p className="font-semibold">当前 Agent 测试已禁用</p>
+            <p className={`mt-1 text-xs ${isDark ? 'text-rose-100/85' : 'text-rose-900/85'}`}>
+              {invokeDisabledReason ?? '当前 Agent 暂不可调用。'}
+            </p>
+          </div>
+        ) : null}
+        <fieldset disabled={running || invokeDisabled} className={`space-y-4 ${invokeDisabled ? 'opacity-70' : ''}`}>
           <GatewayApiKeyInput
             theme={theme}
             id={`agent-quick-key-${agent.id}`}
@@ -237,10 +263,10 @@ export const AgentQuickTestPanel: React.FC<Props> = ({ theme, agent, showMessage
               <pre className="mt-2 overflow-auto whitespace-pre-wrap break-all text-xs">{resultText || '试用结果会显示在这里。'}</pre>
             </div>
           </div>
-        </div>
+        </fieldset>
       </MarketDetailSectionCard>
 
-      {advancedOpen ? (
+      {advancedOpen && !invokeDisabled ? (
         <MarketDetailSectionCard
           theme={theme}
           title="当前协议高级调试"

@@ -40,6 +40,10 @@ const checks = [
     forbiddenPatterns: ['CapabilityWorkbench', "title=\"快速试用\""],
   },
   {
+    file: 'src/components/market/testing/AgentQuickTestPanel.tsx',
+    patterns: ['invokeDisabled', 'invokeDisabledReason', 'fieldset disabled={running || invokeDisabled}'],
+  },
+  {
     file: 'src/views/skill/SkillMarketDetailPage.tsx',
     patterns: ['技能详情', '试用验证', '参数 Schema', 'SkillQuickTestPanel', 'MarketDetailSidebarCard'],
     forbiddenPatterns: ['CapabilityWorkbench', 'GatewayApiKeyInput'],

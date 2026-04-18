@@ -28,6 +28,7 @@ import {
   MarketDetailSectionCard,
   MarketDetailSidebarCard,
   MarketDetailStatusNotice,
+  ResourceMarketRuntimeBadges,
 } from '../../components/market';
 import { ResourceReviewsSection } from '../../components/business/ResourceReviewsSection';
 import { ResourceMarketDetailShell } from '../../components/market';
@@ -59,15 +60,7 @@ import {
   catalogViewCountValue,
   formatMarketMetric,
 } from '../../utils/marketMetrics';
-import {
-  catalogInvokeSupplementHint,
-  catalogItemCircuitState,
-  catalogItemHealthStatus,
-  catalogRunBadgeHealthKeyForDisplay,
-  isCatalogMcpCallable,
-  mcpInvokeBlockedReason,
-} from '../../utils/catalogObservability';
-import { circuitBreakerLabelZh, resourceHealthBadgeClass, resourceHealthLabelZh } from '../../utils/backendEnumLabels';
+import { buildResourceMarketRuntimeState } from '../../utils/resourceMarketRuntime';
 
 interface Props {
   theme: Theme;
@@ -201,7 +194,12 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
           return blob.includes(term);
         });
     return [...base].sort((a, b) => {
-      const tier = (x: ResourceCatalogItemVO) => (isCatalogMcpCallable(x) ? 0 : 1);
+      const tier = (x: ResourceCatalogItemVO) => (
+        buildResourceMarketRuntimeState({
+          resourceType: 'mcp',
+          observability: x.observability,
+        }).interactionDisabled ? 1 : 0
+      );
       const dTier = tier(a) - tier(b);
       if (dTier !== 0) return dTier;
       const dView = catalogViewCountValue(b) - catalogViewCountValue(a);
@@ -315,12 +313,13 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
         </div>
       );
     }
-    const mcpCallable = isCatalogMcpCallable(detail);
-    const mcpBlockReason = mcpInvokeBlockedReason(detail);
-    const mcpSupplementHint = catalogInvokeSupplementHint(detail);
-    const detailHealthProbeKey = catalogItemHealthStatus(detail) ?? 'unknown';
-    const detailRunBadgeKey = catalogRunBadgeHealthKeyForDisplay(detail);
-    const detailCircuit = catalogItemCircuitState(detail);
+    const detailRuntime = buildResourceMarketRuntimeState({
+      resourceType: 'mcp',
+      observability: detail.observability,
+    });
+    const mcpCallable = !detailRuntime.interactionDisabled;
+    const mcpBlockReason = detailRuntime.interactionHint ?? '\u5f53\u524d\u4e0d\u53ef\u8c03\u7528\u3002';
+    const mcpSupplementHint = detailRuntime.supplementalHint;
     return (
         <ResourceMarketDetailShell
           theme={theme}
@@ -339,23 +338,11 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                     <span className={statusDot(detail.status ?? 'unknown')} />
                     {statusLabel(detail.status)}
                   </span>
-                  <span
-                    className={`inline-flex items-center rounded-lg border px-2 py-0.5 text-xs font-semibold ${resourceHealthBadgeClass(theme, detailRunBadgeKey)}`}
-                    title={
-                      `探测：${resourceHealthLabelZh(detailHealthProbeKey)}` +
-                      (detailCircuit && detailCircuit !== 'unknown' && detailCircuit !== 'closed'
-                        ? ` · 熔断：${circuitBreakerLabelZh(detailCircuit)}`
-                        : '') +
-                      (mcpCallable ? '' : ` · ${mcpBlockReason}`)
-                    }
-                  >
-                    运行 {resourceHealthLabelZh(detailRunBadgeKey)}
-                  </span>
-                  {detailCircuit && detailCircuit !== 'unknown' && detailCircuit !== 'closed' ? (
-                    <span className="opacity-90" title="熔断器状态">
-                      · {circuitBreakerLabelZh(detailCircuit)}
-                    </span>
-                  ) : null}
+                  <ResourceMarketRuntimeBadges
+                    theme={theme}
+                    resourceType="mcp"
+                    observability={detail.observability}
+                  />
                   <span className="inline-flex items-center gap-0.5 tabular-nums">
                     <Star size={12} className="text-amber-500" aria-hidden />
                     {detail.ratingAvg != null ? detail.ratingAvg.toFixed(1) : '—'}
@@ -381,7 +368,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
           onTabChange={(id) => setDetailTab(id as McpDetailTab)}
           mainColumn={(
             <div className="space-y-5">
-              {!mcpCallable ? (
+              {detailRuntime.interactionState === 'blocked' ? (
                 <div
                   role="alert"
                   className={`rounded-2xl border px-4 py-3 text-sm leading-relaxed ${
@@ -395,7 +382,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                   </p>
                 </div>
               ) : null}
-              {mcpCallable && mcpSupplementHint ? (
+              {detailRuntime.interactionState === 'available' && mcpSupplementHint ? (
                 <div
                   role="status"
                   className={`rounded-2xl border px-4 py-3 text-sm leading-relaxed ${
@@ -452,7 +439,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                   loadMcpDetailByPath={loadMcpDetailByPath}
                   detailPageLoading={detailPageLoading}
                   showMessage={showMessage}
-                  invokeDisabled={!mcpCallable}
+                  invokeDisabled={detailRuntime.interactionDisabled}
                   invokeDisabledReason={mcpBlockReason}
                 />
               ) : detailTab === 'reviews' ? (
@@ -725,11 +712,10 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
             ) : (
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {filtered.map((item) => {
-                  const mcpCallableRow = isCatalogMcpCallable(item);
-                  const mcpBlockReasonRow = mcpInvokeBlockedReason(item);
-                  const healthProbeKeyRow = catalogItemHealthStatus(item) ?? 'unknown';
-                  const runBadgeKeyRow = catalogRunBadgeHealthKeyForDisplay(item);
-                  const circuitRow = catalogItemCircuitState(item);
+                  const runtimeRow = buildResourceMarketRuntimeState({
+                    resourceType: 'mcp',
+                    observability: item.observability,
+                  });
                   return (
                   <BentoCard
                     key={item.resourceId}
@@ -737,7 +723,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                     hover
                     glow="indigo"
                     padding="md"
-                    className={`flex h-full flex-col ${!mcpCallableRow ? (isDark ? 'opacity-[0.92]' : 'opacity-95') : ''}`}
+                    className={`flex h-full flex-col ${runtimeRow.interactionDisabled ? (isDark ? 'opacity-[0.92]' : 'opacity-95') : ''}`}
                     onClick={() => navigate(buildPath('user', 'mcp-center', item.resourceId))}
                   >
                     <MarketplaceListingCard
@@ -756,18 +742,11 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                       )}
                       metaRow={(
                         <>
-                          <span
-                            className={`inline-flex max-w-[12rem] shrink-0 items-center truncate rounded-md border px-2 py-0.5 text-xs font-semibold ${resourceHealthBadgeClass(theme, runBadgeKeyRow)}`}
-                            title={
-                              `探测：${resourceHealthLabelZh(healthProbeKeyRow)}` +
-                              (circuitRow && circuitRow !== 'unknown' && circuitRow !== 'closed'
-                                ? ` · ${circuitBreakerLabelZh(circuitRow)}`
-                                : '') +
-                              (mcpCallableRow ? '' : ` · ${mcpBlockReasonRow}`)
-                            }
-                          >
-                            运行 {resourceHealthLabelZh(runBadgeKeyRow)}
-                          </span>
+                          <ResourceMarketRuntimeBadges
+                            theme={theme}
+                            resourceType="mcp"
+                            observability={item.observability}
+                          />
                           {(item.tags ?? []).slice(0, 5).map((tg) => (
                             <span
                               key={tg}
@@ -818,15 +797,15 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                         <button
                           type="button"
                           className={`${btnPrimary} !px-3 !py-1.5 !text-xs disabled:cursor-not-allowed disabled:opacity-45`}
-                          disabled={!mcpCallableRow}
-                          title={!mcpCallableRow ? mcpBlockReasonRow : '查看服务说明或发起工具测试'}
+                          disabled={runtimeRow.interactionDisabled}
+                          title={runtimeRow.interactionDisabled ? runtimeRow.interactionHint : '查看服务说明或发起工具测试'}
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (!mcpCallableRow) return;
+                            if (runtimeRow.interactionDisabled) return;
                             navigate(buildPath('user', 'mcp-center', item.resourceId));
                           }}
                         >
-                          {mcpCallableRow ? '查看与使用' : '暂不可调用'}
+                          {runtimeRow.interactionDisabled ? runtimeRow.interactionLabel : '查看与使用'}
                         </button>
                       )}
                     />

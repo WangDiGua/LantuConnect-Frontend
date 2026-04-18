@@ -10,10 +10,11 @@ import {
   MarketDetailSidebarCard,
   MarketDetailStatusNotice,
   ResourceMarketDetailShell,
+  ResourceMarketRuntimeBadges,
 } from '../../components/market';
 import { AgentReviews } from './AgentReviews';
 import { buildPath } from '../../constants/consoleRoutes';
-import { agentService } from '../../api/services/agent.service';
+import { mapCatalogItemToAgent } from '../../api/services/agent.service';
 import { resourceCatalogService } from '../../api/services/resource-catalog.service';
 import { BindingClosureSection } from '../../components/business/BindingClosureSection';
 import { PageError } from '../../components/common/PageError';
@@ -31,6 +32,7 @@ import {
 } from '../../utils/uiClasses';
 import { MarkdownView } from '../../components/common/MarkdownView';
 import { AgentQuickTestPanel } from '../../components/market/testing/AgentQuickTestPanel';
+import { buildResourceMarketRuntimeState } from '../../utils/resourceMarketRuntime';
 
 export interface AgentMarketDetailPageProps {
   resourceId: string;
@@ -102,12 +104,9 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
     setLoading(true);
     setError(null);
     try {
-      const [data, detail] = await Promise.all([
-        agentService.getById(id),
-        resourceCatalogService.getByTypeAndId('agent', String(id), 'closure').catch(() => null),
-      ]);
-      setAgent(data);
-      setBindingClosure(detail?.bindingClosure);
+      const detail = await resourceCatalogService.getByTypeAndId('agent', String(id), 'observability,closure');
+      setAgent(mapCatalogItemToAgent(detail));
+      setBindingClosure(detail.bindingClosure);
     } catch (reason) {
       setAgent(null);
       setBindingClosure(undefined);
@@ -156,6 +155,14 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
       : agent.categoryName
         ? [agent.categoryName, agent.agentType]
         : [agent.agentType];
+  }, [agent]);
+
+  const runtime = useMemo(() => {
+    if (!agent) return null;
+    return buildResourceMarketRuntimeState({
+      resourceType: 'agent',
+      observability: agent.observability,
+    });
   }, [agent]);
 
   const registrationProtocol = useMemo(() => {
@@ -257,6 +264,13 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
                   {statusLabel(agent.status)}
                 </span>
               </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <ResourceMarketRuntimeBadges
+                  theme={theme}
+                  resourceType="agent"
+                  observability={agent.observability}
+                />
+              </div>
               <div className={`flex flex-wrap items-center gap-2 text-xs ${textMuted(theme)}`}>
                 <span>{author || '未知作者'}</span>
                 <span className="font-mono">@{agent.agentName || agent.id}</span>
@@ -298,6 +312,22 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
         onTabChange={(id) => setTab(id as AgentDetailTab)}
         mainColumn={(
           <div className="space-y-5">
+            {runtime?.interactionState === 'blocked' ? (
+              <MarketDetailStatusNotice
+                theme={theme}
+                tone="danger"
+                title="当前 Agent 暂不可调用"
+                description={runtime.interactionHint}
+              />
+            ) : null}
+            {runtime?.interactionState === 'available' && runtime.supplementalHint ? (
+              <MarketDetailStatusNotice
+                theme={theme}
+                tone="info"
+                title="网关提示（可能因账号状态或调用策略而异）"
+                description={runtime.supplementalHint}
+              />
+            ) : null}
             <MarketDetailStatusNotice theme={theme} title={testingNotice.title} description={testingNotice.description} />
 
             {tab === 'service' ? (
@@ -366,7 +396,13 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
             ) : null}
 
             {tab === 'testing' ? (
-              <AgentQuickTestPanel theme={theme} agent={agent} showMessage={showMessage} />
+              <AgentQuickTestPanel
+                theme={theme}
+                agent={agent}
+                invokeDisabled={runtime?.interactionDisabled}
+                invokeDisabledReason={runtime?.interactionHint}
+                showMessage={showMessage}
+              />
             ) : null}
 
             {tab === 'capability' ? (

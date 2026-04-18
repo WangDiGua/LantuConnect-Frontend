@@ -12,7 +12,6 @@ import {
 import type { Theme, FontSize, ThemeColor } from '../../types';
 import type { Skill } from '../../types/dto/skill';
 import type { AgentType, SourceType } from '../../types/dto/agent';
-import { skillService } from '../../api/services/skill.service';
 import { userActivityService } from '../../api/services/user-activity.service';
 import { resourceCatalogService } from '../../api/services/resource-catalog.service';
 import type { ResourceBindingSummaryVO } from '../../types/dto/catalog';
@@ -33,6 +32,7 @@ import {
   MarketDetailSidebarCard,
   MarketDetailStatusNotice,
   ResourceMarketDetailShell,
+  ResourceMarketRuntimeBadges,
 } from '../../components/market';
 import { ResourceReviewsSection } from '../../components/business/ResourceReviewsSection';
 import { PageError } from '../../components/common/PageError';
@@ -41,6 +41,8 @@ import { formatDateTime } from '../../utils/formatDateTime';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
 import { MarkdownView } from '../../components/common/MarkdownView';
 import { SkillQuickTestPanel } from '../../components/market/testing/SkillQuickTestPanel';
+import { mapCatalogItemToSkill } from '../../api/services/skill.service';
+import { buildResourceMarketRuntimeState } from '../../utils/resourceMarketRuntime';
 
 const TYPE_BADGE: Record<AgentType, { label: string; cls: string }> = {
   mcp: { label: 'MCP', cls: 'text-neutral-900 bg-neutral-900/10' },
@@ -112,12 +114,9 @@ export const SkillMarketDetailPage: React.FC<SkillMarketDetailPageProps> = ({
     setLoading(true);
     setError(null);
     try {
-      const [data, detail] = await Promise.all([
-        skillService.getById(id),
-        resourceCatalogService.getByTypeAndId('skill', String(id), 'closure').catch(() => null),
-      ]);
-      setSkill(data);
-      setBindingClosure(detail?.bindingClosure);
+      const detail = await resourceCatalogService.getByTypeAndId('skill', String(id), 'observability,closure');
+      setSkill(mapCatalogItemToSkill(detail));
+      setBindingClosure(detail.bindingClosure);
     } catch (reason) {
       setSkill(null);
       setBindingClosure(undefined);
@@ -161,6 +160,14 @@ export const SkillMarketDetailPage: React.FC<SkillMarketDetailPageProps> = ({
   const sourceBadge = useMemo(() => {
     if (!skill) return SOURCE_BADGE.internal;
     return SOURCE_BADGE[skill.sourceType] ?? SOURCE_BADGE.internal;
+  }, [skill]);
+  const runtime = useMemo(() => {
+    if (!skill) return null;
+    return buildResourceMarketRuntimeState({
+      resourceType: 'skill',
+      executionMode: skill.executionMode,
+      observability: skill.observability,
+    });
   }, [skill]);
 
   if (loading) return <PageSkeleton type="detail" />;
@@ -207,14 +214,22 @@ export const SkillMarketDetailPage: React.FC<SkillMarketDetailPageProps> = ({
             {(skill.displayName || skill.agentName).charAt(0)}
           </div>
           <div className="min-w-0 flex-1 space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className={`min-w-0 text-2xl font-bold tracking-tight sm:text-3xl ${textPrimary(theme)}`}>{skill.displayName}</h1>
-              <span className={statusBadgeClass(skill.status ?? 'unknown', theme)}>
-                <span className={statusDot(skill.status ?? 'unknown')} />
-                {statusLabel(skill.status)}
-              </span>
-            </div>
-            <div className={`flex flex-wrap items-center gap-2 text-xs ${textMuted(theme)}`}>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className={`min-w-0 text-2xl font-bold tracking-tight sm:text-3xl ${textPrimary(theme)}`}>{skill.displayName}</h1>
+                <span className={statusBadgeClass(skill.status ?? 'unknown', theme)}>
+                  <span className={statusDot(skill.status ?? 'unknown')} />
+                  {statusLabel(skill.status)}
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <ResourceMarketRuntimeBadges
+                  theme={theme}
+                  resourceType="skill"
+                  executionMode={skill.executionMode}
+                  observability={skill.observability}
+                />
+              </div>
+              <div className={`flex flex-wrap items-center gap-2 text-xs ${textMuted(theme)}`}>
               <span className="font-mono">@{skill.agentName}</span>
               <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${typeBadge.cls}`}>
                 {typeBadge.label}
@@ -271,6 +286,22 @@ export const SkillMarketDetailPage: React.FC<SkillMarketDetailPageProps> = ({
       onTabChange={(id) => setTab(id as SkillDetailTab)}
       mainColumn={(
         <div className="space-y-5">
+          {runtime?.interactionState === 'resolve_only' ? (
+            <MarketDetailStatusNotice
+              theme={theme}
+              tone="info"
+              title="当前 Skill 为 Context 资源"
+              description={runtime.interactionHint}
+            />
+          ) : null}
+          {runtime?.interactionState === 'available' && runtime.supplementalHint ? (
+            <MarketDetailStatusNotice
+              theme={theme}
+              tone="info"
+              title="网关提示（可能因账号状态或调用策略而异）"
+              description={runtime.supplementalHint}
+            />
+          ) : null}
           <MarketDetailStatusNotice theme={theme} title={statusNotice.title} description={statusNotice.description} />
 
           {tab === 'detail' ? (

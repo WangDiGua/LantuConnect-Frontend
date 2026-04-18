@@ -5,6 +5,7 @@ export { MarketHeader } from './MarketHeader';
 export { MarketEmptyState } from './MarketEmptyState';
 export { MarketplaceListingCard, MarketplaceStatItem } from './MarketplaceListingCard';
 export type { MarketplaceListingCardProps, MarketplaceStatusTone } from './MarketplaceListingCard';
+export { ResourceMarketRuntimeBadges } from './ResourceMarketRuntimeBadges';
 export {
   ResourceMarketDetailShell,
   MarketDetailSectionCard,

@@ -42,6 +42,8 @@ export interface Skill {
   serviceDetailMd?: string;
   /** 目录侧下载统计（后端下载事件表聚合） */
   viewCount?: number;
+  /** 目录 include=observability 后的运行摘要 */
+  observability?: Record<string, unknown>;
 }
 
 export interface SkillCreatePayload {

@@ -46,6 +46,7 @@ import {
   catalogViewCountValue,
   formatMarketMetric,
 } from '../../utils/marketMetrics';
+import { useSilentResourceRuntimeRefresh } from '../../hooks/useSilentResourceRuntimeRefresh';
 
 interface Props {
   theme: Theme;
@@ -167,6 +168,20 @@ export const SkillMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _the
     const cleanup = loadSkills();
     return cleanup;
   }, [loadSkills]);
+
+  useSilentResourceRuntimeRefresh(
+    async () => {
+      const res = await skillService.list({
+        status: 'published',
+        pageSize: 100,
+        keyword: keyword.trim() || undefined,
+        tags: tagFilter ? [tagFilter] : undefined,
+      });
+      setSkills(res.list);
+    },
+    { resourceType: 'skill' },
+    { debounceMs: 500 },
+  );
 
   useEffect(() => {
     if (!loading && !loadError && tagFilter == null) {

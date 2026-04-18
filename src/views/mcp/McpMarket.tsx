@@ -61,6 +61,7 @@ import {
   formatMarketMetric,
 } from '../../utils/marketMetrics';
 import { buildResourceMarketRuntimeState } from '../../utils/resourceMarketRuntime';
+import { useSilentResourceRuntimeRefresh } from '../../hooks/useSilentResourceRuntimeRefresh';
 
 interface Props {
   theme: Theme;
@@ -125,6 +126,22 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
     void load();
   }, [load]);
 
+  useSilentResourceRuntimeRefresh(
+    async () => {
+      const data = await resourceCatalogService.list({
+        resourceType: 'mcp',
+        status: 'published',
+        page: 1,
+        pageSize: 100,
+        tags: tagFilter ? [tagFilter] : undefined,
+        include: 'observability',
+      });
+      setRows(data.list);
+    },
+    { resourceType: 'mcp' },
+    { debounceMs: 500 },
+  );
+
   const ridKey = (detailResourceId ?? '').trim();
 
   const loadMcpDetailByPath = useCallback(async () => {
@@ -151,6 +168,16 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
     }
     void loadMcpDetailByPath();
   }, [ridKey, loadMcpDetailByPath]);
+
+  useSilentResourceRuntimeRefresh(
+    async () => {
+      if (!ridKey) return;
+      const row = await resourceCatalogService.getByTypeAndId('mcp', ridKey, 'observability,closure');
+      setDetail(row);
+    },
+    { resourceType: 'mcp', resourceId: ridKey },
+    { enabled: ridKey.length > 0, debounceMs: 450 },
+  );
 
   useEffect(() => {
     if (!loading && !loadError && tagFilter == null) {

@@ -33,6 +33,7 @@ import {
 import { MarkdownView } from '../../components/common/MarkdownView';
 import { AgentQuickTestPanel } from '../../components/market/testing/AgentQuickTestPanel';
 import { buildResourceMarketRuntimeState } from '../../utils/resourceMarketRuntime';
+import { useSilentResourceRuntimeRefresh } from '../../hooks/useSilentResourceRuntimeRefresh';
 
 export interface AgentMarketDetailPageProps {
   resourceId: string;
@@ -119,6 +120,16 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
   useEffect(() => {
     void load();
   }, [load]);
+
+  useSilentResourceRuntimeRefresh(
+    async () => {
+      const detail = await resourceCatalogService.getByTypeAndId('agent', String(resourceId), 'observability,closure');
+      setAgent(mapCatalogItemToAgent(detail));
+      setBindingClosure(detail.bindingClosure);
+    },
+    { resourceType: 'agent', resourceId: String(resourceId) },
+    { enabled: Number.isFinite(Number(resourceId)), debounceMs: 450 },
+  );
 
   const author = useMemo(() => {
     if (!agent) return '';

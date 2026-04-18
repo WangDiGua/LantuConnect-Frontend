@@ -1,20 +1,27 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import type { Theme, FontSize } from '../../types';
-import {
-  canvasBodyBg, mainScrollCompositorClass,
-  textPrimary, textSecondary, textMuted, tableHeadCell, tableBodyRow, tableCell, btnSecondary,
-} from '../../utils/uiClasses';
 import { Activity, CheckCircle, AlertTriangle, WifiOff, RefreshCw } from 'lucide-react';
-import { healthService } from '../../api/services/health.service';
+
+import type { Theme, FontSize } from '../../types';
 import type { HealthConfigItem } from '../../types/dto/health';
+import { healthService } from '../../api/services/health.service';
 import { BentoCard } from '../../components/common/BentoCard';
 import { KpiCard } from '../../components/common/KpiCard';
 import { PageError } from '../../components/common/PageError';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { resourceTypeLabel } from '../../constants/resourceTypes';
-import { useMessage } from '../../components/common/Message';
-import { subscribeRealtimePush, isHealthConfigUpdated } from '../../lib/realtimePush';
+import { useSilentRealtimeRefresh } from '../../hooks/useSilentRealtimeRefresh';
+import {
+  btnSecondary,
+  canvasBodyBg,
+  mainScrollCompositorClass,
+  tableBodyRow,
+  tableCell,
+  tableHeadCell,
+  textMuted,
+  textPrimary,
+  textSecondary,
+} from '../../utils/uiClasses';
 
 interface Props {
   theme: Theme;
@@ -24,17 +31,36 @@ interface Props {
 type HealthStatus = 'healthy' | 'degraded' | 'down';
 
 const STATUS_CFG: Record<HealthStatus, { label: string; dot: string; lightBg: string; darkBg: string }> = {
-  healthy: { label: '正常', dot: 'bg-emerald-400', lightBg: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/60', darkBg: 'bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20' },
-  degraded: { label: '降级', dot: 'bg-amber-400', lightBg: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200/60', darkBg: 'bg-amber-500/10 text-amber-400 ring-1 ring-amber-500/20' },
-  down: { label: '离线', dot: 'bg-red-400', lightBg: 'bg-red-50 text-red-700 ring-1 ring-red-200/60', darkBg: 'bg-red-500/10 text-red-400 ring-1 ring-red-500/20' },
+  healthy: {
+    label: '正常',
+    dot: 'bg-emerald-400',
+    lightBg: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/60',
+    darkBg: 'bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20',
+  },
+  degraded: {
+    label: '降级',
+    dot: 'bg-amber-400',
+    lightBg: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200/60',
+    darkBg: 'bg-amber-500/10 text-amber-400 ring-1 ring-amber-500/20',
+  },
+  down: {
+    label: '离线',
+    dot: 'bg-red-400',
+    lightBg: 'bg-red-50 text-red-700 ring-1 ring-red-200/60',
+    darkBg: 'bg-red-500/10 text-red-400 ring-1 ring-red-500/20',
+  },
 };
 
-function mapHealthStatus(s: HealthConfigItem['healthStatus']): HealthStatus {
-  switch (s) {
-    case 'healthy': return 'healthy';
-    case 'degraded': return 'degraded';
-    case 'down': return 'down';
-    default: return 'down';
+function mapHealthStatus(status: HealthConfigItem['healthStatus']): HealthStatus {
+  switch (status) {
+    case 'healthy':
+      return 'healthy';
+    case 'degraded':
+      return 'degraded';
+    case 'down':
+      return 'down';
+    default:
+      return 'down';
   }
 }
 
@@ -62,11 +88,9 @@ function toDisplayItem(item: HealthConfigItem): DisplayItem {
 
 export const HealthCheckOverview: React.FC<Props> = ({ theme }) => {
   const isDark = theme === 'dark';
-  const { showMessage } = useMessage();
   const [items, setItems] = useState<DisplayItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<Error | null>(null);
-  const [liveSyncHint, setLiveSyncHint] = useState('');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -74,8 +98,8 @@ export const HealthCheckOverview: React.FC<Props> = ({ theme }) => {
     try {
       const configs = await healthService.listHealthConfigs();
       setItems(configs.map(toDisplayItem));
-    } catch (err) {
-      setLoadError(err instanceof Error ? err : new Error('加载健康检查数据失败'));
+    } catch (error) {
+      setLoadError(error instanceof Error ? error : new Error('加载健康检查数据失败'));
     } finally {
       setLoading(false);
     }
@@ -87,45 +111,42 @@ export const HealthCheckOverview: React.FC<Props> = ({ theme }) => {
       setItems(configs.map(toDisplayItem));
       setLoadError(null);
     } catch {
-      /* 保留旧列表 */
+      // Keep the previous snapshot when background sync fails.
     }
   }, []);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
-
   useEffect(() => {
-    return subscribeRealtimePush((msg) => {
-      if (!isHealthConfigUpdated(msg)) return;
-      void fetchDataQuiet();
-      const hint = '健康检查数据已通过实时通道更新';
-      setLiveSyncHint(hint);
-      showMessage(hint, 'info', 3000);
-      window.setTimeout(() => setLiveSyncHint(''), 4000);
-    });
-  }, [fetchDataQuiet, showMessage]);
+    void fetchData();
+  }, [fetchData]);
 
-  const healthyCount = items.filter(i => i.status === 'healthy').length;
-  const warningCount = items.filter(i => i.status === 'degraded').length;
-  const offlineCount = items.filter(i => i.status === 'down').length;
+  useSilentRealtimeRefresh(fetchDataQuiet, { categories: ['health_config_sync'] }, { debounceMs: 300 });
+  useSilentRealtimeRefresh(fetchDataQuiet, { categories: ['health_runtime_sync'] }, { debounceMs: 300 });
+
+  const healthyCount = items.filter((item) => item.status === 'healthy').length;
+  const warningCount = items.filter((item) => item.status === 'degraded').length;
+  const offlineCount = items.filter((item) => item.status === 'down').length;
 
   return (
-    <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${canvasBodyBg(theme)}`}>
-      {/* Header */}
-      <div className={`shrink-0 z-20 border-b px-4 sm:px-6 py-4 flex items-center justify-between ${isDark ? 'border-white/[0.06]' : 'border-slate-200/40'} ${canvasBodyBg(theme)}`}>
+    <div className={`flex min-h-0 flex-1 flex-col overflow-hidden ${canvasBodyBg(theme)}`}>
+      <div
+        className={`z-20 flex shrink-0 items-center justify-between border-b px-4 py-4 sm:px-6 ${
+          isDark ? 'border-white/[0.06]' : 'border-slate-200/40'
+        } ${canvasBodyBg(theme)}`}
+      >
         <div className="flex items-center gap-3">
-          <div className={`p-2.5 rounded-xl ${isDark ? 'bg-emerald-500/15' : 'bg-emerald-50'}`}>
+          <div className={`rounded-xl p-2.5 ${isDark ? 'bg-emerald-500/15' : 'bg-emerald-50'}`}>
             <Activity size={20} className={isDark ? 'text-emerald-400' : 'text-emerald-600'} />
           </div>
           <div>
             <h2 className={`text-lg font-bold ${textPrimary(theme)}`}>健康检查</h2>
-            <p className={`text-xs ${textSecondary(theme)}`}>监控已配置的健康检查项（智能体 / 技能 / MCP / 应用 / 数据集 等统一资源）</p>
-            <p className="min-h-[1.125rem] text-xs text-emerald-600/90 dark:text-emerald-400/90" aria-live="polite">
-              {liveSyncHint}
+            <p className={`text-xs ${textSecondary(theme)}`}>
+              监控已配置的健康检查项（智能体 / 技能 / MCP / 应用 / 数据集等统一资源）
             </p>
           </div>
         </div>
         <button
-          onClick={fetchData}
+          type="button"
+          onClick={() => void fetchData()}
           disabled={loading}
           className={`${btnSecondary(theme)} gap-1.5`}
         >
@@ -134,15 +155,16 @@ export const HealthCheckOverview: React.FC<Props> = ({ theme }) => {
         </button>
       </div>
 
-      <div className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4 sm:px-6 pb-5 space-y-5 ${mainScrollCompositorClass}`}>
+      <div
+        className={`custom-scrollbar flex-1 min-h-0 overflow-y-auto space-y-5 px-4 pb-5 sm:px-6 ${mainScrollCompositorClass}`}
+      >
         {loading && items.length === 0 ? (
           <PageSkeleton type="chart" />
         ) : loadError ? (
-          <PageError error={loadError} onRetry={fetchData} retryLabel="重试加载健康检查" />
+          <PageError error={loadError} onRetry={() => void fetchData()} retryLabel="重试加载健康检查" />
         ) : (
           <>
-            {/* KPI Summary */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <KpiCard
                 theme={theme}
                 label="正常"
@@ -169,15 +191,14 @@ export const HealthCheckOverview: React.FC<Props> = ({ theme }) => {
               />
             </div>
 
-            {/* Items Table */}
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.15 }}
             >
-              <BentoCard theme={theme} padding="sm" className="!p-0 overflow-hidden">
+              <BentoCard theme={theme} padding="sm" className="!overflow-hidden !p-0">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm min-w-[800px]">
+                  <table className="min-w-[800px] w-full text-left text-sm">
                     <thead>
                       <tr>
                         <th className={tableHeadCell(theme)}>名称</th>
@@ -189,29 +210,43 @@ export const HealthCheckOverview: React.FC<Props> = ({ theme }) => {
                       </tr>
                     </thead>
                     <tbody>
-                      {items.map((item, i) => {
+                      {items.map((item, index) => {
                         const cfg = STATUS_CFG[item.status];
                         return (
-                          <tr key={item.id} className={tableBodyRow(theme, i)}>
+                          <tr key={item.id} className={tableBodyRow(theme, index)}>
                             <td className={tableCell()}>
                               <span className={`font-medium ${textPrimary(theme)}`}>{item.name}</span>
                             </td>
                             <td className={tableCell()}>
-                              <span className={`inline-flex shrink-0 items-center whitespace-nowrap text-xs font-medium px-1.5 py-0.5 rounded ${
-                                isDark ? 'bg-white/[0.04] text-slate-500' : 'bg-slate-50 text-slate-400'
-                              }`}>
+                              <span
+                                className={`inline-flex shrink-0 items-center whitespace-nowrap rounded px-1.5 py-0.5 text-xs font-medium ${
+                                  isDark ? 'bg-white/[0.04] text-slate-500' : 'bg-slate-50 text-slate-400'
+                                }`}
+                              >
                                 {resourceTypeLabel(item.type)}
                               </span>
                             </td>
                             <td className={tableCell()}>
-                              <span className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${isDark ? cfg.darkBg : cfg.lightBg}`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot} ${item.status === 'healthy' ? 'animate-pulse' : ''}`} />
+                              <span
+                                className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                                  isDark ? cfg.darkBg : cfg.lightBg
+                                }`}
+                              >
+                                <span
+                                  className={`h-1.5 w-1.5 rounded-full ${cfg.dot} ${
+                                    item.status === 'healthy' ? 'animate-pulse' : ''
+                                  }`}
+                                />
                                 {cfg.label}
                               </span>
                             </td>
                             <td className={`${tableCell()} whitespace-nowrap ${textMuted(theme)}`}>{item.lastCheck}</td>
-                            <td className={`${tableCell()} whitespace-nowrap font-mono ${textSecondary(theme)}`}>{item.checkType}</td>
-                            <td className={`${tableCell()} whitespace-nowrap font-mono ${textMuted(theme)}`}>{item.intervalSec}</td>
+                            <td className={`${tableCell()} whitespace-nowrap font-mono ${textSecondary(theme)}`}>
+                              {item.checkType}
+                            </td>
+                            <td className={`${tableCell()} whitespace-nowrap font-mono ${textMuted(theme)}`}>
+                              {item.intervalSec}
+                            </td>
                           </tr>
                         );
                       })}

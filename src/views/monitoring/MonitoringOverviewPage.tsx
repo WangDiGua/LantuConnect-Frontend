@@ -1,8 +1,15 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Activity, AlertTriangle, Bell, GitBranch, RefreshCw, Search, Timer } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+
 import type { Theme, FontSize } from '../../types';
 import { MonitoringOverviewCharts } from '../../components/charts/MonitoringOverviewCharts';
+import { PageSkeleton } from '../../components/common/PageSkeleton';
+import { PageError } from '../../components/common/PageError';
+import { EmptyState } from '../../components/common/EmptyState';
+import { KpiCard } from '../../components/common/KpiCard';
+import { BentoCard } from '../../components/common/BentoCard';
+import { useSilentRealtimeRefresh } from '../../hooks/useSilentRealtimeRefresh';
 import {
   useAlertSummary,
   useCallSummaryByResource,
@@ -10,11 +17,7 @@ import {
   usePerformanceAnalysis,
 } from '../../hooks/queries/useMonitoring';
 import { buildPath } from '../../constants/consoleRoutes';
-import { PageSkeleton } from '../../components/common/PageSkeleton';
-import { PageError } from '../../components/common/PageError';
-import { EmptyState } from '../../components/common/EmptyState';
-import { KpiCard } from '../../components/common/KpiCard';
-import { BentoCard } from '../../components/common/BentoCard';
+import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import {
   btnGhost,
   btnPrimary,
@@ -23,9 +26,9 @@ import {
   textMuted,
   textPrimary,
 } from '../../utils/uiClasses';
-import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 
-const PAGE_DESC = '实时态势只承接运维总控信息：吞吐、成功率、错误率、延迟、活跃告警与异常资源，一跳下钻到性能、日志、链路、告警与健康治理。';
+const PAGE_DESC =
+  '实时态势只承接运维总控信息：吞吐、成功率、错误率、延迟、活跃告警与异常资源，一跳下钻到性能、日志、链路、告警与健康治理。';
 const BREADCRUMB = ['监控运维', '实时态势'] as const;
 const GLOW: Array<'indigo' | 'emerald' | 'amber' | 'rose'> = ['indigo', 'emerald', 'amber', 'rose'];
 
@@ -37,7 +40,7 @@ interface MonitoringOverviewPageProps {
 
 export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({
   theme,
-  fontSize,
+  fontSize: _fontSize,
 }) => {
   const navigate = useNavigate();
   const [autoRefresh, setAutoRefresh] = useState(false);
@@ -47,23 +50,28 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({
   const callMixQ = useCallSummaryByResource(24);
   const alertSummaryQ = useAlertSummary();
 
+  const refreshAll = useCallback(async () => {
+    await Promise.allSettled([
+      kpisQ.refetch(),
+      overviewPerfQ.refetch(),
+      callMixQ.refetch(),
+      alertSummaryQ.refetch(),
+    ]);
+  }, [alertSummaryQ, callMixQ, kpisQ, overviewPerfQ]);
+
   useEffect(() => {
     if (!autoRefresh) return undefined;
     const timer = window.setInterval(() => {
-      void kpisQ.refetch();
-      void overviewPerfQ.refetch();
-      void callMixQ.refetch();
-      void alertSummaryQ.refetch();
+      void refreshAll();
     }, 5000);
     return () => window.clearInterval(timer);
-  }, [alertSummaryQ, autoRefresh, callMixQ, kpisQ, overviewPerfQ]);
+  }, [autoRefresh, refreshAll]);
 
-  const refreshAll = () => {
-    void kpisQ.refetch();
-    void overviewPerfQ.refetch();
-    void callMixQ.refetch();
-    void alertSummaryQ.refetch();
-  };
+  useSilentRealtimeRefresh(
+    refreshAll,
+    { categories: ['monitoring_sync', 'critical_alert'] },
+    { debounceMs: 350 },
+  );
 
   const anomalyCards = useMemo(() => {
     const perf = overviewPerfQ.data;
@@ -101,9 +109,10 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({
       },
       {
         title: '告警与健康治理',
-        description: alerts && alerts.firing > 0
-          ? `当前有 ${alerts.firing} 条活跃告警，建议联动健康治理查看异常资源与治理动作。`
-          : '从告警处置中心与健康治理中心统一完成认领、静默、恢复和策略治理。',
+        description:
+          alerts && alerts.firing > 0
+            ? `当前有 ${alerts.firing} 条活跃告警，建议联动健康治理查看异常资源与治理动作。`
+            : '从告警处置中心与健康治理中心统一完成认领、静默、恢复和策略治理。',
         icon: Bell,
         action: '进入告警处置',
         href: buildPath('admin', 'alert-center'),
@@ -130,11 +139,20 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({
           />
           自动刷新
         </label>
-        <button type="button" onClick={() => navigate(buildPath('admin', 'performance-center'))} className={btnPrimary}>
+        <button
+          type="button"
+          onClick={() => navigate(buildPath('admin', 'performance-center'))}
+          className={btnPrimary}
+        >
           <Timer size={15} aria-hidden />
           进入性能分析中心
         </button>
-        <button type="button" onClick={refreshAll} className={btnGhost(theme)} aria-label="立即刷新实时态势数据">
+        <button
+          type="button"
+          onClick={() => void refreshAll()}
+          className={btnGhost(theme)}
+          aria-label="立即刷新实时态势数据"
+        >
           <RefreshCw size={15} aria-hidden />
           刷新
         </button>
@@ -159,12 +177,7 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({
     const perf = overviewPerfQ.data;
 
     if (kpis.length === 0) {
-      return (
-        <EmptyState
-          title="暂无监控数据"
-          description="KPI 指标为空，请检查监控采集服务是否已经启用。"
-        />
-      );
+      return <EmptyState title="暂无监控数据" description="KPI 指标为空，请检查监控采集服务是否已经启用。" />;
     }
 
     return (
@@ -232,9 +245,7 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h3 className={`text-sm font-semibold ${textPrimary(theme)}`}>实时异常摘要</h3>
-                <p className={`mt-1 text-xs ${textMuted(theme)}`}>
-                  告警、慢资源和高错误率入口都从这里继续下钻。
-                </p>
+                <p className={`mt-1 text-xs ${textMuted(theme)}`}>告警、慢资源和高错误率入口都从这里继续下钻。</p>
               </div>
               <AlertTriangle size={18} className={textMuted(theme)} aria-hidden />
             </div>
@@ -245,7 +256,9 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({
                   <span className="font-semibold text-rose-700">活跃告警</span>
                   <span className="text-lg font-bold text-rose-700">{firingCount}</span>
                 </div>
-                <p className="mt-1 text-xs text-rose-700/80">今日已恢复 {resolvedCount} 条，可进入告警处置中心认领、静默或恢复。</p>
+                <p className="mt-1 text-xs text-rose-700/80">
+                  今日已恢复 {resolvedCount} 条，可进入告警处置中心认领、静默或恢复。
+                </p>
               </div>
 
               <div className="rounded-2xl border border-amber-200 bg-amber-50/80 px-4 py-3">
@@ -290,7 +303,7 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({
   return (
     <MgmtPageShell
       theme={theme}
-      fontSize={fontSize}
+      fontSize={_fontSize}
       titleIcon={Activity}
       breadcrumbSegments={BREADCRUMB}
       description={PAGE_DESC}

@@ -26,6 +26,7 @@ import { BentoCard } from '../../components/common/BentoCard';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { Modal } from '../../components/common/Modal';
 import { RowActionGroup } from '../../components/management/RowActionGroup';
+import { useSilentRealtimeRefresh } from '../../hooks/useSilentRealtimeRefresh';
 import { resourceTypeLabel } from '../../constants/resourceTypes';
 import { formatDateTime } from '../../utils/formatDateTime';
 import {
@@ -186,23 +187,32 @@ export const HealthGovernancePage: React.FC<Props> = ({ theme, fontSize, showMes
   const [saving, setSaving] = useState(false);
   const [actionLoading, setActionLoading] = useState<'probe' | 'break' | 'recover' | null>(null);
   const [draft, setDraft] = useState<PolicyDraft>(EMPTY_DRAFT);
+  const [isPolicyDraftDirty, setIsPolicyDraftDirty] = useState(false);
   const [evidenceViewer, setEvidenceViewer] = useState<EvidenceViewerState | null>(null);
 
-  const fetchData = useCallback(() => {
-    setLoading(true);
-    healthService
-      .listResourceHealth({
+  const fetchData = useCallback(async (options?: { silent?: boolean }) => {
+    const silent = options?.silent === true;
+    if (!silent) {
+      setLoading(true);
+    }
+    try {
+      const data = await healthService.listResourceHealth({
         resourceType: typeFilter === 'all' ? undefined : typeFilter,
         healthStatus: healthFilter === 'all' ? undefined : healthFilter,
         callabilityState: callabilityFilter === 'all' ? undefined : callabilityFilter,
         probeStrategy: strategyFilter === 'all' ? undefined : strategyFilter,
-      })
-      .then((data) => setItems(data))
-      .catch((error) => {
+      });
+      setItems(data);
+    } catch (error) {
+      if (!silent) {
         console.error(error);
         showMessage('加载健康治理数据失败', 'error');
-      })
-      .finally(() => setLoading(false));
+      }
+    } finally {
+      if (!silent) {
+        setLoading(false);
+      }
+    }
   }, [callabilityFilter, healthFilter, showMessage, strategyFilter, typeFilter]);
 
   useEffect(() => {
@@ -241,20 +251,44 @@ export const HealthGovernancePage: React.FC<Props> = ({ theme, fontSize, showMes
     callable: items.filter((item) => item.callabilityState === 'callable').length,
   }), [items]);
 
-  const updateSnapshot = (snapshot: ResourceHealthSnapshotVO) => {
+  const updateSnapshot = useCallback((snapshot: ResourceHealthSnapshotVO) => {
     setItems((prev) => prev.map((item) => (item.resourceId === snapshot.resourceId ? snapshot : item)));
-  };
+    setDetailSnapshot((prev) => (
+      prev && prev.resourceId === snapshot.resourceId ? snapshot : prev
+    ));
+  }, []);
 
   const openPolicyEditor = (item: ResourceHealthSnapshotVO) => {
     setDraft(buildDraft(item));
+    setIsPolicyDraftDirty(false);
     setPolicyResourceId(item.resourceId);
   };
+
+  const closePolicyEditor = useCallback(() => {
+    setPolicyResourceId(null);
+    setIsPolicyDraftDirty(false);
+  }, []);
+
+  const updateDraftField = useCallback(<K extends keyof PolicyDraft>(key: K, value: PolicyDraft[K]) => {
+    setIsPolicyDraftDirty(true);
+    setDraft((prev) => ({ ...prev, [key]: value }));
+  }, []);
 
   const closeDetail = () => {
     setDetailResourceId(null);
     setDetailSnapshot(null);
     setEvidenceViewer(null);
   };
+
+  const refreshDetailQuiet = useCallback(async (resourceId: number) => {
+    try {
+      const snapshot = await healthService.getResourceHealth(resourceId);
+      setDetailSnapshot(snapshot);
+      updateSnapshot(snapshot);
+    } catch {
+      /* keep current detail snapshot */
+    }
+  }, [updateSnapshot]);
 
   useEffect(() => {
     if (!detailResourceId) {
@@ -273,7 +307,23 @@ export const HealthGovernancePage: React.FC<Props> = ({ theme, fontSize, showMes
         showMessage('加载健康详情失败', 'error');
       })
       .finally(() => setDetailLoading(false));
-  }, [detailResourceId, showMessage]);
+  }, [detailResourceId, showMessage, updateSnapshot]);
+
+  useEffect(() => {
+    if (!policyItem || isPolicyDraftDirty) return;
+    setDraft(buildDraft(policyItem));
+  }, [isPolicyDraftDirty, policyItem]);
+
+  useSilentRealtimeRefresh(
+    async () => {
+      await fetchData({ silent: true });
+      if (detailResourceId != null) {
+        await refreshDetailQuiet(detailResourceId);
+      }
+    },
+    { categories: ['health_config_sync', 'health_runtime_sync'] },
+    { debounceMs: 350 },
+  );
 
   const savePolicy = async () => {
     if (!policyItem) return;
@@ -303,7 +353,7 @@ export const HealthGovernancePage: React.FC<Props> = ({ theme, fontSize, showMes
         canaryPayload,
       });
       updateSnapshot(snapshot);
-      setPolicyResourceId(null);
+      closePolicyEditor();
       showMessage('健康治理策略已保存', 'success');
     } catch (error) {
       console.error(error);
@@ -776,13 +826,13 @@ export const HealthGovernancePage: React.FC<Props> = ({ theme, fontSize, showMes
 
       <Modal
         open={policyItem != null}
-        onClose={() => setPolicyResourceId(null)}
+        onClose={closePolicyEditor}
         theme={theme}
         size="xl"
         title={policyItem ? `健康治理策略 · ${policyItem.displayName}` : '健康治理策略'}
         footer={(
           <>
-            <button type="button" className={btnSecondary(theme)} onClick={() => setPolicyResourceId(null)}>取消</button>
+            <button type="button" className={btnSecondary(theme)} onClick={closePolicyEditor}>取消</button>
             <button type="button" className={btnPrimary} onClick={() => void savePolicy()} disabled={saving}>保存</button>
           </>
         )}
@@ -794,46 +844,46 @@ export const HealthGovernancePage: React.FC<Props> = ({ theme, fontSize, showMes
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className={`mb-1.5 block text-sm ${textSecondary(theme)}`}>间隔(s)</label>
-              <input className={inputCls} value={draft.intervalSec} onChange={(event) => setDraft((prev) => ({ ...prev, intervalSec: event.target.value }))} />
+              <input className={inputCls} value={draft.intervalSec} onChange={(event) => updateDraftField('intervalSec', event.target.value)} />
             </div>
             <div>
               <label className={`mb-1.5 block text-sm ${textSecondary(theme)}`}>健康阈值</label>
-              <input className={inputCls} value={draft.healthyThreshold} onChange={(event) => setDraft((prev) => ({ ...prev, healthyThreshold: event.target.value }))} />
+              <input className={inputCls} value={draft.healthyThreshold} onChange={(event) => updateDraftField('healthyThreshold', event.target.value)} />
             </div>
             <div>
               <label className={`mb-1.5 block text-sm ${textSecondary(theme)}`}>超时(s)</label>
-              <input className={inputCls} value={draft.timeoutSec} onChange={(event) => setDraft((prev) => ({ ...prev, timeoutSec: event.target.value }))} />
+              <input className={inputCls} value={draft.timeoutSec} onChange={(event) => updateDraftField('timeoutSec', event.target.value)} />
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className={`mb-1.5 block text-sm ${textSecondary(theme)}`}>失败阈值</label>
-              <input className={inputCls} value={draft.failureThreshold} onChange={(event) => setDraft((prev) => ({ ...prev, failureThreshold: event.target.value }))} />
+              <input className={inputCls} value={draft.failureThreshold} onChange={(event) => updateDraftField('failureThreshold', event.target.value)} />
             </div>
             <div>
               <label className={`mb-1.5 block text-sm ${textSecondary(theme)}`}>熔断时长(s)</label>
-              <input className={inputCls} value={draft.openDurationSec} onChange={(event) => setDraft((prev) => ({ ...prev, openDurationSec: event.target.value }))} />
+              <input className={inputCls} value={draft.openDurationSec} onChange={(event) => updateDraftField('openDurationSec', event.target.value)} />
             </div>
             <div>
               <label className={`mb-1.5 block text-sm ${textSecondary(theme)}`}>半开最大调用</label>
-              <input className={inputCls} value={draft.halfOpenMaxCalls} onChange={(event) => setDraft((prev) => ({ ...prev, halfOpenMaxCalls: event.target.value }))} />
+              <input className={inputCls} value={draft.halfOpenMaxCalls} onChange={(event) => updateDraftField('halfOpenMaxCalls', event.target.value)} />
             </div>
           </div>
           <div>
             <label className={`mb-1.5 block text-sm ${textSecondary(theme)}`}>降级资源编码</label>
-            <input className={inputCls} value={draft.fallbackResourceCode} onChange={(event) => setDraft((prev) => ({ ...prev, fallbackResourceCode: event.target.value }))} />
+            <input className={inputCls} value={draft.fallbackResourceCode} onChange={(event) => updateDraftField('fallbackResourceCode', event.target.value)} />
           </div>
           <div>
             <label className={`mb-1.5 block text-sm ${textSecondary(theme)}`}>降级提示</label>
-            <textarea className={`${inputCls} min-h-24`} value={draft.fallbackMessage} onChange={(event) => setDraft((prev) => ({ ...prev, fallbackMessage: event.target.value }))} />
+            <textarea className={`${inputCls} min-h-24`} value={draft.fallbackMessage} onChange={(event) => updateDraftField('fallbackMessage', event.target.value)} />
           </div>
           <div>
             <label className={`mb-1.5 block text-sm ${textSecondary(theme)}`}>Probe config JSON</label>
-            <textarea className={`${inputCls} min-h-32 font-mono text-xs`} value={draft.probeConfigText} onChange={(event) => setDraft((prev) => ({ ...prev, probeConfigText: event.target.value }))} />
+            <textarea className={`${inputCls} min-h-32 font-mono text-xs`} value={draft.probeConfigText} onChange={(event) => updateDraftField('probeConfigText', event.target.value)} />
           </div>
           <div>
             <label className={`mb-1.5 block text-sm ${textSecondary(theme)}`}>Canary payload JSON</label>
-            <textarea className={`${inputCls} min-h-32 font-mono text-xs`} value={draft.canaryPayloadText} onChange={(event) => setDraft((prev) => ({ ...prev, canaryPayloadText: event.target.value }))} />
+            <textarea className={`${inputCls} min-h-32 font-mono text-xs`} value={draft.canaryPayloadText} onChange={(event) => updateDraftField('canaryPayloadText', event.target.value)} />
           </div>
         </div>
       </Modal>

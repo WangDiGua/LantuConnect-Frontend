@@ -43,6 +43,7 @@ import { MarkdownView } from '../../components/common/MarkdownView';
 import { SkillQuickTestPanel } from '../../components/market/testing/SkillQuickTestPanel';
 import { mapCatalogItemToSkill } from '../../api/services/skill.service';
 import { buildResourceMarketRuntimeState } from '../../utils/resourceMarketRuntime';
+import { useSilentResourceRuntimeRefresh } from '../../hooks/useSilentResourceRuntimeRefresh';
 
 const TYPE_BADGE: Record<AgentType, { label: string; cls: string }> = {
   mcp: { label: 'MCP', cls: 'text-neutral-900 bg-neutral-900/10' },
@@ -129,6 +130,16 @@ export const SkillMarketDetailPage: React.FC<SkillMarketDetailPageProps> = ({
   useEffect(() => {
     void load();
   }, [load]);
+
+  useSilentResourceRuntimeRefresh(
+    async () => {
+      const detail = await resourceCatalogService.getByTypeAndId('skill', String(resourceId), 'observability,closure');
+      setSkill(mapCatalogItemToSkill(detail));
+      setBindingClosure(detail.bindingClosure);
+    },
+    { resourceType: 'skill', resourceId: String(resourceId) },
+    { enabled: Number.isFinite(Number(resourceId)), debounceMs: 450 },
+  );
 
   const handleFavorite = useCallback(async () => {
     if (!skill || favoriteLoading) return;

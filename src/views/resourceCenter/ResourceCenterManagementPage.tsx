@@ -59,6 +59,8 @@ import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
 import { AutoHeightTextarea } from '../../components/common/AutoHeightTextarea';
 import { healthService } from '../../api/services/health.service';
 import { RowActionGroup } from '../../components/management/RowActionGroup';
+import { useSilentRealtimeRefresh } from '../../hooks/useSilentRealtimeRefresh';
+import { RESOURCE_WORKFLOW_NOTIFICATION_TYPES } from '../../lib/realtimeUiSignal';
 import { buildPath } from '../../constants/consoleRoutes';
 
 /** 生命周期时间轴节点颜色（按 status / eventType 粗分） */
@@ -274,9 +276,12 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
     if (resourceType) setActiveType(resourceType);
   }, [resourceType]);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setLoadError(null);
+  const fetchData = useCallback(async (options?: { silent?: boolean }) => {
+    const silent = options?.silent === true;
+    if (!silent) {
+      setLoading(true);
+      setLoadError(null);
+    }
     try {
       const pageData = await resourceCenterService.listMine({
         page,
@@ -288,14 +293,19 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
       });
       setItems(pageData.list);
       setTotal(pageData.total);
+      setLoadError(null);
     } catch (err) {
+      if (!silent) {
       const error = err instanceof Error ? err : new Error('加载资源失败');
       setLoadError(error);
       setItems([]);
       setTotal(0);
       showMessage(error.message, 'error');
+      }
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   }, [activeType, keyword, page, showMessage, statusFilter]);
 
@@ -324,6 +334,45 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
       cancelled = true;
     };
   }, [timelineTarget]);
+
+  const refreshLifecyclePanelsQuiet = useCallback(async () => {
+    if (!timelineTarget) return;
+    const [timelineResult, observabilityResult, healthResult] = await Promise.allSettled([
+      resourceCenterService.getLifecycleTimeline(timelineTarget.id),
+      resourceCenterService.getObservabilitySummary(timelineTarget.resourceType, timelineTarget.id),
+      healthService.getResourceHealth(timelineTarget.id),
+    ]);
+    if (timelineResult.status === 'fulfilled') {
+      setTimelineData(timelineResult.value);
+    }
+    if (observabilityResult.status === 'fulfilled') {
+      setObservabilityData(observabilityResult.value);
+    }
+    if (healthResult.status === 'fulfilled') {
+      setResourceHealthSnapshot(healthResult.value);
+    }
+  }, [timelineTarget]);
+
+  useSilentRealtimeRefresh(
+    async () => {
+      await fetchData({ silent: true });
+      await refreshLifecyclePanelsQuiet();
+    },
+    { categories: ['audit_sync', 'health_config_sync', 'health_runtime_sync'] },
+    { debounceMs: 350 },
+  );
+
+  useSilentRealtimeRefresh(
+    async () => {
+      await fetchData({ silent: true });
+      await refreshLifecyclePanelsQuiet();
+    },
+    {
+      categories: ['workflow_notification_sync'],
+      notificationTypes: [...RESOURCE_WORKFLOW_NOTIFICATION_TYPES],
+    },
+    { debounceMs: 350 },
+  );
 
   const clearRcSelection = useCallback(() => setSelectedRcIds(new Set()), []);
 
@@ -1397,6 +1446,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                       try {
                         const snapshot = await healthService.probeResourceHealth(timelineTarget.id);
                         setResourceHealthSnapshot(snapshot);
+                        await refreshLifecyclePanelsQuiet();
                         showMessage('资源健康已重新探测', 'success');
                       } catch (e) {
                         showMessage(e instanceof Error ? e.message : '重新探测失败', 'error');
@@ -1416,6 +1466,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                       try {
                         const snapshot = await healthService.manualBreakResource(timelineTarget.id);
                         setResourceHealthSnapshot(snapshot);
+                        await refreshLifecyclePanelsQuiet();
                         showMessage('资源已手动熔断', 'success');
                       } catch (e) {
                         showMessage(e instanceof Error ? e.message : '手动熔断失败', 'error');
@@ -1435,6 +1486,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                       try {
                         const snapshot = await healthService.manualRecoverResource(timelineTarget.id);
                         setResourceHealthSnapshot(snapshot);
+                        await refreshLifecyclePanelsQuiet();
                         showMessage('资源已恢复可用', 'success');
                       } catch (e) {
                         showMessage(e instanceof Error ? e.message : '手动恢复失败', 'error');

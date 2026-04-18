@@ -35,6 +35,7 @@ import type { TagItem } from '../../types/dto/tag';
 import type { ResourceCatalogItemVO } from '../../types/dto/catalog';
 import { resourceCatalogService } from '../../api/services/resource-catalog.service';
 import { buildResourceMarketRuntimeState } from '../../utils/resourceMarketRuntime';
+import { useSilentResourceRuntimeRefresh } from '../../hooks/useSilentResourceRuntimeRefresh';
 
 export interface AgentMarketProps {
   theme: Theme;
@@ -140,9 +141,12 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
     }
   }, [loading, error, tagFilter]);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const load = useCallback(async (options?: { silent?: boolean }) => {
+    const silent = options?.silent === true;
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const data = await agentService.list({
         status: 'published',
@@ -163,6 +167,20 @@ export const AgentMarket: React.FC<AgentMarketProps> = ({ theme, fontSize, theme
   useEffect(() => {
     void load();
   }, [load]);
+
+  useSilentResourceRuntimeRefresh(
+    async () => {
+      const data = await agentService.list({
+        status: 'published',
+        page: 1,
+        pageSize: 100,
+        tags: tagFilter ? [tagFilter] : undefined,
+      });
+      setAgents(data.list);
+    },
+    { resourceType: 'agent' },
+    { debounceMs: 500 },
+  );
 
   useEffect(() => {
     if (catalogTags.length === 0 && tagFilter !== null) setTagFilter(null);

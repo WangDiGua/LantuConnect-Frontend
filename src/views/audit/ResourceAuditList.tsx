@@ -51,6 +51,7 @@ const AUDIT_NOTIFICATION_TYPES = new Set([
   'resource_published',
   'resource_withdrawn',
   'resource_deprecated',
+  'platform_resource_force_deprecated',
 ]);
 
 interface Props {
@@ -423,7 +424,7 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
                 label: '驳回',
                 icon: XCircle,
                 tone: 'danger',
-                hidden: item.status !== 'pending_review' && item.status !== 'testing',
+                hidden: item.status !== 'pending_review',
                 disabled: !!runningActionId,
                 onClick: () => {
                   setRejectTarget(item);

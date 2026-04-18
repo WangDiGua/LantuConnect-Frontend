@@ -330,7 +330,8 @@ flowchart TD
     adminPublish --> catalogList["GET /catalog/resources?resourceType=...&status=published"]
     catalogList --> resolveRes["POST /catalog/resolve"]
     resolveRes --> useByType{"resourceType"}
-    useByType -->|agent/skill/mcp| invokeCall["POST /invoke"]
+    useByType -->|agent/mcp| invokeCall["POST /invoke"]
+    useByType -->|skill| fetchSkillContext["GET detail / POST resolve"]
     useByType -->|app| openUrl["open endpoint / embed"]
     useByType -->|dataset| showMeta["show metadata/spec"]
 ```
@@ -387,7 +388,8 @@ flowchart TD
 ## 9.3 Skill
 
 - 目标：工具型能力（HTTP/MCP 子能力）
-- 同样可 resolve + invoke
+- 仅可 resolve 获取 `contextPrompt / parametersSchema / 绑定 MCP`
+- 不走统一 `POST /invoke`；如需执行工具能力，应 invoke Skill 绑定的 MCP
 
 ## 9.4 Dataset
 
@@ -479,7 +481,8 @@ flowchart TD
 
 - 统一先 resolve
 - 再按类型分流：
-  - `mcp/agent/skill` -> invoke
+  - `mcp/agent` -> invoke
+  - `skill` -> 拉取 context / schema / 绑定 MCP，供门户或 Agent 编排使用
   - `app` -> URL 打开/嵌入
   - `dataset` -> 展示 metadata/spec
 
@@ -529,7 +532,8 @@ flowchart TD
 
 ## 13.2 其余四类验收最小集
 
-- Agent/Skill：同 MCP 全链路（包含 invoke）
+- Agent：同 MCP 全链路（包含 invoke）
+- Skill：发布后可 resolve 获取上下文规范与绑定 MCP，不走统一 invoke
 - App：发布后可 resolve，前端可按 endpoint 正常跳转/嵌入
 - Dataset：发布后可 resolve，前端展示元数据字段完整
 

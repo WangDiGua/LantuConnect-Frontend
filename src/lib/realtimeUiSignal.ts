@@ -8,6 +8,8 @@ export const RESOURCE_WORKFLOW_NOTIFICATION_TYPES = [
   'resource_published',
   'resource_withdrawn',
   'resource_deprecated',
+  'resource_version_switched',
+  'platform_resource_force_deprecated',
 ] as const;
 
 export const ONBOARDING_WORKFLOW_NOTIFICATION_TYPES = [

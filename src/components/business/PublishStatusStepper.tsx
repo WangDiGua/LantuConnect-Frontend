@@ -3,15 +3,18 @@ import type { Theme } from '../../types';
 import type { AgentStatus } from '../../types/dto/agent';
 import { textMuted, textSecondary } from '../../utils/uiClasses';
 
+type PublishLifecycleStatus = AgentStatus | 'merged_live';
+
 const DEFAULT_FLOW: AgentStatus[] = ['draft', 'pending_review', 'testing', 'published'];
 
-const STEP_LABEL: Record<AgentStatus, string> = {
+const STEP_LABEL: Record<PublishLifecycleStatus, string> = {
   draft: '草稿',
   pending_review: '待审核',
   testing: '测试中',
   published: '已发布',
   rejected: '已驳回',
   deprecated: '已暂停对外',
+  merged_live: '已合并上线',
 };
 
 interface Props {
@@ -22,10 +25,11 @@ interface Props {
 
 export const PublishStatusStepper: React.FC<Props> = ({ theme, current, flow = DEFAULT_FLOW }) => {
   const isDark = theme === 'dark';
-  const st = current as AgentStatus;
+  const st = current as PublishLifecycleStatus;
 
-  if (st === 'rejected' || st === 'deprecated') {
+  if (st === 'rejected' || st === 'deprecated' || st === 'merged_live') {
     const isRej = st === 'rejected';
+    const isMergedLive = st === 'merged_live';
     return (
       <div className="flex flex-wrap items-center gap-2">
         <span
@@ -34,6 +38,10 @@ export const PublishStatusStepper: React.FC<Props> = ({ theme, current, flow = D
               ? isDark
                 ? 'text-rose-400'
                 : 'text-rose-600'
+              : isMergedLive
+                ? isDark
+                  ? 'text-teal-300'
+                  : 'text-teal-700'
               : isDark
                 ? 'text-slate-400'
                 : 'text-slate-500'
@@ -42,7 +50,11 @@ export const PublishStatusStepper: React.FC<Props> = ({ theme, current, flow = D
           {STEP_LABEL[st]}
         </span>
         <span className={`text-xs ${textMuted(theme)}`}>
-          {isRej ? '未通过审核，可修改后重新提交' : '该资源已暂停对外开放'}
+          {isRej
+            ? '未通过审核，可修改后重新提交'
+            : isMergedLive
+              ? '已发布变更已通过审核，并合并至线上默认版本'
+              : '该资源已暂停对外开放'}
         </span>
       </div>
     );

@@ -70,6 +70,24 @@ test('getRealtimeUiSignal classifies realtime pushes for UI policy', () => {
         resourceCode: undefined,
       },
     ],
+    [
+      {
+        type: 'notification',
+        notification: {
+          type: 'platform_resource_force_deprecated',
+          resourceType: 'mcp',
+          resourceId: '42',
+          resourceCode: 'supabase-community',
+        },
+      },
+      {
+        category: 'workflow_notification_sync',
+        notificationType: 'platform_resource_force_deprecated',
+        resourceType: 'mcp',
+        resourceId: '42',
+        resourceCode: 'supabase-community',
+      },
+    ],
   ];
 
   for (const [msg, expected] of cases) {
@@ -126,5 +144,22 @@ test('matchesRealtimeUiSignal filters by category and workflow notification type
       resourceType: 'agent',
     }),
     false,
+  );
+  assert.equal(
+    matchesRealtimeUiSignal(
+      {
+        category: 'workflow_notification_sync',
+        notificationType: 'resource_version_switched',
+        resourceType: 'mcp',
+        resourceId: '8',
+      },
+      {
+        categories: ['workflow_notification_sync'],
+        notificationTypes: ['resource_version_switched'],
+        resourceType: 'mcp',
+        resourceId: '8',
+      },
+    ),
+    true,
   );
 });

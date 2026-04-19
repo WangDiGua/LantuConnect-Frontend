@@ -46,6 +46,8 @@ export interface ResourceCatalogItemVO {
   downloadCount?: number;
   /** t_resource.view_count */
   viewCount?: number;
+  agentExposure?: string;
+  agentDeliveryMode?: string;
   categoryName?: string;
   /** 数据集目录项扩展字段（若有） */
   dataType?: string;
@@ -91,6 +93,8 @@ export interface ResourceResolveVO {
   endpoint?: string;
   launchToken?: string;
   launchUrl?: string;
+  agentExposure?: string;
+  agentDeliveryMode?: string;
   tags?: string[];
   observability?: Record<string, unknown>;
   quality?: Record<string, unknown>;

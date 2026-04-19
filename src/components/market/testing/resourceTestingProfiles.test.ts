@@ -29,6 +29,36 @@ test('buildAgentTestingProfile prefers resolve suggested payload over protocol f
   });
 });
 
+test('buildAgentTestingProfile uses adapter-aware payload defaults for platform agents', () => {
+  const profile = buildAgentTestingProfile({
+    registrationProtocol: 'openai_compatible',
+    modelAlias: 'dify-sales-agent',
+    adapterId: 'dify',
+  });
+
+  assert.equal(profile.protocol, 'openai_compatible');
+  assert.equal(profile.protocolLabel, 'Dify Adapter');
+  assert.deepEqual(profile.nativePayload, {
+    input: 'hello',
+    session_id: 'test-session',
+  });
+});
+
+test('buildAgentTestingProfile labels Tencent Yuanqi as a platform adapter and keeps the generic session payload', () => {
+  const profile = buildAgentTestingProfile({
+    registrationProtocol: 'openai_compatible',
+    modelAlias: 'yuanqi-support-agent',
+    adapterId: 'tencent_yuanqi',
+  });
+
+  assert.equal(profile.protocol, 'openai_compatible');
+  assert.equal(profile.protocolLabel, '腾讯元器 Adapter');
+  assert.deepEqual(profile.nativePayload, {
+    input: 'hello',
+    session_id: 'test-session',
+  });
+});
+
 test('buildSkillToolCatalog merges binding closure source labels into the unified tool list', () => {
   const tools = buildSkillToolCatalog(
     [

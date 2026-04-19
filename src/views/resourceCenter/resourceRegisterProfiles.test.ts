@@ -2,9 +2,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  buildAgentAdapterSpecMeta,
   coerceMcpRegisterMode,
   createStructuredParamField,
+  extractAgentProviderPresetFromSpec,
   resolveAgentProviderPreset,
+  stripAgentAdapterSpecMeta,
   structuredParamFieldsToSchema,
 } from './resourceRegisterProfiles.ts';
 
@@ -15,6 +18,40 @@ test('resolveAgentProviderPreset maps DeepSeek endpoints into the openai-compati
   });
 
   assert.equal(preset, 'deepseek');
+});
+
+test('resolveAgentProviderPreset recognizes platform-agent presets from endpoint and upstream id hints', () => {
+  const difyPreset = resolveAgentProviderPreset({
+    registrationProtocol: 'openai_compatible',
+    upstreamEndpoint: 'https://api.dify.ai/v1/chat-messages',
+    upstreamAgentId: 'app-123',
+  });
+  const openAiAgentsPreset = resolveAgentProviderPreset({
+    registrationProtocol: 'openai_compatible',
+    upstreamEndpoint: 'https://api.openai.com/v1/responses',
+    upstreamAgentId: 'asst_123',
+  });
+  const yuanqiPreset = resolveAgentProviderPreset({
+    registrationProtocol: 'openai_compatible',
+    upstreamEndpoint: 'https://lke.cloud.tencent.com/v1/qbot/chat/sse',
+    upstreamAgentId: 'bot-app-key-123',
+  });
+
+  assert.equal(difyPreset, 'dify');
+  assert.equal(openAiAgentsPreset, 'openai_agents');
+  assert.equal(yuanqiPreset, 'tencent_yuanqi');
+});
+
+test('agent adapter spec helpers preserve user spec while carrying hidden adapter metadata', () => {
+  const merged = {
+    timeout: 30,
+    ...buildAgentAdapterSpecMeta('appbuilder'),
+  };
+
+  assert.equal(extractAgentProviderPresetFromSpec(merged), 'appbuilder');
+  assert.deepEqual(stripAgentAdapterSpecMeta(merged), {
+    timeout: 30,
+  });
 });
 
 test('coerceMcpRegisterMode never keeps stdio as a registerable MCP transport', () => {

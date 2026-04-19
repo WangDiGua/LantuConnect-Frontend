@@ -108,6 +108,12 @@ export function normalizeCatalogItem(row: unknown): ResourceCatalogItemVO {
     usageCount: numStat(x.usageCount ?? x.usage_count),
     downloadCount: numStat(x.downloadCount ?? x.download_count),
     viewCount: numStat(x.viewCount ?? x.view_count),
+    agentExposure:
+      x.agentExposure == null && x.agent_exposure == null ? undefined : String(x.agentExposure ?? x.agent_exposure),
+    agentDeliveryMode:
+      x.agentDeliveryMode == null && x.agent_delivery_mode == null
+        ? undefined
+        : String(x.agentDeliveryMode ?? x.agent_delivery_mode).trim().toLowerCase(),
     observability: normalizeCatalogObservability(x),
     quality: x.quality && typeof x.quality === 'object' ? (x.quality as Record<string, unknown>) : undefined,
     hasGrantForKey:
@@ -150,6 +156,12 @@ function normalizeCatalogDetail(raw: unknown): CatalogResourceDetailVO {
     endpoint: x.endpoint == null ? undefined : String(x.endpoint),
     launchToken: x.launchToken == null && x.launch_token == null ? undefined : String(x.launchToken ?? x.launch_token),
     launchUrl: x.launchUrl == null && x.launch_url == null ? undefined : String(x.launchUrl ?? x.launch_url),
+    agentExposure:
+      x.agentExposure == null && x.agent_exposure == null ? base.agentExposure : String(x.agentExposure ?? x.agent_exposure),
+    agentDeliveryMode:
+      x.agentDeliveryMode == null && x.agent_delivery_mode == null
+        ? base.agentDeliveryMode
+        : String(x.agentDeliveryMode ?? x.agent_delivery_mode).trim().toLowerCase(),
     spec: x.spec && typeof x.spec === 'object' ? (x.spec as Record<string, unknown>) : undefined,
     agentType:
       x.agentType == null && x.agent_type == null

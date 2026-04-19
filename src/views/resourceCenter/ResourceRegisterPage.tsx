@@ -34,13 +34,24 @@ import { parseAgentConfigPaste } from '../../utils/agentConfigImport';
 import { lantuCheckboxPrimaryClass } from '../../utils/formFieldClasses';
 import { ReviewMarkdownEditor } from '../../components/common/ReviewMarkdownEditor';
 import {
+  AGENT_DELIVERY_MODE_API,
+  AGENT_DELIVERY_MODE_PAGE,
+  resolveAgentDeliveryMode,
+  shouldOpenAgentRegisterAsPageMode,
+  type AgentDeliveryMode,
+} from './agentDeliveryMode';
+import {
   AGENT_PROVIDER_PRESET_OPTIONS,
+  buildAgentAdapterSpecMeta,
   coerceMcpRegisterMode,
   createStructuredParamField,
   defaultEndpointForAgentProviderPreset,
+  extractAgentProviderPresetFromSpec,
+  getAgentProviderPresetMeta,
   protocolForAgentProviderPreset,
   resolveAgentProviderPreset,
   schemaToStructuredParamFields,
+  stripAgentAdapterSpecMeta,
   structuredParamFieldsToSchema,
   type AgentProviderPreset,
   type StructuredParamField,
@@ -94,6 +105,24 @@ const DATASET_FORMAT_OPTIONS = [
   { value: 'docx', label: 'DOCX' },
   { value: 'xlsx', label: 'XLSX' },
 ];
+
+const AGENT_DELIVERY_OPTIONS: Array<{
+  value: AgentDeliveryMode;
+  title: string;
+  description: string;
+}> = [
+  {
+    value: AGENT_DELIVERY_MODE_API,
+    title: 'API 型 Agent',
+    description: '注册上游模型协议、endpoint 与 model alias，走 resolve / invoke。',
+  },
+  {
+    value: AGENT_DELIVERY_MODE_PAGE,
+    title: '页面型 Agent',
+    description: '注册页面地址与打开方式，走 resolve / redirect。',
+  },
+];
+
 function isValidUrl(value: string): boolean {
   try {
     const url = new URL(value);
@@ -785,6 +814,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
   const [mcpProbeExtra, setMcpProbeExtra] = useState<Partial<Record<'endpoint' | 'authConfigJson', string>>>({});
   const [agentAdvancedOpen, setAgentAdvancedOpen] = useState(false);
   const [agentProviderPreset, setAgentProviderPreset] = useState<AgentProviderPreset>('openai');
+  const [agentDeliveryMode, setAgentDeliveryMode] = useState<AgentDeliveryMode>(AGENT_DELIVERY_MODE_API);
   const [skillParamFields, setSkillParamFields] = useState<StructuredParamField[]>(
     schemaToStructuredParamFields(JSON.parse(DEFAULT_SKILL_PARAMS_SCHEMA_JSON)),
   );
@@ -856,6 +886,8 @@ export const ResourceRegisterPage: React.FC<Props> = ({
   const [relationPicklistLoading, setRelationPicklistLoading] = useState(false);
   const [relationPicklistError, setRelationPicklistError] = useState(false);
   const [mcpBindPickPool, setMcpBindPickPool] = useState<ResourceCenterItemVO[]>([]);
+  const effectiveResourceType: ResourceType =
+    resourceType === 'agent' && agentDeliveryMode === AGENT_DELIVERY_MODE_PAGE ? 'app' : resourceType;
 
   useEffect(() => {
     let cancelled = false;
@@ -907,6 +939,9 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       setLoadedResourceMeta(null);
       bindingSnapshotRef.current = { relatedMcpResourceIds: '' };
       setAgentProviderPreset('openai');
+      if (resourceType === 'agent') {
+        setAgentDeliveryMode(AGENT_DELIVERY_MODE_API);
+      }
       setSkillParamFields(schemaToStructuredParamFields(JSON.parse(DEFAULT_SKILL_PARAMS_SCHEMA_JSON)));
     }
   }, [resourceId]);
@@ -918,16 +953,22 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     resourceCenterService.getById(resourceId)
       .then((item) => {
         if (cancelled) return;
+        const editingPageAgent =
+          resourceType === 'agent' && shouldOpenAgentRegisterAsPageMode(item);
+        const loadedEffectiveType: ResourceType = editingPageAgent ? 'app' : resourceType;
+        if (resourceType === 'agent') {
+          setAgentDeliveryMode(resolveAgentDeliveryMode(item));
+        }
         if (item.sourceType && item.sourceType !== 'internal') setAdvancedOpen(true);
         if (
-          resourceType === 'agent' &&
+          loadedEffectiveType === 'agent' &&
           (item.hidden === true || item.maxSteps != null || item.temperature != null)
         ) {
           setAgentAdvancedOpen(true);
         }
         bindingSnapshotRef.current = {
           relatedMcpResourceIds:
-            resourceType === 'agent' || resourceType === 'skill'
+            loadedEffectiveType === 'agent' || loadedEffectiveType === 'skill'
               ? Array.isArray(item.relatedMcpResourceIds)
                 ? item.relatedMcpResourceIds.join(', ')
                 : ''
@@ -962,7 +1003,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                 )
               : prev.mcpTransport,
           protocol: item.protocol || 'mcp',
-          ...(resourceType === 'mcp'
+          ...(loadedEffectiveType === 'mcp'
             ? {
                 authType: item.authType || 'none',
                 ...deriveMcpAuthForm(
@@ -973,7 +1014,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                 ),
               }
             : {}),
-          ...(resourceType === 'app'
+          ...(loadedEffectiveType === 'app'
             ? {
                 appUrl: item.appUrl || '',
                 embedType: item.embedType || 'iframe',
@@ -982,7 +1023,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                   Array.isArray(item.screenshots) && item.screenshots.length > 0 ? item.screenshots.join('\n') : '',
               }
             : {}),
-          ...(resourceType === 'dataset'
+          ...(loadedEffectiveType === 'dataset'
             ? {
                 dataType: item.dataType || 'structured',
                 format: item.format || 'json',
@@ -991,12 +1032,12 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                 tags: Array.isArray(item.tags) ? item.tags.join(',') : '',
               }
             : {}),
-          ...(resourceType === 'app'
+          ...(loadedEffectiveType === 'app'
             ? {
                 relatedResourceIds: Array.isArray(item.relatedResourceIds) ? item.relatedResourceIds.join(', ') : '',
               }
             : {}),
-          ...(resourceType === 'agent'
+          ...(loadedEffectiveType === 'agent'
             ? {
                 registrationProtocol: item.registrationProtocol || prev.registrationProtocol,
                 upstreamEndpoint: item.upstreamEndpoint || prev.upstreamEndpoint,
@@ -1007,7 +1048,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                 agentEnabled: item.enabled ?? true,
                 specJson:
                   item.spec && typeof item.spec === 'object'
-                    ? JSON.stringify(item.spec, null, 2)
+                    ? JSON.stringify(stripAgentAdapterSpecMeta(item.spec), null, 2)
                     : prev.specJson,
                 systemPrompt: item.systemPrompt ?? '',
                 maxConcurrency: item.maxConcurrency ?? prev.maxConcurrency,
@@ -1019,7 +1060,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                   : '',
               }
             : {}),
-          ...(resourceType === 'skill'
+          ...(loadedEffectiveType === 'skill'
             ? {
                 contextPrompt: item.contextPrompt ?? '',
                 relatedMcpResourceIds: Array.isArray(item.relatedMcpResourceIds)
@@ -1043,15 +1084,19 @@ export const ResourceRegisterPage: React.FC<Props> = ({
           pendingPublishedUpdate: item.pendingPublishedUpdate,
           workingDraftAuditTier: item.workingDraftAuditTier,
         });
-        if (resourceType === 'agent') {
+        if (loadedEffectiveType === 'agent') {
+          const presetFromSpec =
+            item.spec && typeof item.spec === 'object' ? extractAgentProviderPresetFromSpec(item.spec) : undefined;
           setAgentProviderPreset(
-            resolveAgentProviderPreset({
-              registrationProtocol: item.registrationProtocol,
-              upstreamEndpoint: item.upstreamEndpoint,
-            }),
+            presetFromSpec
+              ?? resolveAgentProviderPreset({
+                registrationProtocol: item.registrationProtocol,
+                upstreamEndpoint: item.upstreamEndpoint,
+                upstreamAgentId: item.upstreamAgentId,
+              }),
           );
         }
-        if (resourceType === 'skill') {
+        if (loadedEffectiveType === 'skill') {
           setSkillParamFields(
             schemaToStructuredParamFields(item.parametersSchema ?? JSON.parse(DEFAULT_SKILL_PARAMS_SCHEMA_JSON)),
           );
@@ -1069,8 +1114,11 @@ export const ResourceRegisterPage: React.FC<Props> = ({
   }, [resourceId, resourceType, showMessage]);
 
   const registerGuideLine = useMemo(() => {
-    if (resourceType === 'agent') {
+    if (resourceType === 'agent' && agentDeliveryMode === AGENT_DELIVERY_MODE_API) {
       return 'Agent 注册优先走供应商预设和最少必填项，复杂运行细节统一收进高级配置。';
+    }
+    if (resourceType === 'agent' && agentDeliveryMode === AGENT_DELIVERY_MODE_PAGE) {
+      return '页面型 Agent 走页面地址与打开方式登记，适合门户打开、iframe 嵌入或微前端接入。';
     }
     if (resourceType === 'skill') {
       return 'Skill 固定为 Context 能力注册：先写正文和结构化参数，绑定 MCP 放到注册成功后。';
@@ -1079,12 +1127,12 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       return 'MCP 只支持平台可远程调用的 HTTP / SSE / WebSocket 接入，不再提供 stdio 注册。';
     }
     return TYPE_GUIDE_ONE_LINE[resourceType];
-  }, [resourceType]);
+  }, [agentDeliveryMode, resourceType]);
   const openAiBaseUrl = useMemo(() => {
     if (typeof window === 'undefined') return '/regis/openai/v1';
     return `${window.location.origin}/regis/openai/v1`;
   }, []);
-  const agentPresetMeta = AGENT_PROVIDER_PRESET_OPTIONS.find((item) => item.value === agentProviderPreset);
+  const agentPresetMeta = getAgentProviderPresetMeta(agentProviderPreset);
 
   const addSkillParam = () => {
     setSkillParamFields((prev) => [...prev, createStructuredParamField()]);
@@ -1099,8 +1147,8 @@ export const ResourceRegisterPage: React.FC<Props> = ({
   };
 
   const fieldErrors = useMemo((): Partial<Record<ResourceRegisterFieldKey, string>> => {
-    const next = computeResourceRegisterFieldErrors(resourceType, form);
-    if (resourceType === 'mcp') {
+    const next = computeResourceRegisterFieldErrors(effectiveResourceType, form);
+    if (effectiveResourceType === 'mcp') {
       const built = buildMcpAuthConfigFromForm(form);
       if (built.ok === false) {
         next.authConfigJson = built.message;
@@ -1144,7 +1192,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
       form.specJson,
       form.relatedMcpResourceIds,
       form.contextPrompt,
-      resourceType,
+      effectiveResourceType,
     ]);
 
   useEffect(() => {
@@ -1153,23 +1201,24 @@ export const ResourceRegisterPage: React.FC<Props> = ({
   }, [skillParamFields]);
 
   useEffect(() => {
-    if (resourceType !== 'agent') return;
+    if (resourceType !== 'agent' || agentDeliveryMode !== AGENT_DELIVERY_MODE_API) return;
     const nextProtocol = protocolForAgentProviderPreset(agentProviderPreset);
     setForm((prev) => (prev.registrationProtocol === nextProtocol ? prev : { ...prev, registrationProtocol: nextProtocol }));
-  }, [agentProviderPreset, resourceType]);
+  }, [agentDeliveryMode, agentProviderPreset, resourceType]);
 
   useEffect(() => {
-    if (resourceType !== 'agent') return;
+    if (resourceType !== 'agent' || agentDeliveryMode !== AGENT_DELIVERY_MODE_API) return;
     if (!form.upstreamEndpoint.trim()) return;
     const resolved = resolveAgentProviderPreset({
       providerPreset: agentProviderPreset,
       registrationProtocol: form.registrationProtocol,
       upstreamEndpoint: form.upstreamEndpoint,
+      upstreamAgentId: form.upstreamAgentId,
     });
     if (resolved !== agentProviderPreset) {
       setAgentProviderPreset(resolved);
     }
-  }, [agentProviderPreset, form.registrationProtocol, form.upstreamEndpoint, resourceType]);
+  }, [agentDeliveryMode, agentProviderPreset, form.registrationProtocol, form.upstreamAgentId, form.upstreamEndpoint, resourceType]);
 
   useEffect(() => {
     const built = buildMcpAuthConfigFromForm(form);
@@ -1196,13 +1245,13 @@ export const ResourceRegisterPage: React.FC<Props> = ({
   }, [form.endpoint, form.authConfigJson, form.authType, form.mcpRegisterMode]);
 
   useEffect(() => {
-    if (resourceType !== 'agent' || !resourceId) {
+    if (resourceType !== 'agent' || agentDeliveryMode !== AGENT_DELIVERY_MODE_API || !resourceId) {
       setAgentKeys([]);
       setLatestAgentSecret('');
       return;
     }
     void refreshAgentKeys();
-  }, [resourceType, resourceId]);
+  }, [agentDeliveryMode, resourceType, resourceId]);
 
   const mcpEndpointMerged = fieldErrors.endpoint ?? mcpProbeExtra.endpoint;
   const mcpAuthJsonMerged = fieldErrors.authConfigJson ?? mcpProbeExtra.authConfigJson;
@@ -1391,9 +1440,10 @@ export const ResourceRegisterPage: React.FC<Props> = ({
         ...(skillMcpBind !== undefined ? { relatedMcpResourceIds: skillMcpBind } : {}),
       };
     }
-    if (resourceType === 'agent') {
+    if (resourceType === 'agent' && agentDeliveryMode === AGENT_DELIVERY_MODE_API) {
       const parsedSpec = parseJsonObject(form.specJson, '规格配置（spec JSON）');
       if (!parsedSpec.ok) throw new Error(parsedSpec.message);
+      const userSpec = stripAgentAdapterSpecMeta(parsedSpec.data || {});
       const msTrim = form.agentMaxSteps.trim();
       const maxStepsParsed = msTrim ? Number(msTrim) : NaN;
       const tempTrim = form.agentTemperature.trim();
@@ -1409,7 +1459,12 @@ export const ResourceRegisterPage: React.FC<Props> = ({
         serviceDetailMd: form.serviceDetailMd.trim(),
         agentType: 'http_api',
         mode: 'SUBAGENT',
-        spec: parsedSpec.data || {},
+        spec: {
+          ...userSpec,
+          ...buildAgentAdapterSpecMeta(agentProviderPreset, {
+            modelAlias: form.modelAlias,
+          }),
+        },
         registrationProtocol: protocolForAgentProviderPreset(agentProviderPreset) as
           | 'openai_compatible'
           | 'bailian_compatible'
@@ -1430,7 +1485,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
         ...(mcpBind !== undefined ? { relatedMcpResourceIds: mcpBind } : {}),
       };
     }
-    if (resourceType === 'app') {
+    if (effectiveResourceType === 'app') {
       const appRelated = parseRelatedIds(form.relatedResourceIds).ids;
       const shotLines = form.appScreenshotsText
         .split(/\r?\n/)
@@ -1446,6 +1501,12 @@ export const ResourceRegisterPage: React.FC<Props> = ({
         screenshots: shotLines.length > 0 ? shotLines : undefined,
         isPublic: true,
         relatedResourceIds: appRelated.length > 0 ? appRelated : undefined,
+        ...(resourceType === 'agent'
+          ? {
+              agentExposure: 'unified_agent',
+              agentDeliveryMode: 'page',
+            }
+          : {}),
       };
     }
     return {
@@ -1935,6 +1996,41 @@ export const ResourceRegisterPage: React.FC<Props> = ({
               </>
             )}
             {resourceType === 'agent' && (
+              <SectionCard
+                theme={theme}
+                isDark={isDark}
+                title="交付形态"
+                description="API 型 Agent 走后台调用；页面型 Agent 走页面打开与嵌入。"
+              >
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  {AGENT_DELIVERY_OPTIONS.map((option) => {
+                    const active = agentDeliveryMode === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setAgentDeliveryMode(option.value)}
+                        className={`rounded-2xl border p-4 text-left transition-colors ${
+                          active
+                            ? isDark
+                              ? 'border-sky-400/60 bg-sky-400/10 text-sky-50'
+                              : 'border-sky-300 bg-sky-50 text-sky-950'
+                            : isDark
+                              ? 'border-white/10 bg-white/[0.03] text-slate-200 hover:border-white/20'
+                              : 'border-slate-200 bg-white text-slate-800 hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="text-sm font-semibold">{option.title}</div>
+                        <div className={`mt-1 text-xs leading-6 ${isDark ? 'text-slate-300' : 'text-slate-500'}`}>
+                          {option.description}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </SectionCard>
+            )}
+            {resourceType === 'agent' && agentDeliveryMode === AGENT_DELIVERY_MODE_API && (
               <>
                 <NoticeCard isDark={isDark} title="先注册成功，再补充绑定增强">
                   <p>Agent 首屏只保留供应商预设、上游地址、对外 model alias 和凭证引用。</p>
@@ -1969,7 +2065,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                   description="底层按协议族收口，前端按供应商预设展开。首屏不再暴露 agentType / mode 等内部字段。"
                 >
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    <Field label="供应商预设 *" theme={theme}>
+                    <Field label="上游接入适配器 *" theme={theme}>
                       <ThemedSelect
                         isDark={isDark}
                         value={agentProviderPreset}
@@ -1990,7 +2086,12 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     <Field label="协议族" theme={theme}>
                       <input value={form.registrationProtocol} readOnly className={inputClass(isDark)} />
                     </Field>
-                    <Field label="上游地址 *" theme={theme} error={fieldErrors.upstreamEndpoint} fieldId={rrFieldId('upstreamEndpoint')}>
+                    <Field
+                      label={agentPresetMeta.endpointLabel ?? '上游地址 *'}
+                      theme={theme}
+                      error={fieldErrors.upstreamEndpoint}
+                      fieldId={rrFieldId('upstreamEndpoint')}
+                    >
                       <input
                         id={rrFieldId('upstreamEndpoint')}
                         value={form.upstreamEndpoint}
@@ -1998,7 +2099,11 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                         className={inputClass(isDark, !!fieldErrors.upstreamEndpoint)}
                         aria-invalid={!!fieldErrors.upstreamEndpoint}
                         aria-describedby={fieldErrors.upstreamEndpoint ? `${rrFieldId('upstreamEndpoint')}-err` : undefined}
-                        placeholder={defaultEndpointForAgentProviderPreset(agentProviderPreset) || 'https://api.example.com/v1/chat/completions'}
+                        placeholder={
+                          agentPresetMeta.endpointPlaceholder
+                          || defaultEndpointForAgentProviderPreset(agentProviderPreset)
+                          || 'https://api.example.com/v1/chat/completions'
+                        }
                       />
                     </Field>
                     <Field label="对外 Model Alias *" theme={theme} error={fieldErrors.modelAlias} fieldId={rrFieldId('modelAlias')}>
@@ -2009,7 +2114,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                         className={inputClass(isDark, !!fieldErrors.modelAlias)}
                         aria-invalid={!!fieldErrors.modelAlias}
                         aria-describedby={fieldErrors.modelAlias ? `${rrFieldId('modelAlias')}-err` : undefined}
-                        placeholder="chef_agent_01"
+                        placeholder={agentPresetMeta.modelAliasPlaceholder ?? 'chef_agent_01'}
                       />
                     </Field>
                     <Field label="凭证引用（选填）" full theme={theme} error={fieldErrors.credentialRef} fieldId={rrFieldId('credentialRef')}>
@@ -2020,12 +2125,12 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                         className={inputClass(isDark, !!fieldErrors.credentialRef)}
                         aria-invalid={!!fieldErrors.credentialRef}
                         aria-describedby={fieldErrors.credentialRef ? `${rrFieldId('credentialRef')}-err` : undefined}
-                        placeholder="env:OPENAI_API_KEY / vault:agent/chef"
+                        placeholder={agentPresetMeta.credentialHint ?? 'env:OPENAI_API_KEY / vault:agent/chef'}
                       />
                     </Field>
                   </div>
                   <p className={`text-xs ${textMuted(theme)}`}>
-                    当前预设：{agentPresetMeta?.label ?? agentProviderPreset}。{agentPresetMeta?.hint ?? '系统会按供应商预设自动推断最合适的协议族。'}
+                    当前适配器：{agentPresetMeta.label}。{agentPresetMeta.hint}
                   </p>
                 </SectionCard>
 
@@ -2141,12 +2246,12 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                   </button>
                   {agentAdvancedOpen ? (
                     <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                      <Field label="上游 Agent / App ID（选填）" theme={theme}>
+                      <Field label={agentPresetMeta.upstreamIdLabel ?? '上游 Agent / App ID（选填）'} theme={theme}>
                         <input
                           value={form.upstreamAgentId}
                           onChange={(e) => setForm((p) => ({ ...p, upstreamAgentId: e.target.value }))}
                           className={inputClass(isDark)}
-                          placeholder="app-xxxx"
+                          placeholder={agentPresetMeta.upstreamIdPlaceholder ?? 'app-xxxx'}
                         />
                       </Field>
                       <Field label="Transform Profile（选填）" theme={theme}>
@@ -2154,7 +2259,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                           value={form.transformProfile}
                           onChange={(e) => setForm((p) => ({ ...p, transformProfile: e.target.value }))}
                           className={inputClass(isDark)}
-                          placeholder="default"
+                          placeholder={agentPresetMeta.transformProfilePlaceholder ?? 'default'}
                         />
                       </Field>
                       <Field label="最大并发" theme={theme} error={fieldErrors.maxConcurrency} fieldId={rrFieldId('maxConcurrency')}>
@@ -2456,8 +2561,14 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                 </SectionCard>
               </>
             )}
-            {resourceType === 'app' && (
+            {effectiveResourceType === 'app' && (
               <>
+                {resourceType === 'agent' ? (
+                  <NoticeCard isDark={isDark} title="页面型 Agent 面向门户交付">
+                    <p>这类 Agent 的核心是页面地址、打开方式和展示素材，不需要模型协议、上游推理地址或 Agent Key。</p>
+                    <p>如果它依赖别的资源，可以在关联资源中补充依赖，方便后续治理和展示。</p>
+                  </NoticeCard>
+                ) : null}
                 <Field label="应用地址 *" theme={theme} error={fieldErrors.appUrl} fieldId={rrFieldId('appUrl')}>
                   <input
                     id={rrFieldId('appUrl')}

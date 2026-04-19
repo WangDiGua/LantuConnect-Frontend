@@ -3,7 +3,7 @@ import {
   resolveAgentProviderPreset,
   type AgentProviderPreset,
   type AgentRegistrationProtocol,
-} from '../views/resourceCenter/resourceRegisterProfiles';
+} from '../views/resourceCenter/resourceRegisterProfiles.ts';
 
 export type AgentImportProtocol = AgentRegistrationProtocol;
 
@@ -110,6 +110,7 @@ function mapConfigObject(source: Record<string, unknown>): AgentImportResult {
     providerPreset: providerRaw,
     registrationProtocol: protocolFromRaw,
     upstreamEndpoint: endpoint,
+    upstreamAgentId,
   });
 
   const modelAlias = normalizeModelAlias(modelAliasRaw || '');

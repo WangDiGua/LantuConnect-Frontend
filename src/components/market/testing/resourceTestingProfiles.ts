@@ -19,6 +19,7 @@ export interface AgentTestingProfile extends ResourceTestingProfile {
   kind: 'agent';
   protocol: AgentRegistrationProtocol;
   protocolLabel: string;
+  adapterId?: string;
   defaultPayload: Record<string, unknown>;
   nativePayload: Record<string, unknown>;
 }
@@ -81,9 +82,17 @@ export function normalizeAgentRegistrationProtocol(protocol: string | null | und
 export function buildAgentNativePayload(
   registrationProtocol: AgentRegistrationProtocol,
   modelAlias: string | null | undefined,
+  adapterId?: string | null,
 ): Record<string, unknown> {
+  const normalizedAdapterId = String(adapterId ?? '').trim().toLowerCase();
   const trimmedModel = String(modelAlias ?? '').trim();
   const prompt = 'hello';
+  if (['bailian_app', 'appbuilder', 'dify', 'openai_agents', 'tencent_yuanqi'].includes(normalizedAdapterId)) {
+    return {
+      input: prompt,
+      session_id: 'test-session',
+    };
+  }
   switch (registrationProtocol) {
     case 'bailian_compatible':
       return {
@@ -129,7 +138,19 @@ export function buildAgentNativePayload(
   }
 }
 
-function protocolLabel(protocol: AgentRegistrationProtocol): string {
+function protocolLabel(
+  protocol: AgentRegistrationProtocol,
+  adapterId?: string | null,
+  adapterLabel?: string | null,
+): string {
+  const normalizedAdapterId = String(adapterId ?? '').trim().toLowerCase();
+  const normalizedAdapterLabel = String(adapterLabel ?? '').trim();
+  if (normalizedAdapterLabel) return `${normalizedAdapterLabel} Adapter`;
+  if (normalizedAdapterId === 'bailian_app') return '百炼智能体 Adapter';
+  if (normalizedAdapterId === 'appbuilder') return '百度 AppBuilder Adapter';
+  if (normalizedAdapterId === 'dify') return 'Dify Adapter';
+  if (normalizedAdapterId === 'openai_agents') return 'OpenAI Agent Runtime Adapter';
+  if (normalizedAdapterId === 'tencent_yuanqi') return '腾讯元器 Adapter';
   switch (protocol) {
     case 'openai_compatible':
       return 'OpenAI Compatible';
@@ -140,23 +161,26 @@ function protocolLabel(protocol: AgentRegistrationProtocol): string {
     case 'gemini_generatecontent':
       return 'Gemini generateContent';
     default:
-      return '统一网关';
+      return 'Unified Gateway';
   }
 }
 
 export function buildAgentTestingProfile(input: {
   registrationProtocol?: string | null;
   modelAlias?: string | null;
+  adapterId?: string | null;
+  adapterLabel?: string | null;
   suggestedPayload?: Record<string, unknown> | null;
 }): AgentTestingProfile {
   const protocol = normalizeAgentRegistrationProtocol(input.registrationProtocol);
-  const nativePayload = buildAgentNativePayload(protocol, input.modelAlias);
+  const nativePayload = buildAgentNativePayload(protocol, input.modelAlias, input.adapterId);
   const suggestedPayload = asRecord(input.suggestedPayload);
   return {
     kind: 'agent',
     primaryActionLabel: '一键试用',
     protocol,
-    protocolLabel: protocolLabel(protocol),
+    protocolLabel: protocolLabel(protocol, input.adapterId, input.adapterLabel),
+    adapterId: String(input.adapterId ?? '').trim() || undefined,
     defaultPayload: suggestedPayload && Object.keys(suggestedPayload).length > 0 ? suggestedPayload : nativePayload,
     nativePayload,
   };

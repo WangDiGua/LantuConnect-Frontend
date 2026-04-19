@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Ban, Boxes, CheckCircle2, Clock3, GitBranch, Pencil, Plus, RefreshCw, Trash2, Undo2, XCircle } from 'lucide-react';
 import type { Theme, FontSize } from '../../types';
 import type { ResourceType } from '../../types/dto/catalog';
@@ -62,6 +63,7 @@ import { RowActionGroup } from '../../components/management/RowActionGroup';
 import { useSilentRealtimeRefresh } from '../../hooks/useSilentRealtimeRefresh';
 import { RESOURCE_WORKFLOW_NOTIFICATION_TYPES } from '../../lib/realtimeUiSignal';
 import { buildPath } from '../../constants/consoleRoutes';
+import { isUnifiedAgentExposure } from './agentDeliveryMode';
 
 /** 生命周期时间轴节点颜色（按 status / eventType 粗分） */
 function lifecycleTimelineNodeClass(ev: LifecycleTimelineEventVO): string {
@@ -80,6 +82,13 @@ function lifecycleTimelineNodeClass(ev: LifecycleTimelineEventVO): string {
 function skillSubmitBlocked(item: ResourceCenterItemVO): boolean {
   if (item.resourceType !== 'skill') return false;
   return !Boolean(item.contextPrompt?.trim());
+}
+
+function displayResourceType(item: ResourceCenterItemVO): ResourceType {
+  if (item.resourceType === 'app' && isUnifiedAgentExposure(item.agentExposure)) {
+    return 'agent';
+  }
+  return item.resourceType;
 }
 
 function isCatalogItemOwner(item: ResourceCenterItemVO, userId: number): boolean {
@@ -227,6 +236,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
   onTypeChange,
   onNavigateRegister,
 }) => {
+  const navigate = useNavigate();
   const isDark = theme === 'dark';
   const authUser = useAuthStore((s) => s.user);
   const myUserId = authUser?.id ? Number(authUser.id) : NaN;
@@ -577,10 +587,16 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
         <RefreshCw size={15} aria-hidden />
         刷新
       </button>
-      <a href={buildPath(consoleRole, 'capability-register')} className={btnSecondary(theme)}>
+      <button
+        type="button"
+        onClick={() => navigate(`${buildPath(consoleRole, 'capability-register')}?type=${activeType}`)}
+        className={btnSecondary(theme)}
+        aria-label="智能导入能力"
+        title="智能导入能力"
+      >
         <Boxes size={15} aria-hidden />
-        智能注册能力
-      </a>
+        智能导入能力
+      </button>
       {activeType === 'skill' ? (
         <button type="button" onClick={() => onNavigateRegister('skill')} className={btnPrimary}>
           <Plus size={15} aria-hidden />
@@ -734,7 +750,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                         <p className={`truncate font-semibold ${textPrimary(theme)}`}>
                           {item.displayName}
                           <span className={`ml-2 rounded px-1.5 py-0.5 text-xs ${isDark ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
-                            {RESOURCE_TYPE_LABEL_ZH[item.resourceType]}
+                            {RESOURCE_TYPE_LABEL_ZH[displayResourceType(item)]}
                           </span>
                         </p>
                         <div className="mt-1 flex flex-wrap items-center gap-1.5">
@@ -789,7 +805,7 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                               label: '编辑',
                               icon: Pencil,
                               hidden: !isActionAllowed(item, 'update'),
-                              onClick: () => onNavigateRegister(item.resourceType, item.id),
+                              onClick: () => onNavigateRegister(displayResourceType(item), item.id),
                             },
                             {
                               key: 'version',

@@ -28,7 +28,10 @@ export function mapCatalogItemToAgent(item: ResourceCatalogItemVO): Agent {
     status: (item.status as Agent['status']) || 'draft',
     specJson: detail.spec ?? {},
     isPublic: true,
-    icon: null,
+    icon:
+      typeof detail.spec?.icon === 'string' && detail.spec.icon.trim()
+        ? detail.spec.icon.trim()
+        : null,
     sortOrder: 0,
     hidden: false,
     maxConcurrency: Number(detail.maxConcurrency ?? 1),
@@ -55,6 +58,9 @@ export function mapCatalogItemToAgent(item: ResourceCatalogItemVO): Agent {
     observability: item.observability,
     endpoint: detail.endpoint ? String(detail.endpoint) : undefined,
     invokeType: detail.invokeType ? String(detail.invokeType) : undefined,
+    launchUrl: detail.launchUrl ? String(detail.launchUrl) : undefined,
+    agentExposure: detail.agentExposure,
+    agentDeliveryMode: detail.agentDeliveryMode,
     serviceDetailMd: detail.serviceDetailMd,
   };
 }

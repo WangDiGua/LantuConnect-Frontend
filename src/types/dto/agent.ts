@@ -50,6 +50,9 @@ export interface Agent {
   observability?: Record<string, unknown>;
   endpoint?: string;
   invokeType?: string;
+  launchUrl?: string;
+  agentExposure?: string;
+  agentDeliveryMode?: string;
 }
 
 export interface AgentCreatePayload {

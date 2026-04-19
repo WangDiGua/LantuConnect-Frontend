@@ -342,6 +342,7 @@ const MainContent = React.memo<{
               theme={t}
               fontSize={fs}
               showMessage={msg}
+              routeId={rid}
               onBack={() => nav('resource-center', typeQuery ?? 'agent')}
             />
           );
@@ -524,6 +525,7 @@ const MainContent = React.memo<{
             theme={t}
             fontSize={fs}
             showMessage={msg}
+            routeId={rid}
             onBack={() => nav('resource-center', typeQuery ?? 'agent')}
           />
         );

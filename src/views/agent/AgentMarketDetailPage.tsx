@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Heart, Star } from 'lucide-react';
+import { ExternalLink, FileText, Heart, Loader2, Star } from 'lucide-react';
 
 import type { Theme, FontSize, ThemeColor } from '../../types';
 import type { Agent } from '../../types/dto/agent';
@@ -34,6 +34,11 @@ import { MarkdownView } from '../../components/common/MarkdownView';
 import { AgentQuickTestPanel } from '../../components/market/testing/AgentQuickTestPanel';
 import { buildResourceMarketRuntimeState } from '../../utils/resourceMarketRuntime';
 import { useSilentResourceRuntimeRefresh } from '../../hooks/useSilentResourceRuntimeRefresh';
+import { GatewayApiKeyInput } from '../../components/common/GatewayApiKeyInput';
+import { usePersistedGatewayApiKey } from '../../hooks/usePersistedGatewayApiKey';
+import { safeOpenHttpUrl } from '../../lib/windowNavigate';
+import { ApiException } from '../../types/api';
+import { mapInvokeFlowError } from '../../utils/invokeError';
 
 export interface AgentMarketDetailPageProps {
   resourceId: string;
@@ -82,6 +87,9 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
   const [tab, setTab] = useState<AgentDetailTab>('service');
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [openingPageAgent, setOpeningPageAgent] = useState(false);
+  const [gatewayApiKeyDraft, setGatewayApiKeyDraft] = usePersistedGatewayApiKey();
+  const [gatewayOpenError, setGatewayOpenError] = useState('');
 
   const workspaceKey = 'lantu_workspace_agents';
   const [workspaceAgents, setWorkspaceAgents] = useState<string[]>(() => {
@@ -178,13 +186,13 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
 
   const registrationProtocol = useMemo(() => {
     if (!agent) return '';
-    const raw = agent.specJson?.registrationProtocol;
+    const raw = agent.specJson?.x_protocol_family ?? agent.specJson?.registrationProtocol;
     return typeof raw === 'string' ? raw.trim().toLowerCase() : '';
   }, [agent]);
 
   const modelAlias = useMemo(() => {
     if (!agent) return '';
-    const raw = agent.specJson?.modelAlias;
+    const raw = agent.specJson?.x_model_alias ?? agent.specJson?.modelAlias;
     if (typeof raw === 'string' && raw.trim()) return raw.trim();
     return agent.agentName?.trim() || String(agent.id);
   }, [agent]);
@@ -194,6 +202,67 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
     const raw = agent.endpoint || agent.specJson?.upstreamEndpoint || agent.specJson?.endpoint;
     return typeof raw === 'string' ? raw.trim() : '';
   }, [agent]);
+
+  const isPageAgent = useMemo(
+    () => agent?.invokeType === 'redirect' || agent?.agentDeliveryMode === 'page',
+    [agent],
+  );
+
+  useEffect(() => {
+    setGatewayOpenError('');
+  }, [agent?.id]);
+
+  const handleOpenPageAgent = useCallback(async () => {
+    if (!agent) return;
+    setOpeningPageAgent(true);
+    setGatewayOpenError('');
+    try {
+      const apiKey = gatewayApiKeyDraft.trim();
+      if (!apiKey) {
+        setGatewayOpenError('请先填写可用的 Gateway API Key');
+        return;
+      }
+      let resolved;
+      try {
+        resolved = await resourceCatalogService.resolve(
+          { resourceType: 'agent', resourceId: String(agent.id) },
+          { headers: { 'X-Api-Key': apiKey } },
+        );
+      } catch (err) {
+        if (err instanceof ApiException && err.code === 1009) {
+          setGatewayOpenError(err.message || '请绑定有效的 X-Api-Key');
+          return;
+        }
+        if (err instanceof ApiException && (err.status === 401 || err.code === 1002)) {
+          setGatewayOpenError('请先填写有效 API Key');
+          return;
+        }
+        if (err instanceof ApiException && (err.status === 403 || err.code === 1003)) {
+          setGatewayOpenError('打开被拒绝：请确认资源已发布，且当前 API Key 具备 resolve scope。');
+          return;
+        }
+        setGatewayOpenError(mapInvokeFlowError(err, 'resolve'));
+        return;
+      }
+      const launchUrl = String(resolved.launchUrl ?? '').trim();
+      if (launchUrl) {
+        if (!safeOpenHttpUrl(launchUrl)) {
+          showMessage('无法打开页面：地址非法或被浏览器拦截', 'warning');
+        }
+        return;
+      }
+      const fallbackUrl = String(resolved.endpoint ?? '').trim();
+      if (fallbackUrl) {
+        if (!safeOpenHttpUrl(fallbackUrl)) {
+          showMessage('无法打开页面：地址非法或被浏览器拦截', 'warning');
+        }
+        return;
+      }
+      showMessage('当前页面型 Agent 未返回可用的打开地址', 'warning');
+    } finally {
+      setOpeningPageAgent(false);
+    }
+  }, [agent, gatewayApiKeyDraft, showMessage]);
 
   const addToWorkspace = async () => {
     if (!agent || isInWorkspace(String(agent.id))) return;
@@ -407,13 +476,47 @@ export const AgentMarketDetailPage: React.FC<AgentMarketDetailPageProps> = ({
             ) : null}
 
             {tab === 'testing' ? (
-              <AgentQuickTestPanel
-                theme={theme}
-                agent={agent}
-                invokeDisabled={runtime?.interactionDisabled}
-                invokeDisabledReason={runtime?.interactionHint}
-                showMessage={showMessage}
-              />
+              isPageAgent ? (
+                <MarketDetailSectionCard
+                  theme={theme}
+                  title="打开页面"
+                  description="页面型 Agent 不走统一 invoke，使用 resolve 获取 launchUrl 后打开。"
+                >
+                  <div className="space-y-4">
+                    <div className="space-y-1">
+                      <p className={`text-sm font-medium ${textPrimary(theme)}`}>Gateway API Key</p>
+                      <p className={`text-xs leading-relaxed ${textMuted(theme)}`}>
+                        用于 resolve 页面型 Agent 并换取 `launchUrl`。
+                      </p>
+                    </div>
+                    <GatewayApiKeyInput
+                      theme={theme}
+                      value={gatewayApiKeyDraft}
+                      onChange={setGatewayApiKeyDraft}
+                      errorText={gatewayOpenError || undefined}
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        className={btnPrimary}
+                        onClick={() => void handleOpenPageAgent()}
+                        disabled={openingPageAgent}
+                      >
+                        {openingPageAgent ? <Loader2 size={16} className="animate-spin" /> : <ExternalLink size={16} />}
+                        {openingPageAgent ? '打开中…' : '打开页面'}
+                      </button>
+                    </div>
+                  </div>
+                </MarketDetailSectionCard>
+              ) : (
+                <AgentQuickTestPanel
+                  theme={theme}
+                  agent={agent}
+                  invokeDisabled={runtime?.interactionDisabled}
+                  invokeDisabledReason={runtime?.interactionHint}
+                  showMessage={showMessage}
+                />
+              )
             ) : null}
 
             {tab === 'capability' ? (

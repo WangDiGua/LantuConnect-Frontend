@@ -49,16 +49,35 @@ export const AgentQuickTestPanel: React.FC<Props> = ({
 }) => {
   const isDark = theme === 'dark';
   const [gatewayApiKeyDraft, setGatewayApiKeyDraft] = usePersistedGatewayApiKey();
+  const adapterId =
+    typeof agent.specJson?.x_adapter_id === 'string' && agent.specJson.x_adapter_id.trim()
+      ? agent.specJson.x_adapter_id
+      : undefined;
+  const adapterLabel =
+    typeof agent.specJson?.x_provider_label === 'string' && agent.specJson.x_provider_label.trim()
+      ? agent.specJson.x_provider_label
+      : undefined;
+  const registrationProtocol =
+    typeof agent.specJson?.x_protocol_family === 'string' && agent.specJson.x_protocol_family.trim()
+      ? agent.specJson.x_protocol_family
+      : typeof agent.specJson?.registrationProtocol === 'string'
+        ? agent.specJson.registrationProtocol
+        : undefined;
+  const modelAlias =
+    typeof agent.specJson?.x_model_alias === 'string' && agent.specJson.x_model_alias.trim()
+      ? agent.specJson.x_model_alias
+      : typeof agent.specJson?.modelAlias === 'string' && agent.specJson.modelAlias.trim()
+        ? agent.specJson.modelAlias
+        : agent.agentName;
   const baseProfile = useMemo(
     () =>
       buildAgentTestingProfile({
-        registrationProtocol: typeof agent.specJson?.registrationProtocol === 'string' ? agent.specJson.registrationProtocol : undefined,
-        modelAlias:
-          typeof agent.specJson?.modelAlias === 'string' && agent.specJson.modelAlias.trim()
-            ? agent.specJson.modelAlias
-            : agent.agentName,
+        registrationProtocol,
+        modelAlias,
+        adapterId,
+        adapterLabel,
       }),
-    [agent.agentName, agent.specJson],
+    [adapterId, adapterLabel, modelAlias, registrationProtocol],
   );
   const defaultPayloadText = useMemo(() => stringifyJson(baseProfile.defaultPayload), [baseProfile.defaultPayload]);
   const nativePayloadText = useMemo(() => stringifyJson(baseProfile.nativePayload), [baseProfile.nativePayload]);
@@ -130,10 +149,9 @@ export const AgentQuickTestPanel: React.FC<Props> = ({
       if (!payloadTouched && resolved.suggestedPayload && Object.keys(resolved.suggestedPayload).length > 0) {
         const suggested = buildAgentTestingProfile({
           registrationProtocol: baseProfile.protocol,
-          modelAlias:
-            typeof agent.specJson?.modelAlias === 'string' && agent.specJson.modelAlias.trim()
-              ? agent.specJson.modelAlias
-              : agent.agentName,
+          modelAlias,
+          adapterId,
+          adapterLabel,
           suggestedPayload: resolved.suggestedPayload,
         });
         finalPayload = suggested.defaultPayload;
@@ -162,13 +180,15 @@ export const AgentQuickTestPanel: React.FC<Props> = ({
       setRunning(false);
     }
   }, [
-    agent.agentName,
     agent.id,
-    agent.specJson,
+    adapterId,
+    adapterLabel,
     baseProfile.protocol,
     gatewayApiKeyDraft,
+    modelAlias,
     payloadText,
     payloadTouched,
+    registrationProtocol,
     showMessage,
     timeoutSec,
     traceId,

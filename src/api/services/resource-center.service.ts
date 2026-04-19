@@ -95,6 +95,18 @@ function toResourceItem(raw: unknown): ResourceCenterItemVO {
     embedType: r?.embedType ? String(r.embedType) : undefined,
     icon: r?.icon != null && r?.icon !== '' ? String(r.icon) : undefined,
     screenshots: Array.isArray(r?.screenshots) ? r.screenshots.map((s: unknown) => String(s)) : undefined,
+    agentExposure:
+      r?.agentExposure != null && String(r.agentExposure).trim() !== ''
+        ? String(r.agentExposure).trim()
+        : r?.agent_exposure != null && String(r.agent_exposure).trim() !== ''
+          ? String(r.agent_exposure).trim()
+          : undefined,
+    agentDeliveryMode:
+      r?.agentDeliveryMode != null && String(r.agentDeliveryMode).trim() !== ''
+        ? String(r.agentDeliveryMode).trim().toLowerCase()
+        : r?.agent_delivery_mode != null && String(r.agent_delivery_mode).trim() !== ''
+          ? String(r.agent_delivery_mode).trim().toLowerCase()
+          : undefined,
     isPublic:
       typeof r?.isPublic === 'boolean'
         ? r.isPublic

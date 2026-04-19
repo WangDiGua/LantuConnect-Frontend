@@ -117,6 +117,8 @@ export interface ResourceAppUpsertRequest extends ResourceBaseUpsertRequest {
   embedType?: string;
   icon?: string;
   screenshots?: string[];
+  agentExposure?: string;
+  agentDeliveryMode?: string;
   isPublic?: boolean;
   relatedResourceIds?: number[];
 }
@@ -167,6 +169,8 @@ export interface ResourceCenterItemVO {
   embedType?: string;
   icon?: string;
   screenshots?: string[];
+  agentExposure?: string;
+  agentDeliveryMode?: string;
   isPublic?: boolean;
   /** 历史：t_resource.access_policy 回显 */
   accessPolicy?: string;

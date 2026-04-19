@@ -5,7 +5,6 @@ export const RESOURCE_WORKFLOW_NOTIFICATION_TYPES = [
   'resource_submitted',
   'audit_approved',
   'audit_rejected',
-  'resource_published',
   'resource_withdrawn',
   'resource_deprecated',
   'resource_version_switched',

@@ -24,7 +24,7 @@ function toRecentUse(raw: unknown): RecentUseItem {
   return {
     id,
     targetType,
-    targetId: Number(r.targetId ?? 0) || 0,
+    targetId: Number(r.targetId ?? r.resourceId ?? 0) || 0,
     targetCode: r.targetCode != null ? String(r.targetCode) : undefined,
     displayName: String(r.targetName ?? r.displayName ?? r.name ?? `资源-${id}`),
     description: r.description != null ? String(r.description) : undefined,
@@ -74,7 +74,11 @@ function normalizeRecentUse(raw: unknown): RecentUseItem[] {
   return extractArray(raw).map(toRecentUse);
 }
 
-const PUBLISH_STATUSES = ['draft', 'pending_review', 'testing', 'published', 'rejected', 'deprecated'] as const;
+function normalizeRecentUsePage(raw: unknown): PaginatedData<RecentUseItem> {
+  return normalizePaginated<RecentUseItem>(raw, toRecentUse);
+}
+
+const PUBLISH_STATUSES = ['draft', 'pending_review', 'published', 'rejected', 'deprecated'] as const;
 
 function normalizePublishStatus(raw: unknown): MyPublishItem['status'] {
   const s = String(raw ?? 'draft').toLowerCase().replace(/-/g, '_');
@@ -191,7 +195,7 @@ function normalizeUserUsageStats(raw: unknown): UserUsageStats {
 }
 
 export const userActivityService = {
-  getUsageRecords: async (query?: { page?: number; pageSize?: number; range?: string; type?: string }) => {
+  getUsageRecords: async (query?: { page?: number; pageSize?: number; range?: string; type?: string; keyword?: string }) => {
     const raw = await http.get<unknown>('/user/usage-records', { params: query });
     return normalizePaginated<UsageRecord>(raw, toUsageRecord);
   },
@@ -212,9 +216,9 @@ export const userActivityService = {
     return normalizeUserUsageStats(raw);
   },
 
-  getRecentUse: async (query?: { limit?: number; type?: string }) => {
+  getRecentUse: async (query?: { page?: number; pageSize?: number; type?: string }) => {
     const raw = await http.get<unknown>('/user/recent-use', { params: query });
-    return normalizeRecentUse(raw);
+    return normalizeRecentUsePage(raw);
   },
 
   getMyAgents: async (): Promise<MyPublishItem[]> => {

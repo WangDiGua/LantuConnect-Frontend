@@ -78,7 +78,7 @@
 - 核心动作与状态约束：
   - `draft`: 编辑、版本、提审、删除
   - `pending_review`: 撤回提审
-  - `testing`: 待发布提示、下线
+  - `published`: 待发布提示、下线
   - `published`: 下线
   - `rejected`: 编辑、重新提审、删除
   - `deprecated`: 重新提审
@@ -110,13 +110,12 @@
 - 页面组件：`ResourceAuditList`
 - 状态动作规则：
   - `pending_review`: 通过、驳回（reason 必填）
-  - `testing`: 发布、驳回
+  - `published`: 发布、驳回
   - 其他状态：无可执行动作
 - 接口：
   - 列表 `GET /audit/resources`
   - 通过 `POST /audit/resources/{id}/approve`
   - 驳回 `POST /audit/resources/{id}/reject`（`{ reason }`）
-  - 发布 `POST /audit/resources/{id}/publish`
 
 ---
 
@@ -171,11 +170,10 @@
 ```mermaid
 flowchart TD
     draftState[Draft] -->|submit| pendingReview
-    pendingReview -->|approve| testingState
+    pendingReview -->|approve| publishedState
     pendingReview -->|reject| rejectedState
     pendingReview -->|withdraw| draftState
-    testingState -->|publish| publishedState
-    testingState -->|deprecate| deprecatedState
+    publishedState -->|deprecate| deprecatedState
     publishedState -->|deprecate| deprecatedState
     rejectedState -->|editAndSubmit| pendingReview
     deprecatedState -->|resubmit| pendingReview
@@ -185,7 +183,7 @@ flowchart TD
 
 - 注册必填：`resourceCode`、`displayName`、`endpoint`、`protocol`
 - 创建后流程：
-  - 创建 `draft` -> 提审 -> 审核通过 `testing` -> 发布 `published`
+  - 创建 `draft` -> 提审 -> 审核通过 `published`
 - 使用流程：
   - 市场发现（`mcp-market`）
   - resolve -> 按 `invokeType` 分流（`redirect`/`metadata`/`invoke`）
@@ -305,7 +303,7 @@ flowchart TD
 
 1. 在所有市场详情页统一展示“当前资源类型 + 当前 invokeType + 当前授权状态”。
 2. 在资源中心增加“操作不可用原因”提示（状态/权限驱动）。
-3. 在审核页增加显式状态提示文案：`testing != published`。
+3. 在审核页增加显式状态提示文案：`审核通过即 published`。
 
 ## P2（体验优化）
 
@@ -326,8 +324,8 @@ flowchart TD
 
 ## 9.2 五类资源闭环
 
-- 五类资源都能走：注册 -> 提审 -> 审核 -> 发布 -> 市场可见。
-- `approve` 后状态是 `testing`，只有 `publish` 后才是 `published`。
+- 五类资源都能走：注册 -> 提审 -> 审核通过 -> 市场可见。
+- `approve` 后状态直接是 `published`。
 - `dataset/app` 使用链路不误用 invoke。
 
 ## 9.3 授权与调用

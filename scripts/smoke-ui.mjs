@@ -1,4 +1,4 @@
-﻿import fs from 'node:fs';
+import fs from 'node:fs';
 import path from 'node:path';
 
 const root = process.cwd();
@@ -183,7 +183,7 @@ const checks = [
   },
   {
     file: 'src/views/resourceCenter/ResourceCenterManagementPage.tsx',
-    patterns: ['RowActionGroup', "label: '生命周期'", "publish-${item.id}` ? '发布中' : '发布上架'", "label: '强制下架'"],
+    patterns: ['RowActionGroup', "label: '生命周期'", '通过后直接发布上线', "label: '强制下架'"],
     forbiddenPatterns: [
       "onClick={() => onNavigateRegister(item.resourceType, item.id)} className={mgmtTableActionGhost(theme)}",
       "onClick={() => void openVersions(item)} className={mgmtTableActionGhost(theme)}",

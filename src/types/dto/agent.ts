@@ -7,7 +7,7 @@
 export type AgentType = 'mcp' | 'http_api' | 'builtin' | 'context_skill';
 export type AgentMode = 'SUBAGENT' | 'TOOL' | 'ALL';
 export type SourceType = 'internal' | 'partner' | 'cloud';
-export type AgentStatus = 'draft' | 'pending_review' | 'testing' | 'published' | 'rejected' | 'deprecated';
+export type AgentStatus = 'draft' | 'pending_review' | 'published' | 'rejected' | 'deprecated';
 export type DisplayTemplate = 'file' | 'image' | 'audio' | 'video' | 'app' | 'microService' | 'search_web' | 'search_file' | 'answer' | 'ai_answer';
 
 export interface Agent {
@@ -95,7 +95,7 @@ export interface AgentVersion {
   agentId: number;
   version: string;
   changelog: string;
-  status: 'draft' | 'testing' | 'released' | 'rollback';
+  status: 'draft' | 'published' | 'deprecated';
   specJsonSnapshot?: Record<string, unknown>;
   createdBy: string;
   createTime: string;

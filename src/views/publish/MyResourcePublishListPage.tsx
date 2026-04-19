@@ -60,9 +60,6 @@ export const MyResourcePublishListPage: React.FC<Props> = ({ theme, fontSize, re
   const { platformRole, hasPermission } = useUserRole();
   const canAuditPending =
     platformRole === 'platform_admin' || platformRole === 'reviewer' || hasPermission('resource:audit');
-  const canPublishFromTesting =
-    platformRole === 'platform_admin' || platformRole === 'reviewer' || platformRole === 'developer';
-
   const [items, setItems] = useState<MyPublishItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [withdrawTarget, setWithdrawTarget] = useState<MyPublishItem | null>(null);
@@ -88,11 +85,10 @@ export const MyResourcePublishListPage: React.FC<Props> = ({ theme, fontSize, re
   const publishCardAuditProps = useMemo(
     () => ({
       canAuditPending,
-      canPublishFromTesting,
       showMessage,
       onLifecycleMutated: fetchData,
     }),
-    [canAuditPending, canPublishFromTesting, showMessage, fetchData],
+    [canAuditPending, showMessage, fetchData],
   );
 
   useEffect(() => {
@@ -102,7 +98,6 @@ export const MyResourcePublishListPage: React.FC<Props> = ({ theme, fontSize, re
   const canWithdrawAudit = useCallback(
     (item: MyPublishItem) =>
       item.status === 'pending_review'
-      || item.status === 'testing'
       || (item.status === 'published' && Boolean(item.pendingPublishedUpdate)),
     [],
   );

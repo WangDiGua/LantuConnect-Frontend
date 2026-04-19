@@ -48,7 +48,6 @@ const AUDIT_NOTIFICATION_TYPES = new Set([
   'resource_submitted',
   'audit_approved',
   'audit_rejected',
-  'resource_published',
   'resource_withdrawn',
   'resource_deprecated',
   'platform_resource_force_deprecated',
@@ -61,7 +60,7 @@ interface Props {
   defaultType?: ResourceType;
 }
 
-const AUDIT_DESC = '支持 approve / reject / publish';
+const AUDIT_DESC = '支持统一资源审核与驳回，审核通过后直接发布上线。';
 
 function formatJsonForDisplay(value: unknown): string | null {
   if (value == null) return null;
@@ -75,8 +74,6 @@ function formatJsonForDisplay(value: unknown): string | null {
 export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessage, defaultType }) => {
   const isDark = theme === 'dark';
   const { platformRole } = useUserRole();
-  const canPublishResource =
-    platformRole === 'platform_admin' || platformRole === 'reviewer' || platformRole === 'developer';
   const canPlatformForceDeprecate = platformRole === 'platform_admin';
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<ResourceAuditItemVO[]>([]);
@@ -163,11 +160,6 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
     () => selectedItems.filter((i) => i.status === 'pending_review'),
     [selectedItems],
   );
-  const testingSelected = useMemo(
-    () => selectedItems.filter((i) => i.status === 'testing'),
-    [selectedItems],
-  );
-
   const fetchData = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
@@ -274,7 +266,7 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
     setBatchRunning(true);
     try {
       await resourceAuditService.batchApprove(ids);
-      showMessage(`已通过 ${ids.length} 条，资源已进入测试中`, 'success');
+      showMessage(`已通过 ${ids.length} 条，资源已直接发布上线`, 'success');
       clearSelection();
       await fetchData();
     } catch (err) {
@@ -283,25 +275,6 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
       setBatchRunning(false);
     }
   }, [pendingSelected, fetchData, showMessage, clearSelection, reportActionError]);
-
-  const runBatchPublish = useCallback(async () => {
-    const ids = testingSelected.map((i) => i.id);
-    if (!ids.length) {
-      showMessage('请至少选择一条「测试中」记录', 'info');
-      return;
-    }
-    setBatchRunning(true);
-    try {
-      await resourceAuditService.batchPublish(ids);
-      showMessage(`已发布 ${ids.length} 条`, 'success');
-      clearSelection();
-      await fetchData();
-    } catch (err) {
-      reportActionError(err, '批量发布失败');
-    } finally {
-      setBatchRunning(false);
-    }
-  }, [testingSelected, fetchData, showMessage, clearSelection, reportActionError]);
 
   const openBatchReject = useCallback(() => {
     const ids = pendingSelected.map((i) => i.id);
@@ -402,21 +375,7 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
                   void runAction(
                     `approve-${item.id}`,
                     () => resourceAuditService.approve(item.id),
-                    '已通过审核，资源已进入测试中',
-                  ),
-              },
-              {
-                key: 'publish',
-                label: runningActionId === `publish-${item.id}` ? '发布中' : '发布',
-                icon: CheckCircle2,
-                tone: 'positive',
-                hidden: item.status !== 'testing' || !canPublishResource,
-                disabled: !!runningActionId && runningActionId !== `publish-${item.id}`,
-                onClick: () =>
-                  void runAction(
-                    `publish-${item.id}`,
-                    () => resourceAuditService.publish(item.id),
-                    '已发布，资源已进入已发布状态',
+                    '已通过审核，资源已直接发布上线',
                   ),
               },
               {
@@ -449,7 +408,7 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
         ),
       },
     ],
-    [theme, runningActionId, canPublishResource, canPlatformForceDeprecate, runAction, openResourceDetail],
+    [theme, runningActionId, canPlatformForceDeprecate, runAction, openResourceDetail],
   );
 
   return (
@@ -483,7 +442,6 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
                 options={[
                   { value: 'all', label: '全部状态' },
                   { value: 'pending_review', label: '待审核' },
-                  { value: 'testing', label: '测试中' },
                   { value: 'rejected', label: '已驳回' },
                   { value: 'published', label: '已发布' },
                   { value: 'merged_live', label: '已合并上线' },
@@ -536,16 +494,6 @@ export const ResourceAuditList: React.FC<Props> = ({ theme, fontSize, showMessag
                     onClick={openBatchReject}
                   >
                     批量驳回
-                  </button>
-                  <button
-                    type="button"
-                    className={btnPrimary}
-                    disabled={
-                      batchRunning || !!runningActionId || selectedKeys.size === 0 || !canPublishResource
-                    }
-                    onClick={() => void runBatchPublish()}
-                  >
-                    {batchRunning ? '处理中…' : '批量发布'}
                   </button>
                 </MgmtBatchToolbar>
                 <MgmtDataTable<ResourceAuditItemVO>

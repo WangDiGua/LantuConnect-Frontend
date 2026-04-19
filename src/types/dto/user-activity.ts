@@ -50,7 +50,7 @@ export interface MyPublishItem {
   displayName: string;
   description: string;
   icon: string | null;
-  status: 'draft' | 'pending_review' | 'testing' | 'published' | 'rejected' | 'deprecated' | 'merged_live';
+  status: 'draft' | 'pending_review' | 'published' | 'rejected' | 'deprecated' | 'merged_live';
   /** 发布态下是否存在待审变更（允许撤回审核） */
   pendingPublishedUpdate?: boolean;
   callCount: number;

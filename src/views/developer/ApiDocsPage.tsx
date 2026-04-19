@@ -89,7 +89,8 @@ const API_CATEGORIES: ApiCategory[] = [
     { method: 'POST', path: '/resource-center/resources/mcp/connectivity-probe', description: '登记 MCP 前可选：JSON-RPC initialize 短探测，验证 URL 可达（不写登记记录）。', params: [{ name: 'body', type: 'McpConnectivityProbeRequest', required: true, description: 'endpointUrl 等' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { ok: true, latencyMs: 120 } }, null, 2) },
   ]},
   { id: 'user-activity', label: '个人用量与收藏', endpoints: [
-    { method: 'GET', path: '/user/usage-records', description: '分页查询个人用量记录（门户行为埋点，不等同于网关 call_log 全量）。', params: [{ name: 'page', type: 'number', required: false, description: '' }, { name: 'pageSize', type: 'number', required: false, description: '' }, { name: 'type', type: 'string', required: false, description: '筛选类型' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { records: [], total: 0, page: 1, pageSize: 20 } }, null, 2) },
+    { method: 'GET', path: '/user/usage-records', description: '分页查询个人调用明细。支持时间范围、类型与关键字筛选；返回的是调用记录，不做资源去重。', params: [{ name: 'page', type: 'number', required: false, description: '' }, { name: 'pageSize', type: 'number', required: false, description: '' }, { name: 'range', type: 'string', required: false, description: 'today / 7d / 30d' }, { name: 'type', type: 'string', required: false, description: '筛选类型' }, { name: 'keyword', type: 'string', required: false, description: '资源名 / 动作 / 资源编码 / 输入内容' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { list: [], total: 0, page: 1, pageSize: 20 } }, null, 2) },
+    { method: 'GET', path: '/user/recent-use', description: '分页查询最近使用资源列表。结果按资源去重，展示每个资源最近一次使用时间与最近动作。', params: [{ name: 'page', type: 'number', required: false, description: '' }, { name: 'pageSize', type: 'number', required: false, description: '' }, { name: 'type', type: 'string', required: false, description: '筛选类型' }], responseExample: JSON.stringify({ code: 0, message: 'ok', data: { list: [{ targetId: 71, type: 'agent', targetCode: 'dify-course-agent', targetName: 'dify取名助手', action: 'invoke', status: 'success', lastUsedTime: '2026-04-19T16:38:10' }], total: 1, page: 1, pageSize: 20 } }, null, 2) },
     { method: 'GET', path: '/user/favorites', description: '我的收藏列表。', params: [], responseExample: JSON.stringify({ code: 0, message: 'ok', data: [] }, null, 2) },
     { method: 'GET', path: '/user/usage-stats', description: '个人用量汇总（工作台展示）。', params: [], responseExample: JSON.stringify({ code: 0, message: 'ok', data: {} }, null, 2) },
   ]},
@@ -658,7 +659,7 @@ export const ApiDocsPage: React.FC<ApiDocsPageProps> = ({
                   {proseH2(theme, '登记、审核与上架')}
                   {prosePara(theme, (
                     <>
-                      <span className="font-mono">POST /resource-center/resources</span> 创建草稿；<span className="font-mono">POST /resource-center/resources/{'{id}'}/submit</span> 提交审核。审核队列在管理端 <span className="font-mono">/audit/*</span> 等。审核通过后常进入可测状态，一般还需<strong>发布</strong>才 <span className="font-mono">published</span> 进目录——以本校控制台状态为准。
+                      <span className="font-mono">POST /resource-center/resources</span> 创建草稿；<span className="font-mono">POST /resource-center/resources/{'{id}'}/submit</span> 提交审核。审核队列在管理端 <span className="font-mono">/audit/*</span> 等。当前流程中，审核通过后会直接进入 <span className="font-mono">published</span>，不再经过单独的“测试中”状态。
                     </>
                   ))}
                   {prosePara(theme, (

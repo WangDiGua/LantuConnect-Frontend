@@ -7,6 +7,6 @@ export interface AuditItem {
   sourceType: string;
   submitter: string;
   submitTime: string;
-  status: 'pending_review' | 'testing' | 'published' | 'rejected';
+  status: 'pending_review' | 'published' | 'rejected';
   rejectReason?: string;
 }

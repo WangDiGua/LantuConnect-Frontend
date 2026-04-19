@@ -50,7 +50,7 @@
 ### 审核中心页
 - `AuditTable`：`displayName/resourceType/status/submitter/submitTime`
 - `ActionModal`：`rejectReason`（驳回时必填）
-- `StatusBadge`：`pending_review/testing/published/rejected`
+- `StatusBadge`：`pending_review/published/rejected`
 
 ### 授权中心页
 > **注意**：`/resource-grants` 接口已废弃，下线时间待定。替代方案：使用 `/catalog/resources` 统一资源目录。

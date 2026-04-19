@@ -917,7 +917,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     setRelationPicklistLoading(true);
     setRelationPicklistError(false);
     resourceCenterService
-      .listMinePublishedOrTesting('mcp', resourceId ?? undefined)
+      .listMinePublished('mcp', resourceId ?? undefined)
       .then((items) => {
         if (cancelled) return;
         const sorted = [...items].sort((a, b) => a.displayName.localeCompare(b.displayName, 'zh-CN'));
@@ -2206,7 +2206,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                     theme={theme}
                     isDark={isDark}
                     title="后置增强：绑定 MCP"
-                    description="资源先注册成功，再补充绑定关系。这里只展示你名下已发布/测试中的 MCP。"
+                    description="资源先注册成功，再补充绑定关系。这里只展示你名下已发布的 MCP。"
                   >
                     <OrderedRelatedResourcePicker
                       theme={theme}

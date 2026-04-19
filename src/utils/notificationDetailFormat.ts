@@ -93,7 +93,6 @@ const TYPE_LABEL_ZH: Record<string, string> = {
   audit_rejected: '审核驳回',
   audit_pending: '待审核',
   resource_submitted: '资源提审',
-  resource_published: '资源上线',
   resource_deprecated: '资源下架',
   resource_withdrawn: '资源撤回',
   resource_version_switched: '版本切换',

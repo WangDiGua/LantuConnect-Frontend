@@ -31,7 +31,6 @@ type JsonFieldKey = 'inputSchema' | 'defaults' | 'authRefs' | 'capabilities';
 const STATUS_LABEL_ZH: Record<string, string> = {
   draft: '草稿',
   pending_review: '待审核',
-  testing: '测试中',
   published: '已发布',
   rejected: '已驳回',
   deprecated: '已下线',
@@ -75,7 +74,6 @@ function statusBadgeClass(theme: Theme, status?: string): string {
   const key = String(status ?? '').trim().toLowerCase();
   if (key === 'published') return isDark ? 'bg-emerald-500/15 text-emerald-200' : 'bg-emerald-100 text-emerald-900';
   if (key === 'pending_review') return isDark ? 'bg-amber-500/15 text-amber-200' : 'bg-amber-100 text-amber-900';
-  if (key === 'testing') return isDark ? 'bg-sky-500/15 text-sky-200' : 'bg-sky-100 text-sky-900';
   if (key === 'rejected') return isDark ? 'bg-rose-500/15 text-rose-200' : 'bg-rose-100 text-rose-900';
   return isDark ? 'bg-white/[0.08] text-slate-200' : 'bg-slate-100 text-slate-800';
 }

@@ -9,7 +9,6 @@ export type ResourceAccessPolicy = 'grant_required' | 'open_org' | 'open_platfor
 export type ResourceStatus =
   | 'draft'
   | 'pending_review'
-  | 'testing'
   | 'published'
   | 'rejected'
   | 'deprecated'

@@ -71,7 +71,6 @@ function lifecycleTimelineNodeClass(ev: LifecycleTimelineEventVO): string {
   const t = (ev.eventType ?? '').trim().toLowerCase();
   if (s === 'published' || t === 'published') return 'bg-emerald-500 ring-emerald-500/25';
   if (s === 'pending_review' || t === 'submitted') return 'bg-amber-500 ring-amber-500/25';
-  if (s === 'testing') return 'bg-blue-500 ring-blue-500/25';
   if (s === 'rejected' || t === 'rejected') return 'bg-red-500 ring-red-500/25';
   if (s === 'draft' || t === 'created') return 'bg-neutral-400 ring-neutral-400/20';
   if (s === 'deprecated') return 'bg-orange-500 ring-orange-500/25';
@@ -111,11 +110,10 @@ function isActionAllowed(item: ResourceCenterItemVO, action: string): boolean {
     case 'withdraw':
       return (
         s === 'pending_review' ||
-        s === 'testing' ||
         (s === 'published' && Boolean(item.pendingPublishedUpdate))
       );
     case 'deprecate':
-      return s === 'testing' || s === 'published';
+      return s === 'published';
     case 'delete':
       return s === 'draft';
     case 'createVersion':
@@ -244,8 +242,6 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
   const isAdminConsoleUser = canAccessAdminView(platformRole);
   const consoleRole = isAdminConsoleUser ? 'admin' : 'user';
   /** 与 AuditController publish 一致：owner / 部门管理员 / 平台侧开发者账号 */
-  const canPublishResource =
-    platformRole === 'platform_admin' || platformRole === 'reviewer' || platformRole === 'developer';
   /** 待审核：与 ResourceAuditList / POST .../audit/resources/:id/approve|reject 一致 */
   const canAuditPendingInCatalog =
     platformRole === 'platform_admin' ||
@@ -677,7 +673,6 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                     { value: 'all', label: '全部状态' },
                     { value: 'draft', label: '草稿' },
                     { value: 'pending_review', label: '待审核' },
-                    { value: 'testing', label: '测试中' },
                     { value: 'published', label: '已发布' },
                     { value: 'rejected', label: '已驳回' },
                     { value: 'deprecated', label: '已暂停对外' },
@@ -841,12 +836,12 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                               tone: 'positive',
                               hidden: item.status !== 'pending_review' || !canAuditPendingInCatalog,
                               disabled: !!runningActionKey && runningActionKey !== `audit-approve-${item.id}`,
-                              title: '与“资源审核”台一致：通过后进入测试中',
+                              title: '与“资源审核”台一致：通过后直接发布上线',
                               onClick: () =>
                                 void runAction(
                                   `audit-approve-${item.id}`,
                                   () => resourceAuditService.approve(item.id),
-                                  '已通过审核，资源进入测试中',
+                                  '已通过审核，资源已直接发布上线',
                                 ),
                             },
                             {
@@ -888,15 +883,6 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                               onClick: () => setConfirmAction({ id: item.id, type: 'remove' }),
                             },
                             {
-                              key: 'publish',
-                              label: runningActionKey === `publish-${item.id}` ? '发布中' : '发布上架',
-                              icon: CheckCircle2,
-                              tone: 'positive',
-                              hidden: item.status !== 'testing' || !canPublishResource,
-                              disabled: runningActionKey === `publish-${item.id}`,
-                              onClick: () => void runAction(`publish-${item.id}`, () => resourceAuditService.publish(item.id), '已发布上架'),
-                            },
-                            {
                               key: 'force-deprecate',
                               label: '强制下架',
                               icon: Ban,
@@ -910,9 +896,6 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                             },
                           ]}
                         />
-                        {item.status === 'testing' && !canPublishResource && (
-                          <span className={`text-xs ${textMuted(theme)}`}>无发布权限（须为资源负责人或部门/平台管理员）</span>
-                        )}
                       </div>
                     </div>
                     <p className={`mt-2 text-xs ${textSecondary(theme)}`}>{nullDisplay(item.description, '暂无描述')}</p>
@@ -988,12 +971,6 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                 <p className={`mt-2 ${isDark ? 'text-amber-200/95' : 'text-amber-900'}`}>
                   <span className="font-medium">若要改 URL、说明等再继续上架：</span>
                   若需将整个资源改为可任意编辑的<strong className="font-medium">已暂停对外</strong>状态，可在列表点「暂停对外」。日常改版推荐：直接点「编辑」改<strong>草稿</strong>并「保存并提审」。快照与「设为当前」仅影响<strong>默认解析版本</strong>。
-                </p>
-              )}
-              {versionTarget.status === 'testing' && (
-                <p className={`mt-2 ${isDark ? 'text-amber-200/95' : 'text-amber-900'}`}>
-                  <span className="font-medium">测试阶段要改配置：</span>
-                  可点「撤回审核」回草稿后编辑；或「下线」后再编辑并重走提审/发布。新建版本只存快照，不会解锁登记页编辑。
                 </p>
               )}
               {(versionTarget.status === 'draft' ||

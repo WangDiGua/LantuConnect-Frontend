@@ -156,7 +156,7 @@
 - MCP 资源：`mcp-register` 页面完成 URL/协议校验（非法 URL 会阻断提交），支持保存草稿与保存后提审。
 - 五类资源注册：`agent-register` / `skill-register` / `mcp-register` / `app-register` / `dataset-register` 全部接入 `/resource-center/resources*`。
 - 我的资源管理：`agent-list` / `skill-list` / `mcp-server-list` / `app-list` / `dataset-list` 已统一接入 `/resource-center/resources/mine`，并支持提审、下线、版本创建/切换。
-- 审核链路：`agent-audit` 与 `skill-audit` 已统一到 `/audit/resources`，支持 `approve/reject/publish`。
+- 审核链路：`agent-audit` 与 `skill-audit` 已统一到 `/audit/resources`，支持 `approve/reject`。
 - 占位页替换：`authorized-skills` 已接 `/user/authorized-skills`；最近使用并入 `usage-records` 页内 tab，`/user/recent-use` 仍为列表接口；`my-agents-pub` 已改为发布总览页。
 
 ### 契约对齐核验

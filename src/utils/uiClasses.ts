@@ -252,7 +252,6 @@ export const mgmtTableRowActions =
 export type DomainStatus =
   | 'draft'
   | 'pending_review'
-  | 'testing'
   | 'published'
   | 'rejected'
   | 'deprecated'
@@ -265,7 +264,7 @@ export type DomainStatus =
 const STATUS_LABEL: Record<DomainStatus, string> = {
   draft: '草稿',
   pending_review: '待审核',
-  testing: '测试中',
+
   published: '已发布',
   rejected: '已驳回',
   deprecated: '已暂停对外',
@@ -278,7 +277,6 @@ const STATUS_LABEL: Record<DomainStatus, string> = {
 const STATUS_DOT: Record<DomainStatus, string> = {
   draft: 'bg-neutral-400',
   pending_review: 'bg-amber-400',
-  testing: 'bg-blue-400',
   published: 'bg-emerald-400',
   rejected: 'bg-red-400',
   deprecated: 'bg-orange-400',
@@ -291,7 +289,6 @@ const STATUS_DOT: Record<DomainStatus, string> = {
 const STATUS_COLOR: Record<DomainStatus, { light: string; dark: string }> = {
   draft: { light: 'bg-neutral-100 text-neutral-700 border border-neutral-200/60', dark: 'bg-neutral-500/10 text-neutral-400 border border-neutral-500/20' },
   pending_review: { light: 'bg-amber-50 text-amber-700 border border-amber-200/60', dark: 'bg-amber-500/10 text-amber-400 border border-amber-500/20' },
-  testing: { light: 'bg-blue-50 text-blue-700 border border-blue-200/60', dark: 'bg-blue-500/10 text-blue-400 border border-blue-500/20' },
   published: { light: 'bg-emerald-50 text-emerald-700 border border-emerald-200/60', dark: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' },
   rejected: { light: 'bg-red-50 text-red-700 border border-red-200/60', dark: 'bg-red-500/10 text-red-400 border border-red-500/20' },
   deprecated: { light: 'bg-orange-50 text-orange-700 border border-orange-200/60', dark: 'bg-orange-500/10 text-orange-400 border border-orange-500/20' },

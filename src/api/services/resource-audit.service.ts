@@ -13,7 +13,6 @@ function normalizeStatus(raw: unknown): ResourceAuditItemVO['status'] {
   const value = String(raw ?? '').toLowerCase();
   if (value === 'draft') return 'draft';
   if (value === 'pending_review') return 'pending_review';
-  if (value === 'testing') return 'testing';
   if (value === 'published') return 'published';
   if (value === 'rejected') return 'rejected';
   if (value === 'deprecated') return 'deprecated';
@@ -21,7 +20,7 @@ function normalizeStatus(raw: unknown): ResourceAuditItemVO['status'] {
   return 'pending_review';
 }
 
-/** 取首个非空字符串；兼容后端 snake_case、嵌套 resource 快照 */
+/** 鍙栭涓潪绌哄瓧绗︿覆锛涘吋瀹瑰悗绔?snake_case銆佸祵濂?resource 蹇収 */
 function firstNonEmpty(...vals: unknown[]): string | undefined {
   for (const v of vals) {
     if (v == null) continue;
@@ -126,14 +125,11 @@ export const resourceAuditService = {
   reject: (id: number, payload: ResourceRejectRequest): Promise<void> =>
     http.post<void>(`/audit/resources/${id}/reject`, payload),
 
-  publish: (id: number): Promise<void> =>
-    http.post<void>(`/audit/resources/${id}/publish`),
-
-  /** 平台强制下架；body 可选 reason（后端空则记为「平台强制下架」） */
+  /** 骞冲彴寮哄埗涓嬫灦锛沚ody 鍙€?reason锛堝悗绔┖鍒欒涓恒€屽钩鍙板己鍒朵笅鏋躲€嶏級 */
   platformForceDeprecate: (resourceId: number, payload?: ResourceRejectRequest): Promise<void> =>
     http.post<void>(`/audit/resources/${resourceId}/platform-force-deprecate`, payload ?? {}),
 
-  /** 批量通过（待审核）；优先 POST `/audit/resources/batch-approve` */
+  /** 鎵归噺閫氳繃锛堝緟瀹℃牳锛夛紱浼樺厛 POST `/audit/resources/batch-approve` */
   batchApprove: async (ids: number[]): Promise<void> => {
     if (!ids.length) return;
     await tryBatchPost(
@@ -148,7 +144,7 @@ export const resourceAuditService = {
     );
   },
 
-  /** 批量驳回；优先 POST `/audit/resources/batch-reject` */
+  /** 鎵归噺椹冲洖锛涗紭鍏?POST `/audit/resources/batch-reject` */
   batchReject: async (ids: number[], payload: ResourceRejectRequest): Promise<void> => {
     if (!ids.length) return;
     await tryBatchPost(
@@ -157,21 +153,6 @@ export const resourceAuditService = {
       async () => {
         const r = await runWithConcurrency(ids, 4, async (id) => {
           await http.post<void>(`/audit/resources/${id}/reject`, payload);
-        });
-        if (r.errors.length) throw r.errors[0]!.error;
-      },
-    );
-  },
-
-  /** 批量发布（测试中）；优先 POST `/audit/resources/batch-publish` */
-  batchPublish: async (ids: number[]): Promise<void> => {
-    if (!ids.length) return;
-    await tryBatchPost(
-      '/audit/resources/batch-publish',
-      { ids },
-      async () => {
-        const r = await runWithConcurrency(ids, 4, async (id) => {
-          await http.post<void>(`/audit/resources/${id}/publish`);
         });
         if (r.errors.length) throw r.errors[0]!.error;
       },

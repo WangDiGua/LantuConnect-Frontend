@@ -107,7 +107,7 @@ test('isExplicitRealtimeUiSignal only keeps critical alerts as visible interrupt
 test('matchesRealtimeUiSignal filters by category and workflow notification type', () => {
   const workflowSignal = {
     category: 'workflow_notification_sync' as const,
-    notificationType: 'resource_published',
+    notificationType: 'audit_approved',
   };
   const runtimeSignal = {
     category: 'health_runtime_sync' as const,
@@ -119,7 +119,7 @@ test('matchesRealtimeUiSignal filters by category and workflow notification type
   assert.equal(
     matchesRealtimeUiSignal(workflowSignal, {
       categories: ['workflow_notification_sync'],
-      notificationTypes: ['resource_published'],
+      notificationTypes: ['audit_approved'],
     }),
     true,
   );

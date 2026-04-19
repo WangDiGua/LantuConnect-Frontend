@@ -5,12 +5,11 @@ import { textMuted, textSecondary } from '../../utils/uiClasses';
 
 type PublishLifecycleStatus = AgentStatus | 'merged_live';
 
-const DEFAULT_FLOW: AgentStatus[] = ['draft', 'pending_review', 'testing', 'published'];
+const DEFAULT_FLOW: AgentStatus[] = ['draft', 'pending_review', 'published'];
 
 const STEP_LABEL: Record<PublishLifecycleStatus, string> = {
   draft: '草稿',
   pending_review: '待审核',
-  testing: '测试中',
   published: '已发布',
   rejected: '已驳回',
   deprecated: '已暂停对外',

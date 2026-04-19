@@ -22,7 +22,6 @@ function normalizeStatus(raw: unknown): ResourceCenterItemVO['status'] {
   const value = String(raw ?? '').toLowerCase();
   if (value === 'draft') return 'draft';
   if (value === 'pending_review') return 'pending_review';
-  if (value === 'testing') return 'testing';
   if (value === 'published') return 'published';
   if (value === 'rejected') return 'rejected';
   if (value === 'deprecated') return 'deprecated';
@@ -433,18 +432,13 @@ export const resourceCenterService = {
   listMineAllPages: fetchMineAllPages,
 
   /** 已发布 ∪ 测试中（去重），用于绑定类字段仅选与当前登记资源同一创建者的资源 */
-  listMinePublishedOrTesting: async (
+  listMinePublished: async (
     resourceType: ResourceType,
     forResourceId?: number,
   ): Promise<ResourceCenterItemVO[]> => {
     const scope =
       forResourceId != null && forResourceId > 0 ? { forResourceId } : {};
-    const pub = await fetchMineAllPages({ resourceType, status: 'published', pageSize: 200, ...scope });
-    const tst = await fetchMineAllPages({ resourceType, status: 'testing', pageSize: 200, ...scope });
-    const m = new Map<number, ResourceCenterItemVO>();
-    for (const x of pub) m.set(x.id, x);
-    for (const x of tst) m.set(x.id, x);
-    return [...m.values()];
+    return fetchMineAllPages({ resourceType, status: 'published', pageSize: 200, ...scope });
   },
 
   getById: async (id: number): Promise<ResourceCenterItemVO> => {

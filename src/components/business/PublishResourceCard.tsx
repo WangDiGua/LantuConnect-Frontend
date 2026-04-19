@@ -38,8 +38,6 @@ interface Props {
   callCountLabel?: string;
   /** 与统一资源中心 / ResourceAuditList 一致：待审核时可执行通过、驳回 */
   canAuditPending?: boolean;
-  /** 测试中（testing）时是否显示「发布上架」（与资源中心 publish 权限一致） */
-  canPublishFromTesting?: boolean;
   showMessage?: (msg: string, type: 'success' | 'error' | 'info' | 'warning') => void;
   /** 审核或发布后回调（例如刷新列表） */
   onLifecycleMutated?: () => void;
@@ -57,7 +55,6 @@ export const PublishResourceCard: React.FC<Props> = ({
   onWithdraw,
   callCountLabel = '调用次数',
   canAuditPending = false,
-  canPublishFromTesting = false,
   showMessage,
   onLifecycleMutated,
   batchSelectMode = false,
@@ -70,7 +67,6 @@ export const PublishResourceCard: React.FC<Props> = ({
   const initial = label.trim().charAt(0) || '?';
   const showWithdraw = Boolean(onWithdraw);
   const showAuditActions = item.status === 'pending_review' && canAuditPending;
-  const showPublish = item.status === 'testing' && canPublishFromTesting;
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [runningKey, setRunningKey] = useState<string | null>(null);
@@ -180,7 +176,7 @@ export const PublishResourceCard: React.FC<Props> = ({
                 void runAuditAction(
                   `audit-approve-${item.id}`,
                   () => resourceAuditService.approve(item.id),
-                  '已通过审核，资源进入测试中',
+                  '已通过审核，资源已直接发布上线',
                 ),
             },
             {
@@ -194,16 +190,6 @@ export const PublishResourceCard: React.FC<Props> = ({
                 setRejectReason('');
                 setRejectOpen(true);
               },
-            },
-            {
-              key: 'publish',
-              label: runningKey === `publish-${item.id}` ? '发布中' : '发布上架',
-              icon: CheckCircle2,
-              tone: 'positive',
-              hidden: !showPublish,
-              disabled: !!runningKey,
-              onClick: () =>
-                void runAuditAction(`publish-${item.id}`, () => resourceAuditService.publish(item.id), '已发布上架'),
             },
             {
               key: 'withdraw',

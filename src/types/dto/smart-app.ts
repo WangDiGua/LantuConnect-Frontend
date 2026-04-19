@@ -3,7 +3,7 @@
 import type { SourceType } from './agent';
 
 export type EmbedType = 'iframe' | 'micro_frontend' | 'redirect';
-export type AppStatus = 'draft' | 'published' | 'testing' | 'deprecated';
+export type AppStatus = 'draft' | 'published' | 'deprecated';
 
 export interface SmartApp {
   id: number;

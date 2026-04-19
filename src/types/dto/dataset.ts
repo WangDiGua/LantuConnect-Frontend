@@ -4,7 +4,7 @@ import type { ResourceCatalogQueryRequest } from './catalog';
 
 export type DatasetSourceType = 'department' | 'knowledge' | 'third_party';
 export type DatasetDataType = 'document' | 'structured' | 'image' | 'audio' | 'video' | 'mixed';
-export type DatasetStatus = 'draft' | 'published' | 'testing' | 'deprecated';
+export type DatasetStatus = 'draft' | 'published' | 'deprecated';
 
 export interface Dataset {
   id: number;

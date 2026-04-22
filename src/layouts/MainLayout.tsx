@@ -149,6 +149,7 @@ import {
 } from '../constants/resourceTypes';
 import { PageSkeleton } from '../components/common/PageSkeleton';
 import { Logo } from '../components/common/Logo';
+import { GlobalLoading } from '../components/common/GlobalLoading';
 import type { ConsoleSidebarRow } from '../constants/consoleNavModel';
 import { ConsoleTopNav } from '../components/layout/ConsoleTopNav';
 import { HubPersonalRail } from '../components/layout/HubPersonalRail';
@@ -762,13 +763,7 @@ export const MainLayout: React.FC = () => {
   // persist 异步水合、或 /auth/me 拉取完成前 user 可能为 null；勿把「暂无 user」当成未分配角色
   if (!user && isAuthenticated) {
     return (
-      <div
-        className="fixed inset-0 overflow-auto bg-slate-50 dark:bg-slate-950"
-        aria-busy="true"
-        aria-label="加载会话"
-      >
-        <PageSkeleton type="dashboard" />
-      </div>
+      <GlobalLoading theme={theme} label="加载会话" fullscreen />
     );
   }
   if (!user) {

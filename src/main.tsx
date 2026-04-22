@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './styles/index.css';
 import { getRootFontSizePx } from './constants/theme';
-import { readAppearanceState } from './utils/appearanceState';
+import { readAppearanceState, resolveEffectiveTheme } from './utils/appearanceState';
 import { normalizeHashRouterUrl } from './utils/normalizeHashRouterUrl';
 
 /** Hash 路由：收束 `.../login#/c/...`（或旧版 `#/user/*`）这类歧义 URL，使 hash 前的 pathname 与部署 base 一致 */
@@ -11,7 +11,10 @@ normalizeHashRouterUrl();
 
 /** 首屏前同步 rem，避免 React useEffect 执行前沿用浏览器默认字号导致「先大后小」 */
 const appearance = readAppearanceState();
+const initialTheme = resolveEffectiveTheme(appearance.themePreference);
 document.documentElement.style.fontSize = getRootFontSizePx(appearance.fontSize);
+document.documentElement.setAttribute('data-theme', initialTheme);
+document.documentElement.style.colorScheme = initialTheme;
 
 const root = document.getElementById('root')!;
 

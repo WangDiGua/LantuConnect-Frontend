@@ -19,7 +19,7 @@ import {
 } from './utils/systemColorScheme';
 import type { Theme } from './types';
 import { ApiException } from './types/api';
-import { PageSkeleton } from './components/common/PageSkeleton';
+import { GlobalLoading } from './components/common/GlobalLoading';
 
 const MainLayout = lazy(() => import('./layouts/MainLayout').then(m => ({ default: m.MainLayout })));
 const LoginPage = lazy(() => import('./views/login/LoginPage').then(m => ({ default: m.LoginPage })));
@@ -137,7 +137,7 @@ const App: React.FC = () => {
           <HashRouter>
             <AuthBinder />
             <HttpErrorBinder />
-            <Suspense fallback={<div className="fixed inset-0 overflow-auto bg-slate-50 dark:bg-slate-950"><PageSkeleton type="dashboard" /></div>}>
+            <Suspense fallback={<GlobalLoading theme={theme} label="页面加载中" fullscreen />}>
               <Routes>
                 <Route path="/401" element={<SessionExpiredPage />} />
                 <Route

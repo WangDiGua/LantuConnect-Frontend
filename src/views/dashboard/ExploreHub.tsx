@@ -1037,6 +1037,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
   const [detailAnnouncement, setDetailAnnouncement] = useState<AnnouncementItem | null>(null);
   const [activeNotice, setActiveNotice] = useState(0);
   const [activeScene, setActiveScene] = useState(0);
+  const [heroSceneReady, setHeroSceneReady] = useState(false);
   const activeSceneRef = useRef(0);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -1198,8 +1199,12 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
     let particles: THREE.Points<THREE.BufferGeometry, THREE.PointsMaterial> | null = null;
     let lines: THREE.LineSegments<THREE.BufferGeometry, THREE.LineBasicMaterial> | null = null;
     let animationFrameId = 0;
+    let initFrameId = 0;
     let removeResize: (() => void) | null = null;
     let removePointerMove: (() => void) | null = null;
+    let didMarkReady = false;
+
+    setHeroSceneReady(false);
 
     const cleanupThree = () => {
       if (removePointerMove) {
@@ -1213,6 +1218,10 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
       if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);
         animationFrameId = 0;
+      }
+      if (initFrameId) {
+        cancelAnimationFrame(initFrameId);
+        initFrameId = 0;
       }
       if (particles?.geometry) particles.geometry.dispose();
       if (particles?.material) particles.material.dispose();
@@ -1243,9 +1252,10 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
       renderer = new THREE.WebGLRenderer({
         canvas,
         antialias: true,
+        alpha: false,
         powerPreference: 'high-performance',
       });
-      renderer.setClearColor(0x06070b, 1);
+      renderer.setClearColor(isDark ? 0x1b1c21 : 0x0d0e13, 1);
       renderer.setSize(width, height, false);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
@@ -1375,8 +1385,15 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
         particles.rotation.y += 0.003 + mouseX * 0.005;
         particles.rotation.x += 0.001 + mouseY * 0.005;
         renderer.render(scene, camera);
+        if (!didMarkReady) {
+          didMarkReady = true;
+          setHeroSceneReady(true);
+        }
       };
 
+      renderer.render(scene, camera);
+      didMarkReady = true;
+      setHeroSceneReady(true);
       animate();
 
       const handleResize = () => {
@@ -1395,7 +1412,10 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
       removeResize = () => window.removeEventListener('resize', handleResize);
     };
 
-    initThree();
+    initFrameId = requestAnimationFrame(() => {
+      initFrameId = 0;
+      initThree();
+    });
 
     return () => {
       cleanupThree();
@@ -1433,6 +1453,10 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
   };
   const heroVignetteFrom = '#0a0a0b';
   const heroLeadClass = 'text-slate-300 text-sm sm:text-[15px] font-normal leading-relaxed max-w-[42rem] mb-5';
+  const heroImmersiveShellClass = isDark
+    ? 'relative isolate flex h-[320px] w-full items-stretch overflow-hidden rounded-[2.5rem] border border-white/[0.06] lg:h-[304px]'
+    : 'relative isolate flex h-[320px] w-full items-stretch overflow-hidden rounded-[2.5rem] border border-slate-200/70 lg:h-[304px]';
+  const heroImmersiveBase = isDark ? '#1b1c21' : '#0d0e13';
 
   const heroCompactTerminal = Boolean(hubRail);
 
@@ -1563,9 +1587,15 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
 
   const hubHeroBannerImmersive = (
     <div className="w-full">
-      <section className="relative flex h-[320px] w-full items-stretch overflow-hidden rounded-[2.5rem] border border-white/5 bg-[#020204] lg:h-[304px]">
+      <section className={heroImmersiveShellClass} style={{ backgroundColor: heroImmersiveBase }}>
         <div className="pointer-events-none absolute inset-0 z-0">
-          <div className="absolute left-[-10%] top-[-20%] h-full w-[600px] rounded-full bg-indigo-600/8 blur-[140px]" />
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                'linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0.01) 32%, rgba(255,255,255,0) 100%)',
+            }}
+          />
           <div
             className="absolute inset-0 opacity-[0.04] mix-blend-overlay"
             style={{
@@ -1582,12 +1612,12 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
               type="button"
               disabled={activeHeroAnnouncement.id === 'hero-announcement-fallback'}
               onClick={() => setDetailAnnouncement(activeHeroAnnouncement)}
-              className="group relative flex h-10 w-full max-w-[28rem] items-center gap-3 overflow-hidden rounded-full border border-white/10 bg-white/[0.03] px-3.5 text-left transition-colors hover:bg-white/[0.05] disabled:cursor-default disabled:hover:bg-white/[0.03]"
+              className="group relative flex h-11 w-full max-w-[29rem] items-center gap-3 overflow-hidden rounded-[1.1rem] border border-white/[0.08] bg-white/[0.025] px-3 py-2 text-left transition-colors hover:border-white/[0.12] hover:bg-white/[0.04] disabled:cursor-default disabled:hover:border-white/[0.08] disabled:hover:bg-white/[0.025]"
             >
-              <span className="inline-flex shrink-0 rounded-full border border-indigo-400/25 bg-indigo-500/12 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-indigo-300">
+              <span className="inline-flex shrink-0 items-center rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-1 text-[10px] font-bold tracking-[0.08em] text-slate-200">
                 {ANNOUNCEMENT_LABEL[activeHeroAnnouncement.type] ?? '平台通知'}
               </span>
-              <div className="relative h-4 min-w-0 flex-1 overflow-hidden">
+              <div className="relative h-4 min-w-0 flex-1 overflow-hidden pr-2">
                 {heroAnnouncements.map((item, idx) => (
                   <div
                     key={item.id}
@@ -1595,7 +1625,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
                       idx === activeNotice % heroAnnouncements.length ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'
                     }`}
                   >
-                    <div className="truncate text-[12px] font-semibold leading-4 text-white">
+                    <div className="truncate text-[12px] font-medium leading-4 text-white/92">
                       {item.title}
                     </div>
                   </div>
@@ -1654,22 +1684,37 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
                 </div>
                 <div className="flex flex-col text-left">
                   <span className="text-xs font-black leading-none text-white">{developerCount.toLocaleString('zh-CN')}</span>
-                  <span className="mt-1 text-[10px] font-bold tracking-[0.18em] text-slate-500">非 User 角色</span>
+                  <span className="mt-1 text-[10px] font-bold tracking-[0.12em] text-slate-500">开发者已入驻</span>
                 </div>
               </div>
           </div>
         </div>
 
-        <div className="group/stage relative flex flex-1 items-center justify-center overflow-hidden border-l border-white/5 bg-[#06070b]">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.1),transparent_40%),linear-gradient(180deg,rgba(8,10,16,0.92),rgba(6,7,11,0.98))]" />
-          <div className="relative h-full w-full">
-            <canvas
-              ref={canvasRef}
-              className="h-full w-full cursor-crosshair bg-[#06070b]"
-            />
-          </div>
+        <div
+          className="group/stage pointer-events-none absolute inset-y-0 right-0 z-10 w-[44%] min-w-[340px] overflow-hidden"
+          style={{ backgroundColor: heroImmersiveBase }}
+        >
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage:
+                'linear-gradient(180deg, rgba(255,255,255,0.015) 0%, rgba(255,255,255,0) 52%), radial-gradient(circle at 78% 44%, rgba(99,102,241,0.08), transparent 24%)',
+            }}
+          />
+          <div
+            className={`absolute inset-0 bg-[radial-gradient(circle_at_80%_48%,rgba(99,102,241,0.06),transparent_34%)] transition-opacity duration-300 ${
+              heroSceneReady ? 'opacity-0' : 'opacity-100'
+            }`}
+          />
+          <canvas
+            ref={canvasRef}
+            className={`h-full w-full transition-opacity duration-300 ${
+              heroSceneReady ? 'opacity-100' : 'opacity-0'
+            }`}
+            style={{ display: 'block', backgroundColor: heroImmersiveBase }}
+          />
 
-          <div className="pointer-events-none absolute bottom-8 left-1/2 z-30 w-full -translate-x-1/2 px-10 text-center">
+          <div className="absolute bottom-8 inset-x-0 z-30 px-8 text-center">
             <div className="relative mb-1 flex h-6 w-full justify-center overflow-hidden">
               {HERO_SCENE_METADATA.map((info, idx) => (
                 <div

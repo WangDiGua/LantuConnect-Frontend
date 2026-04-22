@@ -12,6 +12,7 @@ import {
 import { TagManagementPage } from './TagManagementPage';
 import { SensitiveWordPage } from './SensitiveWordPage';
 import { AnnouncementPage } from './AnnouncementPage';
+import { RobotFactoryAdapterPage } from './RobotFactoryAdapterPage';
 export interface SystemConfigModuleProps {
   activeSubItem: string;
   theme: Theme;
@@ -60,6 +61,8 @@ export const SystemConfigModule: React.FC<SystemConfigModuleProps> = ({
       return <SensitiveWordPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
     case 'announcements':
       return <AnnouncementPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
+    case 'software-factory-adapter':
+      return <RobotFactoryAdapterPage theme={theme} fontSize={fontSize} showMessage={showMessage} />;
     default:
       return <PlaceholderView title={activeSubItem} theme={theme} fontSize={fontSize} />;
   }

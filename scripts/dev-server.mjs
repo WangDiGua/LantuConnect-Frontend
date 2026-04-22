@@ -180,7 +180,7 @@ async function serve(mode) {
 
     viteChild = spawn(
       process.execPath,
-      [viteBinFile, '--configLoader', 'native', '--mode', mode],
+      [viteBinFile, '--force', '--configLoader', 'native', '--mode', mode],
       {
         cwd: root,
         windowsHide: true,
@@ -296,7 +296,7 @@ async function runForeground(mode) {
 
   const viteChild = spawn(
     process.execPath,
-    [viteBinFile, '--configLoader', 'native', '--mode', mode],
+    [viteBinFile, '--force', '--configLoader', 'native', '--mode', mode],
     {
       cwd: root,
       windowsHide: false,

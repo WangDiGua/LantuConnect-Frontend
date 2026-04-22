@@ -69,3 +69,84 @@ export interface SecuritySetting {
   options?: string[];
   category: string;
 }
+
+export interface RobotFactoryCorpMapping {
+  id: string;
+  schoolId: string;
+  schoolNameSnapshot?: string;
+  corpId: string;
+  enabled: boolean;
+  remark?: string;
+  createTime?: string;
+  updateTime?: string;
+}
+
+export interface RobotFactoryAvailableResource {
+  resourceId: string;
+  resourceCode?: string;
+  displayName: string;
+  description?: string;
+  schoolId?: string;
+}
+
+export interface RobotFactorySettings {
+  dbUrl?: string;
+  dbUsername?: string;
+  dbPassword?: string;
+  dbDriverClassName?: string;
+  publicBaseUrl?: string;
+  allowedIps: string[];
+  sessionIdleMinutes?: number;
+  sessionMaxLifetimeMinutes?: number;
+  invokeTimeoutSeconds?: number;
+  updateTime?: string;
+}
+
+export interface RobotFactorySettingsHealth {
+  configured: boolean;
+  databaseReachable: boolean;
+  externalTableReady: boolean;
+  status: string;
+  message?: string;
+  checkedAt?: string;
+}
+
+export interface RobotFactoryProjection {
+  id: string;
+  resourceId: string;
+  resourceType: string;
+  resourceCode?: string;
+  resourceStatus?: string;
+  schoolId?: string;
+  corpId?: string;
+  scopeMode: 'global' | 'school';
+  projectionCode: string;
+  agentName: string;
+  displayName: string;
+  description?: string;
+  displayTemplate?: string | null;
+  agentType?: string;
+  mode?: string;
+  runtimeRole?: string;
+  interactionMode?: string;
+  dispatchMode?: string;
+  autoSyncEnabled: boolean;
+  externalAgentId?: string;
+  syncStatus?: string;
+  syncMessage?: string;
+  lastSyncedAt?: string;
+  createTime?: string;
+  updateTime?: string;
+}
+
+export interface RobotFactorySyncLog {
+  id: string;
+  projectionId?: string;
+  resourceId?: string;
+  action: string;
+  success: boolean;
+  message?: string;
+  requestSnapshotJson?: string;
+  responseSnapshotJson?: string;
+  createTime?: string;
+}

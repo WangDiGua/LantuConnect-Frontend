@@ -483,6 +483,7 @@ const MainContent = React.memo<{
         case 'audit-log':
         case 'sensitive-words':
         case 'announcements':
+        case 'software-factory-adapter':
           return (
             <AdminSystemConfigHubModule activePage={p} theme={t} fontSize={fs} showMessage={msg} />
           );

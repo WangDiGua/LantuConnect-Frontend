@@ -180,6 +180,7 @@ export const ADMIN_SYSTEM_CONFIG_GROUPS: NavSubGroup[] = [
       { id: 'audit-log', icon: Receipt, label: '审计日志' },
       { id: 'sensitive-words', icon: Eye, label: '敏感词库' },
       { id: 'announcements', icon: Sparkles, label: '平台公告' },
+      { id: 'software-factory-adapter', icon: Puzzle, label: '软件工厂适配' },
     ],
   },
 ];

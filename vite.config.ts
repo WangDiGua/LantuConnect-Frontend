@@ -69,6 +69,14 @@ export default defineConfig(({ mode }) => {
   return {
     base,
     plugins: [react(), tailwindcss(), contentSecurityPolicyPlugin(mode, env)],
+    optimizeDeps: {
+      /**
+       * Windows + Vite 开发态下，node_modules/.vite 预构建缓存偶发与浏览器内存缓存失配，
+       * 会表现为旧 chunk 名仍被请求但磁盘上已不存在。开发启动时强制重建依赖缓存，
+       * 配合 no-store 响应头，尽量避免 "Failed to fetch dynamically imported module"。
+       */
+      force: true,
+    },
     resolve: {
       preserveSymlinks: true,
       alias: {
@@ -84,6 +92,11 @@ export default defineConfig(({ mode }) => {
       port: 3000,
       strictPort: false,
       hmr: process.env.DISABLE_HMR !== 'true',
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        Pragma: 'no-cache',
+        Expires: '0',
+      },
       proxy: {
         [apiBase]: {
           target: proxyTarget,

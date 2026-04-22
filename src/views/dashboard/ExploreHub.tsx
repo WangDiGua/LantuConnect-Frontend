@@ -163,23 +163,17 @@ function HubContributorStatCard({
   isDark: boolean;
 }) {
   return (
-    <div
-      className={`p-3 sm:p-4 rounded-2xl shadow-sm border transition-colors ${
-        isDark
-          ? 'bg-white/[0.04] border-white/[0.08] hover:border-indigo-400/30'
-          : 'bg-white border-slate-100/80 hover:border-indigo-100'
-      }`}
-    >
+    <div className="min-w-0">
       <div
-        className={`text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 mb-1.5 whitespace-nowrap ${
+        className={`text-[10px] font-bold uppercase tracking-[0.22em] flex items-center gap-1.5 mb-2 whitespace-nowrap ${
           isDark ? 'text-lantu-text-muted' : 'text-slate-400'
         }`}
       >
         <span className={isDark ? 'text-indigo-400' : 'text-indigo-500'}>{icon}</span>
         {label}
       </div>
-      <div className="flex items-baseline gap-1 flex-wrap">
-        <span className={`text-xl sm:text-2xl font-black ${isDark ? 'text-lantu-text-primary' : 'text-slate-800'}`}>{value}</span>
+      <div className="flex items-baseline gap-1.5 flex-wrap">
+        <span className={`text-[1.75rem] sm:text-[2rem] leading-none font-black tracking-tight ${isDark ? 'text-lantu-text-primary' : 'text-slate-900'}`}>{value}</span>
         {unit ? (
           <span className={`text-xs font-bold ${isDark ? 'text-lantu-text-muted' : 'text-slate-400'}`}>{unit}</span>
         ) : null}
@@ -209,22 +203,20 @@ function HubContributorMiniStat({
   isDark: boolean;
 }) {
   return (
-    <div
-      className={`flex flex-col items-center justify-center p-2 rounded-xl transition-colors min-w-0 ${
-        isDark ? 'hover:bg-white/[0.04]' : 'hover:bg-slate-50/80'
-      }`}
-    >
+    <div className="flex flex-col items-center justify-center min-w-0 px-1">
       <div
-        className={`text-[9px] font-bold mb-1 text-center whitespace-nowrap ${isDark ? 'text-lantu-text-muted' : 'text-slate-400'}`}
+        className={`text-[10px] font-bold mb-1.5 text-center whitespace-nowrap tracking-[0.18em] uppercase ${
+          isDark ? 'text-lantu-text-muted' : 'text-slate-400'
+        }`}
       >
         {label}
       </div>
-      <div className={`text-sm font-black flex items-center gap-0.5 ${isDark ? 'text-lantu-text-primary' : 'text-slate-700'}`}>
+      <div className={`text-sm sm:text-[15px] font-black flex items-center gap-1 ${isDark ? 'text-lantu-text-primary' : 'text-slate-800'}`}>
         <span className="tabular-nums">{value}</span>
         {suffix ? (
           <span className={`text-[10px] font-bold ${isDark ? 'text-lantu-text-muted' : 'text-slate-400'}`}>{suffix}</span>
         ) : null}
-        <span className={`shrink-0 ${isDark ? 'text-lantu-text-secondary' : 'text-slate-200'}`}>{icon}</span>
+        <span className={`shrink-0 ${isDark ? 'text-lantu-text-secondary' : 'text-slate-300'}`}>{icon}</span>
       </div>
     </div>
   );
@@ -415,6 +407,187 @@ function ExploreHubContributorsPodium({ contributors, isDark }: { contributors: 
         }`}
         aria-hidden
       />
+    </div>
+  );
+}
+
+function ExploreHubContributorsEditorialPanel({ contributors, isDark }: { contributors: ContributorItem[]; isDark: boolean }) {
+  const top = contributors.slice(0, 3);
+  const first = top[0];
+
+  if (!first) {
+    return <div className={`text-sm ${isDark ? 'text-lantu-text-secondary' : 'text-slate-500'}`}>暂无贡献者数据</div>;
+  }
+
+  const second = top[1];
+  const third = top[2];
+  const textPri = isDark ? 'text-lantu-text-primary' : 'text-slate-900';
+  const textMuted = isDark ? 'text-lantu-text-muted' : 'text-slate-400';
+  const divider = isDark ? 'border-white/10' : 'border-slate-200/80';
+  const panelBg = isDark
+    ? 'bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))]'
+    : 'bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)]';
+  const panelBorder = isDark ? 'border-white/10' : 'border-slate-200/80';
+  const topChip = isDark ? 'bg-white/[0.06] text-lantu-text-muted' : 'bg-slate-100 text-slate-500';
+  const sideBadge = isDark ? 'text-slate-400' : 'text-slate-500';
+  const accentLine = isDark ? 'from-amber-400/30 via-indigo-400/20 to-cyan-400/25' : 'from-amber-200 via-indigo-100 to-cyan-100';
+  const avatarShell = isDark ? 'border-white/10 bg-slate-950/80' : 'border-white bg-white';
+
+  const renderSide = (person: ContributorItem | undefined, rank: 2 | 3) => (
+    <div className="flex-1 min-w-0 flex flex-col items-center text-center justify-end">
+      <div className="relative">
+        {person ? (
+          <div className={`w-16 h-16 sm:w-[4.5rem] sm:h-[4.5rem] rounded-full border-[3px] ${avatarShell} shadow-[0_18px_40px_-28px_rgba(15,23,42,0.45)] flex items-center justify-center overflow-hidden`}>
+            <MultiAvatar
+              seed={`${person.userId}-${person.username}`}
+              imageUrl={person.avatar}
+              alt={person.username}
+              className="w-[3.5rem] h-[3.5rem] sm:w-[4rem] sm:h-[4rem] rounded-full object-cover"
+            />
+          </div>
+        ) : (
+          <div
+            className={`w-16 h-16 sm:w-[4.5rem] sm:h-[4.5rem] rounded-full border border-dashed flex items-center justify-center text-[10px] font-semibold leading-tight px-2 ${
+              isDark ? 'border-white/15 text-slate-500 bg-white/[0.02]' : 'border-slate-200 text-slate-400 bg-slate-50/70'
+            }`}
+          >
+            虚位以待
+          </div>
+        )}
+      </div>
+
+      <div className="mt-3 min-w-0">
+        <div className={`text-[11px] font-black tracking-[0.28em] uppercase ${sideBadge}`}>TOP {rank}</div>
+        {person ? (
+          <>
+            <p className={`mt-2 text-sm sm:text-[15px] font-bold ${textPri} truncate max-w-full px-1`}>
+              {resolvePersonDisplay({
+                names: [person.userName],
+                usernames: [person.username],
+                ids: [person.userId],
+              })}
+            </p>
+            <p className={`mt-1 text-[11px] font-semibold ${isDark ? 'text-lantu-text-secondary' : 'text-slate-500'}`}>
+              {CONTRIBUTOR_RANK_ROLE[rank - 1]}
+            </p>
+            <p className={`mt-1 text-[11px] ${textMuted} font-medium tabular-nums`}>{formatCount(person.totalCalls)} 次调用</p>
+          </>
+        ) : (
+          <p className={`mt-2 text-xs ${textMuted}`}>敬请期待</p>
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className={`relative mt-2 overflow-hidden rounded-[2rem] border px-4 py-4 sm:px-6 sm:py-5 ${panelBg} ${panelBorder}`}>
+      <div className={`absolute inset-x-6 top-0 h-px bg-gradient-to-r ${accentLine}`} aria-hidden />
+
+      <div className="flex items-center justify-end">
+        <span className={`text-[10px] font-bold uppercase tracking-[0.24em] px-2.5 py-1 rounded-full whitespace-nowrap ${topChip}`}>
+          本周更新
+        </span>
+      </div>
+
+      <div className="relative mt-6">
+        <div
+          className={`pointer-events-none absolute left-[14%] right-[14%] top-[2.5rem] sm:top-[3rem] border-t ${divider}`}
+          aria-hidden
+        />
+        <div className="flex items-end justify-between gap-2 sm:gap-6">
+          {renderSide(second, 2)}
+
+          <div className="relative z-10 flex-[1.15] sm:flex-[1.05] min-w-0 max-w-[48%] flex flex-col items-center text-center">
+            <div className="relative overflow-visible">
+              <div
+                className={`absolute -inset-4 rounded-full blur-2xl ${isDark ? 'bg-amber-400/15' : 'bg-amber-200/60'}`}
+                aria-hidden
+              />
+              <div
+                className={`absolute z-30 -top-5 sm:-top-6 left-1/2 -translate-x-1/2 inline-flex items-center justify-center w-10 h-10 rounded-full shadow-[0_10px_24px_-16px_rgba(245,158,11,0.85)] ${
+                  isDark ? 'bg-amber-400/15 text-amber-300 border border-amber-300/20' : 'bg-amber-50 text-amber-500 border border-amber-100'
+                }`}
+                aria-hidden
+              >
+                <Crown className="w-5 h-5" strokeWidth={1.8} fill="currentColor" />
+              </div>
+              <div
+                className={`relative z-10 w-[5.5rem] h-[5.5rem] sm:w-[6.5rem] sm:h-[6.5rem] rounded-full border-[5px] sm:border-[6px] ${avatarShell} shadow-[0_24px_50px_-30px_rgba(245,158,11,0.55)] flex items-center justify-center overflow-hidden`}
+              >
+                <MultiAvatar
+                  seed={`${first.userId}-${first.username}`}
+                  imageUrl={first.avatar}
+                  alt={first.username}
+                  className="w-[4.7rem] h-[4.7rem] sm:w-[5.55rem] sm:h-[5.55rem] rounded-full object-cover"
+                />
+              </div>
+              <div className="mt-3 inline-flex items-center justify-center rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 px-3 py-1 text-[11px] font-black tracking-[0.22em] text-white shadow-[0_12px_30px_-18px_rgba(245,158,11,0.85)]">
+                TOP 1
+              </div>
+            </div>
+
+            <h4 className={`mt-4 text-base sm:text-[1.15rem] leading-none font-black ${textPri} text-center truncate max-w-full px-1`}>
+              {resolvePersonDisplay({
+                names: [first.userName],
+                usernames: [first.username],
+                ids: [first.userId],
+              })}
+            </h4>
+            <div className={`mt-2 inline-flex items-center rounded-full px-3 py-1 text-[11px] font-bold ${isDark ? 'bg-amber-400/12 text-amber-300' : 'bg-amber-50 text-amber-700'}`}>
+              {CONTRIBUTOR_RANK_ROLE[0]}
+            </div>
+            <p className={`mt-2 text-sm font-medium ${textMuted}`}>{formatCount(first.totalCalls)} 次累计调用</p>
+          </div>
+
+          {renderSide(third, 3)}
+        </div>
+      </div>
+
+      <div className={`mt-6 border-t ${divider} pt-4 sm:pt-5`}>
+        <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+          <HubContributorStatCard
+            label="发布资源"
+            value={first.resourceCount}
+            unit="个"
+            trend={(first.weeklyNewResources ?? 0) > 0}
+            icon={<TrendingUp size={12} aria-hidden />}
+            isDark={isDark}
+          />
+          <HubContributorStatCard
+            label="累计调用"
+            value={formatCount(first.totalCalls)}
+            icon={<Zap size={12} aria-hidden />}
+            isDark={isDark}
+          />
+        </div>
+
+        <div className={`mt-4 grid grid-cols-3 gap-3 border-t ${divider} pt-4`}>
+          <HubContributorMiniStat
+            label="本周新作"
+            value={String(first.weeklyNewResources ?? 0)}
+            suffix="个"
+            icon={<Star size={10} aria-hidden />}
+            isDark={isDark}
+          />
+          <HubContributorMiniStat
+            label="本周调用"
+            value={formatCount(first.weeklyCalls ?? 0)}
+            icon={<TrendingUp size={10} aria-hidden />}
+            isDark={isDark}
+          />
+          <HubContributorMiniStat
+            label="资源获赞"
+            value={formatCount(first.likeCount ?? 0)}
+            icon={<Heart size={10} aria-hidden />}
+            isDark={isDark}
+          />
+        </div>
+
+        <div
+          className={`mt-5 h-px bg-gradient-to-r ${accentLine} ${isDark ? 'opacity-60' : 'opacity-80'}`}
+          aria-hidden
+        />
+      </div>
     </div>
   );
 }
@@ -1288,7 +1461,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
 
               <Card className="p-6" isDark={isDark}>
                 <SectionTitle title="杰出贡献者" icon={Award} isDark={isDark} />
-                <ExploreHubContributorsPodium contributors={topContributors} isDark={isDark} />
+                <ExploreHubContributorsEditorialPanel contributors={topContributors} isDark={isDark} />
               </Card>
             </div>
           </div>

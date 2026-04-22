@@ -31,6 +31,12 @@ import type {
   AuditLogEntry,
   CreateRateLimitDTO,
   RateLimitRule,
+  RobotFactoryAvailableResource,
+  RobotFactoryCorpMapping,
+  RobotFactoryProjection,
+  RobotFactorySettings,
+  RobotFactorySettingsHealth,
+  RobotFactorySyncLog,
   SecuritySetting,
   SystemParam,
 } from '../../types/dto/system-config';
@@ -237,6 +243,106 @@ function mapAnnouncementRecord(raw: unknown): AnnouncementItem {
   };
 }
 
+function mapRobotFactoryCorpMapping(raw: unknown): RobotFactoryCorpMapping {
+  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  return {
+    id: String(o.id ?? ''),
+    schoolId: String(o.schoolId ?? ''),
+    schoolNameSnapshot: o.schoolNameSnapshot == null ? undefined : String(o.schoolNameSnapshot),
+    corpId: String(o.corpId ?? ''),
+    enabled: o.enabled === undefined ? true : Boolean(o.enabled),
+    remark: o.remark == null ? undefined : String(o.remark),
+    createTime: o.createTime == null ? undefined : String(o.createTime),
+    updateTime: o.updateTime == null ? undefined : String(o.updateTime),
+  };
+}
+
+function mapRobotFactoryAvailableResource(raw: unknown): RobotFactoryAvailableResource {
+  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  return {
+    resourceId: String(o.resourceId ?? ''),
+    resourceCode: o.resourceCode == null ? undefined : String(o.resourceCode),
+    displayName: String(o.displayName ?? ''),
+    description: o.description == null ? undefined : String(o.description),
+    schoolId: o.schoolId == null ? undefined : String(o.schoolId),
+  };
+}
+
+function mapRobotFactorySettings(raw: unknown): RobotFactorySettings {
+  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const allowedIpsRaw = Array.isArray(o.allowedIps) ? o.allowedIps : [];
+  return {
+    dbUrl: o.dbUrl == null ? undefined : String(o.dbUrl),
+    dbUsername: o.dbUsername == null ? undefined : String(o.dbUsername),
+    dbPassword: o.dbPassword == null ? undefined : String(o.dbPassword),
+    dbDriverClassName: o.dbDriverClassName == null ? undefined : String(o.dbDriverClassName),
+    publicBaseUrl: o.publicBaseUrl == null ? undefined : String(o.publicBaseUrl),
+    allowedIps: allowedIpsRaw.map((item) => String(item)).filter(Boolean),
+    sessionIdleMinutes: o.sessionIdleMinutes == null ? undefined : Number(o.sessionIdleMinutes),
+    sessionMaxLifetimeMinutes: o.sessionMaxLifetimeMinutes == null ? undefined : Number(o.sessionMaxLifetimeMinutes),
+    invokeTimeoutSeconds: o.invokeTimeoutSeconds == null ? undefined : Number(o.invokeTimeoutSeconds),
+    updateTime: o.updateTime == null ? undefined : String(o.updateTime),
+  };
+}
+
+function mapRobotFactorySettingsHealth(raw: unknown): RobotFactorySettingsHealth {
+  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  return {
+    configured: Boolean(o.configured),
+    databaseReachable: Boolean(o.databaseReachable),
+    externalTableReady: Boolean(o.externalTableReady),
+    status: String(o.status ?? ''),
+    message: o.message == null ? undefined : String(o.message),
+    checkedAt: o.checkedAt == null ? undefined : String(o.checkedAt),
+  };
+}
+
+function mapRobotFactoryProjection(raw: unknown): RobotFactoryProjection {
+  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  return {
+    id: String(o.id ?? ''),
+    resourceId: String(o.resourceId ?? ''),
+    resourceType: String(o.resourceType ?? ''),
+    resourceCode: o.resourceCode == null ? undefined : String(o.resourceCode),
+    resourceStatus: o.resourceStatus == null ? undefined : String(o.resourceStatus),
+    schoolId: o.schoolId == null ? undefined : String(o.schoolId),
+    corpId: o.corpId == null ? undefined : String(o.corpId),
+    scopeMode: String(o.scopeMode ?? 'school') === 'global' ? 'global' : 'school',
+    projectionCode: String(o.projectionCode ?? ''),
+    agentName: String(o.agentName ?? ''),
+    displayName: String(o.displayName ?? ''),
+    description: o.description == null ? undefined : String(o.description),
+    displayTemplate: o.displayTemplate == null ? undefined : String(o.displayTemplate),
+    agentType: o.agentType == null ? undefined : String(o.agentType),
+    mode: o.mode == null ? undefined : String(o.mode),
+    runtimeRole: o.runtimeRole == null ? undefined : String(o.runtimeRole),
+    interactionMode: o.interactionMode == null ? undefined : String(o.interactionMode),
+    dispatchMode: o.dispatchMode == null ? undefined : String(o.dispatchMode),
+    autoSyncEnabled: Boolean(o.autoSyncEnabled),
+    externalAgentId: o.externalAgentId == null ? undefined : String(o.externalAgentId),
+    syncStatus: o.syncStatus == null ? undefined : String(o.syncStatus),
+    syncMessage: o.syncMessage == null ? undefined : String(o.syncMessage),
+    lastSyncedAt: o.lastSyncedAt == null ? undefined : String(o.lastSyncedAt),
+    createTime: o.createTime == null ? undefined : String(o.createTime),
+    updateTime: o.updateTime == null ? undefined : String(o.updateTime),
+  };
+}
+
+function mapRobotFactorySyncLog(raw: unknown): RobotFactorySyncLog {
+  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  return {
+    id: String(o.id ?? ''),
+    projectionId: o.projectionId == null ? undefined : String(o.projectionId),
+    resourceId: o.resourceId == null ? undefined : String(o.resourceId),
+    action: String(o.action ?? ''),
+    success: Boolean(o.success),
+    message: o.message == null ? undefined : String(o.message),
+    requestSnapshotJson: o.requestSnapshotJson == null ? undefined : String(o.requestSnapshotJson),
+    responseSnapshotJson: o.responseSnapshotJson == null ? undefined : String(o.responseSnapshotJson),
+    createTime: o.createTime == null ? undefined : String(o.createTime),
+  };
+}
+
 export const systemConfigService = {
   listRateLimits: async () => {
     const raw = await http.get<unknown>('/system-config/rate-limits');
@@ -405,5 +511,149 @@ export const systemConfigService = {
         if (r.errors.length) throw r.errors[0]!.error;
       },
     );
+  },
+
+  listRobotFactoryCorpMappings: async () => {
+    const raw = await http.get<unknown>('/system-config/robot-factory/corp-mappings');
+    return extractArray(raw).map(mapRobotFactoryCorpMapping);
+  },
+
+  getRobotFactorySettings: async () => {
+    const raw = await http.get<unknown>('/system-config/robot-factory/settings');
+    return mapRobotFactorySettings(raw);
+  },
+
+  saveRobotFactorySettings: async (data: {
+    dbUrl?: string;
+    dbUsername?: string;
+    dbPassword?: string;
+    dbDriverClassName?: string;
+    publicBaseUrl?: string;
+    allowedIps?: string[];
+    sessionIdleMinutes?: number;
+    sessionMaxLifetimeMinutes?: number;
+    invokeTimeoutSeconds?: number;
+  }) => {
+    const raw = await http.put<unknown>('/system-config/robot-factory/settings', data);
+    return mapRobotFactorySettings(raw);
+  },
+
+  testRobotFactorySettingsConnection: async (data: {
+    dbUrl?: string;
+    dbUsername?: string;
+    dbPassword?: string;
+    dbDriverClassName?: string;
+    publicBaseUrl?: string;
+    allowedIps?: string[];
+    sessionIdleMinutes?: number;
+    sessionMaxLifetimeMinutes?: number;
+    invokeTimeoutSeconds?: number;
+  }) => {
+    const raw = await http.post<unknown>('/system-config/robot-factory/settings/test-connection', data);
+    return mapRobotFactorySettingsHealth(raw);
+  },
+
+  getRobotFactorySettingsHealth: async () => {
+    const raw = await http.get<unknown>('/system-config/robot-factory/settings/health');
+    return mapRobotFactorySettingsHealth(raw);
+  },
+
+  listRobotFactoryAvailableResources: async (params?: { keyword?: string; limit?: number }) => {
+    const raw = await http.get<unknown>('/system-config/robot-factory/available-resources', { params });
+    return extractArray(raw).map(mapRobotFactoryAvailableResource);
+  },
+
+  createRobotFactoryCorpMapping: (data: {
+    schoolId: number;
+    schoolNameSnapshot?: string;
+    corpId: number;
+    enabled?: boolean;
+    remark?: string;
+  }) => http.post<RobotFactoryCorpMapping>('/system-config/robot-factory/corp-mappings', data).then(mapRobotFactoryCorpMapping),
+
+  updateRobotFactoryCorpMapping: (id: string, data: {
+    schoolId: number;
+    schoolNameSnapshot?: string;
+    corpId: number;
+    enabled?: boolean;
+    remark?: string;
+  }) => http.put<RobotFactoryCorpMapping>(`/system-config/robot-factory/corp-mappings/${id}`, data).then(mapRobotFactoryCorpMapping),
+
+  listRobotFactoryProjections: async (params?: {
+    page?: number;
+    pageSize?: number;
+    syncStatus?: string;
+    autoSyncEnabled?: boolean;
+    schoolId?: number;
+    keyword?: string;
+  }) => {
+    const raw = await http.get<unknown>('/system-config/robot-factory/projections', { params });
+    const pageData = normalizePaginated<RobotFactoryProjection>(raw, mapRobotFactoryProjection);
+    return {
+      ...pageData,
+      list: pageData.list.map(mapRobotFactoryProjection),
+    };
+  },
+
+  getRobotFactoryProjection: async (id: string) => {
+    const raw = await http.get<unknown>(`/system-config/robot-factory/projections/${id}`);
+    return mapRobotFactoryProjection(raw);
+  },
+
+  createRobotFactoryProjection: async (data: {
+    resourceId: number;
+    scopeMode?: 'global' | 'school';
+    displayName?: string;
+    description?: string;
+    displayTemplate?: string;
+    specJson?: string;
+    parametersSchema?: string;
+    autoSyncEnabled?: boolean;
+  }) => {
+    const raw = await http.post<unknown>('/system-config/robot-factory/projections', data);
+    return mapRobotFactoryProjection(raw);
+  },
+
+  updateRobotFactoryProjection: async (id: string, data: {
+    scopeMode?: 'global' | 'school';
+    displayName?: string;
+    description?: string;
+    displayTemplate?: string;
+    specJson?: string;
+    parametersSchema?: string;
+    autoSyncEnabled?: boolean;
+  }) => {
+    const raw = await http.put<unknown>(`/system-config/robot-factory/projections/${id}`, data);
+    return mapRobotFactoryProjection(raw);
+  },
+
+  syncRobotFactoryProjection: async (id: string) => {
+    const raw = await http.post<unknown>(`/system-config/robot-factory/projections/${id}/sync`);
+    return mapRobotFactoryProjection(raw);
+  },
+
+  deleteRobotFactoryProjectionExternal: async (id: string) => {
+    const raw = await http.delete<unknown>(`/system-config/robot-factory/projections/${id}/external`);
+    return mapRobotFactoryProjection(raw);
+  },
+
+  setRobotFactoryProjectionAutoSync: async (id: string, enabled: boolean) => {
+    const raw = await http.post<unknown>(`/system-config/robot-factory/projections/${id}/auto-sync`, { enabled });
+    return mapRobotFactoryProjection(raw);
+  },
+
+  listRobotFactorySyncLogs: async (params?: {
+    page?: number;
+    pageSize?: number;
+    projectionId?: number;
+    success?: boolean;
+    action?: string;
+  }) => {
+    const raw = await http.get<unknown>('/system-config/robot-factory/sync-logs', { params });
+    const pageData = normalizePaginated<RobotFactorySyncLog>(raw, mapRobotFactorySyncLog);
+    return {
+      ...pageData,
+      list: pageData.list.map(mapRobotFactorySyncLog),
+    };
   },
 };

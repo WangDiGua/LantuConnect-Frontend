@@ -176,6 +176,7 @@ const ADMIN_SIDEBAR_PAGES: Record<string, string[]> = {
     'audit-log',
     'sensitive-words',
     'announcements',
+    'software-factory-adapter',
   ],
   'developer-portal': ['developer-docs', 'developer-tools', 'developer-statistics'],
 };

@@ -290,16 +290,20 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   }`;
 
   const profileCard = isDark
-    ? 'bg-slate-900/90 rounded-[2rem] shadow-sm border border-white/10 overflow-hidden flex flex-col md:flex-row'
+    ? 'bg-lantu-elevated rounded-[2rem] shadow-[var(--shadow-card)] border border-transparent overflow-hidden flex flex-col md:flex-row'
     : 'bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden flex flex-col md:flex-row';
 
   const profileLeft = isDark
-    ? 'p-8 md:w-2/5 flex flex-col items-center justify-center bg-gradient-to-br from-slate-800/80 to-slate-900 border-r border-white/10'
+    ? 'p-8 md:w-2/5 flex flex-col items-center justify-center border-r border-white/[0.06] bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.09),transparent_52%),linear-gradient(180deg,rgba(255,255,255,0.035),rgba(255,255,255,0.015))]'
     : 'p-8 md:w-2/5 flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-white border-r border-slate-50';
 
   const bottomCard = isDark
-    ? 'bg-slate-900/90 rounded-[2rem] shadow-sm border border-white/10 overflow-hidden'
+    ? 'bg-lantu-elevated rounded-[2rem] shadow-[var(--shadow-card)] border border-transparent overflow-hidden'
     : 'bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden';
+
+  const activityCard = isDark
+    ? 'group relative overflow-hidden rounded-[2rem] border border-white/[0.08] bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.16),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(99,102,241,0.14),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.035),rgba(255,255,255,0.02))] p-8 text-slate-100 shadow-[var(--shadow-card)]'
+    : 'group relative overflow-hidden rounded-[2rem] bg-indigo-600 p-8 text-white shadow-lg shadow-indigo-200';
 
   const tableHead = isDark ? 'text-slate-400' : 'text-slate-400';
   const tableDivide = isDark ? 'divide-white/[0.06]' : 'divide-slate-50';
@@ -449,13 +453,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             </div>
           </div>
 
-          <div
-            className={
-              isDark
-                ? 'group relative overflow-hidden rounded-[2rem] bg-indigo-700 p-8 text-white shadow-lg shadow-indigo-950/50'
-                : 'group relative overflow-hidden rounded-[2rem] bg-indigo-600 p-8 text-white shadow-lg shadow-indigo-200'
-            }
-          >
+          <div className={activityCard}>
             <div className="relative z-10 flex h-full flex-col justify-between">
               <div>
                 <h3 className="text-lg font-medium opacity-90">登录活跃度</h3>
@@ -477,8 +475,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                     <Area
                       type="monotone"
                       dataKey="val"
-                      stroke="rgba(255,255,255,0.4)"
-                      fill="rgba(255,255,255,0.1)"
+                      stroke={isDark ? 'rgba(125,211,252,0.55)' : 'rgba(255,255,255,0.4)'}
+                      fill={isDark ? 'rgba(56,189,248,0.12)' : 'rgba(255,255,255,0.1)'}
                       strokeWidth={2}
                     />
                   </AreaChart>
@@ -487,13 +485,21 @@ export const UserProfile: React.FC<UserProfileProps> = ({
               <button
                 type="button"
                 onClick={() => navigate(buildPath(consoleRole, 'preferences'))}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-white/10 py-3 text-sm font-medium backdrop-blur-md transition hover:bg-white/20"
+                className={`flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-medium backdrop-blur-md transition ${
+                  isDark
+                    ? 'border border-white/[0.08] bg-white/[0.06] text-slate-100 hover:bg-white/[0.10]'
+                    : 'bg-white/10 hover:bg-white/20'
+                }`}
               >
                 修改安全设置
                 <ChevronRight size={16} />
               </button>
             </div>
-            <div className="absolute top-[-20%] right-[-10%] size-48 rounded-full bg-white/10 blur-3xl transition-transform duration-700 group-hover:scale-110" />
+            <div
+              className={`absolute top-[-18%] right-[-10%] size-48 rounded-full blur-3xl transition-transform duration-700 group-hover:scale-110 ${
+                isDark ? 'bg-sky-400/12' : 'bg-white/10'
+              }`}
+            />
           </div>
         </div>
 

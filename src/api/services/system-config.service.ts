@@ -291,6 +291,7 @@ function mapRobotFactorySettingsHealth(raw: unknown): RobotFactorySettingsHealth
     configured: Boolean(o.configured),
     databaseReachable: Boolean(o.databaseReachable),
     externalTableReady: Boolean(o.externalTableReady),
+    publicBaseUrlReady: Boolean(o.publicBaseUrlReady),
     status: String(o.status ?? ''),
     message: o.message == null ? undefined : String(o.message),
     checkedAt: o.checkedAt == null ? undefined : String(o.checkedAt),

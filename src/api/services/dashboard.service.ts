@@ -371,6 +371,7 @@ function normalizeExploreHubData(raw: unknown): ExploreHubData {
       totalMcps: num(ps.totalMcps ?? (ps as { totalMcp?: unknown }).totalMcp ?? (ps as { totalMcpServers?: unknown }).totalMcpServers ?? (ps as { total_mcp_servers?: unknown }).total_mcp_servers),
       totalApps: num(ps.totalApps),
       totalDatasets: num(ps.totalDatasets),
+      totalDevelopers: num(ps.totalDevelopers ?? (ps as { developerUsers?: unknown }).developerUsers ?? (ps as { total_developers?: unknown }).total_developers),
       totalUsers: num(ps.totalUsers),
       totalCallsToday: num(ps.totalCallsToday),
       callsTrend7d,

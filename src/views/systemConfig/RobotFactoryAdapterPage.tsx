@@ -1,10 +1,27 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Boxes, Building2, CheckCircle2, Database, Eye, EyeOff, FileUp, RefreshCcw, ScrollText, TriangleAlert, Wrench } from 'lucide-react';
+﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Boxes,
+  Building2,
+  CheckCircle2,
+  Database,
+  Eye,
+  EyeOff,
+  FileUp,
+  Link2,
+  Plus,
+  Puzzle,
+  RefreshCcw,
+  ScrollText,
+  Sparkles,
+  TriangleAlert,
+  Wrench,
+} from 'lucide-react';
 import { Blowfish } from 'egoroof-blowfish';
 import type { Theme, FontSize } from '../../types';
+import { LantuSelect } from '../../components/common/LantuSelect';
 import { Modal } from '../../components/common/Modal';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
-import { nativeInputClass, nativeSelectClass } from '../../utils/formFieldClasses';
+import { nativeInputClass } from '../../utils/formFieldClasses';
 import { bentoCard, btnDanger, btnPrimary, btnSecondary, textMuted, textPrimary, textSecondary } from '../../utils/uiClasses';
 import { systemConfigService } from '../../api/services/system-config.service';
 import type {
@@ -43,6 +60,7 @@ interface RobotFactoryConnectionImportCandidate extends ImportedRobotFactoryConn
 
 const PAGE_SIZE = 50;
 const HEALTH_POLL_MS = 30000;
+const PAGE_DISPLAY_NAME = '精灵平台适配';
 
 const emptyProjectionForm = {
   resourceId: '',
@@ -369,47 +387,6 @@ function isLikelyEncryptedPassword(raw?: string): boolean {
   return false;
 }
 
-/*
-async function buildImportCandidate(element: Element): Promise<RobotFactoryConnectionImportCandidate | null> {
-  const rawUrl = readImportNodeValue(element, ['jdbcUrl', 'jdbc_url', 'url', 'connectionUrl']);
-  const host = readImportNodeValue(element, ['host', 'hostname', 'server', 'ip']);
-  const port = readImportNodeValue(element, ['port']);
-  const database = readImportNodeValue(element, ['database', 'dbName', 'dbname', 'schema', 'initialDatabase', 'databaseName']);
-  const username = readImportNodeValue(element, ['username', 'user', 'uid', 'userName', 'userId', 'loginUser']);
-  const rawPassword = readImportNodeValue(element, ['password', 'pwd', 'passwd']);
-  const publicBaseUrl = readImportNodeValue(element, ['publicBaseUrl', 'serverAddress', 'baseUrl']);
-  const allowedIpsText = readImportNodeValue(element, ['allowedIps', 'ipWhitelist', 'whitelist']);
-  const connectionName = readImportNodeValue(element, ['connectionName', 'name', 'alias', 'label']);
-  const urlImport = rawUrl ? parseRobotFactoryConnectionImport(rawUrl) : null;
-  const protocol = inferProtocol(rawUrl || readImportNodeValue(element, ['type', 'dbType', 'driver', 'provider']) || element.tagName);
-  const dbUrl = normalizeImportedDbUrl(rawUrl) || (host ? buildJdbcUrl(protocol, host, port, database, '') : undefined);
-
-  if (!dbUrl && !host) return null;
-
-  const encryptedPassword = isLikelyEncryptedPassword(rawPassword);
-  const decryptedPassword = await decryptNavicatPassword(rawPassword);
-  const detailParts = [
-    host ? `Host ${host}` : undefined,
-    port ? `Port ${port}` : undefined,
-    database ? `DB ${database}` : undefined,
-  ].filter(Boolean);
-
-  return {
-    name: connectionName || [host, database].filter(Boolean).join(' / ') || 'Navicat 导入连接',
-    detail: detailParts.join(' · ') || dbUrl,
-    source: 'navicat',
-    dbUrl,
-    dbUsername: username || urlImport?.dbUsername,
-    dbPassword: decryptedPassword || urlImport?.dbPassword,
-    dbDriverClassName: inferDriverClassName(dbUrl || protocol),
-    publicBaseUrl,
-    allowedIps: allowedIpsText ? parseIpText(allowedIpsText) : undefined,
-    warning: encryptedPassword ? 'Navicat 导出的密码不是明文，已跳过密码导入，请手动补填。' : undefined,
-  };
-}
-
-*/
-
 async function buildImportCandidateResolved(element: Element): Promise<RobotFactoryConnectionImportCandidate | null> {
   const rawUrl = readImportNodeValue(element, ['jdbcUrl', 'jdbc_url', 'url', 'connectionUrl']);
   const host = readImportNodeValue(element, ['host', 'hostname', 'server', 'ip']);
@@ -447,46 +424,6 @@ async function buildImportCandidateResolved(element: Element): Promise<RobotFact
     warning: unresolvedEncryptedPassword ? 'Navicat 导出的密码未能自动解密，请手动补填。' : undefined,
   };
 }
-
-/*
-async function parseRobotFactoryConnectionImportCandidates(raw: string): Promise<RobotFactoryConnectionImportCandidate[]> {
-  const value = raw.trim();
-  if (!value) return [];
-
-  if (value.startsWith('<') && typeof DOMParser !== 'undefined') {
-    const xml = new DOMParser().parseFromString(value, 'application/xml');
-    if (!xml.querySelector('parsererror')) {
-      const candidates: RobotFactoryConnectionImportCandidate[] = [];
-      const seen = new Set<string>();
-
-      for (const element of Array.from(xml.getElementsByTagName('*'))) {
-        const candidate = await buildImportCandidateResolved(element);
-        if (!candidate) continue;
-
-        const fingerprint = `${candidate.dbUrl || ''}|${candidate.dbUsername || ''}|${candidate.name}`;
-        if (seen.has(fingerprint)) continue;
-        seen.add(fingerprint);
-        candidates.push(candidate);
-      }
-
-      if (candidates.length) {
-        return candidates;
-      }
-    }
-  }
-
-  const parsed = parseRobotFactoryConnectionImport(value);
-  if (!parsed) return [];
-
-  return [{
-    ...parsed,
-    name: '手动粘贴的连接',
-    detail: parsed.dbUrl || parsed.dbUsername || '连接信息',
-    source: 'text',
-  }];
-}
-
-*/
 
 async function parseRobotFactoryConnectionImportCandidatesResolved(raw: string): Promise<RobotFactoryConnectionImportCandidate[]> {
   const value = raw.trim();
@@ -539,6 +476,8 @@ export const RobotFactoryAdapterPage: React.FC<RobotFactoryAdapterPageProps> = (
   const [settingsTesting, setSettingsTesting] = useState(false);
   const [showDbPassword, setShowDbPassword] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
+  const [projectionModalOpen, setProjectionModalOpen] = useState(false);
+  const [corpModalOpen, setCorpModalOpen] = useState(false);
   const [importConnectionText, setImportConnectionText] = useState('');
   const [importCandidates, setImportCandidates] = useState<RobotFactoryConnectionImportCandidate[]>([]);
   const [selectedImportIndex, setSelectedImportIndex] = useState(0);
@@ -576,7 +515,6 @@ export const RobotFactoryAdapterPage: React.FC<RobotFactoryAdapterPageProps> = (
   const [logProjectionId, setLogProjectionId] = useState('');
 
   const inputClass = nativeInputClass(theme);
-  const selectClass = nativeSelectClass(theme);
   const cardClass = bentoCard(theme);
   const smallButton = `h-9 px-3 py-0 text-xs ${btnSecondary(theme)}`;
   const titleClass = `text-sm font-semibold ${textPrimary(theme)}`;
@@ -584,26 +522,23 @@ export const RobotFactoryAdapterPage: React.FC<RobotFactoryAdapterPageProps> = (
   const helperClass = `text-xs ${textMuted(theme)}`;
   const isDark = theme === 'dark';
   const softPanelClass = isDark
-    ? 'rounded-3xl border border-white/10 bg-white/[0.04] px-4 py-4 shadow-[var(--shadow-control)]'
-    : 'rounded-3xl border border-neutral-200/70 bg-neutral-50/80 px-4 py-4 shadow-[var(--shadow-control)]';
+    ? 'rounded-3xl border border-white/10 bg-white/[0.03] px-4 py-4 shadow-[var(--shadow-control)]'
+    : 'rounded-3xl border border-neutral-200/80 bg-white px-4 py-4 shadow-[var(--shadow-control)]';
   const tableHeadClass = isDark ? 'bg-white/[0.04]' : 'bg-neutral-50/80';
   const tableRowClass = isDark ? 'border-t border-white/10' : 'border-t border-slate-200/70';
-  const warningCardClass = isDark
-    ? `${cardClass} border border-amber-400/20 bg-amber-500/10 p-4 sm:p-5`
-    : `${cardClass} border border-amber-200 bg-amber-50/90 p-4 sm:p-5`;
   const warningInlineClass = isDark
-    ? 'rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-3'
-    : 'rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-3';
-  const warningTitleClass = isDark ? 'text-sm font-semibold text-amber-100' : 'text-sm font-semibold text-amber-900';
-  const warningTextClass = isDark ? 'text-sm text-amber-200/90' : 'text-sm text-amber-800';
+    ? 'rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3'
+    : 'rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3';
+  const warningTitleClass = isDark ? 'text-sm font-semibold text-slate-100' : 'text-sm font-semibold text-slate-900';
+  const warningTextClass = isDark ? 'text-sm text-slate-300' : 'text-sm text-slate-600';
   const importHeroClass = isDark
-    ? 'rounded-3xl border border-sky-400/20 bg-[linear-gradient(135deg,rgba(56,189,248,0.16),rgba(255,255,255,0.03),rgba(15,23,42,0.02))] p-4 sm:p-5'
-    : 'rounded-3xl border border-sky-200/70 bg-[linear-gradient(135deg,rgba(224,242,254,0.95),rgba(255,255,255,1),rgba(248,250,252,0.95))] p-4 sm:p-5';
+    ? 'rounded-3xl border border-white/10 bg-white/[0.03] p-4 sm:p-5'
+    : 'rounded-3xl border border-neutral-200 bg-neutral-50/70 p-4 sm:p-5';
   const importCandidateClass = (active: boolean) => {
     if (active) {
       return isDark
-        ? 'rounded-3xl border border-sky-400/35 bg-sky-500/10 px-4 py-4 shadow-[var(--shadow-control)]'
-        : 'rounded-3xl border border-sky-300 bg-sky-50 px-4 py-4 shadow-[var(--shadow-control)]';
+        ? 'rounded-3xl border border-white/15 bg-white/[0.06] px-4 py-4 shadow-[var(--shadow-control)]'
+        : 'rounded-3xl border border-neutral-300 bg-white px-4 py-4 shadow-[var(--shadow-control)]';
     }
     return softPanelClass;
   };
@@ -625,7 +560,7 @@ export const RobotFactoryAdapterPage: React.FC<RobotFactoryAdapterPageProps> = (
         ...result,
       });
     } catch (e) {
-      showMessage(e instanceof Error ? e.message : '加载软件工厂设置失败', 'error');
+      showMessage(e instanceof Error ? e.message : `加载${PAGE_DISPLAY_NAME}设置失败`, 'error');
     }
   }, [showMessage, syncAllowedIpsFromForm]);
 
@@ -686,7 +621,7 @@ export const RobotFactoryAdapterPage: React.FC<RobotFactoryAdapterPageProps> = (
       const result = await systemConfigService.listRobotFactoryCorpMappings();
       setCorpMappings(result);
     } catch (e) {
-      showMessage(e instanceof Error ? e.message : '加载 Corp 映射失败', 'error');
+      showMessage(e instanceof Error ? e.message : '加载学校 Corp 映射失败', 'error');
     } finally {
       setCorpLoading(false);
     }
@@ -746,6 +681,27 @@ export const RobotFactoryAdapterPage: React.FC<RobotFactoryAdapterPageProps> = (
     setEditingCorp(null);
   };
 
+  const closeProjectionModal = () => {
+    setProjectionModalOpen(false);
+    resetProjectionForm();
+  };
+
+  const openCreateProjectionModal = () => {
+    resetProjectionForm();
+    setProjectionModalOpen(true);
+    void loadAvailableResources();
+  };
+
+  const closeCorpModal = () => {
+    setCorpModalOpen(false);
+    resetCorpForm();
+  };
+
+  const openCreateCorpModal = () => {
+    resetCorpForm();
+    setCorpModalOpen(true);
+  };
+
   const buildSettingsPayload = () => ({
     dbUrl: settingsForm.dbUrl?.trim() || undefined,
     dbUsername: settingsForm.dbUsername?.trim() || undefined,
@@ -758,34 +714,6 @@ export const RobotFactoryAdapterPage: React.FC<RobotFactoryAdapterPageProps> = (
     invokeTimeoutSeconds: settingsForm.invokeTimeoutSeconds,
   });
 
-  /*
-  const importConnectionConfig = () => {
-    const parsed = parseRobotFactoryConnectionImport(importConnectionText);
-    if (!parsed || (!parsed.dbUrl && !parsed.dbUsername && !parsed.dbPassword)) {
-      showMessage('未识别出可导入的连接信息，请检查粘贴内容格式', 'error');
-      return;
-    }
-
-    setSettingsForm((prev) => ({
-      ...prev,
-      dbUrl: parsed.dbUrl ?? prev.dbUrl,
-      dbUsername: parsed.dbUsername ?? prev.dbUsername,
-      dbPassword: parsed.dbPassword ?? prev.dbPassword,
-      dbDriverClassName: parsed.dbDriverClassName ?? prev.dbDriverClassName,
-      publicBaseUrl: parsed.publicBaseUrl ?? prev.publicBaseUrl,
-    }));
-
-    if (parsed.allowedIps?.length) {
-      setAllowedIpsText(parsed.allowedIps.join('\n'));
-    }
-
-    setImportModalOpen(false);
-    setImportConnectionText('');
-    showMessage('连接信息已解析并回填到表单', 'success');
-  };
-
-  */
-
   const closeImportModal = () => {
     setImportModalOpen(false);
     setImportConnectionText('');
@@ -794,10 +722,9 @@ export const RobotFactoryAdapterPage: React.FC<RobotFactoryAdapterPageProps> = (
     setImportFileName('');
   };
 
-  /*
   const applyImportedConnection = (parsed: ImportedRobotFactoryConnection, sourceName?: string, warning?: string) => {
     if (!parsed.dbUrl && !parsed.dbUsername && !parsed.dbPassword) {
-      showMessage('未识别出可导入的连接信息，请检查文件或粘贴内容。', 'error');
+      showMessage('未识别出可导入的连接信息。', 'error');
       return;
     }
 
@@ -842,78 +769,16 @@ export const RobotFactoryAdapterPage: React.FC<RobotFactoryAdapterPageProps> = (
       const text = await file.text();
       const candidates = await parseRobotFactoryConnectionImportCandidatesResolved(text);
       if (!candidates.length) {
-        showMessage('未从该文件中识别到连接配置，请确认它是 Navicat 导出的连接文件。', 'error');
+        showMessage('未从该文件中识别到 Navicat 连接配置。', 'error');
         return;
       }
 
       setImportFileName(file.name);
       setImportCandidates(candidates);
       setSelectedImportIndex(0);
-      showMessage(`已识别 ${candidates.length} 条连接，请选择要导入的配置。`, 'success');
+      showMessage(`已识别 ${candidates.length} 条连接配置。`, 'success');
     } catch (error) {
-      showMessage(error instanceof Error ? error.message : '读取导入文件失败', 'error');
-    }
-  };
-
-  */
-
-  const applyImportedConnection = (parsed: ImportedRobotFactoryConnection, sourceName?: string, warning?: string) => {
-    if (!parsed.dbUrl && !parsed.dbUsername && !parsed.dbPassword) {
-      showMessage('\u672a\u8bc6\u522b\u51fa\u53ef\u5bfc\u5165\u7684\u8fde\u63a5\u4fe1\u606f\u3002', 'error');
-      return;
-    }
-
-    setSettingsForm((prev) => ({
-      ...prev,
-      dbUrl: parsed.dbUrl ?? prev.dbUrl,
-      dbUsername: parsed.dbUsername ?? prev.dbUsername,
-      dbPassword: parsed.dbPassword ?? prev.dbPassword,
-      dbDriverClassName: parsed.dbDriverClassName ?? prev.dbDriverClassName,
-      publicBaseUrl: parsed.publicBaseUrl ?? prev.publicBaseUrl,
-    }));
-
-    if (parsed.allowedIps?.length) {
-      setAllowedIpsText(parsed.allowedIps.join('\n'));
-    }
-
-    closeImportModal();
-    showMessage(
-      warning
-        ? `${sourceName || '\u8fde\u63a5\u914d\u7f6e'}\u5df2\u5bfc\u5165\uff0c${warning}`
-        : `${sourceName || '\u8fde\u63a5\u914d\u7f6e'}\u5df2\u5bfc\u5165\u5e76\u56de\u586b\u5230\u8868\u5355\u3002`,
-      warning ? 'info' : 'success',
-    );
-  };
-
-  const importConnectionConfig = () => {
-    const selectedCandidate = importCandidates[selectedImportIndex];
-    if (selectedCandidate) {
-      applyImportedConnection(selectedCandidate, selectedCandidate.name, selectedCandidate.warning);
-      return;
-    }
-
-    applyImportedConnection(parseRobotFactoryConnectionImport(importConnectionText) ?? {}, '\u7c98\u8d34\u7684\u8fde\u63a5\u4fe1\u606f');
-  };
-
-  const onImportFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file) return;
-
-    try {
-      const text = await file.text();
-      const candidates = await parseRobotFactoryConnectionImportCandidatesResolved(text);
-      if (!candidates.length) {
-        showMessage('\u672a\u4ece\u8be5\u6587\u4ef6\u4e2d\u8bc6\u522b\u5230 Navicat \u8fde\u63a5\u914d\u7f6e\u3002', 'error');
-        return;
-      }
-
-      setImportFileName(file.name);
-      setImportCandidates(candidates);
-      setSelectedImportIndex(0);
-      showMessage(`\u5df2\u8bc6\u522b ${candidates.length} \u6761\u8fde\u63a5\u914d\u7f6e\u3002`, 'success');
-    } catch (error) {
-      showMessage(error instanceof Error ? error.message : '\u8bfb\u53d6\u5bfc\u5165\u6587\u4ef6\u5931\u8d25\u3002', 'error');
+      showMessage(error instanceof Error ? error.message : '读取导入文件失败。', 'error');
     }
   };
 
@@ -929,10 +794,10 @@ export const RobotFactoryAdapterPage: React.FC<RobotFactoryAdapterPageProps> = (
         ...defaultSettingsForm,
         ...saved,
       });
-      showMessage('软件工厂适配设置已保存', 'success');
+      showMessage(`${PAGE_DISPLAY_NAME}设置已保存`, 'success');
       await loadHealth();
     } catch (e) {
-      showMessage(e instanceof Error ? e.message : '保存软件工厂设置失败', 'error');
+      showMessage(e instanceof Error ? e.message : `保存${PAGE_DISPLAY_NAME}设置失败`, 'error');
     } finally {
       setSettingsSaving(false);
     }
@@ -956,8 +821,8 @@ export const RobotFactoryAdapterPage: React.FC<RobotFactoryAdapterPageProps> = (
       showMessage('请先选择一个已发布的 MCP 资源', 'error');
       return;
     }
-    if (mode === 'save_and_sync' && (!healthStatus?.databaseReachable || !healthStatus?.externalTableReady)) {
-      showMessage('当前软件工厂数据库连接不可用，请先检查连接配置与健康状态', 'error');
+    if (mode === 'save_and_sync' && !isExternalConnectionReady) {
+      showMessage(healthStatus?.message || healthWarningFallbackMessage, 'error');
       setTab('settings');
       return;
     }
@@ -982,11 +847,11 @@ export const RobotFactoryAdapterPage: React.FC<RobotFactoryAdapterPageProps> = (
       }
       if (mode === 'save_and_sync') {
         await systemConfigService.syncRobotFactoryProjection(savedProjection.id);
-        showMessage(editingProjection ? '投影已保存并同步到软件工厂' : '投影已创建并同步到软件工厂', 'success');
+        showMessage(editingProjection ? '投影已保存并同步' : '投影已创建并同步', 'success');
       } else {
-        showMessage(editingProjection ? '软件工厂投影已更新' : '软件工厂投影已创建', 'success');
+        showMessage(editingProjection ? '投影已更新' : '投影已创建', 'success');
       }
-      resetProjectionForm();
+      closeProjectionModal();
       await loadProjections(1);
       await loadAvailableResources();
       await loadLogs(1);
@@ -1014,16 +879,16 @@ export const RobotFactoryAdapterPage: React.FC<RobotFactoryAdapterPageProps> = (
       };
       if (editingCorp) {
         await systemConfigService.updateRobotFactoryCorpMapping(editingCorp.id, payload);
-        showMessage('Corp 映射已更新', 'success');
+        showMessage('学校 Corp 映射已更新', 'success');
       } else {
         await systemConfigService.createRobotFactoryCorpMapping(payload);
-        showMessage('Corp 映射已创建', 'success');
+        showMessage('学校 Corp 映射已创建', 'success');
       }
-      resetCorpForm();
+      closeCorpModal();
       await loadCorpMappings();
       await loadProjections(1);
     } catch (e) {
-      showMessage(e instanceof Error ? e.message : '保存 Corp 映射失败', 'error');
+      showMessage(e instanceof Error ? e.message : '保存学校 Corp 映射失败', 'error');
     } finally {
       setCorpSaving(false);
     }
@@ -1041,6 +906,7 @@ export const RobotFactoryAdapterPage: React.FC<RobotFactoryAdapterPageProps> = (
       parametersSchema: '',
       autoSyncEnabled: projection.autoSyncEnabled,
     });
+    setProjectionModalOpen(true);
   };
 
   const onEditCorp = (corp: RobotFactoryCorpMapping) => {
@@ -1052,40 +918,147 @@ export const RobotFactoryAdapterPage: React.FC<RobotFactoryAdapterPageProps> = (
       enabled: corp.enabled,
       remark: corp.remark ?? '',
     });
+    setCorpModalOpen(true);
   };
 
   const projectionStatusBadge = (status?: string) => {
     const normalized = String(status ?? '').toLowerCase();
     const cls = normalized === 'synced'
-      ? (isDark ? 'bg-emerald-500/15 text-emerald-200 border border-emerald-400/20' : 'bg-emerald-50 text-emerald-700 border border-emerald-200')
+      ? (isDark ? 'bg-white/10 text-slate-100 border border-white/10' : 'bg-slate-100 text-slate-700 border border-slate-200')
       : normalized === 'failed'
-        ? (isDark ? 'bg-rose-500/15 text-rose-200 border border-rose-400/20' : 'bg-rose-50 text-rose-700 border border-rose-200')
+        ? (isDark ? 'bg-rose-500/10 text-rose-100 border border-rose-400/15' : 'bg-rose-50 text-rose-700 border border-rose-100')
         : normalized === 'deleted'
           ? (isDark ? 'bg-white/[0.08] text-slate-300 border border-white/10' : 'bg-slate-100 text-slate-600 border border-slate-200')
-          : (isDark ? 'bg-amber-500/15 text-amber-200 border border-amber-400/20' : 'bg-amber-50 text-amber-700 border border-amber-200');
+          : (isDark ? 'bg-white/[0.08] text-slate-300 border border-white/10' : 'bg-neutral-100 text-slate-700 border border-neutral-200');
     return (
       <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${cls}`}>
-        {status || 'pending'}
+        {normalized === 'synced'
+          ? '已同步'
+          : normalized === 'failed'
+            ? '同步失败'
+            : normalized === 'deleted'
+              ? '已删除'
+              : '待同步'}
       </span>
     );
   };
 
   const healthToneClass = useMemo(() => {
-    const status = healthStatus?.status ?? 'unconfigured';
-    if (status === 'healthy') return isDark ? 'bg-emerald-500/15 text-emerald-200 border border-emerald-400/20' : 'bg-emerald-50 text-emerald-700 border border-emerald-200';
-    if (status === 'warning') return isDark ? 'bg-amber-500/15 text-amber-200 border border-amber-400/20' : 'bg-amber-50 text-amber-700 border border-amber-200';
-    if (status === 'unhealthy') return isDark ? 'bg-rose-500/15 text-rose-200 border border-rose-400/20' : 'bg-rose-50 text-rose-700 border border-rose-200';
+    if (!healthStatus?.configured) return isDark ? 'bg-white/[0.08] text-slate-300 border border-white/10' : 'bg-slate-100 text-slate-700 border border-slate-200';
+    if (!healthStatus.databaseReachable) return isDark ? 'bg-rose-500/10 text-rose-100 border border-rose-400/15' : 'bg-rose-50 text-rose-700 border border-rose-100';
+    if (!healthStatus.externalTableReady || !healthStatus.publicBaseUrlReady) {
+      return isDark ? 'bg-white/10 text-slate-100 border border-white/10' : 'bg-neutral-100 text-slate-700 border border-neutral-200';
+    }
     return isDark ? 'bg-white/[0.08] text-slate-300 border border-white/10' : 'bg-slate-100 text-slate-700 border border-slate-200';
   }, [healthStatus, isDark]);
 
+  const healthStatusLabel = useMemo(() => {
+    if (!healthStatus?.configured) return '未配置';
+    if (!healthStatus.databaseReachable) return '异常';
+    if (!healthStatus.externalTableReady || !healthStatus.publicBaseUrlReady) return '待完善';
+    return '正常';
+  }, [healthStatus]);
+
   const isExternalConnectionReady = Boolean(
-    healthStatus?.configured && healthStatus.databaseReachable && healthStatus.externalTableReady,
+    healthStatus?.configured
+      && healthStatus.databaseReachable
+      && healthStatus.externalTableReady
+      && healthStatus.publicBaseUrlReady,
   );
   const showHealthWarning = !isExternalConnectionReady;
+
+  const healthWarningTitle = useMemo(() => {
+    if (!healthStatus?.configured) return '连接尚未配置';
+    if (!healthStatus.databaseReachable) return '数据库连接异常';
+    if (!healthStatus.externalTableReady) return '注册表未就绪';
+    if (!healthStatus.publicBaseUrlReady) return '对外访问地址未配置';
+    return '当前不可用于同步';
+  }, [healthStatus]);
+
+  const healthWarningFallbackMessage = useMemo(() => {
+    if (!healthStatus?.configured) return '请先完成数据库连接配置。';
+    if (!healthStatus.databaseReachable) return '数据库连接失败，请检查 URL、账号、密码和网络可达性。';
+    if (!healthStatus.externalTableReady) return '数据库连接正常，但未检测到 genie_external_agent 表。';
+    if (!healthStatus.publicBaseUrlReady) return '数据库连接正常，但尚未配置对外访问地址，暂时无法生成可直连的 SSE 地址。';
+    return '请先完成数据库连接配置，并确认 genie_external_agent 可访问。';
+  }, [healthStatus]);
 
   const selectedResource = useMemo(
     () => availableResources.find((item) => item.resourceId === projectionForm.resourceId) ?? null,
     [availableResources, projectionForm.resourceId],
+  );
+
+  const projectionStats = useMemo(() => {
+    const synced = projections.filter((item) => item.syncStatus === 'synced').length;
+    const failed = projections.filter((item) => item.syncStatus === 'failed').length;
+    const autoSync = projections.filter((item) => item.autoSyncEnabled).length;
+    return {
+      total: projectionTotal,
+      synced,
+      failed,
+      autoSync,
+    };
+  }, [projectionTotal, projections]);
+
+  const corpStats = useMemo(() => ({
+    total: corpMappings.length,
+    enabled: corpMappings.filter((item) => item.enabled).length,
+    disabled: corpMappings.filter((item) => !item.enabled).length,
+  }), [corpMappings]);
+
+  const logStats = useMemo(() => ({
+    total: logTotal,
+    success: logs.filter((item) => item.success).length,
+    failed: logs.filter((item) => !item.success).length,
+  }), [logTotal, logs]);
+
+  const statCard = (
+    title: string,
+    value: string | number,
+    subtitle: string,
+    Icon: typeof Boxes,
+    tone: 'neutral' | 'success' | 'warning' | 'danger' = 'neutral',
+  ) => {
+    const toneClass = tone === 'success'
+      ? (isDark ? 'border border-white/10 bg-white/[0.06] text-slate-100' : 'bg-slate-100 text-slate-700')
+      : tone === 'warning'
+        ? (isDark ? 'border border-white/10 bg-white/[0.06] text-slate-100' : 'bg-amber-50 text-amber-700')
+        : tone === 'danger'
+          ? (isDark ? 'border border-white/10 bg-white/[0.06] text-slate-100' : 'bg-rose-50 text-rose-700')
+          : (isDark ? 'border border-white/10 bg-white/[0.06] text-slate-100' : 'bg-slate-100 text-slate-700');
+
+    return (
+      <div className={`${softPanelClass} min-h-[148px]`}>
+        <div className="flex h-full items-center justify-between gap-4">
+          <div className="flex min-h-[108px] flex-1 flex-col justify-between">
+            <div>
+              <div className={labelClass}>{title}</div>
+              <div className={`mt-2 text-2xl font-semibold tracking-tight ${textPrimary(theme)}`}>{value}</div>
+            </div>
+            <div className={`pt-3 text-sm leading-5 ${textSecondary(theme)}`}>{subtitle}</div>
+          </div>
+          <div className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${toneClass}`}>
+            <Icon size={18} />
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const toolbarWarningClass = isDark
+    ? 'rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2'
+    : 'rounded-2xl border border-neutral-200 bg-white px-3 py-2';
+
+  const sectionTitle = (title: string, Icon: typeof Boxes, description?: string) => (
+      <div className="flex items-center gap-3">
+        <div className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${isDark ? 'bg-white/10 text-white' : 'bg-slate-100 text-slate-700'}`}>
+          <Icon size={18} />
+        </div>
+        <div className={description ? 'space-y-1' : 'flex min-h-10 items-center'}>
+          <h3 className={`text-base font-semibold ${textPrimary(theme)}`}>{title}</h3>
+          {description ? <p className={`text-sm ${textSecondary(theme)}`}>{description}</p> : null}
+        </div>
+      </div>
   );
 
   const tabButton = (key: TabKey, label: string, Icon: typeof Boxes) => (
@@ -1109,48 +1082,47 @@ export const RobotFactoryAdapterPage: React.FC<RobotFactoryAdapterPageProps> = (
     <MgmtPageShell
       theme={theme}
       fontSize={_fontSize}
-      titleIcon={Wrench}
-      breadcrumbSegments={['平台配置', '软件工厂适配']}
-      description="软件工厂一期适配仅覆盖 MCP 资源投影、外部注册表同步与兼容 SSE 入口。权限绑定、机器人绑定与缓存刷新仍由软件工厂侧维护。"
+      titleIcon={Puzzle}
+      breadcrumbSegments={['平台配置', PAGE_DISPLAY_NAME]}
+      description={PAGE_DISPLAY_NAME}
       toolbar={(
-        <div className="flex flex-wrap items-center gap-3">
-          {tabButton('settings', '适配设置', Database)}
-          {tabButton('projections', '投影列表', Boxes)}
-          {tabButton('corp', '学校 Corp 映射', Building2)}
-          {tabButton('logs', '同步日志', ScrollText)}
-          <button
-            type="button"
-            className={btnSecondary(theme)}
-            onClick={() => {
-              if (tab === 'settings') {
-                void loadSettings();
-                void loadHealth();
-              }
-              if (tab === 'projections') {
-                void loadProjections(1);
-                void loadAvailableResources();
-              }
-              if (tab === 'corp') void loadCorpMappings();
-              if (tab === 'logs') void loadLogs(1);
-            }}
-          >
-            <RefreshCcw size={16} />
-            刷新
-          </button>
-        </div>
-      )}
-    >
-      <div className="space-y-6 px-4 sm:px-6 pb-8">
-        {showHealthWarning ? (
-          <section className={warningCardClass}>
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div className="space-y-1">
-                <div className={warningTitleClass}>软件工厂连接当前不可用于同步</div>
-                <p className={warningTextClass}>
-                  {healthStatus?.message || '请先完成数据库连接配置并确认 genie_external_agent 可访问。'}
-                </p>
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex flex-wrap items-center gap-3">
+            {tabButton('settings', '适配设置', Database)}
+            {tabButton('projections', '投影列表', Boxes)}
+            {tabButton('corp', '学校 Corp 映射', Building2)}
+            {tabButton('logs', '同步日志', ScrollText)}
+            <button
+              type="button"
+              className={btnSecondary(theme)}
+              onClick={() => {
+                if (tab === 'settings') {
+                  void loadSettings();
+                  void loadHealth();
+                }
+                if (tab === 'projections') {
+                  void loadProjections(1);
+                  void loadAvailableResources();
+                }
+                if (tab === 'corp') void loadCorpMappings();
+                if (tab === 'logs') void loadLogs(1);
+              }}
+            >
+              <RefreshCcw size={16} />
+              刷新
+            </button>
+          </div>
+          {showHealthWarning ? (
+            <div className={`flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-end ${toolbarWarningClass}`}>
+              <div className="flex min-h-10 items-center gap-3">
+                <div className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${isDark ? 'bg-amber-500/10 text-amber-100' : 'bg-amber-50 text-amber-700'}`}>
+                  <TriangleAlert size={18} />
+                </div>
+                <div className="min-w-0 self-center">
+                  <div className={warningTitleClass}>{healthWarningTitle}</div>
+                </div>
               </div>
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap items-center gap-2 xl:justify-end">
                 <button type="button" className={btnSecondary(theme)} onClick={() => setTab('settings')}>
                   去检查设置
                 </button>
@@ -1159,39 +1131,26 @@ export const RobotFactoryAdapterPage: React.FC<RobotFactoryAdapterPageProps> = (
                 </button>
               </div>
             </div>
-          </section>
-        ) : null}
-
+          ) : null}
+        </div>
+      )}
+    >
+      <div className="space-y-6 px-4 sm:px-6 pb-8">
         {tab === 'settings' ? (
           <>
             <section className={`${cardClass} p-4 sm:p-5 space-y-4`}>
-              <div className="hidden">
-                <h3 className={titleClass}>连接状态</h3>
-                <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${healthToneClass}`}>
-                  {healthStatus?.status || 'unconfigured'}
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                {sectionTitle('连接概览', Database)}
+                <span className={`inline-flex h-8 items-center rounded-full px-3 text-xs font-semibold ${healthToneClass}`}>
+                  {healthStatusLabel}
                 </span>
               </div>
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                <div className={softPanelClass}>
-                  <div className={labelClass}>数据库可达</div>
-                  <div className={`mt-2 text-lg font-semibold ${textPrimary(theme)}`}>
-                    {healthStatus?.databaseReachable ? '正常' : '异常'}
-                  </div>
-                </div>
-                <div className={softPanelClass}>
-                  <div className={labelClass}>注册表可用</div>
-                  <div className={`mt-2 text-lg font-semibold ${textPrimary(theme)}`}>
-                    {healthStatus?.externalTableReady ? '已检测到 genie_external_agent' : '未检测到'}
-                  </div>
-                </div>
-                <div className={softPanelClass}>
-                  <div className={labelClass}>最近检查</div>
-                  <div className={`mt-2 text-sm font-medium ${textPrimary(theme)}`}>
-                    {healthLoading ? '检查中...' : (healthStatus?.checkedAt || '-')}
-                  </div>
-                </div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                {statCard('数据库可达', healthStatus?.databaseReachable ? '正常' : '异常', '连接状态', Database, healthStatus?.databaseReachable ? 'success' : 'danger')}
+                {statCard('注册表可用', healthStatus?.externalTableReady ? '已检测到' : '未检测到', 'genie_external_agent', Sparkles, healthStatus?.externalTableReady ? 'success' : 'warning')}
+                {statCard('对外访问地址', healthStatus?.publicBaseUrlReady ? '已配置' : '未配置', '生成 SSE 地址', Link2, healthStatus?.publicBaseUrlReady ? 'success' : 'warning')}
+                {statCard('最近检查', healthLoading ? '检查中' : (healthStatus?.checkedAt || '-'), '30 秒自动复检', RefreshCcw)}
               </div>
-              <p className={helperClass}>{healthStatus?.message || '保存配置后可测试连接，页面会自动轮询最新健康状态。'}</p>
             </section>
 
             <form
@@ -1201,9 +1160,9 @@ export const RobotFactoryAdapterPage: React.FC<RobotFactoryAdapterPageProps> = (
                 void saveSettings();
               }}
             >
-              <div className="flex items-center justify-between gap-3">
-                <h3 className={titleClass}>适配设置</h3>
-                <span className={helperClass}>所有软件工厂相关配置均从这里维护，不再依赖配置文件</span>
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                {sectionTitle('适配设置', Wrench)}
+                <span className={`inline-flex min-h-10 items-center ${helperClass}`}>保存后可直接检测连接</span>
               </div>
               <div className="hidden">
                 <div className="space-y-1">
@@ -1221,18 +1180,16 @@ export const RobotFactoryAdapterPage: React.FC<RobotFactoryAdapterPageProps> = (
               <div className={importHeroClass}>
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                   <div className="space-y-2">
-                    <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${isDark ? 'bg-white/10 text-sky-100' : 'bg-sky-100 text-sky-700'}`}>
+                    <div className={`inline-flex h-8 items-center gap-2 rounded-full px-3 text-xs font-semibold ${isDark ? 'bg-white/10 text-slate-200' : 'bg-slate-100 text-slate-700'}`}>
                       <FileUp size={14} />
                       Navicat 导入
                     </div>
                     <div>
-                      <h3 className={`text-base font-semibold ${textPrimary(theme)}`}>软件工厂适配连接配置</h3>
-                      <p className={`mt-1 text-sm ${textSecondary(theme)}`}>
-                        支持直接导入 Navicat 导出的 `.ncx` 连接文件，也支持粘贴 JDBC URL 或 Host / Port / User / Password 形式的连接信息。
-                      </p>
+                      <h3 className={`text-base font-semibold ${textPrimary(theme)}`}>{PAGE_DISPLAY_NAME}连接配置</h3>
+                      <p className={`mt-1 text-sm ${textSecondary(theme)}`}>支持 `.ncx` 导入，也支持直接粘贴连接串。</p>
                     </div>
                   </div>
-                  <div className="flex flex-wrap gap-3">
+                  <div className="flex flex-wrap items-center gap-3">
                     <button
                       type="button"
                       className={`${btnSecondary(theme)} rounded-2xl`}
@@ -1312,7 +1269,7 @@ export const RobotFactoryAdapterPage: React.FC<RobotFactoryAdapterPageProps> = (
                   />
                 </div>
                 <div className="lg:col-span-2">
-                  <div className={labelClass}>软件工厂白名单 IP</div>
+                  <div className={labelClass}>白名单 IP</div>
                   <textarea
                     className={`${inputClass} min-h-[120px]`}
                     value={allowedIpsText}
@@ -1370,6 +1327,23 @@ export const RobotFactoryAdapterPage: React.FC<RobotFactoryAdapterPageProps> = (
         {tab === 'projections' ? (
           <>
             <section className={`${cardClass} p-4 sm:p-5 space-y-4`}>
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                {sectionTitle('投影列表', Boxes)}
+                <button
+                  type="button"
+                  className={btnPrimary}
+                  onClick={openCreateProjectionModal}
+                >
+                  <Plus size={16} />
+                  新建投影
+                </button>
+              </div>
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+                {statCard('投影总数', projectionStats.total, '当前筛选下的总记录数', Boxes)}
+                {statCard('已同步', projectionStats.synced, '已写入外部注册表', CheckCircle2, 'success')}
+                {statCard('同步失败', projectionStats.failed, '需人工重试或修正配置', TriangleAlert, projectionStats.failed > 0 ? 'danger' : 'neutral')}
+                {statCard('自动同步', projectionStats.autoSync, '投影级自动同步已开启', RefreshCcw, projectionStats.autoSync > 0 ? 'warning' : 'neutral')}
+              </div>
               <div className="flex flex-wrap items-end gap-3">
                 <div className="min-w-[220px] flex-1">
                   <div className={labelClass}>检索</div>
@@ -1382,200 +1356,35 @@ export const RobotFactoryAdapterPage: React.FC<RobotFactoryAdapterPageProps> = (
                 </div>
                 <div className="w-[180px]">
                   <div className={labelClass}>同步状态</div>
-                  <select className={selectClass} value={projectionSyncStatus} onChange={(e) => setProjectionSyncStatus(e.target.value)}>
-                    <option value="">全部</option>
-                    <option value="pending">pending</option>
-                    <option value="synced">synced</option>
-                    <option value="failed">failed</option>
-                    <option value="deleted">deleted</option>
-                  </select>
+                  <LantuSelect
+                    theme={theme}
+                    value={projectionSyncStatus}
+                    onChange={setProjectionSyncStatus}
+                    placeholder="全部"
+                    options={[
+                      { value: '', label: '全部' },
+                      { value: 'pending', label: '待同步' },
+                      { value: 'synced', label: '已同步' },
+                      { value: 'failed', label: '同步失败' },
+                      { value: 'deleted', label: '已删除' },
+                    ]}
+                  />
                 </div>
                 <div className="w-[180px]">
                   <div className={labelClass}>自动同步</div>
-                  <select className={selectClass} value={projectionAutoSyncFilter} onChange={(e) => setProjectionAutoSyncFilter(e.target.value)}>
-                    <option value="">全部</option>
-                    <option value="true">仅已开启</option>
-                    <option value="false">仅已关闭</option>
-                  </select>
-                </div>
-                <button type="button" className={btnPrimary} onClick={() => void loadProjections(1)}>查询</button>
-                <button
-                  type="button"
-                  className={btnSecondary(theme)}
-                  onClick={() => {
-                    resetProjectionForm();
-                    void loadAvailableResources();
-                  }}
-                >
-                  新建投影
-                </button>
-              </div>
-              <p className={helperClass}>
-                新建时直接选择已发布 MCP 资源，不需要再手工填写资源 ID。连接正常时主按钮会直接执行“保存并同步”，尽量减少人工步骤。
-              </p>
-            </section>
-
-            <section className={`${cardClass} p-4 sm:p-5 space-y-4`}>
-              <div className="flex items-center justify-between gap-3">
-                <h3 className={titleClass}>{editingProjection ? `编辑投影 #${editingProjection.id}` : '新建投影'}</h3>
-                {editingProjection ? (
-                  <button type="button" className={btnSecondary(theme)} onClick={resetProjectionForm}>取消编辑</button>
-                ) : null}
-              </div>
-
-              {!isExternalConnectionReady ? (
-                <div className={`${warningInlineClass} ${warningTextClass}`}>
-                  当前只能保存本地投影配置，不能直接同步到软件工厂。完成连接配置后，主按钮会恢复为“保存并同步”。
-                </div>
-              ) : null}
-
-              {!editingProjection ? (
-                <div className="space-y-3">
-                  <div className="flex flex-wrap items-end gap-3">
-                    <div className="min-w-[240px] flex-1">
-                      <div className={labelClass}>可投影 MCP 资源</div>
-                      <input
-                        className={inputClass}
-                        placeholder="按资源名称或编码筛选"
-                        value={availableResourceKeyword}
-                        onChange={(e) => setAvailableResourceKeyword(e.target.value)}
-                      />
-                    </div>
-                    <button type="button" className={btnSecondary(theme)} onClick={() => void loadAvailableResources()}>
-                      筛选资源
-                    </button>
-                  </div>
-                  <div>
-                    <div className={labelClass}>选择资源</div>
-                    <select
-                      className={selectClass}
-                      value={projectionForm.resourceId}
-                      onChange={(e) => {
-                        const nextResourceId = e.target.value;
-                        const nextResource = availableResources.find((item) => item.resourceId === nextResourceId);
-                        setProjectionForm((prev) => ({
-                          ...prev,
-                          resourceId: nextResourceId,
-                          displayName: prev.displayName || nextResource?.displayName || '',
-                          description: prev.description || nextResource?.description || '',
-                        }));
-                      }}
-                    >
-                      <option value="">{availableResourcesLoading ? '加载中...' : '请选择已发布 MCP 资源'}</option>
-                      {availableResources.map((item) => (
-                        <option key={item.resourceId} value={item.resourceId}>
-                          {item.displayName} {item.resourceCode ? `(${item.resourceCode})` : ''}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  {selectedResource ? (
-                    <div className={softPanelClass}>
-                      <div className={`text-sm font-semibold ${textPrimary(theme)}`}>{selectedResource.displayName}</div>
-                      <div className={`mt-1 text-xs ${textMuted(theme)}`}>
-                        资源ID：{selectedResource.resourceId} {selectedResource.resourceCode ? `| 编码：${selectedResource.resourceCode}` : ''} {selectedResource.schoolId ? `| 学校：${selectedResource.schoolId}` : ''}
-                      </div>
-                      <p className={`mt-2 text-sm ${textSecondary(theme)}`}>{selectedResource.description || '暂无描述'}</p>
-                    </div>
-                  ) : null}
-                </div>
-              ) : (
-                <div>
-                  <div className={labelClass}>资源 ID</div>
-                  <input className={inputClass} value={projectionForm.resourceId} disabled />
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <div>
-                  <div className={labelClass}>范围</div>
-                  <select
-                    className={selectClass}
-                    value={projectionForm.scopeMode}
-                    onChange={(e) => setProjectionForm((prev) => ({ ...prev, scopeMode: e.target.value as 'global' | 'school' }))}
-                  >
-                    <option value="school">学校级</option>
-                    <option value="global">全局</option>
-                  </select>
-                </div>
-                <div>
-                  <div className={labelClass}>展示模板覆盖</div>
-                  <input
-                    className={inputClass}
-                    value={projectionForm.displayTemplate}
-                    onChange={(e) => setProjectionForm((prev) => ({ ...prev, displayTemplate: e.target.value }))}
-                    placeholder="file / image / search_web"
+                  <LantuSelect
+                    theme={theme}
+                    value={projectionAutoSyncFilter}
+                    onChange={setProjectionAutoSyncFilter}
+                    placeholder="全部"
+                    options={[
+                      { value: '', label: '全部' },
+                      { value: 'true', label: '仅已开启' },
+                      { value: 'false', label: '仅已关闭' },
+                    ]}
                   />
                 </div>
-                <div>
-                  <div className={labelClass}>显示名称覆盖</div>
-                  <input
-                    className={inputClass}
-                    value={projectionForm.displayName}
-                    onChange={(e) => setProjectionForm((prev) => ({ ...prev, displayName: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <div className={labelClass}>自动同步</div>
-                  <label className={`mt-3 inline-flex items-center gap-3 text-sm ${textSecondary(theme)}`}>
-                    <input
-                      type="checkbox"
-                      checked={projectionForm.autoSyncEnabled}
-                      onChange={(e) => setProjectionForm((prev) => ({ ...prev, autoSyncEnabled: e.target.checked }))}
-                    />
-                    保存时同步更新自动同步开关
-                  </label>
-                </div>
-                <div className="lg:col-span-2">
-                  <div className={labelClass}>描述覆盖</div>
-                  <textarea
-                    className={`${inputClass} min-h-[96px]`}
-                    value={projectionForm.description}
-                    onChange={(e) => setProjectionForm((prev) => ({ ...prev, description: e.target.value }))}
-                  />
-                </div>
-                <div className="lg:col-span-2">
-                  <div className={labelClass}>spec_json 覆盖</div>
-                  <textarea
-                    className={`${inputClass} min-h-[120px] font-mono text-xs`}
-                    value={projectionForm.specJson}
-                    onChange={(e) => setProjectionForm((prev) => ({ ...prev, specJson: e.target.value }))}
-                    placeholder='留空则自动生成 {"url":".../sse"}'
-                  />
-                </div>
-                <div className="lg:col-span-2">
-                  <div className={labelClass}>parameters_schema 覆盖</div>
-                  <textarea
-                    className={`${inputClass} min-h-[120px] font-mono text-xs`}
-                    value={projectionForm.parametersSchema}
-                    onChange={(e) => setProjectionForm((prev) => ({ ...prev, parametersSchema: e.target.value }))}
-                    placeholder="可留空，运行时依赖 tools/list"
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  className={btnPrimary}
-                  disabled={projectionSaving}
-                  onClick={() => void saveProjection(isExternalConnectionReady ? 'save_and_sync' : 'save')}
-                >
-                  {projectionSaving
-                    ? (projectionSubmitMode === 'save_and_sync' ? '保存并同步中...' : '保存中...')
-                    : (isExternalConnectionReady
-                      ? (editingProjection ? '保存并同步' : '创建并同步')
-                      : (editingProjection ? '仅保存修改' : '仅创建投影'))}
-                </button>
-                <button
-                  type="button"
-                  className={btnSecondary(theme)}
-                  disabled={projectionSaving}
-                  onClick={() => void saveProjection('save')}
-                >
-                  仅保存
-                </button>
-                <button type="button" className={btnSecondary(theme)} onClick={resetProjectionForm}>清空</button>
+                <button type="button" className={btnSecondary(theme)} onClick={() => void loadProjections(1)}>查询</button>
               </div>
             </section>
 
@@ -1591,7 +1400,7 @@ export const RobotFactoryAdapterPage: React.FC<RobotFactoryAdapterPageProps> = (
                       <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide">资源ID</th>
                       <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide">资源</th>
                       <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide">范围</th>
-                      <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide">Corp</th>
+                      <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide">Corp ID</th>
                       <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide">状态</th>
                       <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide">自动同步</th>
                       <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide">结果</th>
@@ -1652,7 +1461,7 @@ export const RobotFactoryAdapterPage: React.FC<RobotFactoryAdapterPageProps> = (
                               onClick={async () => {
                                 try {
                                   await systemConfigService.deleteRobotFactoryProjectionExternal(item.id);
-                                  showMessage('已删除软件工厂外部注册', 'info');
+                                  showMessage('已删除外部注册', 'info');
                                   await loadProjections(projectionPage);
                                   await loadLogs(1);
                                 } catch (e) {
@@ -1681,39 +1490,17 @@ export const RobotFactoryAdapterPage: React.FC<RobotFactoryAdapterPageProps> = (
         {tab === 'corp' ? (
           <>
             <section className={`${cardClass} p-4 sm:p-5 space-y-4`}>
-              <div className="flex items-center justify-between gap-3">
-                <h3 className={titleClass}>{editingCorp ? `编辑映射 #${editingCorp.id}` : '学校 Corp 映射'}</h3>
-                {editingCorp ? (
-                  <button type="button" className={btnSecondary(theme)} onClick={resetCorpForm}>取消编辑</button>
-                ) : null}
-              </div>
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <div>
-                  <div className={labelClass}>school_id</div>
-                  <input className={inputClass} value={corpForm.schoolId} onChange={(e) => setCorpForm((prev) => ({ ...prev, schoolId: e.target.value }))} />
-                </div>
-                <div>
-                  <div className={labelClass}>corp_id</div>
-                  <input className={inputClass} value={corpForm.corpId} onChange={(e) => setCorpForm((prev) => ({ ...prev, corpId: e.target.value }))} />
-                </div>
-                <div>
-                  <div className={labelClass}>学校名称快照</div>
-                  <input className={inputClass} value={corpForm.schoolNameSnapshot} onChange={(e) => setCorpForm((prev) => ({ ...prev, schoolNameSnapshot: e.target.value }))} />
-                </div>
-                <div>
-                  <div className={labelClass}>备注</div>
-                  <input className={inputClass} value={corpForm.remark} onChange={(e) => setCorpForm((prev) => ({ ...prev, remark: e.target.value }))} />
-                </div>
-                <label className={`inline-flex items-center gap-3 text-sm ${textSecondary(theme)}`}>
-                  <input type="checkbox" checked={corpForm.enabled} onChange={(e) => setCorpForm((prev) => ({ ...prev, enabled: e.target.checked }))} />
-                  启用该映射
-                </label>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <button type="button" className={btnPrimary} disabled={corpSaving} onClick={() => void saveCorpMapping()}>
-                  {corpSaving ? '保存中...' : editingCorp ? '保存映射' : '新增映射'}
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                {sectionTitle('学校 Corp 映射', Building2)}
+                <button type="button" className={btnSecondary(theme)} onClick={openCreateCorpModal}>
+                  <Plus size={16} />
+                  新增映射
                 </button>
-                <button type="button" className={btnSecondary(theme)} onClick={resetCorpForm}>清空</button>
+              </div>
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                {statCard('映射总数', corpStats.total, '学校到 corp_id 的维护记录', Building2)}
+                {statCard('启用中', corpStats.enabled, '可用于学校级投影同步', CheckCircle2, 'success')}
+                {statCard('已停用', corpStats.disabled, '停用后不会参与学校级映射', TriangleAlert, corpStats.disabled > 0 ? 'warning' : 'neutral')}
               </div>
             </section>
 
@@ -1749,7 +1536,7 @@ export const RobotFactoryAdapterPage: React.FC<RobotFactoryAdapterPageProps> = (
                     ))}
                     {!corpLoading && corpMappings.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-500">暂无 Corp 映射</td>
+                        <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-500">暂无学校 Corp 映射</td>
                       </tr>
                     ) : null}
                   </tbody>
@@ -1762,24 +1549,42 @@ export const RobotFactoryAdapterPage: React.FC<RobotFactoryAdapterPageProps> = (
         {tab === 'logs' ? (
           <>
             <section className={`${cardClass} p-4 sm:p-5 space-y-4`}>
+              {sectionTitle('同步日志', ScrollText)}
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                {statCard('日志总量', logStats.total, '当前筛选结果总数', ScrollText)}
+                {statCard('最近成功', logStats.success, '当前页成功记录数', CheckCircle2, 'success')}
+                {statCard('最近失败', logStats.failed, '当前页失败记录数', TriangleAlert, logStats.failed > 0 ? 'danger' : 'neutral')}
+              </div>
               <div className="flex flex-wrap items-end gap-3">
                 <div className="w-[180px]">
                   <div className={labelClass}>动作</div>
-                  <select className={selectClass} value={logAction} onChange={(e) => setLogAction(e.target.value)}>
-                    <option value="">全部动作</option>
-                    <option value="create">create</option>
-                    <option value="update">update</option>
-                    <option value="delete">delete</option>
-                    <option value="manual_sync">manual_sync</option>
-                  </select>
+                  <LantuSelect
+                    theme={theme}
+                    value={logAction}
+                    onChange={setLogAction}
+                    placeholder="全部动作"
+                    options={[
+                      { value: '', label: '全部动作' },
+                      { value: 'create', label: 'create' },
+                      { value: 'update', label: 'update' },
+                      { value: 'delete', label: 'delete' },
+                      { value: 'manual_sync', label: 'manual_sync' },
+                    ]}
+                  />
                 </div>
                 <div className="w-[180px]">
                   <div className={labelClass}>结果</div>
-                  <select className={selectClass} value={logSuccessFilter} onChange={(e) => setLogSuccessFilter(e.target.value)}>
-                    <option value="">全部</option>
-                    <option value="true">成功</option>
-                    <option value="false">失败</option>
-                  </select>
+                  <LantuSelect
+                    theme={theme}
+                    value={logSuccessFilter}
+                    onChange={setLogSuccessFilter}
+                    placeholder="全部"
+                    options={[
+                      { value: '', label: '全部' },
+                      { value: 'true', label: '成功' },
+                      { value: 'false', label: '失败' },
+                    ]}
+                  />
                 </div>
                 <div className="w-[180px]">
                   <div className={labelClass}>投影 ID</div>
@@ -1828,53 +1633,217 @@ export const RobotFactoryAdapterPage: React.FC<RobotFactoryAdapterPageProps> = (
         ) : null}
       </div>
 
-      {/*
       <Modal
-        open={importModalOpen}
-        onClose={() => setImportModalOpen(false)}
-        title="导入连接串"
+        open={projectionModalOpen}
+        onClose={closeProjectionModal}
+        title={editingProjection ? `编辑投影 #${editingProjection.id}` : '新建投影'}
         theme={theme}
-        size="lg"
+        size="xl"
         footer={(
           <>
-            <button type="button" className={btnSecondary(theme)} onClick={() => setImportModalOpen(false)}>
+            <button type="button" className={btnSecondary(theme)} onClick={closeProjectionModal}>
               取消
             </button>
-            <button type="button" className={btnPrimary} onClick={importConnectionConfig}>
-              解析并回填
+            {isExternalConnectionReady ? (
+              <button
+                type="button"
+                className={btnSecondary(theme)}
+                disabled={projectionSaving}
+                onClick={() => void saveProjection('save')}
+              >
+                仅保存
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className={btnPrimary}
+              disabled={projectionSaving}
+              onClick={() => void saveProjection(isExternalConnectionReady ? 'save_and_sync' : 'save')}
+            >
+              {projectionSaving
+                ? (projectionSubmitMode === 'save_and_sync' ? '保存并同步中...' : '保存中...')
+                : (isExternalConnectionReady
+                  ? (editingProjection ? '保存并同步' : '创建并同步')
+                  : (editingProjection ? '仅保存修改' : '仅创建投影'))}
             </button>
           </>
         )}
       >
-        <div className="space-y-4">
-          <p className={`text-sm ${textSecondary(theme)}`}>
-            支持类似 Navicat 的快速导入体验。把连接串或连接信息粘贴进来后，系统会自动解析数据库 URL、用户名、密码和驱动类。
-          </p>
-          <textarea
-            className={`${inputClass} min-h-[220px] font-mono text-xs`}
-            value={importConnectionText}
-            onChange={(e) => setImportConnectionText(e.target.value)}
-            placeholder={[
-              '示例 1:',
-              'mysql://root:password@127.0.0.1:3306/genie',
-              '',
-              '示例 2:',
-              'jdbc:mysql://127.0.0.1:3306/genie?useUnicode=true&characterEncoding=UTF-8',
-              '',
-              '示例 3:',
-              'Host=127.0.0.1;Port=3306;User=root;Password=password;Database=genie',
-            ].join('\n')}
-          />
-          <div className={`${softPanelClass} text-xs leading-6 ${textMuted(theme)}`}>
-            <div>支持格式：</div>
-            <div>1. `jdbc:mysql://...` 这类 JDBC URL</div>
-            <div>2. `mysql://user:password@host:port/db` 这类 URI</div>
-            <div>3. `Host=...;Port=...;User=...;Password=...;Database=...` 这类键值串</div>
+        <div className="space-y-5">
+          {!isExternalConnectionReady ? (
+            <div className={`${warningInlineClass} ${warningTextClass}`}>
+              当前仅保存本地投影配置。连接完成后，可直接使用“保存并同步”。
+            </div>
+          ) : null}
+
+          {!editingProjection ? (
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="min-w-[240px] flex-1">
+                  <div className={labelClass}>可投影 MCP 资源</div>
+                  <input
+                    className={inputClass}
+                    placeholder="按资源名称或编码筛选"
+                    value={availableResourceKeyword}
+                    onChange={(e) => setAvailableResourceKeyword(e.target.value)}
+                  />
+                </div>
+                <button type="button" className={btnSecondary(theme)} onClick={() => void loadAvailableResources()}>
+                  筛选资源
+                </button>
+              </div>
+              <div>
+                <div className={labelClass}>选择资源</div>
+                <LantuSelect
+                  theme={theme}
+                  value={projectionForm.resourceId}
+                  onChange={(nextResourceId) => {
+                    const nextResource = availableResources.find((item) => item.resourceId === nextResourceId);
+                    setProjectionForm((prev) => ({
+                      ...prev,
+                      resourceId: nextResourceId,
+                      displayName: prev.displayName || nextResource?.displayName || '',
+                      description: prev.description || nextResource?.description || '',
+                    }));
+                  }}
+                  placeholder={availableResourcesLoading ? '加载中...' : '请选择已发布 MCP 资源'}
+                  options={[
+                    { value: '', label: availableResourcesLoading ? '加载中...' : '请选择已发布 MCP 资源' },
+                    ...availableResources.map((item) => ({
+                      value: item.resourceId,
+                      label: `${item.displayName}${item.resourceCode ? ` (${item.resourceCode})` : ''}`,
+                    })),
+                  ]}
+                />
+              </div>
+              {selectedResource ? (
+                <div className={softPanelClass}>
+                  <div className={`text-sm font-semibold ${textPrimary(theme)}`}>{selectedResource.displayName}</div>
+                  <div className={`mt-1 text-xs ${textMuted(theme)}`}>
+                    资源ID：{selectedResource.resourceId} {selectedResource.resourceCode ? `| 编码：${selectedResource.resourceCode}` : ''} {selectedResource.schoolId ? `| 学校：${selectedResource.schoolId}` : ''}
+                  </div>
+                  <p className={`mt-2 text-sm ${textSecondary(theme)}`}>{selectedResource.description || '暂无描述'}</p>
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <div>
+              <div className={labelClass}>资源 ID</div>
+              <input className={inputClass} value={projectionForm.resourceId} disabled />
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div>
+              <div className={labelClass}>范围</div>
+              <LantuSelect
+                theme={theme}
+                value={projectionForm.scopeMode}
+                onChange={(value) => setProjectionForm((prev) => ({ ...prev, scopeMode: value as 'global' | 'school' }))}
+                options={[
+                  { value: 'school', label: '学校级' },
+                  { value: 'global', label: '全局' },
+                ]}
+              />
+            </div>
+            <div>
+              <div className={labelClass}>展示模板覆盖</div>
+              <input
+                className={inputClass}
+                value={projectionForm.displayTemplate}
+                onChange={(e) => setProjectionForm((prev) => ({ ...prev, displayTemplate: e.target.value }))}
+                placeholder="file / image / search_web"
+              />
+            </div>
+            <div>
+              <div className={labelClass}>显示名称覆盖</div>
+              <input
+                className={inputClass}
+                value={projectionForm.displayName}
+                onChange={(e) => setProjectionForm((prev) => ({ ...prev, displayName: e.target.value }))}
+              />
+            </div>
+            <div>
+              <div className={labelClass}>自动同步</div>
+              <label className={`mt-3 inline-flex items-center gap-3 text-sm ${textSecondary(theme)}`}>
+                <input
+                  type="checkbox"
+                  checked={projectionForm.autoSyncEnabled}
+                  onChange={(e) => setProjectionForm((prev) => ({ ...prev, autoSyncEnabled: e.target.checked }))}
+                />
+                保存时同步更新自动同步开关
+              </label>
+            </div>
+            <div className="lg:col-span-2">
+              <div className={labelClass}>描述覆盖</div>
+              <textarea
+                className={`${inputClass} min-h-[96px]`}
+                value={projectionForm.description}
+                onChange={(e) => setProjectionForm((prev) => ({ ...prev, description: e.target.value }))}
+              />
+            </div>
+            <div className="lg:col-span-2">
+              <div className={labelClass}>spec_json 覆盖</div>
+              <textarea
+                className={`${inputClass} min-h-[120px] font-mono text-xs`}
+                value={projectionForm.specJson}
+                onChange={(e) => setProjectionForm((prev) => ({ ...prev, specJson: e.target.value }))}
+                placeholder='留空则自动生成 {"url":".../sse"}'
+              />
+            </div>
+            <div className="lg:col-span-2">
+              <div className={labelClass}>parameters_schema 覆盖</div>
+              <textarea
+                className={`${inputClass} min-h-[120px] font-mono text-xs`}
+                value={projectionForm.parametersSchema}
+                onChange={(e) => setProjectionForm((prev) => ({ ...prev, parametersSchema: e.target.value }))}
+                placeholder="可留空，运行时依赖 tools/list"
+              />
+            </div>
           </div>
         </div>
       </Modal>
-      */}
 
+      <Modal
+        open={corpModalOpen}
+        onClose={closeCorpModal}
+        title={editingCorp ? `编辑学校 Corp 映射 #${editingCorp.id}` : '新增学校 Corp 映射'}
+        theme={theme}
+        size="lg"
+        footer={(
+          <>
+            <button type="button" className={btnSecondary(theme)} onClick={closeCorpModal}>
+              取消
+            </button>
+            <button type="button" className={btnPrimary} disabled={corpSaving} onClick={() => void saveCorpMapping()}>
+              {corpSaving ? '保存中...' : editingCorp ? '保存映射' : '新增映射'}
+            </button>
+          </>
+        )}
+      >
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div>
+            <div className={labelClass}>school_id</div>
+            <input className={inputClass} value={corpForm.schoolId} onChange={(e) => setCorpForm((prev) => ({ ...prev, schoolId: e.target.value }))} />
+          </div>
+          <div>
+            <div className={labelClass}>corp_id</div>
+            <input className={inputClass} value={corpForm.corpId} onChange={(e) => setCorpForm((prev) => ({ ...prev, corpId: e.target.value }))} />
+          </div>
+          <div>
+            <div className={labelClass}>学校名称快照</div>
+            <input className={inputClass} value={corpForm.schoolNameSnapshot} onChange={(e) => setCorpForm((prev) => ({ ...prev, schoolNameSnapshot: e.target.value }))} />
+          </div>
+          <div>
+            <div className={labelClass}>备注</div>
+            <input className={inputClass} value={corpForm.remark} onChange={(e) => setCorpForm((prev) => ({ ...prev, remark: e.target.value }))} />
+          </div>
+          <label className={`inline-flex items-center gap-3 text-sm ${textSecondary(theme)} lg:col-span-2`}>
+            <input type="checkbox" checked={corpForm.enabled} onChange={(e) => setCorpForm((prev) => ({ ...prev, enabled: e.target.checked }))} />
+            启用该映射
+          </label>
+        </div>
+      </Modal>
       <Modal
         open={importModalOpen}
         onClose={closeImportModal}

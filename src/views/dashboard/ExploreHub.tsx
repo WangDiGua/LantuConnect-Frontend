@@ -3,10 +3,12 @@ import { Highlight, themes } from 'prism-react-renderer';
 import type { LucideIcon } from 'lucide-react';
 import {
   Bot, Wrench, Cpu, AppWindow, Database, BookOpen, Users, Sparkles,
-  Activity, Flame, ChevronRight, Award, Megaphone, ArrowRight,
+  Activity, Flame, ChevronRight, Award, ArrowRight,
   Star, Heart, MessageCircle, Clock, Crown, TrendingUp, Zap,
+  Layers, Network, Share2,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import * as THREE from 'three';
 import type { EChartsOption } from 'echarts';
 import type { Theme, FontSize } from '../../types';
 import {
@@ -38,8 +40,7 @@ import {
 } from '../../components/charts/echartsTheme';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { resolvePersonDisplay } from '../../utils/personDisplay';
-import { useUserRole, canAccessAdminView } from '../../context/UserRoleContext';
-import { useMessage } from '../../components/common/Message';
+import { useUserRole } from '../../context/UserRoleContext';
 import type { ExploreHubRailConfig } from '../../constants/topNavPolicy';
 import { HubPersonalRail } from '../../components/layout/HubPersonalRail';
 import {
@@ -146,6 +147,12 @@ const SectionTitle: React.FC<{
 
 /** 领奖台排名对应角色文案（仅作展示分层，不等同 RBAC） */
 const CONTRIBUTOR_RANK_ROLE = ['平台贡献者', '优秀贡献者', '活跃贡献者'] as const;
+
+const HERO_SCENE_METADATA: Array<{ label: string; desc: string; Icon: LucideIcon }> = [
+  { label: '智能体协同中心', desc: '中心枢纽与分布式 Agent 节点的能量交换', Icon: Share2 },
+  { label: 'MCP 协议矩阵', desc: '标准化工具网格的逻辑调用与状态映射', Icon: Network },
+  { label: '技能资源引擎', desc: '原子化模块能力的动态注册与按需加载', Icon: Layers },
+];
 
 function HubContributorStatCard({
   label,
@@ -830,8 +837,8 @@ const HeroCodeTerminal: React.FC<{ compact?: boolean }> = ({ compact = false }) 
     const w = Math.max(1, el.clientWidth - padX);
     const font = compact ? PRETEXT_FONT_MONO_11_SNUG : PRETEXT_FONT_MONO_14_RELAXED;
     const lh = compact ? PRETEXT_LINE_HEIGHT_11_SNUG : PRETEXT_LINE_HEIGHT_14_RELAXED;
-    const maxPx = compact ? 132 : 300;
-    const minPx = Math.min(compact ? 4 * lh : 6 * lh, maxPx);
+    const maxPx = compact ? 132 : 138;
+    const minPx = Math.min(compact ? 4 * lh : 4 * lh, maxPx);
     const { height } = measureTextBlockHeightCached(typedCode, w, lh, font, { whiteSpace: 'pre-wrap' });
     const capped = Math.min(Math.max(height + 4, minPx), maxPx);
     setCodeBoxH(capped);
@@ -842,7 +849,7 @@ const HeroCodeTerminal: React.FC<{ compact?: boolean }> = ({ compact = false }) 
   }, [measureCodeBox]);
 
   useEffect(() => {
-    setCodeBoxH(compact ? 132 : 300);
+    setCodeBoxH(compact ? 132 : 138);
   }, [compact]);
 
   useEffect(() => {
@@ -916,12 +923,12 @@ const HeroCodeTerminal: React.FC<{ compact?: boolean }> = ({ compact = false }) 
     [],
   );
 
-  const outerPad = compact ? 'p-4 -m-4 max-w-[calc(100%+2rem)]' : 'p-10 -m-10 max-w-[calc(100%+5rem)]';
-  const termWidth = compact ? 'w-[280px]' : 'w-[420px]';
-  const codeText = compact ? 'text-xs leading-snug' : 'text-sm leading-relaxed';
-  const headPad = compact ? 'px-3 py-2' : 'px-4 py-3';
-  const innerPad = compact ? 'p-3' : 'p-5';
-  const rotate = compact ? 'rotate(-1deg)' : 'rotate(-2deg)';
+  const outerPad = compact ? 'p-1 -m-1 max-w-[calc(100%+0.5rem)]' : 'p-3 -m-3 max-w-[calc(100%+1.5rem)]';
+  const termWidth = compact ? 'w-[250px]' : 'w-[300px]';
+  const codeText = compact ? 'text-[11px] leading-snug' : 'text-[13px] leading-relaxed';
+  const headPad = compact ? 'px-3 py-2' : 'px-4 py-2.5';
+  const innerPad = compact ? 'p-3' : 'p-4';
+  const rotate = 'rotate(0deg)';
 
   return (
     <div
@@ -938,40 +945,40 @@ const HeroCodeTerminal: React.FC<{ compact?: boolean }> = ({ compact = false }) 
       >
       {/* 环境光晕：双层椭圆径向 + 大半径 blur，低饱和避免「塑料霓虹」 */}
       <div
-        className="pointer-events-none absolute -inset-[10px] z-0 rounded-2xl opacity-50"
+        className="pointer-events-none absolute -inset-[8px] z-0 rounded-2xl opacity-40"
         style={{
           background: `
             radial-gradient(ellipse 130% 95% at 18% 12%, rgba(56,189,248,0.11), transparent 58%),
             radial-gradient(ellipse 110% 130% at 92% 88%, rgba(129,140,248,0.08), transparent 55%)
           `,
-          filter: 'blur(26px)',
+          filter: 'blur(20px)',
         }}
         aria-hidden
       />
       {/* 贴边薄晕：略提高边缘存在感，仍弱于主体 */}
       <div
-        className="pointer-events-none absolute -inset-[5px] z-0 rounded-2xl opacity-[0.35]"
+        className="pointer-events-none absolute -inset-[4px] z-0 rounded-2xl opacity-[0.22]"
         style={{
           background:
             'linear-gradient(145deg, rgba(255,255,255,0.05) 0%, transparent 42%, rgba(125,211,252,0.04) 100%)',
-          filter: 'blur(8px)',
+          filter: 'blur(6px)',
         }}
         aria-hidden
       />
       {/* 高光：插值跟随指针，椭圆形渐变 + 柔化 blur */}
       <div
         ref={spotlightRef}
-        className="pointer-events-none absolute -inset-10 z-0 rounded-3xl"
+        className="pointer-events-none absolute -inset-6 z-0 rounded-3xl"
         style={{
-          filter: 'blur(44px)',
+          filter: 'blur(28px)',
           background: heroTerminalSpotlightGradient(HERO_GLOW_DEFAULT_PCT.x, HERO_GLOW_DEFAULT_PCT.y),
         }}
         aria-hidden
       />
       <div
-        className="relative z-10 overflow-hidden rounded-xl border border-white/[0.09] bg-black/40 shadow-[var(--shadow-card)] backdrop-blur-xl"
+        className="relative z-10 overflow-hidden rounded-[1.2rem] border border-white/[0.08] bg-[#0b0d12]/92 shadow-[0_18px_44px_-26px_rgba(0,0,0,0.9)] backdrop-blur-xl"
       >
-      <div className={`flex items-center border-b border-white/5 ${headPad}`}>
+      <div className={`flex items-center border-b border-white/[0.06] ${headPad}`}>
         <div className={`flex ${compact ? 'gap-1' : 'gap-1.5'}`}>
           <div className={`${compact ? 'w-2.5 h-2.5' : 'w-3 h-3'} rounded-full bg-red-500/80`} />
           <div className={`${compact ? 'w-2.5 h-2.5' : 'w-3 h-3'} rounded-full bg-yellow-500/80`} />
@@ -1020,7 +1027,6 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
 }) => {
   const navigate = useNavigate();
   const { platformRole } = useUserRole();
-  const { showMessage } = useMessage();
   const isDark = theme === 'dark';
   const lgUp = useLgUp();
   const hasHubRail = Boolean(hubRail);
@@ -1029,6 +1035,10 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
   const [loadError, setLoadError] = useState<Error | null>(null);
   const [hubData, setHubData] = useState<ExploreHubData | null>(null);
   const [detailAnnouncement, setDetailAnnouncement] = useState<AnnouncementItem | null>(null);
+  const [activeNotice, setActiveNotice] = useState(0);
+  const [activeScene, setActiveScene] = useState(0);
+  const activeSceneRef = useRef(0);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -1070,7 +1080,21 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
   const hotResources = (hubData?.trendingResources ?? []).slice(0, 4);
   const recentItems = (hubData?.recentPublished ?? []).slice(0, 4);
   const recommendedItems = (hubData?.recommendedForUser ?? []).slice(0, 4);
-  const announcements = (hubData?.announcements ?? []).slice(0, 3);
+  const developerCount = Number(stats?.totalDevelopers ?? 0);
+  const heroAnnouncements = useMemo<AnnouncementItem[]>(() => {
+    const rows = (hubData?.announcements ?? [])
+      .filter((item) => item.enabled !== false && !item.deleted)
+      .slice(0, 5);
+    if (rows.length > 0) return rows;
+    return [{
+      id: 'hero-announcement-fallback',
+      title: '平台公告轮播位',
+      summary: '当前暂无公开公告，后续将自动轮播最新平台通知。',
+      type: 'notice',
+      createdAt: '',
+    }];
+  }, [hubData?.announcements]);
+  const activeHeroAnnouncement = heroAnnouncements[activeNotice % heroAnnouncements.length];
   const topContributors = useMemo(
     () => [...(hubData?.topContributors ?? [])].sort((a, b) => b.totalCalls - a.totalCalls).slice(0, 3),
     [hubData?.topContributors],
@@ -1141,6 +1165,243 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
     navigate(buildUserResourceMarketUrl(item.resourceType));
   };
 
+  useEffect(() => {
+    setActiveNotice((prev) => prev % heroAnnouncements.length);
+  }, [heroAnnouncements.length]);
+
+  useEffect(() => {
+    const noticeTimer = heroAnnouncements.length > 1
+      ? window.setInterval(() => {
+        setActiveNotice((prev) => (prev + 1) % heroAnnouncements.length);
+      }, 4500)
+      : null;
+
+    const sceneTimer = window.setInterval(() => {
+      const next = (activeSceneRef.current + 1) % HERO_SCENE_METADATA.length;
+      activeSceneRef.current = next;
+      setActiveScene(next);
+    }, 8000);
+
+    return () => {
+      if (noticeTimer) window.clearInterval(noticeTimer);
+      window.clearInterval(sceneTimer);
+    };
+  }, [heroAnnouncements.length]);
+
+  useEffect(() => {
+    if (loading) return;
+
+    let scene: THREE.Scene | null = null;
+    let camera: THREE.PerspectiveCamera | null = null;
+    let renderer: THREE.WebGLRenderer | null = null;
+    let timer: THREE.Timer | null = null;
+    let particles: THREE.Points<THREE.BufferGeometry, THREE.PointsMaterial> | null = null;
+    let lines: THREE.LineSegments<THREE.BufferGeometry, THREE.LineBasicMaterial> | null = null;
+    let animationFrameId = 0;
+    let removeResize: (() => void) | null = null;
+    let removePointerMove: (() => void) | null = null;
+
+    const cleanupThree = () => {
+      if (removePointerMove) {
+        removePointerMove();
+        removePointerMove = null;
+      }
+      if (removeResize) {
+        removeResize();
+        removeResize = null;
+      }
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = 0;
+      }
+      if (particles?.geometry) particles.geometry.dispose();
+      if (particles?.material) particles.material.dispose();
+      if (lines?.geometry) lines.geometry.dispose();
+      if (lines?.material) lines.material.dispose();
+      if (timer) {
+        timer.dispose();
+        timer = null;
+      }
+      if (renderer) {
+        renderer.dispose();
+        renderer = null;
+      }
+    };
+
+    const initThree = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(50, width / Math.max(height, 1), 1, 1000);
+      camera.position.set(0, 0, 240);
+      timer = new THREE.Timer();
+      timer.connect(document);
+
+      renderer = new THREE.WebGLRenderer({
+        canvas,
+        antialias: true,
+        powerPreference: 'high-performance',
+      });
+      renderer.setClearColor(0x06070b, 1);
+      renderer.setSize(width, height, false);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+      const pCount = 1800;
+      const geometry = new THREE.BufferGeometry();
+      const pos = new Float32Array(pCount * 3);
+      const targets = [new Float32Array(pCount * 3), new Float32Array(pCount * 3), new Float32Array(pCount * 3)];
+
+      for (let i = 0; i < pCount; i += 1) {
+        pos[i * 3] = (Math.random() - 0.5) * 400;
+        pos[i * 3 + 1] = (Math.random() - 0.5) * 400;
+        pos[i * 3 + 2] = (Math.random() - 0.5) * 400;
+
+        if (i < 900) {
+          const phi = Math.acos(-1 + (2 * i) / 900);
+          const theta = Math.sqrt(900 * Math.PI) * phi;
+          targets[0][i * 3] = 45 * Math.cos(theta) * Math.sin(phi);
+          targets[0][i * 3 + 1] = 45 * Math.sin(theta) * Math.sin(phi);
+          targets[0][i * 3 + 2] = 45 * Math.cos(phi);
+        } else {
+          const clusterId = Math.floor((i - 900) / 220);
+          const angle = (clusterId / 5) * Math.PI * 2;
+          const r = 90;
+          targets[0][i * 3] = Math.cos(angle) * r + (Math.random() - 0.5) * 25;
+          targets[0][i * 3 + 1] = Math.sin(angle) * r + (Math.random() - 0.5) * 25;
+          targets[0][i * 3 + 2] = (Math.random() - 0.5) * 25;
+        }
+
+        const gS = 12;
+        const ix = i % gS;
+        const iy = Math.floor(i / gS) % gS;
+        const iz = Math.floor(i / (gS * gS)) % gS;
+        if (i < gS * gS * gS) {
+          targets[1][i * 3] = (ix - gS / 2) * 16;
+          targets[1][i * 3 + 1] = (iy - gS / 2) * 16;
+          targets[1][i * 3 + 2] = (iz - gS / 2) * 16;
+        } else {
+          const angle = Math.random() * Math.PI * 2;
+          targets[1][i * 3] = Math.cos(angle) * 110;
+          targets[1][i * 3 + 1] = Math.sin(angle) * 110;
+          targets[1][i * 3 + 2] = (Math.random() - 0.5) * 200;
+        }
+
+        const blockId = i % 8;
+        const bX = (blockId % 2 - 0.5) * 130;
+        const bY = (Math.floor(blockId / 2) % 2 - 0.5) * 130;
+        const bZ = (Math.floor(blockId / 4) - 0.5) * 130;
+        targets[2][i * 3] = bX + (Math.random() - 0.5) * 35;
+        targets[2][i * 3 + 1] = bY + (Math.random() - 0.5) * 35;
+        targets[2][i * 3 + 2] = bZ + (Math.random() - 0.5) * 35;
+      }
+
+      geometry.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      const material = new THREE.PointsMaterial({
+        color: 0x6366f1,
+        size: 1.6,
+        transparent: true,
+        opacity: 0.7,
+        blending: THREE.AdditiveBlending,
+      });
+
+      particles = new THREE.Points(geometry, material);
+      scene.add(particles);
+
+      const lineGeom = new THREE.BufferGeometry();
+      const linePositions = new Float32Array(5 * 2 * 3);
+      lineGeom.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
+      const lineMat = new THREE.LineBasicMaterial({
+        color: 0x6366f1,
+        transparent: true,
+        opacity: 0.1,
+      });
+      lines = new THREE.LineSegments(lineGeom, lineMat);
+      scene.add(lines);
+
+      let mouseX = 0;
+      let mouseY = 0;
+      let canvasWidth = width;
+      let canvasHeight = height;
+      const handlePointerMove = (event: PointerEvent) => {
+        mouseX = (event.offsetX / Math.max(canvasWidth, 1)) * 2 - 1;
+        mouseY = -(event.offsetY / Math.max(canvasHeight, 1)) * 2 + 1;
+      };
+      canvas.addEventListener('pointermove', handlePointerMove, { passive: true });
+      removePointerMove = () => canvas.removeEventListener('pointermove', handlePointerMove);
+
+      const animate = (timestamp?: number) => {
+        if (!timer || !particles || !renderer || !camera || !lines) return;
+        animationFrameId = requestAnimationFrame(animate);
+        timer.update(timestamp);
+        const time = timer.getElapsed();
+        const curScene = activeSceneRef.current;
+        const currentTarget = targets[curScene];
+        const positions = particles.geometry.attributes.position.array as Float32Array;
+
+        for (let i = 0; i < pCount; i += 1) {
+          positions[i * 3] += (currentTarget[i * 3] - positions[i * 3]) * 0.06;
+          positions[i * 3 + 1] += (currentTarget[i * 3 + 1] - positions[i * 3 + 1]) * 0.06;
+          positions[i * 3 + 2] += (currentTarget[i * 3 + 2] - positions[i * 3 + 2]) * 0.06;
+
+          if (curScene === 0) {
+            positions[i * 3 + 1] += Math.sin(time * 2 + i) * 0.05;
+          } else if (curScene === 1) {
+            const wave = Math.sin(positions[i * 3 + 1] * 0.05 + time * 4) * 0.5;
+            positions[i * 3] += wave;
+          }
+        }
+
+        particles.geometry.attributes.position.needsUpdate = true;
+
+        if (curScene === 0) {
+          lines.visible = true;
+          for (let k = 0; k < 5; k += 1) {
+            const offset = k * 6;
+            linePositions[offset] = 0;
+            linePositions[offset + 1] = 0;
+            linePositions[offset + 2] = 0;
+            linePositions[offset + 3] = targets[0][900 + k * 220];
+            linePositions[offset + 4] = targets[0][901 + k * 220];
+            linePositions[offset + 5] = targets[0][902 + k * 220];
+          }
+          lines.geometry.attributes.position.needsUpdate = true;
+        } else {
+          lines.visible = false;
+        }
+
+        particles.rotation.y += 0.003 + mouseX * 0.005;
+        particles.rotation.x += 0.001 + mouseY * 0.005;
+        renderer.render(scene, camera);
+      };
+
+      animate();
+
+      const handleResize = () => {
+        const currentCanvas = canvasRef.current;
+        if (!currentCanvas || !camera || !renderer) return;
+        const nextWidth = currentCanvas.clientWidth;
+        const nextHeight = currentCanvas.clientHeight;
+        canvasWidth = nextWidth;
+        canvasHeight = nextHeight;
+        camera.aspect = nextWidth / Math.max(nextHeight, 1);
+        camera.updateProjectionMatrix();
+        renderer.setSize(nextWidth, nextHeight, false);
+      };
+
+      window.addEventListener('resize', handleResize);
+      removeResize = () => window.removeEventListener('resize', handleResize);
+    };
+
+    initThree();
+
+    return () => {
+      cleanupThree();
+    };
+  }, [loading]);
+
   if (loading) {
     return (
       <div className="flex-1">
@@ -1163,25 +1424,22 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
   /** Hero：压低高度、参考魔搭「中间栏横幅」；有左轨时仅占主栏宽度 */
   const heroRingOffset = isDark ? 'focus-visible:ring-offset-lantu-canvas' : 'focus-visible:ring-offset-[#0a0a0a]';
   const heroShellClass = isDark
-    ? `relative w-full overflow-hidden rounded-2xl border border-transparent bg-gradient-to-b from-[#252830] via-[#1e2128] to-[#181b22] px-5 py-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.055),var(--shadow-card)] sm:px-6 sm:py-5`
-    : `relative w-full overflow-hidden rounded-2xl border border-white/10 bg-[#0a0a0a] px-5 py-4 shadow-[var(--shadow-card)] sm:px-6 sm:py-5`;
+    ? 'relative w-full overflow-hidden rounded-[2rem] border border-white/[0.06] bg-[#0a0a0b] px-6 py-7 shadow-[0_28px_80px_-26px_rgba(0,0,0,0.78)] sm:px-7 sm:py-8 lg:px-8'
+    : 'relative w-full overflow-hidden rounded-[2rem] border border-black/[0.04] bg-[#0a0a0b] px-6 py-7 shadow-[0_30px_70px_-24px_rgba(0,0,0,0.28)] sm:px-7 sm:py-8 lg:px-8';
   const heroGridStyle: React.CSSProperties = {
-    backgroundImage: isDark
-      ? 'linear-gradient(to right, rgba(255,255,255,0.045) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.045) 1px, transparent 1px)'
-      : 'linear-gradient(to right, rgba(255,255,255,0.055) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.055) 1px, transparent 1px)',
-    backgroundSize: '32px 32px',
+    backgroundImage:
+      'linear-gradient(to right, rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.04) 1px, transparent 1px)',
+    backgroundSize: '34px 34px',
   };
-  const heroVignetteFrom = isDark ? '#1e2128' : '#0a0a0a';
-  const heroLeadClass = isDark
-    ? 'text-lantu-text-secondary text-sm sm:text-[15px] font-normal leading-relaxed max-w-xl mb-4'
-    : 'text-slate-300 text-sm sm:text-[15px] font-light leading-relaxed max-w-xl mb-4';
+  const heroVignetteFrom = '#0a0a0b';
+  const heroLeadClass = 'text-slate-300 text-sm sm:text-[15px] font-normal leading-relaxed max-w-[42rem] mb-5';
 
   const heroCompactTerminal = Boolean(hubRail);
 
   const hubHeroBanner = (
     <div className={heroShellClass} style={heroGridStyle}>
       <div
-        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/[0.04] via-transparent to-transparent"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/[0.025] via-transparent to-transparent"
         aria-hidden
       />
       <div
@@ -1199,13 +1457,13 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
         aria-hidden
       />
 
-      <div className="relative z-10 w-full flex flex-col gap-6 lg:flex-row lg:items-center lg:gap-6 lg:justify-between">
+      <div className="relative z-10 flex min-h-[190px] w-full flex-col gap-8 lg:min-h-[185px] lg:flex-row lg:items-center lg:justify-between">
         {/* 与下方统计栅格、资源卡同宽：主栏内占满可用宽；段落在 heroLeadClass 中另控行长 */}
-        <div className="w-full min-w-0 lg:flex-1">
+        <div className="w-full min-w-0 lg:max-w-[58%]">
           <button
             type="button"
             onClick={() => navigate(unifiedResourceCenterPath(platformRole))}
-            className={`group mb-3 inline-flex max-w-full items-center gap-2 rounded-full border border-white/[0.12] bg-white/[0.08] px-3 py-1.5 text-left shadow-[var(--shadow-control)] backdrop-blur-md transition-colors hover:border-white/[0.16] hover:bg-white/[0.11] focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/55 focus-visible:ring-offset-2 ${heroRingOffset}`}
+            className={`group mb-5 inline-flex max-w-full items-center gap-2 rounded-full border border-white/[0.12] bg-white/[0.06] px-4 py-2 text-left shadow-[0_10px_30px_-18px_rgba(0,0,0,0.8)] backdrop-blur-md transition-colors hover:border-white/[0.16] hover:bg-white/[0.1] focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/55 focus-visible:ring-offset-2 ${heroRingOffset}`}
           >
             <Sparkles className="h-3.5 w-3.5 shrink-0 text-sky-400" strokeWidth={2} aria-hidden />
             <span className="text-xs font-medium text-white sm:text-sm">Nexus Pro 2.0 现已发布</span>
@@ -1216,8 +1474,8 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
             />
           </button>
 
-          <h1 className="text-2xl sm:text-3xl md:text-[2rem] font-bold text-white tracking-tight leading-snug mb-3">
-            Build the future of <span className="whitespace-nowrap">campus AI.</span>
+          <h1 className="max-w-[16ch] text-[2.15rem] font-black tracking-[-0.04em] leading-[0.98] text-white sm:text-[2.8rem] lg:text-[3.2rem]">
+            Build the future of campus AI.
           </h1>
 
           <p className={heroLeadClass}>
@@ -1228,14 +1486,14 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
             <button
               type="button"
               onClick={() => navigate(unifiedResourceCenterPath(platformRole))}
-              className={`bg-white text-black px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-neutral-100 active:scale-[0.98] transition-all flex items-center justify-center gap-2 w-full sm:w-auto shadow-[var(--shadow-control)] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 ${heroRingOffset}`}
+              className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-bold text-black transition-all hover:bg-neutral-100 active:scale-[0.98] sm:w-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 ${heroRingOffset}`}
             >
               开始发布 <ArrowRight size={15} aria-hidden />
             </button>
             <button
               type="button"
               onClick={() => navigate(buildPath('user', 'developer-docs'))}
-              className={`text-slate-400 text-sm font-medium hover:text-white transition-colors rounded-lg px-2 py-1.5 -ml-1 border border-transparent hover:border-white/15 hover:bg-white/[0.04] focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/45 focus-visible:ring-offset-2 ${heroRingOffset}`}
+              className={`inline-flex items-center justify-center rounded-2xl border border-transparent px-3 py-3 text-sm font-semibold text-slate-300 transition-colors hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/45 focus-visible:ring-offset-2 ${heroRingOffset}`}
             >
               查看文档
             </button>
@@ -1243,13 +1501,228 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
         </div>
 
         <div
-          className={`mt-5 flex justify-center lg:mt-0 lg:shrink-0 ${heroCompactTerminal ? 'hidden min-[1280px]:flex' : 'hidden lg:flex'} lg:justify-end`}
+          className={`mt-2 flex justify-center lg:mt-0 lg:min-w-[280px] lg:shrink-0 ${heroCompactTerminal ? 'hidden min-[1280px]:flex' : 'hidden lg:flex'} lg:justify-end`}
         >
-          <div className={`relative max-w-full ${heroCompactTerminal ? '' : 'w-[420px]'}`}>
+          <div className={`relative max-w-full ${heroCompactTerminal ? '' : 'w-[320px]'}`}>
             <HeroCodeTerminal compact={heroCompactTerminal} />
           </div>
         </div>
       </div>
+    </div>
+  );
+
+  const hubHeroBannerStatic = (
+    <div className={heroShellClass} style={heroGridStyle}>
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: `linear-gradient(to right, ${heroVignetteFrom}, transparent 14%, transparent 86%, ${heroVignetteFrom})`,
+        }}
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: `linear-gradient(to top, ${heroVignetteFrom}, transparent 24%, transparent 76%, ${heroVignetteFrom})`,
+        }}
+        aria-hidden
+      />
+      <div className="pointer-events-none absolute inset-y-0 left-0 w-[36%] bg-gradient-to-r from-white/[0.03] via-transparent to-transparent" aria-hidden />
+      <div className="pointer-events-none absolute -left-20 top-[-50%] h-[20rem] w-[20rem] rounded-full bg-sky-500/8 blur-[130px]" aria-hidden />
+      <div className="pointer-events-none absolute right-[8%] top-[18%] h-40 w-40 rounded-full bg-amber-200/[0.04] blur-[96px]" aria-hidden />
+
+      <div className="relative z-10 flex min-h-[210px] w-full flex-col justify-center">
+        <div className="w-full min-w-0 lg:max-w-[62%]">
+          <div className="mb-6 inline-flex max-w-full items-center gap-2 rounded-full border border-white/[0.12] bg-white/[0.06] px-4 py-2 shadow-[0_10px_30px_-18px_rgba(0,0,0,0.8)] backdrop-blur-md">
+            <Sparkles className="h-3.5 w-3.5 shrink-0 text-sky-400" strokeWidth={2} aria-hidden />
+            <span className="text-sm font-semibold text-white">Nexus Pro 2.0 现已发布</span>
+            <ChevronRight className="h-3.5 w-3.5 shrink-0 text-slate-500" strokeWidth={2} aria-hidden />
+          </div>
+
+          <h1 className="max-w-[14ch] text-[2.2rem] font-black tracking-[-0.055em] leading-[0.96] text-white sm:text-[2.8rem] lg:text-[3.35rem]">
+            Build the future of campus AI.
+          </h1>
+
+          <p className={heroLeadClass}>
+            数字化资产与能力门户：目录发现与授权消费；统一注册、审核与 API Key / scope 详见接入指南。
+          </p>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-bold text-black shadow-[0_16px_36px_-24px_rgba(255,255,255,0.9)] sm:w-auto">
+              开始发布
+              <ArrowRight size={15} aria-hidden />
+            </div>
+            <div className="inline-flex items-center justify-center rounded-2xl px-3 py-3 text-sm font-semibold text-slate-300">
+              查看文档
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const hubHeroBannerImmersive = (
+    <div className="w-full">
+      <section className="relative flex h-[320px] w-full items-stretch overflow-hidden rounded-[2.5rem] border border-white/5 bg-[#020204] lg:h-[304px]">
+        <div className="pointer-events-none absolute inset-0 z-0">
+          <div className="absolute left-[-10%] top-[-20%] h-full w-[600px] rounded-full bg-indigo-600/8 blur-[140px]" />
+          <div
+            className="absolute inset-0 opacity-[0.04] mix-blend-overlay"
+            style={{
+              backgroundImage:
+                'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.28) 1px, transparent 0), radial-gradient(circle at 7px 7px, rgba(255,255,255,0.18) 0.8px, transparent 0)',
+              backgroundSize: '12px 12px, 18px 18px',
+            }}
+          />
+        </div>
+
+        <div className="relative z-20 flex flex-[1.3] flex-col justify-between p-7 lg:px-10 lg:py-8">
+          <div className="space-y-7">
+            <button
+              type="button"
+              disabled={activeHeroAnnouncement.id === 'hero-announcement-fallback'}
+              onClick={() => setDetailAnnouncement(activeHeroAnnouncement)}
+              className="group relative flex h-10 w-full max-w-[28rem] items-center gap-3 overflow-hidden rounded-full border border-white/10 bg-white/[0.03] px-3.5 text-left transition-colors hover:bg-white/[0.05] disabled:cursor-default disabled:hover:bg-white/[0.03]"
+            >
+              <span className="inline-flex shrink-0 rounded-full border border-indigo-400/25 bg-indigo-500/12 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-indigo-300">
+                {ANNOUNCEMENT_LABEL[activeHeroAnnouncement.type] ?? '平台通知'}
+              </span>
+              <div className="relative h-4 min-w-0 flex-1 overflow-hidden">
+                {heroAnnouncements.map((item, idx) => (
+                  <div
+                    key={item.id}
+                    className={`absolute inset-0 transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${
+                      idx === activeNotice % heroAnnouncements.length ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'
+                    }`}
+                  >
+                    <div className="truncate text-[12px] font-semibold leading-4 text-white">
+                      {item.title}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <span className="shrink-0 text-[10px] font-medium text-slate-500 transition-colors group-hover:text-slate-300">
+                {activeHeroAnnouncement.id === 'hero-announcement-fallback' ? '同步中' : '详情'}
+              </span>
+            </button>
+
+            <div className="space-y-4">
+              <h1 className="text-[3.2rem] font-black leading-[0.92] tracking-[-0.06em] text-white lg:text-[3.7rem]">
+                <span className="whitespace-nowrap">Build the future of</span> <br />
+                <span className="bg-gradient-to-br from-indigo-200 via-white to-slate-500 bg-clip-text text-transparent italic drop-shadow-2xl">
+                  campus AI.
+                </span>
+              </h1>
+              <p className="max-w-[34rem] text-[14px] font-light leading-relaxed text-slate-400">
+                数字化资产与能力门户：
+                <span className="border-b border-white/10 font-medium text-white">目录发现</span>
+                {' '}与{' '}
+                <span className="border-b border-white/10 font-medium text-white">授权消费</span>
+                。连接校园每一个智能端点。
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-6">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <button
+                  type="button"
+                  onClick={() => navigate(unifiedResourceCenterPath(platformRole))}
+                  className="group inline-flex items-center gap-2 whitespace-nowrap rounded-[1.05rem] bg-white px-6 py-3 text-sm font-bold leading-none text-black shadow-[0_0_30px_rgba(255,255,255,0.1)] transition-all hover:bg-slate-100"
+                >
+                  开始发布
+                  <ChevronRight size={18} className="transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate(buildPath('user', 'developer-docs'))}
+                  className="inline-flex items-center whitespace-nowrap rounded-[1.05rem] border border-white/10 bg-white/[0.04] px-6 py-3 text-sm font-bold leading-none text-white transition-all hover:bg-white/[0.08]"
+                >
+                  查看技术文档
+                </button>
+              </div>
+              <div className="hidden items-center gap-4 border-l border-white/10 pl-6 xl:flex">
+                <div className="flex -space-x-3">
+                  {[1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className="h-8 w-8 overflow-hidden rounded-full border-2 border-[#020204] bg-zinc-800 ring-1 ring-white/5"
+                    >
+                      <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${i + 135}`} alt="user" />
+                    </div>
+                  ))}
+                </div>
+                <div className="flex flex-col text-left">
+                  <span className="text-xs font-black leading-none text-white">{developerCount.toLocaleString('zh-CN')}</span>
+                  <span className="mt-1 text-[10px] font-bold tracking-[0.18em] text-slate-500">非 User 角色</span>
+                </div>
+              </div>
+          </div>
+        </div>
+
+        <div className="group/stage relative flex flex-1 items-center justify-center overflow-hidden border-l border-white/5 bg-[#06070b]">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.1),transparent_40%),linear-gradient(180deg,rgba(8,10,16,0.92),rgba(6,7,11,0.98))]" />
+          <div className="relative h-full w-full">
+            <canvas
+              ref={canvasRef}
+              className="h-full w-full cursor-crosshair bg-[#06070b]"
+            />
+          </div>
+
+          <div className="pointer-events-none absolute bottom-8 left-1/2 z-30 w-full -translate-x-1/2 px-10 text-center">
+            <div className="relative mb-1 flex h-6 w-full justify-center overflow-hidden">
+              {HERO_SCENE_METADATA.map((info, idx) => (
+                <div
+                  key={info.label}
+                  className={`absolute inset-0 flex items-center justify-center gap-3 text-[13px] font-black uppercase tracking-[0.32em] text-indigo-400 transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)] ${
+                    idx === activeScene ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0 blur-md'
+                  }`}
+                >
+                  <info.Icon size={14} className="animate-pulse" aria-hidden />
+                  {info.label}
+                </div>
+              ))}
+            </div>
+            <div className="relative h-8 w-full overflow-hidden">
+              {HERO_SCENE_METADATA.map((info, idx) => (
+                <p
+                  key={info.desc}
+                  className={`absolute inset-0 flex items-center justify-center px-8 text-[11px] font-medium leading-relaxed text-slate-500 transition-all duration-1000 delay-100 ${
+                    idx === activeScene ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
+                  }`}
+                >
+                  {info.desc}
+                </p>
+              ))}
+            </div>
+
+            <div className="mt-4 flex justify-center gap-2.5">
+              {HERO_SCENE_METADATA.map((info, idx) => (
+                <div
+                  key={info.label}
+                  className={`h-[1px] transition-all duration-700 ${
+                    idx === activeScene ? 'w-10 bg-indigo-500' : 'w-3 bg-white/10'
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="absolute right-8 top-7 flex flex-col items-end gap-2 opacity-[0.15]">
+            <div className="flex items-center gap-3">
+              <div className="flex flex-col items-end font-mono">
+                <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400">Nexus_Visual_Engine</span>
+                <span className="text-[8px] font-bold uppercase tracking-tighter text-slate-500">
+                  {activeScene === 0 ? 'Agent_Hub_Mode' : activeScene === 1 ? 'Protocol_Matrix' : 'Skills_Nebula'}
+                </span>
+              </div>
+              <Activity size={22} className="text-indigo-400" aria-hidden />
+            </div>
+            <div className="h-px w-28 bg-gradient-to-l from-indigo-500/40 to-transparent" />
+          </div>
+        </div>
+
+      </section>
     </div>
   );
 
@@ -1272,7 +1745,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
   return (
     <>
       <div className={`w-full min-w-0 ${mainScrollPadBottom} ${canvasBodyBg(theme)}`}>
-        {!hubRail ? <div className={pageContainer}>{hubHeroBanner}</div> : null}
+        {!hubRail ? <div className={pageContainer}>{hubHeroBannerImmersive}</div> : null}
 
         <main className={`${pageContainer} ${hubRail ? 'mt-0' : 'mt-6 sm:mt-7'} space-y-8`}>
           {hubRail ? null : statsGridEl}
@@ -1308,7 +1781,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
             >
               {hubRail ? (
                 <div className="space-y-6">
-                  {hubHeroBanner}
+                  {hubHeroBannerImmersive}
                   {statsGridEl}
                 </div>
               ) : null}
@@ -1383,54 +1856,6 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
                 </div>
               </div>
 
-              <div>
-                <SectionTitle
-                  title="平台公告"
-                  icon={Megaphone}
-                  action="历史公告"
-                  onAction={() => {
-                    if (canAccessAdminView(platformRole)) {
-                      navigate(buildPath('admin', 'announcements'));
-                    } else {
-                      showMessage('完整公告列表在管理后台，您可关注本页最新公告。', 'info');
-                    }
-                  }}
-                  isDark={isDark}
-                />
-                <Card className="overflow-hidden" isDark={isDark}>
-                  <div className={`divide-y ${isDark ? 'divide-white/10' : 'divide-slate-100'}`}>
-                    {announcements.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => setDetailAnnouncement(item)}
-                        className={`w-full p-6 flex gap-5 transition-colors cursor-pointer group text-left rounded-none focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-500/40 ${
-                          isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-slate-50/50'
-                        }`}
-                      >
-                        <div className="flex-shrink-0 mt-0.5">
-                          <span className={`text-xs font-bold px-2.5 py-1.5 rounded-lg ${
-                            item.type === 'feature'
-                              ? (isDark ? 'bg-slate-100 text-slate-900' : 'bg-black text-white')
-                              : (isDark ? 'bg-white/10 text-slate-300 border border-white/15' : 'bg-slate-100 text-slate-600 border border-slate-200')
-                          }`}>
-                            {ANNOUNCEMENT_LABEL[item.type] ?? item.type}
-                          </span>
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-1">
-                            <h4 className={`font-bold text-lg ${isDark ? 'text-lantu-text-primary group-hover:text-white' : 'text-slate-900 group-hover:text-black'}`}>{item.title}</h4>
-                            <span className={`text-xs px-2 py-1 rounded-md ${
-                              isDark ? 'text-lantu-text-secondary bg-white/5' : 'text-slate-400 bg-slate-50'
-                            }`}>{formatDateTime(item.createdAt)}</span>
-                          </div>
-                          <p className={`text-sm leading-relaxed mt-2 ${isDark ? 'text-lantu-text-secondary' : 'text-slate-500'}`}>{item.summary}</p>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </Card>
-              </div>
             </div>
 
             <div

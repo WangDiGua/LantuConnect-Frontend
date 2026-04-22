@@ -106,6 +106,7 @@ export interface RobotFactorySettingsHealth {
   configured: boolean;
   databaseReachable: boolean;
   externalTableReady: boolean;
+  publicBaseUrlReady: boolean;
   status: string;
   message?: string;
   checkedAt?: string;

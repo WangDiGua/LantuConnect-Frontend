@@ -55,6 +55,7 @@ export interface ExploreHubData {
     totalMcps: number;
     totalApps: number;
     totalDatasets: number;
+    totalDevelopers: number;
     totalUsers: number;
     totalCallsToday: number;
     callsTrend7d: { day: string; calls: number }[];

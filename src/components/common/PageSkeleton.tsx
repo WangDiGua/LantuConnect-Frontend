@@ -7,10 +7,11 @@ interface PageSkeletonProps {
 
 /** 条块 + 横向微光（index.css `.lantu-skeleton-bar`）；暗色为低对比填充，避免整块 slate-200 */
 const Shimmer: React.FC<{ className?: string }> = ({ className = '' }) => (
-  <div className={`lantu-skeleton-bar rounded-lg bg-slate-200/85 dark:bg-white/[0.055] ${className}`} />
+  <div className={`lantu-skeleton-bar rounded-lg bg-slate-200/85 dark:bg-lantu-card-hover ${className}`} />
 );
 
-const skeletonCardShell = 'rounded-[24px] border border-slate-200/90 bg-transparent p-4 space-y-3 dark:border-white/[0.06] dark:bg-white/[0.025]';
+const skeletonCardShell =
+  'rounded-[24px] border border-slate-200/90 bg-transparent p-4 space-y-3 dark:border-transparent dark:bg-lantu-elevated';
 
 const DashboardSkeleton: React.FC = () => (
   <div className="p-4 space-y-5">
@@ -167,8 +168,8 @@ export const PageSkeleton: React.FC<PageSkeletonProps> = ({ type = 'table', rows
         <Shimmer className="h-8 w-48" />
         <Shimmer className="h-9 w-24" />
       </div>
-      <div className="overflow-hidden rounded-xl border border-slate-200/90 dark:border-white/[0.06] dark:bg-white/[0.02]">
-        <div className="flex gap-4 bg-slate-50 px-4 py-3 dark:bg-white/[0.035]">
+      <div className="overflow-hidden rounded-xl border border-slate-200/90 dark:border-transparent dark:bg-lantu-elevated">
+        <div className="flex gap-4 bg-slate-50 px-4 py-3 dark:bg-lantu-card-hover">
           {Array.from({ length: 5 }).map((_, i) => (
             <Shimmer key={i} className="h-4 flex-1" />
           ))}

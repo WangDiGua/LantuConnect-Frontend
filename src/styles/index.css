@@ -377,7 +377,7 @@
   background: linear-gradient(
     90deg,
     transparent,
-    rgb(255 255 255 / 0.075),
+    rgb(255 255 255 / 0.045),
     transparent
   );
   animation-duration: 2.6s;

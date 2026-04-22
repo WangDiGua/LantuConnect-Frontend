@@ -1612,12 +1612,17 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
               type="button"
               disabled={activeHeroAnnouncement.id === 'hero-announcement-fallback'}
               onClick={() => setDetailAnnouncement(activeHeroAnnouncement)}
-              className="group relative flex h-11 w-full max-w-[29rem] items-center gap-3 overflow-hidden rounded-[1.1rem] border border-white/[0.08] bg-white/[0.025] px-3 py-2 text-left transition-colors hover:border-white/[0.12] hover:bg-white/[0.04] disabled:cursor-default disabled:hover:border-white/[0.08] disabled:hover:bg-white/[0.025]"
+              className="group relative flex h-11 w-full max-w-[31rem] items-center gap-3 overflow-hidden rounded-[1rem] border border-white/[0.07] bg-[linear-gradient(180deg,rgba(255,255,255,0.032),rgba(255,255,255,0.018))] px-3.5 py-2 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_12px_32px_-24px_rgba(0,0,0,0.9)] backdrop-blur-sm transition-all hover:border-indigo-400/18 hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.022))] disabled:cursor-default disabled:hover:border-white/[0.07] disabled:hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.032),rgba(255,255,255,0.018))]"
             >
-              <span className="inline-flex shrink-0 items-center rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-1 text-[10px] font-bold tracking-[0.08em] text-slate-200">
+              <span
+                className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-400/40 to-transparent opacity-80"
+                aria-hidden
+              />
+              <span className="inline-flex h-6 shrink-0 items-center gap-1.5 rounded-[0.7rem] border border-indigo-400/16 bg-indigo-500/[0.08] px-2.5 font-mono text-[10px] font-semibold tracking-[0.1em] text-indigo-100/90">
+                <span className="h-1.5 w-1.5 rounded-full bg-indigo-300 shadow-[0_0_8px_rgba(129,140,248,0.8)]" aria-hidden />
                 {ANNOUNCEMENT_LABEL[activeHeroAnnouncement.type] ?? '平台通知'}
               </span>
-              <div className="relative h-4 min-w-0 flex-1 overflow-hidden pr-2">
+              <div className="relative h-4 min-w-0 flex-1 overflow-hidden pr-3">
                 {heroAnnouncements.map((item, idx) => (
                   <div
                     key={item.id}
@@ -1625,13 +1630,14 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
                       idx === activeNotice % heroAnnouncements.length ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0'
                     }`}
                   >
-                    <div className="truncate text-[12px] font-medium leading-4 text-white/92">
+                    <div className="truncate text-[12px] font-medium tracking-[0.01em] leading-4 text-white/92">
                       {item.title}
                     </div>
                   </div>
                 ))}
               </div>
-              <span className="shrink-0 text-[10px] font-medium text-slate-500 transition-colors group-hover:text-slate-300">
+              <span className="h-4 w-px shrink-0 bg-white/[0.07]" aria-hidden />
+              <span className="shrink-0 font-mono text-[10px] font-medium tracking-[0.14em] text-slate-500 transition-colors group-hover:text-slate-300">
                 {activeHeroAnnouncement.id === 'hero-announcement-fallback' ? '同步中' : '详情'}
               </span>
             </button>
@@ -1696,19 +1702,29 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
         >
           <div
             className="absolute inset-0"
+            style={{ backgroundColor: heroImmersiveBase }}
+            aria-hidden
+          />
+          <div
+            className="absolute inset-0"
             style={{
               backgroundImage:
                 'linear-gradient(180deg, rgba(255,255,255,0.015) 0%, rgba(255,255,255,0) 52%), radial-gradient(circle at 78% 44%, rgba(99,102,241,0.08), transparent 24%)',
             }}
           />
           <div
-            className={`absolute inset-0 bg-[radial-gradient(circle_at_80%_48%,rgba(99,102,241,0.06),transparent_34%)] transition-opacity duration-300 ${
+            className={`absolute inset-0 transition-opacity duration-300 ${
               heroSceneReady ? 'opacity-0' : 'opacity-100'
             }`}
+            style={{
+              backgroundColor: heroImmersiveBase,
+              backgroundImage:
+                'radial-gradient(circle at 80% 48%, rgba(99,102,241,0.06), transparent 34%)',
+            }}
           />
           <canvas
             ref={canvasRef}
-            className={`h-full w-full transition-opacity duration-300 ${
+            className={`relative z-10 h-full w-full transition-opacity duration-300 ${
               heroSceneReady ? 'opacity-100' : 'opacity-0'
             }`}
             style={{ display: 'block', backgroundColor: heroImmersiveBase }}

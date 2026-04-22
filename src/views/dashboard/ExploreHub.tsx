@@ -1252,10 +1252,10 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
       renderer = new THREE.WebGLRenderer({
         canvas,
         antialias: true,
-        alpha: false,
+        alpha: true,
         powerPreference: 'high-performance',
       });
-      renderer.setClearColor(isDark ? 0x1b1c21 : 0x0d0e13, 1);
+      renderer.setClearColor(0x111722, 0);
       renderer.setSize(width, height, false);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
@@ -1456,7 +1456,12 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
   const heroImmersiveShellClass = isDark
     ? 'relative isolate flex h-[320px] w-full items-stretch overflow-hidden rounded-[2.5rem] border border-white/[0.06] lg:h-[304px]'
     : 'relative isolate flex h-[320px] w-full items-stretch overflow-hidden rounded-[2.5rem] border border-slate-200/70 lg:h-[304px]';
-  const heroImmersiveBase = isDark ? '#1b1c21' : '#0d0e13';
+  const heroImmersiveBase = '#111722';
+  const heroImmersiveBackdropStyle: React.CSSProperties = {
+    backgroundColor: heroImmersiveBase,
+    backgroundImage:
+      'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.016) 26%, rgba(255,255,255,0.008) 54%, rgba(255,255,255,0) 100%)',
+  };
 
   const heroCompactTerminal = Boolean(hubRail);
 
@@ -1588,6 +1593,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
   const hubHeroBannerImmersive = (
     <div className="w-full">
       <section className={heroImmersiveShellClass} style={{ backgroundColor: heroImmersiveBase }}>
+        <div className="pointer-events-none absolute inset-0 z-0" style={heroImmersiveBackdropStyle} aria-hidden />
         <div className="pointer-events-none absolute inset-0 z-0">
           <div
             className="absolute inset-0"
@@ -1698,28 +1704,14 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
 
         <div
           className="group/stage pointer-events-none absolute inset-y-0 right-0 z-10 w-[44%] min-w-[340px] overflow-hidden"
-          style={{ backgroundColor: heroImmersiveBase }}
         >
-          <div
-            className="absolute inset-0"
-            style={{ backgroundColor: heroImmersiveBase }}
-            aria-hidden
-          />
-          <div
-            className="absolute inset-0"
-            style={{
-              backgroundImage:
-                'linear-gradient(180deg, rgba(255,255,255,0.015) 0%, rgba(255,255,255,0) 52%), radial-gradient(circle at 78% 44%, rgba(99,102,241,0.08), transparent 24%)',
-            }}
-          />
           <div
             className={`absolute inset-0 transition-opacity duration-300 ${
               heroSceneReady ? 'opacity-0' : 'opacity-100'
             }`}
             style={{
-              backgroundColor: heroImmersiveBase,
               backgroundImage:
-                'radial-gradient(circle at 80% 48%, rgba(99,102,241,0.06), transparent 34%)',
+                'linear-gradient(180deg, rgba(255,255,255,0.012) 0%, rgba(255,255,255,0) 100%)',
             }}
           />
           <canvas
@@ -1727,7 +1719,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
             className={`relative z-10 h-full w-full transition-opacity duration-300 ${
               heroSceneReady ? 'opacity-100' : 'opacity-0'
             }`}
-            style={{ display: 'block', backgroundColor: heroImmersiveBase }}
+            style={{ display: 'block', backgroundColor: 'transparent' }}
           />
 
           <div className="absolute bottom-8 inset-x-0 z-30 px-8 text-center">

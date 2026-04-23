@@ -55,6 +55,8 @@ import { Pagination, SearchInput, FilterSelect, Modal, ConfirmDialog } from '../
 import { BentoCard } from '../../components/common/BentoCard';
 import { RowActionGroup } from '../../components/management/RowActionGroup';
 import { MgmtPageShell } from '../userMgmt/MgmtPageShell';
+import { useUserRole } from '../../context/UserRoleContext';
+import { canManagePlatformOperations } from '../../constants/platformRoleAccess';
 import { formatDateTime } from '../../utils/formatDateTime';
 import { nativeInputClass } from '../../utils/formFieldClasses';
 import {
@@ -252,6 +254,7 @@ function alertActionLabel(type: EventActionKind): string {
 }
 
 export const AlertCenterPage: React.FC<Props> = ({ theme, fontSize, showMessage }) => {
+  const { platformRole } = useUserRole();
   const [searchParams] = useSearchParams();
   const [tab, setTab] = useState<TabKey>('events');
   const [eventPage, setEventPage] = useState(1);
@@ -337,6 +340,15 @@ export const AlertCenterPage: React.FC<Props> = ({ theme, fontSize, showMessage 
   }, [eventPage, eventSearch, eventFilters]);
 
   useEffect(() => {
+    if (!canManagePlatformOperations(platformRole)) {
+      setSelectedIds([]);
+      setActionModal(null);
+      setRuleModalOpen(false);
+      setDeleteTarget(null);
+    }
+  }, [platformRole]);
+
+  useEffect(() => {
     if (!ruleModalOpen || ruleDraft) return;
     setRuleDraft(emptyRuleDraft(metrics));
   }, [ruleModalOpen, ruleDraft, metrics]);
@@ -371,7 +383,7 @@ export const AlertCenterPage: React.FC<Props> = ({ theme, fontSize, showMessage 
           <RefreshCw size={15} aria-hidden />
           刷新
         </button>
-        {tab === 'rules' ? (
+        {tab === 'rules' && canManagePlatformOperations(platformRole) ? (
           <button
             type="button"
             className={btnPrimary}
@@ -569,6 +581,10 @@ export const AlertCenterPage: React.FC<Props> = ({ theme, fontSize, showMessage 
 
   async function submitActionModal() {
     if (!actionModal) return;
+    if (!canManagePlatformOperations(platformRole)) {
+      showMessage('当前账号仅可查看告警数据', 'info');
+      return;
+    }
     try {
       if (actionModal.type === 'ack' && actionModal.record) {
         await ackM.mutateAsync({ id: actionModal.record.id, note: actionNote.trim() || undefined });
@@ -612,6 +628,10 @@ export const AlertCenterPage: React.FC<Props> = ({ theme, fontSize, showMessage 
 
   async function submitRuleModal() {
     if (!ruleDraft) return;
+    if (!canManagePlatformOperations(platformRole)) {
+      showMessage('当前账号无告警规则管理权限', 'info');
+      return;
+    }
     const validationError = validateRuleDraft(ruleDraft);
     if (validationError) {
       setRuleError(validationError);
@@ -635,6 +655,10 @@ export const AlertCenterPage: React.FC<Props> = ({ theme, fontSize, showMessage 
   }
 
   async function runDryRun(rule: AlertRule) {
+    if (!canManagePlatformOperations(platformRole)) {
+      showMessage('当前账号无告警规则试跑权限', 'info');
+      return;
+    }
     try {
       const result = await monitoringService.dryRunAlertRule(rule.id, { mode: 'preview' });
       setDryRunTarget(rule);
@@ -660,7 +684,7 @@ export const AlertCenterPage: React.FC<Props> = ({ theme, fontSize, showMessage 
             <div className="space-y-4">
               {eventFiltersBar}
 
-              {selectedIds.length > 0 ? (
+              {selectedIds.length > 0 && canManagePlatformOperations(platformRole) ? (
                 <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-neutral-50 px-4 py-3">
                   <span className={`text-sm font-medium ${textSecondary(theme)}`}>已选 {selectedIds.length} 条事件</span>
                   <div className="flex flex-wrap items-center gap-2">
@@ -686,15 +710,17 @@ export const AlertCenterPage: React.FC<Props> = ({ theme, fontSize, showMessage 
                     <table className="w-full min-w-[1100px]">
                       <thead>
                         <tr>
-                          <th className={tableHeadCell(theme)}>
-                            <input
-                              type="checkbox"
-                              checked={allCurrentPageSelected}
-                              onChange={(event) => {
-                                setSelectedIds(event.target.checked ? events.map((item) => item.id) : []);
-                              }}
-                            />
-                          </th>
+                          {canManagePlatformOperations(platformRole) ? (
+                            <th className={tableHeadCell(theme)}>
+                              <input
+                                type="checkbox"
+                                checked={allCurrentPageSelected}
+                                onChange={(event) => {
+                                  setSelectedIds(event.target.checked ? events.map((item) => item.id) : []);
+                                }}
+                              />
+                            </th>
+                          ) : null}
                           <th className={tableHeadCell(theme)}>事件</th>
                           <th className={tableHeadCell(theme)}>级别</th>
                           <th className={tableHeadCell(theme)}>状态</th>
@@ -709,18 +735,20 @@ export const AlertCenterPage: React.FC<Props> = ({ theme, fontSize, showMessage 
                       <tbody>
                         {events.map((item, index) => (
                           <tr key={item.id} className={tableBodyRow(theme, index)}>
-                            <td className={tableCell()}>
-                              <input
-                                type="checkbox"
-                                checked={selectedIds.includes(item.id)}
-                                onChange={(event) => {
-                                  setSelectedIds((prev) =>
-                                    event.target.checked
-                                      ? [...prev, item.id]
-                                      : prev.filter((candidate) => candidate !== item.id));
-                                }}
-                              />
-                            </td>
+                            {canManagePlatformOperations(platformRole) ? (
+                              <td className={tableCell()}>
+                                <input
+                                  type="checkbox"
+                                  checked={selectedIds.includes(item.id)}
+                                  onChange={(event) => {
+                                    setSelectedIds((prev) =>
+                                      event.target.checked
+                                        ? [...prev, item.id]
+                                        : prev.filter((candidate) => candidate !== item.id));
+                                  }}
+                                />
+                              </td>
+                            ) : null}
                             <td className={tableCell()}>
                               <div className="space-y-1">
                                 <div className={`font-semibold ${textPrimary(theme)}`}>{item.ruleName}</div>
@@ -770,6 +798,7 @@ export const AlertCenterPage: React.FC<Props> = ({ theme, fontSize, showMessage 
                                     key: 'ack',
                                     label: '认领',
                                     icon: UserRoundCheck,
+                                    hidden: !canManagePlatformOperations(platformRole),
                                     onClick: () => {
                                       setActionModal({ type: 'ack', ids: [item.id], record: item });
                                       setActionNote('');
@@ -779,6 +808,7 @@ export const AlertCenterPage: React.FC<Props> = ({ theme, fontSize, showMessage 
                                     key: 'assign',
                                     label: '分配',
                                     icon: UserPlus,
+                                    hidden: !canManagePlatformOperations(platformRole),
                                     onClick: () => {
                                       setActionModal({ type: 'assign', ids: [item.id], record: item });
                                       setActionNote('');
@@ -789,7 +819,7 @@ export const AlertCenterPage: React.FC<Props> = ({ theme, fontSize, showMessage 
                                     key: 'reopen',
                                     label: '重开',
                                     icon: RefreshCw,
-                                    hidden: item.status !== 'resolved',
+                                    hidden: !canManagePlatformOperations(platformRole) || item.status !== 'resolved',
                                     onClick: () => {
                                       setActionModal({ type: 'reopen', ids: [item.id], record: item });
                                       setActionNote('');
@@ -799,7 +829,7 @@ export const AlertCenterPage: React.FC<Props> = ({ theme, fontSize, showMessage 
                                     key: 'silence',
                                     label: '静默',
                                     icon: BellOff,
-                                    hidden: item.status === 'resolved',
+                                    hidden: !canManagePlatformOperations(platformRole) || item.status === 'resolved',
                                     onClick: () => {
                                       setActionModal({ type: 'silence', ids: [item.id], record: item });
                                       setActionNote('');
@@ -810,7 +840,7 @@ export const AlertCenterPage: React.FC<Props> = ({ theme, fontSize, showMessage 
                                     label: '恢复',
                                     icon: CheckCircle2,
                                     tone: 'positive',
-                                    hidden: item.status === 'resolved',
+                                    hidden: !canManagePlatformOperations(platformRole) || item.status === 'resolved',
                                     onClick: () => {
                                       setActionModal({ type: 'resolve', ids: [item.id], record: item });
                                       setActionNote('');
@@ -913,6 +943,7 @@ export const AlertCenterPage: React.FC<Props> = ({ theme, fontSize, showMessage 
                                     key: 'edit',
                                     label: '编辑',
                                     icon: PencilLine,
+                                    hidden: !canManagePlatformOperations(platformRole),
                                     onClick: () => {
                                       setRuleDraft(draftFromRule(rule));
                                       setRuleError('');
@@ -923,6 +954,7 @@ export const AlertCenterPage: React.FC<Props> = ({ theme, fontSize, showMessage 
                                     key: 'dry-run',
                                     label: '试跑',
                                     icon: RefreshCw,
+                                    hidden: !canManagePlatformOperations(platformRole),
                                     onClick: () => {
                                       void runDryRun(rule);
                                     },
@@ -932,6 +964,7 @@ export const AlertCenterPage: React.FC<Props> = ({ theme, fontSize, showMessage 
                                     label: '删除',
                                     icon: Trash2,
                                     tone: 'danger',
+                                    hidden: !canManagePlatformOperations(platformRole),
                                     onClick: () => setDeleteTarget(rule),
                                   },
                                 ]}
@@ -1263,6 +1296,10 @@ export const AlertCenterPage: React.FC<Props> = ({ theme, fontSize, showMessage 
         onCancel={() => setDeleteTarget(null)}
         onConfirm={() => {
           if (!deleteTarget) return;
+          if (!canManagePlatformOperations(platformRole)) {
+            showMessage('当前账号无告警规则删除权限', 'info');
+            return;
+          }
           deleteRuleM.mutate(deleteTarget.id, {
             onSuccess: () => {
               showMessage('规则已删除', 'success');

@@ -303,6 +303,8 @@ export function getNavSubGroups(sidebarId: string, isAdminRole: boolean): NavSub
         return ADMIN_MONITORING_GROUPS;
       case 'system-config':
         return ADMIN_SYSTEM_CONFIG_GROUPS;
+      case 'developer-portal':
+        return ADMIN_DEVELOPER_PORTAL_GROUPS;
       default:
         return [];
     }

@@ -45,6 +45,7 @@ import {
   type ExploreHubRailConfig,
   type HubPersonalRailSection,
 } from '../constants/topNavPolicy';
+import { canAccessDeveloperPortal } from '../constants/platformRoleAccess';
 import { AppearanceMenu } from '../components/business/AppearanceMenu';
 import { MessagePanel, INITIAL_MESSAGE_UNREAD_COUNT } from '../components/business/MessagePanel';
 import { ScrollToTopAffix } from '../components/common/ScrollToTopAffix';
@@ -1270,7 +1271,7 @@ const MainLayoutContent: React.FC<{
       !layoutIsAdmin &&
       normalizedRoutePage &&
       DEVELOPER_PORTAL_PAGES.has(normalizedRoutePage) &&
-      !hasPermission('developer:portal')
+      !canAccessDeveloperPortal(platformRole, hasPermission)
     ) {
       navigate(defaultPath(), { replace: true });
       return;
@@ -1361,7 +1362,6 @@ const MainLayoutContent: React.FC<{
     const adminPermMap: Record<string, string> = {
       'monitoring': 'monitor:view',
       'system-config': 'system:config',
-      'developer-portal': 'developer:portal',
     };
     return ADMIN_SIDEBAR_ITEMS.filter((item) => {
       if (item.id === 'user-management') {
@@ -1369,6 +1369,9 @@ const MainLayoutContent: React.FC<{
           hasPermission('user:manage') ||
           hasPermission('user:read')
         );
+      }
+      if (item.id === 'developer-portal') {
+        return canAccessDeveloperPortal(platformRole, hasPermission);
       }
       const requiredPerm = adminPermMap[item.id];
       return !requiredPerm || hasPermission(requiredPerm);

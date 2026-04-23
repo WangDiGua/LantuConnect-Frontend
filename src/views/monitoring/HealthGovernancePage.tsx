@@ -27,6 +27,8 @@ import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { Modal } from '../../components/common/Modal';
 import { RowActionGroup } from '../../components/management/RowActionGroup';
 import { useSilentRealtimeRefresh } from '../../hooks/useSilentRealtimeRefresh';
+import { useUserRole } from '../../context/UserRoleContext';
+import { canManagePlatformOperations } from '../../constants/platformRoleAccess';
 import { resourceTypeLabel } from '../../constants/resourceTypes';
 import { formatDateTime } from '../../utils/formatDateTime';
 import {
@@ -169,6 +171,7 @@ export const HealthGovernancePage: React.FC<Props> = ({ theme, fontSize, showMes
   const inputCls = `${nativeInputClass(theme)} ${INPUT_FOCUS}`;
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { platformRole } = useUserRole();
 
   const [items, setItems] = useState<ResourceHealthSnapshotVO[]>([]);
   const [loading, setLoading] = useState(true);
@@ -259,6 +262,10 @@ export const HealthGovernancePage: React.FC<Props> = ({ theme, fontSize, showMes
   }, []);
 
   const openPolicyEditor = (item: ResourceHealthSnapshotVO) => {
+    if (!canManagePlatformOperations(platformRole)) {
+      showMessage('当前账号仅可查看健康治理数据', 'info');
+      return;
+    }
     setDraft(buildDraft(item));
     setIsPolicyDraftDirty(false);
     setPolicyResourceId(item.resourceId);
@@ -327,6 +334,10 @@ export const HealthGovernancePage: React.FC<Props> = ({ theme, fontSize, showMes
 
   const savePolicy = async () => {
     if (!policyItem) return;
+    if (!canManagePlatformOperations(platformRole)) {
+      showMessage('当前账号无健康治理策略管理权限', 'info');
+      return;
+    }
     setSaving(true);
     try {
       let probeConfig: Record<string, unknown> | undefined;
@@ -364,6 +375,10 @@ export const HealthGovernancePage: React.FC<Props> = ({ theme, fontSize, showMes
   };
 
   const runAction = async (item: ResourceHealthSnapshotVO, action: 'probe' | 'break' | 'recover') => {
+    if (!canManagePlatformOperations(platformRole)) {
+      showMessage('当前账号无健康治理操作权限', 'info');
+      return;
+    }
     setActionLoading(action);
     try {
       const snapshot = action === 'probe'
@@ -550,6 +565,7 @@ export const HealthGovernancePage: React.FC<Props> = ({ theme, fontSize, showMes
                                 key: 'policy',
                                 label: '策略',
                                 icon: PencilLine,
+                                hidden: !canManagePlatformOperations(platformRole),
                                 onClick: () => openPolicyEditor(item),
                               },
                             ]}
@@ -585,9 +601,11 @@ export const HealthGovernancePage: React.FC<Props> = ({ theme, fontSize, showMes
                   <div className={`text-lg font-semibold ${textPrimary(theme)}`}>{detailItem.displayName}</div>
                   <div className={`mt-1 text-xs ${textMuted(theme)}`}>{detailItem.resourceCode} · {resourceTypeLabel(detailItem.resourceType)}</div>
                 </div>
-                <button type="button" className={btnSecondary(theme)} onClick={() => openPolicyEditor(detailItem)}>
-                  编辑策略
-                </button>
+                {canManagePlatformOperations(platformRole) ? (
+                  <button type="button" className={btnSecondary(theme)} onClick={() => openPolicyEditor(detailItem)}>
+                    编辑策略
+                  </button>
+                ) : null}
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
                 <span className={`inline-flex rounded-lg border px-2 py-0.5 text-xs font-semibold ${resourceHealthBadgeClass(theme, detailItem.healthStatus)}`}>
@@ -610,32 +628,34 @@ export const HealthGovernancePage: React.FC<Props> = ({ theme, fontSize, showMes
               {detailItem.probePayloadSummary ? (
                 <div className={`mt-2 text-xs ${textSecondary(theme)}`}>探测摘要: {detailItem.probePayloadSummary}</div>
               ) : null}
-              <div className="mt-4 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  className={btnSecondary(theme)}
-                  onClick={() => void runAction(detailItem, 'probe')}
-                  disabled={actionLoading != null}
-                >
-                  立即探测
-                </button>
-                <button
-                  type="button"
-                  className={btnSecondary(theme)}
-                  onClick={() => void runAction(detailItem, 'break')}
-                  disabled={actionLoading != null}
-                >
-                  手动熔断
-                </button>
-                <button
-                  type="button"
-                  className={btnPrimary}
-                  onClick={() => void runAction(detailItem, 'recover')}
-                  disabled={actionLoading != null}
-                >
-                  手动恢复
-                </button>
-              </div>
+              {canManagePlatformOperations(platformRole) ? (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className={btnSecondary(theme)}
+                    onClick={() => void runAction(detailItem, 'probe')}
+                    disabled={actionLoading != null}
+                  >
+                    立即探测
+                  </button>
+                  <button
+                    type="button"
+                    className={btnSecondary(theme)}
+                    onClick={() => void runAction(detailItem, 'break')}
+                    disabled={actionLoading != null}
+                  >
+                    手动熔断
+                  </button>
+                  <button
+                    type="button"
+                    className={btnPrimary}
+                    onClick={() => void runAction(detailItem, 'recover')}
+                    disabled={actionLoading != null}
+                  >
+                    手动恢复
+                  </button>
+                </div>
+              ) : null}
             </BentoCard>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -830,12 +850,12 @@ export const HealthGovernancePage: React.FC<Props> = ({ theme, fontSize, showMes
         theme={theme}
         size="xl"
         title={policyItem ? `健康治理策略 · ${policyItem.displayName}` : '健康治理策略'}
-        footer={(
+        footer={canManagePlatformOperations(platformRole) ? (
           <>
             <button type="button" className={btnSecondary(theme)} onClick={closePolicyEditor}>取消</button>
             <button type="button" className={btnPrimary} onClick={() => void savePolicy()} disabled={saving}>保存</button>
           </>
-        )}
+        ) : undefined}
       >
         <div className={`${pageBlockStack} min-h-0`}>
           <div className={`text-xs ${textSecondary(theme)}`}>

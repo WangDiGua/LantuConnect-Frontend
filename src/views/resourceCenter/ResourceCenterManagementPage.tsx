@@ -63,6 +63,7 @@ import { RowActionGroup } from '../../components/management/RowActionGroup';
 import { useSilentRealtimeRefresh } from '../../hooks/useSilentRealtimeRefresh';
 import { RESOURCE_WORKFLOW_NOTIFICATION_TYPES } from '../../lib/realtimeUiSignal';
 import { buildPath } from '../../constants/consoleRoutes';
+import { canManagePlatformOperations } from '../../constants/platformRoleAccess';
 import { isUnifiedAgentExposure } from './agentDeliveryMode';
 
 /** 生命周期时间轴节点颜色（按 status / eventType 粗分） */
@@ -1429,68 +1430,70 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                 {resourceHealthSnapshot.probePayloadSummary ? (
                   <div className={`mt-1 ${textSecondary(theme)}`}>探测摘要: {resourceHealthSnapshot.probePayloadSummary}</div>
                 ) : null}
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    className={btnSecondary(theme)}
-                    onClick={async () => {
-                      if (!timelineTarget) return;
-                      setTimelineLoading(true);
-                      try {
-                        const snapshot = await healthService.probeResourceHealth(timelineTarget.id);
-                        setResourceHealthSnapshot(snapshot);
-                        await refreshLifecyclePanelsQuiet();
-                        showMessage('资源健康已重新探测', 'success');
-                      } catch (e) {
-                        showMessage(e instanceof Error ? e.message : '重新探测失败', 'error');
-                      } finally {
-                        setTimelineLoading(false);
-                      }
-                    }}
-                  >
-                    立即探测
-                  </button>
-                  <button
-                    type="button"
-                    className={btnSecondary(theme)}
-                    onClick={async () => {
-                      if (!timelineTarget) return;
-                      setTimelineLoading(true);
-                      try {
-                        const snapshot = await healthService.manualBreakResource(timelineTarget.id);
-                        setResourceHealthSnapshot(snapshot);
-                        await refreshLifecyclePanelsQuiet();
-                        showMessage('资源已手动熔断', 'success');
-                      } catch (e) {
-                        showMessage(e instanceof Error ? e.message : '手动熔断失败', 'error');
-                      } finally {
-                        setTimelineLoading(false);
-                      }
-                    }}
-                  >
-                    手动熔断
-                  </button>
-                  <button
-                    type="button"
-                    className={btnPrimary}
-                    onClick={async () => {
-                      if (!timelineTarget) return;
-                      setTimelineLoading(true);
-                      try {
-                        const snapshot = await healthService.manualRecoverResource(timelineTarget.id);
-                        setResourceHealthSnapshot(snapshot);
-                        await refreshLifecyclePanelsQuiet();
-                        showMessage('资源已恢复可用', 'success');
-                      } catch (e) {
-                        showMessage(e instanceof Error ? e.message : '手动恢复失败', 'error');
-                      } finally {
-                        setTimelineLoading(false);
-                      }
-                    }}
-                  >
-                    手动恢复
-                  </button>
-                </div>
+                {canManagePlatformOperations(platformRole) ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className={btnSecondary(theme)}
+                      onClick={async () => {
+                        if (!timelineTarget) return;
+                        setTimelineLoading(true);
+                        try {
+                          const snapshot = await healthService.probeResourceHealth(timelineTarget.id);
+                          setResourceHealthSnapshot(snapshot);
+                          await refreshLifecyclePanelsQuiet();
+                          showMessage('资源健康已重新探测', 'success');
+                        } catch (e) {
+                          showMessage(e instanceof Error ? e.message : '重新探测失败', 'error');
+                        } finally {
+                          setTimelineLoading(false);
+                        }
+                      }}
+                    >
+                      立即探测
+                    </button>
+                    <button
+                      type="button"
+                      className={btnSecondary(theme)}
+                      onClick={async () => {
+                        if (!timelineTarget) return;
+                        setTimelineLoading(true);
+                        try {
+                          const snapshot = await healthService.manualBreakResource(timelineTarget.id);
+                          setResourceHealthSnapshot(snapshot);
+                          await refreshLifecyclePanelsQuiet();
+                          showMessage('资源已手动熔断', 'success');
+                        } catch (e) {
+                          showMessage(e instanceof Error ? e.message : '手动熔断失败', 'error');
+                        } finally {
+                          setTimelineLoading(false);
+                        }
+                      }}
+                    >
+                      手动熔断
+                    </button>
+                    <button
+                      type="button"
+                      className={btnPrimary}
+                      onClick={async () => {
+                        if (!timelineTarget) return;
+                        setTimelineLoading(true);
+                        try {
+                          const snapshot = await healthService.manualRecoverResource(timelineTarget.id);
+                          setResourceHealthSnapshot(snapshot);
+                          await refreshLifecyclePanelsQuiet();
+                          showMessage('资源已恢复可用', 'success');
+                        } catch (e) {
+                          showMessage(e instanceof Error ? e.message : '手动恢复失败', 'error');
+                        } finally {
+                          setTimelineLoading(false);
+                        }
+                      }}
+                    >
+                      手动恢复
+                    </button>
+                  </div>
+                ) : null}
               </div>
             )}
             {timelineData ? (

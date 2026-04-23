@@ -17,6 +17,7 @@
     "lint": "tsc --noEmit",
     "check:mojibake": "node scripts/check-mojibake.mjs",
     "smoke:ui": "node scripts/smoke-ui.mjs",
+    "smoke:roles": "node --test src/constants/platformRoleAccess.test.ts src/constants/navigation.test.ts scripts/role-ui-access-smoke.mjs",
     "docs:gen-console-routes": "node scripts/generate-console-route-tables.mjs"
   },
   "dependencies": {
@@ -48,6 +49,7 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@tailwindcss/vite": "^4.1.14",
     "@tanstack/react-query-devtools": "^5.91.3",
     "@types/node": "^22.14.0",

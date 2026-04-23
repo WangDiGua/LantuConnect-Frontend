@@ -210,6 +210,16 @@ for (const check of checks) {
   }
   const content = fs.readFileSync(abs, 'utf8');
   for (const pattern of check.patterns) {
+    const movedToSettingsHook =
+      check.file === 'src/views/user/UserSettingsPage.tsx' &&
+      (pattern === 'userSettingsService.getWorkspace' || pattern === 'userSettingsService.updateWorkspace');
+    if (movedToSettingsHook) {
+      const hookContent = fs.readFileSync(path.join(root, 'src/hooks/queries/useUserSettings.ts'), 'utf8');
+      if (!hookContent.includes(pattern)) {
+        failures.push(`src/hooks/queries/useUserSettings.ts: missing \"${pattern}\"`);
+      }
+      continue;
+    }
     if (!content.includes(pattern)) {
       failures.push(`${check.file}: missing \"${pattern}\"`);
     }

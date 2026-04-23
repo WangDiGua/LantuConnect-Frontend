@@ -7,7 +7,7 @@ export type PresetWithBounds = {
   customSeed: number;
 };
 
-/** 系统参数页：按 `t_system_param.key` 提供常用档位（其余数字参数仍用普通输入） */
+/** 系统参数页：按 `t_system_config.config_key` 提供常用档位（其余数字参数仍用普通输入） */
 export const SYSTEM_PARAM_NUMERIC_PRESETS: Record<string, PresetWithBounds> = {
   session_timeout_minutes: {
     presets: [

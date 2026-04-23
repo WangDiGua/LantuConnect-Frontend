@@ -143,6 +143,9 @@ function ensureRequiredHeaders(config: InternalAxiosRequestConfig): void {
   if (path === '/dashboard/admin-overview' && !hasUserId) {
     throw new ApiException({ code: 1001, status: 400, message: '调用 /dashboard/admin-overview 必须提供 X-User-Id' });
   }
+  if (path === '/search/global' && !hasUserId) {
+    throw new ApiException({ code: 1001, status: 400, message: '调用 /search/global 必须提供 X-User-Id' });
+  }
   if (path.startsWith('/developer/applications') && !hasUserId) {
     throw new ApiException({ code: 1001, status: 400, message: '调用 /developer/applications* 必须提供 X-User-Id' });
   }

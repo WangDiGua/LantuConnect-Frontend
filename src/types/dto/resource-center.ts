@@ -162,7 +162,7 @@ export interface ResourceCenterItemVO {
   ownerName?: string;
   endpoint?: string;
   protocol?: string;
-  /** MCP 服务详情 Markdown（t_resource_mcp_ext.service_detail_md） */
+  /** MCP 服务详情 Markdown（t_resource_detail.service_detail_md） */
   serviceDetailMd?: string;
   appUrl?: string;
   embedType?: string;

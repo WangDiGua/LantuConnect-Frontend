@@ -1,14 +1,12 @@
 import React, { useState, useCallback } from 'react';
 import {
-  Settings, Lock, Monitor, Bell, Mail, Eye, EyeOff, Database, Palette,
+  Settings, Lock, Monitor, Database, Palette,
   ChevronRight, Trash2, Download, Loader2, KeyRound,
 } from 'lucide-react';
 import type { Theme, ThemeMode, FontSize, ThemeColor } from '../../types';
 import { THEME_COLOR_CLASSES } from '../../constants/theme';
 import { authService } from '../../api/services/auth.service';
-import { userSettingsService } from '../../api/services/user-settings.service';
 import { nativeInputClass } from '../../utils/formFieldClasses';
-import { LantuSelect } from '../../components/common/LantuSelect';
 import { Modal } from '../../components/common/Modal';
 import { BentoCard } from '../../components/common/BentoCard';
 import { env } from '../../config/env';
@@ -21,9 +19,10 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLayoutChrome } from '../../context/LayoutChromeContext';
 import { PageTitleTagline } from '../../components/common/PageTitleTagline';
-import { PageSkeleton } from '../../components/common/PageSkeleton';
 import { buildPath, inferConsoleRole, parseRoute } from '../../constants/consoleRoutes';
 import { useUserRole } from '../../context/UserRoleContext';
+import { tokenStorage } from '../../lib/security';
+import { useAuthStore } from '../../stores/authStore';
 export interface UserSettingsPageProps {
   theme: Theme;
   themePreference: ThemeMode;
@@ -38,15 +37,6 @@ export interface UserSettingsPageProps {
 }
 
 type ToggleProps = { on: boolean; onToggle: () => void; theme: Theme };
-
-function pageErrorUnlessServerToast(
-  e: unknown,
-  fallback: string,
-  show: UserSettingsPageProps['showMessage'],
-) {
-  if (isServerErrorGloballyNotified(e)) return;
-  show(e instanceof Error ? e.message : fallback, 'error');
-}
 
 function Toggle({ on, onToggle, theme }: ToggleProps) {
   const isDark = theme === 'dark';
@@ -81,35 +71,8 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
   const isDark = theme === 'dark';
   const tc = THEME_COLOR_CLASSES[themeColor];
 
-  const [emailNotif, setEmailNotif] = useState(true);
-  const [browserNotif, setBrowserNotif] = useState(false);
-  const [alertNotif, setAlertNotif] = useState(true);
-  const [usageAnalytics, setUsageAnalytics] = useState(false);
-  const [sessionPersist, setSessionPersist] = useState(true);
-  const [dataRegion, setDataRegion] = useState('cn-east');
-  const [prefsLoaded, setPrefsLoaded] = useState(false);
-
-  React.useEffect(() => {
-    userSettingsService.getWorkspace().then((ws: any) => {
-      if (ws?.notifications) {
-        setEmailNotif(ws.notifications.email ?? true);
-        setBrowserNotif(ws.notifications.browser ?? false);
-        setAlertNotif(ws.notifications.agentErrors ?? true);
-      }
-      setPrefsLoaded(true);
-    }).catch((e) => {
-      pageErrorUnlessServerToast(e, '偏好设置加载失败', showMessage);
-      setPrefsLoaded(true);
-    });
-  }, [showMessage]);
-
-  const saveNotificationPrefs = React.useCallback(async (prefs: { email?: boolean; browser?: boolean; agentErrors?: boolean }) => {
-    try {
-      await userSettingsService.updateWorkspace({ notifications: prefs } as any);
-    } catch (e) {
-      pageErrorUnlessServerToast(e, '通知偏好保存失败', showMessage);
-    }
-  }, [showMessage]);
+  const sessionPersist = useAuthStore((s) => s.remember);
+  const setRememberPersistence = useAuthStore((s) => s.setRememberPersistence);
 
   const [showPwdModal, setShowPwdModal] = useState(false);
   const [pwdCurrent, setPwdCurrent] = useState('');
@@ -139,6 +102,31 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
 
   const rowBtn = `w-full flex items-center justify-between gap-3 p-3 rounded-xl text-left transition-colors ${isDark ? 'hover:bg-white/[0.04]' : 'hover:bg-slate-50'}`;
 
+  const handleSessionPersistToggle = () => {
+    const next = !sessionPersist;
+    setRememberPersistence(next);
+    showMessage(next ? '已切换为浏览器持久会话' : '已切换为仅当前窗口会话', 'success');
+  };
+
+  const handleClearLocalCache = () => {
+    const accessToken = tokenStorage.get(env.VITE_TOKEN_KEY);
+    const refreshToken = tokenStorage.get(env.VITE_REFRESH_TOKEN_KEY);
+    const persistTokens = tokenStorage.isPersistent(env.VITE_REFRESH_TOKEN_KEY);
+    try {
+      localStorage.clear();
+    } catch {
+      /* ignore */
+    }
+    try {
+      sessionStorage.clear();
+    } catch {
+      /* ignore */
+    }
+    if (accessToken) tokenStorage.set(env.VITE_TOKEN_KEY, accessToken, { persist: persistTokens });
+    if (refreshToken) tokenStorage.set(env.VITE_REFRESH_TOKEN_KEY, refreshToken, { persist: persistTokens });
+    showMessage('已清除本地缓存', 'success');
+  };
+
   const openLoginDevices = () => {
     if (embedded && onGoToLoginDevices) {
       onGoToLoginDevices();
@@ -154,13 +142,13 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
             <div className={`shrink-0 rounded-xl p-2 ${isDark ? 'bg-white/10' : 'bg-slate-100'}`}>
               <Settings size={22} className={textSecondary(theme)} />
             </div>
-            <PageTitleTagline subtitleOnly theme={theme} title={chromePageTitle || '偏好设置'} tagline="账号安全、通知偏好与隐私选项" />
+            <PageTitleTagline subtitleOnly theme={theme} title={chromePageTitle || '偏好设置'} tagline="账号安全、会话偏好与本地缓存" />
           </div>
         ) : (
-          <p className={`mb-4 text-sm ${textMuted(theme)}`}>账号安全、通知偏好与隐私选项</p>
+          <p className={`mb-4 text-sm ${textMuted(theme)}`}>账号安全、会话偏好与本地缓存</p>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
           <BentoCard theme={theme}>
             <h2 className={`text-base font-bold mb-4 flex items-center gap-2 ${textPrimary(theme)}`}>
               <Lock size={18} className={tc.text} /> 账号与安全
@@ -180,58 +168,15 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
               </button>
             </div>
           </BentoCard>
-          {/* Notifications */}
-          <BentoCard theme={theme}>
-            <h2 className={`text-base font-bold mb-4 flex items-center gap-2 ${textPrimary(theme)}`}>
-              <Bell size={18} className={tc.text} /> 通知
-            </h2>
-            <div className="space-y-4">
-              {[
-                { icon: Mail, label: '邮件通知', desc: '账号、安全与平台通知类邮件', on: emailNotif, toggle: () => { setEmailNotif((v) => { void saveNotificationPrefs({ email: !v }); return !v; }); } },
-                { icon: Bell, label: '浏览器通知', desc: '开启系统通知后生效', on: browserNotif, toggle: () => { setBrowserNotif((v) => { void saveNotificationPrefs({ browser: !v }); return !v; }); } },
-                { icon: Bell, label: '运维告警推送', desc: '与监控中心告警策略联动', on: alertNotif, toggle: () => { setAlertNotif((v) => { void saveNotificationPrefs({ agentErrors: !v }); return !v; }); } },
-              ].map((item) => (
-                <div key={item.label} className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <item.icon size={16} className="text-slate-400 shrink-0" />
-                    <div>
-                      <div className={`text-sm font-medium ${textSecondary(theme)}`}>{item.label}</div>
-                      <div className={`text-xs ${textMuted(theme)}`}>{item.desc}</div>
-                    </div>
-                  </div>
-                  <Toggle on={item.on} onToggle={item.toggle} theme={theme} />
-                </div>
-              ))}
-              {!prefsLoaded && <div className="mt-2"><PageSkeleton type="table" rows={2} /></div>}
-            </div>
-          </BentoCard>
 
-          {/* Privacy */}
           <BentoCard theme={theme}>
             <h2 className={`text-base font-bold mb-4 flex items-center gap-2 ${textPrimary(theme)}`}>
-              <Eye size={18} className={tc.text} /> 隐私与数据
+              <Monitor size={18} className={tc.text} /> 会话偏好
             </h2>
             <div className="space-y-4">
-              <div className="flex items-center justify-between gap-3">
-                <div><div className={`text-sm font-medium ${textSecondary(theme)}`}>使用与诊断数据</div><div className={`text-xs ${textMuted(theme)}`}>匿名统计以改进产品体验</div></div>
-                <Toggle on={usageAnalytics} onToggle={() => setUsageAnalytics((v) => !v)} theme={theme} />
-              </div>
               <div className="flex items-center justify-between gap-3">
                 <div><div className={`text-sm font-medium ${textSecondary(theme)}`}>保持登录状态</div><div className={`text-xs ${textMuted(theme)}`}>关闭后关闭浏览器需重新登录</div></div>
-                <Toggle on={sessionPersist} onToggle={() => setSessionPersist((v) => !v)} theme={theme} />
-              </div>
-              <div>
-                <label className={`text-xs font-semibold block mb-1.5 ${textMuted(theme)}`}>默认数据地域（演示）</label>
-                <LantuSelect
-                  theme={theme}
-                  value={dataRegion}
-                  onChange={setDataRegion}
-                  options={[
-                    { value: 'cn-east', label: '中国东部' },
-                    { value: 'cn-north', label: '中国北部' },
-                    { value: 'global', label: '全球路由' },
-                  ]}
-                />
+                <Toggle on={sessionPersist} onToggle={handleSessionPersistToggle} theme={theme} />
               </div>
             </div>
           </BentoCard>
@@ -244,10 +189,10 @@ export const UserSettingsPage: React.FC<UserSettingsPageProps> = ({
           </h2>
           <p className={`text-xs mb-4 ${textMuted(theme)}`}>清除本机缓存的静态资源与未同步草稿，不会影响服务端数据。</p>
           <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => { const tb = localStorage.getItem(env.VITE_TOKEN_KEY); const rb = localStorage.getItem(env.VITE_REFRESH_TOKEN_KEY); localStorage.clear(); if (tb) localStorage.setItem(env.VITE_TOKEN_KEY, tb); if (rb) localStorage.setItem(env.VITE_REFRESH_TOKEN_KEY, rb); showMessage('已清除本地缓存', 'success'); }} className={btnSecondary(theme)}>
+            <button type="button" onClick={handleClearLocalCache} className={btnSecondary(theme)}>
               <Trash2 size={15} /> 清除缓存
             </button>
-            <button type="button" onClick={() => { const prefs = { theme, themePreference, themeColor, emailNotif, browserNotif, alertNotif, usageAnalytics, sessionPersist, exportTime: new Date().toISOString() }; const json = JSON.stringify(prefs, null, 2); const blob = new Blob([json], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `preferences-${new Date().toISOString().slice(0, 10)}.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); showMessage('偏好设置已导出', 'success'); }} className={btnSecondary(theme)}>
+            <button type="button" onClick={() => { const prefs = { theme, themePreference, themeColor, sessionPersist, exportTime: new Date().toISOString() }; const json = JSON.stringify(prefs, null, 2); const blob = new Blob([json], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `preferences-${new Date().toISOString().slice(0, 10)}.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); showMessage('偏好设置已导出', 'success'); }} className={btnSecondary(theme)}>
               <Download size={15} /> 导出偏好设置
             </button>
           </div>

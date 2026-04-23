@@ -8,7 +8,6 @@ import type {
   InvokeEligibilityResponse,
   UserApiKey,
   UserApiKeyDetail,
-  UserApiKeyResourceGrant,
   UserIntegrationPackageOption,
   UserStats,
   UserWorkspace,
@@ -106,9 +105,6 @@ export const userSettingsService = {
 
   deleteApiKey: (id: string) =>
     http.delete(`/user-settings/api-keys/${id}`),
-
-  /** 资源级 Grant 已下线；保留签名供旧调用方类型兼容，始终返回空列表。 */
-  listResourceGrantsForApiKey: async (_apiKeyId: string, _resourceType?: string): Promise<UserApiKeyResourceGrant[]> => [],
 
   /** 与网关 invoke 可调用预判一致；无需完整 secret，服务端按 Key id + 登录态校验 */
   postInvokeEligibility: (apiKeyId: string, body: InvokeEligibilityRequest) =>

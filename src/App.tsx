@@ -53,6 +53,7 @@ function AuthBinder() {
       getUserId: () => user?.id ?? null,
       getLoginName: () => loginName ?? null,
       onLogout: () => {
+        queryClient.clear();
         logout();
         window.location.hash = '#/401';
       },
@@ -63,7 +64,11 @@ function AuthBinder() {
   }, [token, refreshToken, user, loginName, setTokens, logout]);
 
   useEffect(() => {
-    if (!token || fetchingRef.current) return;
+    if (!token) {
+      queryClient.clear();
+      return;
+    }
+    if (fetchingRef.current) return;
     fetchingRef.current = true;
     authService.getCurrentUser()
       .then((u) => {

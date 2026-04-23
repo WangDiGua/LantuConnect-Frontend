@@ -11,7 +11,7 @@ interface UserSettingsHubPageProps {
   onOpenAppearance: () => void;
 }
 
-/** 个人资料 / 偏好设置：路由由 `profile` 与 `preferences` slug 区分，正文由 {@link UserProfile} 内解析 */
+/** 个人中心：`profile` 与旧 `preferences` slug 均渲染合并后的同一页面。 */
 export const UserSettingsHubPage: React.FC<UserSettingsHubPageProps> = ({
   theme,
   fontSize,

@@ -11,7 +11,7 @@ export interface Skill {
   displayName: string;
   description: string;
   agentType: AgentType;
-  /** 与后端 t_resource_skill_ext.execution_mode 一致；平台仅支持 context */
+  /** 与后端 t_resource_detail.detail_json.execution_mode 一致；平台仅支持 context */
   executionMode?: 'context';
   mode: 'TOOL';
   parentId: number | null;

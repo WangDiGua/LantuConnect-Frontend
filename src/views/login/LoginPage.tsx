@@ -96,7 +96,7 @@ export const LoginPage: React.FC = () => {
       });
       const normalized = normalizeRole(res.user.role);
       const userWithNormalized = { ...res.user, role: normalized };
-      login(res.token, res.refreshToken, userWithNormalized, values.username);
+      login(res.token, res.refreshToken, userWithNormalized, values.username, values.remember);
       showMessage('登录成功，欢迎回来', 'success');
       navigate(defaultPath(), { replace: true });
     } catch (err) {

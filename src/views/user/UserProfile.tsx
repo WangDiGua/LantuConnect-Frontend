@@ -12,8 +12,6 @@ import {
   MapPin,
   Laptop,
   ShieldCheck,
-  User,
-  Settings,
 } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { formatDistanceToNow } from 'date-fns';
@@ -30,10 +28,10 @@ import { Pagination } from '../../components/common/Pagination';
 import { PageSkeleton } from '../../components/common/PageSkeleton';
 import type { AccountInsights, AccountSecurityLevel, PlatformRoleCode } from '../../types/dto/auth';
 import { PLATFORM_ROLE_LABELS } from '../../constants/platformRoles';
-import { normalizeRole, useUserRole } from '../../context/UserRoleContext';
+import { normalizeRole } from '../../context/UserRoleContext';
 import { useScrollPaginatedContentToTop } from '../../hooks/useScrollPaginatedContentToTop';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { buildPath, inferConsoleRole, parseRoute } from '../../constants/consoleRoutes';
+import { parseRoute } from '../../constants/consoleRoutes';
 
 interface UserProfileProps {
   theme: Theme;
@@ -143,10 +141,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   const isDark = theme === 'dark';
   const navigate = useNavigate();
   const location = useLocation();
-  const { platformRole: layoutRole } = useUserRole();
   const routePage = parseRoute(location.pathname)?.page ?? '';
-  const consoleRole = inferConsoleRole(routePage, layoutRole);
-  const settingsSection = routePage === 'preferences' ? 'preferences' : 'profile';
 
   const user = useAuthStore((s) => s.user);
   const displayName = user?.nickname || user?.username || 'User Name';
@@ -156,6 +151,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   const displayDept = user?.department || '未设置';
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const securityPanelRef = useRef<HTMLDivElement>(null);
   const historyPageSize = 10;
   const sessionPageSize = 10;
   const [activeTab, setActiveTab] = useState<'history' | 'devices'>('history');
@@ -262,7 +258,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   }, [loadLoginHistory, loadSessions, loadInsights]);
 
   useEffect(() => {
-    if (routePage !== 'profile') return;
+    if (routePage !== 'profile' && routePage !== 'preferences') return;
     const st = location.state as { openProfileDevices?: boolean } | null;
     if (st?.openProfileDevices) {
       setActiveTab('devices');
@@ -284,6 +280,13 @@ export const UserProfile: React.FC<UserProfileProps> = ({
       setRevokingSessionId(null);
     }
   };
+
+  const openDevicesPanel = useCallback(() => {
+    setActiveTab('devices');
+    window.setTimeout(() => {
+      securityPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 0);
+  }, []);
 
   const pageShell = `min-h-full font-sans p-6 lg:p-10 ${
     isDark ? `text-slate-200 ${canvasBodyBg(theme)}` : `text-slate-700 ${canvasBodyBg(theme)}`
@@ -312,26 +315,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   return (
     <div className={`flex-1 overflow-y-auto transition-colors duration-300 ${pageShell}`}>
       <div className={`w-full min-w-0 space-y-8 ${mainScrollPadBottom}`}>
-        <div className={`border-b ${isDark ? 'border-white/[0.08]' : 'border-slate-200/80'}`}>
-          <div className="flex gap-8">
-            <TabButton
-              active={settingsSection === 'profile'}
-              onClick={() => navigate(buildPath(consoleRole, 'profile'))}
-              label="个人资料"
-              icon={<User size={18} />}
-            />
-            <TabButton
-              active={settingsSection === 'preferences'}
-              onClick={() => navigate(buildPath(consoleRole, 'preferences'))}
-              label="偏好设置"
-              icon={<Settings size={18} />}
-            />
-          </div>
-        </div>
-
-        {settingsSection === 'profile' ? (
-          <>
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className={profileCard + ' lg:col-span-2'}>
             <div className={profileLeft}>
               <div className="group relative">
@@ -484,14 +468,14 @@ export const UserProfile: React.FC<UserProfileProps> = ({
               </div>
               <button
                 type="button"
-                onClick={() => navigate(buildPath(consoleRole, 'preferences'))}
+                onClick={openDevicesPanel}
                 className={`flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-medium backdrop-blur-md transition ${
                   isDark
                     ? 'border border-white/[0.08] bg-white/[0.06] text-slate-100 hover:bg-white/[0.10]'
                     : 'bg-white/10 hover:bg-white/20'
                 }`}
               >
-                修改安全设置
+                查看会话设备
                 <ChevronRight size={16} />
               </button>
             </div>
@@ -503,7 +487,20 @@ export const UserProfile: React.FC<UserProfileProps> = ({
           </div>
         </div>
 
-        <div className={bottomCard}>
+        <UserSettingsPage
+          embedded
+          theme={theme}
+          themePreference={themePreference}
+          themeColor={themeColor}
+          fontSize={fontSize}
+          showMessage={(msg, type = 'info') =>
+            showMessage(msg, type as 'success' | 'error' | 'info' | 'warning')
+          }
+          onOpenAppearance={onOpenAppearance}
+          onGoToLoginDevices={openDevicesPanel}
+        />
+
+        <div ref={securityPanelRef} className={bottomCard}>
           <div
             className={`flex flex-col gap-4 border-b px-8 pt-8 pb-4 sm:flex-row sm:items-center sm:justify-between ${isDark ? 'border-white/[0.06]' : 'border-slate-50'}`}
           >
@@ -778,23 +775,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             )}
           </div>
         </div>
-          </>
-        ) : (
-          <UserSettingsPage
-            embedded
-            theme={theme}
-            themePreference={themePreference}
-            themeColor={themeColor}
-            fontSize={fontSize}
-            showMessage={(msg, type = 'info') =>
-              showMessage(msg, type as 'success' | 'error' | 'info' | 'warning')
-            }
-            onOpenAppearance={onOpenAppearance}
-            onGoToLoginDevices={() => {
-              navigate(buildPath(consoleRole, 'profile'), { state: { openProfileDevices: true } });
-            }}
-          />
-        )}
       </div>
     </div>
   );

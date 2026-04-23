@@ -18,6 +18,7 @@ import {
   Circle,
   XCircle,
   Activity,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { Theme } from '../../types';
 import { notificationService } from '../../api/services/notification.service';
@@ -240,31 +241,84 @@ function FlowProgress({ item, isDark, compact = false }: { item: MessageItem; is
   const current = Math.max(0, Math.min(total || 0, Number(item.currentStep ?? item.steps.length ?? 0)));
   const pct = total > 0 ? Math.max(8, Math.min(100, Math.round((current / total) * 100))) : 0;
   const latest = item.steps[item.steps.length - 1];
+  const status = String(item.flowStatus ?? '').toLowerCase();
+  const isSuccess = status === 'success';
+  const isFailed = status === 'failed';
+  const progressGradient = isFailed
+    ? 'from-rose-500 via-orange-400 to-amber-300'
+    : isSuccess
+      ? 'from-emerald-500 via-cyan-400 to-sky-400'
+      : 'from-blue-500 via-cyan-400 to-emerald-400';
+
+  if (compact) {
+    return (
+      <div className="mt-2.5 space-y-2.5">
+        <div className="flex items-center justify-between gap-3">
+          <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold ${flowStatusClass(item.flowStatus, isDark)}`}>
+            {isSuccess ? <CheckCircle size={12} /> : isFailed ? <XCircle size={12} /> : <Clock size={12} />}
+            {flowStatusText(item.flowStatus)}
+          </span>
+          {total > 0 ? (
+            <span className={`shrink-0 rounded-full px-2 py-0.5 font-mono text-[11px] ${isDark ? 'bg-white/[0.06] text-slate-300' : 'bg-slate-100 text-slate-500'}`}>
+              {current}/{total} 步
+            </span>
+          ) : null}
+        </div>
+        {total > 0 ? (
+          <div className={`relative h-2 overflow-hidden rounded-full ${isDark ? 'bg-white/[0.08]' : 'bg-slate-100'}`} aria-hidden>
+            <div className={`h-full rounded-full bg-gradient-to-r ${progressGradient} shadow-[0_0_18px_rgba(34,211,238,0.28)]`} style={{ width: `${pct}%` }} />
+          </div>
+        ) : null}
+        {latest ? (
+          <div className={`rounded-2xl px-3 py-2 ${isDark ? 'bg-white/[0.05] text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
+            <div className="flex items-start gap-2.5">
+              <span className={`mt-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded-full ${isDark ? 'bg-slate-950/40' : 'bg-white shadow-sm'}`}>
+                {stepIcon(latest, isDark)}
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-[12px] font-bold">{latest.title}</span>
+                {latest.summary ? (
+                  <span className={`mt-0.5 block line-clamp-2 text-[11px] leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    {latest.summary}
+                  </span>
+                ) : null}
+              </span>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
   return (
-    <div className={compact ? 'mt-2' : 'space-y-3'}>
+    <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
-        <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${flowStatusClass(item.flowStatus, isDark)}`}>
-          <Clock size={12} />
+        <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold ${flowStatusClass(item.flowStatus, isDark)}`}>
+          {isSuccess ? <CheckCircle size={13} /> : isFailed ? <XCircle size={13} /> : <Clock size={13} />}
           {flowStatusText(item.flowStatus)}
         </span>
         {total > 0 ? (
-          <span className={`text-[11px] tabular-nums ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+          <span className={`rounded-full px-2.5 py-1 font-mono text-[11px] tabular-nums ${isDark ? 'bg-white/[0.06] text-slate-300' : 'bg-white/80 text-slate-500'}`}>
             {current}/{total} 步
           </span>
         ) : null}
       </div>
       {total > 0 ? (
-        <div className={`h-1.5 overflow-hidden rounded-full ${isDark ? 'bg-white/10' : 'bg-slate-200'}`} aria-hidden>
-          <div className="h-full rounded-full bg-gradient-to-r from-blue-500 via-cyan-400 to-emerald-400" style={{ width: `${pct}%` }} />
+        <div className={`h-2.5 overflow-hidden rounded-full ${isDark ? 'bg-white/10' : 'bg-white/80'}`} aria-hidden>
+          <div className={`h-full rounded-full bg-gradient-to-r ${progressGradient}`} style={{ width: `${pct}%` }} />
         </div>
       ) : null}
       {latest && (
-        <div className={`flex items-start gap-2 text-[12px] ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-          <span className="mt-0.5 shrink-0">{stepIcon(latest, isDark)}</span>
-          <span className="min-w-0 line-clamp-2">
-            <span className="font-semibold">{latest.title}</span>
-            {latest.summary ? <span className={isDark ? 'text-slate-400' : 'text-slate-500'}> · {latest.summary}</span> : null}
-          </span>
+        <div className={`rounded-2xl border px-3.5 py-3 ${isDark ? 'border-white/10 bg-slate-950/25 text-slate-200' : 'border-white/80 bg-white/80 text-slate-800'}`}>
+          <div className="flex items-start gap-3 text-sm">
+            <span className={`mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-full ${isDark ? 'bg-white/[0.06]' : 'bg-slate-50'}`}>
+              {stepIcon(latest, isDark)}
+            </span>
+            <span className="min-w-0">
+              <span className="font-bold">{latest.title}</span>
+              {latest.summary ? <span className={isDark ? 'text-slate-400' : 'text-slate-600'}> · {latest.summary}</span> : null}
+            </span>
+          </div>
         </div>
       )}
     </div>
@@ -339,6 +393,7 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
   const [detailLoading, setDetailLoading] = useState(false);
   const [fixedPlacement, setFixedPlacement] = useState({ top: 0, right: 0 });
   const [activeDatePicker, setActiveDatePicker] = useState<'start' | 'end' | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const listScrollRef = useRef<HTMLDivElement>(null);
   type FilterState = {
     category: string;
@@ -517,6 +572,7 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
   const applyFilters = () => {
     setActiveDatePicker(null);
     setAppliedFilters({ ...filters });
+    setFiltersOpen(false);
   };
 
   const resetFilters = () => {
@@ -525,14 +581,22 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
     setAppliedFilters(reset);
     setActiveDatePicker(null);
     setListPage(1);
+    setFiltersOpen(false);
   };
 
+  const activeFilterCount = [
+    appliedFilters.category !== 'all',
+    appliedFilters.isRead !== 'all',
+    Boolean(appliedFilters.startTime),
+    Boolean(appliedFilters.endTime),
+  ].filter(Boolean).length;
+
   const surface = isDark ? 'bg-lantu-card border-white/10' : 'bg-white border-slate-200';
-  const dropdownClassName = `z-[60] overflow-hidden rounded-[24px] border shadow-xl flex flex-col min-h-0 max-h-[min(90vh,560px)] ${
+  const dropdownClassName = `z-[60] overflow-hidden rounded-[24px] border shadow-xl flex flex-col min-h-0 max-h-[min(78vh,500px)] ${
     usePortal
-      ? `fixed w-[min(calc(100vw-1.5rem),400px)] ${surface}`
+      ? `fixed w-[min(calc(100vw-1.5rem),380px)] ${surface}`
       : anchor === 'top'
-        ? `absolute left-auto right-0 top-full mt-2 w-[min(calc(100vw-1.5rem),400px)] ${surface}`
+        ? `absolute left-auto right-0 top-full mt-2 w-[min(calc(100vw-1.5rem),380px)] ${surface}`
         : `absolute bottom-full left-4 right-4 mb-2 ${surface}`
   }`;
 
@@ -571,128 +635,141 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
           </div>
         </div>
 
-        <div className={`shrink-0 flex border-b ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
+        <div className={`shrink-0 flex items-center gap-2 border-b px-3 py-2 ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
+          <div className={`flex min-w-0 flex-1 rounded-2xl p-1 ${isDark ? 'bg-white/[0.04]' : 'bg-slate-100/80'}`}>
+            {([
+              ['all', '全部'],
+              ['workflow', '流程'],
+              ['unread', serverUnreadCount > 0 ? `未读 ${serverUnreadCount}` : '未读'],
+            ] as const).map(([key, label]) => {
+              const active = tab === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setTab(key)}
+                  className={`min-h-8 flex-1 rounded-xl px-2 text-xs font-bold transition-colors ${
+                    active
+                      ? isDark
+                        ? 'bg-white/10 text-white shadow-sm'
+                        : 'bg-white text-slate-950 shadow-sm'
+                      : isDark
+                        ? 'text-slate-500 hover:text-slate-300'
+                        : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
           <button
             type="button"
-            onClick={() => setTab('all')}
-            className={`flex-1 px-4 py-2.5 text-sm font-medium transition-colors ${
-              tab === 'all'
+            onClick={() => setFiltersOpen((v) => !v)}
+            className={`relative inline-flex min-h-10 min-w-10 items-center justify-center rounded-2xl transition-colors ${
+              filtersOpen || activeFilterCount > 0
                 ? isDark
-                  ? 'text-blue-400 border-b-2 border-blue-400'
-                  : 'text-blue-600 border-b-2 border-blue-600'
+                  ? 'bg-cyan-400/15 text-cyan-200'
+                  : 'bg-blue-50 text-blue-700'
                 : isDark
-                  ? 'text-slate-500 hover:text-slate-300'
-                  : 'text-slate-500 hover:text-slate-700'
+                  ? 'text-slate-400 hover:bg-white/10'
+                  : 'text-slate-500 hover:bg-slate-100'
             }`}
+            aria-label="筛选消息"
+            aria-expanded={filtersOpen}
           >
-            全部
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab('workflow')}
-            className={`flex-1 px-4 py-2.5 text-sm font-medium transition-colors ${
-              tab === 'workflow'
-                ? isDark
-                  ? 'text-cyan-300 border-b-2 border-cyan-300'
-                  : 'text-cyan-700 border-b-2 border-cyan-600'
-                : isDark
-                  ? 'text-slate-500 hover:text-slate-300'
-                  : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            流程
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab('unread')}
-            className={`flex-1 px-4 py-2.5 text-sm font-medium transition-colors ${
-              tab === 'unread'
-                ? isDark
-                  ? 'text-blue-400 border-b-2 border-blue-400'
-                  : 'text-blue-600 border-b-2 border-blue-600'
-                : isDark
-                  ? 'text-slate-500 hover:text-slate-300'
-                  : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            未读
-            {serverUnreadCount > 0 && (
-              <span className="ml-1.5 text-xs opacity-80">({serverUnreadCount})</span>
-            )}
+            <SlidersHorizontal size={17} />
+            {activeFilterCount > 0 ? (
+              <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-blue-600 text-[10px] font-black text-white">
+                {activeFilterCount}
+              </span>
+            ) : null}
           </button>
         </div>
 
-        <div className={`shrink-0 px-3 py-2 border-b ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-slate-50/70'}`}>
-          <div className="grid grid-cols-2 gap-2">
-            <LantuSelect
-              theme={theme}
-              value={filters.category}
-              onChange={(next) => setFilters((prev) => ({ ...prev, category: next }))}
-              options={[
-                { value: 'all', label: '分类：全部' },
-                { value: 'workflow', label: '流程' },
-                { value: 'security', label: '安全' },
-                { value: 'system', label: '系统' },
-                { value: 'notice', label: '通知' },
-                { value: 'alert', label: '告警' },
-              ]}
-              triggerClassName="!min-h-[2rem] !px-2.5 !py-1.5 !text-xs"
-            />
-            <LantuSelect
-              theme={theme}
-              value={filters.isRead}
-              onChange={(next) => setFilters((prev) => ({ ...prev, isRead: next as 'all' | 'read' | 'unread' }))}
-              options={[
-                { value: 'all', label: '状态：全部' },
-                { value: 'unread', label: '未读' },
-                { value: 'read', label: '已读' },
-              ]}
-              triggerClassName="!min-h-[2rem] !px-2.5 !py-1.5 !text-xs"
-            />
-            <LantuDateTimePicker
-              theme={theme}
-              mode="date"
-              value={filters.startTime}
-              onChange={(next) => setFilters((prev) => ({ ...prev, startTime: next }))}
-              placeholder="开始日期"
-              compact
-              ariaLabel="开始日期"
-              open={activeDatePicker === 'start'}
-              onOpen={() => setActiveDatePicker('start')}
-              onClose={() => setActiveDatePicker((prev) => (prev === 'start' ? null : prev))}
-            />
-            <LantuDateTimePicker
-              theme={theme}
-              mode="date"
-              value={filters.endTime}
-              onChange={(next) => setFilters((prev) => ({ ...prev, endTime: next }))}
-              placeholder="结束日期"
-              compact
-              ariaLabel="结束日期"
-              open={activeDatePicker === 'end'}
-              onOpen={() => setActiveDatePicker('end')}
-              onClose={() => setActiveDatePicker((prev) => (prev === 'end' ? null : prev))}
-            />
-          </div>
-          <div className="mt-2 flex items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={resetFilters}
-              className={`h-7 rounded-lg px-2.5 text-xs transition-colors ${
-                isDark ? 'text-slate-300 bg-white/5 hover:bg-white/10' : 'text-slate-600 bg-white hover:bg-slate-100 border border-slate-200'
-              }`}
+        <AnimatePresence initial={false}>
+          {filtersOpen ? (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.18, ease: 'easeOut' }}
+              className={`shrink-0 overflow-visible border-b ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-slate-200 bg-slate-50/70'}`}
             >
-              重置
-            </button>
-            <button
-              type="button"
-              onClick={applyFilters}
-              className="h-7 rounded-lg px-2.5 text-xs text-white bg-blue-600 hover:bg-blue-700 transition-colors"
-            >
-              筛选
-            </button>
-          </div>
-        </div>
+              <div className="px-3 py-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <LantuSelect
+                    theme={theme}
+                    value={filters.category}
+                    onChange={(next) => setFilters((prev) => ({ ...prev, category: next }))}
+                    options={[
+                      { value: 'all', label: '分类：全部' },
+                      { value: 'workflow', label: '流程' },
+                      { value: 'security', label: '安全' },
+                      { value: 'system', label: '系统' },
+                      { value: 'notice', label: '通知' },
+                      { value: 'alert', label: '告警' },
+                    ]}
+                    triggerClassName="!min-h-[2rem] !px-2.5 !py-1.5 !text-xs"
+                  />
+                  <LantuSelect
+                    theme={theme}
+                    value={filters.isRead}
+                    onChange={(next) => setFilters((prev) => ({ ...prev, isRead: next as 'all' | 'read' | 'unread' }))}
+                    options={[
+                      { value: 'all', label: '状态：全部' },
+                      { value: 'unread', label: '未读' },
+                      { value: 'read', label: '已读' },
+                    ]}
+                    triggerClassName="!min-h-[2rem] !px-2.5 !py-1.5 !text-xs"
+                  />
+                  <LantuDateTimePicker
+                    theme={theme}
+                    mode="date"
+                    value={filters.startTime}
+                    onChange={(next) => setFilters((prev) => ({ ...prev, startTime: next }))}
+                    placeholder="开始日期"
+                    compact
+                    ariaLabel="开始日期"
+                    open={activeDatePicker === 'start'}
+                    onOpen={() => setActiveDatePicker('start')}
+                    onClose={() => setActiveDatePicker((prev) => (prev === 'start' ? null : prev))}
+                  />
+                  <LantuDateTimePicker
+                    theme={theme}
+                    mode="date"
+                    value={filters.endTime}
+                    onChange={(next) => setFilters((prev) => ({ ...prev, endTime: next }))}
+                    placeholder="结束日期"
+                    compact
+                    ariaLabel="结束日期"
+                    open={activeDatePicker === 'end'}
+                    onOpen={() => setActiveDatePicker('end')}
+                    onClose={() => setActiveDatePicker((prev) => (prev === 'end' ? null : prev))}
+                  />
+                </div>
+                <div className="mt-2 flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={resetFilters}
+                    className={`h-7 rounded-lg px-2.5 text-xs transition-colors ${
+                      isDark ? 'text-slate-300 bg-white/5 hover:bg-white/10' : 'text-slate-600 bg-white hover:bg-slate-100 border border-slate-200'
+                    }`}
+                  >
+                    重置
+                  </button>
+                  <button
+                    type="button"
+                    onClick={applyFilters}
+                    className="h-7 rounded-lg px-2.5 text-xs text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+                  >
+                    筛选
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
 
         <div className="flex flex-col min-h-0 flex-1">
           <div
@@ -720,7 +797,7 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
                     <button
                       type="button"
                       onClick={(e) => openDetail(m, e)}
-                      className={`w-full text-left px-4 py-3 transition-colors ${
+                      className={`w-full text-left px-3 py-2.5 transition-colors ${
                         isFlow
                           ? !m.read
                             ? isDark
@@ -739,29 +816,41 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
                       }`}
                     >
                       {isFlow ? (
-                        <div className={`rounded-2xl border p-3 ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200/80 bg-white/80 shadow-sm'}`}>
-                          <div className="flex items-start gap-3">
-                            <span className={`shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center ${isDark ? 'bg-cyan-400/15 text-cyan-200' : 'bg-cyan-100 text-cyan-700'}`}>
-                              <Activity size={18} />
-                            </span>
+                        <div
+                          className={`group/flow relative overflow-hidden rounded-[22px] border p-3 transition-all ${
+                            isDark
+                              ? 'border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.14),transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.025))] hover:border-cyan-300/25'
+                              : 'border-slate-200/80 bg-[radial-gradient(circle_at_top_left,rgba(6,182,212,0.13),transparent_42%),linear-gradient(180deg,#ffffff,#f8fafc)] shadow-sm hover:border-cyan-200 hover:shadow-md'
+                          }`}
+                        >
+                          <div className={`absolute inset-y-0 left-0 w-1 ${isDark ? 'bg-cyan-300/70' : 'bg-cyan-500'}`} aria-hidden />
+                          <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0 flex-1">
-                              <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <span className={`inline-flex size-8 shrink-0 items-center justify-center rounded-2xl ${isDark ? 'bg-cyan-300/12 text-cyan-200 ring-1 ring-cyan-300/15' : 'bg-cyan-50 text-cyan-700 ring-1 ring-cyan-100'}`}>
+                                  <Activity size={17} />
+                                </span>
                                 <div className="min-w-0">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <span className={`font-semibold text-sm truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                                      {m.title}
-                                    </span>
-                                    {!m.read && <span className="w-2 h-2 rounded-full bg-cyan-500 shrink-0" aria-hidden />}
-                                  </div>
-                                  <p className={`mt-0.5 text-[11px] ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>
-                                    {categoryLabel[m.category] ?? '流程'} · {humanizeNotificationType(m.rawType) || m.rawType}
+                                  <p className={`truncate text-sm font-black leading-tight tracking-[-0.01em] ${isDark ? 'text-white' : 'text-slate-950'}`}>
+                                    {m.title}
+                                  </p>
+                                  <p className={`mt-1 flex items-center gap-1.5 text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                                    <span>{categoryLabel[m.category] ?? '流程'}</span>
+                                    <span className="size-1 rounded-full bg-current opacity-35" aria-hidden />
+                                    <span className="font-mono">{humanizeNotificationType(m.rawType) || m.rawType}</span>
                                   </p>
                                 </div>
-                                <ChevronRight size={16} className="mt-1 shrink-0 text-slate-400" />
                               </div>
-                              <FlowProgress item={m} isDark={isDark} compact />
-                              <p className={`mt-2 text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{m.time}</p>
                             </div>
+                            <div className="flex shrink-0 items-center gap-2">
+                              {!m.read && <span className="size-2.5 rounded-full bg-cyan-500 shadow-[0_0_0_4px_rgba(6,182,212,0.12)]" aria-label="未读" />}
+                              <ChevronRight size={17} className={`transition-transform group-hover/flow:translate-x-0.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`} />
+                            </div>
+                          </div>
+                          <FlowProgress item={m} isDark={isDark} compact />
+                          <div className={`mt-2.5 flex items-center justify-between gap-2 border-t pt-2.5 text-[11px] ${isDark ? 'border-white/10 text-slate-500' : 'border-slate-200/70 text-slate-400'}`}>
+                            <span>最后更新</span>
+                            <time dateTime={m.lastEventTimeRaw ?? m.createTimeRaw ?? undefined}>{m.time}</time>
                           </div>
                         </div>
                       ) : (
@@ -936,9 +1025,10 @@ export const MessagePanel: React.FC<MessagePanelProps> = ({
                       ) : parsed ? (
                         <div className="space-y-4">
                           {(detailMessage.category === 'workflow' || detailMessage.steps.length > 0) ? (
-                            <div className={`rounded-2xl border p-4 ${isDark ? 'border-cyan-400/20 bg-cyan-400/[0.06]' : 'border-cyan-200 bg-cyan-50/70'}`}>
+                            <div className={`relative overflow-hidden rounded-[24px] border p-4 ${isDark ? 'border-cyan-300/20 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.13),transparent_44%),rgba(8,47,73,0.16)]' : 'border-cyan-200/80 bg-[radial-gradient(circle_at_top_left,rgba(6,182,212,0.13),transparent_44%),linear-gradient(180deg,#ecfeff,#ffffff)]'}`}>
+                              <div className={`absolute inset-y-0 left-0 w-1 ${isDark ? 'bg-cyan-300/70' : 'bg-cyan-500'}`} aria-hidden />
                               <FlowProgress item={detailMessage} isDark={isDark} />
-                              <div className={`mt-4 rounded-xl border px-4 py-3.5 ${isDark ? 'border-white/10 bg-slate-950/20' : 'border-white/80 bg-white/80'}`}>
+                              <div className={`mt-4 rounded-2xl border px-4 py-3.5 ${isDark ? 'border-white/10 bg-slate-950/25' : 'border-white/90 bg-white/85 shadow-sm'}`}>
                                 <p className={`mb-3 text-xs font-semibold ${isDark ? 'text-cyan-200' : 'text-cyan-800'}`}>流程步骤</p>
                                 <FlowTimeline steps={detailMessage.steps} isDark={isDark} />
                               </div>

@@ -18,6 +18,7 @@ export * from './sensitive-word';
 export * from './developer-application';
 export * from './explore';
 export * from './catalog';
+export * from './global-search';
 export * from './resource-center';
 export * from './notification';
 export type {
@@ -26,7 +27,6 @@ export type {
   CreateUserApiKeyPayload,
   CreatedUserApiKey,
   UserStats,
-  UserApiKeyResourceGrant,
   ApiKeyRevokePayload,
 } from './user-settings';
 export type { UserWorkspace as UserSettingsWorkspace } from './user-settings';

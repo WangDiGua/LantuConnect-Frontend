@@ -1242,6 +1242,13 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
       if (!canvas) return;
       const width = canvas.clientWidth;
       const height = canvas.clientHeight;
+      if (width < 2 || height < 2) {
+        initFrameId = requestAnimationFrame(() => {
+          initFrameId = 0;
+          initThree();
+        });
+        return;
+      }
 
       scene = new THREE.Scene();
       camera = new THREE.PerspectiveCamera(50, width / Math.max(height, 1), 1, 1000);
@@ -1255,7 +1262,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
         alpha: true,
         powerPreference: 'high-performance',
       });
-      renderer.setClearColor(0x111722, 0);
+      renderer.setClearColor(isDark ? 0x060a12 : 0x111722, 0);
       renderer.setSize(width, height, false);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
@@ -1310,10 +1317,10 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
 
       geometry.setAttribute('position', new THREE.BufferAttribute(pos, 3));
       const material = new THREE.PointsMaterial({
-        color: 0x6366f1,
+        color: isDark ? 0x60a5fa : 0x6366f1,
         size: 1.6,
         transparent: true,
-        opacity: 0.7,
+        opacity: isDark ? 0.82 : 0.7,
         blending: THREE.AdditiveBlending,
       });
 
@@ -1324,9 +1331,9 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
       const linePositions = new Float32Array(5 * 2 * 3);
       lineGeom.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
       const lineMat = new THREE.LineBasicMaterial({
-        color: 0x6366f1,
+        color: isDark ? 0x38bdf8 : 0x6366f1,
         transparent: true,
-        opacity: 0.1,
+        opacity: isDark ? 0.16 : 0.1,
       });
       lines = new THREE.LineSegments(lineGeom, lineMat);
       scene.add(lines);
@@ -1420,7 +1427,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
     return () => {
       cleanupThree();
     };
-  }, [loading]);
+  }, [loading, isDark]);
 
   if (loading) {
     return (
@@ -1454,14 +1461,55 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
   const heroVignetteFrom = '#0a0a0b';
   const heroLeadClass = 'text-slate-300 text-sm sm:text-[15px] font-normal leading-relaxed max-w-[42rem] mb-5';
   const heroImmersiveShellClass = isDark
-    ? 'relative isolate flex h-[320px] w-full items-stretch overflow-hidden rounded-[2.5rem] border border-white/[0.06] lg:h-[304px]'
+    ? 'relative isolate flex h-[320px] w-full items-stretch overflow-hidden rounded-[2.5rem] border border-sky-300/[0.14] bg-[#060a12] shadow-[inset_0_1px_0_rgba(255,255,255,0.055),0_28px_80px_-44px_rgba(14,165,233,0.58),0_20px_56px_-38px_rgba(0,0,0,0.96)] ring-1 ring-white/[0.035] lg:h-[304px]'
     : 'relative isolate flex h-[320px] w-full items-stretch overflow-hidden rounded-[2.5rem] border border-slate-200/70 lg:h-[304px]';
-  const heroImmersiveBase = '#111722';
+  const heroImmersiveBase = isDark ? '#060a12' : '#111722';
   const heroImmersiveBackdropStyle: React.CSSProperties = {
     backgroundColor: heroImmersiveBase,
-    backgroundImage:
-      'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.016) 26%, rgba(255,255,255,0.008) 54%, rgba(255,255,255,0) 100%)',
+    backgroundImage: isDark
+      ? [
+          'radial-gradient(circle at 14% 18%, rgba(56,189,248,0.22), transparent 30%)',
+          'radial-gradient(circle at 58% 118%, rgba(79,70,229,0.18), transparent 34%)',
+          'radial-gradient(circle at 86% 18%, rgba(20,184,166,0.12), transparent 28%)',
+          'linear-gradient(135deg, rgba(2,6,23,0.88) 0%, rgba(15,23,42,0.72) 48%, rgba(2,6,23,0.94) 100%)',
+        ].join(', ')
+      : 'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.016) 26%, rgba(255,255,255,0.008) 54%, rgba(255,255,255,0) 100%)',
   };
+  const heroSceneFallbackStyle: React.CSSProperties = {
+    backgroundColor: heroImmersiveBase,
+    backgroundImage: isDark
+      ? [
+          'radial-gradient(circle at 48% 38%, rgba(56,189,248,0.22), transparent 32%)',
+          'radial-gradient(circle at 62% 64%, rgba(99,102,241,0.2), transparent 34%)',
+          'linear-gradient(90deg, rgba(6,10,18,0.98), rgba(15,23,42,0.88))',
+        ].join(', ')
+      : [
+          'radial-gradient(circle at 50% 42%, rgba(99,102,241,0.2), transparent 34%)',
+          'radial-gradient(circle at 58% 64%, rgba(129,140,248,0.16), transparent 36%)',
+          'linear-gradient(90deg, rgba(17,23,34,0.98), rgba(17,23,34,0.86))',
+        ].join(', '),
+  };
+  const heroImmersiveFocusClass = isDark
+    ? 'focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#060a12]'
+    : 'focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#111722]';
+  const heroAnnouncementButtonClass = isDark
+    ? 'group relative flex h-11 w-full max-w-[31rem] items-center gap-3 overflow-hidden rounded-[1rem] border border-cyan-200/[0.13] bg-[linear-gradient(180deg,rgba(14,165,233,0.13),rgba(15,23,42,0.26))] px-3.5 py-2 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_16px_36px_-26px_rgba(14,165,233,0.85)] backdrop-blur-md transition-all hover:border-cyan-200/25 hover:bg-[linear-gradient(180deg,rgba(14,165,233,0.18),rgba(15,23,42,0.32))] disabled:cursor-default disabled:hover:border-cyan-200/[0.13] disabled:hover:bg-[linear-gradient(180deg,rgba(14,165,233,0.13),rgba(15,23,42,0.26))]'
+    : 'group relative flex h-11 w-full max-w-[31rem] items-center gap-3 overflow-hidden rounded-[1rem] border border-white/[0.07] bg-[linear-gradient(180deg,rgba(255,255,255,0.032),rgba(255,255,255,0.018))] px-3.5 py-2 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_12px_32px_-24px_rgba(0,0,0,0.9)] backdrop-blur-sm transition-all hover:border-indigo-400/18 hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.022))] disabled:cursor-default disabled:hover:border-white/[0.07] disabled:hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.032),rgba(255,255,255,0.018))]';
+  const heroAnnouncementLabelClass = isDark
+    ? 'inline-flex h-6 shrink-0 items-center gap-1.5 rounded-[0.7rem] border border-cyan-200/[0.18] bg-cyan-300/[0.09] px-2.5 font-mono text-[10px] font-semibold tracking-[0.1em] text-cyan-50'
+    : 'inline-flex h-6 shrink-0 items-center gap-1.5 rounded-[0.7rem] border border-indigo-400/16 bg-indigo-500/[0.08] px-2.5 font-mono text-[10px] font-semibold tracking-[0.1em] text-indigo-100/90';
+  const heroTitleAccentClass = isDark
+    ? 'bg-gradient-to-br from-cyan-100 via-white to-sky-400 bg-clip-text text-transparent italic drop-shadow-[0_12px_34px_rgba(56,189,248,0.2)]'
+    : 'bg-gradient-to-br from-indigo-200 via-white to-slate-500 bg-clip-text text-transparent italic drop-shadow-2xl';
+  const heroHighlightClass = isDark
+    ? 'border-b border-cyan-200/20 font-semibold text-cyan-50'
+    : 'border-b border-white/10 font-medium text-white';
+  const heroPrimaryButtonClass = isDark
+    ? `group inline-flex items-center gap-2 whitespace-nowrap rounded-[1.05rem] bg-cyan-50 px-6 py-3 text-sm font-black leading-none text-slate-950 shadow-[0_18px_40px_-24px_rgba(103,232,249,0.95)] transition-all hover:bg-white hover:shadow-[0_20px_48px_-24px_rgba(103,232,249,1)] ${heroImmersiveFocusClass}`
+    : `group inline-flex items-center gap-2 whitespace-nowrap rounded-[1.05rem] bg-white px-6 py-3 text-sm font-bold leading-none text-black shadow-[0_0_30px_rgba(255,255,255,0.1)] transition-all hover:bg-slate-100 ${heroImmersiveFocusClass}`;
+  const heroSecondaryButtonClass = isDark
+    ? `inline-flex items-center whitespace-nowrap rounded-[1.05rem] border border-cyan-200/[0.16] bg-white/[0.055] px-6 py-3 text-sm font-bold leading-none text-cyan-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] transition-all hover:border-cyan-200/28 hover:bg-cyan-200/[0.08] ${heroImmersiveFocusClass}`
+    : `inline-flex items-center whitespace-nowrap rounded-[1.05rem] border border-white/10 bg-white/[0.04] px-6 py-3 text-sm font-bold leading-none text-white transition-all hover:bg-white/[0.08] ${heroImmersiveFocusClass}`;
 
   const heroCompactTerminal = Boolean(hubRail);
 
@@ -1594,19 +1642,38 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
     <div className="w-full">
       <section className={heroImmersiveShellClass} style={{ backgroundColor: heroImmersiveBase }}>
         <div className="pointer-events-none absolute inset-0 z-0" style={heroImmersiveBackdropStyle} aria-hidden />
+        {isDark ? (
+          <>
+            <div
+              className="pointer-events-none absolute inset-px z-[1] rounded-[calc(2.5rem-1px)] bg-[linear-gradient(110deg,rgba(255,255,255,0.08),transparent_22%,transparent_72%,rgba(56,189,248,0.08))]"
+              aria-hidden
+            />
+            <div
+              className="pointer-events-none absolute -left-28 top-[-88%] z-[1] h-[28rem] w-[28rem] rounded-full bg-cyan-300/[0.13] blur-[128px]"
+              aria-hidden
+            />
+            <div
+              className="pointer-events-none absolute bottom-[-86%] right-[14%] z-[1] h-[25rem] w-[25rem] rounded-full bg-indigo-500/[0.16] blur-[136px]"
+              aria-hidden
+            />
+          </>
+        ) : null}
         <div className="pointer-events-none absolute inset-0 z-0">
           <div
             className="absolute inset-0"
             style={{
-              background:
-                'linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0.01) 32%, rgba(255,255,255,0) 100%)',
+              background: isDark
+                ? 'linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(148,163,184,0.018) 36%, rgba(255,255,255,0) 100%)'
+                : 'linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0.01) 32%, rgba(255,255,255,0) 100%)',
             }}
           />
           <div
-            className="absolute inset-0 opacity-[0.04] mix-blend-overlay"
+            className={`absolute inset-0 ${isDark ? 'opacity-[0.07] mix-blend-screen' : 'opacity-[0.04] mix-blend-overlay'}`}
             style={{
               backgroundImage:
-                'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.28) 1px, transparent 0), radial-gradient(circle at 7px 7px, rgba(255,255,255,0.18) 0.8px, transparent 0)',
+                isDark
+                  ? 'radial-gradient(circle at 1px 1px, rgba(125,211,252,0.42) 0.9px, transparent 0), radial-gradient(circle at 7px 7px, rgba(255,255,255,0.22) 0.7px, transparent 0)'
+                  : 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.28) 1px, transparent 0), radial-gradient(circle at 7px 7px, rgba(255,255,255,0.18) 0.8px, transparent 0)',
               backgroundSize: '12px 12px, 18px 18px',
             }}
           />
@@ -1618,14 +1685,21 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
               type="button"
               disabled={activeHeroAnnouncement.id === 'hero-announcement-fallback'}
               onClick={() => setDetailAnnouncement(activeHeroAnnouncement)}
-              className="group relative flex h-11 w-full max-w-[31rem] items-center gap-3 overflow-hidden rounded-[1rem] border border-white/[0.07] bg-[linear-gradient(180deg,rgba(255,255,255,0.032),rgba(255,255,255,0.018))] px-3.5 py-2 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_12px_32px_-24px_rgba(0,0,0,0.9)] backdrop-blur-sm transition-all hover:border-indigo-400/18 hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.022))] disabled:cursor-default disabled:hover:border-white/[0.07] disabled:hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.032),rgba(255,255,255,0.018))]"
+              className={`${heroAnnouncementButtonClass} ${heroImmersiveFocusClass}`}
             >
               <span
-                className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-400/40 to-transparent opacity-80"
+                className={`pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent ${
+                  isDark ? 'via-cyan-200/65' : 'via-indigo-400/40'
+                } to-transparent opacity-80`}
                 aria-hidden
               />
-              <span className="inline-flex h-6 shrink-0 items-center gap-1.5 rounded-[0.7rem] border border-indigo-400/16 bg-indigo-500/[0.08] px-2.5 font-mono text-[10px] font-semibold tracking-[0.1em] text-indigo-100/90">
-                <span className="h-1.5 w-1.5 rounded-full bg-indigo-300 shadow-[0_0_8px_rgba(129,140,248,0.8)]" aria-hidden />
+              <span className={heroAnnouncementLabelClass}>
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${
+                    isDark ? 'bg-cyan-200 shadow-[0_0_10px_rgba(103,232,249,0.95)]' : 'bg-indigo-300 shadow-[0_0_8px_rgba(129,140,248,0.8)]'
+                  }`}
+                  aria-hidden
+                />
                 {ANNOUNCEMENT_LABEL[activeHeroAnnouncement.type] ?? '平台通知'}
               </span>
               <div className="relative h-4 min-w-0 flex-1 overflow-hidden pr-3">
@@ -1643,7 +1717,11 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
                 ))}
               </div>
               <span className="h-4 w-px shrink-0 bg-white/[0.07]" aria-hidden />
-              <span className="shrink-0 font-mono text-[10px] font-medium tracking-[0.14em] text-slate-500 transition-colors group-hover:text-slate-300">
+              <span
+                className={`shrink-0 font-mono text-[10px] font-medium tracking-[0.14em] transition-colors ${
+                  isDark ? 'text-cyan-100/45 group-hover:text-cyan-50/80' : 'text-slate-500 group-hover:text-slate-300'
+                }`}
+              >
                 {activeHeroAnnouncement.id === 'hero-announcement-fallback' ? '同步中' : '详情'}
               </span>
             </button>
@@ -1651,15 +1729,15 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
             <div className="space-y-4">
               <h1 className="text-[3.2rem] font-black leading-[0.92] tracking-[-0.06em] text-white lg:text-[3.7rem]">
                 <span className="whitespace-nowrap">Build the future of</span> <br />
-                <span className="bg-gradient-to-br from-indigo-200 via-white to-slate-500 bg-clip-text text-transparent italic drop-shadow-2xl">
+                <span className={heroTitleAccentClass}>
                   campus AI.
                 </span>
               </h1>
-              <p className="max-w-[34rem] text-[14px] font-light leading-relaxed text-slate-400">
+              <p className={`max-w-[34rem] text-[14px] font-light leading-relaxed ${isDark ? 'text-slate-300/80' : 'text-slate-400'}`}>
                 数字化资产与能力门户：
-                <span className="border-b border-white/10 font-medium text-white">目录发现</span>
+                <span className={heroHighlightClass}>目录发现</span>
                 {' '}与{' '}
-                <span className="border-b border-white/10 font-medium text-white">授权消费</span>
+                <span className={heroHighlightClass}>授权消费</span>
                 。连接校园每一个智能端点。
               </p>
             </div>
@@ -1670,7 +1748,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
                 <button
                   type="button"
                   onClick={() => navigate(unifiedResourceCenterPath(platformRole))}
-                  className="group inline-flex items-center gap-2 whitespace-nowrap rounded-[1.05rem] bg-white px-6 py-3 text-sm font-bold leading-none text-black shadow-[0_0_30px_rgba(255,255,255,0.1)] transition-all hover:bg-slate-100"
+                  className={heroPrimaryButtonClass}
                 >
                   开始发布
                   <ChevronRight size={18} className="transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden />
@@ -1678,17 +1756,19 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
                 <button
                   type="button"
                   onClick={() => navigate(buildPath('user', 'developer-docs'))}
-                  className="inline-flex items-center whitespace-nowrap rounded-[1.05rem] border border-white/10 bg-white/[0.04] px-6 py-3 text-sm font-bold leading-none text-white transition-all hover:bg-white/[0.08]"
+                  className={heroSecondaryButtonClass}
                 >
                   查看技术文档
                 </button>
               </div>
-              <div className="hidden items-center gap-4 border-l border-white/10 pl-6 xl:flex">
+              <div className={`hidden items-center gap-4 border-l pl-6 xl:flex ${isDark ? 'border-cyan-100/12' : 'border-white/10'}`}>
                 <div className="flex -space-x-3">
                   {[1, 2, 3].map((i) => (
                     <div
                       key={i}
-                      className="h-8 w-8 overflow-hidden rounded-full border-2 border-[#020204] bg-zinc-800 ring-1 ring-white/5"
+                      className={`h-8 w-8 overflow-hidden rounded-full border-2 bg-zinc-800 ring-1 ${
+                        isDark ? 'border-[#060a12] ring-cyan-100/15' : 'border-[#020204] ring-white/5'
+                      }`}
                     >
                       <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${i + 135}`} alt="user" />
                     </div>
@@ -1696,7 +1776,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
                 </div>
                 <div className="flex flex-col text-left">
                   <span className="text-xs font-black leading-none text-white">{developerCount.toLocaleString('zh-CN')}</span>
-                  <span className="mt-1 text-[10px] font-bold tracking-[0.12em] text-slate-500">开发者已入驻</span>
+                  <span className={`mt-1 text-[10px] font-bold tracking-[0.12em] ${isDark ? 'text-cyan-100/48' : 'text-slate-500'}`}>开发者已入驻</span>
                 </div>
               </div>
           </div>
@@ -1704,7 +1784,24 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
 
         <div
           className="group/stage pointer-events-none absolute inset-y-0 right-0 z-10 w-[44%] min-w-[340px] overflow-hidden"
+          style={{ backgroundColor: heroImmersiveBase }}
         >
+          <div className="absolute inset-0 z-0" style={heroSceneFallbackStyle} aria-hidden />
+          <div className="absolute inset-0 z-[1] opacity-55" aria-hidden>
+            <div className={`absolute left-1/2 top-1/2 h-36 w-36 -translate-x-1/2 -translate-y-1/2 rounded-full border ${isDark ? 'border-cyan-200/18' : 'border-indigo-200/25'}`} />
+            <div className={`absolute left-[calc(50%-4.5rem)] top-[calc(50%-4.5rem)] h-3 w-3 rounded-full ${isDark ? 'bg-cyan-200/65 shadow-[0_0_24px_rgba(103,232,249,0.42)]' : 'bg-indigo-300/65 shadow-[0_0_22px_rgba(129,140,248,0.35)]'}`} />
+            <div className={`absolute left-[calc(50%+4rem)] top-[calc(50%+3.25rem)] h-2.5 w-2.5 rounded-full ${isDark ? 'bg-sky-300/55 shadow-[0_0_20px_rgba(125,211,252,0.32)]' : 'bg-indigo-200/55 shadow-[0_0_18px_rgba(199,210,254,0.32)]'}`} />
+            <div className={`absolute left-[calc(50%-5.5rem)] top-[calc(50%+3.5rem)] h-px w-44 rotate-[22deg] ${isDark ? 'bg-gradient-to-r from-transparent via-cyan-200/28 to-transparent' : 'bg-gradient-to-r from-transparent via-indigo-200/25 to-transparent'}`} />
+            <div className={`absolute left-[calc(50%-3rem)] top-[calc(50%-4rem)] h-px w-36 -rotate-[28deg] ${isDark ? 'bg-gradient-to-r from-transparent via-sky-200/24 to-transparent' : 'bg-gradient-to-r from-transparent via-indigo-200/22 to-transparent'}`} />
+          </div>
+          <div
+            className={`absolute inset-y-0 left-[-28%] z-20 w-[56%] ${
+              isDark
+                ? 'bg-gradient-to-r from-[#060a12] via-[#060a12]/74 to-transparent'
+                : 'bg-gradient-to-r from-[#111722]/45 via-[#111722]/18 to-transparent'
+            }`}
+            aria-hidden
+          />
           <div
             className={`absolute inset-0 transition-opacity duration-300 ${
               heroSceneReady ? 'opacity-0' : 'opacity-100'
@@ -1727,7 +1824,9 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
               {HERO_SCENE_METADATA.map((info, idx) => (
                 <div
                   key={info.label}
-                  className={`absolute inset-0 flex items-center justify-center gap-3 text-[13px] font-black uppercase tracking-[0.32em] text-indigo-400 transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)] ${
+                  className={`absolute inset-0 flex items-center justify-center gap-3 text-[13px] font-black uppercase tracking-[0.32em] transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)] ${
+                    isDark ? 'text-cyan-300 drop-shadow-[0_0_14px_rgba(103,232,249,0.32)]' : 'text-indigo-400'
+                  } ${
                     idx === activeScene ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0 blur-md'
                   }`}
                 >
@@ -1740,7 +1839,9 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
               {HERO_SCENE_METADATA.map((info, idx) => (
                 <p
                   key={info.desc}
-                  className={`absolute inset-0 flex items-center justify-center px-8 text-[11px] font-medium leading-relaxed text-slate-500 transition-all duration-1000 delay-100 ${
+                  className={`absolute inset-0 flex items-center justify-center px-8 text-[11px] font-medium leading-relaxed transition-all duration-1000 delay-100 ${
+                    isDark ? 'text-slate-300/62' : 'text-slate-500'
+                  } ${
                     idx === activeScene ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
                   }`}
                 >
@@ -1754,24 +1855,24 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
                 <div
                   key={info.label}
                   className={`h-[1px] transition-all duration-700 ${
-                    idx === activeScene ? 'w-10 bg-indigo-500' : 'w-3 bg-white/10'
+                    idx === activeScene ? (isDark ? 'w-10 bg-cyan-300' : 'w-10 bg-indigo-500') : 'w-3 bg-white/10'
                   }`}
                 />
               ))}
             </div>
           </div>
 
-          <div className="absolute right-8 top-7 flex flex-col items-end gap-2 opacity-[0.15]">
+          <div className={`absolute right-8 top-7 flex flex-col items-end gap-2 ${isDark ? 'opacity-[0.26]' : 'opacity-[0.15]'}`}>
             <div className="flex items-center gap-3">
               <div className="flex flex-col items-end font-mono">
-                <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400">Nexus_Visual_Engine</span>
+                <span className={`text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-cyan-300' : 'text-indigo-400'}`}>Nexus_Visual_Engine</span>
                 <span className="text-[8px] font-bold uppercase tracking-tighter text-slate-500">
                   {activeScene === 0 ? 'Agent_Hub_Mode' : activeScene === 1 ? 'Protocol_Matrix' : 'Skills_Nebula'}
                 </span>
               </div>
-              <Activity size={22} className="text-indigo-400" aria-hidden />
+              <Activity size={22} className={isDark ? 'text-cyan-300' : 'text-indigo-400'} aria-hidden />
             </div>
-            <div className="h-px w-28 bg-gradient-to-l from-indigo-500/40 to-transparent" />
+            <div className={`h-px w-28 bg-gradient-to-l ${isDark ? 'from-cyan-300/45' : 'from-indigo-500/40'} to-transparent`} />
           </div>
         </div>
 

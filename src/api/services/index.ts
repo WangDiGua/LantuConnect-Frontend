@@ -15,6 +15,7 @@ export { tagService } from './tag.service';
 export { userActivityService } from './user-activity.service';
 export { notificationService } from './notification.service';
 export { resourceCatalogService } from './resource-catalog.service';
+export { globalSearchService } from './global-search.service';
 export { invokeService } from './invoke.service';
 export { sandboxService } from './sandbox.service';
 export { sdkService } from './sdk.service';

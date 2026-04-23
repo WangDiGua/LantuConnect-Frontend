@@ -19,14 +19,49 @@ const TOKEN_PREFIX = 'lc_enc_';
 /** JWT/不透明令牌体积上限，防止异常大包拖垮页面或掩盖存储污染 */
 export const MAX_TOKEN_STORAGE_CHARS = 16_384;
 
+type TokenStorageOptions = {
+  persist?: boolean;
+};
+
+function encodeToken(value: string): string {
+  return TOKEN_PREFIX + btoa(encodeURIComponent(value));
+}
+
+function decodeToken(raw: string): string | null {
+  if (raw.length > MAX_TOKEN_STORAGE_CHARS + TOKEN_PREFIX.length + 256) return null;
+  if (!raw.startsWith(TOKEN_PREFIX)) {
+    return raw.length > MAX_TOKEN_STORAGE_CHARS ? null : raw;
+  }
+  try {
+    const decoded = decodeURIComponent(atob(raw.slice(TOKEN_PREFIX.length)));
+    if (decoded.length > MAX_TOKEN_STORAGE_CHARS) return null;
+    return decoded;
+  } catch {
+    return raw.length > MAX_TOKEN_STORAGE_CHARS ? null : raw;
+  }
+}
+
+function readToken(storage: Storage, key: string): string | null {
+  try {
+    const raw = storage.getItem(key);
+    return raw ? decodeToken(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
 export const tokenStorage = {
-  set(key: string, value: string) {
+  set(key: string, value: string, options: TokenStorageOptions = {}) {
     if (value.length > MAX_TOKEN_STORAGE_CHARS) return;
+    const target = options.persist === false ? sessionStorage : localStorage;
+    const staleTarget = options.persist === false ? localStorage : sessionStorage;
     try {
-      localStorage.setItem(key, TOKEN_PREFIX + btoa(encodeURIComponent(value)));
+      target.setItem(key, encodeToken(value));
+      staleTarget.removeItem(key);
     } catch {
       try {
-        localStorage.setItem(key, value);
+        target.setItem(key, value);
+        staleTarget.removeItem(key);
       } catch {
         /* 容量超限等 */
       }
@@ -34,23 +69,28 @@ export const tokenStorage = {
   },
 
   get(key: string): string | null {
-    const raw = localStorage.getItem(key);
-    if (!raw) return null;
-    if (raw.length > MAX_TOKEN_STORAGE_CHARS + TOKEN_PREFIX.length + 256) return null;
-    if (raw.startsWith(TOKEN_PREFIX)) {
-      try {
-        const decoded = decodeURIComponent(atob(raw.slice(TOKEN_PREFIX.length)));
-        if (decoded.length > MAX_TOKEN_STORAGE_CHARS) return null;
-        return decoded;
-      } catch {
-        return raw.length > MAX_TOKEN_STORAGE_CHARS ? null : raw;
-      }
+    return readToken(sessionStorage, key) ?? readToken(localStorage, key);
+  },
+
+  isPersistent(key: string): boolean {
+    try {
+      return localStorage.getItem(key) != null && sessionStorage.getItem(key) == null;
+    } catch {
+      return false;
     }
-    return raw.length > MAX_TOKEN_STORAGE_CHARS ? null : raw;
   },
 
   remove(key: string) {
-    localStorage.removeItem(key);
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      /* ignore */
+    }
+    try {
+      sessionStorage.removeItem(key);
+    } catch {
+      /* ignore */
+    }
   },
 };
 

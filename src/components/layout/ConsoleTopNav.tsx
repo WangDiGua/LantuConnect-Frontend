@@ -6,6 +6,7 @@ import type { ConsoleRole } from '../../constants/consoleRoutes';
 import { USER_TOP_NAV_SIDEBAR_IDS, USER_TOP_NAV_SIDEBAR_ID_SET } from '../../constants/topNavPolicy';
 import type { PlatformRoleCode } from '../../types/dto/auth';
 import { Logo } from '../common/Logo';
+import { GlobalSearchPalette } from './GlobalSearchPalette';
 import { PortalDropdown } from '../common/PortalDropdown';
 import { NexusTopNavPrimaryAnimatedIcon } from '../icons/NexusTopNavAnimatedIcons';
 
@@ -63,6 +64,7 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
   const searchRows = sidebarSearchRows ?? sidebarRows;
   const isDark = theme === 'dark';
   const [hotSearchFocused, setHotSearchFocused] = useState(false);
+  const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
   const [openDropdownKey, setOpenDropdownKey] = useState<string | null>(null);
   const [dropdownAnchor, setDropdownAnchor] = useState<HTMLButtonElement | null>(null);
   const [reduceMotion, setReduceMotion] = useState(false);
@@ -149,6 +151,13 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
       if (e.key === 'Escape') {
         setOpenDropdownKey(null);
         setDropdownAnchor(null);
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setOpenDropdownKey(null);
+        setDropdownAnchor(null);
+        setGlobalSearchOpen(true);
       }
     };
     window.addEventListener('keydown', onHotkey);
@@ -187,6 +196,16 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
           aria-label="回到首页"
         >
           <Logo followSystemColorScheme={false} theme={theme} topBar />
+        </button>
+        <button
+          type="button"
+          onClick={() => setGlobalSearchOpen(true)}
+          className={`inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg p-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent lg:hidden ${
+            isDark ? 'hover:bg-white/10' : 'hover:bg-slate-100'
+          }`}
+          aria-label="打开全局搜索"
+        >
+          <Search size={19} className={isDark ? 'text-lantu-text-primary' : 'text-slate-600'} />
         </button>
       </div>
 
@@ -324,10 +343,11 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
             ? isDark
               ? 'border border-transparent bg-white/10 shadow-[0_0_0_2px_rgba(96,165,250,0.35)]'
               : 'border border-transparent bg-white shadow-[0_0_0_2px_rgba(9,9,11,0.1)]'
-            : isDark
+          : isDark
               ? 'border border-transparent bg-white/[0.06] shadow-[inset_0_1px_2px_rgba(0,0,0,0.35)] hover:bg-white/[0.09]'
               : 'border border-transparent bg-slate-100/90 hover:bg-slate-200/60',
         ].join(' ')}
+        onClick={() => setGlobalSearchOpen(true)}
       >
         <Search
           size={15}
@@ -352,19 +372,34 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
           readOnly
           aria-readonly="true"
           tabIndex={0}
-          onFocus={() => setHotSearchFocused(true)}
+          onFocus={() => {
+            setHotSearchFocused(true);
+            setGlobalSearchOpen(true);
+          }}
           onBlur={() => setHotSearchFocused(false)}
-          placeholder="热门搜索（即将上线）"
+          placeholder="搜索资源、功能、待办..."
           className={[
-            'flex-1 min-w-0 h-full cursor-default border-none bg-transparent px-2.5 py-0 text-sm font-medium leading-none outline-none',
+            'flex-1 min-w-0 h-full cursor-pointer border-none bg-transparent px-2.5 py-0 text-sm font-medium leading-none outline-none',
             isDark ? 'text-lantu-text-primary placeholder:text-lantu-text-muted' : 'text-gray-700 placeholder-gray-400',
           ].join(' ')}
-          aria-label="热门搜索，功能即将上线，当前为只读占位不可输入"
+          aria-label="全局搜索，按 Ctrl K 或 Command K 打开"
         />
       </div>
 
       <div className="ml-auto flex min-w-0 shrink-0 items-center">{toolbarRight}</div>
       </div>
+      <GlobalSearchPalette
+        open={globalSearchOpen}
+        theme={theme}
+        sidebarSearchRows={searchRows}
+        filteredSubGroupsForSidebarId={filteredSubGroupsForSidebarId}
+        onSidebarClick={onSidebarClick}
+        onSubItemClick={onSubItemClick}
+        onClose={() => {
+          setGlobalSearchOpen(false);
+          setHotSearchFocused(false);
+        }}
+      />
     </header>
   );
 };

@@ -749,6 +749,8 @@ const LegacyConsoleRedirect: React.FC<{ prefix: 'user' | 'admin' }> = ({ prefix 
   return <Navigate to={to} replace />;
 };
 
+const ACCOUNT_STANDALONE_NO_RAIL_PAGES = new Set(['profile', 'preferences']);
+
 export const MainLayout: React.FC = () => {
   const [themePreference, setThemePreference] = useState<ThemeMode>(() => readAppearanceState().themePreference);
   const systemDark = useSyncExternalStore(
@@ -941,11 +943,6 @@ const MainLayoutContent: React.FC<{
   const mainScrollRef = useRef<HTMLDivElement>(null);
   /** 双栏壳：仅右侧内容滚动，避免与左侧轨共用 scroll 导致切换路由时整栏重绘闪烁 */
   const routeContentScrollRef = useRef<HTMLDivElement>(null);
-  /**
-   * 探索 hub 页始终内嵌个人左轨。
-   * 其他子页：独立左轨是否展示由下方 useEffect 按当前 page 与配置同步（含刷新/深链恢复）。
-   */
-  const [personalRailOpen, setPersonalRailOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -1247,14 +1244,6 @@ const MainLayoutContent: React.FC<{
       navigate(`${buildPath('user', 'my-api-keys')}?tab=platform`, { replace: true });
       return;
     }
-    if (layoutIsAdmin && (normalizedRoutePage === 'resource-grant-management' || normalizedRoutePage === 'grant-applications')) {
-      navigate(buildPath('user', 'user-list'), { replace: true });
-      return;
-    }
-    if (!layoutIsAdmin && normalizedRoutePage === 'my-grant-applications') {
-      navigate(buildPath('user', 'hub'), { replace: true });
-      return;
-    }
     if (normalizedRoutePage === 'authorized-skills') {
       navigate(buildPath('user', 'skills-center'), { replace: true });
       return;
@@ -1505,26 +1494,6 @@ const MainLayoutContent: React.FC<{
     [railSectionsUser, railSectionsAdmin],
   );
 
-  /**
-   * 独立左轨开关与 URL 同步；hub 由内嵌轨提供故关闭 standalone。
-   * 顶栏五类「广场/中心」仅主内容不叠左轨。应用壳与管理壳共用逻辑。
-   */
-  useEffect(() => {
-    if (unifiedRailSections.length === 0) {
-      setPersonalRailOpen(false);
-      return;
-    }
-    if (page === 'hub') {
-      setPersonalRailOpen(false);
-      return;
-    }
-    if (USER_TOP_NAV_NO_RAIL_SIDEBAR_ID_SET.has(activeSidebar)) {
-      setPersonalRailOpen(false);
-      return;
-    }
-    setPersonalRailOpen(true);
-  }, [unifiedRailSections.length, page, activeSidebar]);
-
   const handleTopNavSidebarClick = (id: string, domain: ConsoleRole) => {
     setMobileNavOpen(false);
     if (domain === 'user' && USER_TOP_NAV_SIDEBAR_ID_SET.has(id)) {
@@ -1764,7 +1733,10 @@ const MainLayoutContent: React.FC<{
   const hubDesktopShellRail = Boolean(exploreHubRailForContent);
 
   const showStandalonePersonalRail =
-    personalRailOpen && Boolean(shellPersonalRail) && page !== 'hub';
+    Boolean(shellPersonalRail) &&
+    page !== 'hub' &&
+    !ACCOUNT_STANDALONE_NO_RAIL_PAGES.has(page) &&
+    !USER_TOP_NAV_NO_RAIL_SIDEBAR_ID_SET.has(activeSidebar);
 
   /** 与滚回顶部的 useEffect 一致：双栏时滚右侧列，否则滚主列 */
   const activeMainContentScrollRef =

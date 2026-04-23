@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 interface TooltipProps {
   content: string;
@@ -15,8 +15,8 @@ interface TooltipProps {
 }
 
 const VIEWPORT_PAD = 10;
-const GAP_PX = 10;
-const ARROW_HALF = 5;
+const GAP_PX = 9;
+const ARROW_WIDTH = 12;
 
 export const Tooltip: React.FC<TooltipProps> = ({
   content,
@@ -33,6 +33,8 @@ export const Tooltip: React.FC<TooltipProps> = ({
   const [side, setSide] = useState<'top' | 'bottom'>('top');
   const [offsetX, setOffsetX] = useState(0);
   const [arrowLeftPx, setArrowLeftPx] = useState<number | null>(null);
+  const [placementReady, setPlacementReady] = useState(false);
+  const showTimerRef = useRef<number | null>(null);
 
   const resolveAutoSide = useCallback((): 'top' | 'bottom' => {
     const el = triggerRef.current;
@@ -77,35 +79,53 @@ export const Tooltip: React.FC<TooltipProps> = ({
     setOffsetX(clampedPanelLeft - idealPanelLeft);
 
     const arrowTargetX = triggerMidX - clampedPanelLeft;
-    const innerMin = ARROW_HALF + 6;
+    const innerMin = ARROW_WIDTH / 2 + 6;
     const innerMax = pr.width - innerMin;
     setArrowLeftPx(Math.max(innerMin, Math.min(arrowTargetX, innerMax)));
+    setPlacementReady(true);
   }, [open, preferredSide, resolveAutoSide]);
+
+  const clearShowTimer = useCallback(() => {
+    if (showTimerRef.current == null) return;
+    window.clearTimeout(showTimerRef.current);
+    showTimerRef.current = null;
+  }, []);
+
+  const showTooltip = useCallback(() => {
+    clearShowTimer();
+    setPlacementReady(false);
+    showTimerRef.current = window.setTimeout(() => {
+      showTimerRef.current = null;
+      setOpen(true);
+    }, 90);
+  }, [clearShowTimer]);
+
+  const hideTooltip = useCallback(() => {
+    clearShowTimer();
+    setOpen(false);
+    setPlacementReady(false);
+  }, [clearShowTimer]);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    updatePlacement();
+  }, [open, content, wrapContent, preferSingleLine, updatePlacement]);
 
   useEffect(() => {
     if (!open) return;
-
-    let a = 0;
-    let b = 0;
-    const run = () => {
-      a = requestAnimationFrame(() => {
-        b = requestAnimationFrame(() => updatePlacement());
-      });
-    };
-    run();
 
     const onChange = () => updatePlacement();
     window.addEventListener('resize', onChange);
     window.addEventListener('scroll', onChange, true);
     return () => {
-      cancelAnimationFrame(a);
-      cancelAnimationFrame(b);
       window.removeEventListener('resize', onChange);
       window.removeEventListener('scroll', onChange, true);
     };
-  }, [open, content, wrapContent, preferSingleLine, updatePlacement]);
+  }, [open, updatePlacement]);
 
-  const panelPos = side === 'bottom' ? 'top-full left-1/2 mt-2.5' : 'bottom-full left-1/2 mb-2.5';
+  useEffect(() => () => clearShowTimer(), [clearShowTimer]);
+
+  const panelPos = side === 'bottom' ? 'top-full left-1/2 mt-2' : 'bottom-full left-1/2 mb-2';
 
   const triggerClasses = [
     'relative isolate',
@@ -139,10 +159,10 @@ export const Tooltip: React.FC<TooltipProps> = ({
       ref={triggerRef}
       tabIndex={focusableTrigger ? 0 : undefined}
       className={triggerClasses}
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
-      onFocus={() => setOpen(true)}
-      onBlur={() => setOpen(false)}
+      onMouseEnter={showTooltip}
+      onMouseLeave={hideTooltip}
+      onFocus={showTooltip}
+      onBlur={hideTooltip}
     >
       {children}
       <span
@@ -150,18 +170,22 @@ export const Tooltip: React.FC<TooltipProps> = ({
         role="tooltip"
         style={{
           transform: `translateX(calc(-50% + ${offsetX}px))`,
-          transition: motionOk ? 'opacity 120ms ease-out' : undefined,
+          transition: motionOk ? 'opacity 110ms ease-out, filter 110ms ease-out' : undefined,
         }}
-        className={`pointer-events-none absolute z-[80] rounded-md border border-white/10 bg-neutral-800 px-3 py-2 text-sm font-normal text-white shadow-[0_4px_12px_rgba(0,0,0,0.32)] ${panelPos} ${panelTextClasses} ${
-          open ? 'opacity-100' : 'opacity-0'
+        className={`pointer-events-none absolute z-[80] rounded-xl border px-3 py-2 text-[12px] font-semibold tracking-[-0.01em] shadow-[0_14px_34px_rgba(15,23,42,0.24)] backdrop-blur-md ${
+          'border-slate-950/10 bg-slate-950/90 text-white dark:border-white/10 dark:bg-white/95 dark:text-slate-950'
+        } ${panelPos} ${panelTextClasses} ${
+          open && placementReady ? 'opacity-100 blur-0' : 'opacity-0 blur-[1px]'
         }`}
       >
         {content}
         <span
           aria-hidden
           style={arrowStyle}
-          className={`absolute h-2 w-2 rotate-45 border border-white/10 bg-neutral-800 ${
-            side === 'bottom' ? '-top-1 border-b-0 border-r-0' : '-bottom-1 border-l-0 border-t-0'
+          className={`absolute h-0 w-0 border-x-[6px] border-x-transparent ${
+            side === 'bottom'
+              ? '-top-[5px] border-b-[6px] border-b-slate-950/90 dark:border-b-white/95'
+              : '-bottom-[5px] border-t-[6px] border-t-slate-950/90 dark:border-t-white/95'
           }`}
         />
       </span>

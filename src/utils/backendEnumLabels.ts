@@ -1,5 +1,5 @@
 /**
- * 后端枚举 / 技术状态值 → 中文展示（与 Spring Actuator、Resilience4j、资源版本快照等常见取值对齐）。
+ * Backend enum / technical states to Chinese display labels.
  */
 import type { Theme } from '../types';
 
@@ -12,7 +12,6 @@ function norm(raw: string | null | undefined): string {
     .replace(/-/g, '_');
 }
 
-/** 资源探测 / 聚合健康（含 Actuator UP、DOWN 等） */
 const HEALTH_LABEL: Record<string, string> = {
   '': '—',
   unknown: '未知',
@@ -23,9 +22,7 @@ const HEALTH_LABEL: Record<string, string> = {
   unhealthy: '不健康',
   out_of_service: '停止服务',
   offline: '离线',
-  /** 与健康字段并存：探测可能仍为 UP，但网关/熔断/降级提示已不放行 invoke */
   gateway_blocked: '网关不放行',
-  /** Resilience4j HALF_OPEN：试探恢复，不宜展示为「健康」 */
   circuit_half_open: '半开试探',
 };
 
@@ -66,7 +63,6 @@ export function resourceHealthBadgeClass(theme: Theme, raw: string | null | unde
     : 'bg-rose-50 text-rose-800 border border-rose-200/70';
 }
 
-/** 熔断器状态（Resilience4j 等） */
 const CIRCUIT_LABEL: Record<string, string> = {
   closed: '闭合（正常放行）',
   open: '断开（熔断中）',
@@ -99,9 +95,8 @@ export function circuitBreakerBadgeClass(theme: Theme, raw: string | null | unde
     : 'bg-orange-50 text-orange-900 border border-orange-200/70';
 }
 
-/** 资源版本快照状态（非资源主状态） */
 const VERSION_SNAPSHOT_LABEL: Record<string, string> = {
-  active: '生效中 · 可切换',
+  active: '生效中，可切换',
   deprecated: '已暂停的快照',
   archived: '已归档',
   superseded: '已被替代',
@@ -113,30 +108,6 @@ export function resourceVersionSnapshotLabelZh(raw: string | null | undefined): 
   const k = norm(raw === undefined || raw === null || raw === '' ? 'active' : raw);
   const fallback = raw == null || String(raw).trim() === '' ? '—' : String(raw).trim();
   return VERSION_SNAPSHOT_LABEL[k] ?? `状态：${fallback}`;
-}
-
-const GRANT_STATUS_LABEL: Record<string, string> = {
-  active: '有效',
-  revoked: '已撤销',
-  expired: '已过期',
-  pending: '待生效',
-};
-
-export function resourceGrantRecordStatusLabelZh(raw: string | null | undefined): string {
-  const k = norm(raw);
-  return GRANT_STATUS_LABEL[k] ?? (k ? `未映射（${String(raw).trim()}）` : '—');
-}
-
-const GRANT_ACTION_LABEL: Record<string, string> = {
-  catalog: '目录',
-  resolve: '解析',
-  invoke: '调用',
-  '*': '全部权限',
-};
-
-export function resourceGrantActionsLabelZh(actions: string[] | null | undefined): string {
-  if (!actions?.length) return '—';
-  return actions.map((a) => GRANT_ACTION_LABEL[norm(a)] ?? String(a)).join('、');
 }
 
 const AUDIT_TIER_LABEL: Record<string, string> = {
@@ -163,7 +134,6 @@ export function authorizedSkillRowStatusLabelZh(raw: string | null | undefined):
   return SKILL_HUB_AUTH_LABEL[k] ?? `状态：${String(raw).trim()}`;
 }
 
-/** 仪表盘健康聚合：状态分布行中文 */
 export function healthDistributionSummaryZh(dist: { healthy?: number; degraded?: number; down?: number }): string {
   const h = dist.healthy ?? 0;
   const d = dist.degraded ?? 0;
@@ -171,7 +141,6 @@ export function healthDistributionSummaryZh(dist: { healthy?: number; degraded?:
   return `健康 ${h} / 降级 ${d} / 故障 ${x}`;
 }
 
-/** 分布式追踪聚合状态（网关/otel 常见 ok / error） */
 export function distributedTraceStatusLabelZh(raw: string | null | undefined): string {
   const k = norm(raw);
   if (k === 'error' || k === 'failed') return '错误';
@@ -179,7 +148,6 @@ export function distributedTraceStatusLabelZh(raw: string | null | undefined): s
   return raw?.trim() ? String(raw).trim() : '—';
 }
 
-/** 统一调用网关响应 status 字段（常见 success / error） */
 export function invokeGatewayStatusLabelZh(raw: string | null | undefined): string {
   const k = norm(raw);
   if (k === 'success' || k === 'ok') return '成功';

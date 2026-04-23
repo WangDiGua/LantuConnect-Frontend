@@ -337,7 +337,7 @@ export const SystemParamsPage: React.FC<PageProps> = ({ theme, fontSize, showMes
   );
 };
 
-/** 与库内字典值对应（见 t_security_setting） */
+/** 与系统配置安全项字典值对应 */
 const PASSWORD_COMPLEXITY_LABELS: Record<string, string> = {
   low: '低',
   medium: '中',

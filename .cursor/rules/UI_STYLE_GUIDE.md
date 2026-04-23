@@ -11,6 +11,7 @@
 
 | 日期 | 内容摘要 |
 |------|----------|
+| 2026-04-23 | **探索发现 Hero 暗色适配**（`views/dashboard/ExploreHub.tsx`）：`hubHeroBannerImmersive` 在暗色主题下使用显式深色底、青蓝弱边光、玻璃公告条、暗色按钮焦点态与 Three 粒子青蓝配色；浅色主题保留原视觉，不再用一套固定深色样式覆盖所有主题。 |
 | 2026-03-23 | **品牌 Logo**（`components/common/Logo.tsx`）：明暗随 **`prefers-color-scheme`**（`useSyncExternalStore` 订阅系统切换）；图形为站内定制 **多路径 SVG**（节点+连线，非 Lucide 单图标）；侧栏 **`onLogoClick`** → `defaultPath(consoleRole)` 回目录首页；`followSystemColorScheme={false}` 时可改与父级 `theme` 一致。 |
 | 2026-03-20 | **路由**：控制台路径 `/c/{admin 或 user}/{sidebar}/{sub}`（`encodeURIComponent`），无子菜单项第三段为 `__root__`（`routeRoot.ts`）；`react-router-dom` + `useLayoutEffect` 与侧栏点击 `navigate` 同步；入口 `/` 见 `ConsoleHomeRedirect`。 **数据可视化**：业务统计统一 **ECharts**（按需注册 chart 类型），壳组件 `EChartCard` + 主题工具 `echartsTheme.ts`；概览 `OverviewAnalyticsGrid`、监控 `MonitoringOverviewCharts`、管理员总览 `AdminConsoleCharts`。 **开源组件**：要闻轮播使用 **Swiper**（`HeroCarousel`）。 **DaisyUI**：公告区使用 `card` / `card-body` / `card-title` 等与 `data-theme` 联动。 **复用**：图表与轮播独立目录 `components/charts`、`components/ui`，避免页面内重复 option 大块（可再抽 `buildXxxOption`）。 |
 | 2026-03-20 | **应用型侧栏目录**：一级项为「主按钮 + 独立展开箭头」（箭头可收起当前模块子树）；子项行统一 **`rounded-xl`**，分组标题置于 **`rounded-lg`** 浅底轨道内；当前模块下提供 **子项筛选框**（`toolbarSearchInputClass` + 左侧 Search 图标）；选中态以 **背景 + 字重 + 左侧主题色边线** 为主，去掉子项横向位移动效；管理员侧栏各子页补全 **Mock 可操作流程**（`views/adminApp/*`、`SystemConfigExtraPages`、`OrgStructurePage`、监控扩展页）。§6 补充「应用目录」约定。 |

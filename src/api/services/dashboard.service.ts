@@ -17,6 +17,7 @@ import type {
   AnnouncementItem,
   ExploreResourceItem,
   ContributorItem,
+  PlatformStatTrend,
 } from '../../types/dto/explore';
 
 function num(v: unknown, fallback = 0): number {
@@ -28,6 +29,35 @@ function optNum(v: unknown): number | null {
   if (v == null || v === '') return null;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
+}
+
+function normalizeTrendDirection(raw: unknown, delta: number): PlatformStatTrend['direction'] {
+  if (raw === 'up' || raw === 'flat' || raw === 'down') return raw;
+  if (delta > 0) return 'up';
+  if (delta < 0) return 'down';
+  return 'flat';
+}
+
+function normalizePlatformStatTrends(raw: unknown): Record<string, PlatformStatTrend> {
+  if (!raw || typeof raw !== 'object') return {};
+  return Object.fromEntries(
+    Object.entries(raw as Record<string, unknown>).map(([key, value]) => {
+      const item = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+      const today = num(item.today ?? item.todayValue ?? item.today_value);
+      const yesterday = num(item.yesterday ?? item.yesterdayValue ?? item.yesterday_value);
+      const delta = item.delta == null ? today - yesterday : num(item.delta);
+      return [
+        key,
+        {
+          today,
+          yesterday,
+          delta,
+          direction: normalizeTrendDirection(item.direction, delta),
+          basis: item.basis == null ? undefined : String(item.basis),
+        },
+      ];
+    }),
+  );
 }
 
 export function normalizeExploreResourceItem(raw: unknown): ExploreResourceItem {
@@ -345,6 +375,13 @@ function normalizeExploreHubData(raw: unknown): ExploreHubData {
       cnt: num(x.cnt ?? x.count ?? x.total),
     };
   });
+  const trends = normalizePlatformStatTrends(
+    ps.trends
+    ?? (ps as { trendSummary?: unknown }).trendSummary
+    ?? (ps as { trend_summary?: unknown }).trend_summary
+    ?? (ps as { statTrends?: unknown }).statTrends
+    ?? (ps as { stat_trends?: unknown }).stat_trends,
+  );
   const announcements = extractArray(o.announcements).map((item: unknown) => {
     const a = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
     return {
@@ -373,10 +410,14 @@ function normalizeExploreHubData(raw: unknown): ExploreHubData {
       totalDatasets: num(ps.totalDatasets),
       totalDevelopers: num(ps.totalDevelopers ?? (ps as { developerUsers?: unknown }).developerUsers ?? (ps as { total_developers?: unknown }).total_developers),
       totalUsers: num(ps.totalUsers),
+      activeUsersToday: num(ps.activeUsersToday ?? (ps as { active_users_today?: unknown }).active_users_today),
+      activeUsersYesterday: num(ps.activeUsersYesterday ?? (ps as { active_users_yesterday?: unknown }).active_users_yesterday),
       totalCallsToday: num(ps.totalCallsToday),
+      totalCallsYesterday: num(ps.totalCallsYesterday ?? (ps as { total_calls_yesterday?: unknown }).total_calls_yesterday),
       callsTrend7d,
       newResourcesTrend7d,
       byType,
+      trends,
     },
     trendingResources: extractArray(o.trendingResources).map(normalizeExploreResourceItem),
     recentPublished: extractArray(o.recentPublished).map(normalizeExploreResourceItem),

@@ -29,6 +29,7 @@ import { Modal } from '../../components/common/Modal';
 import { MarkdownView } from '../../components/common/MarkdownView';
 import { MultiAvatar } from '../../components/common/MultiAvatar';
 import { EChartCard } from '../../components/charts/EChartCard';
+import { buildExploreHubTrendView, type ExploreHubTrendView } from './exploreHubStatsModel';
 import {
   baseAxis,
   baseGrid,
@@ -803,12 +804,13 @@ const HubStatCard: React.FC<{
   icon: LucideIcon;
   value: string;
   label: string;
+  trend?: ExploreHubTrendView | null;
   clickable: boolean;
   onClick?: () => void;
   isDark: boolean;
-}> = ({ icon: Icon, value, label, clickable, onClick, isDark }) => {
+}> = ({ icon: Icon, value, label, trend, clickable, onClick, isDark }) => {
   const shell = [
-    `group relative flex h-[156px] min-w-0 w-full flex-col items-center justify-center overflow-hidden ${CONSOLE_CARD_RADIUS} border`,
+    `group relative flex h-[168px] min-w-0 w-full flex-col items-center justify-center overflow-hidden ${CONSOLE_CARD_RADIUS} border`,
     'transition-all duration-500 ease-out hover:-translate-y-2',
     isDark
       ? `bg-lantu-card ${HUB_STAT_BASE_DARK} ${HUB_STAT_HOVER_DARK}`
@@ -823,8 +825,22 @@ const HubStatCard: React.FC<{
     isDark ? 'text-white' : 'text-gray-900',
   ].join(' ');
 
+  const trendCls = trend
+    ? trend.tone === 'up'
+      ? isDark
+        ? 'bg-emerald-400/10 text-emerald-300 ring-emerald-300/15'
+        : 'bg-emerald-50 text-emerald-700 ring-emerald-100'
+      : trend.tone === 'down'
+        ? isDark
+          ? 'bg-rose-400/10 text-rose-300 ring-rose-300/15'
+          : 'bg-rose-50 text-rose-700 ring-rose-100'
+        : isDark
+          ? 'bg-white/[0.06] text-lantu-text-muted ring-white/10'
+          : 'bg-slate-100 text-slate-500 ring-slate-200'
+    : '';
+
   const iconBoxCls = [
-    'mb-4 flex h-12 w-12 items-center justify-center rounded-xl',
+    'mb-3 flex h-12 w-12 items-center justify-center rounded-xl',
     'transition-all duration-500 ease-out',
     'group-hover:scale-110 group-hover:-rotate-3 group-hover:shadow-[var(--shadow-card-hover)]',
     isDark
@@ -851,6 +867,11 @@ const HubStatCard: React.FC<{
         }`}>
           {label}
         </div>
+        {trend ? (
+          <div className={`mt-2 rounded-full px-2.5 py-1 text-[10px] font-bold leading-none ring-1 ${trendCls}`}>
+            {trend.text}
+          </div>
+        ) : null}
       </div>
     </>
   );
@@ -1161,17 +1182,75 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
     + Number(stats?.totalApps ?? byTypeMap.app ?? 0)
     + Number(stats?.totalDatasets ?? byTypeMap.dataset ?? 0)
   );
+  const statTrends = stats?.trends ?? {};
+  const activeUsersToday = Number(stats?.activeUsersToday ?? statTrends.users?.today ?? stats?.totalUsers ?? 0);
 
   const statsData = useMemo(() => [
-    { id: 'agent', label: '智能体 Agent', value: Number(stats?.totalAgents ?? byTypeMap.agent ?? 0), icon: Bot, marketTab: 'agent' as const },
-    { id: 'skill', label: '技能 Skill', value: Number(stats?.totalSkills ?? byTypeMap.skill ?? 0), icon: Wrench, marketTab: 'skill' as const },
-    { id: 'mcp', label: '服务 MCP', value: Number(stats?.totalMcps ?? byTypeMap.mcp ?? 0), icon: Cpu, marketTab: 'mcp' as const },
-    { id: 'app', label: '应用 App', value: Number(stats?.totalApps ?? byTypeMap.app ?? 0), icon: AppWindow, marketTab: 'app' as const },
-    { id: 'dataset', label: '数据集 Data', value: Number(stats?.totalDatasets ?? byTypeMap.dataset ?? 0), icon: Database, marketTab: 'dataset' as const },
-    { id: 'total', label: '总资源数', value: totalResources, icon: BookOpen, marketTab: null },
-    { id: 'users', label: '活跃师生', value: Number(stats?.totalUsers ?? 0), icon: Users, marketTab: null },
-    { id: 'calls', label: '今日网关调用', value: Number(stats?.totalCallsToday ?? 0), icon: Activity, marketTab: null },
-  ], [byTypeMap.agent, byTypeMap.app, byTypeMap.dataset, byTypeMap.mcp, byTypeMap.skill, stats?.totalAgents, stats?.totalApps, stats?.totalCallsToday, stats?.totalDatasets, stats?.totalMcps, stats?.totalSkills, stats?.totalUsers, totalResources]);
+    {
+      id: 'agent',
+      label: '智能体 Agent',
+      value: Number(stats?.totalAgents ?? byTypeMap.agent ?? 0),
+      icon: Bot,
+      marketTab: 'agent' as const,
+      trend: buildExploreHubTrendView(statTrends.agent, '个'),
+    },
+    {
+      id: 'skill',
+      label: '技能 Skill',
+      value: Number(stats?.totalSkills ?? byTypeMap.skill ?? 0),
+      icon: Wrench,
+      marketTab: 'skill' as const,
+      trend: buildExploreHubTrendView(statTrends.skill, '个'),
+    },
+    {
+      id: 'mcp',
+      label: '服务 MCP',
+      value: Number(stats?.totalMcps ?? byTypeMap.mcp ?? 0),
+      icon: Cpu,
+      marketTab: 'mcp' as const,
+      trend: buildExploreHubTrendView(statTrends.mcp, '个'),
+    },
+    {
+      id: 'app',
+      label: '应用 App',
+      value: Number(stats?.totalApps ?? byTypeMap.app ?? 0),
+      icon: AppWindow,
+      marketTab: 'app' as const,
+      trend: buildExploreHubTrendView(statTrends.app, '个'),
+    },
+    {
+      id: 'dataset',
+      label: '数据集 Data',
+      value: Number(stats?.totalDatasets ?? byTypeMap.dataset ?? 0),
+      icon: Database,
+      marketTab: 'dataset' as const,
+      trend: buildExploreHubTrendView(statTrends.dataset, '个'),
+    },
+    {
+      id: 'total',
+      label: '总资源数',
+      value: totalResources,
+      icon: BookOpen,
+      marketTab: null,
+      trend: buildExploreHubTrendView(statTrends.total, '个'),
+    },
+    {
+      id: 'users',
+      label: '活跃师生',
+      value: activeUsersToday,
+      icon: Users,
+      marketTab: null,
+      trend: buildExploreHubTrendView(statTrends.users, '人'),
+    },
+    {
+      id: 'calls',
+      label: '今日网关调用',
+      value: Number(stats?.totalCallsToday ?? 0),
+      icon: Activity,
+      marketTab: null,
+      trend: buildExploreHubTrendView(statTrends.calls, '次'),
+    },
+  ], [activeUsersToday, byTypeMap.agent, byTypeMap.app, byTypeMap.dataset, byTypeMap.mcp, byTypeMap.skill, statTrends, stats?.totalAgents, stats?.totalApps, stats?.totalCallsToday, stats?.totalDatasets, stats?.totalMcps, stats?.totalSkills, totalResources]);
 
   const hotResources = (hubData?.trendingResources ?? []).slice(0, 4);
   const recentItems = (hubData?.recentPublished ?? []).slice(0, 4);
@@ -1961,6 +2040,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
           icon={stat.icon}
           value={formatCount(stat.value)}
           label={stat.label}
+          trend={stat.trend}
           clickable={Boolean(stat.marketTab)}
           onClick={stat.marketTab ? () => navigate(buildUserResourceMarketUrl(stat.marketTab)) : undefined}
           isDark={isDark}

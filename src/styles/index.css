@@ -370,6 +370,172 @@
 }
 .animate-glow { animation: glow 2s ease-in-out infinite; }
 
+@keyframes nexus-loader-shell-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes nexus-loader-trace {
+  0% {
+    stroke-dashoffset: 0;
+    opacity: 0.38;
+  }
+  45% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: -168;
+    opacity: 0.4;
+  }
+}
+
+@keyframes nexus-loader-trace-reverse {
+  0% {
+    stroke-dashoffset: 0;
+    opacity: 0.34;
+  }
+  45% {
+    opacity: 0.86;
+  }
+  100% {
+    stroke-dashoffset: 168;
+    opacity: 0.34;
+  }
+}
+
+@keyframes nexus-loader-mark-float {
+  0%, 100% {
+    transform: translateY(0) scale(0.98);
+  }
+  50% {
+    transform: translateY(-1px) scale(1.02);
+  }
+}
+
+@keyframes nexus-loader-eclipse-left {
+  0%, 100% {
+    transform: translateX(0) scale(0.98);
+    opacity: 0.92;
+  }
+  50% {
+    transform: translateX(-0.6px) scale(1.04);
+    opacity: 1;
+  }
+}
+
+@keyframes nexus-loader-eclipse-right {
+  0%, 100% {
+    transform: translateX(0) scale(0.96);
+    opacity: 0.26;
+  }
+  50% {
+    transform: translateX(0.6px) scale(1.02);
+    opacity: 0.46;
+  }
+}
+
+@keyframes nexus-loader-spine-scan {
+  0%, 100% {
+    opacity: 0.24;
+    transform: translateX(-50%) scaleY(0.78);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(-50%) scaleY(1.1);
+  }
+}
+
+@keyframes nexus-loader-ring-breathe {
+  0%, 100% {
+    opacity: 0.45;
+    transform: scale(0.98);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes nexus-loader-spark-pulse {
+  0%, 100% {
+    opacity: 0.25;
+    transform: translate(-50%, -50%) scale(0.75);
+  }
+  50% {
+    opacity: 0.95;
+    transform: translate(-50%, -50%) scale(1.15);
+  }
+}
+
+@keyframes nexus-loader-halo-breathe {
+  0%, 100% {
+    opacity: 0.45;
+    transform: scale(0.96);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes nexus-loader-indicator-blink {
+  0%, 100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.nexus-loader-shell {
+  transform-origin: center;
+  animation: nexus-loader-shell-spin 18s linear infinite;
+  filter: drop-shadow(0 0 18px rgba(148, 163, 184, 0.08));
+}
+
+.nexus-loader-orbit {
+  transform-origin: center;
+  animation:
+    nexus-loader-trace var(--nexus-loader-duration, 6.4s) linear infinite,
+    nexus-loader-ring-breathe 3.1s ease-in-out infinite;
+  animation-delay: var(--nexus-loader-delay, 0s), 0s;
+}
+
+.nexus-loader-orbit-reverse {
+  animation-name: nexus-loader-trace-reverse, nexus-loader-ring-breathe;
+}
+
+.nexus-loader-mark {
+  animation: nexus-loader-mark-float 3.2s ease-in-out infinite;
+}
+
+.nexus-loader-eclipse-left {
+  transform-origin: center;
+  animation: nexus-loader-eclipse-left 2.6s ease-in-out infinite;
+}
+
+.nexus-loader-eclipse-right {
+  transform-origin: center;
+  animation: nexus-loader-eclipse-right 2.6s ease-in-out infinite;
+}
+
+.nexus-loader-spine {
+  animation: nexus-loader-spine-scan 1.8s ease-in-out infinite;
+}
+
+.nexus-loader-spark {
+  box-shadow: 0 0 16px currentColor;
+  animation: nexus-loader-spark-pulse 2.1s ease-in-out infinite;
+}
+
+.nexus-loader-halo {
+  animation: nexus-loader-halo-breathe 4.5s ease-in-out infinite;
+}
+
+.nexus-loader-indicator {
+  animation: nexus-loader-indicator-blink 1.4s ease-in-out infinite;
+}
+
 /* PageSkeleton：暗色下低调的条块 + 横向微光（避免大块 slate-200 刺眼） */
 @keyframes lantu-skeleton-shimmer {
   0% {
@@ -413,6 +579,19 @@
 /* 装饰性动效：系统请求减少动效时关闭（加载用 spinner 等保留 animate-spin） */
 @media (prefers-reduced-motion: reduce) {
   .animate-glow {
+    animation: none !important;
+  }
+
+  .nexus-loader-shell,
+  .nexus-loader-orbit,
+  .nexus-loader-orbit-reverse,
+  .nexus-loader-mark,
+  .nexus-loader-eclipse-left,
+  .nexus-loader-eclipse-right,
+  .nexus-loader-spine,
+  .nexus-loader-spark,
+  .nexus-loader-halo,
+  .nexus-loader-indicator {
     animation: none !important;
   }
 

@@ -40,6 +40,7 @@ import {
   shouldOpenAgentRegisterAsPageMode,
   type AgentDeliveryMode,
 } from './agentDeliveryMode';
+import { shouldShowAgentAccessSection } from './resourceRegisterAccessVisibility';
 import {
   AGENT_PROVIDER_PRESET_OPTIONS,
   buildAgentAdapterSpecMeta,
@@ -1132,6 +1133,10 @@ export const ResourceRegisterPage: React.FC<Props> = ({
     if (typeof window === 'undefined') return '/regis/openai/v1';
     return `${window.location.origin}/regis/openai/v1`;
   }, []);
+  const showAgentAccessSection = shouldShowAgentAccessSection({
+    resourceId,
+    status: loadedResourceMeta?.status,
+  });
   const agentPresetMeta = getAgentProviderPresetMeta(agentProviderPreset);
 
   const addSkillParam = () => {
@@ -2134,7 +2139,7 @@ export const ResourceRegisterPage: React.FC<Props> = ({
                   </p>
                 </SectionCard>
 
-                {resourceId ? (
+                {showAgentAccessSection ? (
                   <SectionCard
                     theme={theme}
                     isDark={isDark}

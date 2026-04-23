@@ -47,6 +47,16 @@ export interface ContributorItem {
   likeCount?: number;
 }
 
+export type PlatformStatTrendDirection = 'up' | 'flat' | 'down';
+
+export interface PlatformStatTrend {
+  today: number;
+  yesterday: number;
+  delta: number;
+  direction: PlatformStatTrendDirection;
+  basis?: string;
+}
+
 export interface ExploreHubData {
   platformStats: {
     totalResources: number;
@@ -57,10 +67,14 @@ export interface ExploreHubData {
     totalDatasets: number;
     totalDevelopers: number;
     totalUsers: number;
+    activeUsersToday?: number;
+    activeUsersYesterday?: number;
     totalCallsToday: number;
+    totalCallsYesterday?: number;
     callsTrend7d: { day: string; calls: number }[];
     newResourcesTrend7d: { day: string; count: number }[];
     byType: { type: string; cnt: number }[];
+    trends?: Record<string, PlatformStatTrend>;
   };
   trendingResources: ExploreResourceItem[];
   recentPublished: ExploreResourceItem[];

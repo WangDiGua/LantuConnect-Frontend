@@ -154,6 +154,99 @@ const HERO_SCENE_METADATA: Array<{ label: string; desc: string; Icon: LucideIcon
   { label: '技能资源引擎', desc: '原子化模块能力的动态注册与按需加载', Icon: Layers },
 ];
 
+const HERO_SCENE_PARTICLE_COUNT = 1800;
+const HERO_SCENE_POSTER_KEY = 'lantu.exploreHero.scenePoster.v1';
+
+type HeroSceneParticleCache = {
+  initial: Float32Array;
+  targets: [Float32Array, Float32Array, Float32Array];
+};
+
+let heroSceneParticleCache: HeroSceneParticleCache | null = null;
+
+function createHeroSceneParticleCache(): HeroSceneParticleCache {
+  const pCount = HERO_SCENE_PARTICLE_COUNT;
+  const initial = new Float32Array(pCount * 3);
+  const targets: [Float32Array, Float32Array, Float32Array] = [
+    new Float32Array(pCount * 3),
+    new Float32Array(pCount * 3),
+    new Float32Array(pCount * 3),
+  ];
+
+  for (let i = 0; i < pCount; i += 1) {
+    initial[i * 3] = (Math.random() - 0.5) * 400;
+    initial[i * 3 + 1] = (Math.random() - 0.5) * 400;
+    initial[i * 3 + 2] = (Math.random() - 0.5) * 400;
+
+    if (i < 900) {
+      const phi = Math.acos(-1 + (2 * i) / 900);
+      const theta = Math.sqrt(900 * Math.PI) * phi;
+      targets[0][i * 3] = 45 * Math.cos(theta) * Math.sin(phi);
+      targets[0][i * 3 + 1] = 45 * Math.sin(theta) * Math.sin(phi);
+      targets[0][i * 3 + 2] = 45 * Math.cos(phi);
+    } else {
+      const clusterId = Math.floor((i - 900) / 220);
+      const angle = (clusterId / 5) * Math.PI * 2;
+      const r = 90;
+      targets[0][i * 3] = Math.cos(angle) * r + (Math.random() - 0.5) * 25;
+      targets[0][i * 3 + 1] = Math.sin(angle) * r + (Math.random() - 0.5) * 25;
+      targets[0][i * 3 + 2] = (Math.random() - 0.5) * 25;
+    }
+
+    const gS = 12;
+    const ix = i % gS;
+    const iy = Math.floor(i / gS) % gS;
+    const iz = Math.floor(i / (gS * gS)) % gS;
+    if (i < gS * gS * gS) {
+      targets[1][i * 3] = (ix - gS / 2) * 16;
+      targets[1][i * 3 + 1] = (iy - gS / 2) * 16;
+      targets[1][i * 3 + 2] = (iz - gS / 2) * 16;
+    } else {
+      const angle = Math.random() * Math.PI * 2;
+      targets[1][i * 3] = Math.cos(angle) * 110;
+      targets[1][i * 3 + 1] = Math.sin(angle) * 110;
+      targets[1][i * 3 + 2] = (Math.random() - 0.5) * 200;
+    }
+
+    const blockId = i % 8;
+    const bX = (blockId % 2 - 0.5) * 130;
+    const bY = (Math.floor(blockId / 2) % 2 - 0.5) * 130;
+    const bZ = (Math.floor(blockId / 4) - 0.5) * 130;
+    targets[2][i * 3] = bX + (Math.random() - 0.5) * 35;
+    targets[2][i * 3 + 1] = bY + (Math.random() - 0.5) * 35;
+    targets[2][i * 3 + 2] = bZ + (Math.random() - 0.5) * 35;
+  }
+
+  return { initial, targets };
+}
+
+function getHeroSceneParticleCache(): HeroSceneParticleCache {
+  if (!heroSceneParticleCache) {
+    heroSceneParticleCache = createHeroSceneParticleCache();
+  }
+  return heroSceneParticleCache;
+}
+
+function readHeroScenePoster(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(HERO_SCENE_POSTER_KEY);
+    return raw?.startsWith('data:image/') ? raw : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveHeroScenePoster(canvas: HTMLCanvasElement): string | null {
+  try {
+    const poster = canvas.toDataURL('image/webp', 0.72);
+    window.localStorage.setItem(HERO_SCENE_POSTER_KEY, poster);
+    return poster;
+  } catch {
+    return null;
+  }
+}
+
 function HubContributorStatCard({
   label,
   value,
@@ -1038,8 +1131,10 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
   const [activeNotice, setActiveNotice] = useState(0);
   const [activeScene, setActiveScene] = useState(0);
   const [heroSceneReady, setHeroSceneReady] = useState(false);
+  const [heroScenePoster, setHeroScenePoster] = useState<string | null>(() => readHeroScenePoster());
   const activeSceneRef = useRef(0);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const heroPosterCapturedRef = useRef(Boolean(heroScenePoster));
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -1266,54 +1361,11 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
       renderer.setSize(width, height, false);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-      const pCount = 1800;
+      const pCount = HERO_SCENE_PARTICLE_COUNT;
+      const cachedParticles = getHeroSceneParticleCache();
       const geometry = new THREE.BufferGeometry();
-      const pos = new Float32Array(pCount * 3);
-      const targets = [new Float32Array(pCount * 3), new Float32Array(pCount * 3), new Float32Array(pCount * 3)];
-
-      for (let i = 0; i < pCount; i += 1) {
-        pos[i * 3] = (Math.random() - 0.5) * 400;
-        pos[i * 3 + 1] = (Math.random() - 0.5) * 400;
-        pos[i * 3 + 2] = (Math.random() - 0.5) * 400;
-
-        if (i < 900) {
-          const phi = Math.acos(-1 + (2 * i) / 900);
-          const theta = Math.sqrt(900 * Math.PI) * phi;
-          targets[0][i * 3] = 45 * Math.cos(theta) * Math.sin(phi);
-          targets[0][i * 3 + 1] = 45 * Math.sin(theta) * Math.sin(phi);
-          targets[0][i * 3 + 2] = 45 * Math.cos(phi);
-        } else {
-          const clusterId = Math.floor((i - 900) / 220);
-          const angle = (clusterId / 5) * Math.PI * 2;
-          const r = 90;
-          targets[0][i * 3] = Math.cos(angle) * r + (Math.random() - 0.5) * 25;
-          targets[0][i * 3 + 1] = Math.sin(angle) * r + (Math.random() - 0.5) * 25;
-          targets[0][i * 3 + 2] = (Math.random() - 0.5) * 25;
-        }
-
-        const gS = 12;
-        const ix = i % gS;
-        const iy = Math.floor(i / gS) % gS;
-        const iz = Math.floor(i / (gS * gS)) % gS;
-        if (i < gS * gS * gS) {
-          targets[1][i * 3] = (ix - gS / 2) * 16;
-          targets[1][i * 3 + 1] = (iy - gS / 2) * 16;
-          targets[1][i * 3 + 2] = (iz - gS / 2) * 16;
-        } else {
-          const angle = Math.random() * Math.PI * 2;
-          targets[1][i * 3] = Math.cos(angle) * 110;
-          targets[1][i * 3 + 1] = Math.sin(angle) * 110;
-          targets[1][i * 3 + 2] = (Math.random() - 0.5) * 200;
-        }
-
-        const blockId = i % 8;
-        const bX = (blockId % 2 - 0.5) * 130;
-        const bY = (Math.floor(blockId / 2) % 2 - 0.5) * 130;
-        const bZ = (Math.floor(blockId / 4) - 0.5) * 130;
-        targets[2][i * 3] = bX + (Math.random() - 0.5) * 35;
-        targets[2][i * 3 + 1] = bY + (Math.random() - 0.5) * 35;
-        targets[2][i * 3 + 2] = bZ + (Math.random() - 0.5) * 35;
-      }
+      const pos = cachedParticles.initial.slice();
+      const targets = cachedParticles.targets;
 
       geometry.setAttribute('position', new THREE.BufferAttribute(pos, 3));
       const material = new THREE.PointsMaterial({
@@ -1348,6 +1400,20 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
       };
       canvas.addEventListener('pointermove', handlePointerMove, { passive: true });
       removePointerMove = () => canvas.removeEventListener('pointermove', handlePointerMove);
+
+      const capturePosterOnce = () => {
+        if (heroPosterCapturedRef.current) return;
+        heroPosterCapturedRef.current = true;
+        const capture = () => {
+          const poster = saveHeroScenePoster(canvas);
+          if (poster) setHeroScenePoster(poster);
+        };
+        if ('requestIdleCallback' in window) {
+          window.requestIdleCallback(capture, { timeout: 1200 });
+        } else {
+          setTimeout(capture, 240);
+        }
+      };
 
       const animate = (timestamp?: number) => {
         if (!timer || !particles || !renderer || !camera || !lines) return;
@@ -1395,12 +1461,14 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
         if (!didMarkReady) {
           didMarkReady = true;
           setHeroSceneReady(true);
+          capturePosterOnce();
         }
       };
 
       renderer.render(scene, camera);
       didMarkReady = true;
       setHeroSceneReady(true);
+      capturePosterOnce();
       animate();
 
       const handleResize = () => {
@@ -1787,6 +1855,15 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
           style={{ backgroundColor: heroImmersiveBase }}
         >
           <div className="absolute inset-0 z-0" style={heroSceneFallbackStyle} aria-hidden />
+          {heroScenePoster ? (
+            <div
+              className={`absolute inset-0 z-[2] bg-cover bg-center transition-opacity duration-300 ${
+                heroSceneReady ? 'opacity-0' : 'opacity-100'
+              }`}
+              style={{ backgroundImage: `url(${heroScenePoster})` }}
+              aria-hidden
+            />
+          ) : null}
           <div className="absolute inset-0 z-[1] opacity-55" aria-hidden>
             <div className={`absolute left-1/2 top-1/2 h-36 w-36 -translate-x-1/2 -translate-y-1/2 rounded-full border ${isDark ? 'border-cyan-200/18' : 'border-indigo-200/25'}`} />
             <div className={`absolute left-[calc(50%-4.5rem)] top-[calc(50%-4.5rem)] h-3 w-3 rounded-full ${isDark ? 'bg-cyan-200/65 shadow-[0_0_24px_rgba(103,232,249,0.42)]' : 'bg-indigo-300/65 shadow-[0_0_22px_rgba(129,140,248,0.35)]'}`} />

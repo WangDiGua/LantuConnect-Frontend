@@ -8,6 +8,7 @@ import {
   catalogRunBadgeHealthKeyForDisplay,
   isCatalogInvokeCallable,
 } from './catalogObservability.ts';
+import { resourceCallabilityLabelZh } from './resourceCallability.ts';
 
 export interface ResourceMarketRuntimeInput {
   resourceType: ResourceType | string;
@@ -37,6 +38,12 @@ function normalizeType(raw: string | null | undefined): string {
 
 function isResolveOnlyResource(input: ResourceMarketRuntimeInput): boolean {
   return normalizeType(input.resourceType) === 'skill';
+}
+
+function blockedInteractionLabel(callabilityState: string | undefined): string {
+  const state = normalizeType(callabilityState).replace(/-/g, '_');
+  if (state && state !== 'unknown') return resourceCallabilityLabelZh(callabilityState);
+  return '\u6682\u4e0d\u53ef\u8c03\u7528';
 }
 
 export function buildResourceMarketRuntimeState(input: ResourceMarketRuntimeInput): ResourceMarketRuntimeState {
@@ -77,7 +84,7 @@ export function buildResourceMarketRuntimeState(input: ResourceMarketRuntimeInpu
     healthProbeKey,
     runBadgeKey,
     interactionState: 'blocked',
-    interactionLabel: '\u6682\u4e0d\u53ef\u8c03\u7528',
+    interactionLabel: blockedInteractionLabel(callabilityState),
     interactionDisabled: true,
     interactionHint: catalogInvokeBlockedReason(input),
     supplementalHint,

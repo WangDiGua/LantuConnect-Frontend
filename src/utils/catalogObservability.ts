@@ -88,13 +88,6 @@ export function isCatalogMcpCallable(item: Pick<ResourceCatalogItemVO, 'observab
 }
 
 export function catalogRunBadgeHealthKeyForDisplay(item: Pick<ResourceCatalogItemVO, 'observability'>): string {
-  const callability = norm(catalogItemCallabilityState(item));
-  if (callability === 'circuit_half_open') return 'circuit_half_open';
-  if (callability && callability !== 'callable' && callability !== 'unknown') return 'gateway_blocked';
-
-  const circuitState = norm(catalogItemCircuitState(item));
-  if (circuitState === 'half_open') return 'circuit_half_open';
-  if (!isCatalogInvokeCallable(item)) return 'gateway_blocked';
   return catalogItemHealthStatus(item) ?? 'unknown';
 }
 

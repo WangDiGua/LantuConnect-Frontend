@@ -34,11 +34,30 @@ test('buildResourceMarketRuntimeState marks blocked invoke resources as unavaila
     },
   });
 
-  assert.equal(state.runBadgeKey, 'gateway_blocked');
+  assert.equal(state.runBadgeKey, 'down');
   assert.equal(state.interactionState, 'blocked');
-  assert.equal(state.interactionLabel, '\u6682\u4e0d\u53ef\u8c03\u7528');
+  assert.equal(state.interactionLabel, '\u7194\u65ad\u4e2d');
   assert.equal(state.interactionDisabled, true);
   assert.match(state.interactionHint ?? '', /circuit/i);
+});
+
+test('buildResourceMarketRuntimeState keeps probe health separate from half-open callability', () => {
+  const state = buildResourceMarketRuntimeState({
+    resourceType: 'agent',
+    observability: {
+      healthStatus: 'healthy',
+      circuitState: 'HALF_OPEN',
+      callabilityState: 'circuit_half_open',
+      callabilityReason: 'circuit breaker is half open',
+    },
+  });
+
+  assert.equal(state.healthProbeKey, 'healthy');
+  assert.equal(state.runBadgeKey, 'healthy');
+  assert.equal(state.interactionState, 'blocked');
+  assert.equal(state.interactionLabel, '\u534a\u5f00\u63a2\u6d4b');
+  assert.equal(state.interactionDisabled, true);
+  assert.match(state.interactionHint ?? '', /half open/i);
 });
 
 test('buildResourceMarketRuntimeState treats context skills as resolve-only resources', () => {

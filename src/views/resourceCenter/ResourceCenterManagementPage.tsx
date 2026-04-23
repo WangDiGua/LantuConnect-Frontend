@@ -908,13 +908,13 @@ export const ResourceCenterManagementPage: React.FC<Props> = ({
                           item.degradationHint
                             ? `健康探针结论与运营提示：${item.degradationHint}`
                             : item.healthStatus
-                              ? `与监控中心健康检查表一致，原始值：${item.healthStatus}。广场「可调用」与网关一致：仅 down/disabled 与健康拦截，熔断仅 OPEN/FORCED_OPEN；降级提示来自最近一次调用或熔断状态，不等同于探针结论`
+                              ? `与监控中心健康检查表一致，原始值：${item.healthStatus}。广场「调用状态」与网关一致：仅 down/disabled 与健康拦截，熔断仅 OPEN/FORCED_OPEN；降级提示来自最近一次调用或熔断状态，不等同于探针结论`
                               : '未返回健康字段时多为未配置探测'
                         }
                       >
                         {resourceHealthLabelZh(item.healthStatus)}
                       </span>
-                      <span>可调用</span>
+                      <span>调用状态</span>
                       <span
                         className={`inline-flex items-center rounded-lg px-2 py-0.5 text-xs font-semibold ${resourceCallabilityBadgeClass(theme, item.callabilityState)}`}
                         title={item.callabilityReason ? `最终裁决原因：${item.callabilityReason}` : undefined}

@@ -2,6 +2,7 @@ import { http } from '../../lib/http';
 import type { AxiosRequestConfig } from 'axios';
 import { extractArray, normalizePaginated } from '../../utils/normalizeApiPayload';
 import { normalizeExploreResourceItem } from './dashboard.service';
+import { normalizeCatalogObservability } from '../../utils/catalogObservability';
 import type {
   AggregatedCapabilityToolsVO,
   CatalogResourceDetailVO,
@@ -40,36 +41,6 @@ function optLong(v: unknown): number | null {
   if (v == null || v === '') return null;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
-}
-
-/**
- * 目录行与资源中心列表对齐：健康/熔断/降级可能在行根上（healthStatus、circuitState），
- * 也可能在 observability 内；合并后供广场与 catalogObservability 统一读取。
- */
-function normalizeCatalogObservability(x: Record<string, unknown>): Record<string, unknown> | undefined {
-  const nested =
-    x.observability && typeof x.observability === 'object'
-      ? { ...(x.observability as Record<string, unknown>) }
-      : {};
-
-  const hasVal = (o: Record<string, unknown>, camel: string, snake: string) => {
-    const a = o[camel];
-    const b = o[snake];
-    return (a != null && String(a).trim() !== '') || (b != null && String(b).trim() !== '');
-  };
-
-  const mergeRoot = (camel: string, snake: string) => {
-    if (hasVal(nested, camel, snake)) return;
-    const v = x[camel] ?? x[snake];
-    if (v == null || v === '') return;
-    nested[camel] = v;
-  };
-
-  mergeRoot('healthStatus', 'health_status');
-  mergeRoot('circuitState', 'circuit_state');
-  mergeRoot('degradationHint', 'degradation_hint');
-
-  return Object.keys(nested).length ? nested : undefined;
 }
 
 /** SDK 列表等与控制台目录共用行映射 */

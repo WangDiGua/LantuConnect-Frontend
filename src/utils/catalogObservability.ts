@@ -25,6 +25,35 @@ function obsBool(o: Record<string, unknown> | undefined, camel: string, snake: s
   return undefined;
 }
 
+function hasObsValue(o: Record<string, unknown>, camel: string, snake: string): boolean {
+  const a = o[camel];
+  const b = o[snake];
+  return (a != null && String(a).trim() !== '') || (b != null && String(b).trim() !== '');
+}
+
+export function normalizeCatalogObservability(row: Record<string, unknown>): Record<string, unknown> | undefined {
+  const nested =
+    row.observability && typeof row.observability === 'object'
+      ? { ...(row.observability as Record<string, unknown>) }
+      : {};
+
+  const mergeRoot = (camel: string, snake: string) => {
+    if (hasObsValue(nested, camel, snake)) return;
+    const v = row[camel] ?? row[snake];
+    if (v == null || v === '') return;
+    nested[camel] = v;
+  };
+
+  mergeRoot('healthStatus', 'health_status');
+  mergeRoot('circuitState', 'circuit_state');
+  mergeRoot('callabilityState', 'callability_state');
+  mergeRoot('callabilityReason', 'callability_reason');
+  mergeRoot('callable', 'callable');
+  mergeRoot('degradationHint', 'degradation_hint');
+
+  return Object.keys(nested).length ? nested : undefined;
+}
+
 export function catalogItemHealthStatus(item: Pick<ResourceCatalogItemVO, 'observability'>): string | undefined {
   return obsString(item.observability, 'healthStatus', 'health_status');
 }

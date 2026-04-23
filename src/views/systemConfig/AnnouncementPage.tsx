@@ -593,7 +593,7 @@ export const AnnouncementPage: React.FC<Props> = ({ theme, fontSize, showMessage
           <label className={`flex items-center gap-2 text-sm ${textSecondary(theme)} cursor-pointer select-none`}>
             <input
               type="checkbox"
-              className="rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900/20"
+              className="rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900/20 dark:border-white/15 dark:text-slate-100 dark:focus:ring-sky-400/30"
               checked={draft.enabled !== false}
               onChange={(e) => setDraft((d) => ({ ...d, enabled: e.target.checked }))}
             />

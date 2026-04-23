@@ -56,15 +56,15 @@ interface Props {
 }
 
 const TYPE_BADGE: Record<AgentType, { label: string; cls: string }> = {
-  mcp: { label: 'MCP', cls: 'text-neutral-900 bg-neutral-900/10' },
-  http_api: { label: 'HTTP API', cls: 'text-neutral-800 bg-neutral-800/10' },
-  builtin: { label: '内置', cls: 'text-neutral-700 bg-neutral-700/10' },
+  mcp: { label: 'MCP', cls: 'text-neutral-900 bg-neutral-900/10 dark:text-neutral-100 dark:bg-white/10' },
+  http_api: { label: 'HTTP API', cls: 'text-neutral-800 bg-neutral-800/10 dark:text-neutral-200 dark:bg-white/10' },
+  builtin: { label: '内置', cls: 'text-neutral-700 bg-neutral-700/10 dark:text-neutral-300 dark:bg-white/10' },
   context_skill: { label: 'Context 技能', cls: 'text-fuchsia-900 bg-fuchsia-500/15 dark:text-fuchsia-200 dark:bg-fuchsia-500/20' },
 };
 const SOURCE_BADGE: Record<SourceType, { label: string; cls: string }> = {
-  internal: { label: '自研', cls: 'text-sky-600 bg-sky-500/10' },
-  partner: { label: '合作方', cls: 'text-neutral-900 bg-neutral-900/10' },
-  cloud: { label: '云服务', cls: 'text-cyan-600 bg-cyan-500/10' },
+  internal: { label: '自研', cls: 'text-sky-600 bg-sky-500/10 dark:text-sky-200 dark:bg-sky-500/15' },
+  partner: { label: '合作方', cls: 'text-neutral-900 bg-neutral-900/10 dark:text-neutral-100 dark:bg-white/10' },
+  cloud: { label: '云服务', cls: 'text-cyan-600 bg-cyan-500/10 dark:text-cyan-200 dark:bg-cyan-500/15' },
 };
 const ICON_COLORS = ['bg-neutral-900', 'bg-neutral-800', 'bg-neutral-700', 'bg-stone-800', 'bg-zinc-800', 'bg-neutral-600', 'bg-slate-800', 'bg-neutral-950'];
 function pickColor(str: string): string {

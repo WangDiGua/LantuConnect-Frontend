@@ -186,8 +186,8 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({
           {anomalyCards.map((card) => (
             <BentoCard key={card.title} theme={theme} hover glow={card.tone}>
               <div className="flex items-center gap-3">
-                <div className="rounded-xl bg-neutral-100 p-2.5">
-                  <card.icon size={18} className="text-neutral-900" aria-hidden />
+                <div className={`rounded-xl p-2.5 ${theme === 'dark' ? 'bg-white/[0.08]' : 'bg-neutral-100'}`}>
+                  <card.icon size={18} className={theme === 'dark' ? 'text-slate-100' : 'text-neutral-900'} aria-hidden />
                 </div>
                 <div className="min-w-0">
                   <p className={`text-sm font-semibold ${textPrimary(theme)}`}>{card.title}</p>
@@ -197,7 +197,7 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({
               <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
                 <button
                   type="button"
-                  className="text-neutral-800 hover:text-neutral-900"
+                  className={`transition-colors ${theme === 'dark' ? 'text-slate-200 hover:text-white' : 'text-neutral-800 hover:text-neutral-900'}`}
                   onClick={() => navigate(card.href)}
                 >
                   {card.action}
@@ -251,38 +251,44 @@ export const MonitoringOverviewPage: React.FC<MonitoringOverviewPageProps> = ({
             </div>
 
             <div className="mt-4 space-y-3 text-sm">
-              <div className="rounded-2xl border border-rose-200 bg-rose-50/80 px-4 py-3">
+              <div className={`rounded-2xl border px-4 py-3 ${
+                theme === 'dark' ? 'border-rose-400/20 bg-rose-500/10' : 'border-rose-200 bg-rose-50/80'
+              }`}>
                 <div className="flex items-center justify-between gap-3">
-                  <span className="font-semibold text-rose-700">活跃告警</span>
-                  <span className="text-lg font-bold text-rose-700">{firingCount}</span>
+                  <span className={`font-semibold ${theme === 'dark' ? 'text-rose-200' : 'text-rose-700'}`}>活跃告警</span>
+                  <span className={`text-lg font-bold ${theme === 'dark' ? 'text-rose-200' : 'text-rose-700'}`}>{firingCount}</span>
                 </div>
-                <p className="mt-1 text-xs text-rose-700/80">
+                <p className={`mt-1 text-xs ${theme === 'dark' ? 'text-rose-100/75' : 'text-rose-700/80'}`}>
                   今日已恢复 {resolvedCount} 条，可进入告警处置中心认领、静默或恢复。
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-amber-200 bg-amber-50/80 px-4 py-3">
+              <div className={`rounded-2xl border px-4 py-3 ${
+                theme === 'dark' ? 'border-amber-400/20 bg-amber-500/10' : 'border-amber-200 bg-amber-50/80'
+              }`}>
                 <div className="flex items-center justify-between gap-3">
-                  <span className="font-semibold text-amber-800">最高 P99 资源</span>
-                  <span className="text-xs font-mono text-amber-700">
+                  <span className={`font-semibold ${theme === 'dark' ? 'text-amber-100' : 'text-amber-800'}`}>最高 P99 资源</span>
+                  <span className={`text-xs font-mono ${theme === 'dark' ? 'text-amber-200' : 'text-amber-700'}`}>
                     {perf?.resourceLeaderboard?.[0]?.resourceName ?? '--'}
                   </span>
                 </div>
-                <p className="mt-1 text-xs text-amber-800/80">
+                <p className={`mt-1 text-xs ${theme === 'dark' ? 'text-amber-100/75' : 'text-amber-800/80'}`}>
                   {perf?.resourceLeaderboard?.[0]
                     ? `P99 ${Math.round(perf.resourceLeaderboard[0].p99LatencyMs)}ms，平均延迟 ${Math.round(perf.resourceLeaderboard[0].avgLatencyMs)}ms。`
                     : '当前窗口暂无高延迟资源样本。'}
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+              <div className={`rounded-2xl border px-4 py-3 ${
+                theme === 'dark' ? 'border-white/10 bg-white/[0.04]' : 'border-slate-200 bg-slate-50'
+              }`}>
                 <div className="flex items-center justify-between gap-3">
-                  <span className="font-semibold text-slate-900">最高错误方法</span>
-                  <span className="text-xs font-mono text-slate-600">
+                  <span className={`font-semibold ${theme === 'dark' ? 'text-slate-100' : 'text-slate-900'}`}>最高错误方法</span>
+                  <span className={`text-xs font-mono ${theme === 'dark' ? 'text-slate-300' : 'text-slate-600'}`}>
                     {perf?.methodLeaderboard?.[0]?.method ?? perf?.slowMethods?.[0]?.method ?? '--'}
                   </span>
                 </div>
-                <p className="mt-1 text-xs text-slate-600">
+                <p className={`mt-1 text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
                   {perf?.methodLeaderboard?.[0] ?? perf?.slowMethods?.[0]
                     ? `错误率 ${Math.round((((perf.methodLeaderboard?.[0] ?? perf.slowMethods?.[0])?.errorRate ?? 0) * 100))}%，适合进入性能分析中心和链路追踪继续排查。`
                     : '当前窗口暂无方法级异常摘要。'}

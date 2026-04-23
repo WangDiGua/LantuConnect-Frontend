@@ -32,14 +32,14 @@ export interface AppMarketDetailPageProps {
 }
 
 const EMBED_BADGE: Record<EmbedType, { label: string; cls: string }> = {
-  iframe: { label: '嵌入式', cls: 'text-blue-600 bg-blue-500/10' },
-  redirect: { label: '外链', cls: 'text-amber-600 bg-amber-500/10' },
-  micro_frontend: { label: '微前端', cls: 'text-neutral-900 bg-neutral-900/10' },
+  iframe: { label: '嵌入式', cls: 'text-blue-600 bg-blue-500/10 dark:text-blue-200 dark:bg-blue-500/15' },
+  redirect: { label: '外链', cls: 'text-amber-600 bg-amber-500/10 dark:text-amber-200 dark:bg-amber-500/15' },
+  micro_frontend: { label: '微前端', cls: 'text-neutral-900 bg-neutral-900/10 dark:text-neutral-100 dark:bg-white/10' },
 };
 const SOURCE_BADGE: Record<string, { label: string; cls: string }> = {
-  internal: { label: '自研', cls: 'text-sky-600 bg-sky-500/10' },
-  partner: { label: '合作方', cls: 'text-neutral-900 bg-neutral-900/10' },
-  cloud: { label: '云服务', cls: 'text-cyan-600 bg-cyan-500/10' },
+  internal: { label: '自研', cls: 'text-sky-600 bg-sky-500/10 dark:text-sky-200 dark:bg-sky-500/15' },
+  partner: { label: '合作方', cls: 'text-neutral-900 bg-neutral-900/10 dark:text-neutral-100 dark:bg-white/10' },
+  cloud: { label: '云服务', cls: 'text-cyan-600 bg-cyan-500/10 dark:text-cyan-200 dark:bg-cyan-500/15' },
 };
 const ICON_COLORS = ['bg-neutral-900', 'bg-neutral-800', 'bg-neutral-700', 'bg-stone-800', 'bg-zinc-800', 'bg-neutral-600', 'bg-slate-800', 'bg-neutral-950'];
 function pickColor(str: string): string {

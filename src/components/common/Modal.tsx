@@ -34,6 +34,7 @@ export const Modal: React.FC<ModalProps> = ({
   const reduceMotion = useReducedMotion();
   const titleId = useId();
   const bodyClass = contentClassName ?? 'flex-1 overflow-y-auto px-6 py-4';
+  const bodyToneClass = isDark ? 'text-lantu-text-secondary' : 'text-neutral-600';
 
   useEffect(() => {
     if (!open) return;
@@ -78,8 +79,8 @@ export const Modal: React.FC<ModalProps> = ({
             }
             className={`relative w-full ${SIZE_MAP[size]} rounded-[2rem] border flex flex-col max-h-[85vh] overflow-hidden motion-reduce:transition-none shadow-[var(--shadow-modal)] ${
               isDark
-                ? 'bg-lantu-card border-white/[0.08]'
-                : 'bg-white border-neutral-200/60'
+                ? 'bg-lantu-card text-lantu-text-primary border-white/[0.08]'
+                : 'bg-white text-neutral-900 border-neutral-200/60'
             }`}
           >
             {title && (
@@ -113,7 +114,7 @@ export const Modal: React.FC<ModalProps> = ({
               </button>
             )}
 
-            <div className={bodyClass}>{children}</div>
+            <div className={`${bodyToneClass} ${bodyClass}`}>{children}</div>
 
             {footer && (
               <div className={`flex items-center justify-end gap-3 px-6 py-4 border-t shrink-0 ${isDark ? 'bg-white/[0.02] border-white/[0.06]' : 'bg-neutral-50/80 border-neutral-100'}`}>

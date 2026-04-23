@@ -56,18 +56,18 @@ interface Props {
 }
 
 const SOURCE_BADGE: Record<DatasetSourceType, { label: string; cls: string }> = {
-  department: { label: '部门数据', cls: 'text-blue-600 bg-blue-500/10' },
-  knowledge: { label: '知识库', cls: 'text-emerald-600 bg-emerald-500/10' },
-  third_party: { label: '第三方', cls: 'text-amber-600 bg-amber-500/10' },
+  department: { label: '部门数据', cls: 'text-blue-600 bg-blue-500/10 dark:text-blue-200 dark:bg-blue-500/15' },
+  knowledge: { label: '知识库', cls: 'text-emerald-600 bg-emerald-500/10 dark:text-emerald-200 dark:bg-emerald-500/15' },
+  third_party: { label: '第三方', cls: 'text-amber-600 bg-amber-500/10 dark:text-amber-200 dark:bg-amber-500/15' },
 };
 
 const DATA_TYPE_BADGE: Record<DatasetDataType, { label: string; cls: string }> = {
-  document: { label: '文档', cls: 'text-slate-600 bg-slate-500/10' },
-  structured: { label: '结构化', cls: 'text-neutral-900 bg-neutral-900/10' },
-  image: { label: '图像', cls: 'text-pink-600 bg-pink-500/10' },
-  audio: { label: '音频', cls: 'text-orange-600 bg-orange-500/10' },
-  video: { label: '视频', cls: 'text-red-600 bg-red-500/10' },
-  mixed: { label: '混合', cls: 'text-neutral-900 bg-neutral-900/10' },
+  document: { label: '文档', cls: 'text-slate-600 bg-slate-500/10 dark:text-slate-300 dark:bg-white/10' },
+  structured: { label: '结构化', cls: 'text-neutral-900 bg-neutral-900/10 dark:text-neutral-100 dark:bg-white/10' },
+  image: { label: '图像', cls: 'text-pink-600 bg-pink-500/10 dark:text-pink-200 dark:bg-pink-500/15' },
+  audio: { label: '音频', cls: 'text-orange-600 bg-orange-500/10 dark:text-orange-200 dark:bg-orange-500/15' },
+  video: { label: '视频', cls: 'text-red-600 bg-red-500/10 dark:text-red-200 dark:bg-red-500/15' },
+  mixed: { label: '混合', cls: 'text-neutral-900 bg-neutral-900/10 dark:text-neutral-100 dark:bg-white/10' },
 };
 
 const DATA_TYPE_ICON: Record<DatasetDataType, React.ElementType> = {

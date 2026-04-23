@@ -476,7 +476,7 @@ export const McpMarket: React.FC<Props> = ({ theme, fontSize, themeColor: _theme
                   description="查看其他用户对当前 MCP 的评分反馈，并继续沉淀真实使用体验。"
                 >
                   <h4 className={`mb-3 flex items-center gap-2 text-sm font-semibold ${textPrimary(theme)}`}>
-                    <MessageSquare size={16} className="text-neutral-800" />
+                    <MessageSquare size={16} className={isDark ? 'text-neutral-200' : 'text-neutral-800'} />
                     评分与评论
                   </h4>
                   <ResourceReviewsSection

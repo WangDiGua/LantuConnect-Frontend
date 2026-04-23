@@ -1335,6 +1335,8 @@ const MainLayoutContent: React.FC<{
 
   useEffect(() => {
     window.dispatchEvent(new CustomEvent<Theme>('lantu-theme-change', { detail: theme }));
+    document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.style.colorScheme = theme;
   }, [theme]);
 
   useEffect(() => {

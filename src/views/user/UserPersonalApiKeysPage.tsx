@@ -450,7 +450,7 @@ export const UserPersonalApiKeysPage: React.FC<UserPersonalApiKeysPageProps> = (
             {apiKeysError ? (
               <div className={`rounded-xl p-3 border ${isDark ? 'bg-rose-500/10 border-rose-500/20' : 'bg-rose-50 border-rose-200'}`}>
                 <p className="text-xs text-rose-500">{apiKeysError}</p>
-                <button type="button" onClick={() => void loadApiKeys()} className="mt-2 text-xs text-neutral-800 hover:text-neutral-900">重试加载</button>
+                <button type="button" onClick={() => void loadApiKeys()} className={`mt-2 text-xs ${isDark ? 'text-slate-200 hover:text-white' : 'text-neutral-800 hover:text-neutral-900'}`}>重试加载</button>
               </div>
             ) : apiKeysLoading ? (
               <PageSkeleton type="table" rows={3} />

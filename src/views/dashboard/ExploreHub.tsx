@@ -1529,7 +1529,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
   const heroVignetteFrom = '#0a0a0b';
   const heroLeadClass = 'text-slate-300 text-sm sm:text-[15px] font-normal leading-relaxed max-w-[42rem] mb-5';
   const heroImmersiveShellClass = isDark
-    ? 'relative isolate flex h-[320px] w-full items-stretch overflow-hidden rounded-[2.5rem] border border-sky-300/[0.14] bg-[#060a12] shadow-[inset_0_1px_0_rgba(255,255,255,0.055),0_28px_80px_-44px_rgba(14,165,233,0.58),0_20px_56px_-38px_rgba(0,0,0,0.96)] ring-1 ring-white/[0.035] lg:h-[304px]'
+    ? 'relative isolate flex h-[320px] w-full items-stretch overflow-hidden rounded-[2.5rem] border border-transparent bg-[#060a12] shadow-none lg:h-[304px]'
     : 'relative isolate flex h-[320px] w-full items-stretch overflow-hidden rounded-[2.5rem] border border-slate-200/70 lg:h-[304px]';
   const heroImmersiveBase = isDark ? '#060a12' : '#111722';
   const heroImmersiveBackdropStyle: React.CSSProperties = {
@@ -1712,10 +1712,6 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
         <div className="pointer-events-none absolute inset-0 z-0" style={heroImmersiveBackdropStyle} aria-hidden />
         {isDark ? (
           <>
-            <div
-              className="pointer-events-none absolute inset-px z-[1] rounded-[calc(2.5rem-1px)] bg-[linear-gradient(110deg,rgba(255,255,255,0.08),transparent_22%,transparent_72%,rgba(56,189,248,0.08))]"
-              aria-hidden
-            />
             <div
               className="pointer-events-none absolute -left-28 top-[-88%] z-[1] h-[28rem] w-[28rem] rounded-full bg-cyan-300/[0.13] blur-[128px]"
               aria-hidden

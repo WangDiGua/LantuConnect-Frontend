@@ -188,6 +188,33 @@
     /** 默认不用实线描边；与亮色一致靠色阶 + 阴影；需描边时用 border-default */
     --border-raised: transparent;
   }
+
+  html {
+    background: var(--canvas-bg);
+    color: var(--text-primary);
+    color-scheme: light;
+  }
+
+  html[data-theme="dark"] {
+    color-scheme: dark;
+  }
+
+  body,
+  #root {
+    min-height: 100vh;
+    background: var(--canvas-bg);
+    color: var(--text-primary);
+  }
+
+  body {
+    margin: 0;
+  }
+
+  input,
+  textarea,
+  select {
+    color: inherit;
+  }
 }
 
 /* Brand logo home：仅导航，不要点击/聚焦时的外框或阴影 */

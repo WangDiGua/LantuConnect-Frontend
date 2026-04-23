@@ -171,7 +171,7 @@ export const AgentDetail: React.FC<AgentDetailProps> = ({ agentId, theme, fontSi
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.05 }} className={`${bentoCard(theme)} p-6`}>
-            <h3 className={`text-sm font-bold mb-4 flex items-center gap-2 ${textPrimary(theme)}`}><Settings size={18} className="text-neutral-800" /> 配置详情</h3>
+            <h3 className={`text-sm font-bold mb-4 flex items-center gap-2 ${textPrimary(theme)}`}><Settings size={18} className={isDark ? 'text-neutral-200' : 'text-neutral-800'} /> 配置详情</h3>
             <div className="space-y-3">
               <div className={`flex items-start gap-3 p-3 rounded-xl ${isDark ? 'bg-white/[0.02]' : 'bg-slate-50'} border ${isDark ? 'border-white/[0.06]' : 'border-slate-100'}`}>
                 <div className={`p-2 rounded-xl shrink-0 ${isDark ? 'bg-blue-500/15 text-blue-400' : 'bg-blue-50 text-blue-600'}`}><Globe size={18} /></div>
@@ -200,7 +200,7 @@ export const AgentDetail: React.FC<AgentDetailProps> = ({ agentId, theme, fontSi
                 { label: '累计调用量', value: formatCallCount(agent.callCount), color: 'text-blue-500' },
                 { label: '平均成功率', value: `${agent.successRate}%`, color: 'text-emerald-500', bar: agent.successRate },
                 { label: '平均响应时间', value: `${agent.avgLatencyMs}ms`, color: 'text-orange-500' },
-                { label: '质量评分', value: String(agent.qualityScore), color: 'text-neutral-800' },
+                { label: '质量评分', value: String(agent.qualityScore), color: isDark ? 'text-neutral-200' : 'text-neutral-800' },
               ].map((item) => (
                 <div key={item.label}>
                   <div className={`text-xs ${textMuted(theme)}`}>{item.label}</div>

@@ -4,7 +4,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   Bot, Wrench, Cpu, AppWindow, Database, BookOpen, Users, Sparkles,
   Activity, Flame, ChevronRight, Award, ArrowRight,
-  Star, Heart, MessageCircle, Clock, Crown, TrendingUp, Zap,
+  Star, Heart, MessageCircle, Clock, Crown, TrendingUp, TrendingDown, Minus, Zap,
   Layers, Network, Share2,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -156,7 +156,7 @@ const HERO_SCENE_METADATA: Array<{ label: string; desc: string; Icon: LucideIcon
 ];
 
 const HERO_SCENE_PARTICLE_COUNT = 1800;
-const HERO_SCENE_POSTER_KEY = 'lantu.exploreHero.scenePoster.v1';
+const HERO_SCENE_POSTER_KEY_PREFIX = 'lantu.exploreHero.scenePoster.v3';
 
 type HeroSceneParticleCache = {
   initial: Float32Array;
@@ -228,20 +228,24 @@ function getHeroSceneParticleCache(): HeroSceneParticleCache {
   return heroSceneParticleCache;
 }
 
-function readHeroScenePoster(): string | null {
+function heroScenePosterKey(theme: Theme): string {
+  return `${HERO_SCENE_POSTER_KEY_PREFIX}.${theme}`;
+}
+
+function readHeroScenePoster(theme: Theme): string | null {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = window.localStorage.getItem(HERO_SCENE_POSTER_KEY);
+    const raw = window.localStorage.getItem(heroScenePosterKey(theme));
     return raw?.startsWith('data:image/') ? raw : null;
   } catch {
     return null;
   }
 }
 
-function saveHeroScenePoster(canvas: HTMLCanvasElement): string | null {
+function saveHeroScenePoster(canvas: HTMLCanvasElement, theme: Theme): string | null {
   try {
     const poster = canvas.toDataURL('image/webp', 0.72);
-    window.localStorage.setItem(HERO_SCENE_POSTER_KEY, poster);
+    window.localStorage.setItem(heroScenePosterKey(theme), poster);
     return poster;
   } catch {
     return null;
@@ -694,7 +698,7 @@ function ExploreHubContributorsEditorialPanel({ contributors, isDark }: { contri
 }
 
 const hubResourceCardClass = (isDark: boolean) =>
-  `${CONSOLE_CARD_RADIUS} border border-transparent px-6 pt-6 pb-8 flex flex-col h-full text-left cursor-pointer transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50 focus-visible:ring-offset-2 ${
+  `${CONSOLE_CARD_RADIUS} border border-transparent px-5 py-5 flex h-[17.5rem] min-w-0 flex-col text-left cursor-pointer transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/50 focus-visible:ring-offset-2 ${
     isDark
       ? `bg-lantu-card ${CONSOLE_CARD_SHADOW_DARK} focus-visible:ring-offset-lantu-card hover:border-sky-400/45 hover:shadow-[var(--shadow-card-hover)]`
       : `bg-white ${CONSOLE_CARD_SHADOW_LIGHT} focus-visible:ring-offset-white hover:border-sky-200/50 hover:shadow-[var(--shadow-card-hover)]`
@@ -714,10 +718,10 @@ const HubResourceCard: React.FC<{
   const rev = item.reviewCount != null ? Number(item.reviewCount) : 0;
   return (
     <button type="button" onClick={() => onOpen(item)} className={hubResourceCardClass(isDark)}>
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex flex-wrap items-center gap-2 min-w-0">
+      <div className="mb-3 flex min-h-7 items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
           <span
-            className={`text-xs font-bold px-2.5 py-1 rounded-lg shrink-0 ${
+            className={`shrink-0 rounded-lg px-2.5 py-1 text-xs font-bold ${
               isDark ? 'bg-white/10 text-lantu-text-secondary' : 'bg-slate-100 text-slate-600'
             }`}
           >
@@ -725,7 +729,7 @@ const HubResourceCard: React.FC<{
           </span>
           {showReason && item.reason?.trim() ? (
             <span
-              className={`text-xs font-semibold px-2 py-0.5 rounded-md truncate max-w-[200px] ${
+              className={`min-w-0 truncate rounded-md px-2 py-0.5 text-xs font-semibold ${
                 isDark ? 'bg-sky-500/15 text-sky-200 border border-sky-400/25' : 'bg-sky-50 text-sky-800 border border-sky-100'
               }`}
               title={item.reason}
@@ -736,7 +740,7 @@ const HubResourceCard: React.FC<{
         </div>
         {rank != null ? (
           <div
-            className={`w-8 h-8 rounded-full border flex items-center justify-center text-xs font-bold shrink-0 ${
+            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-bold ${
               isDark ? 'bg-white/5 border-white/10 text-lantu-text-muted' : 'bg-slate-50 border-slate-100 text-slate-400'
             }`}
           >
@@ -745,10 +749,24 @@ const HubResourceCard: React.FC<{
         ) : null}
       </div>
 
-      <h4 className={`font-bold text-lg mb-2 ${isDark ? 'text-lantu-text-primary' : 'text-slate-900'}`}>{item.displayName}</h4>
-      <p className={`text-sm leading-relaxed flex-grow ${isDark ? 'text-lantu-text-secondary' : 'text-slate-500'}`}>{item.description}</p>
+      <h4
+        className={`mb-2 line-clamp-2 min-h-[3.25rem] text-[1.05rem] font-black leading-snug tracking-[-0.01em] ${
+          isDark ? 'text-lantu-text-primary' : 'text-slate-900'
+        }`}
+        title={item.displayName}
+      >
+        {item.displayName}
+      </h4>
+      <p
+        className={`line-clamp-2 min-h-[2.75rem] text-sm leading-relaxed ${
+          isDark ? 'text-lantu-text-secondary' : 'text-slate-500'
+        }`}
+        title={item.description || undefined}
+      >
+        {item.description || '暂无描述'}
+      </p>
 
-      <div className={`flex flex-wrap gap-x-3 gap-y-1 mt-4 text-xs ${metaMuted}`}>
+      <div className={`mt-4 flex min-h-9 flex-wrap content-start gap-x-3 gap-y-1 text-xs ${metaMuted}`}>
         {showRating ? (
           <span className="inline-flex items-center gap-1">
             <Star size={13} className="shrink-0 opacity-80" aria-hidden />
@@ -768,7 +786,7 @@ const HubResourceCard: React.FC<{
           </span>
         ) : null}
         {item.publishedAt ? (
-          <span className="inline-flex items-center gap-1 min-w-0">
+          <span className="inline-flex min-w-0 items-center gap-1">
             <Clock size={13} className="shrink-0 opacity-80" aria-hidden />
             <span className="truncate">{formatDateTime(item.publishedAt)}</span>
           </span>
@@ -776,21 +794,21 @@ const HubResourceCard: React.FC<{
       </div>
 
       <div
-        className={`flex items-center justify-between mt-6 pt-4 border-t ${
+        className={`mt-auto flex min-h-10 items-center justify-between border-t pt-4 ${
           isDark ? 'border-white/10' : 'border-slate-100'
         }`}
       >
-        <div className={`flex items-center gap-2 text-xs ${isDark ? 'text-lantu-text-secondary' : 'text-slate-500'}`}>
+        <div className={`flex min-w-0 items-center gap-2 text-xs ${isDark ? 'text-lantu-text-secondary' : 'text-slate-500'}`}>
           <div
-            className={`w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-xs ${
+            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${
               isDark ? 'bg-gradient-to-br from-slate-600 to-slate-700' : 'bg-gradient-to-br from-slate-200 to-slate-300'
             }`}
           >
             {authorLabel.charAt(0)}
           </div>
-          {authorLabel}
+          <span className="truncate">{authorLabel}</span>
         </div>
-        <div className={`text-xs font-medium flex items-center gap-1.5 ${isDark ? 'text-lantu-text-muted' : 'text-slate-400'}`}>
+        <div className={`ml-3 flex shrink-0 items-center gap-1.5 text-xs font-medium ${isDark ? 'text-lantu-text-muted' : 'text-slate-400'}`}>
           <Activity size={14} aria-hidden />
           {item.callCount == null ? '—' : formatCount(item.callCount)}
         </div>
@@ -810,8 +828,13 @@ const HubStatCard: React.FC<{
   isDark: boolean;
 }> = ({ icon: Icon, value, label, trend, clickable, onClick, isDark }) => {
   const shell = [
-    `group relative flex h-[168px] min-w-0 w-full flex-col items-center justify-center overflow-hidden ${CONSOLE_CARD_RADIUS} border`,
-    'transition-all duration-500 ease-out hover:-translate-y-2',
+    `group relative flex min-h-[168px] min-w-0 w-full flex-col items-stretch justify-stretch overflow-visible ${CONSOLE_CARD_RADIUS}`,
+    'focus:outline-none',
+  ].join(' ');
+
+  const cardSurface = [
+    `relative flex min-h-[168px] w-full flex-col items-center justify-center overflow-hidden px-2 py-5 ${CONSOLE_CARD_RADIUS} border`,
+    'transition-all duration-500 ease-out group-hover:-translate-y-2',
     isDark
       ? `bg-lantu-card ${HUB_STAT_BASE_DARK} ${HUB_STAT_HOVER_DARK}`
       : `bg-white ${HUB_STAT_BASE_LIGHT} ${HUB_STAT_HOVER_LIGHT}`,
@@ -828,16 +851,17 @@ const HubStatCard: React.FC<{
   const trendCls = trend
     ? trend.tone === 'up'
       ? isDark
-        ? 'bg-emerald-400/10 text-emerald-300 ring-emerald-300/15'
-        : 'bg-emerald-50 text-emerald-700 ring-emerald-100'
+        ? 'text-emerald-300'
+        : 'text-emerald-700'
       : trend.tone === 'down'
         ? isDark
-          ? 'bg-rose-400/10 text-rose-300 ring-rose-300/15'
-          : 'bg-rose-50 text-rose-700 ring-rose-100'
+          ? 'text-rose-300'
+          : 'text-rose-700'
         : isDark
-          ? 'bg-white/[0.06] text-lantu-text-muted ring-white/10'
-          : 'bg-slate-100 text-slate-500 ring-slate-200'
+          ? 'text-lantu-text-muted'
+          : 'text-slate-500'
     : '';
+  const TrendIcon = trend?.tone === 'up' ? TrendingUp : trend?.tone === 'down' ? TrendingDown : Minus;
 
   const iconBoxCls = [
     'mb-3 flex h-12 w-12 items-center justify-center rounded-xl',
@@ -849,7 +873,7 @@ const HubStatCard: React.FC<{
   ].join(' ');
 
   const body = (
-    <>
+    <div className={cardSurface}>
       <div className={watermarkCls}>
         <Icon className="h-full w-full" strokeWidth={0.5} />
       </div>
@@ -868,12 +892,17 @@ const HubStatCard: React.FC<{
           {label}
         </div>
         {trend ? (
-          <div className={`mt-2 rounded-full px-2.5 py-1 text-[10px] font-bold leading-none ring-1 ${trendCls}`}>
-            {trend.text}
+          <div
+            className={`mt-2 inline-flex h-5 items-center justify-center gap-1 text-[11px] font-bold leading-none ${trendCls}`}
+            aria-label={trend.text}
+            title={trend.text}
+          >
+            <TrendIcon size={13} strokeWidth={2.4} aria-hidden />
+            <span>{trend.value}</span>
           </div>
         ) : null}
       </div>
-    </>
+    </div>
   );
 
   if (clickable) {
@@ -1137,10 +1166,10 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
   fontSize: _fontSize,
   hubRail,
   shellRendersRailOnDesktop = false,
-  mobileNavDrawerOpen = false,
+  mobileNavDrawerOpen: _mobileNavDrawerOpen = false,
 }) => {
   const navigate = useNavigate();
-  const { platformRole } = useUserRole();
+  const { platformRole, hasPermission } = useUserRole();
   const isDark = theme === 'dark';
   const lgUp = useLgUp();
   const hasHubRail = Boolean(hubRail);
@@ -1152,7 +1181,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
   const [activeNotice, setActiveNotice] = useState(0);
   const [activeScene, setActiveScene] = useState(0);
   const [heroSceneReady, setHeroSceneReady] = useState(false);
-  const [heroScenePoster, setHeroScenePoster] = useState<string | null>(() => readHeroScenePoster());
+  const [heroScenePoster, setHeroScenePoster] = useState<string | null>(() => readHeroScenePoster(theme));
   const activeSceneRef = useRef(0);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const heroPosterCapturedRef = useRef(Boolean(heroScenePoster));
@@ -1172,6 +1201,13 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
   }, []);
 
   useEffect(() => { void fetchData(); }, [fetchData]);
+
+  useEffect(() => {
+    const poster = readHeroScenePoster(theme);
+    setHeroScenePoster(poster);
+    heroPosterCapturedRef.current = Boolean(poster);
+    setHeroSceneReady(false);
+  }, [theme]);
 
   const stats = hubData?.platformStats;
   const byTypeMap = Object.fromEntries((stats?.byType ?? []).map((x) => [x.type, Number(x.cnt) || 0]));
@@ -1256,6 +1292,16 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
   const recentItems = (hubData?.recentPublished ?? []).slice(0, 4);
   const recommendedItems = (hubData?.recommendedForUser ?? []).slice(0, 4);
   const developerCount = Number(stats?.totalDevelopers ?? 0);
+  const canPublishResources =
+    hasPermission('agent:create') ||
+    hasPermission('skill:create') ||
+    hasPermission('mcp:create') ||
+    hasPermission('app:create') ||
+    hasPermission('dataset:create');
+  const canAccessPublishingShell =
+    canPublishResources ||
+    platformRole === 'reviewer' ||
+    platformRole === 'platform_admin';
   const heroAnnouncements = useMemo<AnnouncementItem[]>(() => {
     const rows = (hubData?.announcements ?? [])
       .filter((item) => item.enabled !== false && !item.deleted)
@@ -1433,10 +1479,10 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
       renderer = new THREE.WebGLRenderer({
         canvas,
         antialias: true,
-        alpha: true,
+        alpha: false,
         powerPreference: 'high-performance',
       });
-      renderer.setClearColor(isDark ? 0x060a12 : 0x111722, 0);
+      renderer.setClearColor(isDark ? 0x070908 : 0x111722, 1);
       renderer.setSize(width, height, false);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
@@ -1448,10 +1494,10 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
 
       geometry.setAttribute('position', new THREE.BufferAttribute(pos, 3));
       const material = new THREE.PointsMaterial({
-        color: isDark ? 0x60a5fa : 0x6366f1,
+        color: isDark ? 0x6ee7b7 : 0x6366f1,
         size: 1.6,
         transparent: true,
-        opacity: isDark ? 0.82 : 0.7,
+        opacity: isDark ? 0.76 : 0.7,
         blending: THREE.AdditiveBlending,
       });
 
@@ -1462,9 +1508,9 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
       const linePositions = new Float32Array(5 * 2 * 3);
       lineGeom.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
       const lineMat = new THREE.LineBasicMaterial({
-        color: isDark ? 0x38bdf8 : 0x6366f1,
+        color: isDark ? 0x34d399 : 0x6366f1,
         transparent: true,
-        opacity: isDark ? 0.16 : 0.1,
+        opacity: isDark ? 0.13 : 0.1,
       });
       lines = new THREE.LineSegments(lineGeom, lineMat);
       scene.add(lines);
@@ -1484,7 +1530,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
         if (heroPosterCapturedRef.current) return;
         heroPosterCapturedRef.current = true;
         const capture = () => {
-          const poster = saveHeroScenePoster(canvas);
+          const poster = saveHeroScenePoster(canvas, theme);
           if (poster) setHeroScenePoster(poster);
         };
         if ('requestIdleCallback' in window) {
@@ -1574,7 +1620,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
     return () => {
       cleanupThree();
     };
-  }, [loading, isDark]);
+  }, [loading, isDark, theme]);
 
   if (loading) {
     return (
@@ -1608,27 +1654,28 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
   const heroVignetteFrom = '#0a0a0b';
   const heroLeadClass = 'text-slate-300 text-sm sm:text-[15px] font-normal leading-relaxed max-w-[42rem] mb-5';
   const heroImmersiveShellClass = isDark
-    ? 'relative isolate flex h-[320px] w-full items-stretch overflow-hidden rounded-[2.5rem] border border-transparent bg-[#060a12] shadow-none lg:h-[304px]'
-    : 'relative isolate flex h-[320px] w-full items-stretch overflow-hidden rounded-[2.5rem] border border-slate-200/70 lg:h-[304px]';
-  const heroImmersiveBase = isDark ? '#060a12' : '#111722';
+    ? 'relative isolate flex min-h-[320px] w-full items-stretch overflow-hidden rounded-[2.5rem] border border-emerald-100/[0.08] bg-[#111312] shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_22px_70px_-42px_rgba(0,0,0,0.72)] lg:min-h-[304px]'
+    : 'relative isolate flex min-h-[320px] w-full items-stretch overflow-hidden rounded-[2.5rem] border border-slate-200/70 lg:min-h-[304px]';
+  const heroImmersiveBase = isDark ? '#111312' : '#111722';
+  const heroStageBase = isDark ? '#070908' : '#111722';
   const heroImmersiveBackdropStyle: React.CSSProperties = {
     backgroundColor: heroImmersiveBase,
     backgroundImage: isDark
       ? [
-          'radial-gradient(circle at 14% 18%, rgba(56,189,248,0.22), transparent 30%)',
-          'radial-gradient(circle at 58% 118%, rgba(79,70,229,0.18), transparent 34%)',
-          'radial-gradient(circle at 86% 18%, rgba(20,184,166,0.12), transparent 28%)',
-          'linear-gradient(135deg, rgba(2,6,23,0.88) 0%, rgba(15,23,42,0.72) 48%, rgba(2,6,23,0.94) 100%)',
+          'radial-gradient(circle at 12% 16%, rgba(245,158,11,0.13), transparent 28%)',
+          'radial-gradient(circle at 42% 108%, rgba(16,185,129,0.16), transparent 36%)',
+          'radial-gradient(circle at 86% 18%, rgba(45,212,191,0.1), transparent 28%)',
+          'linear-gradient(135deg, rgba(22,22,20,0.98) 0%, rgba(15,18,16,0.92) 48%, rgba(7,9,8,0.98) 100%)',
         ].join(', ')
       : 'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.016) 26%, rgba(255,255,255,0.008) 54%, rgba(255,255,255,0) 100%)',
   };
   const heroSceneFallbackStyle: React.CSSProperties = {
-    backgroundColor: heroImmersiveBase,
+    backgroundColor: heroStageBase,
     backgroundImage: isDark
       ? [
-          'radial-gradient(circle at 48% 38%, rgba(56,189,248,0.22), transparent 32%)',
-          'radial-gradient(circle at 62% 64%, rgba(99,102,241,0.2), transparent 34%)',
-          'linear-gradient(90deg, rgba(6,10,18,0.98), rgba(15,23,42,0.88))',
+          'radial-gradient(circle at 48% 38%, rgba(52,211,153,0.16), transparent 32%)',
+          'radial-gradient(circle at 62% 66%, rgba(245,158,11,0.08), transparent 36%)',
+          'linear-gradient(90deg, rgba(7,9,8,0.99), rgba(13,16,14,0.94))',
         ].join(', ')
       : [
           'radial-gradient(circle at 50% 42%, rgba(99,102,241,0.2), transparent 34%)',
@@ -1637,25 +1684,25 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
         ].join(', '),
   };
   const heroImmersiveFocusClass = isDark
-    ? 'focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#060a12]'
+    ? 'focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#111312]'
     : 'focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#111722]';
   const heroAnnouncementButtonClass = isDark
-    ? 'group relative flex h-11 w-full max-w-[31rem] items-center gap-3 overflow-hidden rounded-[1rem] border border-cyan-200/[0.13] bg-[linear-gradient(180deg,rgba(14,165,233,0.13),rgba(15,23,42,0.26))] px-3.5 py-2 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_16px_36px_-26px_rgba(14,165,233,0.85)] backdrop-blur-md transition-all hover:border-cyan-200/25 hover:bg-[linear-gradient(180deg,rgba(14,165,233,0.18),rgba(15,23,42,0.32))] disabled:cursor-default disabled:hover:border-cyan-200/[0.13] disabled:hover:bg-[linear-gradient(180deg,rgba(14,165,233,0.13),rgba(15,23,42,0.26))]'
+    ? 'group relative flex h-11 w-full max-w-[31rem] items-center gap-3 overflow-hidden rounded-[1rem] border border-emerald-100/[0.13] bg-[linear-gradient(180deg,rgba(52,211,153,0.11),rgba(20,20,18,0.3))] px-3.5 py-2 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_16px_36px_-28px_rgba(16,185,129,0.7)] backdrop-blur-md transition-all hover:border-emerald-100/24 hover:bg-[linear-gradient(180deg,rgba(52,211,153,0.14),rgba(20,20,18,0.34))] disabled:cursor-default disabled:hover:border-emerald-100/[0.13] disabled:hover:bg-[linear-gradient(180deg,rgba(52,211,153,0.11),rgba(20,20,18,0.3))]'
     : 'group relative flex h-11 w-full max-w-[31rem] items-center gap-3 overflow-hidden rounded-[1rem] border border-white/[0.07] bg-[linear-gradient(180deg,rgba(255,255,255,0.032),rgba(255,255,255,0.018))] px-3.5 py-2 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_12px_32px_-24px_rgba(0,0,0,0.9)] backdrop-blur-sm transition-all hover:border-indigo-400/18 hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.022))] disabled:cursor-default disabled:hover:border-white/[0.07] disabled:hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.032),rgba(255,255,255,0.018))]';
   const heroAnnouncementLabelClass = isDark
-    ? 'inline-flex h-6 shrink-0 items-center gap-1.5 rounded-[0.7rem] border border-cyan-200/[0.18] bg-cyan-300/[0.09] px-2.5 font-mono text-[10px] font-semibold tracking-[0.1em] text-cyan-50'
+    ? 'inline-flex h-6 shrink-0 items-center gap-1.5 rounded-[0.7rem] border border-emerald-100/[0.18] bg-emerald-300/[0.09] px-2.5 font-mono text-[10px] font-semibold tracking-[0.1em] text-emerald-50'
     : 'inline-flex h-6 shrink-0 items-center gap-1.5 rounded-[0.7rem] border border-indigo-400/16 bg-indigo-500/[0.08] px-2.5 font-mono text-[10px] font-semibold tracking-[0.1em] text-indigo-100/90';
   const heroTitleAccentClass = isDark
-    ? 'bg-gradient-to-br from-cyan-100 via-white to-sky-400 bg-clip-text text-transparent italic drop-shadow-[0_12px_34px_rgba(56,189,248,0.2)]'
+    ? 'bg-gradient-to-br from-white via-stone-100 to-emerald-200 bg-clip-text text-transparent italic drop-shadow-[0_14px_34px_rgba(16,185,129,0.16)]'
     : 'bg-gradient-to-br from-indigo-200 via-white to-slate-500 bg-clip-text text-transparent italic drop-shadow-2xl';
   const heroHighlightClass = isDark
-    ? 'border-b border-cyan-200/20 font-semibold text-cyan-50'
+    ? 'border-b border-emerald-200/22 font-semibold text-emerald-50'
     : 'border-b border-white/10 font-medium text-white';
   const heroPrimaryButtonClass = isDark
-    ? `group inline-flex items-center gap-2 whitespace-nowrap rounded-[1.05rem] bg-cyan-50 px-6 py-3 text-sm font-black leading-none text-slate-950 shadow-[0_18px_40px_-24px_rgba(103,232,249,0.95)] transition-all hover:bg-white hover:shadow-[0_20px_48px_-24px_rgba(103,232,249,1)] ${heroImmersiveFocusClass}`
+    ? `group inline-flex items-center gap-2 whitespace-nowrap rounded-[1.05rem] bg-emerald-100 px-6 py-3 text-sm font-black leading-none text-neutral-950 shadow-[0_18px_40px_-25px_rgba(110,231,183,0.85)] transition-all hover:bg-emerald-50 hover:shadow-[0_20px_48px_-24px_rgba(110,231,183,0.95)] ${heroImmersiveFocusClass}`
     : `group inline-flex items-center gap-2 whitespace-nowrap rounded-[1.05rem] bg-white px-6 py-3 text-sm font-bold leading-none text-black shadow-[0_0_30px_rgba(255,255,255,0.1)] transition-all hover:bg-slate-100 ${heroImmersiveFocusClass}`;
   const heroSecondaryButtonClass = isDark
-    ? `inline-flex items-center whitespace-nowrap rounded-[1.05rem] border border-cyan-200/[0.16] bg-white/[0.055] px-6 py-3 text-sm font-bold leading-none text-cyan-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] transition-all hover:border-cyan-200/28 hover:bg-cyan-200/[0.08] ${heroImmersiveFocusClass}`
+    ? `inline-flex items-center whitespace-nowrap rounded-[1.05rem] border border-emerald-100/[0.14] bg-white/[0.045] px-6 py-3 text-sm font-bold leading-none text-stone-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)] transition-all hover:border-emerald-100/26 hover:bg-emerald-200/[0.07] ${heroImmersiveFocusClass}`
     : `inline-flex items-center whitespace-nowrap rounded-[1.05rem] border border-white/10 bg-white/[0.04] px-6 py-3 text-sm font-bold leading-none text-white transition-all hover:bg-white/[0.08] ${heroImmersiveFocusClass}`;
 
   const heroCompactTerminal = Boolean(hubRail);
@@ -1707,17 +1754,19 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
           </p>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <button
-              type="button"
-              onClick={() => navigate(unifiedResourceCenterPath(platformRole))}
-              className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-bold text-black transition-all hover:bg-neutral-100 active:scale-[0.98] sm:w-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 ${heroRingOffset}`}
-            >
-              开始发布 <ArrowRight size={15} aria-hidden />
-            </button>
+            {canAccessPublishingShell ? (
+              <button
+                type="button"
+                onClick={() => navigate(unifiedResourceCenterPath(platformRole))}
+                className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-bold text-black transition-all hover:bg-neutral-100 active:scale-[0.98] sm:w-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 ${heroRingOffset}`}
+              >
+                开始发布 <ArrowRight size={15} aria-hidden />
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={() => navigate(buildPath('user', 'developer-docs'))}
-              className={`inline-flex items-center justify-center rounded-2xl border border-transparent px-3 py-3 text-sm font-semibold text-slate-300 transition-colors hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/45 focus-visible:ring-offset-2 ${heroRingOffset}`}
+              className={`inline-flex items-center justify-center rounded-2xl ${canAccessPublishingShell ? 'border border-transparent px-3 text-slate-300 hover:text-white' : 'bg-white px-6 text-black hover:bg-neutral-100'} py-3 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/45 focus-visible:ring-offset-2 ${heroRingOffset}`}
             >
               查看文档
             </button>
@@ -1772,10 +1821,12 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
           </p>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-bold text-black shadow-[0_16px_36px_-24px_rgba(255,255,255,0.9)] sm:w-auto">
-              开始发布
-              <ArrowRight size={15} aria-hidden />
-            </div>
+            {canAccessPublishingShell ? (
+              <div className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-bold text-black shadow-[0_16px_36px_-24px_rgba(255,255,255,0.9)] sm:w-auto">
+                开始发布
+                <ArrowRight size={15} aria-hidden />
+              </div>
+            ) : null}
             <div className="inline-flex items-center justify-center rounded-2xl px-3 py-3 text-sm font-semibold text-slate-300">
               查看文档
             </div>
@@ -1792,11 +1843,11 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
         {isDark ? (
           <>
             <div
-              className="pointer-events-none absolute -left-28 top-[-88%] z-[1] h-[28rem] w-[28rem] rounded-full bg-cyan-300/[0.13] blur-[128px]"
+              className="pointer-events-none absolute -left-28 top-[-88%] z-[1] h-[28rem] w-[28rem] rounded-full bg-amber-300/[0.09] blur-[132px]"
               aria-hidden
             />
             <div
-              className="pointer-events-none absolute bottom-[-86%] right-[14%] z-[1] h-[25rem] w-[25rem] rounded-full bg-indigo-500/[0.16] blur-[136px]"
+              className="pointer-events-none absolute bottom-[-86%] right-[14%] z-[1] h-[25rem] w-[25rem] rounded-full bg-emerald-400/[0.12] blur-[136px]"
               aria-hidden
             />
           </>
@@ -1822,7 +1873,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
           />
         </div>
 
-        <div className="relative z-20 flex flex-[1.3] flex-col justify-between p-7 lg:px-10 lg:py-8">
+        <div className="relative z-20 flex min-w-0 flex-[1.3] flex-col justify-between gap-8 p-7 lg:px-10 lg:py-8">
           <div className="space-y-7">
             <button
               type="button"
@@ -1832,14 +1883,14 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
             >
               <span
                 className={`pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent ${
-                  isDark ? 'via-cyan-200/65' : 'via-indigo-400/40'
+                  isDark ? 'via-emerald-100/55' : 'via-indigo-400/40'
                 } to-transparent opacity-80`}
                 aria-hidden
               />
               <span className={heroAnnouncementLabelClass}>
                 <span
                   className={`h-1.5 w-1.5 rounded-full ${
-                    isDark ? 'bg-cyan-200 shadow-[0_0_10px_rgba(103,232,249,0.95)]' : 'bg-indigo-300 shadow-[0_0_8px_rgba(129,140,248,0.8)]'
+                    isDark ? 'bg-emerald-200 shadow-[0_0_10px_rgba(110,231,183,0.85)]' : 'bg-indigo-300 shadow-[0_0_8px_rgba(129,140,248,0.8)]'
                   }`}
                   aria-hidden
                 />
@@ -1862,7 +1913,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
               <span className="h-4 w-px shrink-0 bg-white/[0.07]" aria-hidden />
               <span
                 className={`shrink-0 font-mono text-[10px] font-medium tracking-[0.14em] transition-colors ${
-                  isDark ? 'text-cyan-100/45 group-hover:text-cyan-50/80' : 'text-slate-500 group-hover:text-slate-300'
+                  isDark ? 'text-emerald-100/45 group-hover:text-emerald-50/80' : 'text-slate-500 group-hover:text-slate-300'
                 }`}
               >
                 {activeHeroAnnouncement.id === 'hero-announcement-fallback' ? '同步中' : '详情'}
@@ -1870,7 +1921,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
             </button>
 
             <div className="space-y-4">
-              <h1 className="text-[3.2rem] font-black leading-[0.92] tracking-[-0.06em] text-white lg:text-[3.7rem]">
+              <h1 className="text-[clamp(2.5rem,5vw,3.2rem)] font-black leading-[0.96] tracking-[-0.04em] text-white lg:text-[clamp(3rem,4.2vw,3.7rem)]">
                 <span className="whitespace-nowrap">Build the future of</span> <br />
                 <span className={heroTitleAccentClass}>
                   campus AI.
@@ -1888,29 +1939,40 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
 
           <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-6">
               <div className="flex items-center gap-3 sm:gap-4">
-                <button
-                  type="button"
-                  onClick={() => navigate(unifiedResourceCenterPath(platformRole))}
-                  className={heroPrimaryButtonClass}
-                >
-                  开始发布
-                  <ChevronRight size={18} className="transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden />
-                </button>
+                {canAccessPublishingShell ? (
+                  <button
+                    type="button"
+                    onClick={() => navigate(unifiedResourceCenterPath(platformRole))}
+                    className={heroPrimaryButtonClass}
+                  >
+                    开始发布
+                    <ChevronRight size={18} className="transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden />
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   onClick={() => navigate(buildPath('user', 'developer-docs'))}
-                  className={heroSecondaryButtonClass}
+                  className={canAccessPublishingShell ? heroSecondaryButtonClass : heroPrimaryButtonClass}
                 >
                   查看技术文档
                 </button>
+                {!canAccessPublishingShell ? (
+                  <button
+                    type="button"
+                    onClick={() => navigate(buildPath('user', 'developer-tools'))}
+                    className={heroSecondaryButtonClass}
+                  >
+                    调试与网关
+                  </button>
+                ) : null}
               </div>
-              <div className={`hidden items-center gap-4 border-l pl-6 xl:flex ${isDark ? 'border-cyan-100/12' : 'border-white/10'}`}>
+              <div className={`hidden items-center gap-4 border-l pl-6 xl:flex ${isDark ? 'border-emerald-100/12' : 'border-white/10'}`}>
                 <div className="flex -space-x-3">
                   {[1, 2, 3].map((i) => (
                     <div
                       key={i}
                       className={`h-8 w-8 overflow-hidden rounded-full border-2 bg-zinc-800 ring-1 ${
-                        isDark ? 'border-[#060a12] ring-cyan-100/15' : 'border-[#020204] ring-white/5'
+                        isDark ? 'border-[#111312] ring-emerald-100/15' : 'border-[#020204] ring-white/5'
                       }`}
                     >
                       <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${i + 135}`} alt="user" />
@@ -1919,7 +1981,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
                 </div>
                 <div className="flex flex-col text-left">
                   <span className="text-xs font-black leading-none text-white">{developerCount.toLocaleString('zh-CN')}</span>
-                  <span className={`mt-1 text-[10px] font-bold tracking-[0.12em] ${isDark ? 'text-cyan-100/48' : 'text-slate-500'}`}>开发者已入驻</span>
+                  <span className={`mt-1 text-[10px] font-bold tracking-[0.12em] ${isDark ? 'text-emerald-100/48' : 'text-slate-500'}`}>开发者已入驻</span>
                 </div>
               </div>
           </div>
@@ -1927,7 +1989,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
 
         <div
           className="group/stage pointer-events-none absolute inset-y-0 right-0 z-10 w-[44%] min-w-[340px] overflow-hidden"
-          style={{ backgroundColor: heroImmersiveBase }}
+          style={{ backgroundColor: heroStageBase }}
         >
           <div className="absolute inset-0 z-0" style={heroSceneFallbackStyle} aria-hidden />
           {heroScenePoster ? (
@@ -1935,21 +1997,21 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
               className={`absolute inset-0 z-[2] bg-cover bg-center transition-opacity duration-300 ${
                 heroSceneReady ? 'opacity-0' : 'opacity-100'
               }`}
-              style={{ backgroundImage: `url(${heroScenePoster})` }}
+              style={{ backgroundColor: heroStageBase, backgroundImage: `url(${heroScenePoster})` }}
               aria-hidden
             />
           ) : null}
           <div className="absolute inset-0 z-[1] opacity-55" aria-hidden>
-            <div className={`absolute left-1/2 top-1/2 h-36 w-36 -translate-x-1/2 -translate-y-1/2 rounded-full border ${isDark ? 'border-cyan-200/18' : 'border-indigo-200/25'}`} />
-            <div className={`absolute left-[calc(50%-4.5rem)] top-[calc(50%-4.5rem)] h-3 w-3 rounded-full ${isDark ? 'bg-cyan-200/65 shadow-[0_0_24px_rgba(103,232,249,0.42)]' : 'bg-indigo-300/65 shadow-[0_0_22px_rgba(129,140,248,0.35)]'}`} />
-            <div className={`absolute left-[calc(50%+4rem)] top-[calc(50%+3.25rem)] h-2.5 w-2.5 rounded-full ${isDark ? 'bg-sky-300/55 shadow-[0_0_20px_rgba(125,211,252,0.32)]' : 'bg-indigo-200/55 shadow-[0_0_18px_rgba(199,210,254,0.32)]'}`} />
-            <div className={`absolute left-[calc(50%-5.5rem)] top-[calc(50%+3.5rem)] h-px w-44 rotate-[22deg] ${isDark ? 'bg-gradient-to-r from-transparent via-cyan-200/28 to-transparent' : 'bg-gradient-to-r from-transparent via-indigo-200/25 to-transparent'}`} />
-            <div className={`absolute left-[calc(50%-3rem)] top-[calc(50%-4rem)] h-px w-36 -rotate-[28deg] ${isDark ? 'bg-gradient-to-r from-transparent via-sky-200/24 to-transparent' : 'bg-gradient-to-r from-transparent via-indigo-200/22 to-transparent'}`} />
+            <div className={`absolute left-1/2 top-1/2 h-36 w-36 -translate-x-1/2 -translate-y-1/2 rounded-full border ${isDark ? 'border-emerald-100/16' : 'border-indigo-200/25'}`} />
+            <div className={`absolute left-[calc(50%-4.5rem)] top-[calc(50%-4.5rem)] h-3 w-3 rounded-full ${isDark ? 'bg-emerald-200/60 shadow-[0_0_24px_rgba(110,231,183,0.32)]' : 'bg-indigo-300/65 shadow-[0_0_22px_rgba(129,140,248,0.35)]'}`} />
+            <div className={`absolute left-[calc(50%+4rem)] top-[calc(50%+3.25rem)] h-2.5 w-2.5 rounded-full ${isDark ? 'bg-amber-200/45 shadow-[0_0_20px_rgba(245,158,11,0.24)]' : 'bg-indigo-200/55 shadow-[0_0_18px_rgba(199,210,254,0.32)]'}`} />
+            <div className={`absolute left-[calc(50%-5.5rem)] top-[calc(50%+3.5rem)] h-px w-44 rotate-[22deg] ${isDark ? 'bg-gradient-to-r from-transparent via-emerald-100/22 to-transparent' : 'bg-gradient-to-r from-transparent via-indigo-200/25 to-transparent'}`} />
+            <div className={`absolute left-[calc(50%-3rem)] top-[calc(50%-4rem)] h-px w-36 -rotate-[28deg] ${isDark ? 'bg-gradient-to-r from-transparent via-amber-100/16 to-transparent' : 'bg-gradient-to-r from-transparent via-indigo-200/22 to-transparent'}`} />
           </div>
           <div
             className={`absolute inset-y-0 left-[-28%] z-20 w-[56%] ${
               isDark
-                ? 'bg-gradient-to-r from-[#060a12] via-[#060a12]/74 to-transparent'
+                ? 'bg-gradient-to-r from-[#111312] via-[#111312]/76 to-transparent'
                 : 'bg-gradient-to-r from-[#111722]/45 via-[#111722]/18 to-transparent'
             }`}
             aria-hidden
@@ -1968,7 +2030,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
             className={`relative z-10 h-full w-full transition-opacity duration-300 ${
               heroSceneReady ? 'opacity-100' : 'opacity-0'
             }`}
-            style={{ display: 'block', backgroundColor: 'transparent' }}
+            style={{ display: 'block', backgroundColor: heroStageBase }}
           />
 
           <div className="absolute bottom-8 inset-x-0 z-30 px-8 text-center">
@@ -1977,7 +2039,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
                 <div
                   key={info.label}
                   className={`absolute inset-0 flex items-center justify-center gap-3 text-[13px] font-black uppercase tracking-[0.32em] transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)] ${
-                    isDark ? 'text-cyan-300 drop-shadow-[0_0_14px_rgba(103,232,249,0.32)]' : 'text-indigo-400'
+                    isDark ? 'text-emerald-200 drop-shadow-[0_0_14px_rgba(110,231,183,0.26)]' : 'text-indigo-400'
                   } ${
                     idx === activeScene ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0 blur-md'
                   }`}
@@ -1992,7 +2054,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
                 <p
                   key={info.desc}
                   className={`absolute inset-0 flex items-center justify-center px-8 text-[11px] font-medium leading-relaxed transition-all duration-1000 delay-100 ${
-                    isDark ? 'text-slate-300/62' : 'text-slate-500'
+                    isDark ? 'text-stone-300/62' : 'text-slate-500'
                   } ${
                     idx === activeScene ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
                   }`}
@@ -2007,7 +2069,7 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
                 <div
                   key={info.label}
                   className={`h-[1px] transition-all duration-700 ${
-                    idx === activeScene ? (isDark ? 'w-10 bg-cyan-300' : 'w-10 bg-indigo-500') : 'w-3 bg-white/10'
+                    idx === activeScene ? (isDark ? 'w-10 bg-emerald-200' : 'w-10 bg-indigo-500') : 'w-3 bg-white/10'
                   }`}
                 />
               ))}
@@ -2017,14 +2079,14 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
           <div className={`absolute right-8 top-7 flex flex-col items-end gap-2 ${isDark ? 'opacity-[0.26]' : 'opacity-[0.15]'}`}>
             <div className="flex items-center gap-3">
               <div className="flex flex-col items-end font-mono">
-                <span className={`text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-cyan-300' : 'text-indigo-400'}`}>Nexus_Visual_Engine</span>
+                <span className={`text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-emerald-200' : 'text-indigo-400'}`}>Nexus_Visual_Engine</span>
                 <span className="text-[8px] font-bold uppercase tracking-tighter text-slate-500">
                   {activeScene === 0 ? 'Agent_Hub_Mode' : activeScene === 1 ? 'Protocol_Matrix' : 'Skills_Nebula'}
                 </span>
               </div>
-              <Activity size={22} className={isDark ? 'text-cyan-300' : 'text-indigo-400'} aria-hidden />
+              <Activity size={22} className={isDark ? 'text-emerald-200' : 'text-indigo-400'} aria-hidden />
             </div>
-            <div className={`h-px w-28 bg-gradient-to-l ${isDark ? 'from-cyan-300/45' : 'from-indigo-500/40'} to-transparent`} />
+            <div className={`h-px w-28 bg-gradient-to-l ${isDark ? 'from-emerald-200/42' : 'from-indigo-500/40'} to-transparent`} />
           </div>
         </div>
 
@@ -2076,7 +2138,6 @@ export const ExploreHub: React.FC<ExploreHubProps> = ({
                   activeSubItem={hubRail!.activeSubItem}
                   routeRole={hubRail!.routeRole}
                   onSubItemClick={hubRail!.onSubItemClick}
-                  suppressGlobalMenuSearchHotkey={mobileNavDrawerOpen}
                   outerScrollOnly
                 />
               </div>

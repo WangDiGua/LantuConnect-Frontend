@@ -113,6 +113,15 @@ export const LoginPage: React.FC = () => {
 
   const formTheme = 'light' as const;
   const inputCls = `${inputBase(formTheme)} pl-10 pr-4`;
+  const captchaCodeField = register('captchaCode', {
+    onChange: (event: React.ChangeEvent<HTMLInputElement>) => {
+      const normalized = event.target.value.replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 4);
+      if (event.target.value !== normalized) {
+        event.target.value = normalized;
+        setValue('captchaCode', normalized, { shouldDirty: true });
+      }
+    },
+  });
 
   /** 左栏日食尺寸：随视口高度收紧，保证 lg+ 一屏内无需滚动 */
   const eclipseSize =
@@ -277,9 +286,11 @@ export const LoginPage: React.FC = () => {
                     <input
                       type="text"
                       autoComplete="off"
-                      placeholder="输入右侧代码"
+                      autoCapitalize="characters"
+                      pattern="[A-Za-z]{4}"
+                      placeholder="输入4位英文"
                       className={`flex-1 min-w-0 ${inputBase(formTheme)} ${errors.captchaCode ? inputBaseError() : ''}`}
-                      {...register('captchaCode')}
+                      {...captchaCodeField}
                     />
                     <button
                       type="button"

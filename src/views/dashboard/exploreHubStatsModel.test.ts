@@ -9,17 +9,17 @@ import {
 test('buildExploreHubTrendView describes up, flat, and down changes from yesterday', () => {
   assert.deepEqual(
     buildExploreHubTrendView({ today: 5, yesterday: 2, delta: 3, direction: 'up' }, '个'),
-    { text: '较昨日新增 3个', tone: 'up' },
+    { text: '较昨日新增 3个', value: '+3个', tone: 'up' },
   );
 
   assert.deepEqual(
     buildExploreHubTrendView({ today: 2, yesterday: 2, delta: 0, direction: 'flat' }, '次'),
-    { text: '较昨日持平', tone: 'flat' },
+    { text: '较昨日持平', value: '0', tone: 'flat' },
   );
 
   assert.deepEqual(
     buildExploreHubTrendView({ today: 1, yesterday: 4, delta: -3, direction: 'down' }, '人'),
-    { text: '较昨日下降 3人', tone: 'down' },
+    { text: '较昨日下降 3人', value: '-3人', tone: 'down' },
   );
 });
 

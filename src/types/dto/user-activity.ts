@@ -28,6 +28,7 @@ export interface UserUsageStats {
   totalCalls: number;
   favoriteCount: number;
   recentDays: { date: string; calls: number }[];
+  byTargetType: { type: string; calls: number }[];
 }
 
 export interface RecentUseItem {

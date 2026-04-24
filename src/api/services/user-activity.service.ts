@@ -8,6 +8,7 @@ import type {
   RecentUseItem,
   MyPublishItem,
 } from '../../types/dto/user-activity';
+import { normalizeUserUsageStats } from './userActivityStatsNormalizer';
 
 const ACTIVITY_TYPES = ['agent', 'skill', 'app', 'dataset', 'mcp'] as const;
 type ActivityType = (typeof ACTIVITY_TYPES)[number];
@@ -99,98 +100,6 @@ function toMyPublish(raw: unknown): MyPublishItem {
     qualityScore: Number(r.qualityScore ?? r.quality_score ?? 0) || 0,
     createTime: String(r.createTime ?? r.create_time ?? ''),
     updateTime: String(r.updateTime ?? r.update_time ?? ''),
-  };
-}
-
-function normalizeUserUsageStats(raw: unknown): UserUsageStats {
-  const o = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
-  const counters = o.counters && typeof o.counters === 'object' ? (o.counters as Record<string, unknown>) : {};
-  const trends = o.trends && typeof o.trends === 'object' ? (o.trends as Record<string, unknown>) : {};
-  const num = (v: unknown) => {
-    const x = Number(v);
-    return Number.isFinite(x) ? x : 0;
-  };
-
-  const days = extractArray(
-    o.recentDays
-    ?? (o as { recent_days?: unknown }).recent_days
-    ?? (o as { callsByDay?: unknown }).callsByDay
-    ?? (o as { calls_by_day?: unknown }).calls_by_day
-    ?? (o as { trend?: unknown }).trend
-    ?? trends.last7Days,
-  );
-  const recentDays = days.map((d: unknown) => {
-    const x = d && typeof d === 'object' ? (d as Record<string, unknown>) : {};
-    return {
-      date: String(x.date ?? x.day ?? x.statDate ?? x.stat_date ?? ''),
-      calls: num(x.calls ?? x.count ?? x.cnt ?? x.invokeCount ?? x.invoke_count),
-    };
-  });
-
-  const now = new Date();
-  const todayKey = now.toISOString().slice(0, 10);
-  const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  /** 从 recentDays 的 date 解析出 YYYY-MM，兼容 YYYY-MM-DD 与 MM-DD（缺省当前年） */
-  const trendDayMonthPrefix = (dateRaw: string): string | null => {
-    const key = String(dateRaw).trim();
-    if (!key) return null;
-    const ymd = key.match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (ymd) return `${ymd[1]}-${ymd[2]}`;
-    const md = key.match(/^(\d{2})-(\d{2})$/);
-    if (md) return `${now.getFullYear()}-${md[1]}`;
-    return null;
-  };
-  const todayCallsFromTrend = recentDays.find((d) => d.date === todayKey)?.calls ?? 0;
-  const weekCallsFromTrend = recentDays.reduce((sum, d) => sum + num(d.calls), 0);
-  const monthCallsFromTrend = recentDays.reduce((sum, d) => {
-    const mp = trendDayMonthPrefix(d.date);
-    return mp === monthPrefix ? sum + num(d.calls) : sum;
-  }, 0);
-
-  const rawMonth = num(
-    o.monthCalls
-      ?? o.month_calls
-      ?? o.monthInvokeCount
-      ?? o.month_invoke_count
-      ?? counters.monthCalls
-      ?? counters.month_calls
-      ?? counters.monthInvokeCount
-      ?? counters.month_invoke_count,
-  );
-  /** API 本月为 0 但趋势含当月数据时，用当月日汇总兜底 */
-  const monthCalls =
-    rawMonth === 0 && monthCallsFromTrend > 0 ? monthCallsFromTrend : rawMonth;
-
-  return {
-    todayCalls: num(
-      o.todayCalls
-      ?? o.today_calls
-      ?? o.todayInvokeCount
-      ?? o.today_invoke_count
-      ?? counters.todayCalls
-      ?? counters.today_calls
-      ?? todayCallsFromTrend,
-    ),
-    weekCalls: num(
-      o.weekCalls
-      ?? o.week_calls
-      ?? o.weekInvokeCount
-      ?? o.week_invoke_count
-      ?? counters.weekCalls
-      ?? counters.week_calls
-      ?? weekCallsFromTrend,
-    ),
-    monthCalls,
-    totalCalls: num(
-      o.totalCalls
-      ?? o.total_calls
-      ?? o.totalInvokeCount
-      ?? o.total_invoke_count
-      ?? counters.totalUsageRecords
-      ?? counters.total_usage_records,
-    ),
-    favoriteCount: num(o.favoriteCount ?? o.favorite_count ?? o.favorites ?? o.favoriteCnt),
-    recentDays,
   };
 }
 

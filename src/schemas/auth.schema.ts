@@ -12,7 +12,9 @@ export const loginSchema = z.object({
   captchaCode: z
     .string()
     .trim()
-    .min(1, '请输入验证码'),
+    .min(1, '请输入验证码')
+    .length(4, '请输入4位英文验证码')
+    .regex(/^[A-Za-z]{4}$/, '请输入4位英文验证码'),
   remember: z.boolean(),
 });
 

@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { ChevronDown, Menu, Search } from 'lucide-react';
+import { ChevronDown, Command, Menu, Search } from 'lucide-react';
 import type { Theme } from '../../types';
 import { iconMuted, mainScrollCompositorClass } from '../../utils/uiClasses';
 import type { ConsoleRole } from '../../constants/consoleRoutes';
@@ -68,6 +68,10 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
   const [openDropdownKey, setOpenDropdownKey] = useState<string | null>(null);
   const [dropdownAnchor, setDropdownAnchor] = useState<HTMLButtonElement | null>(null);
   const [reduceMotion, setReduceMotion] = useState(false);
+  const isMac = useMemo(
+    () => typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/i.test(navigator.platform),
+    [],
+  );
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -384,6 +388,29 @@ export const ConsoleTopNav: React.FC<ConsoleTopNavProps> = ({
           ].join(' ')}
           aria-label="全局搜索，按 Ctrl K 或 Command K 打开"
         />
+        <div
+          className={[
+            'ml-1 hidden shrink-0 select-none items-center justify-center rounded-[6px] border px-1.5 py-0.5 text-[11px] font-semibold leading-none tracking-wide transition-colors xl:flex',
+            hotSearchFocused
+              ? isDark
+                ? 'border-white/20 bg-white/12 text-lantu-text-secondary'
+                : 'border-slate-200 bg-white text-slate-600'
+              : isDark
+                ? 'border-white/15 bg-white/8 text-lantu-text-muted'
+                : 'border-slate-200/80 bg-white/90 text-slate-500',
+          ].join(' ')}
+          aria-hidden
+          title={isMac ? '⌘K' : 'Ctrl K'}
+        >
+          {isMac ? (
+            <span className="inline-flex items-center gap-0.5">
+              <Command size={10} strokeWidth={2.4} />
+              K
+            </span>
+          ) : (
+            'Ctrl K'
+          )}
+        </div>
       </div>
 
       <div className="ml-auto flex min-w-0 shrink-0 items-center">{toolbarRight}</div>

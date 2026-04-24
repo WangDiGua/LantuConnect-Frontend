@@ -56,6 +56,7 @@ export type HubPersonalRailRow = {
   subItemId: string;
   label: string;
   icon: LucideIcon;
+  badgeCount?: number;
 };
 
 export type HubPersonalRailSection = {
@@ -86,6 +87,7 @@ export function buildHubPersonalNavModel(
   parentSidebarId: string,
   domain: ConsoleRole,
   filteredGroups: NavSubGroup[],
+  badgeCounts?: Record<string, number>,
 ): HubPersonalRailSection[] {
   return filteredGroups.map((g) => ({
     heading: g.title,
@@ -95,6 +97,7 @@ export function buildHubPersonalNavModel(
       subItemId: item.id,
       label: item.label,
       icon: item.icon,
+      badgeCount: badgeCounts?.[item.id] ?? 0,
     })),
   }));
 }

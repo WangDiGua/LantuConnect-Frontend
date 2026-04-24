@@ -200,6 +200,21 @@ export const ADMIN_DEVELOPER_PORTAL_GROUPS: NavSubGroup[] = [
   },
 ];
 
+export const USER_DEVELOPER_PORTAL_GROUPS: NavSubGroup[] = [
+  {
+    title: '文档与 SDK',
+    items: [{ id: 'developer-docs', icon: BookOpen, label: '接入与文档' }],
+  },
+  {
+    title: '联调与网关',
+    items: [{ id: 'developer-tools', icon: Terminal, label: '调试与网关' }],
+  },
+  {
+    title: '统计',
+    items: [{ id: 'developer-statistics', icon: BarChart3, label: '开发者统计' }],
+  },
+];
+
 // ==================== 用户子菜单（树状：主菜单 + 二级分组）====================
 
 /** 探索发现：子级入口（顶栏一级仍为「探索发现」） */
@@ -323,7 +338,7 @@ export function getNavSubGroups(sidebarId: string, isAdminRole: boolean): NavSub
     case 'apps-center':
       return USER_APPS_CENTER_GROUPS;
     case 'developer-portal':
-      return ADMIN_DEVELOPER_PORTAL_GROUPS;
+      return USER_DEVELOPER_PORTAL_GROUPS;
     case 'workspace':
       return USER_MY_CONSOLE_GROUPS;
     default:

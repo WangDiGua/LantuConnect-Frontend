@@ -27,6 +27,7 @@ import { UserRoleProvider, useUserRole, platformRoleToConsoleRole, canAccessAdmi
 import { useAuthStore } from '../stores/authStore';
 import { authService } from '../api/services/auth.service';
 import { notificationService } from '../api/services/notification.service';
+import { navigationBadgeService, type NavigationBadgeCounts } from '../api/services/navigation-badge.service';
 import { tokenStorage } from '../lib/security';
 import { env } from '../config/env';
 import { unifiedResourceCenterPath } from '../utils/unifiedResourceCenterPath';
@@ -236,6 +237,7 @@ const SUB_ITEM_PERM_MAP: Record<string, string | string[]> = {
   'api-key-management': 'api-key:manage',
   'network-config': 'system:config',
   'developer-applications': 'developer-application:review',
+  'developer-statistics': 'developer:portal',
   'health-governance': 'monitor:view',
 };
 
@@ -958,6 +960,7 @@ const MainLayoutContent: React.FC<{
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showMessagePanel, setShowMessagePanel] = useState(false);
   const [messageUnreadCount, setMessageUnreadCount] = useState(INITIAL_MESSAGE_UNREAD_COUNT);
+  const [navigationBadgeCounts, setNavigationBadgeCounts] = useState<NavigationBadgeCounts>({});
   /** 供屏幕阅读器播报的实时事件摘要（与顶层 toast 配套，不抢焦点） */
   const [realtimeLiveText, setRealtimeLiveText] = useState('');
   const baseDocumentTitleRef = useRef<string>('');
@@ -1081,6 +1084,51 @@ const MainLayoutContent: React.FC<{
     canPublishResources ||
     platformRole === 'reviewer' ||
     platformRole === 'platform_admin';
+
+  const refreshNavigationBadges = useCallback(async () => {
+    if (!authUser?.id) {
+      setNavigationBadgeCounts({});
+      return;
+    }
+    const counts = await navigationBadgeService.getCounts({
+      includeOwnResourceWorkflow: canAccessUserPublishingShell,
+      includeOwnOnboardingWorkflow:
+        platformRole !== 'developer' &&
+        platformRole !== 'platform_admin' &&
+        platformRole !== 'reviewer',
+      includeResourceAudit: hasPermission('resource:audit'),
+      includeDeveloperApplicationAudit: hasPermission('developer-application:review'),
+    });
+    setNavigationBadgeCounts(counts);
+  }, [authUser?.id, canAccessUserPublishingShell, hasPermission, platformRole]);
+
+  useEffect(() => {
+    void refreshNavigationBadges();
+  }, [refreshNavigationBadges]);
+
+  useEffect(() => {
+    if (!authUser?.id) return;
+    const onFocus = () => {
+      void refreshNavigationBadges();
+    };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [authUser?.id, refreshNavigationBadges]);
+
+  useEffect(() => {
+    if (!authUser?.id) return;
+    const unsubscribe = subscribeRealtimePush((msg) => {
+      const signal = getRealtimeUiSignal(msg);
+      if (!signal) return;
+      if (
+        signal.category === 'audit_sync' ||
+        signal.category === 'workflow_notification_sync'
+      ) {
+        void refreshNavigationBadges();
+      }
+    });
+    return unsubscribe;
+  }, [authUser?.id, refreshNavigationBadges]);
 
   // Route validation & redirect (allow admin users to access user views for mode switcher)
   useEffect(() => {
@@ -1270,7 +1318,7 @@ const MainLayoutContent: React.FC<{
     if (
       !layoutIsAdmin &&
       normalizedRoutePage &&
-      DEVELOPER_PORTAL_PAGES.has(normalizedRoutePage) &&
+      normalizedRoutePage === 'developer-statistics' &&
       !canAccessDeveloperPortal(platformRole, hasPermission)
     ) {
       navigate(defaultPath(), { replace: true });
@@ -1353,10 +1401,9 @@ const MainLayoutContent: React.FC<{
     () =>
       USER_SIDEBAR_ITEMS.filter((item) => {
         if (canAccessAdminView(platformRole) && (item.id === 'workspace' || item.id === 'developer-portal')) return false;
-        if (item.id === 'developer-portal') return hasPermission('developer:portal');
         return true;
       }),
-    [hasPermission, platformRole],
+    [platformRole],
   );
 
   const adminSidebarItems = useMemo(() => {
@@ -1465,17 +1512,17 @@ const MainLayoutContent: React.FC<{
     for (const parentId of HUB_PERSONAL_RAIL_PARENT_IDS) {
       if (canAccessAdminView(platformRole) && parentId === 'workspace') {
         const groups = filteredSubGroupsForSidebarId('admin-workspace', 'admin');
-        out.push(...buildHubPersonalNavModel('admin-workspace', 'admin', groups));
+        out.push(...buildHubPersonalNavModel('admin-workspace', 'admin', groups, navigationBadgeCounts));
         continue;
       }
       if (canAccessAdminView(platformRole) && parentId === 'developer-portal') {
         continue;
       }
       const groups = filteredSubGroupsForSidebarId(parentId, 'user');
-      out.push(...buildHubPersonalNavModel(parentId, 'user', groups));
+      out.push(...buildHubPersonalNavModel(parentId, 'user', groups, navigationBadgeCounts));
     }
     return out;
-  }, [filteredSubGroupsForSidebarId, platformRole]);
+  }, [filteredSubGroupsForSidebarId, navigationBadgeCounts, platformRole]);
 
   /** 管理端左轨区块（权限与 adminSidebarItems 一致） */
   const railSectionsAdmin: HubPersonalRailSection[] = useMemo(() => {
@@ -1488,10 +1535,10 @@ const MainLayoutContent: React.FC<{
        */
       if (item.id === 'admin-workspace') continue;
       const groups = filteredSubGroupsForSidebarId(item.id, 'admin');
-      out.push(...buildHubPersonalNavModel(item.id, 'admin', groups));
+      out.push(...buildHubPersonalNavModel(item.id, 'admin', groups, navigationBadgeCounts));
     }
     return out;
-  }, [adminSidebarItems, filteredSubGroupsForSidebarId]);
+  }, [adminSidebarItems, filteredSubGroupsForSidebarId, navigationBadgeCounts]);
 
   /** 全壳统一左轨数据：移动抽屉、探索 Hub、与用户/管理桌面同一套内容区左轨均由此派生 */
   const unifiedRailSections: HubPersonalRailSection[] = useMemo(
@@ -2034,7 +2081,6 @@ const MainLayoutContent: React.FC<{
               activeSubItem={activeSubItem}
               routeRole={consoleRole}
               onSubItemClick={handleRailSubItemClick}
-              suppressGlobalMenuSearchHotkey={mobileNavOpen}
               ariaLabel="控制台导航"
             />
           </div>
@@ -2063,7 +2109,6 @@ const MainLayoutContent: React.FC<{
                       activeSubItem={shellPersonalRail.activeSubItem}
                       routeRole={shellPersonalRail.routeRole}
                       onSubItemClick={shellPersonalRail.onSubItemClick}
-                      suppressGlobalMenuSearchHotkey={mobileNavOpen}
                     />
                   </div>
                   <div className="order-1 flex min-h-0 min-w-0 flex-1 flex-col lg:order-2">
@@ -2128,7 +2173,6 @@ const MainLayoutContent: React.FC<{
                     activeSubItem={exploreHubRailForContent!.activeSubItem}
                     routeRole={exploreHubRailForContent!.routeRole}
                     onSubItemClick={exploreHubRailForContent!.onSubItemClick}
-                    suppressGlobalMenuSearchHotkey={mobileNavOpen}
                     outerScrollOnly
                     ariaLabel="探索首页导航"
                   />

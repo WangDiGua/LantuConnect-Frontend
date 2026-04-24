@@ -1,12 +1,12 @@
-import React, { useMemo, useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
-import { ChevronDown, Command, LayoutList, Search } from 'lucide-react';
+import React, { useMemo, useState, useLayoutEffect, useCallback } from 'react';
+import { ChevronDown, LayoutList } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { Theme } from '../../types';
 import type { ConsoleRole } from '../../constants/consoleRoutes';
 import type { HubPersonalRailSection } from '../../constants/topNavPolicy';
 import { HUB_ADMIN_RAIL_PARENT_IDS, HUB_PERSONAL_RAIL_PARENT_IDS } from '../../constants/topNavPolicy';
 import { ADMIN_SIDEBAR_ITEMS, USER_SIDEBAR_ITEMS } from '../../constants/navigation';
-import { iconMuted, mainScrollCompositorClass } from '../../utils/uiClasses';
+import { mainScrollCompositorClass } from '../../utils/uiClasses';
 import { AvatarGradientFrame, MultiAvatar } from '../common/MultiAvatar';
 
 export interface HubPersonalRailProps {
@@ -20,8 +20,6 @@ export interface HubPersonalRailProps {
   activeSubItem: string;
   routeRole: ConsoleRole;
   onSubItemClick: (subItemId: string, parentSidebarId: string, domain: ConsoleRole) => void;
-  /** 移动抽屉打开时由侧栏接管 ⌘/Ctrl+K，避免双监听 */
-  suppressGlobalMenuSearchHotkey?: boolean;
   /** 侧栏 `<nav>` 可访问名称；默认「探索首页导航」 */
   ariaLabel?: string;
   /**
@@ -39,6 +37,27 @@ type ParentBlock = {
 };
 
 type RowEntry = { sec: HubPersonalRailSection; row: HubPersonalRailSection['rows'][number] };
+
+function badgeText(count: number | undefined): string | null {
+  if (!count || count <= 0) return null;
+  return count > 99 ? '99+' : String(count);
+}
+
+function Badge({ count, isDark }: { count?: number; isDark: boolean }) {
+  const text = badgeText(count);
+  if (!text) return null;
+  return (
+    <span
+      className={`ml-1 inline-flex min-h-[1.125rem] min-w-[1.125rem] shrink-0 items-center justify-center rounded-full px-1.5 text-[10px] font-black leading-none tabular-nums text-white shadow-sm ${
+        isDark ? 'bg-rose-500 shadow-rose-950/40' : 'bg-rose-500 shadow-rose-200/70'
+      }`}
+      aria-label={`${count} 条待处理`}
+      title={`${count} 条待处理`}
+    >
+      {text}
+    </span>
+  );
+}
 
 function buildParentBlocks(flat: HubPersonalRailSection[]): ParentBlock[] {
   const userLabel: Record<string, string> = Object.fromEntries(
@@ -87,7 +106,6 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
   activeSubItem,
   routeRole,
   onSubItemClick,
-  suppressGlobalMenuSearchHotkey = false,
   ariaLabel,
   outerScrollOnly = false,
 }) => {
@@ -97,34 +115,13 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
 
   const parentBlocks = useMemo(() => buildParentBlocks(sections), [sections]);
 
-  const [menuQuery, setMenuQuery] = useState('');
-  const [searchFocused, setSearchFocused] = useState(false);
-  const menuSearchInputRef = useRef<HTMLInputElement>(null);
-  const searchMode = Boolean(menuQuery.trim());
-
-  const isMac = useMemo(
-    () => typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/i.test(navigator.platform),
-    [],
-  );
-
   const filteredBlocks = useMemo(() => {
-    const q = menuQuery.trim().toLowerCase();
-    return parentBlocks.flatMap((block) => {
+    return parentBlocks.map((block) => {
       const allRows: RowEntry[] = block.sections.flatMap((sec) => sec.rows.map((row) => ({ sec, row })));
       const isSingleton = allRows.length === 1;
-      if (!q) return [{ block, rowEntries: allRows, isSingleton }];
-      const parentMatch = block.parentLabel.toLowerCase().includes(q);
-      const rowMatches = (e: RowEntry) => e.row.label.toLowerCase().includes(q);
-      if (isSingleton) {
-        const ok = parentMatch || rowMatches(allRows[0]);
-        if (!ok) return [];
-        return [{ block, rowEntries: allRows, isSingleton: true }];
-      }
-      const matched = allRows.filter(rowMatches);
-      if (!parentMatch && matched.length === 0) return [];
-      return [{ block, rowEntries: parentMatch ? allRows : matched, isSingleton: false }];
+      return { block, rowEntries: allRows, isSingleton };
     });
-  }, [parentBlocks, menuQuery]);
+  }, [parentBlocks]);
 
   /** 与主侧栏一级 id 对齐的语义图标（父级折叠行也展示图标，便于扫读） */
   const parentIconById = useMemo((): Record<string, LucideIcon> => {
@@ -153,28 +150,8 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
 
   /** 路由变化时同步手风琴：layout 阶段更新，避免先画错展开态再校正造成闪烁 */
   useLayoutEffect(() => {
-    if (searchMode) return;
     setExpandedKey(activeBlockKey);
-  }, [activeBlockKey, searchMode]);
-
-  useEffect(() => {
-    if (suppressGlobalMenuSearchHotkey) return;
-    const onHotkey = (e: KeyboardEvent) => {
-      const isFocusHotkey = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k';
-      if (isFocusHotkey) {
-        e.preventDefault();
-        menuSearchInputRef.current?.focus();
-        menuSearchInputRef.current?.select();
-        return;
-      }
-      if (e.key === 'Escape' && document.activeElement === menuSearchInputRef.current) {
-        if (menuQuery) setMenuQuery('');
-        menuSearchInputRef.current?.blur();
-      }
-    };
-    window.addEventListener('keydown', onHotkey);
-    return () => window.removeEventListener('keydown', onHotkey);
-  }, [menuQuery, suppressGlobalMenuSearchHotkey]);
+  }, [activeBlockKey]);
 
   const navAria = ariaLabel ?? '探索首页导航';
 
@@ -214,79 +191,8 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
         </div>
       </div>
 
-      <div
-        className={[
-          'relative mx-3 mb-2 flex h-9 shrink-0 items-center rounded-full px-3 transition-all duration-200',
-          searchFocused
-            ? isDark
-              ? 'border border-transparent bg-white/10 shadow-[0_0_0_2px_rgba(96,165,250,0.35)]'
-              : 'border border-transparent bg-white shadow-[0_0_0_2px_rgba(9,9,11,0.1)]'
-            : isDark
-              ? 'border border-transparent bg-white/[0.06] shadow-[inset_0_1px_2px_rgba(0,0,0,0.35)] hover:bg-white/[0.09]'
-              : 'border border-transparent bg-slate-100/90 hover:bg-slate-200/60',
-        ].join(' ')}
-      >
-        <Search
-          size={15}
-          className={[
-            'block shrink-0 transition-colors duration-200',
-              searchFocused
-              ? isDark
-                ? 'text-lantu-text-primary'
-                : 'text-gray-900'
-              : iconMuted(theme),
-          ].join(' ')}
-          aria-hidden
-        />
-        <input
-          ref={menuSearchInputRef}
-          type="text"
-          name="lantu-console-menu-filter-rail"
-          inputMode="search"
-          autoComplete="off"
-          spellCheck={false}
-          value={menuQuery}
-          onChange={(e) => setMenuQuery(e.target.value)}
-          onFocus={() => setSearchFocused(true)}
-          onBlur={() => setSearchFocused(false)}
-          placeholder="搜索菜单..."
-          className={[
-            'min-w-0 flex-1 border-none bg-transparent px-2.5 py-0 text-sm font-medium leading-none outline-none',
-            isDark ? 'text-lantu-text-primary placeholder:text-lantu-text-muted' : 'text-gray-700 placeholder-gray-400',
-          ].join(' ')}
-          aria-label="搜索菜单"
-        />
-        <div
-          className={[
-            'flex shrink-0 select-none items-center justify-center self-center rounded-[5px] px-1.5 py-0.5 text-xs font-semibold leading-none tracking-wider transition-all duration-200',
-            searchFocused
-              ? 'pointer-events-none scale-90 opacity-0'
-              : [
-                  'scale-100 opacity-100',
-                  isDark
-                    ? 'border border-white/15 bg-white/10 text-lantu-text-muted shadow-[0_1px_2px_rgba(0,0,0,0.25),0_1px_0_rgba(0,0,0,0.12)]'
-                    : 'border border-gray-200/80 bg-white text-gray-500 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_1px_0_rgba(0,0,0,0.02)]',
-                ].join(' '),
-          ].join(' ')}
-          aria-hidden
-          title={isMac ? '⌘K' : 'Ctrl+K'}
-        >
-          {isMac ? (
-            <span className="flex items-center gap-0.5">
-              <Command size={10} strokeWidth={2.5} className="opacity-90" />
-              <span>K</span>
-            </span>
-          ) : (
-            <span>Ctrl K</span>
-          )}
-        </div>
-      </div>
-
       <div className={menuBodyClass}>
         <div className="space-y-1">
-          {filteredBlocks.length === 0 && searchMode ? (
-            <p className="px-1 py-2 text-center text-xs text-lantu-text-muted">未找到匹配菜单</p>
-          ) : null}
           {filteredBlocks.map((fb, blockIdx) => {
             const { block, rowEntries, isSingleton } = fb;
 
@@ -319,6 +225,7 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
 
             if (isSingleton) {
               const { sec, row } = rowEntries[0];
+              const rowBadge = row.badgeCount ?? 0;
               const isActive =
                 routeRole === sec.domain &&
                 activeSidebar === sec.parentSidebarId &&
@@ -342,6 +249,7 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
                     >
                       <row.icon className="h-4 w-4 shrink-0 opacity-90" strokeWidth={2} aria-hidden />
                       <span className="min-w-0 flex-1 truncate">{row.label}</span>
+                      <Badge count={rowBadge} isDark={isDark} />
                     </button>
                   </div>
                 </div>
@@ -349,7 +257,8 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
             }
 
             const ParentIcon = parentIconById[block.parentSidebarId] ?? LayoutList;
-            const childrenOpen = searchMode || isParentOpen(block.key);
+            const childrenOpen = isParentOpen(block.key);
+            const parentBadge = rowEntries.reduce((sum, entry) => sum + (entry.row.badgeCount ?? 0), 0);
             return (
               <div key={block.key}>
                 <div className="border border-transparent">
@@ -369,6 +278,7 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
                       aria-hidden
                     />
                     <span className="min-w-0 flex-1 truncate">{block.parentLabel}</span>
+                    <Badge count={parentBadge} isDark={isDark} />
                     <ChevronDown
                       size={14}
                       aria-hidden
@@ -396,6 +306,7 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
                         role="list"
                       >
                         {rowEntries.map(({ sec, row }) => {
+                          const rowBadge = row.badgeCount ?? 0;
                           const isActive =
                             routeRole === sec.domain &&
                             activeSidebar === sec.parentSidebarId &&
@@ -430,6 +341,7 @@ export const HubPersonalRail: React.FC<HubPersonalRailProps> = ({
                                   aria-hidden
                                 />
                                 <span className="min-w-0 flex-1 truncate">{row.label}</span>
+                                <Badge count={rowBadge} isDark={isDark} />
                               </button>
                             </li>
                           );

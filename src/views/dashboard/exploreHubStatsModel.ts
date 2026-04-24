@@ -10,6 +10,7 @@ export interface ExploreHubTrendPayload {
 
 export interface ExploreHubTrendView {
   text: string;
+  value: string;
   tone: ExploreHubTrendTone;
 }
 
@@ -58,9 +59,10 @@ export function buildExploreHubTrendView(
   const tone = normalizeDirection(trend.direction, delta);
 
   if (tone === 'flat' || delta === 0) {
-    return { text: '较昨日持平', tone: 'flat' };
+    return { text: '较昨日持平', value: '0', tone: 'flat' };
   }
 
   const label = tone === 'up' ? '新增' : '下降';
-  return { text: `较昨日${label} ${Math.abs(delta).toLocaleString('zh-CN')}${unit}`, tone };
+  const value = `${tone === 'up' ? '+' : '-'}${Math.abs(delta).toLocaleString('zh-CN')}${unit}`;
+  return { text: `较昨日${label} ${Math.abs(delta).toLocaleString('zh-CN')}${unit}`, value, tone };
 }
